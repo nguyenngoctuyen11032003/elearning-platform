@@ -127,7 +127,57 @@
   @apply backdrop-blur-lg bg-white/10 dark:bg-slate-950/60 border border-white/20 dark:border-slate-800;
 }
 
-/* Smooth transitions */
+/* Smooth transitions for theme changes */
 .transition-smooth {
   @apply transition-all duration-300 ease-out;
+}
+
+/* Theme transition for all elements */
+* {
+  transition: 
+    background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    fill 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Prevent flash during theme transitions */
+html[data-theme] {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Enhanced card styling with theme transitions */
+.card-enhanced {
+  @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md dark:shadow-lg dark:hover:shadow-xl transition-all duration-300;
+}
+
+/* Button with smooth theme transitions */
+.btn-theme-transition {
+  @apply transition-all duration-200 ease-in-out hover:scale-105 active:scale-95;
+}
+
+/* Enhanced glass effect for different themes */
+.glass-enhanced {
+  @apply backdrop-blur-xl bg-white/20 dark:bg-black/20 border border-white/30 dark:border-white/10 shadow-lg dark:shadow-2xl;
+}
+
+/* Course page specific overrides */
+.course-instructor-card {
+  @apply bg-card dark:bg-slate-900/50 border border-border dark:border-slate-800;
+}
+
+.course-content-section {
+  @apply bg-card dark:bg-slate-900/50 border border-border dark:border-slate-800;
+}
+
+.course-review-card {
+  @apply bg-card dark:bg-slate-900/50 border border-border dark:border-slate-800;
 }

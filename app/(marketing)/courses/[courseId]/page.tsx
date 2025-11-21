@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, use } from "react"
 import { motion } from "framer-motion"
 import { Navbar } from "@/components/ui/navbar"
 import { Footer } from "@/components/ui/footer"
@@ -9,13 +9,14 @@ import { PremiumCard } from "@/components/ui/premium-card"
 import { Star, Heart, Share2, Users, Clock, Award, ChevronDown } from "lucide-react"
 import Link from "next/link"
 
-export default function CourseDetailPage({ params }: { params: { courseId: string } }) {
+export default function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
+  const resolvedParams = use(params)
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [expandedReview, setExpandedReview] = useState<string | null>(null)
 
   // Mock course data
   const course = {
-    id: params.courseId,
+    id: resolvedParams.courseId,
     title: "Lập trình Next.js từ cơ bản đến nâng cao",
     teacher: "Nguyễn Ngọc Tuyền",
     price: 499000,

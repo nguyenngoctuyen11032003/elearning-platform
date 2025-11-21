@@ -1,7 +1,7 @@
 "use client"
 
 import { LessonPlayer } from "@/components/ui/lesson-player"
-import { useState } from "react"
+import { useState, use } from "react"
 
 const mockLessons = [
   { id: "1", title: "Giới thiệu Next.js", type: "video" as const, duration: "12:34", completed: true },
@@ -13,8 +13,9 @@ const mockLessons = [
   { id: "7", title: "Quiz kiểm tra", type: "quiz" as const, completed: false },
 ]
 
-export default function PlayerPage({ params }: { params: { lessonId: string } }) {
-  const [currentLessonId, setCurrentLessonId] = useState(params.lessonId || "1")
+export default function PlayerPage({ params }: { params: Promise<{ lessonId: string }> }) {
+  const resolvedParams = use(params)
+  const [currentLessonId, setCurrentLessonId] = useState(resolvedParams.lessonId || "1")
 
   return (
     <LessonPlayer

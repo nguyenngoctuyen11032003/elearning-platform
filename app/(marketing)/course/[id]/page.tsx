@@ -1,18 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useState, use } from "react"
 import { motion } from "framer-motion"
 import { Star, Users, Clock, Award, ChevronDown } from "lucide-react"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-export default function CourseDetailPage({ params }: { params: { id: string } }) {
+export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
   const [isEnrolled, setIsEnrolled] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
 
   const course = {
-    id: params.id,
+    id: resolvedParams.id,
     title: "Lập trình Next.js từ Cơ bản đến Nâng cao",
     description:
       "Khóa học toàn diện về Next.js, bao gồm App Router, Server Components, API Routes, và deployment. Bạn sẽ học cách xây dựng các ứng dụng web hiện đại, scalable và hiệu suất cao.",
@@ -54,9 +55,9 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-background transition-smooth">
       {/* Hero Section */}
-      <div className="relative h-96 bg-gradient-to-br from-blue-900 to-slate-900 overflow-hidden">
+      <div className="relative h-96 bg-gradient-to-br from-primary/20 to-accent/10 dark:from-blue-900 dark:to-slate-900 overflow-hidden">
         <motion.div
           className="absolute inset-0"
           initial={{ opacity: 0 }}
@@ -66,16 +67,16 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
           <img
             src={course.thumbnail || "/placeholder.svg"}
             alt={course.title}
-            className="w-full h-full object-cover opacity-40"
+            className="w-full h-full object-cover opacity-40 dark:opacity-40"
           />
         </motion.div>
 
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
 
         <div className="relative h-full flex items-end p-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{course.title}</h1>
-            <div className="flex flex-wrap gap-6 text-slate-300">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">{course.title}</h1>
+            <div className="flex flex-wrap gap-6 text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Star size={20} className="text-yellow-400 fill-yellow-400" />
                 <span>
@@ -101,7 +102,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
           {/* Left Column */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 bg-slate-900/50 border border-slate-800">
+              <TabsList className="grid w-full grid-cols-4 bg-card dark:bg-slate-900/50 border border-border dark:border-slate-800">
                 <TabsTrigger value="overview">Giới thiệu</TabsTrigger>
                 <TabsTrigger value="content">Nội dung</TabsTrigger>
                 <TabsTrigger value="requirements">Yêu cầu</TabsTrigger>
@@ -110,16 +111,16 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
 
               <TabsContent value="overview" className="space-y-6 mt-6">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                  <h2 className="text-2xl font-bold text-white mb-4">Về khóa học này</h2>
-                  <p className="text-slate-300 leading-relaxed mb-6">{course.description}</p>
+                  <h2 className="text-2xl font-bold text-foreground mb-4">Về khóa học này</h2>
+                  <p className="text-muted-foreground leading-relaxed mb-6">{course.description}</p>
 
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <PremiumCard>
                       <div className="flex items-center gap-3">
                         <Award className="text-blue-400" size={24} />
                         <div>
-                          <p className="text-slate-400 text-sm">Cấp độ</p>
-                          <p className="text-white font-semibold">{course.level}</p>
+                          <p className="text-muted-foreground text-sm">Cấp độ</p>
+                          <p className="text-foreground font-semibold">{course.level}</p>
                         </div>
                       </div>
                     </PremiumCard>
@@ -127,15 +128,15 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                       <div className="flex items-center gap-3">
                         <Clock className="text-cyan-400" size={24} />
                         <div>
-                          <p className="text-slate-400 text-sm">Thời lượng</p>
-                          <p className="text-white font-semibold">{course.duration}</p>
+                          <p className="text-muted-foreground text-sm">Thời lượng</p>
+                          <p className="text-foreground font-semibold">{course.duration}</p>
                         </div>
                       </div>
                     </PremiumCard>
                   </div>
 
-                  <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-6">
-                    <h3 className="text-white font-semibold mb-4">Về giảng viên</h3>
+                  <div className="course-instructor-card rounded-lg p-6">
+                    <h3 className="text-foreground font-semibold mb-4">Về giảng viên</h3>
                     <div className="flex gap-4">
                       <img
                         src={course.instructorImage || "/placeholder.svg"}
@@ -143,8 +144,8 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                         className="w-16 h-16 rounded-full object-cover"
                       />
                       <div>
-                        <p className="text-white font-semibold">{course.instructor}</p>
-                        <p className="text-slate-300 text-sm mt-1">{course.instructorBio}</p>
+                        <p className="text-foreground font-semibold">{course.instructor}</p>
+                        <p className="text-muted-foreground text-sm mt-1">{course.instructorBio}</p>
                       </div>
                     </div>
                   </div>
@@ -161,15 +162,15 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                   >
                     <button
                       onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
-                      className="w-full flex items-center justify-between p-4 bg-slate-900/50 border border-slate-800 rounded-lg hover:bg-slate-900/70 transition"
+                      className="course-content-section w-full flex items-center justify-between p-4 rounded-lg hover:bg-accent/10 dark:hover:bg-slate-900/70 transition"
                     >
                       <div className="text-left">
-                        <h3 className="text-white font-semibold">{section.title}</h3>
-                        <p className="text-slate-400 text-sm">{section.duration}</p>
+                        <h3 className="text-foreground font-semibold">{section.title}</h3>
+                        <p className="text-muted-foreground text-sm">{section.duration}</p>
                       </div>
                       <ChevronDown
                         size={20}
-                        className={`text-slate-400 transition-transform ${
+                        className={`text-muted-foreground transition-transform ${
                           expandedSection === section.id ? "rotate-180" : ""
                         }`}
                       />
@@ -182,10 +183,10 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                         className="space-y-2 mt-2 ml-4"
                       >
                         {section.lessons.map((lesson) => (
-                          <div key={lesson.id} className="flex items-center gap-3 p-3 text-slate-300">
-                            <span className="text-blue-400">•</span>
+                          <div key={lesson.id} className="flex items-center gap-3 p-3 text-muted-foreground">
+                            <span className="text-primary">•</span>
                             <span>{lesson.title}</span>
-                            <span className="text-slate-500 text-sm ml-auto">{lesson.duration}</span>
+                            <span className="text-muted-foreground/70 text-sm ml-auto">{lesson.duration}</span>
                           </div>
                         ))}
                       </motion.div>
@@ -196,11 +197,11 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
 
               <TabsContent value="requirements" className="space-y-4 mt-6">
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <h3 className="text-white font-semibold mb-4">Yêu cầu tiên quyết</h3>
+                  <h3 className="text-foreground font-semibold mb-4">Yêu cầu tiên quyết</h3>
                   <ul className="space-y-3">
                     {course.requirements.map((req, i) => (
-                      <li key={i} className="flex items-center gap-3 text-slate-300">
-                        <span className="text-blue-400">✓</span>
+                      <li key={i} className="flex items-center gap-3 text-muted-foreground">
+                        <span className="text-primary">✓</span>
                         {req}
                       </li>
                     ))}
@@ -216,18 +217,18 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                         <img src="/placeholder-user.jpg" alt="Reviewer" className="w-12 h-12 rounded-full" />
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-white font-semibold">Học viên {i}</h4>
+                            <h4 className="text-foreground font-semibold">Học viên {i}</h4>
                             <div className="flex gap-1">
                               {[...Array(5)].map((_, j) => (
                                 <Star
                                   key={j}
                                   size={16}
-                                  className={j < 5 ? "text-yellow-400 fill-yellow-400" : "text-slate-600"}
+                                  className={j < 5 ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30"}
                                 />
                               ))}
                             </div>
                           </div>
-                          <p className="text-slate-300 text-sm">
+                          <p className="text-muted-foreground text-sm">
                             Khóa học rất tuyệt vời! Giảng viên giải thích rõ ràng và dễ hiểu.
                           </p>
                         </div>
@@ -244,39 +245,39 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
             <PremiumCard className="sticky top-8">
               <div className="space-y-6">
                 <div>
-                  <p className="text-slate-400 text-sm mb-2">Giá khóa học</p>
-                  <p className="text-4xl font-bold text-blue-400">{(course.price / 1000).toLocaleString()}K</p>
+                  <p className="text-muted-foreground text-sm mb-2">Giá khóa học</p>
+                  <p className="text-4xl font-bold text-primary">{(course.price / 1000).toLocaleString()}K</p>
                 </div>
 
                 <div className="space-y-3">
                   <AnimatedButton className="w-full" onClick={() => setIsEnrolled(true)} disabled={isEnrolled}>
                     {isEnrolled ? "Đã đăng ký" : "Đăng ký ngay"}
                   </AnimatedButton>
-                  <button className="w-full px-6 py-3 border-2 border-slate-700 text-white rounded-full hover:border-slate-600 transition">
+                  <button className="w-full px-6 py-3 border-2 border-border hover:border-accent text-foreground rounded-full transition">
                     Thêm vào danh sách yêu thích
                   </button>
                 </div>
 
-                <div className="space-y-3 pt-6 border-t border-slate-800">
-                  <h3 className="text-white font-semibold">Khóa học bao gồm:</h3>
-                  <ul className="space-y-2 text-slate-300 text-sm">
+                <div className="space-y-3 pt-6 border-t border-border">
+                  <h3 className="text-foreground font-semibold">Khóa học bao gồm:</h3>
+                  <ul className="space-y-2 text-muted-foreground text-sm">
                     <li className="flex items-center gap-2">
-                      <span className="text-blue-400">✓</span> 40 giờ video HD
+                      <span className="text-primary">✓</span> 40 giờ video HD
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-blue-400">✓</span> 50+ bài tập thực hành
+                      <span className="text-primary">✓</span> 50+ bài tập thực hành
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-blue-400">✓</span> Tài liệu PDF & Code
+                      <span className="text-primary">✓</span> Tài liệu PDF & Code
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-blue-400">✓</span> Chứng chỉ hoàn thành
+                      <span className="text-primary">✓</span> Chứng chỉ hoàn thành
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-blue-400">✓</span> Hỗ trợ 24/7
+                      <span className="text-primary">✓</span> Hỗ trợ 24/7
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-blue-400">✓</span> Truy cập trọn đời
+                      <span className="text-primary">✓</span> Truy cập trọn đời
                     </li>
                   </ul>
                 </div>

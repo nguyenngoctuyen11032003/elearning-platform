@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, use } from "react"
 import { motion } from "framer-motion"
 import { CreditCard, Wallet, QrCode } from "lucide-react"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
 
-export default function EnrollmentPage({ params }: { params: { id: string } }) {
+export default function EnrollmentPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
   const [paymentMethod, setPaymentMethod] = useState<"card" | "wallet" | "qr">("card")
   const [isProcessing, setIsProcessing] = useState(false)
 

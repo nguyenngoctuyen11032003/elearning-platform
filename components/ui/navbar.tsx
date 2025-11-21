@@ -5,6 +5,7 @@ import { Menu, X, Home, LogOut, User, Settings, BookOpen, FileText, Heart, Award
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { logout } from "@/lib/auth"
+import { ThemeToggle } from "./theme-toggle"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -74,6 +75,7 @@ export function Navbar() {
           </Link>
         </nav>
         <div className="hidden md:flex items-center gap-4">
+          <ThemeToggle />
           <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-smooth">
             Đăng nhập
           </Link>
@@ -101,9 +103,15 @@ export function Navbar() {
         <Link href="/courses" className="hover:text-foreground transition-smooth">
           Khóa học
         </Link>
-        <Link href="/teachers" className="hover:text-foreground transition-smooth">
-          Giảng viên
-        </Link>
+        {isLoggedIn ? (
+          <Link href="/dashboard" className="hover:text-foreground transition-smooth">
+            Bảng điều khiển
+          </Link>
+        ) : (
+          <Link href="/teachers" className="hover:text-foreground transition-smooth">
+            Giảng viên
+          </Link>
+        )}
         <Link href="/about" className="hover:text-foreground transition-smooth">
           Về chúng tôi
         </Link>
@@ -112,6 +120,7 @@ export function Navbar() {
       <div className="hidden md:flex items-center gap-4 relative">
         {isLoggedIn ? (
           <>
+            <ThemeToggle />
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-3 hover:opacity-80 transition-smooth px-3 py-2 rounded-lg hover:bg-secondary dark:hover:bg-slate-800"
@@ -212,6 +221,7 @@ export function Navbar() {
           </>
         ) : (
           <>
+            <ThemeToggle />
             <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-smooth">
               Đăng nhập
             </Link>
@@ -238,9 +248,15 @@ export function Navbar() {
             <Link href="/courses" className="text-sm hover:text-primary transition-smooth">
               Khóa học
             </Link>
-            <Link href="/teachers" className="text-sm hover:text-primary transition-smooth">
-              Giảng viên
-            </Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard" className="text-sm hover:text-primary transition-smooth">
+                Bảng điều khiển
+              </Link>
+            ) : (
+              <Link href="/teachers" className="text-sm hover:text-primary transition-smooth">
+                Giảng viên
+              </Link>
+            )}
             <Link href="/about" className="text-sm hover:text-primary transition-smooth">
               Về chúng tôi
             </Link>

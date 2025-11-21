@@ -14,7 +14,7 @@ export function PremiumCard({ children, hover = true, className, ...props }: Pre
     <motion.div
       whileHover={hover ? { y: -8, boxShadow: "0 20px 40px rgba(37, 99, 235, 0.2)" } : {}}
       className={cn(
-        "rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/50",
+        "rounded-2xl bg-card dark:bg-slate-900/50 backdrop-blur-xl border border-border dark:border-slate-800/50",
         "p-6 transition-all duration-300",
         className,
       )}

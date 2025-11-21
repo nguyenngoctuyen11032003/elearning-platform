@@ -2,10 +2,11 @@
 
 import { TeacherSidebar } from "@/components/ui/teacher-sidebar"
 import { FileUploadZone } from "@/components/ui/file-upload-zone"
-import { useState } from "react"
+import { useState, use } from "react"
 import { Save, Plus, Trash2, Eye } from "lucide-react"
 
-export default function EditCoursePage({ params }: { params: { id: string } }) {
+export default function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
   const [course, setCourse] = useState({
     title: "Lập trình Next.js từ cơ bản đến nâng cao",
     description: "Khóa học toàn diện về Next.js",

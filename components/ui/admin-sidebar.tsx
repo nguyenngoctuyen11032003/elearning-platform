@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { LayoutDashboard, Users, BookOpen, CreditCard, BarChart3, Settings, LogOut, Menu, X } from "lucide-react"
 import { useState } from "react"
+import { ThemeToggle } from "./theme-toggle"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
@@ -47,6 +48,10 @@ export function AdminSidebar() {
           </div>
           <span className="font-bold text-foreground dark:text-white">ICS Admin</span>
         </Link>
+
+        <div className="flex justify-end mb-4">
+          <ThemeToggle />
+        </div>
 
         <nav className="space-y-2">
           {menuItems.map((item) => {

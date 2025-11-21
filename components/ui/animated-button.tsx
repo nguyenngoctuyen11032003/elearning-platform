@@ -20,9 +20,9 @@ export function AnimatedButton({
   const baseStyles = "font-semibold rounded-full transition-all duration-300 relative overflow-hidden"
 
   const variants = {
-    primary: "bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:shadow-lg hover:shadow-blue-500/50",
-    secondary: "bg-slate-700 text-white hover:bg-slate-600",
-    outline: "border-2 border-blue-600 text-blue-600 hover:bg-blue-600/10",
+    primary: "bg-gradient-to-r from-primary to-accent text-primary-foreground hover:shadow-lg hover:shadow-primary/50",
+    secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+    outline: "border-2 border-primary text-primary hover:bg-primary/10",
   }
 
   const sizes = {
