@@ -1,45 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
 import { ArrowLeft } from "lucide-react"
 import { AuthForm } from "@/components/ui/auth-form"
-import { authenticateUser, setCurrentUser } from "@/lib/auth"
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-
-  const handleLogin = async (data: { email: string; password: string }) => {
-    setIsLoading(true)
-    setError("")
-
-    try {
-      const user = await authenticateUser(data.email, data.password)
-
-      if (user) {
-        setCurrentUser(user)
-
-        // Route based on role
-        if (user.role === "admin") {
-          router.push("/admin/dashboard")
-        } else if (user.role === "teacher") {
-          router.push("/teacher/dashboard")
-        } else {
-          router.push("/dashboard")
-        }
-      } else {
-        setError("Email hoặc mật khẩu không chính xác")
-      }
-    } catch (err) {
-      setError("Đăng nhập thất bại. Vui lòng thử lại.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-background dark:bg-slate-950 flex items-center justify-center px-4">
       <Link
@@ -65,13 +30,7 @@ export default function LoginPage() {
 
         {/* Form */}
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-8 space-y-6">
-          {error && (
-            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-              {error}
-            </div>
-          )}
-
-          <AuthForm type="login" onSubmit={handleLogin} isLoading={isLoading} />
+          <AuthForm type="login" />
 
           <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-900 dark:text-blue-200">
             <p className="font-semibold mb-2">Tài khoản mẫu:</p>

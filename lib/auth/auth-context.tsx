@@ -1,0 +1,150 @@
+'use client';
+
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { User, LoginRequest, RegisterRequest } from '@/lib/api/types';
+import { apiClient } from '@/lib/api/client';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+
+type AuthUser = Omit<User, 'status' | 'createdAt' | 'updatedAt'>;
+
+interface AuthContextType {
+  user: AuthUser | null;
+  loading: boolean;
+  login: (data: LoginRequest) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshToken: () => Promise<void>;
+  isAuthenticated: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  // Initialize auth state from localStorage
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        const storedUser = localStorage.getItem('user');
+
+        if (token && storedUser) {
+          // Verify token is still valid by fetching profile
+          const profile = await apiClient.getProfile();
+          setUser(profile);
+        }
+      } catch (error) {
+        // Token might be expired or invalid
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        console.error('Auth initialization failed:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  const login = async (data: LoginRequest) => {
+    try {
+      setLoading(true);
+      const response = await apiClient.login(data);
+      setUser(response.user);
+      
+      toast.success('Đăng nhập thành công!');
+      
+      // Redirect based on role
+      switch (response.user.role) {
+        case 'admin':
+          router.push('/admin');
+          break;
+        case 'teacher':
+          router.push('/teacher');
+          break;
+        case 'student':
+        default:
+          router.push('/dashboard');
+          break;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Đăng nhập thất bại';
+      toast.error(message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const register = async (data: RegisterRequest) => {
+    try {
+      setLoading(true);
+      const response = await apiClient.register(data);
+      
+      toast.success(response.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực.');
+      router.push('/login');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Đăng ký thất bại';
+      toast.error(message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await apiClient.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      toast.success('Đã đăng xuất thành công');
+      router.push('/');
+    }
+  };
+
+  const refreshToken = async () => {
+    try {
+      const response = await apiClient.refreshToken();
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth_token', response.access_token);
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      await logout();
+    }
+  };
+
+  const value: AuthContextType = {
+    user,
+    loading,
+    login,
+    register,
+    logout,
+    refreshToken,
+    isAuthenticated: !!user,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}

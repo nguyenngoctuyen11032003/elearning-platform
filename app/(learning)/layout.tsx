@@ -1,58 +1,43 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { LogOut, User, Settings, LayoutDashboard, BookOpen, FileText, Heart, Award } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { logout } from "@/lib/auth"
+import { useAuth } from "@/lib/auth/auth-context"
 
 export default function LearningLayout({ children }: { children: React.ReactNode }) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userName, setUserName] = useState("")
-  const [userAvatar, setUserAvatar] = useState("")
   const router = useRouter()
+  
+  const { user, logout, isAuthenticated, loading } = useAuth()
 
-  useEffect(() => {
-    const user = localStorage.getItem("user")
-    const userRole = localStorage.getItem("userRole")
-    if (user && userRole === "student") {
-      setIsLoggedIn(true)
-      try {
-        const userData = JSON.parse(user)
-        setUserName(userData.name || "Học viên")
-        setUserAvatar(userData.avatar || "/professional-woman.png")
-      } catch {
-        setUserName("Học viên")
-        setUserAvatar("/professional-woman.png")
-      }
-    } else {
-      setIsLoggedIn(false)
-    }
-  }, [])
-
-  const handleLogout = () => {
-    logout()
-    router.push("/login")
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse">Đang tải...</div>
+      </div>
+    )
   }
 
-  if (!isLoggedIn) {
+  if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background dark:bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground dark:text-white mb-4">Vui lòng đăng nhập</h1>
-          <p className="text-muted-foreground dark:text-slate-400 mb-6">Bạn cần đăng nhập để truy cập trang này</p>
-          <Link
-            href="/login"
-            className="inline-block px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth"
-          >
-            Đăng nhập
+          <h2 className="text-2xl font-bold mb-4">Bạn cần đăng nhập</h2>
+          <Link href="/login" className="text-primary hover:underline">
+            Đăng nhập ngay
           </Link>
         </div>
       </div>
     )
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    router.push("/login")
   }
 
   return (
@@ -73,11 +58,11 @@ export default function LearningLayout({ children }: { children: React.ReactNode
               className="flex items-center gap-3 hover:opacity-80 transition-smooth px-3 py-2 rounded-lg hover:bg-secondary dark:hover:bg-slate-800"
             >
               <img
-                src={userAvatar || "/placeholder.svg"}
+                src={user?.avatar || "/professional-woman.png"}
                 alt="Avatar"
                 className="w-10 h-10 rounded-full object-cover"
               />
-              <span className="text-sm font-medium text-foreground dark:text-white hidden sm:inline">{userName}</span>
+              <span className="text-sm font-medium text-foreground dark:text-white hidden sm:inline">{user?.name}</span>
             </button>
 
             {/* Profile Dropdown Menu */}
@@ -85,8 +70,10 @@ export default function LearningLayout({ children }: { children: React.ReactNode
               <div className="absolute right-0 top-full mt-2 w-56 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
                 {/* User Info Header */}
                 <div className="px-4 py-3 border-b border-border dark:border-slate-800 sticky top-0 bg-card dark:bg-slate-900">
-                  <p className="text-sm font-semibold text-foreground dark:text-white">{userName}</p>
-                  <p className="text-xs text-muted-foreground dark:text-slate-400">Học viên</p>
+                  <p className="text-sm font-semibold text-foreground dark:text-white">{user?.name}</p>
+                  <p className="text-xs text-muted-foreground dark:text-slate-400">
+                    {user?.role === 'student' ? 'Học viên' : user?.role === 'teacher' ? 'Giảng viên' : 'Admin'}
+                  </p>
                 </div>
 
                 {/* Navigation Section */}
