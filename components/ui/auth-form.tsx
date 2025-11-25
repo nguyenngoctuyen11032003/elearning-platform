@@ -8,9 +8,10 @@ import { useAuth } from "@/lib/auth/auth-context"
 
 interface AuthFormProps {
   type: "login" | "signup"
+  role?: "student" | "teacher"
 }
 
-export function AuthForm({ type }: AuthFormProps) {
+export function AuthForm({ type, role }: AuthFormProps) {
   const { login, register, loading } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
@@ -65,6 +66,7 @@ export function AuthForm({ type }: AuthFormProps) {
           password: formData.password,
           name: formData.name,
           phone: formData.phone || undefined,
+          role: role || "student",
         })
       }
     } catch (error) {

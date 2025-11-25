@@ -69,7 +69,10 @@ export default function SignupPage() {
 
         {/* Form Container */}
         <div className="bg-card dark:bg-slate-900/60 p-8 rounded-xl border border-border dark:border-slate-800 backdrop-blur-sm">
-          <AuthForm type="signup" />
+          <AuthForm 
+            type="signup" 
+            role={selectedRole.toLowerCase() as "student" | "teacher"} 
+          />
 
           <p className="text-center text-sm text-muted-foreground dark:text-slate-400 mt-6">
             Đã có tài khoản?{" "}

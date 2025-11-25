@@ -73,10 +73,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Redirect based on role
       switch (response.user.role) {
         case 'admin':
-          router.push('/admin');
+          router.push('/admin/dashboard');
           break;
         case 'teacher':
-          router.push('/teacher');
+          router.push('/teacher/dashboard');
           break;
         case 'student':
         default:
