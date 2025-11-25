@@ -39,7 +39,7 @@ export default function TestDebugPage() {
   const testProfile = async () => {
     try {
       const token = localStorage.getItem("test_token")
-      const response = await fetch("http://localhost:5000/api/auth/profile", {
+      const response = await fetch("http://localhost:5000/api/users/profile", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

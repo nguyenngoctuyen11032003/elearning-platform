@@ -56,3 +56,8 @@ export interface ApiError {
   message: string | string[];
   error: string;
 }
+
+export interface UpdateProfileRequest {
+  name?: string;
+  phone?: string;
+}

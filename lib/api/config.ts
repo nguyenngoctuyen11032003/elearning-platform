@@ -8,7 +8,6 @@ export const API_ENDPOINTS = {
     VERIFY_EMAIL: '/api/auth/verify-email',
     FORGOT_PASSWORD: '/api/auth/forgot-password',
     RESET_PASSWORD: '/api/auth/reset-password',
-    PROFILE: '/api/auth/profile',
     REFRESH: '/api/auth/refresh',
     LOGOUT: '/api/auth/logout',
   },
@@ -17,6 +16,7 @@ export const API_ENDPOINTS = {
     BY_ID: (id: string) => `/api/users/${id}`,
     UPDATE: (id: string) => `/api/users/${id}`,
     DELETE: (id: string) => `/api/users/${id}`,
+    PROFILE: '/api/users/profile',
   },
 } as const;
 

@@ -6,6 +6,7 @@ import {
   RegisterResponse,
   ForgotPasswordRequest,
   ResetPasswordRequest,
+  UpdateProfileRequest,
   User,
   ApiError
 } from './types';
@@ -118,7 +119,17 @@ class ApiClient {
   }
 
   async getProfile(): Promise<User> {
-    return this.request<User>(API_ENDPOINTS.AUTH.PROFILE);
+    return this.request<User>(API_ENDPOINTS.USERS.PROFILE);
+  }
+
+  async updateProfile(data: UpdateProfileRequest): Promise<User> {
+    return this.request<User>(
+      API_ENDPOINTS.USERS.PROFILE,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    );
   }
 
   async refreshToken(): Promise<{ access_token: string }> {

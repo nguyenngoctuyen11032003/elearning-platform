@@ -1,138 +1,204 @@
 "use client"
 
-import { useState } from "react"
-import { Save, Upload, Mail, Phone, MapPin } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Save, ArrowLeft, Mail, Phone, User } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth/auth-context"
+import { apiClient } from "@/lib/api/client"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 export default function EditProfilePage() {
-  const [isSaving, setIsSaving] = useState(false)
+  const { user, loading } = useAuth()
+  const router = useRouter()
+  const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
-    name: "Trần Thị Hương",
-    email: "hương@icslearning.com",
-    phone: "+84 (123) 456-789",
-    location: "Hà Nội, Việt Nam",
-    bio: "Học viên đam mê lập trình và thiết kế web",
+    name: "",
+    email: "",
+    phone: "",
   })
 
-  const handleSave = async () => {
-    setIsSaving(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsSaving(false)
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+      })
+    }
+  }, [user])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+
+    try {
+      setSaving(true)
+      
+      // Call API to update profile
+      await apiClient.updateProfile({
+        name: formData.name,
+        phone: formData.phone || undefined,
+      })
+
+      toast.success("Cập nhật hồ sơ thành công!")
+      router.push("/profile")
+    } catch (error) {
+      console.error("Error updating profile:", error)
+      toast.error("Có lỗi xảy ra khi cập nhật hồ sơ")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const getInitials = (name?: string) => {
+    if (!name || typeof name !== 'string') return 'U'
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .filter(initial => initial)
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'U'
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-300 rounded w-1/3 mb-6"></div>
+          <div className="h-96 bg-gray-300 rounded"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="space-y-8 text-center">
+        <h1 className="text-3xl font-bold text-foreground dark:text-white">
+          Không tìm thấy thông tin người dùng
+        </h1>
+        <p className="text-muted-foreground">Vui lòng đăng nhập lại</p>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground dark:text-white">Chỉnh sửa hồ sơ</h1>
-        <Link
+      <div className="flex items-center gap-4">
+        <Link 
           href="/profile"
-          className="px-6 py-2 border border-border dark:border-slate-800 text-foreground dark:text-white rounded-lg font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
+          className="p-2 hover:bg-secondary rounded-lg transition-colors"
         >
-          Quay lại
+          <ArrowLeft size={20} />
         </Link>
+        <h1 className="text-3xl font-bold text-foreground dark:text-white">
+          Chỉnh sửa hồ sơ
+        </h1>
       </div>
 
       {/* Edit Form */}
       <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-8 max-w-2xl">
-        <div className="space-y-6">
-          {/* Avatar Upload */}
-          <div>
-            <label className="block text-foreground dark:text-white text-sm font-semibold mb-3">Ảnh đại diện</label>
-            <div className="flex items-center gap-4">
-              <div className="w-24 h-24 bg-secondary dark:bg-slate-800 rounded-full flex items-center justify-center border-2 border-dashed border-border dark:border-slate-700 overflow-hidden">
-                <img src="/professional-woman.png" alt="Avatar" className="w-full h-full object-cover" />
-              </div>
-              <div className="flex-1">
-                <label className="block">
-                  <span className="sr-only">Chọn ảnh</span>
-                  <input type="file" accept="image/*" className="hidden" />
-                  <button
-                    onClick={(e) => {
-                      const input = e.currentTarget.parentElement?.querySelector(
-                        'input[type="file"]',
-                      ) as HTMLInputElement
-                      input?.click()
-                    }}
-                    className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth font-medium flex items-center gap-2"
-                  >
-                    <Upload size={18} />
-                    Tải lên ảnh
-                  </button>
-                </label>
-                <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">PNG, JPG (Max 2MB)</p>
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Avatar Display */}
+          <div className="text-center">
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-muted dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl font-bold text-foreground dark:text-white">
+                {getInitials(user.name)}
+              </span>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Avatar mặc định theo vai trò: {user.role === 'student' ? 'Học viên' : 
+               user.role === 'teacher' ? 'Giảng viên' : 'Quản trị viên'}
+            </p>
           </div>
 
-          {/* Form Fields */}
-          <div>
-            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Họ và tên</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                <Mail size={16} /> Email
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-              />
-            </div>
-            <div>
-              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                <Phone size={16} /> Điện thoại
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-              />
-            </div>
-          </div>
-
+          {/* Name Field */}
           <div>
             <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-              <MapPin size={16} /> Địa điểm
+              <User size={16} /> Họ và tên
             </label>
             <input
               type="text"
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
               className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+              placeholder="Nhập họ và tên của bạn"
             />
           </div>
 
+          {/* Email Field (Read-only) */}
           <div>
-            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Tiểu sử</label>
-            <textarea
-              value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              rows={4}
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+              <Mail size={16} /> Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              readOnly
+              className="w-full bg-muted dark:bg-slate-800 text-muted-foreground cursor-not-allowed rounded-lg px-4 py-2 border border-border dark:border-slate-800"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Email không thể thay đổi vì lý do bảo mật
+            </p>
+          </div>
+
+          {/* Phone Field */}
+          <div>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+              <Phone size={16} /> Số điện thoại
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
               className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+              placeholder="Nhập số điện thoại (tùy chọn)"
             />
           </div>
 
-          {/* Save Button */}
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <Save size={20} />
-            {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
-          </button>
-        </div>
+          {/* Role Display */}
+          <div>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Vai trò</label>
+            <div className="px-4 py-2 bg-muted dark:bg-slate-800 rounded-lg">
+              <span className="text-foreground dark:text-white font-medium">
+                {user.role === 'student' ? 'Học viên' : 
+                 user.role === 'teacher' ? 'Giảng viên' : 'Quản trị viên'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Vai trò không thể thay đổi. Liên hệ admin nếu cần hỗ trợ.
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-4 pt-4">
+            <Link href="/profile" className="flex-1">
+              <button type="button" className="w-full px-6 py-3 border border-border dark:border-slate-800 text-foreground dark:text-white rounded-lg font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-smooth">
+                Hủy
+              </button>
+            </Link>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Save size={20} />
+              {saving ? "Đang lưu..." : "Lưu thay đổi"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
