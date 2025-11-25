@@ -27,7 +27,6 @@ export default function TeacherSettingsPage() {
     email: "teacher@icslearning.com",
     phone: "+84 (123) 456-789",
     bio: "Giáo viên lập trình với 10 năm kinh nghiệm",
-    avatar: "/professional-woman.png",
     bankAccount: "1234567890",
     bankName: "Vietcombank",
     accountHolder: "Nguyễn Ngọc Tuyền",
@@ -69,12 +68,9 @@ export default function TeacherSettingsPage() {
         </div>
 
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
+          <TabsList className="grid w-full grid-cols-4 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
             <TabsTrigger value="profile" className="text-xs md:text-sm">
               Hồ sơ
-            </TabsTrigger>
-            <TabsTrigger value="avatar" className="text-xs md:text-sm">
-              Avatar
             </TabsTrigger>
             <TabsTrigger value="payment" className="text-xs md:text-sm">
               Thanh toán
@@ -135,31 +131,6 @@ export default function TeacherSettingsPage() {
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-24"
                   />
                 </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Avatar Settings */}
-          <TabsContent value="avatar" className="space-y-6 mt-6">
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Camera size={24} /> Ảnh đại diện
-              </h2>
-              <div className="space-y-4">
-                <div className="flex flex-col items-center gap-6">
-                  <img
-                    src={settings.avatar || "/placeholder.svg"}
-                    alt="Avatar"
-                    className="w-32 h-32 rounded-full object-cover border-4 border-primary dark:border-accent"
-                  />
-                  <button className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth">
-                    <Upload size={20} />
-                    Tải lên ảnh mới
-                  </button>
-                </div>
-                <p className="text-sm text-muted-foreground dark:text-slate-400 text-center">
-                  Hỗ trợ các định dạng: JPG, PNG, GIF (Tối đa 5MB)
-                </p>
               </div>
             </div>
           </TabsContent>

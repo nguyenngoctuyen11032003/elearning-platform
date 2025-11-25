@@ -6,6 +6,7 @@ import { LayoutDashboard, Users, BookOpen, CreditCard, BarChart3, Settings, LogO
 import { useState } from "react"
 import { ThemeToggle } from "./theme-toggle"
 import { useAuth } from "@/lib/auth/auth-context"
+import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
@@ -26,17 +27,6 @@ export function AdminSidebar() {
   const handleLogout = async () => {
     await logout()
     router.push("/login")
-  }
-
-  const getInitials = (name?: string) => {
-    if (!name || typeof name !== 'string') return 'A'
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .filter(initial => initial)
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || 'A'
   }
 
   return (
@@ -91,10 +81,22 @@ export function AdminSidebar() {
           {user && (
             <div className="bg-secondary/30 dark:bg-slate-800/30 rounded-lg p-3 border border-border dark:border-slate-700">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">
-                    {getInitials(user.name)}
-                  </span>
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                  <img
+                    src={getRoleAvatar(user.role)}
+                    alt={`${user.name || 'Admin'} Avatar`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to initials if role avatar fails to load
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                      if (target.nextSibling) return
+                      const span = document.createElement('span')
+                      span.className = 'text-white font-bold text-sm'
+                      span.textContent = getInitials(user.name)
+                      target.parentNode?.appendChild(span)
+                    }}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground dark:text-white font-medium text-sm truncate">

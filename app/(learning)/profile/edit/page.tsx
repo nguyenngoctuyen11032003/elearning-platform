@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { getRoleAvatar, getRoleDisplayName, getInitials } from "@/lib/utils/avatar"
 
 export default function EditProfilePage() {
   const { user, loading } = useAuth()
@@ -56,17 +57,6 @@ export default function EditProfilePage() {
     }
   }
 
-  const getInitials = (name?: string) => {
-    if (!name || typeof name !== 'string') return 'U'
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .filter(initial => initial)
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || 'U'
-  }
-
   if (loading) {
     return (
       <div className="space-y-8">
@@ -110,13 +100,24 @@ export default function EditProfilePage() {
           {/* Avatar Display */}
           <div className="text-center">
             <div className="w-24 h-24 rounded-full overflow-hidden bg-muted dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl font-bold text-foreground dark:text-white">
-                {getInitials(user.name)}
-              </span>
+              <img
+                src={getRoleAvatar(user.role)}
+                alt={`${user.name || 'User'} Avatar`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback to initials if role avatar fails to load
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  if (target.nextSibling) return
+                  const span = document.createElement('span')
+                  span.className = 'text-2xl font-bold text-foreground dark:text-white'
+                  span.textContent = getInitials(user.name)
+                  target.parentNode?.appendChild(span)
+                }}
+              />
             </div>
             <p className="text-sm text-muted-foreground">
-              Avatar mặc định theo vai trò: {user.role === 'student' ? 'Học viên' : 
-               user.role === 'teacher' ? 'Giảng viên' : 'Quản trị viên'}
+              Avatar mặc định theo vai trò: {getRoleDisplayName(user.role)}
             </p>
           </div>
 

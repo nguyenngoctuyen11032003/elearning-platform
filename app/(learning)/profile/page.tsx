@@ -5,6 +5,7 @@ import { Mail, Phone, MapPin, Calendar, Award, BookOpen } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth/auth-context"
 import { toast } from "sonner"
+import { getRoleAvatar, getRoleDescription, getInitials } from "@/lib/utils/avatar"
 
 interface UserStats {
   coursesEnrolled: number
@@ -57,20 +58,6 @@ export default function StudentProfilePage() {
 
     fetchUserStats()
   }, [user?.id])
-
-  // Get user initials for avatar fallback
-  const getInitials = (name?: string) => {
-    if (!name || typeof name !== 'string') {
-      return 'U' // Default fallback
-    }
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .filter(initial => initial) // Filter out empty strings
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || 'U' // Fallback if no valid initials
-  }
 
   // Format join date
   const formatJoinDate = (dateString: string) => {
@@ -127,24 +114,27 @@ export default function StudentProfilePage() {
         <div className="flex items-start gap-8">
           <div className="relative">
             <div className="w-32 h-32 rounded-full overflow-hidden bg-muted dark:bg-slate-800 flex items-center justify-center border-4 border-primary dark:border-accent">
-              {user.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={user.name || 'User Avatar'}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-3xl font-bold text-foreground dark:text-white">
-                  {getInitials(user.name)}
-                </span>
-              )}
+              <img
+                src={getRoleAvatar(user.role)}
+                alt={`${user.name || 'User'} Avatar`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback to initials if role avatar fails to load
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  if (target.nextSibling) return
+                  const span = document.createElement('span')
+                  span.className = 'text-3xl font-bold text-foreground dark:text-white'
+                  span.textContent = getInitials(user.name)
+                  target.parentNode?.appendChild(span)
+                }}
+              />
             </div>
           </div>
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-foreground dark:text-white mb-2">{user.name || 'Người dùng'}</h2>
             <p className="text-muted-foreground dark:text-slate-400 mb-6">
-              {user.role === 'student' ? 'Học viên đam mê học tập' : 
-               user.role === 'teacher' ? 'Giảng viên chuyên nghiệp' : 'Quản trị viên hệ thống'}
+              {getRoleDescription(user.role)}
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

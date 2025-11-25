@@ -6,6 +6,7 @@ import Link from "next/link"
 import { LogOut, User, Settings, LayoutDashboard, BookOpen, FileText, Heart, Award } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
+import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
 
 export default function LearningLayout({ children }: { children: React.ReactNode }) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
@@ -58,9 +59,19 @@ export default function LearningLayout({ children }: { children: React.ReactNode
               className="flex items-center gap-3 hover:opacity-80 transition-smooth px-3 py-2 rounded-lg hover:bg-secondary dark:hover:bg-slate-800"
             >
               <img
-                src={user?.avatar || "/professional-woman.png"}
+                src={getRoleAvatar(user.role)}
                 alt="Avatar"
                 className="w-10 h-10 rounded-full object-cover"
+                onError={(e) => {
+                  // Fallback to initials if role avatar fails to load
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  if (target.nextSibling) return
+                  const div = document.createElement('div')
+                  div.className = 'w-10 h-10 rounded-full bg-primary flex items-center justify-center'
+                  div.innerHTML = `<span class="text-white font-bold text-sm">${getInitials(user.name)}</span>`
+                  target.parentNode?.appendChild(div)
+                }}
               />
               <span className="text-sm font-medium text-foreground dark:text-white hidden sm:inline">{user?.name}</span>
             </button>
