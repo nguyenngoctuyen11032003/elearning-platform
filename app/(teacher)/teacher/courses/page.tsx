@@ -2,7 +2,9 @@
 
 import { Plus, Edit2, Trash2, Eye, MoreVertical } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { CourseDetailModal, ConfirmDeleteModal } from "@/components/ui/course-modals"
 
 const courses = [
   {
@@ -35,8 +37,45 @@ const courses = [
 ]
 
 export default function TeacherCoursesPage() {
+  const router = useRouter()
   const [courses_, setCourses] = useState(courses)
   const [openMenu, setOpenMenu] = useState<number | null>(null)
+  const [selectedCourse, setSelectedCourse] = useState<any>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+
+  const handleViewDetails = (course: any) => {
+    setSelectedCourse(course)
+    setIsDetailModalOpen(true)
+    setOpenMenu(null)
+  }
+
+  const handleEdit = (courseId: number) => {
+    router.push(`/teacher/courses/${courseId}/edit`)
+    setOpenMenu(null)
+  }
+
+  const handleDeleteClick = (course: any) => {
+    setSelectedCourse(course)
+    setIsDeleteModalOpen(true)
+    setOpenMenu(null)
+  }
+
+  const handleDeleteConfirm = (courseId: number) => {
+    setCourses(courses_.filter(course => course.id !== courseId))
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (!target.closest('[data-dropdown]')) {
+        setOpenMenu(null)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
 
   return (
     <main className="flex-1 p-6 md:p-8 overflow-y-auto">
@@ -101,22 +140,44 @@ export default function TeacherCoursesPage() {
                         {course.status === "published" ? "Đã xuất bản" : "Nháp"}
                       </span>
                     </td>
-                    <td className="py-4 px-6 relative">
+                    <td className="py-4 px-6 relative" data-dropdown>
                       <button
-                        onClick={() => setOpenMenu(openMenu === course.id ? null : course.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          console.log('Clicked course menu:', course.id, 'Current open:', openMenu)
+                          setOpenMenu(openMenu === course.id ? null : course.id)
+                        }}
                         className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
                       >
                         <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
                       </button>
                       {openMenu === course.id && (
-                        <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-10 min-w-48">
-                          <button className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg">
+                        <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-xl z-50 min-w-48" data-dropdown>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleViewDetails(course)
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
+                          >
                             <Eye size={16} /> Xem chi tiết
                           </button>
-                          <button className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEdit(course.id)
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
+                          >
                             <Edit2 size={16} /> Chỉnh sửa
                           </button>
-                          <button className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteClick(course)
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg"
+                          >
                             <Trash2 size={16} /> Xóa khóa học
                           </button>
                         </div>
@@ -129,6 +190,23 @@ export default function TeacherCoursesPage() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {selectedCourse && (
+        <>
+          <CourseDetailModal
+            isOpen={isDetailModalOpen}
+            onClose={() => setIsDetailModalOpen(false)}
+            course={selectedCourse}
+          />
+          <ConfirmDeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            course={selectedCourse}
+            onConfirm={handleDeleteConfirm}
+          />
+        </>
+      )}
     </main>
   )
 }

@@ -2,6 +2,7 @@
 
 import { ChevronRight, Check, Plus, Trash2, FileText, Video } from "lucide-react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 interface Section {
   id: string
@@ -25,9 +26,10 @@ interface Quiz {
   correctAnswer: number
 }
 
-const steps = ["Thông tin", "Nội dung", "Giá & Trạng thái", "Xuất bản"]
+const steps = ["Thông tin", "Nội dung", "Giá & Trạng thái", "Hoàn thành"]
 
 export default function CreateCoursePage() {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState({
     title: "",
@@ -43,6 +45,9 @@ export default function CreateCoursePage() {
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1)
+    } else {
+      // Hoàn thành tạo khóa học, điều hướng về trang courses
+      router.push('/teacher/courses')
     }
   }
 
@@ -494,13 +499,16 @@ export default function CreateCoursePage() {
 
           {currentStep === 3 && (
             <div className="space-y-6 text-center">
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
-                <Check size={32} className="text-green-600 dark:text-green-400" />
+              <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
+                <Check size={40} className="text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-foreground dark:text-white mb-2">Sẵn sàng xuất bản!</h3>
-                <p className="text-muted-foreground dark:text-slate-400">
-                  Khóa học của bạn sẽ được gửi đến admin để duyệt
+                <h3 className="text-2xl font-bold text-foreground dark:text-white mb-3">Đã tạo thành công khóa học!</h3>
+                <p className="text-lg text-muted-foreground dark:text-slate-400 mb-2">
+                  Khóa học của bạn đã được tạo thành công
+                </p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">
+                  Khóa học sẽ được gửi đến admin để duyệt trước khi xuất bản
                 </p>
               </div>
             </div>

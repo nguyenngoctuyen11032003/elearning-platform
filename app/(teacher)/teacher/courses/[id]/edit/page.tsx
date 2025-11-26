@@ -1,34 +1,140 @@
 "use client"
 
-import { TeacherSidebar } from "@/components/ui/teacher-sidebar"
-import { FileUploadZone } from "@/components/ui/file-upload-zone"
 import { useState, use } from "react"
-import { Save, Plus, Trash2, Eye } from "lucide-react"
+import { Save, Plus, Trash2, Eye, FileText, Video } from "lucide-react"
+import { FileUploadZone } from "@/components/ui/file-upload-zone"
+
+interface Section {
+  id: string
+  title: string
+  lessons: Lesson[]
+}
+
+interface Lesson {
+  id: string
+  title: string
+  description: string
+  videoFile?: File
+  documentFile?: File
+  quizzes: Quiz[]
+}
+
+interface Quiz {
+  id: string
+  question: string
+  options: string[]
+  correctAnswer: number
+}
 
 export default function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const [course, setCourse] = useState({
     title: "Lập trình Next.js từ cơ bản đến nâng cao",
-    description: "Khóa học toàn diện về Next.js",
+    description: "Khóa học toàn diện về Next.js từ cơ bản đến nâng cao, bao gồm các tính năng mới nhất và best practices trong phát triển ứng dụng web hiện đại.",
     category: "Lập trình",
     price: 499000,
     thumbnail: "/next-js-course.jpg",
   })
 
-  const [lessons, setLessons] = useState([
-    { id: 1, title: "Giới thiệu Next.js", duration: "15:30", type: "video" },
-    { id: 2, title: "Setup Project", duration: "22:15", type: "video" },
-    { id: 3, title: "Routing & Pages", duration: "18:45", type: "video" },
+  const [sections, setSections] = useState<Section[]>([
+    {
+      id: "1",
+      title: "Giới thiệu và Cài đặt",
+      lessons: [
+        { id: "1", title: "Giới thiệu Next.js", description: "Tổng quan về Next.js và ưu điểm", quizzes: [] },
+        { id: "2", title: "Setup Project", description: "Cài đặt dự án mới với Next.js", quizzes: [] }
+      ]
+    },
+    {
+      id: "2", 
+      title: "Routing và Pages",
+      lessons: [
+        { id: "3", title: "Routing & Pages", description: "Hệ thống routing trong Next.js", quizzes: [] },
+        { id: "4", title: "Dynamic Routes", description: "Tạo dynamic routes", quizzes: [] }
+      ]
+    }
   ])
+  
+  const [currentSectionId, setCurrentSectionId] = useState<string | null>(null)
+  const [currentLessonId, setCurrentLessonId] = useState<string | null>(null)
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
 
-  const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
+  // Get all lessons from all sections for display
+  const lessons = sections.flatMap(section => 
+    section.lessons.map(lesson => ({
+      ...lesson,
+      sectionTitle: section.title
+    }))
+  )
+
+  const addSection = () => {
+    const newSection: Section = {
+      id: Date.now().toString(),
+      title: `Phần ${sections.length + 1}`,
+      lessons: [],
+    }
+    setSections([...sections, newSection])
+    setCurrentSectionId(newSection.id)
+  }
+
+  const updateSection = (id: string, title: string) => {
+    setSections(sections.map((s) => (s.id === id ? { ...s, title } : s)))
+  }
+
+  const deleteSection = (id: string) => {
+    setSections(sections.filter((s) => s.id !== id))
+    if (currentSectionId === id) setCurrentSectionId(null)
+  }
+
+  const addLesson = (sectionId: string) => {
+    setSections(
+      sections.map((s) => {
+        if (s.id === sectionId) {
+          const newLesson: Lesson = {
+            id: Date.now().toString(),
+            title: `Bài học ${s.lessons.length + 1}`,
+            description: "",
+            quizzes: [],
+          }
+          return { ...s, lessons: [...s.lessons, newLesson] }
+        }
+        return s
+      }),
+    )
+  }
+
+  const updateLesson = (sectionId: string, lessonId: string, updates: Partial<Lesson>) => {
+    setSections(
+      sections.map((s) => {
+        if (s.id === sectionId) {
+          return {
+            ...s,
+            lessons: s.lessons.map((l) => (l.id === lessonId ? { ...l, ...updates } : l)),
+          }
+        }
+        return s
+      }),
+    )
+  }
+
+  const deleteLesson = (sectionId: string, lessonId: string) => {
+    setSections(
+      sections.map((s) => {
+        if (s.id === sectionId) {
+          return { ...s, lessons: s.lessons.filter((l) => l.id !== lessonId) }
+        }
+        return s
+      }),
+    )
+    if (currentLessonId === lessonId) setCurrentLessonId(null)
+  }
+
+  const currentSection = sections.find((s) => s.id === currentSectionId)
+  const currentLesson = currentSection?.lessons.find((l) => l.id === currentLessonId)
 
   return (
-    <div className="flex min-h-screen bg-background dark:bg-slate-950">
-      <TeacherSidebar />
-
-      <main className="flex-1 p-6 md:p-8 overflow-y-auto">
-        <div className="max-w-4xl mx-auto space-y-8">
+    <div className="p-6 md:p-8 overflow-y-auto">
+      <div className="max-w-6xl mx-auto space-y-8">
           {/* Header */}
           <div>
             <h1 className="text-3xl font-bold text-foreground dark:text-white">Chỉnh sửa khóa học</h1>
@@ -120,7 +226,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                 >
                   <div className="flex-1">
                     <p className="font-medium text-foreground dark:text-white">{lesson.title}</p>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">{lesson.duration}</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">
+                      {lesson.sectionTitle} • {lesson.description}
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     <button className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
@@ -140,7 +248,6 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             <Save size={20} /> Lưu thay đổi
           </button>
         </div>
-      </main>
-    </div>
-  )
+      </div>
+    )
 }

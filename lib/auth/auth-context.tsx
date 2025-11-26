@@ -42,18 +42,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const initAuth = async () => {
       try {
         const token = localStorage.getItem('auth_token');
-        const storedUser = localStorage.getItem('user');
-
-        if (token && storedUser) {
-          // Verify token is still valid by fetching profile
-          const profile = await apiClient.getProfile();
-          setUser(profile);
+        
+        if (token) {
+          try {
+            // Verify token is still valid by fetching profile
+            const profile = await apiClient.getProfile();
+            setUser(profile);
+          } catch (error) {
+            // If API call fails (backend down or token invalid), clear auth state completely
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            setUser(null); // Ensure user state is cleared
+            console.log('Token verification failed, clearing auth state');
+          }
         }
       } catch (error) {
-        // Token might be expired or invalid
+        console.error('Auth initialization failed:', error);
+        // Clear everything on any error
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
-        console.error('Auth initialization failed:', error);
+        setUser(null);
       } finally {
         setLoading(false);
       }

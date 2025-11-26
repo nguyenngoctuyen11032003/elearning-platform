@@ -1,13 +1,18 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Filter, Download, MoreVertical } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Search, Filter, Download, MoreVertical, Eye, UserX } from "lucide-react"
 import { ExportModal } from "@/components/ui/export-modal"
+import { StudentDetailModal, RemoveStudentModal } from "@/components/ui/student-modals"
 
 export default function TeacherStudentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCourse, setFilterCourse] = useState("all")
   const [isExportOpen, setIsExportOpen] = useState(false)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [selectedStudent, setSelectedStudent] = useState<any>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false)
 
   const students = [
     {
@@ -39,7 +44,9 @@ export default function TeacherStudentsPage() {
     },
   ]
 
-  const filteredStudents = students.filter((student) => student.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  const [students_, setStudents] = useState(students)
+
+  const filteredStudents = students_.filter((student) => student.name.toLowerCase().includes(searchTerm.toLowerCase()))
 
   const exportData = filteredStudents.map((student) => ({
     "Tên học viên": student.name,
@@ -50,6 +57,34 @@ export default function TeacherStudentsPage() {
     "Trạng thái": student.status === "active" ? "Đang học" : "Hoàn thành",
   }))
 
+  const handleViewDetails = (student: any) => {
+    setSelectedStudent(student)
+    setIsDetailModalOpen(true)
+    setOpenMenu(null)
+  }
+
+  const handleRemoveClick = (student: any) => {
+    setSelectedStudent(student)
+    setIsRemoveModalOpen(true)
+    setOpenMenu(null)
+  }
+
+  const handleRemoveConfirm = (studentId: string) => {
+    setStudents(students_.filter(student => student.id !== studentId))
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (!target.closest('[data-dropdown]')) {
+        setOpenMenu(null)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
+
   return (
     <main className="flex-1 p-6 md:p-8 overflow-y-auto">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -57,7 +92,7 @@ export default function TeacherStudentsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground dark:text-white">Quản lý học viên</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Tổng cộng {students.length} học viên</p>
+            <p className="text-muted-foreground dark:text-slate-400">Tổng cộng {students_.length} học viên</p>
           </div>
           <button
             onClick={() => setIsExportOpen(true)}
@@ -133,10 +168,39 @@ export default function TeacherStudentsPage() {
                         {student.status === "active" ? "Đang học" : "Hoàn thành"}
                       </span>
                     </td>
-                    <td className="py-4 px-6">
-                      <button className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
+                    <td className="py-4 px-6 relative" data-dropdown>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          console.log('Clicked student menu:', student.id, 'Current open:', openMenu)
+                          setOpenMenu(openMenu === student.id ? null : student.id)
+                        }}
+                        className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                      >
                         <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
                       </button>
+                      {openMenu === student.id && (
+                        <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-xl z-50 min-w-48" data-dropdown>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleViewDetails(student)
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
+                          >
+                            <Eye size={16} /> Xem chi tiết
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveClick(student)
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-orange-600 dark:text-orange-400 rounded-b-lg"
+                          >
+                            <UserX size={16} /> Xóa khỏi lớp
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -146,12 +210,30 @@ export default function TeacherStudentsPage() {
         </div>
       </div>
 
+      {/* Export Modal */}
       <ExportModal
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
         title="Báo cáo học viên"
         data={exportData}
       />
+
+      {/* Student Modals */}
+      {selectedStudent && (
+        <>
+          <StudentDetailModal
+            isOpen={isDetailModalOpen}
+            onClose={() => setIsDetailModalOpen(false)}
+            student={selectedStudent}
+          />
+          <RemoveStudentModal
+            isOpen={isRemoveModalOpen}
+            onClose={() => setIsRemoveModalOpen(false)}
+            student={selectedStudent}
+            onConfirm={handleRemoveConfirm}
+          />
+        </>
+      )}
     </main>
   )
 }
