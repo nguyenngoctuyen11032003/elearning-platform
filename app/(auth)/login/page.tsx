@@ -32,15 +32,6 @@ export default function LoginPage() {
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-8 space-y-6">
           <AuthForm type="login" />
 
-          <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-900 dark:text-blue-200">
-            <p className="font-semibold mb-2">Tài khoản mẫu:</p>
-            <ul className="space-y-1 text-xs">
-              <li>Admin: admin@gmail.com / 12345678</li>
-              <li>Giảng viên: giangvien@gmail.com / 12345678</li>
-              <li>Học viên: hocvien@gmail.com / 12345678</li>
-            </ul>
-          </div>
-
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-border dark:border-slate-800" />
@@ -58,6 +49,12 @@ export default function LoginPage() {
             Chưa có tài khoản?{" "}
             <Link href="/signup" className="text-primary dark:text-accent hover:underline font-medium">
               Đăng ký ngay
+            </Link>
+          </p>
+
+          <p className="text-center text-sm text-muted-foreground dark:text-slate-400">
+            <Link href="/forgot-password" className="text-primary dark:text-accent hover:underline font-medium">
+              Quên mật khẩu?
             </Link>
           </p>
         </div>

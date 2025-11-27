@@ -14,6 +14,11 @@ export default function AdminCategoriesPage() {
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [newCategory, setNewCategory] = useState({ name: "", color: "#2563eb" })
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; categoryId: string; categoryName: string }>({ 
+    isOpen: false, 
+    categoryId: "", 
+    categoryName: "" 
+  })
 
   const handleAddCategory = () => {
     if (newCategory.name.trim()) {
@@ -37,7 +42,19 @@ export default function AdminCategoriesPage() {
   }
 
   const handleDelete = (id: string) => {
-    setCategories(categories.filter((c) => c.id !== id))
+    const category = categories.find(c => c.id === id)
+    if (category) {
+      setDeleteModal({ 
+        isOpen: true, 
+        categoryId: id, 
+        categoryName: category.name 
+      })
+    }
+  }
+
+  const confirmDelete = () => {
+    setCategories(categories.filter((c) => c.id !== deleteModal.categoryId))
+    setDeleteModal({ isOpen: false, categoryId: "", categoryName: "" })
   }
 
   return (
@@ -170,6 +187,36 @@ export default function AdminCategoriesPage() {
           ))}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 relative z-[10000]">
+            <h2 className="text-xl font-bold text-foreground dark:text-white mb-2">Xác nhận xóa danh mục</h2>
+            <p className="text-muted-foreground dark:text-slate-400 mb-6">
+              Bạn có chắc chắn muốn xóa danh mục <strong>"{deleteModal.categoryName}"</strong> không?
+              <br />
+              <span className="text-destructive dark:text-red-400 text-sm">
+                Hành động này không thể hoàn tác.
+              </span>
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteModal({ isOpen: false, categoryId: "", categoryName: "" })}
+                className="flex-1 px-4 py-2 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive/90 transition-smooth font-medium"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
