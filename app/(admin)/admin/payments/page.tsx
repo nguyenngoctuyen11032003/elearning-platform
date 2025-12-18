@@ -3,6 +3,7 @@
 import { Search, Download, Filter } from "lucide-react"
 import { useState } from "react"
 import { ExportModal } from "@/components/ui/export-modal"
+import { formatPrice, formatNumber } from "@/lib/format"
 
 const payments = [
   {
@@ -72,7 +73,7 @@ export default function AdminPaymentsPage() {
           <div>
             <h1 className="text-3xl font-bold text-foreground dark:text-white">Quản lý thanh toán</h1>
             <p className="text-muted-foreground dark:text-slate-400">
-              Tổng doanh thu: ₫{totalRevenue.toLocaleString()}
+              Tổng doanh thu: ₫{formatNumber(totalRevenue)}
             </p>
           </div>
           <button
@@ -127,7 +128,7 @@ export default function AdminPaymentsPage() {
                       {payment.course}
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white font-medium">
-                      ₫{payment.amount.toLocaleString()}
+                      ₫{formatPrice(payment.amount)}
                     </td>
                     <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{payment.method}</td>
                     <td className="py-4 px-6">

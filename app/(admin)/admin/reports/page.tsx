@@ -18,6 +18,7 @@ import {
 } from "recharts"
 import { useState } from "react"
 import { ExportModal } from "@/components/ui/export-modal"
+import { formatStudentCount } from "@/lib/format"
 
 const revenueData = [
   { month: "Jan", revenue: 4000, teachers: 240, students: 400 },
@@ -243,7 +244,7 @@ export default function AdminReportsPage() {
                     className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
                   >
                     <td className="py-3 px-4 text-foreground dark:text-white font-medium">{course.title}</td>
-                    <td className="py-3 px-4 text-foreground dark:text-white">{course.students.toLocaleString()}</td>
+                    <td className="py-3 px-4 text-foreground dark:text-white">{formatStudentCount(course.students)}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1">
                         <span className="text-yellow-400">★</span>

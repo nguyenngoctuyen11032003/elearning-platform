@@ -6,52 +6,8 @@ import { SectionTitle } from "@/components/ui/section-title"
 import { ArrowRight, Play, Users, Award, Zap } from "lucide-react"
 import Link from "next/link"
 import { Footer } from "@/components/ui/footer"
-
-const featuredCourses = [
-  {
-    id: "1",
-    title: "Lập trình Next.js từ cơ bản đến nâng cao",
-    teacher: "Nguyễn Ngọc Tuyền",
-    price: 499000,
-    rating: 5,
-    image: "/nextjs-course.png",
-    students: 1250,
-  },
-  {
-    id: "2",
-    title: "AI & Machine Learning cho người mới bắt đầu",
-    teacher: "Trần Minh Hoàng",
-    price: 599000,
-    rating: 4.8,
-    image: "/ai-machine-learning.jpg",
-    students: 892,
-  },
-  {
-    id: "3",
-    title: "Thiết kế UI/UX với Figma & Tailwind CSS",
-    teacher: "Lê Thị Hương",
-    price: 399000,
-    rating: 4.9,
-    image: "/ui-ux-design-concept.png",
-    students: 1567,
-  },
-  {
-    id: "4",
-    title: "Kinh doanh số & Digital Marketing",
-    teacher: "Phạm Quốc Anh",
-    price: 349000,
-    rating: 4.7,
-    image: "/digital-marketing-strategy.png",
-    students: 2103,
-  },
-]
-
-const categories = [
-  { name: "Lập trình", icon: "💻", count: 245 },
-  { name: "Thiết kế", icon: "🎨", count: 156 },
-  { name: "Kinh doanh", icon: "📈", count: 189 },
-  { name: "AI & Data", icon: "🤖", count: 87 },
-]
+import { useEffect, useState } from "react"
+import { apiClient } from "@/lib/api/client"
 
 const testimonials = [
   {
@@ -75,6 +31,33 @@ const testimonials = [
 ]
 
 export default function Home() {
+  const [featuredCourses, setFeaturedCourses] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        // Fetch featured courses
+        const coursesRes = await apiClient.getCourses()
+        setFeaturedCourses(coursesRes.slice(0, 4))
+
+        // Fetch categories
+        const categoriesRes = await apiClient.getCategories()
+        setCategories(categoriesRes)
+      } catch (error) {
+        console.error("Error fetching data:", error)
+        // Fallback to mock data if API fails
+        setFeaturedCourses([])
+        setCategories([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
   return (
     <div className="min-h-screen bg-background dark:bg-slate-950">
       <Navbar />
@@ -134,11 +117,40 @@ export default function Home() {
       <section className="py-20 px-8">
         <div className="max-w-6xl mx-auto">
           <SectionTitle title="Khóa học nổi bật" subtitle="Các khóa học được yêu thích nhất trên nền tảng" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredCourses.map((course) => (
-              <CourseCard key={course.id} {...course} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="rounded-2xl overflow-hidden bg-card dark:bg-slate-900/60 animate-pulse">
+                  <div className="h-48 bg-secondary dark:bg-slate-800" />
+                  <div className="p-4 space-y-3">
+                    <div className="h-4 bg-secondary dark:bg-slate-800 rounded" />
+                    <div className="h-3 bg-secondary dark:bg-slate-800 rounded w-2/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredCourses.length > 0 ? (
+                featuredCourses.map((course) => (
+                  <CourseCard
+                    key={course.id}
+                    id={course.id}
+                    title={course.title}
+                    teacher={course.teacher?.name || "Unknown Teacher"}
+                    price={course.price}
+                    rating={course.rating || 0}
+                    image={course.image || "/placeholder.svg"}
+                    students={course.enrollmentCount || 0}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  Chưa có khóa học nào
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -147,17 +159,33 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <SectionTitle title="Danh mục học tập" subtitle="Chọn lĩnh vực bạn quan tâm" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {categories.map((category) => (
-              <Link
-                key={category.name}
-                href={`/courses?category=${category.name}`}
-                className="p-6 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-2xl hover:border-primary dark:hover:border-accent hover:shadow-lg transition-smooth text-center group"
-              >
-                <p className="text-4xl mb-3 group-hover:scale-110 transition-smooth inline-block">{category.icon}</p>
-                <h3 className="font-semibold text-foreground dark:text-white mb-1">{category.name}</h3>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">{category.count} khóa học</p>
-              </Link>
-            ))}
+            {categories.length > 0 ? (
+              categories.map((category) => {
+                const iconMap: {[key: string]: string} = {
+                  "Web": "💻",
+                  "Mobile": "📱",
+                  "AI": "🤖",
+                  "Data Science": "📊",
+                  "DevOps": "🔧",
+                  "UI/UX": "🎨",
+                };
+                return (
+                  <Link
+                    key={category.id || category.name}
+                    href={`/courses?category=${category.id}`}
+                    className="p-6 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-2xl hover:border-primary dark:hover:border-accent hover:shadow-lg transition-smooth text-center group"
+                  >
+                    <p className="text-4xl mb-3 group-hover:scale-110 transition-smooth inline-block">{iconMap[category.name] || "📚"}</p>
+                    <h3 className="font-semibold text-foreground dark:text-white mb-1">{category.name}</h3>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">Khóa học</p>
+                  </Link>
+                );
+              })
+            ) : (
+              <div className="col-span-full text-center py-8 text-muted-foreground">
+                Đang tải danh mục...
+              </div>
+            )}
           </div>
         </div>
       </section>

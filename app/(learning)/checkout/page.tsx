@@ -5,6 +5,7 @@ import { Footer } from "@/components/ui/footer"
 import { CreditCard, Wallet, QrCode, Check } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
+import { formatPrice } from "@/lib/format"
 
 export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<"card" | "wallet" | "qr">("card")
@@ -44,7 +45,7 @@ export default function CheckoutPage() {
                 <div className="border-t border-border dark:border-slate-800 pt-4 space-y-2">
                   <div className="flex justify-between text-foreground dark:text-white">
                     <span>Giá khóa học</span>
-                    <span>₫{course.price.toLocaleString()}</span>
+                    <span>₫{formatPrice(course.price)}</span>
                   </div>
                   <div className="flex justify-between text-foreground dark:text-white">
                     <span>Phí xử lý</span>
@@ -52,7 +53,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="border-t border-border dark:border-slate-800 pt-2 flex justify-between font-bold text-lg text-foreground dark:text-white">
                     <span>Tổng cộng</span>
-                    <span>₫{course.price.toLocaleString()}</span>
+                    <span>₫{formatPrice(course.price)}</span>
                   </div>
                 </div>
               </div>
@@ -149,7 +150,7 @@ export default function CheckoutPage() {
                   disabled={isProcessing}
                   className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-semibold disabled:opacity-50"
                 >
-                  {isProcessing ? "Đang xử lý..." : `Thanh toán ₫${course.price.toLocaleString()}`}
+                  {isProcessing ? "Đang xử lý..." : `Thanh toán ₫${formatPrice(course.price)}`}
                 </button>
 
                 <p className="text-center text-xs text-muted-foreground dark:text-slate-400 mt-4">

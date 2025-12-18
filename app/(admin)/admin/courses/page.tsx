@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Plus, Edit, Trash2, Eye, Search, MoreVertical, CheckCircle, Clock } from "lucide-react"
 import { AddCourseModal, ConfirmDialog } from "@/components/ui/admin-modals"
+import { formatStudentCount } from "@/lib/format"
 
 const initialCourses = [
   {
@@ -145,7 +146,7 @@ export default function AdminCoursesPage() {
                     <td className="py-4 px-6 text-foreground dark:text-white font-medium">{course.title}</td>
                     <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{course.instructor}</td>
                     <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{course.category}</td>
-                    <td className="py-4 px-6 text-foreground dark:text-white">{course.students.toLocaleString()}</td>
+                    <td className="py-4 px-6 text-foreground dark:text-white">{formatStudentCount(course.students)}</td>
                     <td className="py-4 px-6 text-primary dark:text-accent font-semibold">
                       ₫{(course.revenue / 1000000).toFixed(1)}M
                     </td>

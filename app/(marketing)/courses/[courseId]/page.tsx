@@ -8,6 +8,7 @@ import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
 import { Star, Heart, Share2, Users, Clock, Award, ChevronDown } from "lucide-react"
 import Link from "next/link"
+import { formatPrice, formatStudentCount } from "@/lib/format"
 
 export default function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const resolvedParams = use(params)
@@ -108,7 +109,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                   {[
                     { icon: Star, label: "Đánh giá", value: `${course.rating}/5` },
-                    { icon: Users, label: "Học viên", value: course.students.toLocaleString() },
+                    { icon: Users, label: "Học viên", value: formatStudentCount(course.students) },
                     { icon: Clock, label: "Thời lượng", value: course.duration },
                     { icon: Award, label: "Cấp độ", value: course.level },
                   ].map((stat, idx) => (
@@ -201,7 +202,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                   {/* Price */}
                   <div>
                     <p className="text-4xl font-bold text-foreground dark:text-white">
-                      ₫{course.price.toLocaleString()}
+                      ₫{formatPrice(course.price)}
                     </p>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">Truy cập trọn đời</p>
                   </div>

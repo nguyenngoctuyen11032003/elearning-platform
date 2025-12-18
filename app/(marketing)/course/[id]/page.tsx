@@ -6,6 +6,7 @@ import { Star, Users, Clock, Award, ChevronDown } from "lucide-react"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { formatPrice, formatStudentCount, formatPriceInK } from "@/lib/format"
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
@@ -85,7 +86,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
               </div>
               <div className="flex items-center gap-2">
                 <Users size={20} />
-                <span>{course.students.toLocaleString()} học viên</span>
+                <span>{formatStudentCount(course.students)} học viên</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock size={20} />
@@ -246,7 +247,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
               <div className="space-y-6">
                 <div>
                   <p className="text-muted-foreground text-sm mb-2">Giá khóa học</p>
-                  <p className="text-4xl font-bold text-primary">{(course.price / 1000).toLocaleString()}K</p>
+                  <p className="text-4xl font-bold text-primary">{formatPriceInK(course.price)}K</p>
                 </div>
 
                 <div className="space-y-3">

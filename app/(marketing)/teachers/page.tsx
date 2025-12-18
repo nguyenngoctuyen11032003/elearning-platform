@@ -4,6 +4,7 @@ import { Navbar } from "@/components/ui/navbar"
 import { Footer } from "@/components/ui/footer"
 import { BarChart3, Users, TrendingUp, Award, Zap, DollarSign } from "lucide-react"
 import Link from "next/link"
+import { formatStudentCount } from "@/lib/format"
 
 export default function TeachersPage() {
   return (
@@ -145,7 +146,7 @@ export default function TeachersPage() {
                   <h3 className="text-xl font-semibold text-foreground dark:text-white mb-1">{teacher.name}</h3>
                   <p className="text-primary dark:text-accent mb-4">{teacher.specialty}</p>
                   <div className="flex justify-between text-sm text-muted-foreground dark:text-slate-400 mb-4">
-                    <span>{teacher.students.toLocaleString()} học viên</span>
+                    <span>{formatStudentCount(teacher.students)} học viên</span>
                     <span>{teacher.rating}★</span>
                   </div>
                   <Link

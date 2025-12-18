@@ -6,6 +6,7 @@ import { Heart, Trash2, ShoppingCart } from "lucide-react"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
 import Link from "next/link"
+import { formatPrice, formatStudentCount } from "@/lib/format"
 
 export default function WishlistPage() {
   const [wishlist, setWishlist] = useState([
@@ -86,12 +87,12 @@ export default function WishlistPage() {
                           <span className="text-sm font-semibold text-foreground dark:text-white">{course.rating}</span>
                         </div>
                         <span className="text-sm text-muted-foreground dark:text-slate-400">
-                          {course.students.toLocaleString()} học viên
+                          {formatStudentCount(course.students)} học viên
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <p className="text-2xl font-bold text-foreground dark:text-white">
-                          ₫{course.price.toLocaleString()}
+                          ₫{formatPrice(course.price)}
                         </p>
                         <button
                           onClick={() => removeFromWishlist(course.id)}
@@ -120,7 +121,7 @@ export default function WishlistPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground dark:text-slate-400">Tổng giá</span>
                     <span className="font-semibold text-foreground dark:text-white">
-                      ₫{totalPrice.toLocaleString()}
+                      ₫{formatPrice(totalPrice)}
                     </span>
                   </div>
                 </div>

@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { CreditCard, Wallet, QrCode } from "lucide-react"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
+import { formatPriceInK } from "@/lib/format"
 
 export default function EnrollmentPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
@@ -52,7 +53,7 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
               <div className="space-y-3 py-4 border-y border-slate-800">
                 <div className="flex justify-between text-slate-300">
                   <span>Giá khóa học</span>
-                  <span>{(course.price / 1000).toLocaleString()}K</span>
+                  <span>{formatPriceInK(course.price)}K</span>
                 </div>
                 <div className="flex justify-between text-slate-300">
                   <span>Giảm giá</span>
@@ -62,7 +63,7 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
 
               <div className="flex justify-between text-white font-bold text-lg mt-4">
                 <span>Tổng cộng</span>
-                <span className="text-blue-400">{((course.price - 50000) / 1000).toLocaleString()}K</span>
+                <span className="text-blue-400">{formatPriceInK(course.price - 50000)}K</span>
               </div>
             </PremiumCard>
           </motion.div>

@@ -1,146 +1,123 @@
 "use client"
 
 import Link from "next/link"
-import { Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram } from "lucide-react"
+import { Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram, ArrowRight } from "lucide-react"
 
 export function Footer() {
   return (
-    <footer className="bg-gradient-to-b from-slate-900 to-slate-950 text-slate-100 py-16 px-8 border-t border-slate-800">
+    <footer className="bg-slate-900 text-slate-100 py-12 px-8 border-t border-slate-800">
       <div className="max-w-6xl mx-auto">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-10">
           {/* Brand Section */}
           <div className="lg:col-span-1">
-            <h3 className="font-bold text-2xl mb-4 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              ICS Learning
-            </h3>
-            <p className="text-slate-400 text-sm leading-relaxed mb-4">
-              Nền tảng học trực tuyến cao cấp, kết nối giảng viên và học viên trên toàn thế giới.
+            <div className="mb-4">
+              <h3 className="font-bold text-xl mb-1 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                ICS Learning
+              </h3>
+              <p className="text-slate-300 text-xs font-semibold text-slate-400">Nền tảng học tập hiện đại</p>
+            </div>
+            <p className="text-slate-400 text-xs leading-relaxed mb-5">
+              Kết nối giảng viên và học viên tài năng trên toàn thế giới.
             </p>
             {/* Social Links */}
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               {[
-                { icon: Facebook, href: "#" },
-                { icon: Twitter, href: "#" },
-                { icon: Linkedin, href: "#" },
-                { icon: Instagram, href: "#" },
+                { icon: Facebook, href: "#", label: "Facebook" },
+                { icon: Twitter, href: "#", label: "Twitter" },
+                { icon: Linkedin, href: "#", label: "LinkedIn" },
+                { icon: Instagram, href: "#", label: "Instagram" },
               ].map((social, i) => (
                 <a
                   key={i}
                   href={social.href}
-                  className="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center transition-smooth"
+                  title={social.label}
+                  className="w-9 h-9 rounded-full bg-slate-800 hover:bg-blue-600 hover:scale-110 flex items-center justify-center transition-all duration-200"
                 >
-                  <social.icon size={18} />
+                  <social.icon size={16} />
                 </a>
               ))}
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h4 className="font-semibold text-white mb-4 text-lg">Khám phá</h4>
-            <ul className="space-y-3">
-              {[
+          {/* Links Grid */}
+          {[
+            {
+              title: "Khám phá",
+              links: [
                 { label: "Khóa học", href: "/courses" },
                 { label: "Giảng viên", href: "/teachers" },
                 { label: "Danh mục", href: "/courses?category=all" },
-                { label: "Bảng xếp hạng", href: "/rankings" },
-              ].map((link, i) => (
-                <li key={i}>
-                  <Link href={link.href} className="text-slate-400 hover:text-blue-400 transition-smooth text-sm">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h4 className="font-semibold text-white mb-4 text-lg">Công ty</h4>
-            <ul className="space-y-3">
-              {[
+                { label: "Giới thiệu", href: "/about" },
+              ],
+            },
+            {
+              title: "Công ty",
+              links: [
                 { label: "Về chúng tôi", href: "/about" },
                 { label: "Blog", href: "/blog" },
-                { label: "Sự kiện", href: "/events" },
                 { label: "Tuyển dụng", href: "/careers" },
-              ].map((link, i) => (
-                <li key={i}>
-                  <Link href={link.href} className="text-slate-400 hover:text-blue-400 transition-smooth text-sm">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Support */}
-          <div>
-            <h4 className="font-semibold text-white mb-4 text-lg">Hỗ trợ</h4>
-            <ul className="space-y-3">
-              {[
-                { label: "Trung tâm trợ giúp", href: "/help" },
                 { label: "Liên hệ", href: "/contact" },
+              ],
+            },
+            {
+              title: "Hỗ trợ",
+              links: [
+                { label: "Trung tâm trợ giúp", href: "/help" },
                 { label: "FAQ", href: "/faq" },
                 { label: "Báo cáo vấn đề", href: "/report" },
-              ].map((link, i) => (
-                <li key={i}>
-                  <Link href={link.href} className="text-slate-400 hover:text-blue-400 transition-smooth text-sm">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Contact Info */}
-          <div>
-            <h4 className="font-semibold text-white mb-4 text-lg">Liên hệ</h4>
-            <div className="space-y-4">
-              <div className="flex gap-3 items-start">
-                <Mail size={18} className="text-blue-400 mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-slate-400 text-sm">Email</p>
-                  <a href="mailto:support@icslearning.com" className="text-white hover:text-blue-400 transition-smooth">
-                    support@icslearning.com
-                  </a>
-                </div>
-              </div>
-              <div className="flex gap-3 items-start">
-                <Phone size={18} className="text-blue-400 mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-slate-400 text-sm">Điện thoại</p>
-                  <a href="tel:+84123456789" className="text-white hover:text-blue-400 transition-smooth">
-                    +84 (123) 456-789
-                  </a>
-                </div>
-              </div>
-              <div className="flex gap-3 items-start">
-                <MapPin size={18} className="text-blue-400 mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-slate-400 text-sm">Địa chỉ</p>
-                  <p className="text-white">123 Đường Lê Lợi, Hà Nội, Việt Nam</p>
-                </div>
-              </div>
+                { label: "Chính sách", href: "/privacy" },
+              ],
+            },
+            {
+              title: "Liên hệ",
+              links: [
+                { label: "0931.487.231", href: "tel:0931487231" },
+                { label: "0707.806.860", href: "tel:0707806860" },
+                { label: "info@icss.com.vn", href: "mailto:info@icss.com.vn" },
+                { label: "www.icss.com.vn", href: "https://www.icss.com.vn" },
+              ],
+            },
+          ].map((section, idx) => (
+            <div key={idx}>
+              <h4 className="font-semibold text-white mb-4 text-sm">{section.title}</h4>
+              <ul className="space-y-2">
+                {section.links.map((link, i) => (
+                  <li key={i}>
+                    <Link
+                      href={link.href}
+                      className="text-slate-400 hover:text-blue-400 transition-colors text-xs flex items-center gap-1 group"
+                    >
+                      {link.label}
+                      <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
+          ))}
         </div>
 
         {/* Divider */}
         <div className="border-t border-slate-800 my-8" />
 
         {/* Bottom Footer */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-          <div className="text-slate-400 text-sm">
-            <p>&copy; 2025 ICS Learning. Tất cả quyền được bảo lưu.</p>
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="text-slate-400 text-xs">
+            <p className="font-semibold text-slate-300 mb-1">© 2025 CÔNG TY CỔ PHẦN AN NINH MẠNG QUỐC TẾ - ICS</p>
+            <p>Tất cả quyền được bảo lưu | <a href="https://www.icss.com.vn" className="text-blue-400 hover:text-blue-300">www.icss.com.vn</a></p>
           </div>
-          <div className="flex flex-wrap gap-6 justify-start md:justify-end">
+          <div className="flex flex-wrap gap-6 justify-center">
             {[
               { label: "Chính sách bảo mật", href: "/privacy" },
               { label: "Điều khoản sử dụng", href: "/terms" },
               { label: "Cài đặt cookie", href: "/cookies" },
             ].map((link, i) => (
-              <Link key={i} href={link.href} className="text-slate-400 hover:text-blue-400 transition-smooth text-sm">
+              <Link
+                key={i}
+                href={link.href}
+                className="text-slate-400 hover:text-blue-400 transition-colors text-xs"
+              >
                 {link.label}
               </Link>
             ))}

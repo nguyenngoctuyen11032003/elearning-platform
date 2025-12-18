@@ -20,6 +20,7 @@ import {
   Bar,
 } from "recharts"
 import { useState } from "react"
+import { formatPrice } from "@/lib/format"
 
 const revenueData = [
   { month: "Jan", revenue: 24000, teachers: 45, students: 400 },
@@ -251,7 +252,7 @@ export default function AdminDashboard() {
                     <td className="py-3 px-4 text-foreground dark:text-white">{transaction.user}</td>
                     <td className="py-3 px-4 text-foreground dark:text-white">{transaction.course}</td>
                     <td className="py-3 px-4 text-foreground dark:text-white">
-                      ₫{transaction.amount.toLocaleString()}
+                      ₫{formatPrice(transaction.amount)}
                     </td>
                     <td className="py-3 px-4">
                       <span

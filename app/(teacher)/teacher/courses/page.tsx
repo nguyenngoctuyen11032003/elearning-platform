@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { CourseDetailModal, ConfirmDeleteModal } from "@/components/ui/course-modals"
+import { formatPrice } from "@/lib/format"
 
 const courses = [
   {
@@ -128,7 +129,7 @@ export default function TeacherCoursesPage() {
                         <span className="text-muted-foreground dark:text-slate-400">Chưa có</span>
                       )}
                     </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white">₫{course.price.toLocaleString()}</td>
+                    <td className="py-4 px-6 text-foreground dark:text-white">₫{formatPrice(course.price)}</td>
                     <td className="py-4 px-6">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${

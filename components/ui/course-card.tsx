@@ -45,7 +45,7 @@ export function CourseCard({ id, title, teacher, price, rating, image, students 
           </div>
           <div className="flex justify-between items-center pt-2 border-t border-border dark:border-slate-800">
             <span className="text-primary dark:text-accent font-bold">
-              {price === 0 ? "Miễn phí" : `₫${price.toLocaleString()}`}
+              {price === 0 ? "Miễn phí" : `₫${price.toLocaleString("vi-VN")}`}
             </span>
             <button className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 rounded-full transition-smooth">
               Xem
