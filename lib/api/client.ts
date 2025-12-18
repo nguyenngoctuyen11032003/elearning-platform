@@ -157,6 +157,181 @@ class ApiClient {
 
     return response;
   }
+
+  // Courses methods
+  async getCourses(params?: { 
+    category?: string; 
+    search?: string; 
+    level?: string; 
+    page?: number; 
+    limit?: number; 
+  }): Promise<any> {
+    const queryParams = new URLSearchParams();
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.level) queryParams.append('level', params.level);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    
+    const endpoint = `${API_ENDPOINTS.COURSES.LIST}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async getCourseById(id: string): Promise<any> {
+    return this.request(API_ENDPOINTS.COURSES.BY_ID(id));
+  }
+
+  async getCourseBySlug(slug: string): Promise<any> {
+    return this.request(API_ENDPOINTS.COURSES.BY_SLUG(slug));
+  }
+
+  async getFeaturedCourses(): Promise<any> {
+    return this.request(API_ENDPOINTS.COURSES.FEATURED);
+  }
+
+  async getBestsellers(): Promise<any> {
+    return this.request(API_ENDPOINTS.COURSES.BESTSELLERS);
+  }
+
+  async getCoursesByTeacher(teacherId: string): Promise<any> {
+    return this.request(API_ENDPOINTS.COURSES.BY_TEACHER(teacherId));
+  }
+
+  async getCourseReviews(courseId: string): Promise<any> {
+    return this.request(API_ENDPOINTS.COURSES.REVIEWS(courseId));
+  }
+
+  // Categories methods
+  async getCategories(): Promise<any> {
+    return this.request(API_ENDPOINTS.CATEGORIES.LIST);
+  }
+
+  async getCategoryById(id: string): Promise<any> {
+    return this.request(API_ENDPOINTS.CATEGORIES.BY_ID(id));
+  }
+
+  // Lessons methods
+  async getLessonsByCourse(courseId: string): Promise<any> {
+    return this.request(API_ENDPOINTS.LESSONS.BY_COURSE(courseId));
+  }
+
+  async getLessonById(id: string): Promise<any> {
+    return this.request(API_ENDPOINTS.LESSONS.BY_ID(id));
+  }
+
+  // Enrollments methods
+  async getMyEnrollments(): Promise<any> {
+    return this.request(API_ENDPOINTS.ENROLLMENTS.MY_COURSES);
+  }
+
+  async createEnrollment(data: { courseId: string }): Promise<any> {
+    return this.request(API_ENDPOINTS.ENROLLMENTS.CREATE, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getEnrollmentById(id: string): Promise<any> {
+    return this.request(API_ENDPOINTS.ENROLLMENTS.BY_ID(id));
+  }
+
+  // Lesson Progress methods
+  async getLessonProgress(enrollmentId: string): Promise<any> {
+    return this.request(API_ENDPOINTS.LESSON_PROGRESS.BY_ENROLLMENT(enrollmentId));
+  }
+
+  async updateLessonProgress(data: {
+    enrollmentId: string;
+    lessonId: string;
+    progress: number;
+    lastPosition: number;
+    isCompleted: boolean;
+  }): Promise<any> {
+    return this.request(API_ENDPOINTS.LESSON_PROGRESS.UPDATE, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Reviews methods
+  async createReview(data: {
+    courseId: string;
+    rating: number;
+    comment: string;
+  }): Promise<any> {
+    return this.request(API_ENDPOINTS.REVIEWS.CREATE, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Certificates methods
+  async getMyCertificates(): Promise<any> {
+    const user = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+    if (!user) return [];
+    const userId = JSON.parse(user).id;
+    return this.request(API_ENDPOINTS.CERTIFICATES.BY_STUDENT(userId));
+  }
+
+  // Payments methods
+  async createPayment(data: {
+    courseId: string;
+    amount: number;
+    paymentMethod: string;
+  }): Promise<any> {
+    return this.request(API_ENDPOINTS.PAYMENTS.CREATE, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Notes methods
+  async getNotesByCourse(courseId: string): Promise<any> {
+    return this.request(API_ENDPOINTS.NOTES.BY_COURSE(courseId));
+  }
+
+  async createNote(data: {
+    courseId: string;
+    lessonId: string;
+    content: string;
+    timestamp: number;
+  }): Promise<any> {
+    return this.request(API_ENDPOINTS.NOTES.CREATE, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateNote(id: string, data: { content: string }): Promise<any> {
+    return this.request(API_ENDPOINTS.NOTES.UPDATE(id), {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteNote(id: string): Promise<any> {
+    return this.request(API_ENDPOINTS.NOTES.DELETE(id), {
+      method: 'DELETE',
+    });
+  }
+
+  // Wishlists methods
+  async getMyWishlist(): Promise<any> {
+    return this.request(API_ENDPOINTS.WISHLISTS.LIST);
+  }
+
+  async addToWishlist(courseId: string): Promise<any> {
+    return this.request(API_ENDPOINTS.WISHLISTS.ADD, {
+      method: 'POST',
+      body: JSON.stringify({ courseId }),
+    });
+  }
+
+  async removeFromWishlist(id: string): Promise<any> {
+    return this.request(API_ENDPOINTS.WISHLISTS.REMOVE(id), {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

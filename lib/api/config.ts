@@ -18,6 +18,72 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/api/users/${id}`,
     PROFILE: '/api/users/profile',
   },
+  CATEGORIES: {
+    LIST: '/api/categories',
+    BY_ID: (id: string) => `/api/categories/${id}`,
+    CREATE: '/api/categories',
+    UPDATE: (id: string) => `/api/categories/${id}`,
+    DELETE: (id: string) => `/api/categories/${id}`,
+  },
+  COURSES: {
+    LIST: '/api/courses',
+    BY_ID: (id: string) => `/api/courses/${id}`,
+    BY_SLUG: (slug: string) => `/api/courses/slug/${slug}`,
+    CREATE: '/api/courses',
+    UPDATE: (id: string) => `/api/courses/${id}`,
+    DELETE: (id: string) => `/api/courses/${id}`,
+    FEATURED: '/api/courses/featured',
+    BESTSELLERS: '/api/courses/bestsellers',
+    BY_TEACHER: (teacherId: string) => `/api/courses/teacher/${teacherId}`,
+    REVIEWS: (courseId: string) => `/api/courses/${courseId}/reviews`,
+  },
+  LESSONS: {
+    LIST: '/api/lessons',
+    BY_ID: (id: string) => `/api/lessons/${id}`,
+    BY_COURSE: (courseId: string) => `/api/lessons/course/${courseId}`,
+    CREATE: '/api/lessons',
+    UPDATE: (id: string) => `/api/lessons/${id}`,
+    DELETE: (id: string) => `/api/lessons/${id}`,
+  },
+  ENROLLMENTS: {
+    LIST: '/api/enrollments',
+    BY_ID: (id: string) => `/api/enrollments/${id}`,
+    CREATE: '/api/enrollments',
+    MY_COURSES: '/api/enrollments/my-courses',
+  },
+  LESSON_PROGRESS: {
+    BY_ENROLLMENT: (enrollmentId: string) => `/api/lesson-progress/enrollment/${enrollmentId}`,
+    UPDATE: '/api/lesson-progress',
+  },
+  REVIEWS: {
+    LIST: '/api/reviews',
+    BY_ID: (id: string) => `/api/reviews/${id}`,
+    CREATE: '/api/reviews',
+    UPDATE: (id: string) => `/api/reviews/${id}`,
+    DELETE: (id: string) => `/api/reviews/${id}`,
+  },
+  CERTIFICATES: {
+    LIST: '/api/certificates',
+    BY_ID: (id: string) => `/api/certificates/${id}`,
+    BY_STUDENT: (studentId: string) => `/api/certificates/student/${studentId}`,
+  },
+  PAYMENTS: {
+    LIST: '/api/payments',
+    BY_ID: (id: string) => `/api/payments/${id}`,
+    CREATE: '/api/payments',
+  },
+  NOTES: {
+    LIST: '/api/notes',
+    BY_COURSE: (courseId: string) => `/api/notes/course/${courseId}`,
+    CREATE: '/api/notes',
+    UPDATE: (id: string) => `/api/notes/${id}`,
+    DELETE: (id: string) => `/api/notes/${id}`,
+  },
+  WISHLISTS: {
+    LIST: '/api/wishlists',
+    ADD: '/api/wishlists',
+    REMOVE: (id: string) => `/api/wishlists/${id}`,
+  },
 } as const;
 
 export { API_BASE_URL };
