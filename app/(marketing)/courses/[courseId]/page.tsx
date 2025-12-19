@@ -26,7 +26,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     students: 1250,
     duration: "40 giờ",
     level: "Trung cấp",
-    image: "/next-js-course.jpg",
+    image: "/placeholder.jpg",
     description:
       "Khóa học toàn diện về Next.js, từ những khái niệm cơ bản đến các kỹ thuật nâng cao. Bạn sẽ học cách xây dựng các ứng dụng web hiệu suất cao với React và Next.js.",
     sections: [
@@ -128,7 +128,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                 <PremiumCard className="mb-8">
                   <div className="flex items-center gap-4">
                     <img
-                      src="/professional-man.png"
+                      src="/placeholder-user.jpg"
                       alt={course.teacher}
                       className="w-16 h-16 rounded-full object-cover"
                     />

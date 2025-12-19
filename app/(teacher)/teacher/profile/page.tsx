@@ -1,15 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Save, Lock, User, Mail, Phone, Eye, EyeOff, ArrowLeft, Upload, Camera } from "lucide-react"
+import { Save, Lock, User, Mail, Phone, Eye, EyeOff, ArrowLeft, Upload, Camera, MapPin, FileText } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
-import { getRoleAvatar, getRoleDisplayName, getInitials } from "@/lib/utils/avatar"
+import { getRoleAvatar, getRoleDisplayName } from "@/lib/utils/avatar"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-export default function AdminProfilePage() {
+export default function TeacherProfilePage() {
   const { user, loading } = useAuth()
   const [saving, setSaving] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -23,6 +23,8 @@ export default function AdminProfilePage() {
     name: "",
     email: "",
     phone: "",
+    address: "",
+    bio: "",
   })
 
   const [passwordData, setPasswordData] = useState({
@@ -37,11 +39,13 @@ export default function AdminProfilePage() {
         name: user.name || "",
         email: user.email || "",
         phone: user.phone || "",
+        address: "",
+        bio: "",
       })
     }
   }, [user])
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setProfileData(prev => ({ ...prev, [name]: value }))
   }
@@ -159,7 +163,7 @@ export default function AdminProfilePage() {
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link
-            href="/admin/dashboard"
+            href="/teacher/dashboard"
             className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <ArrowLeft size={20} />
@@ -179,13 +183,13 @@ export default function AdminProfilePage() {
                 {avatarPreview ? (
                   <img
                     src={avatarPreview}
-                    alt={`${user.name || 'Admin'} Avatar`}
+                    alt={`${user.name || 'Giảng viên'} Avatar`}
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <img
                     src={getRoleAvatar(user.role)}
-                    alt={`${user.name || 'Admin'} Avatar`}
+                    alt={`${user.name || 'Giảng viên'} Avatar`}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement
@@ -217,7 +221,7 @@ export default function AdminProfilePage() {
             </div>
 
             <div className="text-center md:text-left">
-              <h2 className="text-2xl font-bold text-foreground dark:text-white">{user.name || 'Admin'}</h2>
+              <h2 className="text-2xl font-bold text-foreground dark:text-white">{user.name || 'Giảng viên'}</h2>
               <p className="text-muted-foreground dark:text-slate-400">{user.email}</p>
               <div className="mt-2">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary dark:bg-accent/20 dark:text-accent">
@@ -250,7 +254,7 @@ export default function AdminProfilePage() {
               <form onSubmit={handleProfileSubmit} className="space-y-6">
                 {/* Name Field */}
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
                     <User size={16} /> Họ và tên
                   </label>
                   <input
@@ -266,7 +270,7 @@ export default function AdminProfilePage() {
 
                 {/* Email Field (Read-only) */}
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
                     <Mail size={16} /> Email
                   </label>
                   <input
@@ -283,7 +287,7 @@ export default function AdminProfilePage() {
 
                 {/* Phone Field */}
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
                     <Phone size={16} /> Số điện thoại
                   </label>
                   <input
@@ -294,6 +298,39 @@ export default function AdminProfilePage() {
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
                     placeholder="Nhập số điện thoại (tùy chọn)"
                   />
+                </div>
+
+                {/* Address Field */}
+                <div>
+                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
+                    <MapPin size={16} /> Địa chỉ
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={profileData.address}
+                    onChange={handleProfileChange}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
+                    placeholder="Nhập địa chỉ của bạn"
+                  />
+                </div>
+
+                {/* Bio Field */}
+                <div>
+                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
+                    <FileText size={16} /> Giới thiệu bản thân
+                  </label>
+                  <textarea
+                    name="bio"
+                    value={profileData.bio}
+                    onChange={handleProfileChange}
+                    rows={4}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth resize-none"
+                    placeholder="Giới thiệu về bản thân, kinh nghiệm giảng dạy, chuyên môn..."
+                  />
+                  <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
+                    Giới thiệu này sẽ hiển thị trên trang hồ sơ công khai của bạn
+                  </p>
                 </div>
 
                 {/* Submit Button */}
@@ -315,7 +352,7 @@ export default function AdminProfilePage() {
               <form onSubmit={handlePasswordSubmit} className="space-y-6">
                 {/* Current Password */}
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
                     <Lock size={16} /> Mật khẩu hiện tại
                   </label>
                   <div className="relative">
@@ -340,7 +377,7 @@ export default function AdminProfilePage() {
 
                 {/* New Password */}
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
                     <Lock size={16} /> Mật khẩu mới
                   </label>
                   <div className="relative">
@@ -365,7 +402,7 @@ export default function AdminProfilePage() {
 
                 {/* Confirm Password */}
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
                     <Lock size={16} /> Xác nhận mật khẩu mới
                   </label>
                   <div className="relative">

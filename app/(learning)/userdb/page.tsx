@@ -20,7 +20,7 @@ export default function DashboardPage() {
       progress: 75,
       lessons: "30/40",
       instructor: "Nguyễn Ngọc Tuyền",
-      image: "/next-js-course.jpg",
+      image: "/placeholder.jpg",
     },
     {
       id: "2",
@@ -28,7 +28,7 @@ export default function DashboardPage() {
       progress: 60,
       lessons: "18/30",
       instructor: "Trần Minh Hoàng",
-      image: "/react-hooks-concept.png",
+      image: "/placeholder.jpg",
     },
     {
       id: "3",
@@ -36,7 +36,7 @@ export default function DashboardPage() {
       progress: 45,
       lessons: "15/33",
       instructor: "Lê Thị Hương",
-      image: "/ui-ux-design-concept.png",
+      image: "/placeholder.jpg",
     },
   ]
 

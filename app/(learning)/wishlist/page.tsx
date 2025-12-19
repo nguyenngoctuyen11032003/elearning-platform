@@ -17,7 +17,7 @@ export default function WishlistPage() {
       price: 499000,
       rating: 4.9,
       students: 1250,
-      image: "/next-js-course.jpg",
+      image: "/placeholder.jpg",
     },
     {
       id: "2",
@@ -26,7 +26,7 @@ export default function WishlistPage() {
       price: 599000,
       rating: 4.8,
       students: 892,
-      image: "/ai-machine-learning.png",
+      image: "/placeholder.jpg",
     },
     {
       id: "3",
@@ -35,7 +35,7 @@ export default function WishlistPage() {
       price: 549000,
       rating: 4.8,
       students: 1456,
-      image: "/python-data-science.png",
+      image: "/placeholder.jpg",
     },
   ])
 

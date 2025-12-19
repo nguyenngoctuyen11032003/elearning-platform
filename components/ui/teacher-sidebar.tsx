@@ -2,9 +2,8 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, BookOpen, Users, DollarSign, Settings, LogOut, Menu, X, User } from "lucide-react"
+import { LayoutDashboard, BookOpen, Users, DollarSign, Settings, LogOut, Menu, X, User, Star, BarChart3 } from "lucide-react"
 import { useState } from "react"
-import { ThemeToggle } from "./theme-toggle"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
 
@@ -12,6 +11,8 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/teacher/dashboard" },
   { icon: BookOpen, label: "Khóa học", href: "/teacher/courses" },
   { icon: Users, label: "Học viên", href: "/teacher/students" },
+  { icon: Star, label: "Đánh giá", href: "/teacher/reviews" },
+  { icon: BarChart3, label: "Thống kê", href: "/teacher/analytics" },
   { icon: DollarSign, label: "Doanh thu", href: "/teacher/earnings" },
   { icon: Settings, label: "Cài đặt", href: "/teacher/settings" },
 ]
@@ -51,10 +52,6 @@ export function TeacherSidebar() {
           <span className="font-bold text-foreground dark:text-white">ICS Teacher</span>
         </Link>
 
-        <div className="flex justify-end mb-4">
-          <ThemeToggle />
-        </div>
-
         <nav className="space-y-2">
           {menuItems.map((item) => {
             const isActive = pathname === item.href
@@ -77,11 +74,14 @@ export function TeacherSidebar() {
         </nav>
 
         <div className="absolute bottom-6 left-6 right-6 space-y-4">
-          {/* User Info */}
+          {/* User Info - Clickable to Profile */}
           {user && (
-            <div className="bg-secondary/30 dark:bg-slate-800/30 rounded-lg p-3 border border-border dark:border-slate-700">
+            <Link
+              href="/teacher/profile"
+              className="block bg-secondary/30 dark:bg-slate-800/30 rounded-lg p-3 border border-border dark:border-slate-700 hover:bg-secondary/50 dark:hover:bg-slate-800/50 transition-all cursor-pointer group"
+            >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center ring-2 ring-transparent group-hover:ring-primary dark:group-hover:ring-accent transition-all">
                   <img
                     src={getRoleAvatar(user.role)}
                     alt={`${user.name || 'Teacher'} Avatar`}
@@ -99,15 +99,16 @@ export function TeacherSidebar() {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-foreground dark:text-white font-medium text-sm truncate">
+                  <p className="text-foreground dark:text-white font-medium text-sm truncate group-hover:text-primary dark:group-hover:text-accent transition-colors">
                     {user.name || 'Giảng viên'}
                   </p>
                   <p className="text-muted-foreground dark:text-slate-400 text-xs truncate">
                     {user.email}
                   </p>
                 </div>
+                <User size={16} className="text-muted-foreground dark:text-slate-400 group-hover:text-primary dark:group-hover:text-accent transition-colors" />
               </div>
-            </div>
+            </Link>
           )}
 
           <button

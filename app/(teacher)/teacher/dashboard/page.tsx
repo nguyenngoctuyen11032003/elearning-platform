@@ -46,23 +46,28 @@ export default function TeacherDashboard() {
     <div className="p-6 md:p-8 overflow-y-auto">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header with Filter */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground dark:text-white mb-2">Chào mừng, Nguyễn Ngọc Tuyền</h1>
             <p className="text-muted-foreground dark:text-slate-400">Đây là tổng quan về hoạt động của bạn</p>
           </div>
-          <div className="flex gap-2">
-            {["month", "year"].map((period) => (
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { value: "day", label: "Ngày" },
+              { value: "week", label: "Tuần" },
+              { value: "month", label: "Tháng" },
+              { value: "year", label: "Năm" },
+            ].map((period) => (
               <button
-                key={period}
-                onClick={() => setFilterPeriod(period)}
+                key={period.value}
+                onClick={() => setFilterPeriod(period.value)}
                 className={`px-4 py-2 rounded-lg transition-smooth font-medium ${
-                  filterPeriod === period
+                  filterPeriod === period.value
                     ? "bg-primary text-white"
                     : "bg-secondary dark:bg-slate-800 text-foreground dark:text-white hover:bg-secondary/80"
                 }`}
               >
-                {period === "month" ? "Tháng" : "Năm"}
+                {period.label}
               </button>
             ))}
           </div>

@@ -33,7 +33,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     description: "Khóa học toàn diện về Next.js từ cơ bản đến nâng cao, bao gồm các tính năng mới nhất và best practices trong phát triển ứng dụng web hiện đại.",
     category: "Lập trình",
     price: 499000,
-    thumbnail: "/next-js-course.jpg",
+    thumbnail: "/placeholder.jpg",
   })
 
   const [sections, setSections] = useState<Section[]>([

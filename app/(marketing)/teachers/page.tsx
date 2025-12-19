@@ -116,21 +116,21 @@ export default function TeachersPage() {
                 specialty: "Lập trình Web",
                 students: 5200,
                 rating: 4.9,
-                image: "/teacher-1.jpg",
+                image: "/placeholder-user.jpg",
               },
               {
                 name: "Trần Minh Hoàng",
                 specialty: "AI & Machine Learning",
                 students: 3800,
                 rating: 4.8,
-                image: "/teacher-2.jpg",
+                image: "/placeholder-user.jpg",
               },
               {
                 name: "Lê Thị Hương",
                 specialty: "Thiết kế UI/UX",
                 students: 4100,
                 rating: 4.9,
-                image: "/teacher-3.jpg",
+                image: "/placeholder-user.jpg",
               },
             ].map((teacher, i) => (
               <div

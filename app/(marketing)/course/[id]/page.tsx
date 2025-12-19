@@ -18,7 +18,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
     title: "Lập trình Next.js từ Cơ bản đến Nâng cao",
     description:
       "Khóa học toàn diện về Next.js, bao gồm App Router, Server Components, API Routes, và deployment. Bạn sẽ học cách xây dựng các ứng dụng web hiện đại, scalable và hiệu suất cao.",
-    thumbnail: "/next-js-course.jpg",
+    thumbnail: "/placeholder.jpg",
     price: 499000,
     rating: 4.8,
     reviews: 1250,

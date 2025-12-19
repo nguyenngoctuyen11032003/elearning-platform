@@ -15,7 +15,7 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
   const course = {
     title: "Lập trình Next.js từ Cơ bản đến Nâng cao",
     price: 499000,
-    thumbnail: "/next-js-course.jpg",
+    thumbnail: "/placeholder.jpg",
   }
 
   const handlePayment = async () => {

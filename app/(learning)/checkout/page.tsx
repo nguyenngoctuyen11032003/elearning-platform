@@ -14,7 +14,7 @@ export default function CheckoutPage() {
   const course = {
     title: "Lập trình Next.js từ cơ bản đến nâng cao",
     price: 499000,
-    image: "/next-js-course.jpg",
+    image: "/placeholder.jpg",
   }
 
   const handlePayment = async () => {

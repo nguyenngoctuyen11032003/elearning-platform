@@ -102,10 +102,10 @@ export default function AboutPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[
-              { name: "Nguyễn Văn A", role: "CEO & Founder", image: "/professional-man.png" },
-              { name: "Trần Thị B", role: "CTO", image: "/professional-woman.png" },
-              { name: "Lê Minh C", role: "Head of Content", image: "/professional-man-2.png" },
-              { name: "Phạm Hương D", role: "Community Manager", image: "/professional-woman-2.png" },
+              { name: "Nguyễn Văn A", role: "CEO & Founder", image: "/placeholder-user.jpg" },
+              { name: "Trần Thị B", role: "CTO", image: "/placeholder-user.jpg" },
+              { name: "Lê Minh C", role: "Head of Content", image: "/placeholder-user.jpg" },
+              { name: "Phạm Hương D", role: "Community Manager", image: "/placeholder-user.jpg" },
             ].map((member, i) => (
               <div key={i} className="text-center">
                 <img
