@@ -70,12 +70,19 @@ export function AuthForm({ type, role }: AuthFormProps) {
         })
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Xảy ra lỗi. Vui lòng thử lại.'
+      setErrors({ submit: errorMessage })
       console.error('Auth error:', error)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {errors.submit && (
+        <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+          <p className="text-sm text-destructive font-medium">{errors.submit}</p>
+        </div>
+      )}
       {type === "signup" && (
         <div>
           <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Tên đầy đủ</label>

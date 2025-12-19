@@ -92,9 +92,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
           break;
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Đăng nhập thất bại';
+      let message = 'Đăng nhập thất bại';
+
+      if (error instanceof Error) {
+        // Kiểm tra lỗi cụ thể
+        if (error.message.toLowerCase().includes('invalid') || error.message.toLowerCase().includes('credentials') || error.message.toLowerCase().includes('unauthorized')) {
+          message = 'Email hoặc mật khẩu không chính xác. Vui lòng thử lại.';
+        } else if (error.message.toLowerCase().includes('not found')) {
+          message = 'Tài khoản không tồn tại. Vui lòng đăng ký.';
+        } else if (error.message.toLowerCase().includes('inactive') || error.message.toLowerCase().includes('pending')) {
+          message = 'Tài khoản của bạn chưa được kích hoạt. Vui lòng kiểm tra email.';
+        } else {
+          message = error.message;
+        }
+      }
+
       toast.error(message);
-      throw error;
+      // Don't throw error again - just show toast notification
+      console.error('Login error:', message);
     } finally {
       setLoading(false);
     }

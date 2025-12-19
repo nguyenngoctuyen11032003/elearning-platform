@@ -47,11 +47,16 @@ class ApiClient {
       const response = await fetch(url, config);
       
       if (!response.ok) {
-        const errorData: ApiError = await response.json();
-        throw new Error(Array.isArray(errorData.message) 
-          ? errorData.message.join(', ') 
-          : errorData.message || `HTTP error! status: ${response.status}`
-        );
+        try {
+          const errorData: ApiError = await response.json();
+          const errorMessage = Array.isArray(errorData.message)
+            ? errorData.message.join(', ')
+            : errorData.message || `HTTP error! status: ${response.status}`;
+          throw new Error(errorMessage);
+        } catch (parseError) {
+          // Nếu không parse được JSON, dùng status text
+          throw new Error(response.statusText || `HTTP error! status: ${response.status}`);
+        }
       }
 
       return await response.json();
