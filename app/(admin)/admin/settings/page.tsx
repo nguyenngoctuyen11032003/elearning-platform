@@ -10,21 +10,16 @@ import {
   Mail,
   Phone,
   Palette,
-  Lock,
   Database,
   Upload,
   Globe,
-  Bell,
   Shield,
-  Eye,
-  EyeOff,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function AdminSettingsPage() {
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [settings, setSettings] = useState({
     siteName: "ICS Learning",
@@ -49,13 +44,6 @@ export default function AdminSettingsPage() {
     setSettings((prev) => ({
       ...prev,
       [key]: value,
-    }))
-  }
-
-  const togglePasswordVisibility = (field: string) => {
-    setShowPasswords((prev) => ({
-      ...prev,
-      [field]: !prev[field],
     }))
   }
 
@@ -86,21 +74,12 @@ export default function AdminSettingsPage() {
         </div>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
+          <TabsList className="grid w-full grid-cols-3 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
             <TabsTrigger value="general" className="text-xs md:text-sm">
               Chung
             </TabsTrigger>
             <TabsTrigger value="branding" className="text-xs md:text-sm">
               Thương hiệu
-            </TabsTrigger>
-            <TabsTrigger value="payment" className="text-xs md:text-sm">
-              Thanh toán
-            </TabsTrigger>
-            <TabsTrigger value="integrations" className="text-xs md:text-sm">
-              Tích hợp
-            </TabsTrigger>
-            <TabsTrigger value="email" className="text-xs md:text-sm">
-              Email
             </TabsTrigger>
             <TabsTrigger value="security" className="text-xs md:text-sm">
               Bảo mật
@@ -274,193 +253,6 @@ export default function AdminSettingsPage() {
                     <div
                       className={`w-5 h-5 bg-white rounded-full transition-transform ${
                         isDarkMode ? "translate-x-6" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Payment Settings */}
-          <TabsContent value="payment" className="space-y-6 mt-6">
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Lock size={24} /> Cấu hình thanh toán
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    Stripe Secret Key
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPasswords["stripe"] ? "text" : "password"}
-                      value={settings.stripeKey}
-                      onChange={(e) => handleSettingChange("stripeKey", e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 pr-10 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    />
-                    <button
-                      onClick={() => togglePasswordVisibility("stripe")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
-                    >
-                      {showPasswords["stripe"] ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                  <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">Lấy từ Stripe Dashboard</p>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Integrations */}
-          <TabsContent value="integrations" className="space-y-6 mt-6">
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-              <h2 className="text-xl font-bold text-foreground dark:text-white">Tích hợp API</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    Mux Token (Video Streaming)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPasswords["mux"] ? "text" : "password"}
-                      value={settings.muxToken}
-                      onChange={(e) => handleSettingChange("muxToken", e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 pr-10 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    />
-                    <button
-                      onClick={() => togglePasswordVisibility("mux")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
-                    >
-                      {showPasswords["mux"] ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    OpenAI API Key (AI Tutor)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPasswords["openai"] ? "text" : "password"}
-                      value={settings.openaiKey}
-                      onChange={(e) => handleSettingChange("openaiKey", e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 pr-10 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    />
-                    <button
-                      onClick={() => togglePasswordVisibility("openai")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
-                    >
-                      {showPasswords["openai"] ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Bell size={20} className="text-primary dark:text-accent" />
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">AI Assistant</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">
-                        Bật/tắt trợ lý AI cho học viên
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleSettingChange("aiAssistantEnabled", !settings.aiAssistantEnabled)}
-                    className={`w-12 h-6 rounded-full transition-all ${
-                      settings.aiAssistantEnabled ? "bg-primary dark:bg-accent" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        settings.aiAssistantEnabled ? "translate-x-6" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Email Settings */}
-          <TabsContent value="email" className="space-y-6 mt-6">
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Mail size={24} /> Cấu hình Email SMTP
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">SMTP Host</label>
-                  <input
-                    type="text"
-                    value={settings.smtpHost}
-                    onChange={(e) => handleSettingChange("smtpHost", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                      SMTP Port
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.smtpPort}
-                      onChange={(e) => handleSettingChange("smtpPort", e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                      Email gửi
-                    </label>
-                    <input
-                      type="email"
-                      value={settings.smtpEmail}
-                      onChange={(e) => handleSettingChange("smtpEmail", e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    Mật khẩu SMTP
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPasswords["smtp"] ? "text" : "password"}
-                      value={settings.smtpPassword}
-                      onChange={(e) => handleSettingChange("smtpPassword", e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 pr-10 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    />
-                    <button
-                      onClick={() => togglePasswordVisibility("smtp")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
-                    >
-                      {showPasswords["smtp"] ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Bell size={20} className="text-primary dark:text-accent" />
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">Thông báo Email</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">
-                        Bật/tắt thông báo email cho người dùng
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleSettingChange("emailNotifications", !settings.emailNotifications)}
-                    className={`w-12 h-6 rounded-full transition-all ${
-                      settings.emailNotifications ? "bg-primary dark:bg-accent" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        settings.emailNotifications ? "translate-x-6" : "translate-x-0.5"
                       }`}
                     />
                   </button>

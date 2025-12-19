@@ -163,6 +163,19 @@ class ApiClient {
     return response;
   }
 
+  async changePassword(data: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<{ message: string }> {
+    return this.request<{ message: string }>(
+      API_ENDPOINTS.AUTH.CHANGE_PASSWORD,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
   // Courses methods
   async getCourses(params?: { 
     category?: string; 
