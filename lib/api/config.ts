@@ -85,6 +85,42 @@ export const API_ENDPOINTS = {
     ADD: '/api/wishlists',
     REMOVE: (id: string) => `/api/wishlists/${id}`,
   },
+  EXAMS: {
+    // Teacher endpoints
+    LIST: '/api/exams',
+    BY_ID: (id: string) => `/api/exams/${id}`,
+    CREATE: '/api/exams',
+    UPDATE: (id: string) => `/api/exams/${id}`,
+    DELETE: (id: string) => `/api/exams/${id}`,
+    MY_EXAMS: '/api/exams/my-exams',
+    SUBMIT_FOR_APPROVAL: (id: string) => `/api/exams/${id}/submit-for-approval`,
+
+    // Admin endpoints
+    ADMIN_ALL: '/api/exams/admin/all',
+    ADMIN_PENDING: '/api/exams/admin/pending',
+    APPROVE: (id: string) => `/api/exams/${id}/approve`,
+    REJECT: (id: string) => `/api/exams/${id}/reject`,
+
+    // Student endpoints
+    AVAILABLE: '/api/exams/available',
+    BY_COURSE: (courseId: string) => `/api/exams/course/${courseId}`,
+    START: '/api/exams/start',
+    SUBMIT: '/api/exams/submit',
+    MY_ATTEMPTS: '/api/exams/my-attempts',
+    ATTEMPT_RESULT: (attemptId: string) => `/api/exams/attempt/${attemptId}/result`,
+  },
+  CERTIFICATE_TEMPLATES: {
+    LIST: '/api/certificate-templates',
+    BY_ID: (id: string) => `/api/certificate-templates/${id}`,
+    CREATE: '/api/certificate-templates',
+    UPDATE: (id: string) => `/api/certificate-templates/${id}`,
+    DELETE: (id: string) => `/api/certificate-templates/${id}`,
+    MY_TEMPLATES: '/api/certificate-templates/my-templates',
+    APPROVED: '/api/certificate-templates/approved',
+    SUBMIT_FOR_APPROVAL: (id: string) => `/api/certificate-templates/${id}/submit-for-approval`,
+    APPROVE: (id: string) => `/api/certificate-templates/${id}/approve`,
+    REJECT: (id: string) => `/api/certificate-templates/${id}/reject`,
+  },
 } as const;
 
 export { API_BASE_URL };

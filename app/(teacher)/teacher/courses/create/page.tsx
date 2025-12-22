@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRight, Check, Plus, Trash2, FileText, Video } from "lucide-react"
+import { ChevronRight, Check, Plus, Trash2, FileText, Video, X } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -31,12 +31,14 @@ const steps = ["Thông tin", "Nội dung", "Giá & Trạng thái", "Hoàn thành
 export default function CreateCoursePage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "",
     price: 0,
     status: "draft",
+    thumbnail: null as File | null,
   })
   const [sections, setSections] = useState<Section[]>([])
   const [currentSectionId, setCurrentSectionId] = useState<string | null>(null)
@@ -260,6 +262,72 @@ export default function CreateCoursePage() {
                   <option value="business">Kinh doanh</option>
                   <option value="ai">AI & Data</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Ảnh hình khóa học</label>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setFormData({ ...formData, thumbnail: file })
+                          const reader = new FileReader()
+                          reader.onloadend = () => {
+                            setThumbnailPreview(reader.result as string)
+                          }
+                          reader.readAsDataURL(file)
+                        }
+                      }}
+                      className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white cursor-pointer"
+                    />
+                  </div>
+                  {thumbnailPreview && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setThumbnailPreview(null)
+                        setFormData({ ...formData, thumbnail: null })
+                      }}
+                      className="p-3 bg-destructive/20 hover:bg-destructive/30 text-destructive rounded-lg transition-smooth"
+                      title="Xóa ảnh"
+                    >
+                      <X size={20} />
+                    </button>
+                  )}
+                </div>
+                {thumbnailPreview && (
+                  <div className="mt-4 max-w-xs">
+                    <p className="text-xs text-muted-foreground dark:text-slate-400 mb-2">Xem trước:</p>
+                    <div className="rounded-2xl overflow-hidden border border-border dark:border-slate-800 bg-card dark:bg-slate-900/60 shadow-lg">
+                      <div className="relative h-48 w-full overflow-hidden bg-secondary dark:bg-slate-800">
+                        <img
+                          src={thumbnailPreview}
+                          alt="Xem trước ảnh khóa học"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <h3 className="text-foreground dark:text-white font-semibold line-clamp-2">
+                          {formData.title || "Tên khóa học"}
+                        </h3>
+                        <p className="text-sm text-muted-foreground dark:text-slate-400">
+                          {formData.category || "Danh mục"}
+                        </p>
+                        <div className="flex justify-between items-center pt-2 border-t border-border dark:border-slate-800">
+                          <span className="text-primary dark:text-accent font-bold">
+                            {formData.price === 0 ? "Miễn phí" : `₫${formData.price.toLocaleString("vi-VN")}`}
+                          </span>
+                          <button className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 rounded-full transition-smooth">
+                            Xem
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

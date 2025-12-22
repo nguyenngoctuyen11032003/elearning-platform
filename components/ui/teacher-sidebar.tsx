@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, BookOpen, Users, DollarSign, Settings, LogOut, Menu, X, User, Star, BarChart3 } from "lucide-react"
+import { LayoutDashboard, BookOpen, Users, DollarSign, Settings, LogOut, Menu, X, User, Star, BarChart3, FileText, Award } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
@@ -10,6 +10,8 @@ import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/teacher/dashboard" },
   { icon: BookOpen, label: "Khóa học", href: "/teacher/courses" },
+  { icon: FileText, label: "Bài thi", href: "/teacher/exams" },
+  { icon: Award, label: "Chứng chỉ", href: "/teacher/certificates" },
   { icon: Users, label: "Học viên", href: "/teacher/students" },
   { icon: Star, label: "Đánh giá", href: "/teacher/reviews" },
   { icon: BarChart3, label: "Thống kê", href: "/teacher/analytics" },

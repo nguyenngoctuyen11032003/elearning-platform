@@ -61,6 +61,11 @@ class ApiClient {
 
       return await response.json();
     } catch (error) {
+      // Handle network errors
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.error('Network error - API server may not be running:', error);
+        throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra lại kết nối mạng hoặc liên hệ admin.');
+      }
       if (error instanceof Error) {
         throw error;
       }
