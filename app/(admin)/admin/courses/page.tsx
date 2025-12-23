@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Edit, Trash2, Eye, Search, MoreVertical, CheckCircle, Clock, XCircle, BookOpen, Users, DollarSign, Star, X, AlertCircle } from "lucide-react"
 import { ConfirmDialog } from "@/components/ui/admin-modals"
 import { formatStudentCount, formatPrice } from "@/lib/format"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 interface Course {
   id: string
@@ -363,47 +365,56 @@ export default function AdminCoursesPage() {
                     <td className="py-4 px-6">{getStatusBadge(course.status)}</td>
                     <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{formatDate(course.createdAt)}</td>
                     <td className="py-4 px-6 relative">
-                      <button
-                        onClick={() => setOpenMenu(openMenu === course.id ? null : course.id)}
-                        className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-                      >
-                        <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleCourseAction("view", course.id, course)}
+                          className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary dark:text-accent rounded-lg transition-colors text-sm font-medium"
+                        >
+                          Xem trước
+                        </button>
+                        <button
+                          onClick={() => setOpenMenu(openMenu === course.id ? null : course.id)}
+                          className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                        >
+                          <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
+                        </button>
+                      </div>
                       {openMenu === course.id && (
-                        <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-10 min-w-48">
-                          <button
-                            onClick={() => handleCourseAction("view", course.id, course)}
-                            className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
+                        <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-10 min-w-52">
+                          <Link
+                            href={`/admin/courses/${course.id}`}
+                            className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
+                            onClick={() => setOpenMenu(null)}
                           >
-                            <Eye size={16} /> Xem chi tiết
-                          </button>
+                            <Eye size={16} /> <span className="font-medium">Chi tiết đầy đủ</span>
+                          </Link>
                           <button
                             onClick={() => handleCourseAction("edit", course.id, course)}
-                            className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
+                            className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white border-t border-border dark:border-slate-800"
                           >
-                            <Edit size={16} /> Chỉnh sửa
+                            <Edit size={16} /> <span className="font-medium">Chỉnh sửa</span>
                           </button>
                           {course.status === "pending" && (
                             <>
                               <button
                                 onClick={() => handleCourseAction("approve", course.id, course)}
-                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-green-600 dark:text-green-400"
+                                className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-green-600 dark:text-green-400 border-t border-border dark:border-slate-800"
                               >
-                                <CheckCircle size={16} /> Duyệt khóa học
+                                <CheckCircle size={16} /> <span className="font-medium">Duyệt khóa học</span>
                               </button>
                               <button
                                 onClick={() => handleCourseAction("reject", course.id, course)}
-                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-red-600 dark:text-red-400"
+                                className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-yellow-600 dark:text-yellow-400 border-t border-border dark:border-slate-800"
                               >
-                                <XCircle size={16} /> Từ chối
+                                <XCircle size={16} /> <span className="font-medium">Từ chối</span>
                               </button>
                             </>
                           )}
                           <button
                             onClick={() => handleCourseAction("delete", course.id, course)}
-                            className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive"
+                            className="w-full text-left px-4 py-3 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive border-t border-border dark:border-slate-800 rounded-b-lg"
                           >
-                            <Trash2 size={16} /> Xóa khóa học
+                            <Trash2 size={16} /> <span className="font-medium">Xóa khóa học</span>
                           </button>
                         </div>
                       )}
@@ -425,10 +436,15 @@ export default function AdminCoursesPage() {
 
       {/* View Course Detail Modal */}
       {viewMode === "view" && selectedCourse && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-foreground dark:text-white">Chi tiết khóa học</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                  <BookOpen className="text-white" size={20} />
+                </div>
+                <h2 className="text-xl font-bold text-foreground dark:text-white">Xem trước khóa học</h2>
+              </div>
               <button
                 onClick={() => { setViewMode(null); setSelectedCourse(null); }}
                 className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
@@ -439,72 +455,106 @@ export default function AdminCoursesPage() {
 
             <div className="p-6 space-y-6">
               {/* Course Header */}
-              <div className="flex gap-4">
-                <img
-                  src={selectedCourse.thumbnail}
-                  alt={selectedCourse.title}
-                  className="w-32 h-24 rounded-lg object-cover bg-secondary"
-                />
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-foreground dark:text-white">{selectedCourse.title}</h3>
-                  <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">{selectedCourse.description}</p>
-                  <div className="mt-2">{getStatusBadge(selectedCourse.status)}</div>
+              <div className="bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 p-6 rounded-xl border border-border dark:border-slate-800">
+                <div className="flex gap-6">
+                  <img
+                    src={selectedCourse.thumbnail}
+                    alt={selectedCourse.title}
+                    className="w-48 h-32 rounded-xl object-cover bg-secondary shadow-lg"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="text-2xl font-bold text-foreground dark:text-white mb-2">{selectedCourse.title}</h3>
+                        <p className="text-muted-foreground dark:text-slate-400 leading-relaxed">{selectedCourse.description}</p>
+                      </div>
+                      {getStatusBadge(selectedCourse.status)}
+                    </div>
+                    <div className="flex items-center gap-4 text-sm pt-3 border-t border-border dark:border-slate-700">
+                      <span className="px-3 py-1 bg-secondary dark:bg-slate-800 rounded-lg font-medium text-foreground dark:text-white">
+                        {selectedCourse.category}
+                      </span>
+                      <span className="text-muted-foreground dark:text-slate-400">
+                        {selectedCourse.lessons} bài học • {selectedCourse.duration}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Rejection Reason if rejected */}
               {selectedCourse.status === "rejected" && selectedCourse.rejectionReason && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
-                  <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-2">
-                    <AlertCircle size={18} />
-                    <span className="font-semibold">Lý do từ chối</span>
+                <div className="bg-red-500/10 border-2 border-red-500/30 rounded-xl p-6">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle size={24} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h5 className="font-semibold text-red-600 dark:text-red-400 mb-2">Lý do từ chối</h5>
+                      <p className="text-red-500 dark:text-red-300 leading-relaxed">{selectedCourse.rejectionReason}</p>
+                    </div>
                   </div>
-                  <p className="text-red-600 dark:text-red-300 text-sm">{selectedCourse.rejectionReason}</p>
                 </div>
               )}
 
-              {/* Course Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4 text-center">
-                  <Users size={24} className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
-                  <p className="text-2xl font-bold text-foreground dark:text-white">{selectedCourse.students}</p>
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">Học viên</p>
-                </div>
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4 text-center">
-                  <BookOpen size={24} className="mx-auto mb-2 text-green-600 dark:text-green-400" />
-                  <p className="text-2xl font-bold text-foreground dark:text-white">{selectedCourse.lessons}</p>
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">Bài học</p>
-                </div>
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4 text-center">
-                  <Star size={24} className="mx-auto mb-2 text-yellow-500" />
-                  <p className="text-2xl font-bold text-foreground dark:text-white">{selectedCourse.rating || "N/A"}</p>
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">{selectedCourse.reviewCount} đánh giá</p>
-                </div>
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4 text-center">
-                  <DollarSign size={24} className="mx-auto mb-2 text-purple-600 dark:text-purple-400" />
-                  <p className="text-2xl font-bold text-foreground dark:text-white">₫{(selectedCourse.revenue / 1000000).toFixed(1)}M</p>
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">Doanh thu</p>
+              {/* Course Performance */}
+              <div>
+                <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4 flex items-center gap-2">
+                  <BarChart3 size={20} className="text-primary dark:text-accent" />
+                  Hiệu quả khóa học
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 p-5 rounded-xl">
+                    <Users size={24} className="text-blue-500 mb-3" />
+                    <p className="text-3xl font-bold text-foreground dark:text-white">{formatStudentCount(selectedCourse.students)}</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Học viên</p>
+                  </div>
+                  <div className="bg-green-500/5 dark:bg-green-500/10 border border-green-500/20 p-5 rounded-xl">
+                    <BookOpen size={24} className="text-green-500 mb-3" />
+                    <p className="text-3xl font-bold text-foreground dark:text-white">{selectedCourse.lessons}</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Bài học</p>
+                  </div>
+                  <div className="bg-yellow-500/5 dark:bg-yellow-500/10 border border-yellow-500/20 p-5 rounded-xl">
+                    <Star size={24} className="text-yellow-500 mb-3" />
+                    <p className="text-3xl font-bold text-foreground dark:text-white">{selectedCourse.rating || "N/A"}</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{selectedCourse.reviewCount} đánh giá</p>
+                  </div>
+                  <div className="bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/20 p-5 rounded-xl">
+                    <DollarSign size={24} className="text-purple-500 mb-3" />
+                    <p className="text-3xl font-bold text-foreground dark:text-white">₫{(selectedCourse.revenue / 1000000).toFixed(1)}M</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Doanh thu</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Course Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Giảng viên</p>
-                  <p className="text-foreground dark:text-white font-medium">{selectedCourse.instructor}</p>
-                  <p className="text-muted-foreground dark:text-slate-400 text-xs">{selectedCourse.instructorEmail}</p>
-                </div>
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Danh mục</p>
-                  <p className="text-foreground dark:text-white font-medium">{selectedCourse.category}</p>
-                </div>
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Giá</p>
-                  <p className="text-foreground dark:text-white font-medium">₫{formatPrice(selectedCourse.price)}</p>
-                </div>
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Thời lượng</p>
-                  <p className="text-foreground dark:text-white font-medium">{selectedCourse.duration}</p>
+              {/* Course Details */}
+              <div>
+                <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">Thông tin chi tiết</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 flex items-center gap-2">
+                      <Users size={16} />
+                      Giảng viên
+                    </p>
+                    <p className="text-foreground dark:text-white font-semibold">{selectedCourse.instructor}</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm">{selectedCourse.instructorEmail}</p>
+                  </div>
+                  <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 flex items-center gap-2">
+                      <DollarSign size={16} />
+                      Giá khóa học
+                    </p>
+                    <p className="text-foreground dark:text-white font-semibold text-xl">₫{formatPrice(selectedCourse.price)}</p>
+                  </div>
+                  <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 flex items-center gap-2">
+                      <Clock size={16} />
+                      Thời lượng
+                    </p>
+                    <p className="text-foreground dark:text-white font-semibold">{selectedCourse.duration}</p>
+                  </div>
+                  <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2">Ngày tạo</p>
+                    <p className="text-foreground dark:text-white font-semibold">{formatDate(selectedCourse.createdAt)}</p>
+                  </div>
                 </div>
               </div>
 
@@ -517,18 +567,28 @@ export default function AdminCoursesPage() {
                       setViewMode(null)
                       setSelectedCourse(null)
                     }}
-                    className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg"
                   >
-                    <CheckCircle size={18} /> Duyệt khóa học
+                    <CheckCircle size={20} />
+                    Duyệt khóa học
                   </button>
                   <button
                     onClick={() => setViewMode("reject")}
-                    className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50"
+                    className="flex-1 px-6 py-3 bg-secondary hover:bg-secondary/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-foreground dark:text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 border border-border dark:border-slate-700"
                   >
-                    <XCircle size={18} /> Từ chối
+                    <XCircle size={20} />
+                    Từ chối
                   </button>
                 </div>
               )}
+
+              {/* View Full Details Link */}
+              <Link
+                href={`/admin/courses/${selectedCourse.id}`}
+                className="block w-full text-center px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary dark:text-accent rounded-xl font-medium transition-all"
+              >
+                Xem chi tiết đầy đủ (nội dung, bài học) →
+              </Link>
             </div>
           </div>
         </div>

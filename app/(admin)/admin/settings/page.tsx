@@ -194,28 +194,6 @@ export default function AdminSettingsPage() {
                 </div>
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <Mail size={16} /> Email kinh doanh
-                  </label>
-                  <input
-                    type="email"
-                    value={settings.businessEmail}
-                    onChange={(e) => handleSettingChange("businessEmail", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <Phone size={16} /> Số điện thoại
-                  </label>
-                  <input
-                    type="tel"
-                    value={settings.phone}
-                    onChange={(e) => handleSettingChange("phone", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
                     <Phone size={16} /> Hotline
                   </label>
                   <input
@@ -306,18 +284,6 @@ export default function AdminSettingsPage() {
                 </div>
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <Twitter size={16} className="text-sky-500" /> Twitter / X
-                  </label>
-                  <input
-                    type="url"
-                    value={settings.twitter}
-                    onChange={(e) => handleSettingChange("twitter", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    placeholder="https://twitter.com/..."
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
                     </svg>
@@ -331,7 +297,7 @@ export default function AdminSettingsPage() {
                     placeholder="https://tiktok.com/@..."
                   />
                 </div>
-                <div className="md:col-span-2">
+                <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
                     <MessageCircle size={16} className="text-blue-500" /> Zalo
                   </label>
@@ -526,36 +492,6 @@ export default function AdminSettingsPage() {
               </div>
             </div>
 
-            {/* API Keys */}
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Database size={24} className="text-primary dark:text-accent" /> API Keys
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    Stripe API Key
-                  </label>
-                  <input
-                    type="password"
-                    value={settings.stripeKey}
-                    onChange={(e) => handleSettingChange("stripeKey", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    OpenAI API Key
-                  </label>
-                  <input
-                    type="password"
-                    value={settings.openaiKey}
-                    onChange={(e) => handleSettingChange("openaiKey", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent font-mono"
-                  />
-                </div>
-              </div>
-            </div>
           </TabsContent>
         </Tabs>
 

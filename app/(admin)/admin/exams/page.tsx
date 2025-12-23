@@ -16,6 +16,8 @@ import {
   ClipboardList,
   BookOpen
 } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface Exam {
   id: string
@@ -422,11 +424,18 @@ export default function AdminExamsPage() {
                             setSelectedExam(exam)
                             setViewMode("view")
                           }}
+                          className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary dark:text-accent rounded-lg transition-colors text-sm font-medium"
+                          title="Xem trước"
+                        >
+                          Xem trước
+                        </button>
+                        <Link
+                          href={`/admin/exams/${exam.id}`}
                           className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
-                          title="Xem chi tiết"
+                          title="Chi tiết đầy đủ"
                         >
                           <Eye size={18} className="text-muted-foreground" />
-                        </button>
+                        </Link>
                         <div className="relative">
                           <button
                             onClick={() => setOpenMenu(openMenu === exam.id ? null : exam.id)}
@@ -435,15 +444,18 @@ export default function AdminExamsPage() {
                             <MoreVertical size={18} className="text-muted-foreground" />
                           </button>
                           {openMenu === exam.id && (
-                            <div className="absolute right-0 mt-2 w-48 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg z-10">
+                            <div className="absolute right-0 mt-2 w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg z-10">
                               {exam.status === "pending" && (
                                 <>
                                   <button
-                                    onClick={() => handleApprove(exam.id)}
-                                    className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-green-500"
+                                    onClick={() => {
+                                      handleApprove(exam.id)
+                                      setOpenMenu(null)
+                                    }}
+                                    className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-green-500 rounded-t-xl"
                                   >
                                     <CheckCircle size={16} />
-                                    Duyệt bài thi
+                                    <span className="font-medium">Duyệt bài thi</span>
                                   </button>
                                   <button
                                     onClick={() => {
@@ -451,10 +463,10 @@ export default function AdminExamsPage() {
                                       setViewMode("reject")
                                       setOpenMenu(null)
                                     }}
-                                    className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500"
+                                    className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-yellow-500 border-t border-border dark:border-slate-700"
                                   >
                                     <XCircle size={16} />
-                                    Từ chối
+                                    <span className="font-medium">Từ chối</span>
                                   </button>
                                 </>
                               )}
@@ -463,10 +475,10 @@ export default function AdminExamsPage() {
                                   setConfirmDialog({ isOpen: true, action: "delete", examId: exam.id })
                                   setOpenMenu(null)
                                 }}
-                                className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500"
+                                className={`w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 ${exam.status === "pending" ? "border-t border-border dark:border-slate-700" : "rounded-xl"}`}
                               >
                                 <XCircle size={16} />
-                                Xóa bài thi
+                                <span className="font-medium">Xóa bài thi</span>
                               </button>
                             </div>
                           )}
@@ -489,19 +501,24 @@ export default function AdminExamsPage() {
 
         {/* View/Reject Modal */}
         {selectedExam && viewMode && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-foreground dark:text-white">
-                  {viewMode === "reject" ? "Từ chối bài thi" : "Chi tiết bài thi"}
-                </h2>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div className="sticky top-0 bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <FileText className="text-white" size={20} />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground dark:text-white">
+                    {viewMode === "reject" ? "Từ chối bài thi" : "Xem trước bài thi"}
+                  </h2>
+                </div>
                 <button
                   onClick={() => {
                     setViewMode(null)
                     setSelectedExam(null)
                     setRejectionReason("")
                   }}
-                  className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg"
+                  className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -510,67 +527,161 @@ export default function AdminExamsPage() {
               <div className="p-6 space-y-6">
                 {viewMode === "view" && (
                   <>
+                    {/* Exam Header */}
+                    <div className="bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 p-6 rounded-xl border border-border dark:border-slate-800">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold text-foreground dark:text-white mb-2">{selectedExam.title}</h3>
+                          <p className="text-muted-foreground dark:text-slate-400 leading-relaxed">{selectedExam.description}</p>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          {getTypeBadge(selectedExam.type)}
+                          {getStatusBadge(selectedExam.status)}
+                        </div>
+                      </div>
+                      
+                      {/* Course & Teacher Info */}
+                      <div className="flex items-center gap-4 pt-4 border-t border-border dark:border-slate-700">
+                        <div className="flex items-center gap-2 text-sm">
+                          <BookOpen size={16} className="text-primary dark:text-accent" />
+                          <span className="text-muted-foreground dark:text-slate-400">Khóa học:</span>
+                          <span className="font-medium text-foreground dark:text-white">{selectedExam.course}</span>
+                        </div>
+                        <div className="w-px h-4 bg-border dark:bg-slate-700"></div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground dark:text-slate-400">Giáo viên:</span>
+                          <span className="font-medium text-foreground dark:text-white">{selectedExam.teacher}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Exam Configuration */}
                     <div>
-                      <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">{selectedExam.title}</h3>
-                      <p className="text-muted-foreground dark:text-slate-400">{selectedExam.description}</p>
+                      <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4 flex items-center gap-2">
+                        <Timer size={20} className="text-primary dark:text-accent" />
+                        Cấu hình bài thi
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Timer size={18} className="text-blue-500" />
+                            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Thời gian</p>
+                          </div>
+                          <p className="text-2xl font-bold text-foreground dark:text-white">{selectedExam.timeLimit}</p>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">phút</p>
+                        </div>
+                        <div className="bg-green-500/5 dark:bg-green-500/10 border border-green-500/20 p-4 rounded-xl">
+                          <div className="flex items-center gap-2 mb-2">
+                            <ClipboardList size={18} className="text-green-500" />
+                            <p className="text-sm font-medium text-green-600 dark:text-green-400">Câu hỏi</p>
+                          </div>
+                          <p className="text-2xl font-bold text-foreground dark:text-white">{selectedExam.questionsCount}</p>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">câu</p>
+                        </div>
+                        <div className="bg-yellow-500/5 dark:bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl">
+                          <div className="flex items-center gap-2 mb-2">
+                            <CheckCircle size={18} className="text-yellow-500" />
+                            <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">Điểm đạt</p>
+                          </div>
+                          <p className="text-2xl font-bold text-foreground dark:text-white">{selectedExam.passingScore}%</p>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">tối thiểu</p>
+                        </div>
+                        <div className="bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/20 p-4 rounded-xl">
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertCircle size={18} className="text-purple-500" />
+                            <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Lần thi</p>
+                          </div>
+                          <p className="text-2xl font-bold text-foreground dark:text-white">{selectedExam.maxAttempts}</p>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">tối đa</p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Loại bài thi</p>
-                        <div className="mt-1">{getTypeBadge(selectedExam.type)}</div>
-                      </div>
-                      <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Trạng thái</p>
-                        <div className="mt-1">{getStatusBadge(selectedExam.status)}</div>
-                      </div>
-                      <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Khóa học</p>
-                        <p className="text-foreground dark:text-white font-medium">{selectedExam.course}</p>
-                      </div>
-                      <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Giáo viên</p>
-                        <p className="text-foreground dark:text-white font-medium">{selectedExam.teacher}</p>
-                      </div>
-                      <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Thời gian</p>
-                        <p className="text-foreground dark:text-white font-medium">{selectedExam.timeLimit} phút</p>
-                      </div>
-                      <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Số câu hỏi</p>
-                        <p className="text-foreground dark:text-white font-medium">{selectedExam.questionsCount} câu</p>
-                      </div>
-                      <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Điểm đạt</p>
-                        <p className="text-foreground dark:text-white font-medium">{selectedExam.passingScore}%</p>
-                      </div>
-                      <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Số lần thi tối đa</p>
-                        <p className="text-foreground dark:text-white font-medium">{selectedExam.maxAttempts} lần</p>
-                      </div>
-                    </div>
-
+                    {/* Certificate Info */}
                     {selectedExam.type === "official" && selectedExam.certificateTemplate && (
-                      <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded-xl">
-                        <div className="flex items-center gap-2 text-purple-500">
-                          <Award size={20} />
-                          <span className="font-medium">Chứng chỉ: {selectedExam.certificateTemplate}</span>
+                      <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-2 border-purple-500/30 p-6 rounded-xl">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                            <Award className="text-white" size={24} />
+                          </div>
+                          <div className="flex-1">
+                            <h5 className="font-semibold text-foreground dark:text-white mb-1">Chứng chỉ được cấp</h5>
+                            <p className="text-lg font-bold text-purple-600 dark:text-purple-400 mb-2">{selectedExam.certificateTemplate}</p>
+                            <p className="text-sm text-muted-foreground dark:text-slate-400">
+                              Học viên đạt từ {selectedExam.passingScore}% trở lên sẽ được cấp chứng chỉ này
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-sm text-purple-400 mt-1">
-                          Học viên đạt điểm sẽ được cấp chứng chỉ này
-                        </p>
                       </div>
                     )}
 
-                    {selectedExam.status === "rejected" && selectedExam.rejectionReason && (
-                      <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl">
-                        <div className="flex items-center gap-2 text-red-500 mb-2">
-                          <AlertCircle size={20} />
-                          <span className="font-medium">Lý do từ chối</span>
+                    {/* Attempt Statistics */}
+                    <div className="bg-secondary/30 dark:bg-slate-800/30 p-6 rounded-xl border border-border dark:border-slate-800">
+                      <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">Thống kê</h4>
+                      <div className="grid grid-cols-3 gap-6">
+                        <div className="text-center">
+                          <p className="text-3xl font-bold text-primary dark:text-accent">{selectedExam.attemptCount}</p>
+                          <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Lượt thi</p>
                         </div>
-                        <p className="text-red-400">{selectedExam.rejectionReason}</p>
+                        <div className="text-center border-x border-border dark:border-slate-700">
+                          <p className="text-3xl font-bold text-foreground dark:text-white">
+                            {new Date(selectedExam.createdAt).toLocaleDateString('vi-VN')}
+                          </p>
+                          <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Ngày tạo</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-3xl font-bold text-foreground dark:text-white">{selectedExam.courseId}</p>
+                          <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Mã khóa học</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Rejection Reason */}
+                    {selectedExam.status === "rejected" && selectedExam.rejectionReason && (
+                      <div className="bg-red-500/10 border-2 border-red-500/30 p-6 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle size={24} className="text-red-500 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <h5 className="font-semibold text-red-600 dark:text-red-400 mb-2">Lý do từ chối</h5>
+                            <p className="text-red-500 dark:text-red-300 leading-relaxed">{selectedExam.rejectionReason}</p>
+                          </div>
+                        </div>
                       </div>
                     )}
+
+                    {/* Action Buttons */}
+                    {selectedExam.status === "pending" && (
+                      <div className="flex gap-3 pt-4 border-t border-border dark:border-slate-800">
+                        <button
+                          onClick={() => {
+                            handleApprove(selectedExam.id)
+                            setViewMode(null)
+                            setSelectedExam(null)
+                          }}
+                          className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg"
+                        >
+                          <CheckCircle size={20} />
+                          Duyệt bài thi
+                        </button>
+                        <button
+                          onClick={() => {
+                            setViewMode("reject")
+                          }}
+                          className="flex-1 px-6 py-3 bg-secondary hover:bg-secondary/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-foreground dark:text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 border border-border dark:border-slate-700"
+                        >
+                          <XCircle size={20} />
+                          Từ chối
+                        </button>
+                      </div>
+                    )}
+
+                    {/* View Full Details Link */}
+                    <Link
+                      href={`/admin/exams/${selectedExam.id}`}
+                      className="block w-full text-center px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary dark:text-accent rounded-xl font-medium transition-all"
+                    >
+                      Xem chi tiết đầy đủ (câu hỏi, đáp án) →
+                    </Link>
                   </>
                 )}
 

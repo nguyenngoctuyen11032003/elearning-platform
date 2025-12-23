@@ -135,9 +135,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await apiClient.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      // Ignore logout errors - clear local state anyway
+      console.log('Logout API call failed, clearing local state anyway');
     } finally {
+      // Always clear user state and local storage
       setUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+      }
       toast.success('Đã đăng xuất thành công');
       router.push('/');
     }
