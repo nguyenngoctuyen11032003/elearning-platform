@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, type KeyboardEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Heart, Trash2, ShoppingCart, Check } from "lucide-react"
 import { AnimatedButton } from "@/components/ui/animated-button"
@@ -72,6 +72,16 @@ export default function WishlistPage() {
     )
   }
 
+  const handleCardKeyDown = (
+    event: KeyboardEvent<HTMLDivElement>,
+    courseId: string
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      toggleSelection(courseId)
+    }
+  }
+
   const selectedCourses = useMemo(
     () => wishlist.filter((item) => selectedItems.includes(item.id)),
     [wishlist, selectedItems]
@@ -139,8 +149,11 @@ export default function WishlistPage() {
                         isSelected ? "ring-2 ring-primary dark:ring-accent" : ""
                       }`}
                     >
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => toggleSelection(course.id)}
+                        onKeyDown={(event) => handleCardKeyDown(event, course.id)}
                         className="w-full text-left"
                       >
                         <div className="flex flex-col md:flex-row gap-4 md:gap-6">
@@ -214,7 +227,7 @@ export default function WishlistPage() {
                             </div>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     </PremiumCard>
                   </motion.div>
                 )
