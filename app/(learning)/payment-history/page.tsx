@@ -1,0 +1,581 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useAuth } from "@/lib/auth/auth-context"
+import { apiClient } from "@/lib/api/client"
+import { toast } from "sonner"
+import { motion } from "framer-motion"
+import {
+  CreditCard,
+  Calendar,
+  DollarSign,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Download,
+  Eye,
+  Filter,
+  Search,
+  BookOpen,
+  TrendingUp,
+  Package
+} from "lucide-react"
+import Link from "next/link"
+
+interface PaymentHistory {
+  id: string
+  courseTitle: string
+  courseSlug: string
+  courseThumbnail: string
+  amount: number
+  discountAmount?: number
+  finalAmount: number
+  status: "completed" | "pending" | "failed"
+  paymentMethod: string
+  transactionId: string
+  enrolledAt: string
+  expiresAt?: string
+}
+
+export default function PaymentHistoryPage() {
+  const { user } = useAuth()
+  const [payments, setPayments] = useState<PaymentHistory[]>([])
+  const [filteredPayments, setFilteredPayments] = useState<PaymentHistory[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "pending" | "failed">("all")
+  const [selectedPayment, setSelectedPayment] = useState<PaymentHistory | null>(null)
+  const [viewingDetails, setViewingDetails] = useState(false)
+
+  // Statistics
+  const totalSpent = payments
+    .filter(p => p.status === "completed")
+    .reduce((sum, p) => sum + p.finalAmount, 0)
+  const totalCourses = payments.filter(p => p.status === "completed").length
+  const pendingPayments = payments.filter(p => p.status === "pending").length
+
+  useEffect(() => {
+    fetchPaymentHistory()
+  }, [user])
+
+  useEffect(() => {
+    let filtered = payments
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(p =>
+        p.courseTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.transactionId.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    // Filter by status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(p => p.status === statusFilter)
+    }
+
+    setFilteredPayments(filtered)
+  }, [searchTerm, statusFilter, payments])
+
+  const fetchPaymentHistory = async () => {
+    try {
+      setLoading(true)
+      if (!user?.id) {
+        setPayments([])
+        return
+      }
+
+      const enrollments = await apiClient.getMyEnrollments()
+      
+      if (!Array.isArray(enrollments)) {
+        setPayments([])
+        return
+      }
+
+      // Transform enrollments to payment history
+      const paymentHistory: PaymentHistory[] = enrollments.map((enrollment: any) => ({
+        id: enrollment.id,
+        courseTitle: enrollment.course?.title || "Unknown Course",
+        courseSlug: enrollment.course?.slug || "",
+        courseThumbnail: enrollment.course?.thumbnail || "/placeholder.jpg",
+        amount: enrollment.course?.price || 0,
+        discountAmount: enrollment.course?.price && enrollment.course?.discountPrice 
+          ? enrollment.course.price - enrollment.course.discountPrice 
+          : 0,
+        finalAmount: enrollment.course?.discountPrice || enrollment.course?.price || 0,
+        status: enrollment.status === "active" ? "completed" : enrollment.status || "pending",
+        paymentMethod: "Credit Card", // Mock data
+        transactionId: `TXN-${enrollment.id.substring(0, 8).toUpperCase()}`,
+        enrolledAt: enrollment.createdAt || new Date().toISOString(),
+        expiresAt: enrollment.expiresAt,
+      }))
+
+      setPayments(paymentHistory)
+      setFilteredPayments(paymentHistory)
+    } catch (error) {
+      console.error("Error fetching payment history:", error)
+      toast.error("Không thể tải lịch sử thanh toán")
+      setPayments([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "completed":
+        return <CheckCircle className="text-green-500" size={20} />
+      case "pending":
+        return <Clock className="text-yellow-500" size={20} />
+      case "failed":
+        return <XCircle className="text-red-500" size={20} />
+      default:
+        return <Clock className="text-gray-500" size={20} />
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "Thành công"
+      case "pending":
+        return "Đang xử lý"
+      case "failed":
+        return "Thất bại"
+      default:
+        return "Không xác định"
+    }
+  }
+
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+      case "pending":
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+      case "failed":
+        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+      default:
+        return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount)
+  }
+
+  const handleDownloadInvoice = (payment: PaymentHistory) => {
+    toast.success(`Đang tải hóa đơn cho "${payment.courseTitle}"`)
+    // TODO: Implement actual invoice download
+  }
+
+  const handleViewDetails = (payment: PaymentHistory) => {
+    setSelectedPayment(payment)
+    setViewingDetails(true)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Đang tải lịch sử thanh toán...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-primary via-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-2xl"
+        >
+          <div className="flex items-center gap-4 mb-2">
+            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+              <CreditCard size={32} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Lịch sử thanh toán</h1>
+              <p className="text-white/80">Quản lý các giao dịch mua khóa học của bạn</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-800"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
+                <DollarSign className="text-green-600 dark:text-green-400" size={24} />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Tổng chi tiêu</p>
+                <p className="text-2xl font-bold text-foreground dark:text-white">
+                  {formatCurrency(totalSpent)}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-800"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                <Package className="text-blue-600 dark:text-blue-400" size={24} />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Khóa học đã mua</p>
+                <p className="text-2xl font-bold text-foreground dark:text-white">
+                  {totalCourses}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-800"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl">
+                <Clock className="text-yellow-600 dark:text-yellow-400" size={24} />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Đang chờ xử lý</p>
+                <p className="text-2xl font-bold text-foreground dark:text-white">
+                  {pendingPayments}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-800"
+        >
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo tên khóa học hoặc mã giao dịch..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStatusFilter("all")}
+                className={`px-4 py-2.5 rounded-lg transition-all ${
+                  statusFilter === "all"
+                    ? "bg-primary text-white shadow-lg"
+                    : "bg-slate-100 dark:bg-slate-800 text-foreground dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700"
+                }`}
+              >
+                Tất cả
+              </button>
+              <button
+                onClick={() => setStatusFilter("completed")}
+                className={`px-4 py-2.5 rounded-lg transition-all ${
+                  statusFilter === "completed"
+                    ? "bg-green-500 text-white shadow-lg"
+                    : "bg-slate-100 dark:bg-slate-800 text-foreground dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700"
+                }`}
+              >
+                Thành công
+              </button>
+              <button
+                onClick={() => setStatusFilter("pending")}
+                className={`px-4 py-2.5 rounded-lg transition-all ${
+                  statusFilter === "pending"
+                    ? "bg-yellow-500 text-white shadow-lg"
+                    : "bg-slate-100 dark:bg-slate-800 text-foreground dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700"
+                }`}
+              >
+                Chờ xử lý
+              </button>
+              <button
+                onClick={() => setStatusFilter("failed")}
+                className={`px-4 py-2.5 rounded-lg transition-all ${
+                  statusFilter === "failed"
+                    ? "bg-red-500 text-white shadow-lg"
+                    : "bg-slate-100 dark:bg-slate-800 text-foreground dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700"
+                }`}
+              >
+                Thất bại
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Payment List */}
+        {filteredPayments.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-white dark:bg-slate-900 rounded-xl p-12 shadow-lg border border-slate-200 dark:border-slate-800 text-center"
+          >
+            <div className="max-w-md mx-auto">
+              <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CreditCard className="text-muted-foreground" size={40} />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-foreground dark:text-white">
+                Không có giao dịch nào
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                {searchTerm || statusFilter !== "all"
+                  ? "Không tìm thấy giao dịch phù hợp với bộ lọc của bạn"
+                  : "Bạn chưa có giao dịch mua khóa học nào"}
+              </p>
+              {!searchTerm && statusFilter === "all" && (
+                <Link
+                  href="/courses"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-lg hover:shadow-lg transition-all"
+                >
+                  <BookOpen size={20} />
+                  Khám phá khóa học
+                </Link>
+              )}
+            </div>
+          </motion.div>
+        ) : (
+          <div className="space-y-4">
+            {filteredPayments.map((payment, index) => (
+              <motion.div
+                key={payment.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * index }}
+                className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all"
+              >
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Course Thumbnail */}
+                  <div className="flex-shrink-0">
+                    <img
+                      src={payment.courseThumbnail}
+                      alt={payment.courseTitle}
+                      className="w-full md:w-48 h-32 object-cover rounded-lg"
+                    />
+                  </div>
+
+                  {/* Payment Details */}
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-foreground dark:text-white mb-1">
+                          {payment.courseTitle}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Mã giao dịch: {payment.transactionId}
+                        </p>
+                      </div>
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${getStatusBadgeClass(payment.status)}`}>
+                        {getStatusIcon(payment.status)}
+                        {getStatusText(payment.status)}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Calendar size={16} />
+                        <span>{formatDate(payment.enrolledAt)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <CreditCard size={16} />
+                        <span>{payment.paymentMethod}</span>
+                      </div>
+                      <div className="flex items-center gap-2 font-semibold text-foreground dark:text-white">
+                        <DollarSign size={16} />
+                        <span>{formatCurrency(payment.finalAmount)}</span>
+                      </div>
+                    </div>
+
+                    {payment.discountAmount && payment.discountAmount > 0 && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                        <TrendingUp size={16} />
+                        <span>Tiết kiệm: {formatCurrency(payment.discountAmount)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex md:flex-col gap-2">
+                    <button
+                      onClick={() => handleViewDetails(payment)}
+                      className="flex-1 md:flex-initial px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Eye size={16} />
+                      <span className="hidden md:inline">Chi tiết</span>
+                    </button>
+                    {payment.status === "completed" && (
+                      <button
+                        onClick={() => handleDownloadInvoice(payment)}
+                        className="flex-1 md:flex-initial px-4 py-2 bg-slate-100 dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
+                      >
+                        <Download size={16} />
+                        <span className="hidden md:inline">Hóa đơn</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Payment Details Modal */}
+      {viewingDetails && selectedPayment && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-primary via-purple-600 to-pink-600 text-white p-6 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Chi tiết giao dịch</h2>
+                <button
+                  onClick={() => setViewingDetails(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-all"
+                >
+                  <XCircle size={24} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Course Info */}
+              <div>
+                <img
+                  src={selectedPayment.courseThumbnail}
+                  alt={selectedPayment.courseTitle}
+                  className="w-full h-48 object-cover rounded-lg mb-4"
+                />
+                <h3 className="text-xl font-semibold text-foreground dark:text-white mb-2">
+                  {selectedPayment.courseTitle}
+                </h3>
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${getStatusBadgeClass(selectedPayment.status)}`}>
+                  {getStatusIcon(selectedPayment.status)}
+                  {getStatusText(selectedPayment.status)}
+                </div>
+              </div>
+
+              {/* Payment Info */}
+              <div className="space-y-4">
+                <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+                  <h4 className="font-semibold text-foreground dark:text-white mb-3">Thông tin thanh toán</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Mã giao dịch:</span>
+                      <span className="font-medium text-foreground dark:text-white">{selectedPayment.transactionId}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Ngày giao dịch:</span>
+                      <span className="font-medium text-foreground dark:text-white">{formatDate(selectedPayment.enrolledAt)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Phương thức:</span>
+                      <span className="font-medium text-foreground dark:text-white">{selectedPayment.paymentMethod}</span>
+                    </div>
+                    {selectedPayment.expiresAt && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Ngày hết hạn:</span>
+                        <span className="font-medium text-foreground dark:text-white">{formatDate(selectedPayment.expiresAt)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+                  <h4 className="font-semibold text-foreground dark:text-white mb-3">Chi tiết giá</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Giá gốc:</span>
+                      <span className="font-medium text-foreground dark:text-white">{formatCurrency(selectedPayment.amount)}</span>
+                    </div>
+                    {selectedPayment.discountAmount && selectedPayment.discountAmount > 0 && (
+                      <div className="flex justify-between text-green-600 dark:text-green-400">
+                        <span>Giảm giá:</span>
+                        <span className="font-medium">-{formatCurrency(selectedPayment.discountAmount)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-lg font-bold text-foreground dark:text-white border-t border-slate-200 dark:border-slate-800 pt-2">
+                      <span>Tổng thanh toán:</span>
+                      <span>{formatCurrency(selectedPayment.finalAmount)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-4">
+                {selectedPayment.courseSlug && (
+                  <Link
+                    href={`/course/${selectedPayment.courseSlug}`}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-center"
+                  >
+                    Xem khóa học
+                  </Link>
+                )}
+                {selectedPayment.status === "completed" && (
+                  <button
+                    onClick={() => handleDownloadInvoice(selectedPayment)}
+                    className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Download size={20} />
+                    Tải hóa đơn
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </div>
+  )
+}

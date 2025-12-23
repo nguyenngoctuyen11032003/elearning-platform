@@ -2,145 +2,314 @@
 
 import { Navbar } from "@/components/ui/navbar"
 import { Footer } from "@/components/ui/footer"
-import { Users, Target, Zap, Award, TrendingUp, Heart } from "lucide-react"
+import { Users, Target, Zap, Award, TrendingUp, Heart, Sparkles, Globe, Shield } from "lucide-react"
 import Link from "next/link"
+import { motion } from "framer-motion"
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5 },
+  },
+}
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-background dark:bg-slate-950">
+    <div className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-background dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <Navbar />
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 -z-10" />
-        <div className="max-w-4xl mx-auto text-center space-y-6">
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground dark:text-white leading-tight">
-            Về ICS Learning
+      <section className="pt-32 pb-20 px-4 md:px-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.1),transparent_50%)] dark:bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(168,85,247,0.1),transparent_50%)] dark:bg-[radial-gradient(circle_at_70%_50%,rgba(168,85,247,0.15),transparent_50%)]" />
+        
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-5xl mx-auto text-center space-y-6 relative z-10"
+        >
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring" }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-accent/10 rounded-full text-primary dark:text-accent font-medium text-sm mb-4"
+          >
+            <Sparkles size={16} />
+            <span>Hành trình 10+ năm phát triển</span>
+          </motion.div>
+          
+          <h1 className="text-5xl md:text-7xl font-bold text-foreground dark:text-white leading-tight">
+            Về{" "}
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              ICS Learning
+            </span>
           </h1>
-          <p className="text-xl text-muted-foreground dark:text-slate-300">
-            Chúng tôi tin rằng giáo dục là chìa khóa để mở ra những cơ hội vô hạn
+          <p className="text-xl md:text-2xl text-muted-foreground dark:text-slate-300 max-w-3xl mx-auto">
+            Chúng tôi tin rằng giáo dục là chìa khóa để mở ra những cơ hội vô hạn và thay đổi cuộc sống
           </p>
-        </div>
+        </motion.div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-12 px-4 md:px-8">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
+        >
+          {[
+            { icon: Users, label: "50K+", desc: "Học viên toàn cầu", color: "from-blue-500 to-cyan-500" },
+            { icon: Target, label: "500+", desc: "Khóa học đa dạng", color: "from-purple-500 to-pink-500" },
+            { icon: Award, label: "200+", desc: "Giảng viên chuyên gia", color: "from-orange-500 to-red-500" },
+            { icon: TrendingUp, label: "4.8★", desc: "Đánh giá trung bình", color: "from-green-500 to-emerald-500" },
+          ].map((stat, i) => (
+            <motion.div key={i} variants={itemVariants} className="group">
+              <div className="relative p-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
+                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
+                <stat.icon className={`w-10 h-10 bg-gradient-to-br ${stat.color} bg-clip-text text-transparent mb-3`} />
+                <p className="text-3xl md:text-4xl font-bold text-foreground dark:text-white mb-1">{stat.label}</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{stat.desc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
       </section>
 
       {/* Mission Section */}
-      <section className="py-20 px-8 bg-card dark:bg-slate-900/50">
+      <section className="py-20 px-4 md:px-8">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-4xl font-bold text-foreground dark:text-white mb-6">Sứ mệnh của chúng tôi</h2>
-              <p className="text-lg text-muted-foreground dark:text-slate-300 mb-4">
-                ICS Learning được thành lập với mục tiêu dân chủ hóa giáo dục chất lượng cao. Chúng tôi tin rằng mọi
-                người, bất kể nơi ở hay hoàn cảnh, đều xứng đáng có cơ hội học tập từ những giảng viên tốt nhất.
-              </p>
-              <p className="text-lg text-muted-foreground dark:text-slate-300">
-                Thông qua công nghệ và sự đổi mới, chúng tôi tạo ra một nền tảng nơi kiến thức được chia sẻ tự do và mọi
-                người có thể phát triển kỹ năng của họ.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { icon: Users, label: "50K+ Học viên", value: "Trên toàn thế giới" },
-                { icon: Target, label: "500+ Khóa học", value: "Đa lĩnh vực" },
-                { icon: Award, label: "200+ Giảng viên", value: "Chuyên gia" },
-                { icon: TrendingUp, label: "4.8★ Đánh giá", value: "Từ học viên" },
-              ].map((stat, i) => (
-                <div
-                  key={i}
-                  className="p-6 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-2xl text-center"
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
+          >
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-accent/10 rounded-full text-primary dark:text-accent font-medium text-sm">
+                <Target size={16} />
+                <span>Sứ mệnh của chúng tôi</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white leading-tight">
+                Dân chủ hóa giáo dục chất lượng cao
+              </h2>
+              <div className="space-y-4 text-lg text-muted-foreground dark:text-slate-300">
+                <p>
+                  ICS Learning được thành lập với mục tiêu mang giáo dục chất lượng cao đến với mọi người, bất kể họ ở đâu hay hoàn cảnh ra sao.
+                </p>
+                <p>
+                  Chúng tôi tin rằng mọi người đều xứng đáng có cơ hội học tập từ những giảng viên tốt nhất thế giới. Thông qua công nghệ và sự đổi mới, chúng tôi tạo ra một nền tảng nơi kiến thức được chia sẻ tự do.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <Link
+                  href="/courses"
+                  className="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-full font-semibold hover:shadow-xl transition-all hover:scale-105"
                 >
-                  <stat.icon className="w-8 h-8 text-primary dark:text-accent mx-auto mb-3" />
-                  <p className="font-semibold text-foreground dark:text-white">{stat.label}</p>
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">{stat.value}</p>
-                </div>
-              ))}
+                  Khám phá khóa học
+                </Link>
+                <Link
+                  href="/teachers"
+                  className="px-6 py-3 border-2 border-border hover:border-primary dark:hover:border-accent text-foreground dark:text-white rounded-full font-semibold transition-all hover:scale-105"
+                >
+                  Trở thành giảng viên
+                </Link>
+              </div>
             </div>
-          </div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="relative"
+            >
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { icon: Globe, label: "Toàn cầu", desc: "Học viên từ 120+ quốc gia" },
+                  { icon: Shield, label: "Tin cậy", desc: "Bảo mật thông tin tuyệt đối" },
+                  { icon: Zap, label: "Nhanh chóng", desc: "Học mọi lúc mọi nơi" },
+                  { icon: Heart, label: "Chất lượng", desc: "Nội dung được kiểm duyệt" },
+                ].map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="p-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl hover:shadow-lg transition-all hover:-translate-y-1"
+                  >
+                    <item.icon className="w-8 h-8 text-primary dark:text-accent mb-3" />
+                    <h3 className="font-semibold text-foreground dark:text-white mb-1">{item.label}</h3>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{item.desc}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* Values Section */}
-      <section className="py-20 px-8">
+      <section className="py-20 px-4 md:px-8 bg-card/50 dark:bg-slate-900/30">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-foreground dark:text-white text-center mb-12">Giá trị cốt lõi</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
+              Giá trị cốt lõi
+            </h2>
+            <p className="text-xl text-muted-foreground dark:text-slate-300 max-w-2xl mx-auto">
+              Những nguyên tắc định hướng mọi hoạt động của chúng tôi
+            </p>
+          </motion.div>
+
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8"
+          >
             {[
               {
                 icon: Heart,
-                title: "Chất lượng",
-                desc: "Chúng tôi cam kết cung cấp nội dung học tập chất lượng cao từ những chuyên gia hàng đầu.",
+                title: "Chất lượng là ưu tiên hàng đầu",
+                desc: "Chúng tôi cam kết cung cấp nội dung học tập chất lượng cao từ những chuyên gia hàng đầu trong ngành. Mỗi khóa học đều được kiểm duyệt kỹ lưỡng.",
+                gradient: "from-red-500 to-pink-500",
               },
               {
                 icon: Zap,
-                title: "Đổi mới",
-                desc: "Luôn cập nhật công nghệ mới nhất để mang lại trải nghiệm học tập tốt nhất.",
+                title: "Đổi mới không ngừng",
+                desc: "Luôn cập nhật công nghệ mới nhất để mang lại trải nghiệm học tập tốt nhất. Chúng tôi đầu tư vào AI và machine learning để cá nhân hóa học tập.",
+                gradient: "from-yellow-500 to-orange-500",
               },
               {
                 icon: Users,
-                title: "Cộng đồng",
-                desc: "Xây dựng một cộng đồng học tập sôi động nơi mọi người có thể chia sẻ và phát triển.",
+                title: "Cộng đồng kết nối",
+                desc: "Xây dựng một cộng đồng học tập sôi động nơi mọi người có thể chia sẻ, hỗ trợ và phát triển cùng nhau. Học không chỉ là cá nhân mà là tập thể.",
+                gradient: "from-blue-500 to-cyan-500",
               },
             ].map((value, i) => (
-              <div
-                key={i}
-                className="p-8 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl hover:shadow-lg transition-smooth"
-              >
-                <value.icon className="w-12 h-12 text-primary dark:text-accent mb-4" />
-                <h3 className="text-2xl font-semibold text-foreground dark:text-white mb-3">{value.title}</h3>
-                <p className="text-muted-foreground dark:text-slate-300">{value.desc}</p>
-              </div>
+              <motion.div key={i} variants={itemVariants} className="group">
+                <div className="h-full p-8 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
+                  <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${value.gradient} opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity`} />
+                  <div className={`w-14 h-14 bg-gradient-to-br ${value.gradient} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                    <value.icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-semibold text-foreground dark:text-white mb-3">{value.title}</h3>
+                  <p className="text-muted-foreground dark:text-slate-300 leading-relaxed">{value.desc}</p>
+                </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Team Section */}
-      <section className="py-20 px-8 bg-card dark:bg-slate-900/50">
+      <section className="py-20 px-4 md:px-8">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-foreground dark:text-white text-center mb-12">
-            Đội ngũ của chúng tôi
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
+              Đội ngũ lãnh đạo
+            </h2>
+            <p className="text-xl text-muted-foreground dark:text-slate-300 max-w-2xl mx-auto">
+              Những con người đầy nhiệt huyết đằng sau ICS Learning
+            </p>
+          </motion.div>
+
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
             {[
-              { name: "Nguyễn Văn A", role: "CEO & Founder", image: "/placeholder-user.jpg" },
-              { name: "Trần Thị B", role: "CTO", image: "/placeholder-user.jpg" },
-              { name: "Lê Minh C", role: "Head of Content", image: "/placeholder-user.jpg" },
-              { name: "Phạm Hương D", role: "Community Manager", image: "/placeholder-user.jpg" },
+              { name: "Nguyễn Văn A", role: "CEO & Founder", image: "/placeholder-user.jpg", gradient: "from-blue-500 to-cyan-500" },
+              { name: "Trần Thị B", role: "CTO", image: "/placeholder-user.jpg", gradient: "from-purple-500 to-pink-500" },
+              { name: "Lê Minh C", role: "Head of Content", image: "/placeholder-user.jpg", gradient: "from-orange-500 to-red-500" },
+              { name: "Phạm Hương D", role: "Community Manager", image: "/placeholder-user.jpg", gradient: "from-green-500 to-emerald-500" },
             ].map((member, i) => (
-              <div key={i} className="text-center">
-                <img
-                  src={member.image || "/placeholder.svg"}
-                  alt={member.name}
-                  className="w-full h-64 object-cover rounded-2xl mb-4"
-                />
-                <h3 className="text-xl font-semibold text-foreground dark:text-white">{member.name}</h3>
-                <p className="text-muted-foreground dark:text-slate-400">{member.role}</p>
-              </div>
+              <motion.div key={i} variants={itemVariants} className="group">
+                <div className="relative overflow-hidden rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 hover:shadow-2xl transition-all duration-300">
+                  <div className="relative h-80 overflow-hidden">
+                    <img
+                      src={member.image || "/placeholder.svg"}
+                      alt={member.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className={`absolute inset-0 bg-gradient-to-t ${member.gradient} opacity-0 group-hover:opacity-20 transition-opacity`} />
+                  </div>
+                  <div className="p-6 text-center">
+                    <h3 className="text-xl font-semibold text-foreground dark:text-white mb-1">{member.name}</h3>
+                    <p className="text-primary dark:text-accent font-medium">{member.role}</p>
+                  </div>
+                </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-8">
-        <div className="max-w-4xl mx-auto bg-gradient-to-r from-primary to-accent rounded-3xl p-12 text-center text-white">
-          <h2 className="text-4xl font-bold mb-4">Tham gia cộng đồng ICS Learning</h2>
-          <p className="text-lg mb-8 opacity-90">Bắt đầu hành trình học tập của bạn ngay hôm nay</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/signup"
-              className="inline-block bg-white text-primary hover:bg-slate-100 px-8 py-3 rounded-full font-semibold transition-smooth"
-            >
-              Đăng ký học viên
-            </Link>
-            <Link
-              href="/teachers"
-              className="inline-block border-2 border-white text-white hover:bg-white/10 px-8 py-3 rounded-full font-semibold transition-smooth"
-            >
-              Trở thành giảng viên
-            </Link>
+      <section className="py-20 px-4 md:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-4xl mx-auto relative"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-3xl blur-2xl opacity-20" />
+          <div className="relative bg-gradient-to-r from-primary to-accent rounded-3xl p-12 text-center text-white overflow-hidden">
+            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+            <div className="relative z-10">
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">Tham gia cộng đồng ICS Learning</h2>
+              <p className="text-lg md:text-xl mb-8 opacity-90">
+                Bắt đầu hành trình học tập của bạn ngay hôm nay và mở ra cơ hội vô hạn
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center justify-center gap-2 bg-white text-primary hover:bg-slate-100 px-8 py-4 rounded-full font-semibold transition-all hover:scale-105 shadow-xl"
+                >
+                  <span>Đăng ký học viên</span>
+                  <Sparkles size={18} />
+                </Link>
+                <Link
+                  href="/teachers"
+                  className="inline-flex items-center justify-center gap-2 border-2 border-white text-white hover:bg-white/10 px-8 py-4 rounded-full font-semibold transition-all hover:scale-105"
+                >
+                  <span>Trở thành giảng viên</span>
+                  <Award size={18} />
+                </Link>
+              </div>
+            </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       <Footer />

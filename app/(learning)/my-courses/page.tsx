@@ -34,15 +34,22 @@ export default function MyCoursesPage() {
 
   useEffect(() => {
     const fetchEnrollments = async () => {
-      if (!user?.id) return
+      if (!user?.id) {
+        setLoading(false)
+        return
+      }
 
       try {
         setLoading(true)
         const enrollments = await apiClient.getMyEnrollments()
-        setCourses(enrollments)
+        setCourses(Array.isArray(enrollments) ? enrollments : [])
       } catch (error) {
         console.error("Error fetching enrollments:", error)
-        toast.error("Không thể tải danh sách khóa học")
+        setCourses([])
+        // Don't show error toast if it's just empty data
+        if (error instanceof Error && !error.message.includes('status: 404')) {
+          toast.error("Không thể tải danh sách khóa học")
+        }
       } finally {
         setLoading(false)
       }

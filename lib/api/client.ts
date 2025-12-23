@@ -47,19 +47,47 @@ class ApiClient {
       const response = await fetch(url, config);
       
       if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
         try {
-          const errorData: ApiError = await response.json();
-          const errorMessage = Array.isArray(errorData.message)
-            ? errorData.message.join(', ')
-            : errorData.message || `HTTP error! status: ${response.status}`;
-          throw new Error(errorMessage);
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData: ApiError = await response.json();
+            errorMessage = Array.isArray(errorData.message)
+              ? errorData.message.join(', ')
+              : errorData.message || errorMessage;
+          } else {
+            const textError = await response.text();
+            errorMessage = textError || response.statusText || errorMessage;
+          }
         } catch (parseError) {
-          // Nếu không parse được JSON, dùng status text
-          throw new Error(response.statusText || `HTTP error! status: ${response.status}`);
+          // Nếu không parse được, dùng status text
+          errorMessage = response.statusText || errorMessage;
         }
+        
+        // For 404 errors on enrollment endpoints, don't throw - return empty response
+        if (response.status === 404 && (url.includes('enrollments') || url.includes('my-courses'))) {
+          console.log('No data found, returning empty array');
+          return [];
+        }
+        
+        // For 500 errors on enrollment endpoints, return empty array gracefully
+        if (response.status >= 500 && (url.includes('enrollments') || url.includes('my-courses'))) {
+          console.log('Server error on enrollments, returning empty array');
+          return [];
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      return await response.json();
+      // Check if response has content before parsing JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      
+      // If not JSON, return empty object or text
+      const text = await response.text();
+      return text ? { data: text } : {};
     } catch (error) {
       // Handle network errors
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
@@ -244,7 +272,14 @@ class ApiClient {
 
   // Enrollments methods
   async getMyEnrollments(): Promise<any> {
-    return this.request(API_ENDPOINTS.ENROLLMENTS.MY_COURSES);
+    try {
+      const result = await this.request(API_ENDPOINTS.ENROLLMENTS.MY_COURSES);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching enrollments:', error);
+      // Return empty array instead of throwing error
+      return [];
+    }
   }
 
   async createEnrollment(data: { courseId: string }): Promise<any> {

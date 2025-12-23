@@ -3,11 +3,12 @@
 import { Navbar } from "@/components/ui/navbar"
 import { CourseCard } from "@/components/ui/course-card"
 import { SectionTitle } from "@/components/ui/section-title"
-import { Search, Filter, ChevronDown } from "lucide-react"
+import { Search, Filter, ChevronDown, Grid, List, Star, TrendingUp } from "lucide-react"
 import { useState, useEffect } from "react"
 import { apiClient } from "@/lib/api/client"
 import { Footer } from "@/components/ui/footer"
 import { useSearchParams } from "next/navigation"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function CoursesPage() {
   const searchParams = useSearchParams()
@@ -20,6 +21,8 @@ export default function CoursesPage() {
   const [selectedCategory, setSelectedCategory] = useState(categoryParam || "all")
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000])
   const [categories, setCategories] = useState<any[]>([])
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [sortBy, setSortBy] = useState<"popular" | "newest" | "price-low" | "price-high">("popular")
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,8 +69,24 @@ export default function CoursesPage() {
       (course) => course.price >= priceRange[0] && course.price <= priceRange[1]
     )
 
+    // Sort
+    switch (sortBy) {
+      case "popular":
+        filtered.sort((a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0))
+        break
+      case "newest":
+        filtered.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+        break
+      case "price-low":
+        filtered.sort((a, b) => (a.price || 0) - (b.price || 0))
+        break
+      case "price-high":
+        filtered.sort((a, b) => (b.price || 0) - (a.price || 0))
+        break
+    }
+
     setFilteredCourses(filtered)
-  }, [search, selectedCategory, priceRange, allCourses])
+  }, [search, selectedCategory, priceRange, allCourses, sortBy])
 
   const handleReset = () => {
     setSearch("")
@@ -83,31 +102,57 @@ export default function CoursesPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-background dark:bg-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <Navbar />
 
-      <div className="pt-24 pb-12 px-8">
-        <div className="max-w-6xl mx-auto">
-          <SectionTitle title="Danh sách khóa học" subtitle="Tìm khóa học phù hợp với bạn" />
+      <div className="pt-24 pb-12 px-6 md:px-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Hero Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-12 text-center"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-full mb-4">
+              <TrendingUp size={16} />
+              <span className="text-sm font-medium">Khám phá kiến thức mới</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
+              Danh sách khóa học
+            </h1>
+            <p className="text-lg text-muted-foreground dark:text-slate-400 max-w-2xl mx-auto">
+              Tìm khóa học phù hợp với mục tiêu học tập của bạn từ hàng trăm khóa học chất lượng cao
+            </p>
+          </motion.div>
 
           {/* Search Bar */}
-          <div className="mb-8 relative">
-            <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-8 relative max-w-3xl mx-auto"
+          >
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
             <input
               type="text"
-              placeholder="Tìm khóa học, giảng viên..."
+              placeholder="Tìm kiếm khóa học, giảng viên, chủ đề..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+              className="w-full pl-14 pr-6 py-4 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-all text-lg"
             />
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Sidebar Filters */}
-            <div className="lg:col-span-1">
-              <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 sticky top-24">
-                <h3 className="font-semibold text-foreground dark:text-white mb-4 flex items-center gap-2">
-                  <Filter size={18} /> Bộ lọc
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="lg:col-span-1"
+            >
+              <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-6 sticky top-24 shadow-xl">
+                <h3 className="font-bold text-lg text-foreground dark:text-white mb-6 flex items-center gap-2">
+                  <Filter size={20} className="text-primary dark:text-accent" /> Bộ lọc
                 </h3>
 
                 {/* Category Filter */}
@@ -166,56 +211,149 @@ export default function CoursesPage() {
 
                 <button
                   onClick={handleReset}
-                  className="w-full py-2 text-sm text-primary dark:text-accent hover:bg-primary/10 dark:hover:bg-primary/20 rounded-lg transition-smooth"
+                  className="w-full py-3 text-sm font-medium text-white bg-gradient-to-r from-primary to-purple-600 hover:shadow-lg rounded-xl transition-all"
                 >
                   Xóa bộ lọc
                 </button>
               </div>
-            </div>
+            </motion.div>
 
             {/* Courses Grid */}
             <div className="lg:col-span-3">
-              {/* Header */}
-              <div className="mb-8 pb-6 border-b border-border dark:border-slate-800">
-                <p className="text-lg font-semibold text-foreground dark:text-white">
-                  Tìm thấy <span className="text-primary dark:text-accent">{filteredCourses.length}</span> khóa học
-                </p>
-              </div>
-                    <option value="price-low">Giá thấp nhất</option>
+              {/* Header with Stats and View Toggle */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-lg border border-border dark:border-slate-800"
+              >
+                <div>
+                  <p className="text-2xl font-bold text-foreground dark:text-white">
+                    <span className="text-primary dark:text-accent">{filteredCourses.length}</span> khóa học
+                  </p>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">
+                    Tìm thấy cho bạn
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Sort Dropdown */}
+                  <div className="relative">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as any)}
+                      className="appearance-none pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                    >
+                      <option value="popular">Phổ biến nhất</option>
+                      <option value="newest">Mới nhất</option>
+                      <option value="price-low">Giá thấp → cao</option>
+                      <option value="price-high">Giá cao → thấp</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" size={16} />
+                  </div>
+
+                  {/* View Mode Toggle */}
+                  <div className="flex items-center gap-1 p-1 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      className={`p-2 rounded-lg transition-all ${
+                        viewMode === "grid"
+                          ? "bg-white dark:bg-slate-700 text-primary dark:text-accent shadow"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Grid size={18} />
+                    </button>
+                    <button
+                      onClick={() => setViewMode("list")}
+                      className={`p-2 rounded-lg transition-all ${
+                        viewMode === "list"
+                          ? "bg-white dark:bg-slate-700 text-primary dark:text-accent shadow"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <List size={18} />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
 
               {/* Courses */}
-              {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="rounded-2xl overflow-hidden bg-card dark:bg-slate-900/60 animate-pulse">
-                      <div className="h-48 bg-secondary dark:bg-slate-800" />
-                      <div className="p-4 space-y-3">
-                        <div className="h-4 bg-secondary dark:bg-slate-800 rounded" />
-                        <div className="h-3 bg-secondary dark:bg-slate-800 rounded w-2/3" />
+              <AnimatePresence mode="wait">
+                {loading ? (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}
+                  >
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} className="rounded-2xl overflow-hidden bg-white dark:bg-slate-900 animate-pulse shadow-lg">
+                        <div className="h-48 bg-slate-200 dark:bg-slate-800" />
+                        <div className="p-5 space-y-3">
+                          <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded" />
+                          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3" />
+                          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2" />
+                        </div>
                       </div>
+                    ))}
+                  </motion.div>
+                ) : filteredCourses.length > 0 ? (
+                  <motion.div
+                    key="courses"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}
+                  >
+                    {filteredCourses.map((course, index) => (
+                      <motion.div
+                        key={course.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <CourseCard
+                          id={course.id}
+                          title={course.title}
+                          teacher={course.teacher?.name || "Unknown Teacher"}
+                          price={course.price}
+                          rating={course.rating || 0}
+                          image={course.image || "/placeholder.svg"}
+                          students={course.enrollmentCount || 0}
+                        />
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="empty"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="text-center py-20"
+                  >
+                    <div className="max-w-md mx-auto">
+                      <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Search className="text-muted-foreground" size={40} />
+                      </div>
+                      <h3 className="text-2xl font-bold text-foreground dark:text-white mb-2">
+                        Không tìm thấy khóa học
+                      </h3>
+                      <p className="text-muted-foreground dark:text-slate-400 mb-6">
+                        Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác
+                      </p>
+                      <button
+                        onClick={handleReset}
+                        className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl hover:shadow-lg transition-all font-medium"
+                      >
+                        Xóa bộ lọc
+                      </button>
                     </div>
-                  ))}
-                </div>
-              ) : filteredCourses.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredCourses.map((course) => (
-                    <CourseCard
-                      key={course.id}
-                      id={course.id}
-                      title={course.title}
-                      teacher={course.teacher?.name || "Unknown Teacher"}
-                      price={course.price}
-                      rating={course.rating || 0}
-                      image={course.image || "/placeholder.svg"}
-                      students={course.enrollmentCount || 0}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy khóa học phù hợp</p>
-                </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>

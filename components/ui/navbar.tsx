@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { Menu, X, Home, LogOut, User, Settings, BookOpen, FileText, Heart, Award } from "lucide-react"
-import { useState, useEffect } from "react"
+import { Menu, X, Home, LogOut, User, Settings } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
 import { ThemeToggle } from "./theme-toggle"
@@ -13,6 +13,7 @@ export function Navbar() {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const profileMenuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   
   const { user, logout, loading, isAuthenticated } = useAuth()
@@ -20,6 +21,23 @@ export function Navbar() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false)
+      }
+    }
+
+    if (showProfileMenu) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showProfileMenu])
 
   const handleLogout = () => {
     logout()
@@ -75,9 +93,12 @@ export function Navbar() {
         <Link href="/courses" className="hover:text-foreground transition-smooth">
           Khóa học
         </Link>
-        {isAuthenticated ? (
-          <Link href="/dashboard" className="hover:text-foreground transition-smooth">
-            Bảng điều khiển
+        {isAuthenticated && user ? (
+          <Link 
+            href={user.role === 'student' ? '/userdb' : user.role === 'teacher' ? '/teacher/dashboard' : '/admin/dashboard'} 
+            className="hover:text-foreground transition-smooth"
+          >
+            Trang chủ của tôi
           </Link>
         ) : (
           <Link href="/teachers" className="hover:text-foreground transition-smooth">
@@ -93,115 +114,93 @@ export function Navbar() {
         {isAuthenticated && user ? (
           <>
             <ThemeToggle />
-            <button
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-3 hover:opacity-80 transition-smooth px-3 py-2 rounded-lg hover:bg-secondary dark:hover:bg-slate-800"
-            >
-              <img
-                src={getRoleAvatar(user.role)}
-                alt="Avatar"
-                className="w-10 h-10 rounded-full object-cover"
-                onError={(e) => {
-                  // Fallback to initials if role avatar fails to load
-                  const target = e.target as HTMLImageElement
-                  target.style.display = 'none'
-                  if (target.nextSibling) return
-                  const div = document.createElement('div')
-                  div.className = 'w-10 h-10 rounded-full bg-primary flex items-center justify-center'
-                  div.innerHTML = `<span class="text-white font-bold text-sm">${getInitials(user.name)}</span>`
-                  target.parentNode?.appendChild(div)
-                }}
-              />
-              <span className="text-sm font-medium text-foreground dark:text-white hidden sm:inline">{user.name}</span>
-            </button>
+            {/* Simple Avatar Button - Click to view profile or show mini menu */}
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-3 hover:opacity-80 transition-smooth px-3 py-2 rounded-lg hover:bg-secondary dark:hover:bg-slate-800"
+              >
+                <img
+                  src={getRoleAvatar(user.role)}
+                  alt="Avatar"
+                  className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    if (target.nextSibling) return
+                    const div = document.createElement('div')
+                    div.className = 'w-10 h-10 rounded-full bg-primary flex items-center justify-center border-2 border-primary/20'
+                    div.innerHTML = `<span class="text-white font-bold text-sm">${getInitials(user.name)}</span>`
+                    target.parentNode?.appendChild(div)
+                  }}
+                />
+                <span className="text-sm font-medium text-foreground dark:text-white hidden sm:inline">{user.name}</span>
+              </button>
 
-            {/* Profile Dropdown Menu */}
-            {showProfileMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
-                {/* User Info Header */}
-                <div className="px-4 py-3 border-b border-border dark:border-slate-800 sticky top-0 bg-card dark:bg-slate-900">
-                  <p className="text-sm font-semibold text-foreground dark:text-white">{user.name}</p>
-                  <p className="text-xs text-muted-foreground dark:text-slate-400">
-                    {user.role === 'student' ? 'Học viên' : user.role === 'teacher' ? 'Giảng viên' : 'Admin'}
-                  </p>
-                </div>
+              {/* Simplified Dropdown Menu */}
+              {showProfileMenu && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl shadow-2xl z-50">
+                  {/* User Info Header */}
+                  <div className="px-4 py-4 border-b border-border dark:border-slate-800 bg-gradient-to-r from-primary/5 to-purple-500/5">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={getRoleAvatar(user.role)}
+                        alt="Avatar"
+                        className="w-12 h-12 rounded-full object-cover border-2 border-primary/30"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground dark:text-white truncate">{user.name}</p>
+                        <p className="text-xs text-muted-foreground dark:text-slate-400">
+                          {user.role === 'student' ? 'Học viên' : user.role === 'teacher' ? 'Giảng viên' : 'Quản trị viên'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-                <div className="border-b border-border dark:border-slate-800">
-                  <Link
-                    href="/dashboard"
-                    onClick={() => setShowProfileMenu(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
-                  >
-                    <Home size={18} />
-                    <span className="text-sm font-medium">Bảng điều khiển</span>
-                  </Link>
-                  <Link
-                    href="/my-courses"
-                    onClick={() => setShowProfileMenu(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
-                  >
-                    <BookOpen size={18} />
-                    <span className="text-sm font-medium">Khóa học của tôi</span>
-                  </Link>
-                  <Link
-                    href="/notes"
-                    onClick={() => setShowProfileMenu(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
-                  >
-                    <FileText size={18} />
-                    <span className="text-sm font-medium">Ghi chú</span>
-                  </Link>
-                  <Link
-                    href="/wishlist"
-                    onClick={() => setShowProfileMenu(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
-                  >
-                    <Heart size={18} />
-                    <span className="text-sm font-medium">Yêu thích</span>
-                  </Link>
-                  <Link
-                    href="/certificates"
-                    onClick={() => setShowProfileMenu(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
-                  >
-                    <Award size={18} />
-                    <span className="text-sm font-medium">Chứng chỉ</span>
-                  </Link>
-                </div>
+                  {/* Quick Actions */}
+                  <div className="py-2">
+                    <Link
+                      href={user.role === 'student' ? '/userdb' : user.role === 'teacher' ? '/teacher/dashboard' : '/admin/dashboard'}
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
+                    >
+                      <Home size={18} />
+                      <span className="text-sm font-medium">Trang chủ của tôi</span>
+                    </Link>
+                    <Link
+                      href="/profile"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
+                    >
+                      <User size={18} />
+                      <span className="text-sm font-medium">Hồ sơ cá nhân</span>
+                    </Link>
+                    <Link
+                      href="/settings"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
+                    >
+                      <Settings size={18} />
+                      <span className="text-sm font-medium">Cài đặt</span>
+                    </Link>
+                  </div>
 
-                <div className="border-b border-border dark:border-slate-800">
-                  <Link
-                    href="/profile"
-                    onClick={() => setShowProfileMenu(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
-                  >
-                    <User size={18} />
-                    <span className="text-sm font-medium">Xem hồ sơ</span>
-                  </Link>
-                  <Link
-                    href="/settings"
-                    onClick={() => setShowProfileMenu(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
-                  >
-                    <Settings size={18} />
-                    <span className="text-sm font-medium">Cài đặt</span>
-                  </Link>
+                  {/* Logout */}
+                  <div className="border-t border-border dark:border-slate-800 py-2">
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false)
+                        setShowLogoutConfirm(true)
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/20 transition-smooth"
+                    >
+                      <LogOut size={18} />
+                      <span className="text-sm font-medium">Đăng xuất</span>
+                    </button>
+                  </div>
                 </div>
-
-                <div>
-                  <button
-                    onClick={() => {
-                      setShowProfileMenu(false)
-                      setShowLogoutConfirm(true)
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/20 transition-smooth rounded-b-lg"
-                  >
-                    <LogOut size={18} />
-                    <span className="text-sm font-medium">Đăng xuất</span>
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </>
         ) : (
           <>
@@ -233,8 +232,11 @@ export function Navbar() {
               Khóa học
             </Link>
             {isAuthenticated ? (
-              <Link href="/dashboard" className="text-sm hover:text-primary transition-smooth">
-                Bảng điều khiển
+              <Link 
+                href={user?.role === 'student' ? '/userdb' : user?.role === 'teacher' ? '/teacher/dashboard' : '/admin/dashboard'} 
+                className="text-sm hover:text-primary transition-smooth"
+              >
+                Trang chủ của tôi
               </Link>
             ) : (
               <Link href="/teachers" className="text-sm hover:text-primary transition-smooth">
@@ -246,47 +248,27 @@ export function Navbar() {
             </Link>
             {isAuthenticated ? (
               <>
-                <div className="border-t border-border dark:border-slate-800 pt-4 mt-4">
+                <div className="border-t border-border dark:border-slate-800 pt-4 mt-2">
                   <Link
-                    href="/dashboard"
-                    className="text-sm hover:text-primary transition-smooth flex items-center gap-2"
+                    href="/profile"
+                    className="text-sm hover:text-primary transition-smooth flex items-center gap-2 py-2"
                   >
-                    <Home size={16} /> Bảng điều khiển
-                  </Link>
-                  <Link
-                    href="/my-courses"
-                    className="text-sm hover:text-primary transition-smooth flex items-center gap-2"
-                  >
-                    <BookOpen size={16} /> Khóa học của tôi
-                  </Link>
-                  <Link href="/notes" className="text-sm hover:text-primary transition-smooth flex items-center gap-2">
-                    <FileText size={16} /> Ghi chú
+                    <User size={16} /> Hồ sơ cá nhân
                   </Link>
                   <Link
-                    href="/wishlist"
-                    className="text-sm hover:text-primary transition-smooth flex items-center gap-2"
+                    href="/settings"
+                    className="text-sm hover:text-primary transition-smooth flex items-center gap-2 py-2"
                   >
-                    <Heart size={16} /> Yêu thích
-                  </Link>
-                  <Link
-                    href="/certificates"
-                    className="text-sm hover:text-primary transition-smooth flex items-center gap-2"
-                  >
-                    <Award size={16} /> Chứng chỉ
-                  </Link>
-                </div>
-                <div className="border-t border-border dark:border-slate-800 pt-4">
-                  <Link href="/profile" className="text-sm hover:text-primary transition-smooth">
-                    Xem hồ sơ
-                  </Link>
-                  <Link href="/settings" className="text-sm hover:text-primary transition-smooth">
-                    Cài đặt
+                    <Settings size={16} /> Cài đặt
                   </Link>
                   <button
-                    onClick={() => setShowLogoutConfirm(true)}
-                    className="text-sm hover:text-primary transition-smooth text-left text-destructive w-full"
+                    onClick={() => {
+                      setIsOpen(false)
+                      setShowLogoutConfirm(true)
+                    }}
+                    className="text-sm hover:text-primary transition-smooth text-left text-destructive w-full flex items-center gap-2 py-2"
                   >
-                    Đăng xuất
+                    <LogOut size={16} /> Đăng xuất
                   </button>
                 </div>
               </>

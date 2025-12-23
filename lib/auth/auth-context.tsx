@@ -88,7 +88,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           break;
         case 'student':
         default:
-          router.push('/dashboard');
+          router.push('/userdb');
           break;
       }
     } catch (error) {

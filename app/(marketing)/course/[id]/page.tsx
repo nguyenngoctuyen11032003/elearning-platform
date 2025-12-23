@@ -210,32 +210,170 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                 </motion.div>
               </TabsContent>
 
-              <TabsContent value="reviews" className="space-y-4 mt-6">
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <PremiumCard key={i}>
-                      <div className="flex gap-4">
-                        <img src="/placeholder-user.jpg" alt="Reviewer" className="w-12 h-12 rounded-full" />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-foreground font-semibold">Học viên {i}</h4>
-                            <div className="flex gap-1">
-                              {[...Array(5)].map((_, j) => (
-                                <Star
-                                  key={j}
-                                  size={16}
-                                  className={j < 5 ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30"}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-muted-foreground text-sm">
-                            Khóa học rất tuyệt vời! Giảng viên giải thích rõ ràng và dễ hiểu.
-                          </p>
+              <TabsContent value="reviews" className="space-y-6 mt-6">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  {/* Review Summary */}
+                  <div className="bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 rounded-2xl p-6 mb-6">
+                    <div className="flex flex-col md:flex-row gap-8 items-center">
+                      <div className="text-center">
+                        <div className="text-6xl font-bold text-primary dark:text-accent mb-2">{course.rating}</div>
+                        <div className="flex gap-1 justify-center mb-2">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              size={20}
+                              className={i < Math.floor(course.rating) ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30"}
+                            />
+                          ))}
                         </div>
+                        <p className="text-sm text-muted-foreground">{course.reviews} đánh giá</p>
+                      </div>
+
+                      <div className="flex-1 space-y-2 w-full">
+                        {[
+                          { stars: 5, percent: 75 },
+                          { stars: 4, percent: 15 },
+                          { stars: 3, percent: 6 },
+                          { stars: 2, percent: 3 },
+                          { stars: 1, percent: 1 },
+                        ].map((rating) => (
+                          <div key={rating.stars} className="flex items-center gap-3">
+                            <span className="text-sm text-muted-foreground w-12">{rating.stars} sao</span>
+                            <div className="flex-1 h-2 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-primary to-accent"
+                                style={{ width: `${rating.percent}%` }}
+                              />
+                            </div>
+                            <span className="text-sm text-muted-foreground w-12 text-right">{rating.percent}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Write Review (if enrolled) */}
+                  {isEnrolled && (
+                    <PremiumCard className="mb-6">
+                      <h3 className="text-lg font-semibold text-foreground mb-4">Viết đánh giá của bạn</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-muted-foreground mb-2">Đánh giá</label>
+                          <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                className="text-muted-foreground hover:text-yellow-400 transition"
+                              >
+                                <Star size={28} className="fill-current" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-muted-foreground mb-2">Nhận xét</label>
+                          <textarea
+                            rows={4}
+                            placeholder="Chia sẻ trải nghiệm của bạn về khóa học này..."
+                            className="w-full bg-background dark:bg-slate-950 text-foreground border border-border dark:border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent resize-none"
+                          />
+                        </div>
+                        <AnimatedButton className="w-full sm:w-auto">Gửi đánh giá</AnimatedButton>
                       </div>
                     </PremiumCard>
-                  ))}
+                  )}
+
+                  {/* Reviews List */}
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-semibold text-foreground mb-4">Đánh giá từ học viên</h3>
+                    {[
+                      {
+                        name: "Nguyễn Văn A",
+                        avatar: "/placeholder-user.jpg",
+                        rating: 5,
+                        date: "2 ngày trước",
+                        comment: "Khóa học rất chi tiết và dễ hiểu. Giảng viên giải thích rất rõ ràng, từng bước một. Tôi đã học được rất nhiều kiến thức thực tế và có thể áp dụng ngay vào dự án của mình.",
+                        helpful: 24,
+                      },
+                      {
+                        name: "Trần Thị B",
+                        avatar: "/placeholder-user.jpg",
+                        rating: 5,
+                        date: "1 tuần trước",
+                        comment: "Đây là khóa học Next.js tốt nhất mà tôi từng tham gia. Nội dung được cập nhật liên tục, bài tập thực hành phong phú. Rất đáng tiền!",
+                        helpful: 18,
+                      },
+                      {
+                        name: "Lê Minh C",
+                        avatar: "/placeholder-user.jpg",
+                        rating: 4,
+                        date: "2 tuần trước",
+                        comment: "Khóa học tốt, nội dung phong phú. Tuy nhiên có một số phần hơi nhanh, mình phải xem lại vài lần mới hiểu hết. Nhìn chung vẫn rất hài lòng.",
+                        helpful: 12,
+                      },
+                      {
+                        name: "Phạm Hương D",
+                        avatar: "/placeholder-user.jpg",
+                        rating: 5,
+                        date: "3 tuần trước",
+                        comment: "Giảng viên nhiệt tình, hỗ trợ học viên rất tốt. Các ví dụ thực tế giúp mình hiểu sâu hơn về Next.js. Cảm ơn thầy rất nhiều!",
+                        helpful: 15,
+                      },
+                    ].map((review, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                      >
+                        <PremiumCard>
+                          <div className="flex gap-4">
+                            <img
+                              src={review.avatar || "/placeholder.svg"}
+                              alt={review.name}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <h4 className="text-foreground font-semibold">{review.name}</h4>
+                                  <p className="text-xs text-muted-foreground">{review.date}</p>
+                                </div>
+                                <div className="flex gap-1">
+                                  {[...Array(5)].map((_, j) => (
+                                    <Star
+                                      key={j}
+                                      size={14}
+                                      className={
+                                        j < review.rating ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30"
+                                      }
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                              <p className="text-muted-foreground text-sm leading-relaxed mb-3">{review.comment}</p>
+                              <div className="flex items-center gap-4">
+                                <button className="text-xs text-muted-foreground hover:text-primary transition flex items-center gap-1">
+                                  <span>👍</span>
+                                  <span>Hữu ích ({review.helpful})</span>
+                                </button>
+                                <button className="text-xs text-muted-foreground hover:text-primary transition">
+                                  Trả lời
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </PremiumCard>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Load More */}
+                  <div className="text-center pt-4">
+                    <button className="px-6 py-2 border-2 border-border hover:border-primary dark:hover:border-accent text-foreground rounded-full transition font-medium">
+                      Xem thêm đánh giá
+                    </button>
+                  </div>
                 </motion.div>
               </TabsContent>
             </Tabs>
