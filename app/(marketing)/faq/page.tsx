@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { ChevronDown, Search, HelpCircle, Book, CreditCard, User, Settings, Shield } from "lucide-react"
+import { Navbar } from "@/components/ui/navbar"
+import { Footer } from "@/components/ui/footer"
 
 interface FAQItem {
   question: string
@@ -121,7 +123,9 @@ export default function FAQPage() {
   }
 
   return (
-    <main className="min-h-screen">
+    <>
+      <Navbar />
+      <main className="min-h-screen">
       {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-br from-primary/10 via-background to-accent/10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -245,5 +249,7 @@ export default function FAQPage() {
         </div>
       </section>
     </main>
+    <Footer />
+    </>
   )
 }

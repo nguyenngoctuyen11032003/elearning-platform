@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { Mail, Phone, MapPin, Clock, Send, Facebook, Instagram, Youtube, Linkedin, MessageCircle } from "lucide-react"
+import { Navbar } from "@/components/ui/navbar"
+import { Footer } from "@/components/ui/footer"
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -59,7 +61,9 @@ export default function ContactPage() {
   ]
 
   return (
-    <main className="min-h-screen">
+    <>
+      <Navbar />
+      <main className="min-h-screen">
       {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-br from-primary/10 via-background to-accent/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -246,5 +250,7 @@ export default function ContactPage() {
         </div>
       </section>
     </main>
+    <Footer />
+    </>
   )
 }

@@ -390,6 +390,319 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // ================== Admin Users API ==================
+  async getUsers(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+  }): Promise<any> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.role) queryParams.append('role', params.role);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+    
+    const endpoint = `/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async getUserById(id: string): Promise<any> {
+    return this.request(`/users/${id}`);
+  }
+
+  async updateUser(id: string, data: any): Promise<any> {
+    return this.request(`/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateUserStatus(id: string, status: string): Promise<any> {
+    return this.request(`/users/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async updateUserRole(id: string, role: string): Promise<any> {
+    return this.request(`/users/${id}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  async bulkUserAction(action: string, userIds: string[]): Promise<any> {
+    return this.request('/users/bulk-action', {
+      method: 'POST',
+      body: JSON.stringify({ action, userIds }),
+    });
+  }
+
+  async getUserStats(): Promise<any> {
+    return this.request('/users/stats');
+  }
+
+  async deleteUser(id: string): Promise<any> {
+    return this.request(`/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ================== 2FA API ==================
+  async get2FAStatus(): Promise<any> {
+    return this.request('/auth/2fa/status');
+  }
+
+  async setup2FATOTP(): Promise<any> {
+    return this.request('/auth/2fa/setup/totp', {
+      method: 'POST',
+    });
+  }
+
+  async verify2FATOTP(token: string): Promise<any> {
+    return this.request('/auth/2fa/verify/totp', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async verify2FA(token: string): Promise<any> {
+    return this.request('/auth/2fa/verify', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async disable2FA(token: string): Promise<any> {
+    return this.request('/auth/2fa/disable', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async regenerateBackupCodes(token: string): Promise<any> {
+    return this.request('/auth/2fa/backup-codes/regenerate', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  // ================== Notifications API ==================
+  async getNotifications(params?: { page?: number; limit?: number; status?: string }): Promise<any> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    
+    const endpoint = `/notifications${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async getUnreadNotificationCount(): Promise<any> {
+    return this.request('/notifications/unread-count');
+  }
+
+  async markNotificationAsRead(id: string): Promise<any> {
+    return this.request(`/notifications/${id}/read`, {
+      method: 'PATCH',
+    });
+  }
+
+  async markAllNotificationsAsRead(): Promise<any> {
+    return this.request('/notifications/read-all', {
+      method: 'PATCH',
+    });
+  }
+
+  // ================== Payment Gateway API ==================
+  async createVNPayPayment(data: {
+    courseId: string;
+    amount: number;
+    orderInfo?: string;
+    bankCode?: string;
+  }): Promise<any> {
+    return this.request('/payments/vnpay/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createMomoPayment(data: {
+    courseId: string;
+    amount: number;
+    orderInfo?: string;
+  }): Promise<any> {
+    return this.request('/payments/momo/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getVNPayBanks(): Promise<any> {
+    return this.request('/payments/vnpay/banks');
+  }
+
+  async getPaymentHistory(params?: { page?: number; limit?: number; status?: string }): Promise<any> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    
+    const endpoint = `/payments/my-payments${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async getPaymentStats(): Promise<any> {
+    return this.request('/payments/stats');
+  }
+
+  // ================== Admin Courses API ==================
+  async createCourse(data: any): Promise<any> {
+    return this.request('/courses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCourse(id: string, data: any): Promise<any> {
+    return this.request(`/courses/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCourse(id: string): Promise<any> {
+    return this.request(`/courses/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async publishCourse(id: string): Promise<any> {
+    return this.request(`/courses/${id}/publish`, {
+      method: 'PATCH',
+    });
+  }
+
+  async unpublishCourse(id: string): Promise<any> {
+    return this.request(`/courses/${id}/unpublish`, {
+      method: 'PATCH',
+    });
+  }
+
+  // ================== Lessons API (Admin) ==================
+  async createLesson(data: any): Promise<any> {
+    return this.request('/lessons', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateLesson(id: string, data: any): Promise<any> {
+    return this.request(`/lessons/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteLesson(id: string): Promise<any> {
+    return this.request(`/lessons/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async reorderLessons(courseId: string, lessonIds: string[]): Promise<any> {
+    return this.request(`/lessons/reorder`, {
+      method: 'POST',
+      body: JSON.stringify({ courseId, lessonIds }),
+    });
+  }
+
+  // ================== Categories API (Admin) ==================
+  async createCategory(data: { name: string; description?: string; icon?: string }): Promise<any> {
+    return this.request('/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCategory(id: string, data: any): Promise<any> {
+    return this.request(`/categories/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCategory(id: string): Promise<any> {
+    return this.request(`/categories/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ================== Certificates API ==================
+  async getCertificateById(id: string): Promise<any> {
+    return this.request(`/certificates/${id}`);
+  }
+
+  async downloadCertificate(id: string): Promise<Blob> {
+    const response = await fetch(`${this.baseURL}/certificates/${id}/download`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+      },
+    });
+    if (!response.ok) throw new Error('Failed to download certificate');
+    return response.blob();
+  }
+
+  async verifyCertificate(certificateNumber: string): Promise<any> {
+    return this.request(`/certificates/verify/${certificateNumber}`);
+  }
+
+  // ================== Dashboard Stats API ==================
+  async getAdminDashboardStats(): Promise<any> {
+    return this.request('/admin/dashboard/stats');
+  }
+
+  async getTeacherDashboardStats(): Promise<any> {
+    return this.request('/teacher/dashboard/stats');
+  }
+
+  async getStudentDashboardStats(): Promise<any> {
+    return this.request('/student/dashboard/stats');
+  }
+
+  // ================== Exams API ==================
+  async getExamsByCourse(courseId: string): Promise<any> {
+    return this.request(`/exams/course/${courseId}`);
+  }
+
+  async getExamById(id: string): Promise<any> {
+    return this.request(`/exams/${id}`);
+  }
+
+  async startExam(id: string): Promise<any> {
+    return this.request(`/exams/${id}/start`, {
+      method: 'POST',
+    });
+  }
+
+  async submitExam(id: string, answers: Record<string, any>): Promise<any> {
+    return this.request(`/exams/${id}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    });
+  }
+
+  async getExamResults(id: string): Promise<any> {
+    return this.request(`/exams/${id}/results`);
+  }
 }
 
 export const apiClient = new ApiClient();
