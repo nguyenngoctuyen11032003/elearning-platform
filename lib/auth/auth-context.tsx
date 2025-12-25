@@ -15,6 +15,7 @@ interface AuthContextType {
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -161,6 +162,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const refreshProfile = async () => {
+    try {
+      const profile = await apiClient.getProfile();
+      setUser(profile);
+    } catch (error) {
+      console.error('Profile refresh failed:', error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -168,6 +178,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     register,
     logout,
     refreshToken,
+    refreshProfile,
     isAuthenticated: !!user,
   };
 

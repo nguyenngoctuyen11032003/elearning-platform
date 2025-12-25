@@ -10,7 +10,7 @@ import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function AdminProfilePage() {
-  const { user, loading } = useAuth()
+  const { user, loading, refreshProfile } = useAuth()
   const [saving, setSaving] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState({
@@ -78,6 +78,9 @@ export default function AdminProfilePage() {
         name: profileData.name,
         phone: profileData.phone || undefined,
       })
+
+      // Refresh user profile in auth context
+      await refreshProfile()
 
       toast.success("Cập nhật hồ sơ thành công!")
     } catch (error) {
