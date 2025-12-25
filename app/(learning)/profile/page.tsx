@@ -596,7 +596,7 @@ export default function StudentProfilePage() {
                     className="w-full bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
                   >
                     <option value="vi">Tiếng Việt</option>
-                    <option value="en">English</option>
+                    <option value="en">Tiếng Anh</option>
                   </select>
                 </div>
               </div>

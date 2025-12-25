@@ -429,7 +429,7 @@ export default function AdminCourseDetailPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground dark:text-slate-400">Ngôn ngữ</span>
-                    <span className="font-semibold text-foreground dark:text-white">{course.language === 'vi' ? 'Tiếng Việt' : 'English'}</span>
+                    <span className="font-semibold text-foreground dark:text-white">{course.language === 'vi' ? 'Tiếng Việt' : 'Tiếng Anh'}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground dark:text-slate-400">Tạo lúc</span>

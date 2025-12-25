@@ -280,7 +280,7 @@ export default function StudentSettingsPage() {
                   className="bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                 >
                   <option value="vi">Tiếng Việt</option>
-                  <option value="en">English</option>
+                  <option value="en">Tiếng Anh</option>
                 </select>
               </div>
             </div>

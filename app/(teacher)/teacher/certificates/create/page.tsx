@@ -436,7 +436,7 @@ export default function CreateCertificatePage() {
                     className="text-sm font-medium tracking-[0.3em] uppercase mb-2"
                     style={{ color: formData.borderColor }}
                   >
-                    Certificate of Completion
+                    Chững chỉ Hoàn Thành
                   </h3>
 
                   <h2

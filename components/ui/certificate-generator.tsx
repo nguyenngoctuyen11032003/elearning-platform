@@ -48,7 +48,7 @@ export function CertificateGenerator({
       // Subtitle
       ctx.fillStyle = "#94a3b8"
       ctx.font = "20px Arial"
-      ctx.fillText("Certificate of Completion", canvas.width / 2, 200)
+      ctx.fillText("Chững chỉ Hoàn Thành", canvas.width / 2, 200)
 
       // Student name
       ctx.fillStyle = "#ffffff"
@@ -95,7 +95,7 @@ export function CertificateGenerator({
         className="bg-gradient-to-br from-slate-900 to-blue-900 rounded-lg p-12 text-center border-4 border-blue-600 aspect-video flex flex-col items-center justify-center"
       >
         <h1 className="text-4xl font-bold text-blue-400 mb-2">CHỨNG CHỈ HOÀN THÀNH</h1>
-        <p className="text-slate-400 mb-8">Certificate of Completion</p>
+        <p className="text-slate-400 mb-8">Chững chỉ Hoàn Thành</p>
 
         <p className="text-slate-300 mb-4">Chứng nhận rằng</p>
         <h2 className="text-3xl font-bold text-white mb-6">{studentName}</h2>
