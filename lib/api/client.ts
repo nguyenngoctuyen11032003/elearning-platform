@@ -82,12 +82,20 @@ class ApiClient {
       // Check if response has content before parsing JSON
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
-        return await response.json();
+        const json = await response.json();
+        
+        // Handle wrapped response from backend interceptor
+        // Backend wraps responses in { success: true, data: ..., meta: ... }
+        if (json && typeof json === 'object' && 'data' in json) {
+          return json.data as T;
+        }
+        
+        return json;
       }
       
       // If not JSON, return empty object or text
       const text = await response.text();
-      return text ? { data: text } : {};
+      return text ? { data: text } : {} as T;
     } catch (error) {
       // Handle network errors
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
@@ -216,16 +224,24 @@ class ApiClient {
     level?: string; 
     page?: number; 
     limit?: number; 
-  }): Promise<any> {
-    const queryParams = new URLSearchParams();
-    if (params?.category) queryParams.append('category', params.category);
-    if (params?.search) queryParams.append('search', params.search);
-    if (params?.level) queryParams.append('level', params.level);
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    
-    const endpoint = `${API_ENDPOINTS.COURSES.LIST}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    return this.request(endpoint);
+  }): Promise<any[]> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.category) queryParams.append('category', params.category);
+      if (params?.search) queryParams.append('search', params.search);
+      if (params?.level) queryParams.append('level', params.level);
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      
+      const endpoint = `${API_ENDPOINTS.COURSES.LIST}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const result = await this.request(endpoint);
+      
+      // Ensure we always return an array
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      return [];
+    }
   }
 
   async getCourseById(id: string): Promise<any> {
@@ -236,25 +252,55 @@ class ApiClient {
     return this.request(API_ENDPOINTS.COURSES.BY_SLUG(slug));
   }
 
-  async getFeaturedCourses(): Promise<any> {
-    return this.request(API_ENDPOINTS.COURSES.FEATURED);
+  async getFeaturedCourses(): Promise<any[]> {
+    try {
+      const result = await this.request(API_ENDPOINTS.COURSES.FEATURED);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching featured courses:', error);
+      return [];
+    }
   }
 
-  async getBestsellers(): Promise<any> {
-    return this.request(API_ENDPOINTS.COURSES.BESTSELLERS);
+  async getBestsellers(): Promise<any[]> {
+    try {
+      const result = await this.request(API_ENDPOINTS.COURSES.BESTSELLERS);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching bestsellers:', error);
+      return [];
+    }
   }
 
-  async getCoursesByTeacher(teacherId: string): Promise<any> {
-    return this.request(API_ENDPOINTS.COURSES.BY_TEACHER(teacherId));
+  async getCoursesByTeacher(teacherId: string): Promise<any[]> {
+    try {
+      const result = await this.request(API_ENDPOINTS.COURSES.BY_TEACHER(teacherId));
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching courses by teacher:', error);
+      return [];
+    }
   }
 
-  async getCourseReviews(courseId: string): Promise<any> {
-    return this.request(API_ENDPOINTS.COURSES.REVIEWS(courseId));
+  async getCourseReviews(courseId: string): Promise<any[]> {
+    try {
+      const result = await this.request(API_ENDPOINTS.COURSES.REVIEWS(courseId));
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching course reviews:', error);
+      return [];
+    }
   }
 
   // Categories methods
-  async getCategories(): Promise<any> {
-    return this.request(API_ENDPOINTS.CATEGORIES.LIST);
+  async getCategories(): Promise<any[]> {
+    try {
+      const result = await this.request(API_ENDPOINTS.CATEGORIES.LIST);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      return [];
+    }
   }
 
   async getCategoryById(id: string): Promise<any> {
@@ -262,8 +308,14 @@ class ApiClient {
   }
 
   // Lessons methods
-  async getLessonsByCourse(courseId: string): Promise<any> {
-    return this.request(API_ENDPOINTS.LESSONS.BY_COURSE(courseId));
+  async getLessonsByCourse(courseId: string): Promise<any[]> {
+    try {
+      const result = await this.request(API_ENDPOINTS.LESSONS.BY_COURSE(courseId));
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching lessons by course:', error);
+      return [];
+    }
   }
 
   async getLessonById(id: string): Promise<any> {
@@ -271,7 +323,7 @@ class ApiClient {
   }
 
   // Enrollments methods
-  async getMyEnrollments(): Promise<any> {
+  async getMyEnrollments(): Promise<any[]> {
     try {
       const result = await this.request(API_ENDPOINTS.ENROLLMENTS.MY_COURSES);
       return Array.isArray(result) ? result : [];
@@ -324,11 +376,17 @@ class ApiClient {
   }
 
   // Certificates methods
-  async getMyCertificates(): Promise<any> {
-    const user = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-    if (!user) return [];
-    const userId = JSON.parse(user).id;
-    return this.request(API_ENDPOINTS.CERTIFICATES.BY_STUDENT(userId));
+  async getMyCertificates(): Promise<any[]> {
+    try {
+      const user = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+      if (!user) return [];
+      const userId = JSON.parse(user).id;
+      const result = await this.request(API_ENDPOINTS.CERTIFICATES.BY_STUDENT(userId));
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching certificates:', error);
+      return [];
+    }
   }
 
   // Payments methods
@@ -344,8 +402,14 @@ class ApiClient {
   }
 
   // Notes methods
-  async getNotesByCourse(courseId: string): Promise<any> {
-    return this.request(API_ENDPOINTS.NOTES.BY_COURSE(courseId));
+  async getNotesByCourse(courseId: string): Promise<any[]> {
+    try {
+      const result = await this.request(API_ENDPOINTS.NOTES.BY_COURSE(courseId));
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+      return [];
+    }
   }
 
   async createNote(data: {
@@ -374,8 +438,14 @@ class ApiClient {
   }
 
   // Wishlists methods
-  async getMyWishlist(): Promise<any> {
-    return this.request(API_ENDPOINTS.WISHLISTS.LIST);
+  async getMyWishlist(): Promise<any[]> {
+    try {
+      const result = await this.request(API_ENDPOINTS.WISHLISTS.LIST);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching wishlist:', error);
+      return [];
+    }
   }
 
   async addToWishlist(courseId: string): Promise<any> {

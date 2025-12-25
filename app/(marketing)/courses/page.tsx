@@ -44,19 +44,20 @@ export default function CoursesPage() {
   }, [])
 
   useEffect(() => {
-    let filtered = allCourses
+    // Ensure we start with an array
+    let filtered = Array.isArray(allCourses) ? [...allCourses] : []
 
     // Filter by search
-    if (search) {
+    if (search && filtered.length > 0) {
       filtered = filtered.filter(
         (course) =>
-          course.title.toLowerCase().includes(search.toLowerCase()) ||
+          course.title?.toLowerCase().includes(search.toLowerCase()) ||
           course.teacher?.name?.toLowerCase().includes(search.toLowerCase())
       )
     }
 
     // Filter by category
-    if (selectedCategory !== "all") {
+    if (selectedCategory !== "all" && filtered.length > 0) {
       filtered = filtered.filter(
         (course) =>
           course.category?.id === selectedCategory ||
@@ -65,24 +66,31 @@ export default function CoursesPage() {
     }
 
     // Filter by price
-    filtered = filtered.filter(
-      (course) => course.price >= priceRange[0] && course.price <= priceRange[1]
-    )
+    if (filtered.length > 0) {
+      filtered = filtered.filter(
+        (course) => {
+          const price = course.price || 0
+          return price >= priceRange[0] && price <= priceRange[1]
+        }
+      )
+    }
 
     // Sort
-    switch (sortBy) {
-      case "popular":
-        filtered.sort((a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0))
-        break
-      case "newest":
-        filtered.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-        break
-      case "price-low":
-        filtered.sort((a, b) => (a.price || 0) - (b.price || 0))
-        break
-      case "price-high":
-        filtered.sort((a, b) => (b.price || 0) - (a.price || 0))
-        break
+    if (filtered.length > 0) {
+      switch (sortBy) {
+        case "popular":
+          filtered.sort((a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0))
+          break
+        case "newest":
+          filtered.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+          break
+        case "price-low":
+          filtered.sort((a, b) => (a.price || 0) - (b.price || 0))
+          break
+        case "price-high":
+          filtered.sort((a, b) => (b.price || 0) - (a.price || 0))
+          break
+      }
     }
 
     setFilteredCourses(filtered)
