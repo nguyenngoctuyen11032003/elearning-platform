@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Edit, Trash2, Eye, Search, MoreVertical, CheckCircle, Clock, XCircle, BookOpen, Users, DollarSign, Star, X, AlertCircle } from "lucide-react"
+import { Edit, Trash2, Eye, Search, MoreVertical, CheckCircle, Clock, XCircle, BookOpen, Users, DollarSign, Star, X, AlertCircle, BarChart3 } from "lucide-react"
 import { ConfirmDialog } from "@/components/ui/admin-modals"
 import { formatStudentCount, formatPrice } from "@/lib/format"
 import { useRouter } from "next/navigation"
