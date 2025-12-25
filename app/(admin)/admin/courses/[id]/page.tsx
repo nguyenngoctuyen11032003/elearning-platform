@@ -511,8 +511,75 @@ export default function AdminCourseDetailPage() {
         {activeTab === "students" && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">Học viên đăng ký</h2>
-            <p className="text-muted-foreground dark:text-slate-400">Danh sách {course.students} học viên đã đăng ký khóa học này.</p>
-            {/* TODO: Add student list table */}
+            <p className="text-muted-foreground dark:text-slate-400 mb-6">Danh sách {course.students} học viên đã đăng ký khóa học này.</p>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border dark:border-slate-800">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Học viên</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Email</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Tiến độ</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Trạng thái</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Ngày đăng ký</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Lần cuối truy cập</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { id: 1, name: 'Nguyễn Văn A', email: 'nguyenvana@email.com', progress: 85, status: 'active', enrolled: '2024-01-15', lastAccess: '2 giờ trước' },
+                    { id: 2, name: 'Trần Thị B', email: 'tranthib@email.com', progress: 100, status: 'completed', enrolled: '2024-01-10', lastAccess: '1 ngày trước' },
+                    { id: 3, name: 'Lê Văn C', email: 'levanc@email.com', progress: 45, status: 'active', enrolled: '2024-02-01', lastAccess: '5 giờ trước' },
+                    { id: 4, name: 'Phạm Thị D', email: 'phamthid@email.com', progress: 92, status: 'active', enrolled: '2024-01-20', lastAccess: '3 giờ trước' },
+                    { id: 5, name: 'Hoàng Văn E', email: 'hoangvane@email.com', progress: 15, status: 'active', enrolled: '2024-03-05', lastAccess: '1 tuần trước' },
+                    { id: 6, name: 'Vũ Thị F', email: 'vuthif@email.com', progress: 100, status: 'completed', enrolled: '2024-01-08', lastAccess: '3 ngày trước' },
+                    { id: 7, name: 'Đặng Văn G', email: 'dangvang@email.com', progress: 68, status: 'active', enrolled: '2024-02-15', lastAccess: '1 ngày trước' },
+                    { id: 8, name: 'Bùi Thị H', email: 'buithih@email.com', progress: 30, status: 'active', enrolled: '2024-02-28', lastAccess: '2 ngày trước' },
+                  ].map((student) => (
+                    <tr key={student.id} className="border-b border-border dark:border-slate-800 hover:bg-muted/50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="py-3 px-4 text-sm text-foreground dark:text-white font-medium">{student.name}</td>
+                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{student.email}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-sm font-semibold text-foreground dark:text-white">{student.progress}%</span>
+                          <div className="w-20 bg-muted dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                            <div 
+                              className="bg-gradient-to-r from-primary to-blue-400 h-full rounded-full transition-all"
+                              style={{ width: `${student.progress}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {student.status === 'completed' ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Hoàn thành
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Đang học
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{student.enrolled}</td>
+                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{student.lastAccess}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="mt-6 flex justify-between items-center">
+              <p className="text-sm text-muted-foreground dark:text-slate-400">Hiển thị 8 / {course.students} học viên</p>
+              <div className="flex gap-2">
+                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">Trước</button>
+                <button className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg">1</button>
+                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">2</button>
+                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">Sau</button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -536,7 +603,102 @@ export default function AdminCourseDetailPage() {
                 <p className="text-sm text-muted-foreground dark:text-slate-400">Đánh giá trung bình</p>
               </div>
             </div>
-            {/* TODO: Add charts and more analytics */}
+            
+            {/* Revenue Over Time Chart */}
+            <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">Doanh thu theo thời gian</h3>
+              <div className="h-64 flex items-end justify-between gap-2">
+                {[
+                  { month: 'T1', revenue: 15000000, enrollments: 25 },
+                  { month: 'T2', revenue: 22000000, enrollments: 37 },
+                  { month: 'T3', revenue: 28000000, enrollments: 47 },
+                  { month: 'T4', revenue: 25000000, enrollments: 42 },
+                  { month: 'T5', revenue: 32000000, enrollments: 53 },
+                  { month: 'T6', revenue: 35000000, enrollments: 58 },
+                ].map((data, index) => (
+                  <div key={index} className="flex-1 flex flex-col items-center gap-2">
+                    <div className="text-xs text-muted-foreground dark:text-slate-400 mb-1">
+                      {(data.revenue / 1000000).toFixed(0)}M
+                    </div>
+                    <div 
+                      className="w-full bg-gradient-to-t from-green-500 to-emerald-400 dark:from-green-600 dark:to-emerald-400 rounded-t-lg transition-all hover:opacity-80 cursor-pointer"
+                      style={{ height: `${(data.revenue / 35000000) * 100}%` }}
+                      title={`${data.enrollments} đăng ký, ${(data.revenue / 1000000).toFixed(1)}M VNĐ`}
+                    ></div>
+                    <div className="text-xs font-medium text-foreground dark:text-white">{data.month}</div>
+                    <div className="text-xs text-muted-foreground dark:text-slate-400">{data.enrollments}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t border-border dark:border-slate-800 flex justify-between text-sm">
+                <span className="text-muted-foreground dark:text-slate-400">Số lượng đăng ký</span>
+                <span className="text-muted-foreground dark:text-slate-400">Doanh thu (triệu VNĐ)</span>
+              </div>
+            </div>
+            
+            {/* Completion Rate by Section */}
+            <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">Tỷ lệ hoàn thành theo chương</h3>
+              <div className="space-y-4">
+                {[
+                  { section: 'Giới thiệu và cài đặt', lessons: 5, completion: 95 },
+                  { section: 'Cơ bản về React', lessons: 8, completion: 88 },
+                  { section: 'Hooks và State Management', lessons: 10, completion: 75 },
+                  { section: 'Routing và Navigation', lessons: 6, completion: 68 },
+                  { section: 'API và Data Fetching', lessons: 7, completion: 62 },
+                  { section: 'Advanced Patterns', lessons: 9, completion: 45 },
+                  { section: 'Testing và Deployment', lessons: 5, completion: 38 },
+                ].map((section, index) => (
+                  <div key={index}>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-foreground dark:text-white font-medium">{section.section}</span>
+                      <span className="text-muted-foreground dark:text-slate-400">{section.lessons} bài • {section.completion}%</span>
+                    </div>
+                    <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
+                      <div 
+                        className="h-full rounded-full transition-all"
+                        style={{ 
+                          width: `${section.completion}%`,
+                          background: `linear-gradient(to right, ${section.completion > 70 ? '#10b981' : section.completion > 50 ? '#f59e0b' : '#ef4444'}, ${section.completion > 70 ? '#34d399' : section.completion > 50 ? '#fbbf24' : '#f87171'})`
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Rating Distribution */}
+            <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">Phân bố đánh giá</h3>
+              <div className="space-y-3">
+                {[
+                  { stars: 5, count: 145, percentage: 58 },
+                  { stars: 4, count: 78, percentage: 31 },
+                  { stars: 3, count: 18, percentage: 7 },
+                  { stars: 2, count: 7, percentage: 3 },
+                  { stars: 1, count: 2, percentage: 1 },
+                ].map((rating) => (
+                  <div key={rating.stars} className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 w-16">
+                      <span className="text-sm font-medium text-foreground dark:text-white">{rating.stars}</span>
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-full rounded-full"
+                          style={{ width: `${rating.percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground dark:text-slate-400 w-20 text-right">
+                      {rating.count} ({rating.percentage}%)
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>

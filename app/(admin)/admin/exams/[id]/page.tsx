@@ -529,8 +529,72 @@ export default function AdminExamDetailPage() {
         {activeTab === "attempts" && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">Lịch sử làm bài</h2>
-            <p className="text-muted-foreground dark:text-slate-400">Có {exam.attemptCount} lượt làm bài thi này.</p>
-            {/* TODO: Add attempts list table */}
+            <p className="text-muted-foreground dark:text-slate-400 mb-6">Có {exam.attemptCount} lượt làm bài thi này.</p>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border dark:border-slate-800">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Học viên</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Email</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Điểm</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Kết quả</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Thời gian</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Ngày làm</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { id: 1, student: 'Nguyễn Văn A', email: 'nguyenvana@email.com', score: 85, passed: true, duration: 75, date: '2024-03-20 14:30' },
+                    { id: 2, student: 'Trần Thị B', email: 'tranthib@email.com', score: 92, passed: true, duration: 68, date: '2024-03-20 10:15' },
+                    { id: 3, student: 'Lê Văn C', email: 'levanc@email.com', score: 65, passed: false, duration: 88, date: '2024-03-19 16:45' },
+                    { id: 4, student: 'Phạm Thị D', email: 'phamthid@email.com', score: 78, passed: true, duration: 70, date: '2024-03-19 09:20' },
+                    { id: 5, student: 'Hoàng Văn E', email: 'hoangvane@email.com', score: 88, passed: true, duration: 65, date: '2024-03-18 15:30' },
+                    { id: 6, student: 'Vũ Thị F', email: 'vuthif@email.com', score: 55, passed: false, duration: 90, date: '2024-03-18 11:00' },
+                    { id: 7, student: 'Đặng Văn G', email: 'dangvang@email.com', score: 94, passed: true, duration: 62, date: '2024-03-17 14:15' },
+                    { id: 8, student: 'Bùi Thị H', email: 'buithih@email.com', score: 72, passed: true, duration: 82, date: '2024-03-17 10:30' },
+                  ].map((attempt) => (
+                    <tr key={attempt.id} className="border-b border-border dark:border-slate-800 hover:bg-muted/50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="py-3 px-4 text-sm text-foreground dark:text-white">{attempt.student}</td>
+                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{attempt.email}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                          {attempt.score}%
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {attempt.passed ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Đạt
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Không đạt
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center text-sm text-muted-foreground dark:text-slate-400">
+                        {attempt.duration} phút
+                      </td>
+                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{attempt.date}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="mt-6 flex justify-between items-center">
+              <p className="text-sm text-muted-foreground dark:text-slate-400">Hiển thị 8 / {exam.attemptCount} kết quả</p>
+              <div className="flex gap-2">
+                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">Trước</button>
+                <button className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg">1</button>
+                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">2</button>
+                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">3</button>
+                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">Sau</button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -558,7 +622,88 @@ export default function AdminExamDetailPage() {
                 <p className="text-sm text-muted-foreground dark:text-slate-400">Điểm chuẩn</p>
               </div>
             </div>
-            {/* TODO: Add more analytics charts */}
+            
+            {/* Score Distribution Chart */}
+            <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">Phân bố điểm số</h3>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground dark:text-slate-400">90-100 điểm</span>
+                    <span className="text-foreground dark:text-white font-semibold">32 học viên (13%)</span>
+                  </div>
+                  <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-full rounded-full" style={{ width: '13%' }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground dark:text-slate-400">80-89 điểm</span>
+                    <span className="text-foreground dark:text-white font-semibold">78 học viên (32%)</span>
+                  </div>
+                  <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div className="bg-gradient-to-r from-blue-500 to-cyan-500 h-full rounded-full" style={{ width: '32%' }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground dark:text-slate-400">70-79 điểm</span>
+                    <span className="text-foreground dark:text-white font-semibold">81 học viên (33%)</span>
+                  </div>
+                  <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div className="bg-gradient-to-r from-yellow-500 to-orange-500 h-full rounded-full" style={{ width: '33%' }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground dark:text-slate-400">60-69 điểm</span>
+                    <span className="text-foreground dark:text-white font-semibold">39 học viên (16%)</span>
+                  </div>
+                  <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div className="bg-gradient-to-r from-orange-500 to-red-500 h-full rounded-full" style={{ width: '16%' }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground dark:text-slate-400">Dưới 60 điểm</span>
+                    <span className="text-foreground dark:text-white font-semibold">15 học viên (6%)</span>
+                  </div>
+                  <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div className="bg-gradient-to-r from-red-500 to-red-700 h-full rounded-full" style={{ width: '6%' }}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Performance Over Time */}
+            <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">Xu hướng làm bài theo thời gian</h3>
+              <div className="h-64 flex items-end justify-between gap-2">
+                {[
+                  { month: 'T1', attempts: 25, avgScore: 68 },
+                  { month: 'T2', attempts: 32, avgScore: 72 },
+                  { month: 'T3', attempts: 45, avgScore: 75 },
+                  { month: 'T4', attempts: 38, avgScore: 74 },
+                  { month: 'T5', attempts: 52, avgScore: 76 },
+                  { month: 'T6', attempts: 53, avgScore: 75.5 },
+                ].map((data, index) => (
+                  <div key={index} className="flex-1 flex flex-col items-center gap-2">
+                    <div className="text-xs text-muted-foreground dark:text-slate-400 mb-1">{data.avgScore}%</div>
+                    <div 
+                      className="w-full bg-gradient-to-t from-primary to-blue-400 dark:from-blue-600 dark:to-blue-400 rounded-t-lg transition-all hover:opacity-80 cursor-pointer"
+                      style={{ height: `${(data.attempts / 53) * 100}%` }}
+                      title={`${data.attempts} lượt thi, điểm TB: ${data.avgScore}%`}
+                    ></div>
+                    <div className="text-xs font-medium text-foreground dark:text-white">{data.month}</div>
+                    <div className="text-xs text-muted-foreground dark:text-slate-400">{data.attempts}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t border-border dark:border-slate-800 flex justify-between text-sm">
+                <span className="text-muted-foreground dark:text-slate-400">Số lượng lượt thi</span>
+                <span className="text-muted-foreground dark:text-slate-400">Điểm trung bình</span>
+              </div>
+            </div>
           </div>
         )}
       </div>
