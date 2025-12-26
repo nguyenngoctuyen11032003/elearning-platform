@@ -97,10 +97,21 @@ class ApiClient {
       const text = await response.text();
       return text ? { data: text } : {} as T;
     } catch (error) {
-      // Handle network errors
+      // Handle network errors gracefully
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.error('Network error - API server may not be running:', error);
-        throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra lại kết nối mạng hoặc liên hệ admin.');
+        console.error('Network error - Cannot connect to API server:', {
+          url,
+          baseURL: this.baseURL,
+          error: error.message,
+        });
+        
+        // For read operations, return empty array/object instead of throwing
+        if (config.method === 'GET' || !config.method) {
+          console.warn('Returning empty response for GET request due to network error');
+          return (Array.isArray((endpoint as any)) ? [] : {}) as T;
+        }
+        
+        throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra xem backend có đang chạy không.');
       }
       if (error instanceof Error) {
         throw error;

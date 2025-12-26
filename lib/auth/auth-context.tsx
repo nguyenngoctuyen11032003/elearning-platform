@@ -96,13 +96,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       let message = 'Đăng nhập thất bại';
 
       if (error instanceof Error) {
-        // Kiểm tra lỗi cụ thể
-        if (error.message.toLowerCase().includes('invalid') || error.message.toLowerCase().includes('credentials') || error.message.toLowerCase().includes('unauthorized')) {
+        const errorMsg = error.message.toLowerCase();
+        
+        // Parse specific error messages
+        if (errorMsg.includes('401') || errorMsg.includes('unauthorized')) {
+          message = 'Email hoặc mật khẩu không chính xác.';
+        } else if (errorMsg.includes('invalid') || errorMsg.includes('credentials')) {
           message = 'Email hoặc mật khẩu không chính xác. Vui lòng thử lại.';
-        } else if (error.message.toLowerCase().includes('not found')) {
+        } else if (errorMsg.includes('not found') || errorMsg.includes('404')) {
           message = 'Tài khoản không tồn tại. Vui lòng đăng ký.';
-        } else if (error.message.toLowerCase().includes('inactive') || error.message.toLowerCase().includes('pending')) {
+        } else if (errorMsg.includes('inactive') || errorMsg.includes('pending')) {
           message = 'Tài khoản của bạn chưa được kích hoạt. Vui lòng kiểm tra email.';
+        } else if (errorMsg.includes('kết nối') || errorMsg.includes('network')) {
+          message = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
         } else {
           message = error.message;
         }

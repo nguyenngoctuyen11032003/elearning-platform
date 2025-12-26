@@ -42,14 +42,14 @@ export default function Home() {
         setLoading(true)
         // Fetch featured courses
         const coursesRes = await apiClient.getCourses()
-        setFeaturedCourses(coursesRes.slice(0, 4))
+        setFeaturedCourses(Array.isArray(coursesRes) ? coursesRes.slice(0, 4) : [])
 
         // Fetch categories
         const categoriesRes = await apiClient.getCategories()
-        setCategories(categoriesRes)
+        setCategories(Array.isArray(categoriesRes) ? categoriesRes : [])
       } catch (error) {
         console.error("Error fetching data:", error)
-        // Fallback to mock data if API fails
+        // Gracefully handle errors - show empty state instead of crashing
         setFeaturedCourses([])
         setCategories([])
       } finally {
