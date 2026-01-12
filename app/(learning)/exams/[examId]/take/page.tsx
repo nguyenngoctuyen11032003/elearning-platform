@@ -192,7 +192,6 @@ export default function TakeExamPage() {
         timeSpent: examData.timeLimit * 60 - timeRemaining,
         autoSubmit: auto
       }
-      console.log("Submitting exam:", submissionData)
 
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1500))

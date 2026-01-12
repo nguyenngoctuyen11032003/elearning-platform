@@ -51,8 +51,6 @@ export default function ContactPage() {
       }
     } catch (error) {
       console.error('Contact form error:', error)
-      // Fallback: log to console and show success message anyway
-      console.log('Contact form data:', formData)
       alert("Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất.")
       setFormData({ name: "", email: "", phone: "", subject: "", message: "" })
     } finally {

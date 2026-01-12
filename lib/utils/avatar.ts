@@ -1,62 +1,48 @@
-import { UserRole } from "@/lib/api/types"
+/**
+ * Avatar utility functions for role-based avatars
+ */
 
 /**
- * Get role-based avatar path
+ * Get the avatar image URL for a given user role
+ * @param role - The user role ('admin', 'teacher', or 'student')
+ * @returns The path to the role-specific avatar image
  */
-export function getRoleAvatar(role: UserRole): string {
-  switch (role) {
-    case 'student':
-      return '/avatars/student.jpg'
-    case 'teacher':
-      return '/avatars/teacher.avif'
-    case 'admin':
-      return '/avatars/admin.jpg'
-    default:
-      return '/avatars/student.jpg'
+export function getRoleAvatar(role: "admin" | "teacher" | "student"): string {
+  const avatarMap: Record<"admin" | "teacher" | "student", string> = {
+    admin: "/avatars/admin.jpg",
+    teacher: "/avatars/teacher.avif",
+    student: "/avatars/student.jpg",
   }
+  return avatarMap[role] || "/placeholder-user.jpg"
 }
 
 /**
- * Get role display name in Vietnamese
+ * Get the display name for a given user role
+ * @param role - The user role ('admin', 'teacher', or 'student')
+ * @returns The human-readable role name
  */
-export function getRoleDisplayName(role: UserRole): string {
-  switch (role) {
-    case 'student':
-      return 'Học viên'
-    case 'teacher':
-      return 'Giảng viên'
-    case 'admin':
-      return 'Quản trị viên'
-    default:
-      return 'Người dùng'
+export function getRoleDisplayName(role: "admin" | "teacher" | "student"): string {
+  const roleDisplayMap: Record<"admin" | "teacher" | "student", string> = {
+    admin: "Quản trị viên",
+    teacher: "Giáo viên",
+    student: "Học viên",
   }
+  return roleDisplayMap[role] || "Người dùng"
 }
 
 /**
- * Get role description
- */
-export function getRoleDescription(role: UserRole): string {
-  switch (role) {
-    case 'student':
-      return 'Học viên đam mê học tập'
-    case 'teacher':
-      return 'Giảng viên chuyên nghiệp'
-    case 'admin':
-      return 'Quản trị viên hệ thống'
-    default:
-      return 'Thành viên của hệ thống'
-  }
-}
-
-/**
- * Get user initials for fallback avatar
+ * Get the initials from a user name
+ * @param name - The user's full name
+ * @returns The initials (first letters of first and last name, max 2 characters)
  */
 export function getInitials(name?: string): string {
-  if (!name) return 'U'
+  if (!name) return "U"
   
-  const words = name.trim().split(' ')
-  if (words.length >= 2) {
-    return (words[0][0] + words[words.length - 1][0]).toUpperCase()
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) {
+    return parts[0].substring(0, 1).toUpperCase()
   }
-  return name[0].toUpperCase()
+  
+  // Get first letter of first and last name
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }

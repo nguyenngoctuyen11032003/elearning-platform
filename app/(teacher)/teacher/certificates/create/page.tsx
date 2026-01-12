@@ -103,7 +103,6 @@ export default function CreateCertificatePage() {
 
     setIsSubmitting(true)
     try {
-      console.log("Submitting certificate:", { ...formData, status: asDraft ? "draft" : "pending" })
       await new Promise(resolve => setTimeout(resolve, 1000))
       router.push("/teacher/certificates")
     } catch (error) {

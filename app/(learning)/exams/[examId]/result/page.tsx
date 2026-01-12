@@ -191,7 +191,6 @@ export default function ExamResultPage() {
 
   // Log examId for debugging
   useEffect(() => {
-    console.log("Viewing result for exam:", examId)
   }, [examId])
 
   const formatTime = (seconds: number) => {
