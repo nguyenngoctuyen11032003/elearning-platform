@@ -67,13 +67,13 @@ class ApiClient {
         // For 404 errors on enrollment endpoints, don't throw - return empty response
         if (response.status === 404 && (url.includes('enrollments') || url.includes('my-courses'))) {
           console.log('No data found, returning empty array');
-          return [];
+          return [] as T;
         }
         
         // For 500 errors on enrollment endpoints, return empty array gracefully
         if (response.status >= 500 && (url.includes('enrollments') || url.includes('my-courses'))) {
           console.log('Server error on enrollments, returning empty array');
-          return [];
+          return [] as T;
         }
         
         throw new Error(errorMessage);
@@ -95,7 +95,7 @@ class ApiClient {
       
       // If not JSON, return empty object or text
       const text = await response.text();
-      return text ? { data: text } : {} as T;
+      return (text ? { data: text } : {}) as any;
     } catch (error) {
       // Handle network errors gracefully
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
@@ -783,6 +783,262 @@ class ApiClient {
 
   async getExamResults(id: string): Promise<any> {
     return this.request(`/exams/${id}/results`);
+  }
+
+  // ================== Cart API ==================
+  async getCart(): Promise<any[]> {
+    try {
+      const result = await this.request<any>('/api/cart');
+      return Array.isArray(result) ? result : [] as any;
+    } catch (error) {
+      console.error('Error fetching cart:', error);
+      return [] as any;
+    }
+  }
+
+  async addToCart(courseId: string): Promise<any> {
+    return this.request('/api/cart', {
+      method: 'POST',
+      body: JSON.stringify({ courseId }),
+    });
+  }
+
+  async removeFromCart(id: string): Promise<any> {
+    return this.request(`/api/cart/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async clearCart(): Promise<any> {
+    return this.request('/api/cart/clear', {
+      method: 'DELETE',
+    });
+  }
+
+  async getCartCount(): Promise<any> {
+    return this.request('/api/cart/count');
+  }
+
+  async getCartTotal(): Promise<any> {
+    return this.request('/api/cart/total');
+  }
+
+  // ================== Discussions API ==================
+  async getDiscussions(courseId?: string, lessonId?: string): Promise<any[]> {
+    try {
+      let endpoint = '/api/discussions';
+      if (courseId) {
+        endpoint = `/api/discussions/course/${courseId}`;
+      } else if (lessonId) {
+        endpoint = `/api/discussions/lesson/${lessonId}`;
+      }
+      const result = await this.request(endpoint);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching discussions:', error);
+      return [];
+    }
+  }
+
+  async getDiscussionById(id: string): Promise<any> {
+    return this.request(`/api/discussions/${id}`);
+  }
+
+  async createDiscussion(data: {
+    title: string;
+    content: string;
+    courseId: string;
+    lessonId?: string;
+  }): Promise<any> {
+    return this.request('/api/discussions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateDiscussion(id: string, data: { title?: string; content?: string }): Promise<any> {
+    return this.request(`/api/discussions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteDiscussion(id: string): Promise<any> {
+    return this.request(`/api/discussions/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async replyToDiscussion(id: string, data: { content: string }): Promise<any> {
+    return this.request(`/api/discussions/${id}/reply`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async toggleDiscussionResolved(id: string): Promise<any> {
+    return this.request(`/api/discussions/${id}/resolve`, {
+      method: 'PATCH',
+    });
+  }
+
+  async toggleDiscussionPinned(id: string): Promise<any> {
+    return this.request(`/api/discussions/${id}/pin`, {
+      method: 'PATCH',
+    });
+  }
+
+  // ================== Assignments API ==================
+  async getAssignments(courseId?: string, lessonId?: string): Promise<any[]> {
+    try {
+      let endpoint = '/api/assignments';
+      if (courseId) {
+        endpoint = `/api/assignments/course/${courseId}`;
+      } else if (lessonId) {
+        endpoint = `/api/assignments/lesson/${lessonId}`;
+      }
+      const result = await this.request(endpoint);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching assignments:', error);
+      return [];
+    }
+  }
+
+  async getAssignmentById(id: string): Promise<any> {
+    return this.request(`/api/assignments/${id}`);
+  }
+
+  async createAssignment(data: any): Promise<any> {
+    return this.request('/api/assignments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAssignment(id: string, data: any): Promise<any> {
+    return this.request(`/api/assignments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAssignment(id: string): Promise<any> {
+    return this.request(`/api/assignments/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async submitAssignment(id: string, data: { content: string; attachments?: string[] }): Promise<any> {
+    return this.request(`/api/assignments/${id}/submit`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getAssignmentSubmissions(id: string): Promise<any[]> {
+    try {
+      const result = await this.request(`/api/assignments/${id}/submissions`);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching submissions:', error);
+      return [];
+    }
+  }
+
+  async getMySubmission(assignmentId: string): Promise<any> {
+    return this.request(`/api/assignments/${assignmentId}/my-submission`);
+  }
+
+  async gradeSubmission(submissionId: string, data: { score: number; feedback?: string }): Promise<any> {
+    return this.request(`/api/assignments/submissions/${submissionId}/grade`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ================== Quizzes API ==================
+  async getQuizzes(courseId?: string): Promise<any[]> {
+    try {
+      const endpoint = courseId ? `/api/quizzes/course/${courseId}` : '/api/quizzes';
+      const result = await this.request(endpoint);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching quizzes:', error);
+      return [];
+    }
+  }
+
+  async getQuizById(id: string): Promise<any> {
+    return this.request(`/api/quizzes/${id}`);
+  }
+
+  async startQuiz(id: string): Promise<any> {
+    return this.request(`/api/quizzes/${id}/start`, {
+      method: 'POST',
+    });
+  }
+
+  async submitQuiz(id: string, answers: any[]): Promise<any> {
+    return this.request(`/api/quizzes/${id}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    });
+  }
+
+  async getQuizAttempts(id: string): Promise<any[]> {
+    try {
+      const result = await this.request(`/api/quizzes/${id}/attempts`);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching quiz attempts:', error);
+      return [];
+    }
+  }
+
+  async getQuizAttemptDetail(attemptId: string): Promise<any> {
+    return this.request(`/api/quizzes/attempts/${attemptId}`);
+  }
+
+  // ================== Announcements API ==================
+  async getAnnouncements(courseId?: string): Promise<any[]> {
+    try {
+      const params = courseId ? `?courseId=${courseId}` : '';
+      const result = await this.request(`/api/announcements${params}`);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
+      return [];
+    }
+  }
+
+  async getAnnouncementById(id: string): Promise<any> {
+    return this.request(`/api/announcements/${id}`);
+  }
+
+  async createAnnouncement(data: {
+    title: string;
+    content: string;
+    courseId?: string;
+    priority?: string;
+  }): Promise<any> {
+    return this.request('/api/announcements', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAnnouncement(id: string, data: any): Promise<any> {
+    return this.request(`/api/announcements/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAnnouncement(id: string): Promise<any> {
+    return this.request(`/api/announcements/${id}`, {
+      method: 'DELETE',
+    });
   }
 }
 
