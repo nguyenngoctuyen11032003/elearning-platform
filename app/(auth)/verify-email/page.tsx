@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { CheckCircle, XCircle, ArrowLeft, Mail, RefreshCw } from "lucide-react"
+import { CheckCircle, XCircle, ArrowLeft, Mail, RefreshCw, Sparkles, Shield, GraduationCap } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 
 type VerificationStatus = "loading" | "success" | "error" | "invalid"
@@ -57,25 +57,40 @@ function VerifyEmailContent() {
   const getIcon = () => {
     switch (status) {
       case "loading":
-        return <RefreshCw size={80} className="text-blue-500 animate-spin" />
+        return (
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-xl opacity-50 animate-pulse" />
+            <RefreshCw size={80} className="relative text-blue-600 dark:text-blue-400 animate-spin" />
+          </div>
+        )
       case "success":
-        return <CheckCircle size={80} className="text-green-500" />
+        return (
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full blur-xl opacity-50" />
+            <CheckCircle size={80} className="relative text-green-600 dark:text-green-400" />
+          </div>
+        )
       case "error":
       case "invalid":
-        return <XCircle size={80} className="text-red-500" />
+        return (
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-orange-400 rounded-full blur-xl opacity-50" />
+            <XCircle size={80} className="relative text-red-600 dark:text-red-400" />
+          </div>
+        )
     }
   }
 
   const getTitle = () => {
     switch (status) {
       case "loading":
-        return "Đang xác nhận email..."
+        return "Đang Xác Nhận Email..."
       case "success":
-        return "Xác nhận thành công!"
+        return "Xác Nhận Thành Công!"
       case "error":
-        return "Xác nhận thất bại"
+        return "Xác Nhận Thất Bại"
       case "invalid":
-        return "Token không hợp lệ"
+        return "Token Không Hợp Lệ"
     }
   }
 
@@ -83,15 +98,21 @@ function VerifyEmailContent() {
     if (status === "success") {
       return (
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={redirectToLogin}
-            className="px-6 py-3 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground rounded-lg font-semibold transition-smooth"
+            className="relative px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-2xl overflow-hidden group"
           >
-            Đăng nhập ngay
-          </button>
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            <span className="relative flex items-center gap-2 justify-center">
+              <GraduationCap size={20} />
+              Đăng nhập ngay
+            </span>
+          </motion.button>
           <Link
             href="/"
-            className="px-6 py-3 bg-secondary dark:bg-slate-800 hover:bg-secondary/80 dark:hover:bg-slate-700 text-secondary-foreground rounded-lg font-medium transition-smooth text-center"
+            className="px-8 py-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-semibold transition-all text-center"
           >
             Về trang chủ
           </Link>
@@ -105,18 +126,18 @@ function VerifyEmailContent() {
           <button
             onClick={handleRetry}
             disabled={isRetrying}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-semibold transition-smooth flex items-center gap-2 justify-center"
+            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 justify-center"
           >
             {isRetrying ? (
               <RefreshCw size={20} className="animate-spin" />
             ) : (
               <RefreshCw size={20} />
             )}
-            Thử lại
+            {isRetrying ? "Đang thử lại..." : "Thử lại"}
           </button>
           <Link
             href="/login"
-            className="px-6 py-3 bg-secondary dark:bg-slate-800 hover:bg-secondary/80 dark:hover:bg-slate-700 text-secondary-foreground rounded-lg font-medium transition-smooth text-center"
+            className="px-8 py-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-semibold transition-all text-center"
           >
             Đăng nhập
           </Link>
@@ -128,7 +149,7 @@ function VerifyEmailContent() {
       <div className="flex justify-center">
         <Link
           href="/signup"
-          className="px-6 py-3 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground rounded-lg font-semibold transition-smooth"
+          className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl"
         >
           Đăng ký lại
         </Link>
@@ -136,132 +157,214 @@ function VerifyEmailContent() {
     )
   }
 
+  const getBackgroundGradient = () => {
+    switch (status) {
+      case "loading":
+        return "from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
+      case "success":
+        return "from-slate-50 via-green-50/30 to-emerald-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
+      default:
+        return "from-slate-50 via-red-50/30 to-orange-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-background dark:bg-slate-950 flex items-center justify-center px-4">
+    <div className={`min-h-screen bg-gradient-to-br ${getBackgroundGradient()} relative overflow-hidden`}>
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{ 
+            scale: [1, 1.2, 1],
+            opacity: [0.3, 0.5, 0.3],
+            rotate: [0, 360]
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+          className={`absolute top-10 right-10 w-96 h-96 ${
+            status === "success" 
+              ? "bg-gradient-to-br from-green-400/20 to-emerald-400/20" 
+              : status === "error" || status === "invalid"
+              ? "bg-gradient-to-br from-red-400/20 to-orange-400/20"
+              : "bg-gradient-to-br from-blue-400/20 to-purple-400/20"
+          } rounded-full blur-3xl`}
+        />
+      </div>
+
       {/* Back Button */}
       <Link
         href="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-smooth"
+        className="absolute top-6 left-6 z-20 flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-900 transition-all shadow-lg hover:shadow-xl group"
       >
-        <ArrowLeft size={20} />
-        <span className="text-sm font-medium">Quay lại</span>
+        <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+        <span className="text-sm font-semibold">Quay lại</span>
       </Link>
 
-      <div className="w-full max-w-md">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
-          className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-8 text-center space-y-6"
+          className="w-full max-w-lg"
         >
           {/* Logo */}
-          <div className="flex justify-center mb-4">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">IC</span>
+          <div className="text-center mb-8">
+            <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
+              <div className={`w-14 h-14 bg-gradient-to-br ${
+                status === "success" 
+                  ? "from-green-600 to-emerald-600" 
+                  : status === "error" || status === "invalid"
+                  ? "from-red-600 to-orange-600"
+                  : "from-blue-600 to-purple-600"
+              } rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl transition-shadow`}>
+                <GraduationCap className="text-white" size={32} />
               </div>
-              <span className="font-bold text-xl text-foreground dark:text-white">ICS Learning</span>
+              <span className="font-black text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                ICS Learning
+              </span>
             </Link>
           </div>
 
-          {/* Icon */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="flex justify-center"
-          >
-            {getIcon()}
-          </motion.div>
-
-          {/* Title */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-          >
-            <h1 className="text-3xl font-bold text-foreground dark:text-white mb-2">
-              {getTitle()}
-            </h1>
-          </motion.div>
-
-          {/* Message */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-          >
-            <p className="text-muted-foreground dark:text-slate-400 leading-relaxed">
-              {message}
-            </p>
-          </motion.div>
-
-          {/* Success Additional Info */}
-          {status === "success" && (
+          {/* Main Card */}
+          <div className="relative">
+            <div className={`absolute -inset-1 bg-gradient-to-r ${
+              status === "success" 
+                ? "from-green-600 via-emerald-600 to-teal-600" 
+                : status === "error" || status === "invalid"
+                ? "from-red-600 via-orange-600 to-pink-600"
+                : "from-blue-600 via-purple-600 to-pink-600"
+            } rounded-3xl blur-xl opacity-20`} />
+            
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-              className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4 space-y-3"
+              transition={{ delay: 0.2 }}
+              className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-10 text-center space-y-6 shadow-2xl"
             >
-              <div className="flex items-center gap-2 justify-center text-green-800 dark:text-green-200">
-                <Mail size={20} />
-                <span className="font-semibold">Email đã được kích hoạt</span>
-              </div>
-              <div className="text-sm text-green-700 dark:text-green-300">
-                <p>Tài khoản của bạn đã sẵn sàng sử dụng. Bạn có thể:</p>
-                <ul className="list-disc list-inside mt-2 space-y-1 text-left">
-                  <li>Đăng nhập vào hệ thống</li>
-                  <li>Khám phá các khóa học</li>
-                  <li>Bắt đầu hành trình học tập</li>
-                </ul>
-              </div>
-            </motion.div>
-          )}
+              {/* Icon */}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                className="flex justify-center"
+              >
+                {getIcon()}
+              </motion.div>
 
-          {/* Error Additional Info */}
-          {status === "error" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-              className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4"
-            >
-              <div className="text-sm text-red-700 dark:text-red-300">
-                <p className="font-semibold mb-2">Các nguyên nhân có thể:</p>
-                <ul className="list-disc list-inside space-y-1 text-left">
-                  <li>Token đã hết hạn (sau 24 giờ)</li>
-                  <li>Token đã được sử dụng trước đó</li>
-                  <li>Link xác nhận bị lỗi</li>
-                </ul>
-              </div>
-            </motion.div>
-          )}
+              {/* Title */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-3">
+                  {getTitle()}
+                </h1>
+              </motion.div>
 
-          {/* Action Buttons */}
+              {/* Message */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                  {message}
+                </p>
+              </motion.div>
+
+              {/* Success Additional Info */}
+              {status === "success" && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="bg-green-50 dark:bg-green-950/30 border-2 border-green-200 dark:border-green-800 rounded-2xl p-6 space-y-4"
+                >
+                  <div className="flex items-center gap-3 justify-center text-green-800 dark:text-green-200">
+                    <Mail size={24} />
+                    <span className="font-black text-lg">Email Đã Được Kích Hoạt</span>
+                  </div>
+                  <div className="text-sm text-green-700 dark:text-green-300 space-y-3">
+                    <p className="font-semibold">Tài khoản của bạn đã sẵn sàng! 🎉</p>
+                    <ul className="space-y-2 text-left">
+                      {[
+                        "Đăng nhập vào hệ thống",
+                        "Khám phá 1000+ khóa học",
+                        "Bắt đầu hành trình học tập",
+                        "Nhận chứng chỉ sau khi hoàn thành"
+                      ].map((item, idx) => (
+                        <li key={idx} className="flex items-center gap-2">
+                          <CheckCircle size={16} className="text-green-600 dark:text-green-400" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Error Additional Info */}
+              {status === "error" && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800 rounded-2xl p-6"
+                >
+                  <div className="text-sm text-red-700 dark:text-red-300">
+                    <p className="font-bold text-base mb-3">Các nguyên nhân có thể:</p>
+                    <ul className="space-y-2 text-left">
+                      {[
+                        "Token đã hết hạn (sau 24 giờ)",
+                        "Token đã được sử dụng trước đó",
+                        "Link xác nhận bị lỗi hoặc sai",
+                        "Email đã được xác nhận rồi"
+                      ].map((item, idx) => (
+                        <li key={idx} className="flex items-center gap-2">
+                          <XCircle size={16} className="text-red-600 dark:text-red-400" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Action Buttons */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="pt-4"
+              >
+                {getActionButtons()}
+              </motion.div>
+            </motion.div>
+          </div>
+
+          {/* Bottom Info Cards */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
-            className="pt-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="mt-6 grid grid-cols-2 gap-4"
           >
-            {getActionButtons()}
+            <div className="flex items-center gap-3 p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl">
+              <Shield size={20} className="text-blue-600 dark:text-blue-400" />
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">Bảo mật</div>
+                <div className="text-xs text-slate-600 dark:text-slate-400">Mã hóa 256-bit</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl">
+              <Sparkles size={20} className="text-purple-600 dark:text-purple-400" />
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">Hỗ trợ 24/7</div>
+                <div className="text-xs text-slate-600 dark:text-slate-400">
+                  <Link href="/contact" className="hover:underline">Liên hệ</Link>
+                </div>
+              </div>
+            </div>
           </motion.div>
-        </motion.div>
-
-        {/* Footer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.5 }}
-          className="text-center mt-6"
-        >
-          <p className="text-xs text-muted-foreground dark:text-slate-500">
-            Gặp vấn đề? Liên hệ{" "}
-            <Link href="/contact" className="text-primary dark:text-accent hover:underline">
-              hỗ trợ kỹ thuật
-            </Link>
-          </p>
         </motion.div>
       </div>
     </div>
@@ -271,10 +374,13 @@ function VerifyEmailContent() {
 export default function VerifyEmailPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-background dark:bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin text-primary dark:text-accent mx-auto mb-4" />
-          <p className="text-muted-foreground dark:text-slate-400">Đang tải...</p>
+          <div className="relative inline-block mb-4">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-xl opacity-50 animate-pulse" />
+            <RefreshCw className="relative w-16 h-16 animate-spin text-blue-600 dark:text-blue-400" />
+          </div>
+          <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">Đang tải...</p>
         </div>
       </div>
     }>
