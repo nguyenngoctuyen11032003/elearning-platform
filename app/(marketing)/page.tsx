@@ -3,7 +3,11 @@
 import { Navbar } from "@/components/ui/navbar"
 import { CourseCard } from "@/components/ui/course-card"
 import { SectionTitle } from "@/components/ui/section-title"
-import { ArrowRight, Play, Users, Award, Zap, BookOpen, Star, TrendingUp, Sparkles } from "lucide-react"
+import { 
+  ArrowRight, Play, Users, Award, Zap, BookOpen, Star, TrendingUp, Sparkles,
+  Target, Shield, Clock, CheckCircle, Globe, Lightbulb, Trophy, HeartHandshake,
+  GraduationCap, Brain, Rocket, BarChart3, MessageSquare
+} from "lucide-react"
 import Link from "next/link"
 import { Footer } from "@/components/ui/footer"
 import { useEffect, useState } from "react"
@@ -12,23 +16,37 @@ import { motion } from "framer-motion"
 
 const testimonials = [
   {
-    name: "Trần Văn A",
-    role: "Lập trình viên",
-    content: "ICS Learning đã giúp tôi nâng cao kỹ năng lập trình. Các khóa học rất chuyên sâu và thực tế.",
-    avatar: "/placeholder-user.jpg",
+    name: "Trần Văn Minh",
+    role: "Full-stack Developer tại FPT Software",
+    content: "Tôi đã chuyển đổi sự nghiệp từ kế toán sang lập trình chỉ sau 6 tháng học tại ICS Learning. Các khóa học được thiết kế bài bản, giảng viên hỗ trợ nhiệt tình.",
+    avatar: "/avatars/student-1.jpg",
+    rating: 5,
+    course: "Bootcamp Full-stack"
   },
   {
-    name: "Nguyễn Thị B",
-    role: "Designer",
-    content: "Giảng viên rất tận tâm, nội dung khóa học cập nhật theo xu hướng mới nhất.",
-    avatar: "/placeholder-user.jpg",
+    name: "Nguyễn Thị Mai",
+    role: "UI/UX Designer tại Tiki",
+    content: "Khóa UI/UX Design đã giúp tôi có được công việc mơ ước. Nội dung cập nhật, thực tế và có nhiều bài tập thực hành. Giá cả hợp lý so với chất lượng nhận được.",
+    avatar: "/avatars/student-2.jpg",
+    rating: 5,
+    course: "UI/UX Professional"
   },
   {
-    name: "Lê Minh C",
-    role: "Entrepreneur",
-    content: "Khóa học kinh doanh số đã giúp tôi tăng doanh thu 3 lần trong 6 tháng.",
-    avatar: "/placeholder-user.jpg",
+    name: "Lê Hoàng Anh",
+    role: "Data Analyst tại Shopee",
+    content: "ICS Learning đã thay đổi cuộc đời tôi! Từ không biết gì về data, giờ tôi đã tự tin phân tích và xử lý dữ liệu lớn. Tỷ lệ có việc làm sau khóa học rất cao.",
+    avatar: "/avatars/student-3.jpg",
+    rating: 5,
+    course: "Data Science Masterclass"
   },
+]
+
+const partners = [
+  { name: "Microsoft", logo: "🏢" },
+  { name: "Google", logo: "🔍" },
+  { name: "Amazon", logo: "📦" },
+  { name: "Meta", logo: "👥" },
+  { name: "Apple", logo: "🍎" },
 ]
 
 export default function Home() {
@@ -40,16 +58,13 @@ export default function Home() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        // Fetch featured courses
         const coursesRes = await apiClient.getCourses()
-        setFeaturedCourses(Array.isArray(coursesRes) ? coursesRes.slice(0, 4) : [])
+        setFeaturedCourses(Array.isArray(coursesRes) ? coursesRes.slice(0, 8) : [])
 
-        // Fetch categories
         const categoriesRes = await apiClient.getCategories()
         setCategories(Array.isArray(categoriesRes) ? categoriesRes : [])
       } catch (error) {
         console.error("Error fetching data:", error)
-        // Gracefully handle errors - show empty state instead of crashing
         setFeaturedCourses([])
         setCategories([])
       } finally {
@@ -60,144 +75,304 @@ export default function Home() {
     fetchData()
   }, [])
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6 md:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-purple-500/5 to-accent/5 dark:from-primary/10 dark:via-purple-500/10 dark:to-accent/10 -z-10" />
-        
-        {/* Floating Elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 right-10 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
-        
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center space-y-8"
-          >
-            {/* Badge */}
+      {/* Hero Section - Premium Education Platform */}
+      <section className="relative pt-32 pb-24 px-6 md:px-8 overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,rgba(37,99,235,0.1),transparent_50%)]" />
+          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_60%,rgba(147,51,234,0.1),transparent_50%)]" />
+          <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(to_bottom,white,transparent)]" />
+        </div>
+
+        {/* Floating Orbs */}
+        <motion.div 
+          animate={{ y: [0, -20, 0], x: [0, 10, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-20 left-[10%] w-64 h-64 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-3xl"
+        />
+        <motion.div 
+          animate={{ y: [0, 20, 0], x: [0, -10, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-20 right-[10%] w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"
+        />
+
+        <div className="max-w-7xl mx-auto relative">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Left Content */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 border border-primary/20 dark:border-accent/20 text-primary dark:text-accent rounded-full shadow-lg"
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="space-y-8"
             >
-              <Sparkles size={16} className="animate-pulse" />
-              <span className="text-sm font-semibold">Hơn 10,000+ học viên đã tin tưởng</span>
-            </motion.div>
-
-            {/* Main Heading */}
-            <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-slate-900 via-primary to-purple-600 dark:from-white dark:via-primary dark:to-accent bg-clip-text text-transparent leading-tight">
-              Khám phá tri thức
-              <br />
-              <span className="relative inline-block">
-                hiện đại
-                <svg className="absolute -bottom-2 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
-                  <path d="M2 10C60 2, 140 2, 198 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="text-primary dark:text-accent" />
-                </svg>
-              </span>
-            </h1>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-xl md:text-2xl text-muted-foreground dark:text-slate-300 max-w-3xl mx-auto leading-relaxed"
-            >
-              Học theo cách của bạn. Từ lập trình, thiết kế, kinh doanh đến AI — 
-              <span className="font-semibold text-primary dark:text-accent"> tất cả đều có tại ICS Learning</span>
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center pt-6"
-            >
-              <Link
-                href="/courses"
-                className="group inline-flex items-center justify-center gap-3 bg-gradient-to-r from-primary via-purple-600 to-accent hover:shadow-2xl text-white px-8 py-4 rounded-2xl font-bold transition-all transform hover:scale-105 text-lg"
+              {/* Trust Badge */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="inline-flex items-center gap-3 px-5 py-3 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-full shadow-lg backdrop-blur-sm"
               >
-                <BookOpen size={22} />
-                Khám phá khóa học
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                href="/about"
-                className="group inline-flex items-center justify-center gap-3 bg-white dark:bg-slate-900 border-2 border-primary dark:border-accent text-primary dark:text-accent hover:bg-primary/5 dark:hover:bg-accent/10 px-8 py-4 rounded-2xl font-bold transition-all text-lg"
+                <div className="flex -space-x-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-white text-xs font-bold">1K</div>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-white text-xs font-bold">+</div>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">15,000+ Học viên thành công</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">Đánh giá 4.9/5 ⭐</p>
+                </div>
+              </motion.div>
+
+              {/* Main Headline - SEO Optimized */}
+              <div className="space-y-4">
+                <motion.h1 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] tracking-tight"
+                >
+                  <span className="bg-gradient-to-r from-slate-900 via-blue-700 to-purple-700 dark:from-white dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                    Nền Tảng Học Trực Tuyến
+                  </span>
+                  <br />
+                  <span className="relative inline-block mt-2">
+                    <span className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 bg-clip-text text-transparent">
+                      Hàng Đầu Việt Nam
+                    </span>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: "100%" }}
+                      transition={{ delay: 1, duration: 0.8 }}
+                      className="absolute -bottom-3 left-0 h-3 bg-gradient-to-r from-blue-600 to-purple-600 opacity-20 rounded-full"
+                    />
+                  </span>
+                </motion.h1>
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-xl md:text-2xl text-slate-700 dark:text-slate-300 leading-relaxed font-medium"
+                >
+                  Học <span className="font-bold text-blue-600 dark:text-blue-400">Lập Trình</span>, {" "}
+                  <span className="font-bold text-purple-600 dark:text-purple-400">Thiết Kế</span>, {" "}
+                  <span className="font-bold text-pink-600 dark:text-pink-400">Data Science</span> {" "}
+                  & <span className="font-bold text-orange-600 dark:text-orange-400">AI</span> từ các chuyên gia hàng đầu
+                </motion.p>
+              </div>
+
+              {/* CTAs */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="flex flex-col sm:flex-row gap-4 pt-4"
               >
-                Tìm hiểu thêm
-                <Play size={20} className="group-hover:scale-110 transition-transform" />
-              </Link>
+                <Link
+                  href="/courses"
+                  className="group relative inline-flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 via-blue-700 to-purple-600 hover:from-blue-700 hover:via-blue-800 hover:to-purple-700 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-[0_8px_30px_rgba(37,99,235,0.3)] hover:shadow-[0_12px_40px_rgba(37,99,235,0.4)] transition-all transform hover:scale-105 hover:-translate-y-0.5"
+                >
+                  <GraduationCap size={24} />
+                  Khám Phá Khóa Học
+                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link
+                  href="/about"
+                  className="group inline-flex items-center justify-center gap-3 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 text-slate-900 dark:text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all"
+                >
+                  Tìm Hiểu Thêm
+                  <Play size={20} className="group-hover:scale-110 transition-transform" />
+                </Link>
+              </motion.div>
+
+              {/* Quick Stats */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+                className="grid grid-cols-3 gap-6 pt-8 border-t border-slate-200 dark:border-slate-800"
+              >
+                <div>
+                  <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">15K+</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">Học viên</p>
+                </div>
+                <div>
+                  <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">500+</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">Khóa học</p>
+                </div>
+                <div>
+                  <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">98%</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">Hài lòng</p>
+                </div>
+              </motion.div>
             </motion.div>
 
-            {/* Quick Stats */}
+            {/* Right Visual */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="grid grid-cols-3 gap-4 max-w-2xl mx-auto pt-12"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative hidden lg:block"
             >
-              <div className="text-center p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-border dark:border-slate-800">
-                <p className="text-3xl font-bold text-primary dark:text-accent">50K+</p>
-                <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Học viên</p>
-              </div>
-              <div className="text-center p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-border dark:border-slate-800">
-                <p className="text-3xl font-bold text-primary dark:text-accent">500+</p>
-                <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Khóa học</p>
-              </div>
-              <div className="text-center p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-border dark:border-slate-800">
-                <p className="text-3xl font-bold text-primary dark:text-accent">100+</p>
-                <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Giảng viên</p>
+              {/* Hero Image/Illustration Placeholder */}
+              <div className="relative w-full aspect-square">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-3xl opacity-20 blur-3xl animate-pulse" />
+                
+                {/* Feature Cards Floating */}
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                  className="absolute top-10 right-10 w-56 p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl">
+                      <Trophy className="text-white" size={24} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">Chứng Chỉ Uy Tín</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Được công nhận</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  animate={{ y: [0, 10, 0] }}
+                  transition={{ duration: 5, repeat: Infinity }}
+                  className="absolute bottom-20 left-5 w-56 p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl">
+                      <Users className="text-white" size={24} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">Học Cùng Chuyên Gia</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">100+ giảng viên</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Center Illustration */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative w-80 h-80 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-full opacity-10 animate-spin-slow" />
+                  <div className="absolute w-64 h-64 bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-500 rounded-full opacity-20 animate-pulse" />
+                </div>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-6 md:px-8 bg-white dark:bg-slate-900">
+      {/* Trust Bar - Partner Logos */}
+      <section className="py-12 px-6 md:px-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-y border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto">
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center text-sm font-semibold text-slate-600 dark:text-slate-400 mb-8 uppercase tracking-wider"
+          >
+            Được tin dùng bởi các tổ chức hàng đầu
+          </motion.p>
+          <div className="flex flex-wrap items-center justify-center gap-12">
+            {partners.map((partner, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <span className="text-3xl">{partner.logo}</span>
+                <span className="font-bold text-slate-900 dark:text-white">{partner.name}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Value Propositions - Why Choose Us */}
+      <section className="py-24 px-6 md:px-8 relative">
+        <div className="max-w-7xl mx-auto">
+          {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center max-w-3xl mx-auto mb-16"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-full mb-4">
-              <Zap size={16} />
-              <span className="text-sm font-medium">Tại sao chọn chúng tôi?</span>
+            <div className="inline-flex items-center gap-2 px-5 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full mb-6 font-semibold">
+              <Target size={18} />
+              <span>Lợi Ích Vượt Trội</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
-              Trải nghiệm học tập vượt trội
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
+              Tại Sao Chọn ICS Learning?
             </h2>
-            <p className="text-lg text-muted-foreground dark:text-slate-400 max-w-2xl mx-auto">
-              Chúng tôi mang đến nền tảng học tập hiện đại với công nghệ tiên tiến
+            <p className="text-xl text-slate-600 dark:text-slate-400">
+              Chúng tôi cam kết mang đến trải nghiệm học tập chất lượng cao nhất với công nghệ hiện đại và đội ngũ giảng viên chuyên nghiệp
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               {
+                icon: Shield,
+                title: "Chất Lượng Đảm Bảo",
+                description: "100% khóa học được kiểm duyệt bởi chuyên gia. Hoàn tiền nếu không hài lòng.",
+                color: "from-blue-500 to-cyan-500",
+                bgColor: "bg-blue-50 dark:bg-blue-950/30"
+              },
+              {
+                icon: Clock,
+                title: "Học Mọi Lúc, Mọi Nơi",
+                description: "Truy cập trọn đời, học theo tốc độ riêng. Hỗ trợ offline trên mobile.",
+                color: "from-purple-500 to-pink-500",
+                bgColor: "bg-purple-50 dark:bg-purple-950/30"
+              },
+              {
                 icon: Users,
-                title: "Cộng đồng sôi động",
-                description: "Kết nối với hàng ngàn học viên và giảng viên tài năng trên toàn quốc",
-                color: "from-blue-500 to-cyan-500"
+                title: "Cộng Đồng 15K+",
+                description: "Kết nối, thảo luận và học hỏi cùng cộng đồng học viên năng động.",
+                color: "from-orange-500 to-red-500",
+                bgColor: "bg-orange-50 dark:bg-orange-950/30"
               },
               {
-                icon: Award,
-                title: "Chứng chỉ uy tín",
-                description: "Nhận chứng chỉ được công nhận rộng rãi sau khi hoàn thành khóa học",
-                color: "from-purple-500 to-pink-500"
+                icon: Trophy,
+                title: "Chứng Chỉ Uy Tín",
+                description: "Nhận chứng chỉ được công nhận bởi doanh nghiệp sau khi hoàn thành.",
+                color: "from-green-500 to-emerald-500",
+                bgColor: "bg-green-50 dark:bg-green-950/30"
               },
               {
-                icon: Zap,
-                title: "Học linh hoạt",
-                description: "Học mọi lúc, mọi nơi với giao diện thân thiện trên mọi thiết bị",
-                color: "from-orange-500 to-red-500"
+                icon: Lightbulb,
+                title: "Nội Dung Thực Tế",
+                description: "Học từ dự án thực tế, bài tập case study từ doanh nghiệp hàng đầu.",
+                color: "from-yellow-500 to-amber-500",
+                bgColor: "bg-yellow-50 dark:bg-yellow-950/30"
+              },
+              {
+                icon: HeartHandshake,
+                title: "Hỗ Trợ 24/7",
+                description: "Đội ngũ support luôn sẵn sàng giải đáp mọi thắc mắc của bạn.",
+                color: "from-pink-500 to-rose-500",
+                bgColor: "bg-pink-50 dark:bg-pink-950/30"
+              },
+              {
+                icon: Brain,
+                title: "AI Tutor Thông Minh",
+                description: "Trợ lý AI cá nhân hóa giúp bạn học hiệu quả hơn với lộ trình riêng.",
+                color: "from-indigo-500 to-purple-500",
+                bgColor: "bg-indigo-50 dark:bg-indigo-950/30"
+              },
+              {
+                icon: BarChart3,
+                title: "Theo Dõi Tiến Độ",
+                description: "Dashboard chi tiết giúp bạn theo dõi quá trình học và đạt mục tiêu.",
+                color: "from-teal-500 to-cyan-500",
+                bgColor: "bg-teal-50 dark:bg-teal-950/30"
               }
             ].map((feature, index) => (
               <motion.div
@@ -206,17 +381,23 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="group p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-2xl border border-border dark:border-slate-700 hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                className={`group relative p-8 ${feature.bgColor} rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1`}
               >
-                <div className={`inline-flex p-4 bg-gradient-to-br ${feature.color} rounded-2xl mb-6 shadow-lg`}>
-                  <feature.icon size={32} className="text-white" />
+                {/* Icon */}
+                <div className={`inline-flex p-4 bg-gradient-to-br ${feature.color} rounded-2xl mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <feature.icon size={28} className="text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-foreground dark:text-white mb-3">
+
+                {/* Content */}
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
                   {feature.title}
                 </h3>
-                <p className="text-muted-foreground dark:text-slate-400 leading-relaxed">
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   {feature.description}
                 </p>
+
+                {/* Hover Glow Effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 rounded-3xl transition-all duration-300 pointer-events-none" />
               </motion.div>
             ))}
           </div>
@@ -224,69 +405,107 @@ export default function Home() {
       </section>
 
       {/* Featured Courses */}
-      <section className="py-20 px-6 md:px-8">
+      <section className="py-24 px-6 md:px-8 bg-gradient-to-b from-white to-slate-50 dark:from-slate-950 dark:to-slate-900">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-16"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-full mb-4">
-              <Star size={16} />
-              <span className="text-sm font-medium">Khóa học hàng đầu</span>
+            <div className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 text-blue-700 dark:text-blue-300 rounded-full mb-6 font-semibold">
+              <Star size={18} className="text-yellow-500" />
+              <span>Khóa Học Nổi Bật</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
-              Khóa học nổi bật
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
+              Khóa Học Được Yêu Thích Nhất
             </h2>
-            <p className="text-lg text-muted-foreground dark:text-slate-400">
-              Các khóa học được yêu thích và đánh giá cao nhất
+            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+              Các khóa học chất lượng cao được hàng ngàn học viên tin tưởng và đánh giá 5 sao
             </p>
           </motion.div>
+
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="rounded-2xl overflow-hidden bg-card dark:bg-slate-900/60 animate-pulse">
-                  <div className="h-48 bg-secondary dark:bg-slate-800" />
-                  <div className="p-4 space-y-3">
-                    <div className="h-4 bg-secondary dark:bg-slate-800 rounded" />
-                    <div className="h-3 bg-secondary dark:bg-slate-800 rounded w-2/3" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="rounded-3xl overflow-hidden bg-white dark:bg-slate-900 animate-pulse border border-slate-200 dark:border-slate-800">
+                  <div className="h-56 bg-slate-200 dark:bg-slate-800" />
+                  <div className="p-6 space-y-4">
+                    <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded" />
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3" />
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/3" />
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredCourses.length > 0 ? (
-                featuredCourses.map((course) => (
-                  <CourseCard
-                    key={course.id}
-                    id={course.id}
-                    title={course.title}
-                    teacher={course.teacher?.name || "Unknown Teacher"}
-                    price={course.price}
-                    rating={course.rating || 0}
-                    image={course.image || "/placeholder.svg"}
-                    students={course.enrollmentCount || 0}
-                  />
-                ))
-              ) : (
-                <div className="col-span-full text-center py-8 text-muted-foreground">
-                  Chưa có khóa học nào
-                </div>
-              )}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {featuredCourses.length > 0 ? (
+                  featuredCourses.map((course) => (
+                    <CourseCard
+                      key={course.id}
+                      id={course.id}
+                      title={course.title}
+                      teacher={course.teacher?.name || "Chuyên gia hàng đầu"}
+                      price={course.price}
+                      rating={course.rating || 4.8}
+                      image={course.image || "/placeholder.svg"}
+                      students={course.enrollmentCount || 0}
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-12">
+                    <BookOpen size={64} className="mx-auto text-slate-300 dark:text-slate-700 mb-4" />
+                    <p className="text-slate-600 dark:text-slate-400 text-lg">Đang tải khóa học...</p>
+                  </div>
+                )}
+              </div>
+
+              {/* View All Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="text-center mt-12"
+              >
+                <Link
+                  href="/courses"
+                  className="group inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                >
+                  Xem Tất Cả Khóa Học
+                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </motion.div>
+            </>
           )}
         </div>
       </section>
 
       {/* Categories */}
-      <section className="py-20 px-8 bg-card dark:bg-slate-900/50">
-        <div className="max-w-6xl mx-auto">
-          <SectionTitle title="Danh mục học tập" subtitle="Chọn lĩnh vực bạn quan tâm" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <section className="py-24 px-6 md:px-8 bg-white dark:bg-slate-950">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <div className="inline-flex items-center gap-2 px-5 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full mb-6 font-semibold">
+              <Rocket size={18} />
+              <span>Danh Mục Phổ Biến</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
+              Khám Phá Lĩnh Vực Của Bạn
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-400">
+              Chọn lĩnh vực bạn muốn chinh phục và bắt đầu hành trình phát triển kỹ năng
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {categories.length > 0 ? (
-              categories.map((category) => {
+              categories.map((category, idx) => {
                 const iconMap: {[key: string]: string} = {
                   "Web": "💻",
                   "Mobile": "📱",
@@ -294,91 +513,228 @@ export default function Home() {
                   "Data Science": "📊",
                   "DevOps": "🔧",
                   "UI/UX": "🎨",
-                };
+                  "Backend": "⚙️",
+                  "Frontend": "🎯",
+                  "Cloud": "☁️",
+                }
                 return (
-                  <Link
+                  <motion.div
                     key={category.id || category.name}
-                    href={`/courses?category=${category.id}`}
-                    className="p-6 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-2xl hover:border-primary dark:hover:border-accent hover:shadow-lg transition-smooth text-center group"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.05 }}
                   >
-                    <p className="text-4xl mb-3 group-hover:scale-110 transition-smooth inline-block">{iconMap[category.name] || "📚"}</p>
-                    <h3 className="font-semibold text-foreground dark:text-white mb-1">{category.name}</h3>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Khóa học</p>
-                  </Link>
-                );
+                    <Link
+                      href={`/courses?category=${category.id}`}
+                      className="group block p-8 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-3xl hover:shadow-2xl transition-all duration-300 text-center hover:-translate-y-2"
+                    >
+                      <div className="text-5xl mb-4 group-hover:scale-125 transition-transform duration-300">
+                        {iconMap[category.name] || "📚"}
+                      </div>
+                      <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {category.name}
+                      </h3>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        {category.courseCount || 50}+ khóa học
+                      </p>
+                    </Link>
+                  </motion.div>
+                )
               })
             ) : (
-              <div className="col-span-full text-center py-8 text-muted-foreground">
-                Đang tải danh mục...
+              <div className="col-span-full text-center py-12">
+                <Globe size={64} className="mx-auto text-slate-300 dark:text-slate-700 mb-4" />
+                <p className="text-slate-600 dark:text-slate-400 text-lg">Đang tải danh mục...</p>
               </div>
             )}
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-20 px-8">
-        <div className="max-w-6xl mx-auto">
-          <SectionTitle title="Tại sao chọn ICS Learning?" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { icon: Play, title: "Video HD", desc: "Chất lượng video 4K với tốc độ phát linh hoạt" },
-              { icon: Users, title: "Cộng đồng", desc: "Kết nối với hàng ngàn học viên khác" },
-              { icon: Award, title: "Chứng chỉ", desc: "Nhận chứng chỉ hoàn thành khóa học" },
-              { icon: Zap, title: "Nhanh chóng", desc: "Học theo tốc độ của bạn, bất kỳ lúc nào" },
-            ].map((feature, i) => (
-              <div
-                key={i}
-                className="p-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl text-center hover:shadow-lg transition-smooth"
-              >
-                <feature.icon className="w-12 h-12 text-primary dark:text-accent mx-auto mb-4" />
-                <h3 className="font-semibold text-foreground dark:text-white mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Social Proof - Testimonials */}
+      <section className="py-24 px-6 md:px-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <div className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full mb-6 font-semibold">
+              <MessageSquare size={18} />
+              <span>Câu Chuyện Thành Công</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
+              Học Viên Nói Gì Về Chúng Tôi
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+              Hàng ngàn học viên đã thay đổi cuộc đời và sự nghiệp nhờ ICS Learning
+            </p>
+          </motion.div>
 
-      {/* Testimonials */}
-      <section className="py-20 px-8 bg-card dark:bg-slate-900/50">
-        <div className="max-w-6xl mx-auto">
-          <SectionTitle title="Đánh giá từ học viên" subtitle="Nghe từ những người đã thay đổi cuộc sống qua học tập" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, i) => (
-              <div
+              <motion.div
                 key={i}
-                className="p-6 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-2xl"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="group relative p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
               >
-                <div className="flex gap-4 mb-4">
-                  <img
-                    src={testimonial.avatar || "/placeholder.svg"}
-                    alt={testimonial.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
+                {/* Quote Icon */}
+                <div className="absolute top-6 right-6 text-6xl text-blue-100 dark:text-blue-900/30 font-serif">"</div>
+
+                {/* Rating */}
+                <div className="flex gap-1 mb-4">
+                  {[...Array(testimonial.rating)].map((_, idx) => (
+                    <Star key={idx} size={18} className="fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+
+                {/* Content */}
+                <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-6 relative z-10 font-medium">
+                  "{testimonial.content}"
+                </p>
+
+                {/* Course Badge */}
+                <div className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-semibold mb-4">
+                  {testimonial.course}
+                </div>
+
+                {/* Author */}
+                <div className="flex items-center gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                    {testimonial.name.charAt(0)}
+                  </div>
                   <div>
-                    <p className="font-semibold text-foreground dark:text-white">{testimonial.name}</p>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">{testimonial.role}</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{testimonial.name}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{testimonial.role}</p>
                   </div>
                 </div>
-                <p className="text-muted-foreground dark:text-slate-300">{testimonial.content}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
+
+          {/* Trust Metrics */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8"
+          >
+            {[
+              { number: "4.9/5", label: "Đánh giá trung bình", icon: Star },
+              { number: "15,000+", label: "Học viên hài lòng", icon: Users },
+              { number: "95%", label: "Tỷ lệ hoàn thành", icon: CheckCircle },
+              { number: "85%", label: "Có việc làm sau 6 tháng", icon: Trophy }
+            ].map((metric, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className="text-center p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg"
+              >
+                <metric.icon size={32} className="mx-auto mb-3 text-blue-600 dark:text-blue-400" />
+                <p className="text-3xl font-black text-slate-900 dark:text-white mb-2">{metric.number}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">{metric.label}</p>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-8">
-        <div className="max-w-4xl mx-auto bg-gradient-to-r from-primary to-accent rounded-3xl p-12 text-center text-white">
-          <h2 className="text-4xl font-bold mb-4">Sẵn sàng bắt đầu hành trình học tập?</h2>
-          <p className="text-lg mb-8 opacity-90">Tham gia hàng ngàn học viên đang phát triển kỹ năng của họ</p>
-          <Link
-            href="/signup"
-            className="inline-block bg-white text-primary hover:bg-slate-100 px-8 py-3 rounded-full font-semibold transition-smooth"
+      {/* Final CTA Section */}
+      <section className="py-24 px-6 md:px-8 relative overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 -z-10" />
+        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10 -z-10" />
+        
+        {/* Animated Orbs */}
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity }}
+          className="absolute top-0 left-0 w-96 h-96 bg-white/20 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 10, repeat: Infinity }}
+          className="absolute bottom-0 right-0 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl"
+        />
+
+        <div className="max-w-5xl mx-auto text-center relative">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="space-y-8"
           >
-            Đăng ký miễn phí
-          </Link>
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="inline-flex items-center gap-2 px-5 py-2 bg-white/20 backdrop-blur-md border border-white/30 text-white rounded-full font-semibold"
+            >
+              <Sparkles size={18} />
+              <span>Bắt Đầu Ngay Hôm Nay</span>
+            </motion.div>
+
+            {/* Headline */}
+            <h2 className="text-4xl md:text-6xl font-black text-white leading-tight">
+              Sẵn Sàng Thay Đổi Cuộc Đời<br />
+              Qua Học Tập?
+            </h2>
+
+            <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed font-medium">
+              Tham gia cùng <span className="font-black">15,000+ học viên</span> đang chinh phục mục tiêu sự nghiệp của họ mỗi ngày
+            </p>
+
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row gap-6 justify-center pt-6">
+              <Link
+                href="/signup"
+                className="group inline-flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-blue-700 px-10 py-5 rounded-2xl font-black text-lg shadow-2xl hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)] transition-all transform hover:scale-105"
+              >
+                <Rocket size={24} />
+                Đăng Ký Miễn Phí Ngay
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                href="/courses"
+                className="group inline-flex items-center justify-center gap-3 bg-white/10 backdrop-blur-md hover:bg-white/20 border-2 border-white/50 text-white px-10 py-5 rounded-2xl font-bold text-lg transition-all"
+              >
+                <BookOpen size={24} />
+                Xem Khóa Học
+              </Link>
+            </div>
+
+            {/* Trust Indicators */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.6 }}
+              className="flex flex-wrap items-center justify-center gap-8 pt-12 text-white/80"
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle size={20} className="text-green-300" />
+                <span className="font-semibold">Không cần thẻ tín dụng</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle size={20} className="text-green-300" />
+                <span className="font-semibold">Hủy bất kỳ lúc nào</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle size={20} className="text-green-300" />
+                <span className="font-semibold">Hoàn tiền trong 30 ngày</span>
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 

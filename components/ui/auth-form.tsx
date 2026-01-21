@@ -123,50 +123,68 @@ export function AuthForm({ type, role }: AuthFormProps) {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Email</label>
-        <div className="relative">
-          <Mail className="absolute left-4 top-3.5 text-muted-foreground dark:text-slate-500" size={20} />
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Email</label>
+        <div className="relative group">
+          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors z-10" size={20} />
           <input
             type="email"
             name="email"
             value={formData.email}
             onChange={handleChange}
             placeholder="your@email.com"
-            className={`w-full pl-12 pr-4 py-3 bg-secondary dark:bg-slate-800 border rounded-lg focus:outline-none focus:ring-2 transition-smooth text-foreground dark:text-white placeholder-muted-foreground dark:placeholder-slate-500 ${
+            className={`w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 rounded-xl focus:outline-none focus:ring-4 transition-all text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium ${
               errors.email
-                ? "border-destructive focus:ring-destructive"
-                : "border-border dark:border-slate-700 focus:ring-primary dark:focus:ring-accent"
+                ? "border-red-500 focus:ring-red-500/20 focus:border-red-500"
+                : "border-slate-200 dark:border-slate-700 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500"
             }`}
           />
+          {/* Animated border */}
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-focus-within:opacity-100 -z-10 blur transition-opacity" />
         </div>
-        {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
+        {errors.email && (
+          <p className="text-xs text-red-600 dark:text-red-400 mt-2 flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            {errors.email}
+          </p>
+        )}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Mật khẩu</label>
-        <div className="relative">
-          <Lock className="absolute left-4 top-3.5 text-muted-foreground dark:text-slate-500" size={20} />
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Mật khẩu</label>
+        <div className="relative group">
+          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors z-10" size={20} />
           <input
             type={showPassword ? "text" : "password"}
             name="password"
             value={formData.password}
             onChange={handleChange}
             placeholder="••••••••"
-            className={`w-full pl-12 pr-12 py-3 bg-secondary dark:bg-slate-800 border rounded-lg focus:outline-none focus:ring-2 transition-smooth text-foreground dark:text-white placeholder-muted-foreground dark:placeholder-slate-500 ${
+            className={`w-full pl-12 pr-12 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 rounded-xl focus:outline-none focus:ring-4 transition-all text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium ${
               errors.password
-                ? "border-destructive focus:ring-destructive"
-                : "border-border dark:border-slate-700 focus:ring-primary dark:focus:ring-accent"
+                ? "border-red-500 focus:ring-red-500/20 focus:border-red-500"
+                : "border-slate-200 dark:border-slate-700 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500"
             }`}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-3.5 text-muted-foreground dark:text-slate-500 hover:text-foreground dark:hover:text-white"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors z-10 p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
+          {/* Animated border */}
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-focus-within:opacity-100 -z-10 blur transition-opacity" />
         </div>
-        {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
+        {errors.password && (
+          <p className="text-xs text-red-600 dark:text-red-400 mt-2 flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            {errors.password}
+          </p>
+        )}
       </div>
 
       {type === "signup" && (
@@ -194,9 +212,30 @@ export function AuthForm({ type, role }: AuthFormProps) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground rounded-lg font-semibold transition-smooth"
+        className="group relative w-full py-4 bg-gradient-to-r from-blue-600 via-blue-700 to-purple-600 hover:from-blue-700 hover:via-blue-800 hover:to-purple-700 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-2xl disabled:shadow-none transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:transform-none overflow-hidden"
       >
-        {loading ? "Đang xử lý..." : type === "login" ? "Đăng nhập" : "Đăng ký"}
+        {/* Shine effect */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+        
+        {/* Button content */}
+        <span className="relative z-10 flex items-center justify-center gap-2">
+          {loading ? (
+            <>
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span>Đang xử lý...</span>
+            </>
+          ) : (
+            <>
+              <span>{type === "login" ? "Đăng nhập" : "Đăng ký"}</span>
+              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </>
+          )}
+        </span>
       </button>
     </form>
   )

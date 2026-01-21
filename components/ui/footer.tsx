@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import {
   GraduationCap,
   Facebook,
@@ -12,11 +13,17 @@ import {
   ChevronRight,
   Heart,
   MessageCircle,
-  Instagram
+  Instagram,
+  Send,
+  Award,
+  Users,
+  BookOpen
 } from "lucide-react"
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
+  const [email, setEmail] = useState("")
+  const [subscribed, setSubscribed] = useState(false)
 
   const footerLinks = {
     courses: [
@@ -45,69 +52,135 @@ export function Footer() {
   }
 
   const socialLinks = [
-    { icon: Facebook, href: "#", label: "Facebook", color: "hover:text-blue-500" },
-    { icon: Instagram, href: "#", label: "Instagram", color: "hover:text-pink-500" },
-    { icon: Youtube, href: "#", label: "Youtube", color: "hover:text-red-500" },
+    { 
+      icon: Facebook, 
+      href: "#", 
+      label: "Facebook", 
+      color: "hover:text-white dark:hover:text-white",
+      bgColor: "hover:bg-blue-600 dark:hover:bg-blue-600"
+    },
+    { 
+      icon: Instagram, 
+      href: "#", 
+      label: "Instagram", 
+      color: "hover:text-white dark:hover:text-white",
+      bgColor: "hover:bg-gradient-to-br hover:from-purple-600 hover:via-pink-600 hover:to-orange-500"
+    },
     { 
       icon: MessageCircle, 
       href: "#", 
       label: "TikTok", 
-      color: "hover:text-black dark:hover:text-white",
+      color: "hover:text-white dark:hover:text-white",
+      bgColor: "hover:bg-black dark:hover:bg-white dark:hover:text-black",
       customIcon: (
-        <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor">
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
           <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
         </svg>
       )
     },
     { 
-      icon: MessageCircle, 
+      icon: Youtube, 
       href: "#", 
-      label: "Zalo", 
-      color: "hover:text-blue-400",
-      customIcon: (
-        <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-        </svg>
-      )
+      label: "Youtube", 
+      color: "hover:text-white dark:hover:text-white",
+      bgColor: "hover:bg-red-600 dark:hover:bg-red-600"
     },
-    { icon: Linkedin, href: "#", label: "LinkedIn", color: "hover:text-blue-600" },
+    { 
+      icon: Linkedin, 
+      href: "#", 
+      label: "LinkedIn", 
+      color: "hover:text-white dark:hover:text-white",
+      bgColor: "hover:bg-blue-700 dark:hover:bg-blue-700"
+    },
   ]
 
-  return (
-    <footer className="bg-secondary/30 dark:bg-slate-900/80 border-t border-border dark:border-slate-800">
-      {/* Main Footer */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
-          {/* Brand Column */}
-          <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
-                <GraduationCap className="text-white" size={24} />
-              </div>
-              <span className="text-xl font-bold text-foreground dark:text-white">ICS Learning</span>
-            </Link>
-            <p className="text-sm text-muted-foreground dark:text-slate-400 mb-6 max-w-sm">
-              Nền tảng học trực tuyến hàng đầu với hàng ngàn khóa học chất lượng cao từ các chuyên gia trong ngành.
-            </p>
+  const stats = [
+    { number: "10K+", label: "Học viên hoạt động" },
+    { number: "500+", label: "Khóa học chất lượng" },
+    { number: "100+", label: "Giảng viên xuất sắc" },
+  ]
 
-            {/* Contact Info */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-sm text-muted-foreground dark:text-slate-400">
-                <MapPin size={16} className="text-primary flex-shrink-0" />
-                <span>123 Nguyễn Huệ, Q.1, TP.HCM</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground dark:text-slate-400">
-                <Phone size={16} className="text-primary flex-shrink-0" />
-                <span>1900 1234</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground dark:text-slate-400">
-                <Mail size={16} className="text-primary flex-shrink-0" />
-                <span>support@icslearning.vn</span>
-              </div>
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (email.trim()) {
+      setSubscribed(true)
+      setEmail("")
+      setTimeout(() => setSubscribed(false), 3000)
+    }
+  }
+
+  return (
+    <footer className="bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 border-t border-slate-200 dark:border-slate-800">
+      {/* Top Section - Brand + Stats */}
+      <div className="border-b border-slate-200 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+            {/* Brand & About */}
+            <div className="lg:col-span-1">
+              <Link href="/" className="flex items-center gap-3 mb-5 group">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                  <GraduationCap className="text-white" size={28} />
+                </div>
+                <div>
+                  <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">ICS Learning</span>
+                  <p className="text-xs text-muted-foreground dark:text-slate-400">Nền tảng học trực tuyến</p>
+                </div>
+              </Link>
+              <p className="text-sm text-muted-foreground dark:text-slate-400 leading-relaxed mt-4 max-w-sm">
+                Khám phá hàng ngàn khóa học chất lượng cao từ các chuyên gia hàng đầu. Nâng cao kỹ năng, phát triển sự nghiệp.
+              </p>
             </div>
 
-            {/* Social Links */}
-            <div className="flex gap-3 mt-6">
+            {/* Stats */}
+            <div className="lg:col-span-2 grid grid-cols-3 gap-4">
+              {stats.map((stat, idx) => (
+                <div key={idx} className="text-center p-6 rounded-2xl bg-white/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800/50 transition-all">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    {idx === 0 && <Users size={20} className="text-blue-600 dark:text-blue-400" />}
+                    {idx === 1 && <BookOpen size={20} className="text-purple-600 dark:text-purple-400" />}
+                    {idx === 2 && <Award size={20} className="text-orange-600 dark:text-orange-400" />}
+                  </div>
+                  <p className="text-2xl font-bold text-foreground dark:text-white">{stat.number}</p>
+                  <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Middle Section - Links + Newsletter */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
+          {/* Contact Info */}
+          <div className="lg:col-span-1">
+            <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">Liên hệ</h4>
+            <div className="space-y-4">
+              <a href="tel:1900123456" className="flex items-start gap-3 group cursor-pointer">
+                <Phone size={18} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors">Hotline</span>
+                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">1900 1234</span>
+                </div>
+              </a>
+              <a href="mailto:support@icslearning.vn" className="flex items-start gap-3 group cursor-pointer">
+                <Mail size={18} className="text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors">Email</span>
+                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">support@icslearning.vn</span>
+                </div>
+              </a>
+              <a href="#" className="flex items-start gap-3 group cursor-pointer">
+                <MapPin size={18} className="text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors">Địa chỉ</span>
+                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">123 Nguyễn Huệ, Q.1, TP.HCM</span>
+                </div>
+              </a>
+            </div>
+
+            {/* Social Links - Premium 3D Design */}
+            <div className="flex gap-4 mt-8">
               {socialLinks.map((social) => {
                 const Icon = social.icon
                 return (
@@ -115,26 +188,49 @@ export function Footer() {
                     key={social.label}
                     href={social.href}
                     aria-label={social.label}
-                    className={`w-10 h-10 rounded-full bg-secondary dark:bg-slate-800 flex items-center justify-center text-muted-foreground transition-colors ${social.color}`}
+                    title={social.label}
+                    className={`
+                      relative group w-12 h-12 rounded-xl
+                      bg-white/80 dark:bg-slate-800/80 
+                      backdrop-blur-md
+                      flex items-center justify-center 
+                      text-slate-600 dark:text-slate-300
+                      border border-slate-200/50 dark:border-slate-700/50
+                      shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.02)]
+                      dark:shadow-[0_2px_8px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.05)]
+                      hover:shadow-[0_8px_24px_rgba(0,0,0,0.15),0_0_0_1px_rgba(0,0,0,0.03)]
+                      dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.1)]
+                      transition-all duration-300 ease-out
+                      transform hover:scale-110 hover:-translate-y-1
+                      ${social.color}
+                      ${social.bgColor}
+                      before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-br before:from-white/40 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity
+                    `}
                   >
-                    {social.customIcon || <Icon size={18} />}
+                    {/* Glow effect on hover */}
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    
+                    {/* Icon */}
+                    <span className="relative z-10">
+                      {social.customIcon || <Icon size={20} />}
+                    </span>
                   </a>
                 )
               })}
             </div>
           </div>
 
-          {/* Links Columns */}
-          <div>
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Khóa học</h3>
-            <ul className="space-y-2.5">
+          {/* Links Column 1 */}
+          <div className="lg:col-span-1">
+            <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">Khóa học</h4>
+            <ul className="space-y-3.5">
               {footerLinks.courses.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary transition-colors flex items-center gap-1 group"
+                    className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors flex items-center gap-2 group font-medium"
                   >
-                    <ChevronRight size={14} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                    <ChevronRight size={16} className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
                     {link.name}
                   </Link>
                 </li>
@@ -142,16 +238,17 @@ export function Footer() {
             </ul>
           </div>
 
-          <div>
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Hỗ trợ</h3>
-            <ul className="space-y-2.5">
+          {/* Links Column 2 */}
+          <div className="lg:col-span-1">
+            <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">Hỗ trợ</h4>
+            <ul className="space-y-3.5">
               {footerLinks.support.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary transition-colors flex items-center gap-1 group"
+                    className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors flex items-center gap-2 group font-medium"
                   >
-                    <ChevronRight size={14} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                    <ChevronRight size={16} className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
                     {link.name}
                   </Link>
                 </li>
@@ -159,47 +256,88 @@ export function Footer() {
             </ul>
           </div>
 
-          <div>
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Công ty</h3>
-            <ul className="space-y-2.5">
+          {/* Links Column 3 */}
+          <div className="lg:col-span-1">
+            <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">Công ty</h4>
+            <ul className="space-y-3.5">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary transition-colors flex items-center gap-1 group"
+                    className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors flex items-center gap-2 group font-medium"
                   >
-                    <ChevronRight size={14} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                    <ChevronRight size={16} className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
                     {link.name}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
+
+          {/* Newsletter */}
+          <div className="lg:col-span-1">
+            <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">Cập nhật</h4>
+            <p className="text-sm text-muted-foreground dark:text-slate-400 mb-4">Nhận các khóa học mới và ưu đãi đặc biệt</p>
+            <form onSubmit={handleSubscribe} className="space-y-3">
+              <div className="relative group">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email của bạn..."
+                  className="w-full px-4 py-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  aria-label="Subscribe"
+                >
+                  <Send size={16} className="text-blue-600 dark:text-blue-400" />
+                </button>
+              </div>
+              {subscribed && (
+                <p className="text-xs text-green-600 dark:text-green-400 font-medium animate-pulse">Đăng ký thành công!</p>
+              )}
+            </form>
+          </div>
         </div>
       </div>
 
-      {/* Bottom Bar */}
-      <div className="border-t border-border dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground dark:text-slate-400 text-center md:text-left">
-              © {currentYear} ICS Learning. Bảo lưu mọi quyền.
-            </p>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground dark:text-slate-400">
-              <span>Made with</span>
-              <Heart size={14} className="text-red-500 fill-red-500" />
-              <span>in Vietnam</span>
+      {/* Bottom Section */}
+      <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-950/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            {/* Copyright */}
+            <div className="text-center md:text-left">
+              <p className="text-sm text-muted-foreground dark:text-slate-400 font-medium">
+                © {currentYear} <span className="text-foreground dark:text-white font-semibold">ICS Learning</span>. Bảo lưu mọi quyền.
+              </p>
             </div>
-            <div className="flex items-center gap-4">
-              {footerLinks.legal.map((link) => (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary transition-colors"
-                >
-                  {link.name}
-                </Link>
+
+            {/* Legal Links */}
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              {footerLinks.legal.map((link, idx) => (
+                <div key={link.name} className="flex items-center gap-4">
+                  <Link
+                    href={link.href}
+                    className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium"
+                  >
+                    {link.name}
+                  </Link>
+                  {idx < footerLinks.legal.length - 1 && (
+                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-700" />
+                  )}
+                </div>
               ))}
+            </div>
+
+            {/* Heart */}
+            <div className="text-center md:text-right">
+              <div className="flex items-center justify-center md:justify-end gap-1.5 text-sm text-muted-foreground dark:text-slate-400">
+                <span className="font-medium">Made with</span>
+                <Heart size={16} className="text-red-500 fill-red-500 animate-pulse" />
+                <span className="font-medium">in Vietnam</span>
+              </div>
             </div>
           </div>
         </div>
@@ -213,26 +351,33 @@ export function CompactFooter() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="border-t border-border dark:border-slate-800 bg-card dark:bg-slate-900/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
-              <GraduationCap className="text-white" size={14} />
+    <footer className="border-t border-slate-200 dark:border-slate-800 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* Brand */}
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+              <GraduationCap className="text-white" size={18} />
             </div>
-            <span className="text-sm font-medium text-foreground dark:text-white">ICS Learning</span>
-          </div>
-          <p className="text-xs text-muted-foreground dark:text-slate-400">
-            © {currentYear} ICS Learning. Bảo lưu mọi quyền.
+            <span className="text-sm font-bold text-foreground dark:text-white">ICS Learning</span>
+          </Link>
+
+          {/* Copyright */}
+          <p className="text-xs text-muted-foreground dark:text-slate-400 font-medium">
+            © {currentYear} <span className="text-foreground dark:text-white font-semibold">ICS Learning</span>. Bảo lưu mọi quyền.
           </p>
+
+          {/* Legal Links */}
           <div className="flex items-center gap-4">
-            <Link href="/terms" className="text-xs text-muted-foreground dark:text-slate-400 hover:text-primary transition-colors">
+            <Link href="/terms" className="text-xs text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium">
               Điều khoản
             </Link>
-            <Link href="/privacy" className="text-xs text-muted-foreground dark:text-slate-400 hover:text-primary transition-colors">
+            <div className="h-3 w-px bg-slate-300 dark:bg-slate-700" />
+            <Link href="/privacy" className="text-xs text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium">
               Bảo mật
             </Link>
-            <Link href="/support" className="text-xs text-muted-foreground dark:text-slate-400 hover:text-primary transition-colors">
+            <div className="h-3 w-px bg-slate-300 dark:bg-slate-700" />
+            <Link href="/support" className="text-xs text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium">
               Hỗ trợ
             </Link>
           </div>

@@ -1,14 +1,18 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Roboto } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth/auth-context"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
-const geist = Geist({ subsets: ["latin"] })
-const geistMono = Geist_Mono({ subsets: ["latin"] })
+const roboto = Roboto({ 
+  subsets: ["latin", "vietnamese"],
+  weight: ["300", "400", "500", "700", "900"],
+  variable: "--font-roboto",
+  display: "swap"
+})
 
 export const metadata: Metadata = {
   title: "ICS Learning - Nền tảng học trực tuyến cao cấp",
@@ -23,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className={`${geist.className} font-sans antialiased bg-background text-foreground transition-smooth`}>
+      <body className={`${roboto.variable} font-sans antialiased bg-background text-foreground transition-smooth`} style={{ fontFamily: 'var(--font-roboto), sans-serif' }}>
         <ThemeProvider>
           <AuthProvider>
             {children}
