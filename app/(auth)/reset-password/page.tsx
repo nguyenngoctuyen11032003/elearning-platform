@@ -39,7 +39,7 @@ export default function ResetPasswordPage() {
         <span className="text-sm font-semibold">Quay lại</span>
       </Link>
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
                 <Key size={16} />
                 <span className="text-sm">Tạo Mật Khẩu Mới</span>
               </div>
-              <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-3">Đặt Lại Mật Khẩu</h1>
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-3">Đặt Lại Mật Khẩu</h1>
               <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
                 Tạo mật khẩu mới an toàn và dễ nhớ cho tài khoản của bạn
               </p>
@@ -87,7 +87,7 @@ export default function ResetPasswordPage() {
             className="relative"
           >
             <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 rounded-3xl blur-xl opacity-20" />
-            <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 lg:p-10 shadow-2xl">
+            <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 shadow-2xl">
               {/* Security Info */}
               <div className="mb-6 space-y-3">
                 <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800">

@@ -46,13 +46,13 @@ export default function SignupPage() {
         <span className="text-sm font-semibold">Trang chủ</span>
       </Link>
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
         <div className="w-full max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center"
+            className="grid lg:grid-cols-2 gap-6 lg:gap-12 items-center"
           >
             {/* Left Side - Brand & Benefits */}
             <div className="hidden lg:block space-y-8">
@@ -73,7 +73,7 @@ export default function SignupPage() {
                   </div>
                 </Link>
 
-                <h2 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-tight mb-4">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-tight mb-4">
                   Tham Gia Cộng Đồng<br />Học Viên Hàng Đầu
                 </h2>
                 <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -134,8 +134,8 @@ export default function SignupPage() {
               className="w-full space-y-6"
             >
               {/* Mobile Logo */}
-              <div className="lg:hidden text-center mb-8">
-                <Link href="/" className="inline-flex items-center gap-3 mb-4">
+              <div className="lg:hidden text-center mb-6 sm:mb-8">
+                <Link href="/" className="inline-flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-xl">
                     <GraduationCap className="text-white" size={28} />
                   </div>
@@ -156,7 +156,7 @@ export default function SignupPage() {
                   <Sparkles size={16} />
                   <span className="text-sm">Tạo Tài Khoản Mới</span>
                 </motion.div>
-                <h2 className="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-2">Đăng Ký</h2>
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-2">Đăng Ký</h2>
                 <p className="text-slate-600 dark:text-slate-400">Tham gia cộng đồng học tập ICS Learning</p>
               </div>
 
@@ -164,7 +164,7 @@ export default function SignupPage() {
               {!searchParams.get("role") && (
                 <div className="relative">
                   <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 rounded-3xl blur-xl opacity-20" />
-                  <div className="relative bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl">
+                  <div className="relative bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl">
                     <h3 className="text-lg font-bold mb-4 text-center text-slate-900 dark:text-white">Chọn vai trò của bạn</h3>
                     <div className="grid grid-cols-2 gap-4">
                       <button
@@ -200,7 +200,7 @@ export default function SignupPage() {
               {/* Form Container */}
               <div className="relative">
                 <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 rounded-3xl blur-xl opacity-20" />
-                <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 lg:p-10 shadow-2xl">
+                <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 shadow-2xl">
                   <AuthForm 
                     type="signup" 
                     role={selectedRole.toLowerCase() as "student" | "teacher"} 

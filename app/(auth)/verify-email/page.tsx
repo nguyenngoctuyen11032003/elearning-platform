@@ -102,7 +102,7 @@ function VerifyEmailContent() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={redirectToLogin}
-            className="relative px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-2xl overflow-hidden group"
+            className="relative px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-2xl overflow-hidden group"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
             <span className="relative flex items-center gap-2 justify-center">
@@ -112,7 +112,7 @@ function VerifyEmailContent() {
           </motion.button>
           <Link
             href="/"
-            className="px-8 py-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-semibold transition-all text-center"
+            className="px-6 sm:px-8 py-3 sm:py-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-semibold transition-all text-center"
           >
             Về trang chủ
           </Link>
@@ -126,7 +126,7 @@ function VerifyEmailContent() {
           <button
             onClick={handleRetry}
             disabled={isRetrying}
-            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 justify-center"
+            className="px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 justify-center"
           >
             {isRetrying ? (
               <RefreshCw size={20} className="animate-spin" />
@@ -137,7 +137,7 @@ function VerifyEmailContent() {
           </button>
           <Link
             href="/login"
-            className="px-8 py-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-semibold transition-all text-center"
+            className="px-6 sm:px-8 py-3 sm:py-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-semibold transition-all text-center"
           >
             Đăng nhập
           </Link>
@@ -149,7 +149,7 @@ function VerifyEmailContent() {
       <div className="flex justify-center">
         <Link
           href="/signup"
-          className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl"
+          className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl"
         >
           Đăng ký lại
         </Link>
@@ -198,7 +198,7 @@ function VerifyEmailContent() {
         <span className="text-sm font-semibold">Quay lại</span>
       </Link>
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -237,7 +237,7 @@ function VerifyEmailContent() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-10 text-center space-y-6 shadow-2xl"
+              className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-6 sm:p-10 text-center space-y-4 sm:space-y-6 shadow-2xl"
             >
               {/* Icon */}
               <motion.div

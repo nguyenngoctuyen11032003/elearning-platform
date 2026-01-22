@@ -40,13 +40,13 @@ export default function LoginPage() {
         <span className="text-sm font-semibold">Trang chủ</span>
       </Link>
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
         <div className="w-full max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center"
+            className="grid lg:grid-cols-2 gap-6 lg:gap-12 items-center"
           >
             {/* Left Side - Brand & Visual */}
             <div className="hidden lg:block space-y-8">
@@ -154,8 +154,8 @@ export default function LoginPage() {
               className="w-full"
             >
               {/* Mobile Logo */}
-              <div className="lg:hidden text-center mb-8">
-                <Link href="/" className="inline-flex items-center gap-3 mb-6">
+              <div className="lg:hidden text-center mb-6 sm:mb-8">
+                <Link href="/" className="inline-flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-6">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl">
                     <GraduationCap className="text-white" size={28} />
                   </div>
@@ -170,7 +170,7 @@ export default function LoginPage() {
                 {/* Glow Effect */}
                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity" />
                 
-                <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 lg:p-10 shadow-2xl">
+                <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 shadow-2xl">
                   {/* Header */}
                   <div className="text-center mb-8">
                     <motion.div
@@ -182,7 +182,7 @@ export default function LoginPage() {
                       <Sparkles size={16} />
                       <span className="text-sm">Đăng Nhập Tài Khoản</span>
                     </motion.div>
-                    <h2 className="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-2">Đăng Nhập</h2>
+                    <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-2">Đăng Nhập</h2>
                     <p className="text-slate-600 dark:text-slate-400">Tiếp tục hành trình học tập của bạn</p>
                   </div>
 
@@ -200,7 +200,7 @@ export default function LoginPage() {
                   </div>
 
                   {/* Social Login */}
-                  <button className="w-full py-3.5 border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 rounded-xl font-semibold text-slate-900 dark:text-white hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all flex items-center justify-center gap-3 group shadow-sm hover:shadow-md">
+                  <button className="w-full py-3 sm:py-3.5 border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 rounded-xl font-semibold text-sm sm:text-base text-slate-900 dark:text-white hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all flex items-center justify-center gap-3 group shadow-sm hover:shadow-md">
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
                       <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                       <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>

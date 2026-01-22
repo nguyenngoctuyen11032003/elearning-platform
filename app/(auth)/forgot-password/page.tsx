@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
         <span className="text-sm font-semibold">Quay lại</span>
       </Link>
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
                 <Lock size={16} />
                 <span className="text-sm">Khôi Phục Mật Khẩu</span>
               </div>
-              <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-3">Quên Mật Khẩu?</h1>
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-3">Quên Mật Khẩu?</h1>
               <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
                 Đừng lo lắng! Nhập email của bạn và chúng tôi sẽ gửi liên kết đặt lại mật khẩu
               </p>
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
             className="relative"
           >
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-3xl blur-xl opacity-20" />
-            <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 lg:p-10 shadow-2xl">
+            <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 shadow-2xl">
               {/* Security Badge */}
               <div className="flex items-center justify-center gap-2 mb-6 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800">
                 <Shield size={20} className="text-blue-600 dark:text-blue-400" />
