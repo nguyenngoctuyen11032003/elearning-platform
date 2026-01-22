@@ -206,20 +206,9 @@ function VerifyEmailContent() {
           className="w-full max-w-lg"
         >
           {/* Logo */}
-          <div className="text-center mb-8">
-            <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
-              <div className={`w-14 h-14 bg-gradient-to-br ${
-                status === "success" 
-                  ? "from-green-600 to-emerald-600" 
-                  : status === "error" || status === "invalid"
-                  ? "from-red-600 to-orange-600"
-                  : "from-blue-600 to-purple-600"
-              } rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl transition-shadow`}>
-                <GraduationCap className="text-white" size={32} />
-              </div>
-              <span className="font-black text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                ICS Learning
-              </span>
+          <div className="text-center mb-10">
+            <Link href="/" className="inline-flex justify-center">
+              <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-28 w-auto rounded-full shadow-lg" />
             </Link>
           </div>
 

@@ -73,15 +73,9 @@ export function StudentSidebar() {
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="p-5 border-b border-border dark:border-slate-800">
+          <div className="p-6 border-b border-border dark:border-slate-800 flex justify-center">
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-11 h-11 bg-gradient-to-br from-primary to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                <GraduationCap className="text-white" size={22} />
-              </div>
-              <div>
-                <span className="font-bold text-foreground dark:text-white text-lg">ICS Learning</span>
-                <p className="text-xs text-muted-foreground">Học tập mọi nơi</p>
-              </div>
+              <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-16 w-auto rounded-full shadow-md" />
             </Link>
           </div>
 

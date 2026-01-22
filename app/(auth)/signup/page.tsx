@@ -60,17 +60,10 @@ export default function SignupPage() {
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
+                className="text-center mb-12"
               >
-                <Link href="/" className="inline-flex items-center gap-3 group mb-8">
-                  <div className="w-14 h-14 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl transition-shadow">
-                    <GraduationCap className="text-white" size={32} />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                      ICS Learning
-                    </h1>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Bắt đầu hành trình học tập</p>
-                  </div>
+                <Link href="/" className="inline-flex justify-center mb-8">
+                  <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-28 w-auto rounded-full shadow-lg" />
                 </Link>
 
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-tight mb-4">
@@ -134,14 +127,9 @@ export default function SignupPage() {
               className="w-full space-y-6"
             >
               {/* Mobile Logo */}
-              <div className="lg:hidden text-center mb-6 sm:mb-8">
-                <Link href="/" className="inline-flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-xl">
-                    <GraduationCap className="text-white" size={28} />
-                  </div>
-                  <span className="text-2xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                    ICS Learning
-                  </span>
+              <div className="lg:hidden text-center mb-8 sm:mb-10">
+                <Link href="/" className="inline-flex justify-center">
+                  <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-24 w-auto rounded-full shadow-lg" />
                 </Link>
               </div>
 

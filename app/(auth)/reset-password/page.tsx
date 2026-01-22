@@ -52,14 +52,10 @@ export default function ResetPasswordPage() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+              className="text-center mb-10"
             >
-              <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
-                <div className="w-14 h-14 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl transition-shadow">
-                  <GraduationCap className="text-white" size={32} />
-                </div>
-                <span className="font-black text-2xl bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                  ICS Learning
-                </span>
+              <Link href="/" className="inline-flex justify-center">
+                <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-28 w-auto rounded-full shadow-lg" />
               </Link>
             </motion.div>
 

@@ -46,11 +46,8 @@ export function AdminSidebar() {
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <Link href="/admin/dashboard" className="flex items-center gap-2 mb-8 mt-12 md:mt-0">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">IC</span>
-          </div>
-          <span className="font-bold text-foreground dark:text-white">ICS Admin</span>
+        <Link href="/admin/dashboard" className="flex items-center justify-center mb-8 mt-12 md:mt-0">
+          <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-16 w-auto rounded-full shadow-md" />
         </Link>
 
 
