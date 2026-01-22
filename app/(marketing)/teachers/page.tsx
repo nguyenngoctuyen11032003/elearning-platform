@@ -33,8 +33,20 @@ export default function TeachersPage() {
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 md:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.1),transparent_50%)] dark:bg-[radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.15),transparent_50%)]" />
-        
+        {/* Background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: "url('/image/bg_tcher.png')",
+          }}
+        />
+
+        {/* Overlay làm tối ảnh */}
+        <div className="absolute inset-0 bg-black/50 dark:bg-black/60" />
+
+        {/* Gradient hiệu ứng như cũ */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.15),transparent_50%)]" />
+
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -45,22 +57,23 @@ export default function TeachersPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring" }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 dark:bg-accent/20 rounded-full text-accent dark:text-accent font-medium text-sm mb-4"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 dark:bg-accent/20 rounded-full text-accent font-medium text-sm mb-4"
           >
             <Sparkles size={16} />
             <span>Tham gia cộng đồng 200+ giảng viên</span>
           </motion.div>
-          
-          <h1 className="text-5xl md:text-7xl font-bold text-foreground dark:text-white leading-tight">
+
+          <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight">
             Trở thành{" "}
-            <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               Giảng viên
             </span>
           </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground dark:text-slate-300 max-w-3xl mx-auto">
+
+          <p className="text-xl md:text-2xl text-slate-200 max-w-3xl mx-auto">
             Chia sẻ kiến thức của bạn với hàng triệu học viên trên toàn thế giới và tạo thu nhập thụ động
           </p>
-          
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -74,9 +87,10 @@ export default function TeachersPage() {
               <span>Bắt đầu dạy ngay</span>
               <Sparkles size={18} />
             </Link>
+
             <Link
               href="#benefits"
-              className="inline-flex items-center justify-center gap-2 border-2 border-border hover:border-accent text-foreground dark:text-white px-8 py-4 rounded-full font-semibold transition-all hover:scale-105"
+              className="inline-flex items-center justify-center gap-2 border-2 border-white/30 hover:border-white text-white px-8 py-4 rounded-full font-semibold transition-all hover:scale-105"
             >
               <span>Tìm hiểu thêm</span>
               <BookOpen size={18} />
@@ -84,6 +98,7 @@ export default function TeachersPage() {
           </motion.div>
         </motion.div>
       </section>
+
 
       {/* Stats Section */}
       <section className="py-12 px-4 md:px-8">

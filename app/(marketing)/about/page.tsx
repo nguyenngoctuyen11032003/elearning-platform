@@ -2,9 +2,10 @@
 
 import { Navbar } from "@/components/ui/navbar"
 import { Footer } from "@/components/ui/footer"
-import { Users, Target, Zap, Award, TrendingUp, Heart, Sparkles, Globe, Shield } from "lucide-react"
+import {Users, Target, Zap, Award, TrendingUp, Heart, Sparkles, Globe, Shield,} from "lucide-react"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
+import { useEffect, useState } from "react"
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -25,16 +26,87 @@ const itemVariants = {
   },
 }
 
+/* ====== BACKGROUND SLIDER ====== */
+const backgrounds = [
+  "/image/about_hero.png",
+  "/image/about_hero2.png",
+  "/image/about_hero3.png",
+]
+
+
+
 export default function AboutPage() {
+  const [bgIndex, setBgIndex] = useState(0)
+
+  // Auto slide
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBgIndex((prev) => (prev + 1) % backgrounds.length)
+    }, 15000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // ===== NÚT CHUYỂN TAY (PHẢI Ở NGOÀI useEffect) =====
+  const nextBg = () => {
+    setBgIndex((prev) => (prev + 1) % backgrounds.length)
+  }
+
+  const prevBg = () => {
+    setBgIndex((prev) =>
+      prev === 0 ? backgrounds.length - 1 : prev - 1
+    )
+  }
+
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-background dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <Navbar />
 
-      {/* Hero Section */}
+      {/* ================= HERO SECTION ================= */}
       <section className="pt-32 pb-20 px-4 md:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.1),transparent_50%)] dark:bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.15),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(168,85,247,0.1),transparent_50%)] dark:bg-[radial-gradient(circle_at_70%_50%,rgba(168,85,247,0.15),transparent_50%)]" />
+
+        {/* Background slider */}
+        <AnimatePresence>
+          <motion.div
+            key={backgrounds[bgIndex]}
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: `url(${backgrounds[bgIndex]})`,
+            }}
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+          />
+        </AnimatePresence>
         
+        {/* Manual controls */} 
+        <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 z-20 pointer-events-none">
+          <button
+            onClick={prevBg}
+            className="pointer-events-auto w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center"
+          >
+            ‹
+          </button>
+
+          <button
+            onClick={nextBg}
+            className="pointer-events-auto w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center"
+          >
+            ›
+          </button>
+        </div>
+
+
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-white/20 dark:bg-black/60" />
+
+        {/* Gradient layers */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(168,85,247,0.15),transparent_50%)]" />
+
+        {/* Content */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -50,14 +122,15 @@ export default function AboutPage() {
             <Sparkles size={16} />
             <span>Hành trình 10+ năm phát triển</span>
           </motion.div>
-          
+
           <h1 className="text-5xl md:text-7xl font-bold text-foreground dark:text-white leading-tight">
             Về{" "}
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               ICS Learning
             </span>
           </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground dark:text-slate-300 max-w-3xl mx-auto">
+
+          <p className="text-xl md:text-2xl text-black dark:text-white max-w-3xl mx-auto">
             Chúng tôi tin rằng giáo dục là chìa khóa để mở ra những cơ hội vô hạn và thay đổi cuộc sống
           </p>
         </motion.div>
