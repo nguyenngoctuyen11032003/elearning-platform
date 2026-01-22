@@ -151,75 +151,7 @@ export function Footer() {
 
       {/* Middle Section - Links + Newsletter */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
-          {/* Contact Info */}
-          <div className="lg:col-span-1">
-            <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">Liên hệ</h4>
-            <div className="space-y-4">
-              <a href="tel:1900123456" className="flex items-start gap-3 group cursor-pointer">
-                <Phone size={18} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-                <div className="flex flex-col">
-                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors">Hotline</span>
-                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">1900 1234</span>
-                </div>
-              </a>
-              <a href="mailto:support@icslearning.vn" className="flex items-start gap-3 group cursor-pointer">
-                <Mail size={18} className="text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-                <div className="flex flex-col">
-                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors">Email</span>
-                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">support@icslearning.vn</span>
-                </div>
-              </a>
-              <a href="#" className="flex items-start gap-3 group cursor-pointer">
-                <MapPin size={18} className="text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-                <div className="flex flex-col">
-                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors">Địa chỉ</span>
-                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">123 Nguyễn Huệ, Q.1, TP.HCM</span>
-                </div>
-              </a>
-            </div>
-
-            {/* Social Links - Premium 3D Design */}
-            <div className="flex gap-4 mt-8">
-              {socialLinks.map((social) => {
-                const Icon = social.icon
-                return (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    aria-label={social.label}
-                    title={social.label}
-                    className={`
-                      relative group w-12 h-12 rounded-xl
-                      bg-white/80 dark:bg-slate-800/80 
-                      backdrop-blur-md
-                      flex items-center justify-center 
-                      text-slate-600 dark:text-slate-300
-                      border border-slate-200/50 dark:border-slate-700/50
-                      shadow-[0_2px_8px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.02)]
-                      dark:shadow-[0_2px_8px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.05)]
-                      hover:shadow-[0_8px_24px_rgba(0,0,0,0.15),0_0_0_1px_rgba(0,0,0,0.03)]
-                      dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.1)]
-                      transition-all duration-300 ease-out
-                      transform hover:scale-110 hover:-translate-y-1
-                      ${social.color}
-                      ${social.bgColor}
-                      before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-br before:from-white/40 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity
-                    `}
-                  >
-                    {/* Glow effect on hover */}
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    
-                    {/* Icon */}
-                    <span className="relative z-10">
-                      {social.customIcon || <Icon size={20} />}
-                    </span>
-                  </a>
-                )
-              })}
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Links Column 1 */}
           <div className="lg:col-span-1">
             <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">Khóa học</h4>
@@ -305,7 +237,75 @@ export function Footer() {
 
       {/* Bottom Section */}
       <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-950/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Contact Info */}
+          <div className="mb-8 pb-8 border-b border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {/* Phone */}
+              <a href="tel:1900123456" className="flex items-start gap-3 group cursor-pointer">
+                <Phone size={18} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">Hotline</span>
+                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">1900 1234</span>
+                </div>
+              </a>
+
+              {/* Email */}
+              <a href="mailto:support@icslearning.vn" className="flex items-start gap-3 group cursor-pointer">
+                <Mail size={18} className="text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">Email</span>
+                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">support@icslearning.vn</span>
+                </div>
+              </a>
+
+              {/* Address */}
+              <a href="#" className="flex items-start gap-3 group cursor-pointer">
+                <MapPin size={18} className="text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">Địa chỉ</span>
+                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">123 Nguyễn Huệ, Q.1, TP.HCM</span>
+                </div>
+              </a>
+
+              {/* Social Links */}
+              <div>
+                <h4 className="text-xs text-muted-foreground dark:text-slate-500 uppercase tracking-wide font-semibold mb-3">Theo dõi</h4>
+                <div className="flex gap-3">
+                  {socialLinks.map((social) => {
+                    const Icon = social.icon
+                    return (
+                      <a
+                        key={social.label}
+                        href={social.href}
+                        aria-label={social.label}
+                        title={social.label}
+                        className={`
+                          relative group w-10 h-10 rounded-lg
+                          bg-white/50 dark:bg-slate-800/50 
+                          backdrop-blur-sm
+                          flex items-center justify-center 
+                          text-slate-600 dark:text-slate-300
+                          border border-slate-200/50 dark:border-slate-700/50
+                          hover:shadow-lg
+                          transition-all duration-300 ease-out
+                          transform hover:scale-110
+                          ${social.color}
+                          ${social.bgColor}
+                        `}
+                      >
+                        <span className="relative z-10">
+                          {social.customIcon || <Icon size={16} />}
+                        </span>
+                      </a>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Copyright and Legal */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
             {/* Copyright */}
             <div className="text-center md:text-left">

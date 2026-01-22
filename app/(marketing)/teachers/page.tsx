@@ -190,55 +190,128 @@ export default function TeachersPage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 px-4 md:px-8 bg-card/50 dark:bg-slate-900/30">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-20 px-4 md:px-8">
+        <div className="max-w-7xl mx-auto border-slate-500 dark:border-slate-600 rounded-3xl p-8 md:p-12" style={{ backgroundColor: '#d1e4f0' }}>
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
-              Cách bắt đầu
-            </h2>
-            <p className="text-xl text-muted-foreground dark:text-slate-300">
-              Chỉ 4 bước đơn giản để trở thành giảng viên
-            </p>
-          </motion.div>
+            {/* Left Content */}
+            <div className="space-y-8 ">
+              <div>
+                <h2 className="text-xl md:text-7xl font-bold text-black/80 mb-4">
+                  Cách bắt đầu
+                </h2>
+                <p className="text-xl text-black/70">
+                  Chỉ 4 bước đơn giản để trở thành giảng viên
+                </p>
+              </div>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-          >
-            {[
-              { step: "1", title: "Đăng ký miễn phí", desc: "Tạo tài khoản giảng viên chỉ trong 2 phút", icon: Users, gradient: "from-blue-500 to-cyan-500" },
-              { step: "2", title: "Tạo nội dung", desc: "Tải lên video, tài liệu và quiz với công cụ AI", icon: Video, gradient: "from-purple-500 to-pink-500" },
-              { step: "3", title: "Xuất bản khóa học", desc: "Đưa khóa học của bạn ra toàn cầu", icon: Globe, gradient: "from-orange-500 to-red-500" },
-              { step: "4", title: "Bắt đầu kiếm tiền", desc: "Nhận hoa hồng từ mỗi học viên đăng ký", icon: DollarSign, gradient: "from-green-500 to-emerald-500" },
-            ].map((item, i) => (
-              <motion.div key={i} variants={itemVariants} className="group relative">
-                <div className="h-full p-8 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl hover:shadow-xl transition-all duration-300 text-center relative overflow-hidden">
-                  <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-10 transition-opacity`} />
-                  <div className={`w-16 h-16 bg-gradient-to-br ${item.gradient} rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4 group-hover:scale-110 transition-transform`}>
-                    {item.step}
-                  </div>
-                  <item.icon className={`w-8 h-8 bg-gradient-to-br ${item.gradient} bg-clip-text text-transparent mx-auto mb-3`} />
-                  <h3 className="text-xl font-semibold text-foreground dark:text-white mb-2">{item.title}</h3>
-                  <p className="text-muted-foreground dark:text-slate-300">{item.desc}</p>
-                </div>
-                {i < 3 && (
-                  <div className="hidden lg:block absolute top-1/2 -right-3 w-6 h-0.5 bg-gradient-to-r from-border to-transparent" />
-                )}
+              {/* Steps Grid - 2x2 */}
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { step: "1", title: "Đăng ký miễn phí", desc: "Tạo tài khoản giảng viên chỉ trong 2 phút", icon: Users, gradient: "from-blue-500 to-cyan-500" },
+                  { step: "2", title: "Tạo nội dung", desc: "Tải lên video, tài liệu và quiz với công cụ AI", icon: Video, gradient: "from-purple-500 to-pink-500" },
+                  { step: "3", title: "Xuất bản khóa học", desc: "Đưa khóa học của bạn ra toàn cầu", icon: Globe, gradient: "from-orange-500 to-red-500" },
+                  { step: "4", title: "Bắt đầu kiếm tiền", desc: "Nhận hoa hồng từ mỗi học viên đăng ký", icon: DollarSign, gradient: "from-green-500 to-emerald-500" },
+                ].map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="group"
+                  >
+                    <div className="flex gap-3 items-start">
+                      <div className={`w-10 h-10 bg-gradient-to-br ${item.gradient} rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                        {item.step}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-black mb-1">{item.title}</h3>
+                        <p className="text-sm text-black/80">{item.desc}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* CTA Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.5 }}
+              >
+                <Link
+                  href="/signup?role=teacher"
+                  className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105"
+                >
+                  <span>Tìm hiểu thêm</span>
+                  <BookOpen size={18} />
+                </Link>
+                <p className="text-sm text-black/80 mt-3">
+                  Bắt đầu miễn phí • Không phí ẩn
+                </p>
               </motion.div>
-            ))}
+            </div>
+
+            {/* Right Visual */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="relative hidden lg:block"
+            >
+              <div className="space-y-4">
+                
+                  <img 
+                    src="/image/tcher2.jpeg" 
+                    alt="AI Content Creation" 
+                    className="w-full h-full object-cover"
+                  />
+                
+                
+                {/* Card 2 - Image with decoration */}
+                <div className="grid grid-cols-2 gap-4">
+                  <motion.div
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 5, repeat: Infinity }}
+                    className="p-6 bg-white dark:bg-slate-800 rounded-2xl h-40 shadow-xl flex items-center justify-center border-2 border-slate-200 dark:border-slate-700"
+                  >
+                    <div className="text-center">
+                      <div className="text-5xl mb-2">👨‍💼</div>
+                      <p className="text-sm font-semibold text-foreground dark:text-white">Instructor</p>
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div
+                    animate={{ y: [0, 10, 0] }}
+                    transition={{ duration: 5, repeat: Infinity }}
+                    className="p-6 bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl h-40 shadow-xl flex items-center justify-center"
+                  >
+                    <div className="text-center">
+                      <div className="text-5xl mb-2">✨</div>
+                      <p className="text-sm font-semibold text-white">Features</p>
+                    </div>
+                  </motion.div>
+                </div>
+
+                {/* Card 3 - VR Headset */}
+                <motion.div
+                  animate={{ rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 6, repeat: Infinity }}
+                  className="p-6 bg-gradient-to-br from-pink-400 to-rose-500 rounded-2xl h-32 shadow-xl flex items-center justify-center"
+                >
+                  <div className="text-5xl">🥽</div>
+                </motion.div>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
-
-      {/* Featured Teachers */}
       <section className="py-20 px-4 md:px-8">
         <div className="max-w-6xl mx-auto">
           <motion.div

@@ -648,10 +648,10 @@ export default function Home() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-24 px-6 md:px-8 relative overflow-hidden">
+      <section className="py-24 px-6 md:px-8 relative overflow-hidden border-2 border-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-3xl mx-6 md:mx-8 my-12">
         {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 -z-10" />
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10 -z-10" />
+        <div className="absolute inset-0 -z-10 bg-cover bg-center bg-no-repeat rounded-3xl" style={{ backgroundImage: "url('/image/learning.jpg')" }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-pink-600/5 -z-10 rounded-3xl" />
         
         {/* Animated Orbs */}
         <motion.div
@@ -678,7 +678,12 @@ export default function Home() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-white/20 backdrop-blur-md border border-white/30 text-white rounded-full font-semibold"
+              className="inline-flex items-center gap-2 px-5 py-2 bg-white/20 backdrop-blur-md border-2 border-transparent bg-clip-padding text-white rounded-full font-semibold"
+              style={{
+                backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2)), linear-gradient(90deg, #405d8d, #856bc8, #d691b4)',
+                backgroundOrigin: 'border-box',
+                backgroundClip: 'padding-box, border-box'
+              }}
             >
               <Sparkles size={18} />
               <span>Bắt Đầu Ngay Hôm Nay</span>
