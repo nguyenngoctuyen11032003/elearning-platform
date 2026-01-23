@@ -322,10 +322,10 @@ export default function AboutPage() {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
           >
             {[
-              { name: "Nguyễn Văn A", role: "CEO & Founder", image: "/placeholder-user.jpg", gradient: "from-blue-500 to-cyan-500" },
-              { name: "Trần Thị B", role: "CTO", image: "/placeholder-user.jpg", gradient: "from-purple-500 to-pink-500" },
-              { name: "Lê Minh C", role: "Head of Content", image: "/placeholder-user.jpg", gradient: "from-orange-500 to-red-500" },
-              { name: "Phạm Hương D", role: "Community Manager", image: "/placeholder-user.jpg", gradient: "from-green-500 to-emerald-500" },
+              { name: "TS. Võ Trung Âu", role: "CEO", image: "/image/CEO_TrungAu.jpg", gradient: "" },
+              { name: "Ths. Vũ Tam Hanh", role: "CTO", image: "/image/CTO_TamHanh.jpg", gradient: "" },
+              { name: "Đỗ Thanh Toàn", role: "COO", image: "/image/COO_ThanhToan.jpg", gradient: "" },
+              { name: "Ths. Đặng Lê Trung", role: "CMO", image: "/image/CMO_LeTrung.jpg", gradient: "" },
             ].map((member, i) => (
               <motion.div key={i} variants={itemVariants} className="group">
                 <div className="relative overflow-hidden rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 hover:shadow-2xl transition-all duration-300">

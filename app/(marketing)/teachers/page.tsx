@@ -6,7 +6,9 @@ import { BarChart3, Users, TrendingUp, Award, Zap, DollarSign, Sparkles, BookOpe
 import { CarouselBenefits } from "./CarouselBenefits";
 import Link from "next/link"
 import { formatStudentCount } from "@/lib/format"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence, type Variants } from "framer-motion"
+import { useState } from "react"
+
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -14,6 +16,32 @@ const containerVariants = {
     opacity: 1,
     transition: {
       staggerChildren: 0.1,
+    },
+  },
+}
+
+const listVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.15,
+    },
+  },
+}
+
+const cardVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 30,
+    scale: 0.95,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.45,
+      ease: "easeOut",
     },
   },
 }
@@ -27,7 +55,104 @@ const itemVariants = {
   },
 }
 
+
 export default function TeachersPage() {
+
+const teachers = [
+  {
+    name: "Nguyễn Ngọc Tuyền",
+    specialty: "Lập trình Web",
+    students: 5200,
+    rating: 4.9,
+    image: "/image/CEO_TrungAu.jpg",
+    revenue: "₫120M",
+    courses: 12,
+    gradient: "from-blue-500 to-cyan-500",
+  },
+  {
+    name: "Trần Minh Hoàng",
+    specialty: "AI & Machine Learning",
+    students: 3800,
+    rating: 4.8,
+    image: "/placeholder-user.jpg",
+    revenue: "₫95M",
+    courses: 8,
+    gradient: "from-purple-500 to-pink-500",
+  },
+  {
+    name: "Lê Thị Hương",
+    specialty: "Thiết kế UI/UX",
+    students: 4100,
+    rating: 4.9,
+    image: "/placeholder-user.jpg",
+    revenue: "₫105M",
+    courses: 10,
+    gradient: "from-orange-500 to-red-500",
+  },
+  {
+    name: "Nguyễn Văn A",
+    specialty: "Thiết kế UI/UX",
+    students: 4100,
+    rating: 4.9,
+    image: "/placeholder-user.jpg",
+    revenue: "₫105M",
+    courses: 10,
+    gradient: "from-green-500 to-emerald-600",
+  },
+  {
+    name: "Nguyễn Văn B",
+    specialty: "AI & Machine Learning",
+    students: 4100,
+    rating: 4.9,
+    image: "/image/testGV.png",
+    revenue: "₫105M",
+    courses: 10,
+    gradient: "from-indigo-500 to-purple-600",
+  },
+  {
+    name: "Nguyễn Văn C",
+    specialty: "Lập trình Web",
+    students: 4100,
+    rating: 4.9,
+    image: "/placeholder-user.jpg",
+    revenue: "₫105M",
+    courses: 11,
+    gradient: "from-teal-500 to-cyan-500",
+  },
+  {
+    name: "Nguyễn Văn D",
+    specialty: "Lập trình Web",
+    students: 4100,
+    rating: 4.9,
+    image: "/placeholder-user.jpg",
+    revenue: "₫105M",
+    courses: 11,
+    gradient: "from-teal-500 to-cyan-500",
+  },
+]
+  const VISIBLE_COUNT = 3
+  const [page, setPage] = useState(0)
+  const [direction, setDirection] = useState(1)
+
+  const totalPages = Math.ceil(teachers.length / VISIBLE_COUNT)
+
+  const visibleTeachers = teachers.slice(
+    page * VISIBLE_COUNT,
+    page * VISIBLE_COUNT + VISIBLE_COUNT
+  )
+
+  const handleNext = () => {
+    if (page < totalPages - 1) {
+      setPage(page + 1)
+    }
+  }
+
+  const handlePrev = () => {
+    if (page > 0) {
+      setPage(page - 1)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-accent/5 to-background dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <Navbar />
@@ -169,7 +294,7 @@ export default function TeachersPage() {
                 <h2 className="text-xl md:text-7xl font-bold text-black/80 mb-4">
                   Cách bắt đầu
                 </h2>
-                <p className="text-xl text-black/70">
+                <p className="text-2xl md:text-xl text-black/80">
                   Chỉ 4 bước đơn giản để trở thành giảng viên
                 </p>
               </div>
@@ -191,12 +316,12 @@ export default function TeachersPage() {
                     className="group"
                   >
                     <div className="flex gap-3 items-start">
-                      <div className={`w-10 h-10 bg-gradient-to-br ${item.gradient} rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                      <div className={`w-10 h-10 bg-gradient-to-br ${item.gradient} rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0 group-hover:scale-110 transition-transform`}>
                         {item.step}
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-black mb-1">{item.title}</h3>
-                        <p className="text-sm text-black/80">{item.desc}</p>
+                        <h3 className="font-bold text-lg md:text-xl text-black mb-1">{item.title}</h3>
+                        <p className="text-base md:text-l text-black/80">{item.desc}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -277,8 +402,10 @@ export default function TeachersPage() {
           </motion.div>
         </div>
       </section>
-      <section className="py-20 px-4 md:px-8">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-20 px-4 md:px-8 relative">
+        <div className="max-w-6xl mx-auto sticky top-24">
+
+          {/* TITLE */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -293,92 +420,135 @@ export default function TeachersPage() {
             </p>
           </motion.div>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8"
-          >
-            {[
-              {
-                name: "Nguyễn Ngọc Tuyền",
-                specialty: "Lập trình Web",
-                students: 5200,
-                rating: 4.9,
-                image: "/placeholder-user.jpg",
-                revenue: "₫120M",
-                courses: 12,
-                gradient: "from-blue-500 to-cyan-500",
-              },
-              {
-                name: "Trần Minh Hoàng",
-                specialty: "AI & Machine Learning",
-                students: 3800,
-                rating: 4.8,
-                image: "/placeholder-user.jpg",
-                revenue: "₫95M",
-                courses: 8,
-                gradient: "from-purple-500 to-pink-500",
-              },
-              {
-                name: "Lê Thị Hương",
-                specialty: "Thiết kế UI/UX",
-                students: 4100,
-                rating: 4.9,
-                image: "/placeholder-user.jpg",
-                revenue: "₫105M",
-                courses: 10,
-                gradient: "from-orange-500 to-red-500",
-              },
-            ].map((teacher, i) => (
-              <motion.div key={i} variants={itemVariants} className="group">
-                <div className="h-full bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden hover:shadow-2xl transition-all duration-300">
-                  <div className="relative h-56 overflow-hidden">
-                    <img
-                      src={teacher.image || "/placeholder.svg"}
-                      alt={teacher.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className={`absolute inset-0 bg-gradient-to-t ${teacher.gradient} opacity-20`} />
-                    <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-semibold text-foreground">
-                      {teacher.rating} ⭐
-                    </div>
-                  </div>
-                  <div className="p-6 space-y-4">
-                    <div>
-                      <h3 className="text-xl font-semibold text-foreground dark:text-white mb-1">{teacher.name}</h3>
-                      <p className={`bg-gradient-to-r ${teacher.gradient} bg-clip-text text-transparent font-medium`}>
-                        {teacher.specialty}
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 py-4 border-t border-b border-border dark:border-slate-800">
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-foreground dark:text-white">{formatStudentCount(teacher.students)}</p>
-                        <p className="text-xs text-muted-foreground">Học viên</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-foreground dark:text-white">{teacher.courses}</p>
-                        <p className="text-xs text-muted-foreground">Khóa học</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-green-600 dark:text-green-400">{teacher.revenue}</p>
-                        <p className="text-xs text-muted-foreground">Năm ngoái</p>
-                      </div>
-                    </div>
-                    <Link
-                      href={`/teacher/${i}`}
-                      className={`block text-center bg-gradient-to-r ${teacher.gradient} hover:opacity-90 text-white py-3 rounded-xl transition-all font-semibold group-hover:scale-105`}
+          {/* SLIDER WRAPPER */}
+          <div className="relative overflow-hidden rounded-2xl">
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={page}
+                initial={{ x: 120, opacity: 0 }}   
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -120, opacity: 0 }}     
+                transition={{ duration: 0.45, ease: "easeInOut" }}
+              >
+                {/* STAGGER CONTAINER */}
+                <motion.div
+                  variants={listVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8"
+                >
+                  {visibleTeachers.map((teacher, i) => (
+                    <motion.div
+                      key={i}
+                      variants={cardVariants}
+                      custom={direction}
+                      className="bg-white dark:bg-slate-900 rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden"
                     >
-                      Xem khóa học
-                    </Link>
-                  </div>
-                </div>
+                      {/* IMAGE */}
+                      <div className="relative h-56 overflow-hidden">
+                        <img
+                          src={teacher.image}
+                          alt={teacher.name}
+                          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                        />
+                        <div className="absolute top-3 right-3 bg-white/90 px-3 py-1 rounded-full text-sm font-semibold backdrop-blur">
+                          {teacher.rating} ⭐
+                        </div>
+                      </div>
+
+                      {/* CONTENT */}
+                      <div className="p-6 space-y-4">
+                        <div>
+                          <h3 className="text-xl font-bold">{teacher.name}</h3>
+                          <p
+                            className={`bg-gradient-to-r ${teacher.gradient} bg-clip-text text-transparent font-medium`}
+                          >
+                            {teacher.specialty}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-3 text-center border-y py-4 text-sm">
+                          <div>
+                            <p className="font-bold">
+                              {formatStudentCount(teacher.students)}
+                            </p>
+                            <p className="text-muted-foreground">Học viên</p>
+                          </div>
+                          <div>
+                            <p className="font-bold">{teacher.courses}</p>
+                            <p className="text-muted-foreground">Khóa học</p>
+                          </div>
+                          <div>
+                            <p className="font-bold text-green-600">
+                              {teacher.revenue}
+                            </p>
+                            <p className="text-muted-foreground">Năm ngoái</p>
+                          </div>
+                        </div>
+
+                        <Link
+                          href={`/teacher/${page * VISIBLE_COUNT + i}`}
+                          className={`block text-center bg-gradient-to-r ${teacher.gradient} text-white py-3 rounded-xl font-semibold hover:opacity-90 transition`}
+                        >
+                          Xem khóa học
+                        </Link>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
               </motion.div>
-            ))}
-          </motion.div>
+            </AnimatePresence>
+
+            {/* CONTROLS */}
+            <div className="flex justify-center items-center gap-6 mt-12">
+              <button
+                onClick={handlePrev}
+                disabled={page === 0}
+                className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition
+                  ${
+                    page === 0
+                      ? "bg-slate-300 dark:bg-slate-700 opacity-40 cursor-not-allowed"
+                      : "bg-slate-200 dark:bg-slate-800 hover:scale-110"
+                  }
+                `}
+              >
+                ←
+              </button>
+
+              <div className="flex gap-2">
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`w-3 h-3 rounded-full ${
+                      i === page ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-700"
+                    }`}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={handleNext}
+                disabled={page === totalPages - 1}
+                className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition
+                  ${
+                    page === totalPages - 1
+                      ? "bg-slate-300 dark:bg-slate-700 opacity-40 cursor-not-allowed"
+                      : "bg-slate-200 dark:bg-slate-800 hover:scale-110"
+                  }
+                `}
+              >
+                →
+              </button>
+            </div>
+
+          </div>
         </div>
       </section>
+
+
+
+
 
       {/* CTA Section */}
       <section className="py-20 px-4 md:px-8">
