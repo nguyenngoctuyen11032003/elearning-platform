@@ -269,7 +269,7 @@ export default function PaymentHistoryPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full">
           <div className="flex items-center justify-center h-96">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -283,7 +283,7 @@ export default function PaymentHistoryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="w-full space-y-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

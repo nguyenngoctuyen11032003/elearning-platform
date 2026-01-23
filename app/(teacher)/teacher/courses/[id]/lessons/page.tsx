@@ -44,7 +44,7 @@ export default function TeacherLessonsPage() {
       <TeacherSidebar />
 
       <main className="flex-1 p-6 md:p-8 overflow-y-auto">
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="w-full space-y-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground dark:text-white">Quản lý bài giảng</h1>

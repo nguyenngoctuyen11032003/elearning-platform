@@ -167,7 +167,7 @@ export default function TeacherReviewsPage() {
   if (loading) {
     return (
       <div className="p-6 md:p-8">
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="w-full space-y-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-300 rounded w-1/3 mb-6"></div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -182,8 +182,8 @@ export default function TeacherReviewsPage() {
   }
 
   return (
-    <main className="flex-1 p-6 md:p-8 overflow-y-auto">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground dark:text-white">Đánh giá từ học viên</h1>
@@ -386,7 +386,7 @@ export default function TeacherReviewsPage() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   )
 }
 

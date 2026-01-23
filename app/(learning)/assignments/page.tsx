@@ -151,7 +151,8 @@ export default function AssignmentsPage() {
   };
 
   return (
-    <div className="container max-w-7xl py-8 space-y-6">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Bài tập</h1>
@@ -266,6 +267,7 @@ export default function AssignmentsPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

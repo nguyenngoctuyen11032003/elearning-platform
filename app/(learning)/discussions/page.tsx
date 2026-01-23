@@ -248,7 +248,8 @@ export default function DiscussionsPage() {
   });
 
   return (
-    <div className="container max-w-6xl py-8 space-y-6">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Thảo luận</h1>
@@ -429,6 +430,7 @@ export default function DiscussionsPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

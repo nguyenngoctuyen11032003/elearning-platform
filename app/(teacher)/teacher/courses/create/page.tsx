@@ -190,8 +190,8 @@ export default function CreateCoursePage() {
   const currentLesson = currentSection?.lessons.find((l) => l.id === currentLessonId)
 
   return (
-    <div className="p-6 md:p-8 overflow-y-auto">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground dark:text-white">Tạo khóa học mới</h1>

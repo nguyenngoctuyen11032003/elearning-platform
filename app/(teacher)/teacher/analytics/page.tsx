@@ -100,8 +100,8 @@ export default function TeacherAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="p-6 md:p-8">
-        <div className="max-w-7xl mx-auto space-y-8">
+      <div className="min-h-screen w-full">
+        <div className="w-full space-y-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-300 rounded w-1/3 mb-6"></div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -116,8 +116,8 @@ export default function TeacherAnalyticsPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 overflow-y-auto">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -158,7 +158,7 @@ export default function TeacherAnalyticsPage() {
                 {Math.abs(analytics!.studentGrowth)}%
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground dark:text-white">{analytics!.totalStudents.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground dark:text-white">{analytics!.totalStudents.toLocaleString('en-US')}</p>
             <p className="text-muted-foreground dark:text-slate-400 text-sm">Tổng học viên</p>
           </div>
 
@@ -182,7 +182,7 @@ export default function TeacherAnalyticsPage() {
                 <Eye size={24} className="text-purple-600 dark:text-purple-400" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground dark:text-white">{analytics!.totalViews.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground dark:text-white">{analytics!.totalViews.toLocaleString('en-US')}</p>
             <p className="text-muted-foreground dark:text-slate-400 text-sm">Lượt xem</p>
           </div>
 
@@ -281,7 +281,7 @@ export default function TeacherAnalyticsPage() {
                       <p className="font-medium text-foreground dark:text-white">{course.title}</p>
                     </td>
                     <td className="py-4 px-4 text-center text-foreground dark:text-white">
-                      {course.students.toLocaleString()}
+                      {course.students.toLocaleString('en-US')}
                     </td>
                     <td className="py-4 px-4 text-center text-green-500 font-medium">
                       {formatCurrency(course.revenue)}

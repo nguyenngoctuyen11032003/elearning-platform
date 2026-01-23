@@ -118,7 +118,7 @@ export default function CheckoutPage() {
       <Navbar />
 
       <main className="flex-1 py-12 px-4 md:px-8">
-        <div className="max-w-5xl mx-auto">
+        <div className="w-full">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}

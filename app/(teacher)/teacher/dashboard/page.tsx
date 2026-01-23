@@ -43,8 +43,8 @@ export default function TeacherDashboard() {
   const [filterPeriod, setFilterPeriod] = useState("month")
 
   return (
-    <div className="p-6 md:p-8 overflow-y-auto">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8">
         {/* Header with Filter */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>

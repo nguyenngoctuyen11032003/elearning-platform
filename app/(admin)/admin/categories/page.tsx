@@ -91,8 +91,8 @@ export default function AdminCategoriesPage() {
   const iconOptions = ["📚", "💻", "🎨", "📈", "🤖", "🌍", "🚀", "🎯", "💡", "🔬", "📱", "🎮"]
 
   return (
-    <div className="p-6 md:p-8 overflow-y-auto">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -136,7 +136,7 @@ export default function AdminCategoriesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng học viên</p>
-                <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalStudents.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalStudents.toLocaleString('en-US')}</p>
               </div>
               <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center">
                 <TrendingUp size={28} className="text-purple-600 dark:text-purple-400" />
@@ -343,7 +343,7 @@ export default function AdminCategoriesPage() {
                         <p className="text-muted-foreground dark:text-slate-400 text-xs">Khóa học</p>
                       </div>
                       <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3 text-center">
-                        <p className="text-foreground dark:text-white font-bold">{category.students.toLocaleString()}</p>
+                        <p className="text-foreground dark:text-white font-bold">{category.students.toLocaleString('en-US')}</p>
                         <p className="text-muted-foreground dark:text-slate-400 text-xs">Học viên</p>
                       </div>
                     </div>

@@ -227,8 +227,8 @@ export default function AdminCoursesPage() {
   }
 
   return (
-    <main className="flex-1 p-6 md:p-8 overflow-y-auto">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground dark:text-white">Quản lý khóa học</h1>
@@ -742,7 +742,7 @@ export default function AdminCoursesPage() {
         }
         isDangerous={confirmDialog.action === "delete"}
       />
-    </main>
+    </div>
   )
 }
 

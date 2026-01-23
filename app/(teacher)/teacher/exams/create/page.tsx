@@ -191,8 +191,8 @@ export default function CreateExamPage() {
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
 
   return (
-    <div className="p-6 md:p-8 overflow-y-auto">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link

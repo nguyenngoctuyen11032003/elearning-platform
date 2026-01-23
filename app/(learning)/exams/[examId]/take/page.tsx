@@ -212,7 +212,7 @@ export default function TakeExamPage() {
     <div className="min-h-screen bg-background dark:bg-slate-950">
       {/* Header */}
       <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="w-full px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="font-semibold text-foreground dark:text-white">{examData.title}</h1>
             <p className="text-sm text-muted-foreground">
@@ -239,7 +239,7 @@ export default function TakeExamPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8 grid lg:grid-cols-4 gap-8">
+      <div className="w-full px-4 py-8 grid lg:grid-cols-4 gap-8">
         {/* Question Navigation Sidebar */}
         <div className="lg:col-span-1 order-2 lg:order-1">
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sticky top-24">

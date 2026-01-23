@@ -52,8 +52,8 @@ export default function AdminDashboard() {
   const [filterPeriod, setFilterPeriod] = useState("month")
 
   return (
-    <div className="p-6 md:p-8 overflow-y-auto">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
