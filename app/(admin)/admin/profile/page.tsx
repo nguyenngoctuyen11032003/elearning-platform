@@ -132,8 +132,8 @@ export default function AdminProfilePage() {
 
   if (loading) {
     return (
-      <div className="p-6 md:p-8">
-        <div className="max-w-4xl mx-auto space-y-8">
+      <div className="min-h-screen w-full">
+        <div className="w-full space-y-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-300 rounded w-1/3 mb-6"></div>
             <div className="h-96 bg-gray-300 rounded"></div>
@@ -145,8 +145,8 @@ export default function AdminProfilePage() {
 
   if (!user) {
     return (
-      <div className="p-6 md:p-8">
-        <div className="max-w-4xl mx-auto text-center">
+      <div className="min-h-screen w-full">
+        <div className="w-full text-center">
           <h1 className="text-3xl font-bold text-foreground dark:text-white">
             Không tìm thấy thông tin người dùng
           </h1>
@@ -157,8 +157,8 @@ export default function AdminProfilePage() {
   }
 
   return (
-    <div className="p-6 md:p-8 overflow-y-auto">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link

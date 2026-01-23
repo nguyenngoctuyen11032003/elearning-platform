@@ -88,12 +88,13 @@ export default function StudentSettingsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground dark:text-white">Cài đặt</h1>
-        <p className="text-muted-foreground dark:text-slate-400">Quản lý cài đặt tài khoản của bạn</p>
-      </div>
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-foreground dark:text-white">Cài đặt</h1>
+          <p className="text-muted-foreground dark:text-slate-400">Quản lý cài đặt tài khoản của bạn</p>
+        </div>
 
       <Tabs defaultValue="notifications" className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
@@ -387,6 +388,7 @@ export default function StudentSettingsPage() {
         <Save size={20} />
         {isSaving ? "Đang lưu..." : "Lưu cài đặt"}
       </button>
+      </div>
     </div>
   )
 }

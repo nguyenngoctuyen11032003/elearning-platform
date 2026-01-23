@@ -95,8 +95,8 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 overflow-y-auto">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground dark:text-white">Cài đặt hệ thống</h1>

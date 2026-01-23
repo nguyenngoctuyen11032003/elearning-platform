@@ -45,8 +45,8 @@ export default function LearningLayout({ children }: { children: React.ReactNode
   return (
     <div className="flex min-h-screen bg-background dark:bg-slate-950">
       <StudentSidebar />
-      <main className="flex-1 overflow-y-auto lg:ml-72">
-        <div className="p-6 md:p-8 max-w-7xl mx-auto">{children}</div>
+      <main className="flex-1 overflow-y-auto overflow-x-hidden w-full">
+        <div className="p-4 md:p-6 lg:p-8 w-full min-h-screen pb-20">{children}</div>
       </main>
     </div>
   )

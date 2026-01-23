@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, BookOpen, Users, DollarSign, Settings, LogOut, Menu, X, User, Star, BarChart3, FileText, Award } from "lucide-react"
+import { LayoutDashboard, BookOpen, Users, DollarSign, Settings, LogOut, Menu, X, User, Star, BarChart3, FileText, Award, ChevronRight } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
@@ -24,6 +24,7 @@ export function TeacherSidebar() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const [isOpen, setIsOpen] = useState(true)
+  const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const handleLogout = async () => {
@@ -43,15 +44,40 @@ export function TeacherSidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-screen w-64 bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 p-6 transition-transform duration-300 z-30 md:sticky md:top-0 overflow-y-auto ${
+        className={`fixed left-0 top-0 h-screen bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-300 z-30 md:sticky md:top-0 flex flex-col ${
+          isCollapsed ? "w-20" : "w-64"
+        } ${
           isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        <Link href="/teacher/dashboard" className="flex items-center justify-center mb-8 mt-12 md:mt-0">
-          <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-16 w-auto rounded-full shadow-md" />
-        </Link>
+        {/* Toggle Collapse Button - Desktop Only */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="hidden md:flex absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
+          title={isCollapsed ? "Mở rộng" : "Thu gọn"}
+        >
+          <ChevronRight size={14} className={`text-white transition-transform duration-300 ${
+            isCollapsed ? "rotate-0" : "rotate-180"
+          }`} />
+        </button>
 
-        <nav className="space-y-2">
+        {/* Logo Section - Fixed Header */}
+        <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50 mt-12 md:mt-0">
+          <Link href="/teacher/dashboard" className="flex items-center justify-center">
+            <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className={`${
+              isCollapsed ? "h-10" : "h-14"
+            } w-auto rounded-full shadow-lg hover:shadow-xl transition-all`} />
+          </Link>
+          {!isCollapsed && (
+            <div className="mt-2 text-center">
+              <h3 className="text-sm font-bold text-foreground dark:text-white">Teacher Portal</h3>
+              <p className="text-xs text-muted-foreground dark:text-slate-400">ICS E-Learning</p>
+            </div>
+          )}
+        </div>
+
+        {/* Scrollable Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 scrollbar-thin scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/40 scrollbar-track-transparent">
           {menuItems.map((item) => {
             const isActive = pathname === item.href
             return (
@@ -59,34 +85,35 @@ export function TeacherSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-smooth ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
                   isActive
-                    ? "bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent border-l-2 border-primary dark:border-accent"
-                    : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white hover:bg-secondary dark:hover:bg-slate-800"
+                    ? "bg-gradient-to-r from-primary/15 to-accent/10 dark:from-primary/20 dark:to-accent/15 text-primary dark:text-accent border-l-4 border-primary dark:border-accent shadow-sm"
+                    : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white hover:bg-secondary/60 dark:hover:bg-slate-800/60 hover:border-l-4 hover:border-transparent hover:pl-3"
                 }`}
+                title={isCollapsed ? item.label : ""}
               >
-                <item.icon size={20} />
-                <span className="font-medium">{item.label}</span>
+                <item.icon size={18} className={isActive ? "" : "group-hover:scale-110 transition-transform"} />
+                {!isCollapsed && <span className="font-medium text-sm">{item.label}</span>}
               </Link>
             )
           })}
         </nav>
 
-        <div className="absolute bottom-6 left-6 right-6 space-y-4">
+        {/* Fixed Footer - User Info & Logout */}
+        <div className="flex-shrink-0 px-3 py-4 border-t border-border/50 dark:border-slate-800/50 space-y-2.5 bg-card/50 dark:bg-slate-900/50 backdrop-blur-sm">
           {/* User Info - Clickable to Profile */}
-          {user && (
+          {user && !isCollapsed && (
             <Link
               href="/teacher/profile"
-              className="block bg-secondary/30 dark:bg-slate-800/30 rounded-lg p-3 border border-border dark:border-slate-700 hover:bg-secondary/50 dark:hover:bg-slate-800/50 transition-all cursor-pointer group"
+              className="block bg-gradient-to-br from-secondary/40 to-secondary/20 dark:from-slate-800/40 dark:to-slate-800/20 rounded-xl p-3 border border-border/70 dark:border-slate-700/70 hover:border-primary/50 dark:hover:border-accent/50 hover:shadow-md transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center ring-2 ring-transparent group-hover:ring-primary dark:group-hover:ring-accent transition-all">
+                <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center ring-2 ring-border dark:ring-slate-700 group-hover:ring-primary dark:group-hover:ring-accent group-hover:scale-105 transition-all shadow-md">
                   <img
                     src={getRoleAvatar(user.role)}
                     alt={`${user.name || 'Teacher'} Avatar`}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      // Fallback to initials if role avatar fails to load
                       const target = e.target as HTMLImageElement
                       target.style.display = 'none'
                       if (target.nextSibling) return
@@ -98,24 +125,52 @@ export function TeacherSidebar() {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-foreground dark:text-white font-medium text-sm truncate group-hover:text-primary dark:group-hover:text-accent transition-colors">
+                  <p className="text-foreground dark:text-white font-semibold text-sm truncate group-hover:text-primary dark:group-hover:text-accent transition-colors">
                     {user.name || 'Giảng viên'}
                   </p>
                   <p className="text-muted-foreground dark:text-slate-400 text-xs truncate">
                     {user.email}
                   </p>
                 </div>
-                <User size={16} className="text-muted-foreground dark:text-slate-400 group-hover:text-primary dark:group-hover:text-accent transition-colors" />
+                <User size={16} className="text-muted-foreground dark:text-slate-400 group-hover:text-primary dark:group-hover:text-accent transition-colors flex-shrink-0" />
+              </div>
+            </Link>
+          )}
+
+          {user && isCollapsed && (
+            <Link
+              href="/teacher/profile"
+              className="flex justify-center"
+              title={user.name || 'Giảng viên'}
+            >
+              <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center ring-2 ring-border dark:ring-slate-700 hover:ring-primary dark:hover:ring-accent hover:scale-105 transition-all shadow-md">
+                <img
+                  src={getRoleAvatar(user.role)}
+                  alt={`${user.name || 'Teacher'} Avatar`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    if (target.nextSibling) return
+                    const span = document.createElement('span')
+                    span.className = 'text-white font-bold text-sm'
+                    span.textContent = getInitials(user.name)
+                    target.parentNode?.appendChild(span)
+                  }}
+                />
               </div>
             </Link>
           )}
 
           <button
             onClick={() => setShowLogoutConfirm(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+            className={`w-full flex items-center gap-3 py-2.5 text-muted-foreground dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all group border border-transparent hover:border-red-200 dark:hover:border-red-900/50 ${
+              isCollapsed ? "justify-center px-2" : "px-3"
+            }`}
+            title={isCollapsed ? "Đăng xuất" : ""}
           >
-            <LogOut size={20} />
-            <span className="font-medium">Đăng xuất</span>
+            <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
+            {!isCollapsed && <span className="font-medium text-sm">Đăng xuất</span>}
           </button>
         </div>
       </aside>

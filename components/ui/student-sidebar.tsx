@@ -24,15 +24,15 @@ import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar } from "@/lib/utils/avatar"
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Tổng quan", href: "/userdb", description: "Dashboard học tập" },
-  { icon: BookOpen, label: "Khóa học của tôi", href: "/my-courses", description: "Các khóa đã đăng ký" },
-  { icon: ClipboardList, label: "Bài thi", href: "/exams", description: "Thi thử & thi thật" },
-  { icon: Award, label: "Chứng chỉ", href: "/certificates", description: "Chứng chỉ đạt được" },
-  { icon: FileText, label: "Ghi chú", href: "/notes", description: "Ghi chú học tập" },
-  { icon: Heart, label: "Yêu thích", href: "/wishlist", description: "Khóa học yêu thích" },
-  { icon: TrendingUp, label: "Tiến độ học tập", href: "/progress", description: "Theo dõi tiến độ" },
-  { icon: Calendar, label: "Lịch học", href: "/schedule", description: "Lịch trình học tập" },
-  { icon: CreditCard, label: "Lịch sử thanh toán", href: "/payment-history", description: "Lịch sử mua khóa học" },
+  { icon: LayoutDashboard, label: "Tổng quan", href: "/userdb" },
+  { icon: BookOpen, label: "Khóa học của tôi", href: "/my-courses" },
+  { icon: ClipboardList, label: "Bài thi", href: "/exams" },
+  { icon: Award, label: "Chứng chỉ", href: "/certificates" },
+  { icon: FileText, label: "Ghi chú", href: "/notes" },
+  { icon: Heart, label: "Yêu thích", href: "/wishlist" },
+  { icon: TrendingUp, label: "Tiến độ học tập", href: "/progress" },
+  { icon: Calendar, label: "Lịch học", href: "/schedule" },
+  { icon: CreditCard, label: "Thanh toán", href: "/payment-history" },
 ]
 
 export function StudentSidebar() {
@@ -40,6 +40,7 @@ export function StudentSidebar() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const handleLogout = async () => {
@@ -67,95 +68,133 @@ export function StudentSidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full z-40 bg-card dark:bg-slate-900/95 border-r border-border dark:border-slate-800 transition-all duration-300 w-72 lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed top-0 left-0 h-screen z-40 bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-300 lg:sticky lg:top-0 flex flex-col ${
+          isCollapsed ? "w-20" : "w-64"
+        } ${
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-6 border-b border-border dark:border-slate-800 flex justify-center">
-            <Link href="/" className="flex items-center gap-3">
-              <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-16 w-auto rounded-full shadow-md" />
-            </Link>
-          </div>
+        {/* Toggle Collapse Button - Desktop Only */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="hidden lg:flex absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
+          title={isCollapsed ? "Mở rộng" : "Thu gọn"}
+        >
+          <ChevronRight size={14} className={`text-white transition-transform duration-300 ${
+            isCollapsed ? "rotate-0" : "rotate-180"
+          }`} />
+        </button>
 
-          {/* Main Menu */}
-          <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Học tập
-            </p>
-            {menuItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
-                    isActive 
-                      ? "bg-primary text-white shadow-lg shadow-primary/20" 
-                      : "text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 hover:text-foreground dark:hover:text-white"
-                  }`}
-                >
-                  <item.icon size={20} className={isActive ? "text-white" : "group-hover:text-primary"} />
-                  <div className="flex-1 min-w-0">
-                    <span className="font-medium">{item.label}</span>
-                    {!isActive && (
-                      <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-                    )}
-                  </div>
-                  {isActive && <ChevronRight size={16} />}
-                </Link>
-              )
-            })}
-          </nav>
+        {/* Logo Section - Fixed Header */}
+        <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50">
+          <Link href="/" className="flex items-center justify-center">
+            <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className={`${
+              isCollapsed ? "h-10" : "h-14"
+            } w-auto rounded-full shadow-lg hover:shadow-xl transition-all`} />
+          </Link>
+          {!isCollapsed && (
+            <div className="mt-2 text-center">
+              <h3 className="text-sm font-bold text-foreground dark:text-white">Student Portal</h3>
+              <p className="text-xs text-muted-foreground dark:text-slate-400">ICS E-Learning</p>
+            </div>
+          )}
+        </div>
 
-          {/* Bottom Menu */}
-          <div className="p-4 border-t border-border dark:border-slate-800 space-y-2">
-            {/* User Info - Clickable to Profile */}
-            {user && (
+        {/* Scrollable Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 scrollbar-thin scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/40 scrollbar-track-transparent">
+          {menuItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+            return (
               <Link
-                href="/profile"
-                className="block bg-secondary/30 dark:bg-slate-800/30 rounded-xl p-3 border border-border dark:border-slate-700 hover:bg-secondary/50 dark:hover:bg-slate-800/50 transition-all cursor-pointer group mb-3"
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
+                  isActive
+                    ? "bg-gradient-to-r from-primary/15 to-accent/10 dark:from-primary/20 dark:to-accent/15 text-primary dark:text-accent border-l-4 border-primary dark:border-accent shadow-sm"
+                    : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white hover:bg-secondary/60 dark:hover:bg-slate-800/60 hover:border-l-4 hover:border-transparent hover:pl-3"
+                }`}
+                title={isCollapsed ? item.label : ""}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center ring-2 ring-transparent group-hover:ring-primary dark:group-hover:ring-accent transition-all">
-                    <img
-                      src={getRoleAvatar(user.role)}
-                      alt={`${user.name || 'Student'} Avatar`}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.style.display = 'none'
-                        if (target.nextSibling) return
-                        const span = document.createElement('span')
-                        span.className = 'text-white font-bold text-sm'
-                        span.textContent = user.name?.charAt(0).toUpperCase() || 'U'
-                        target.parentNode?.appendChild(span)
-                      }}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-foreground dark:text-white font-medium text-sm truncate group-hover:text-primary dark:group-hover:text-accent transition-colors">
-                      {user.name || 'Học viên'}
-                    </p>
-                    <p className="text-muted-foreground dark:text-slate-400 text-xs truncate">
-                      {user.email}
-                    </p>
-                  </div>
-                  <User size={16} className="text-muted-foreground dark:text-slate-400 group-hover:text-primary dark:group-hover:text-accent transition-colors" />
-                </div>
+                <item.icon size={18} className={isActive ? "" : "group-hover:scale-110 transition-transform"} />
+                {!isCollapsed && <span className="font-medium text-sm">{item.label}</span>}
               </Link>
-            )}
-
-            <button
-              onClick={() => setShowLogoutConfirm(true)}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-500 hover:bg-red-500/10 transition-all w-full"
+            )
+          })}
+        </nav>
+        {/* Fixed Footer - User Info & Logout */}
+        <div className="flex-shrink-0 px-3 py-4 border-t border-border/50 dark:border-slate-800/50 space-y-2.5 bg-card/50 dark:bg-slate-900/50 backdrop-blur-sm">
+          {/* User Info - Clickable to Profile */}
+          {user && !isCollapsed && (
+            <Link
+              href="/profile"
+              className="block bg-gradient-to-br from-secondary/40 to-secondary/20 dark:from-slate-800/40 dark:to-slate-800/20 rounded-xl p-3 border border-border/70 dark:border-slate-700/70 hover:border-primary/50 dark:hover:border-accent/50 hover:shadow-md transition-all cursor-pointer group"
             >
-              <LogOut size={18} />
-              <span className="text-sm font-medium">Đăng xuất</span>
-            </button>
-          </div>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center ring-2 ring-border dark:ring-slate-700 group-hover:ring-primary dark:group-hover:ring-accent group-hover:scale-105 transition-all shadow-md">
+                  <img
+                    src={getRoleAvatar(user.role)}
+                    alt={`${user.name || 'Student'} Avatar`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                      if (target.nextSibling) return
+                      const span = document.createElement('span')
+                      span.className = 'text-white font-bold text-sm'
+                      span.textContent = user.name?.charAt(0).toUpperCase() || 'U'
+                      target.parentNode?.appendChild(span)
+                    }}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-foreground dark:text-white font-semibold text-sm truncate group-hover:text-primary dark:group-hover:text-accent transition-colors">
+                    {user.name || 'Học viên'}
+                  </p>
+                  <p className="text-muted-foreground dark:text-slate-400 text-xs truncate">
+                    {user.email}
+                  </p>
+                </div>
+                <User size={16} className="text-muted-foreground dark:text-slate-400 group-hover:text-primary dark:group-hover:text-accent transition-colors flex-shrink-0" />
+              </div>
+            </Link>
+          )}
+
+          {user && isCollapsed && (
+            <Link
+              href="/profile"
+              className="flex justify-center"
+              title={user.name || 'Học viên'}
+            >
+              <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center ring-2 ring-border dark:ring-slate-700 hover:ring-primary dark:hover:ring-accent hover:scale-105 transition-all shadow-md">
+                <img
+                  src={getRoleAvatar(user.role)}
+                  alt={`${user.name || 'Student'} Avatar`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    if (target.nextSibling) return
+                    const span = document.createElement('span')
+                    span.className = 'text-white font-bold text-sm'
+                    span.textContent = user.name?.charAt(0).toUpperCase() || 'U'
+                    target.parentNode?.appendChild(span)
+                  }}
+                />
+              </div>
+            </Link>
+          )}
+
+          <button
+            onClick={() => setShowLogoutConfirm(true)}
+            className={`w-full flex items-center gap-3 py-2.5 text-muted-foreground dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all group border border-transparent hover:border-red-200 dark:hover:border-red-900/50 ${
+              isCollapsed ? "justify-center px-2" : "px-3"
+            }`}
+            title={isCollapsed ? "Đăng xuất" : ""}
+          >
+            <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
+            {!isCollapsed && <span className="font-medium text-sm">Đăng xuất</span>}
+          </button>
         </div>
       </aside>
 

@@ -223,10 +223,12 @@ export default function StudentProfilePage() {
 
   if (loading) {
     return (
-      <div className="space-y-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-300 dark:bg-slate-700 rounded w-1/3 mb-6"></div>
-          <div className="h-96 bg-gray-300 dark:bg-slate-700 rounded"></div>
+      <div className="min-h-screen w-full">
+        <div className="w-full space-y-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-300 dark:bg-slate-700 rounded w-1/3 mb-6"></div>
+            <div className="h-96 bg-gray-300 dark:bg-slate-700 rounded"></div>
+          </div>
         </div>
       </div>
     )
@@ -234,25 +236,28 @@ export default function StudentProfilePage() {
 
   if (!user) {
     return (
-      <div className="space-y-8 text-center">
-        <h1 className="text-3xl font-bold text-foreground dark:text-white">
-          Không tìm thấy thông tin người dùng
-        </h1>
-        <p className="text-muted-foreground">Vui lòng đăng nhập lại</p>
+      <div className="min-h-screen w-full">
+        <div className="w-full text-center">
+          <h1 className="text-3xl font-bold text-foreground dark:text-white">
+            Không tìm thấy thông tin người dùng
+          </h1>
+          <p className="text-muted-foreground">Vui lòng đăng nhập lại</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-          Hồ sơ cá nhân
-        </h1>
-        <p className="text-muted-foreground dark:text-slate-400 mt-1">
-          Quản lý thông tin và cài đặt tài khoản của bạn
-        </p>
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+            Hồ sơ cá nhân
+          </h1>
+          <p className="text-muted-foreground dark:text-slate-400 mt-1">
+            Quản lý thông tin và cài đặt tài khoản của bạn
+          </p>
       </div>
 
       {/* Avatar Section with Upload */}
@@ -688,6 +693,7 @@ export default function StudentProfilePage() {
           </div>
         </TabsContent>
       </Tabs>
+    </div>
     </div>
   )
 }
