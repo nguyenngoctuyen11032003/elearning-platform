@@ -3,6 +3,7 @@
 import { Navbar } from "@/components/ui/navbar"
 import { Footer } from "@/components/ui/footer"
 import { BarChart3, Users, TrendingUp, Award, Zap, DollarSign, Sparkles, BookOpen, Video, Globe } from "lucide-react"
+import { CarouselBenefits } from "./CarouselBenefits";
 import Link from "next/link"
 import { formatStudentCount } from "@/lib/format"
 import { motion } from "framer-motion"
@@ -129,78 +130,27 @@ export default function TeachersPage() {
 
       {/* Benefits Section */}
       <section id="benefits" className="py-20 px-4 md:px-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-12 items-start">
+          {/* Title bên trái */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="md:w-1/3 w-full mb-8 md:mb-0"
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold text-left text-foreground dark:text-white mb-4 mt-8">
               Lợi ích khi trở thành giảng viên
             </h2>
-            <p className="text-xl text-muted-foreground dark:text-slate-300 max-w-2xl mx-auto">
+            <p className="text-xl text-muted-foreground dark:text-slate-300 max-w-md text-left mt-2">
               Những ưu đãi độc quyền dành riêng cho giảng viên ICS Learning
             </p>
           </motion.div>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
-          >
-            {[
-              {
-                icon: DollarSign,
-                title: "Kiếm thu nhập thụ động",
-                desc: "Nhận hoa hồng 70% từ mỗi học viên đăng ký. Thu nhập không giới hạn, được chi trả hàng tháng.",
-                gradient: "from-green-500 to-emerald-500",
-              },
-              {
-                icon: Users,
-                title: "Xây dựng cộng đồng",
-                desc: "Kết nối với hàng ngàn học viên toàn cầu và xây dựng cộng đồng riêng của bạn.",
-                gradient: "from-blue-500 to-cyan-500",
-              },
-              {
-                icon: TrendingUp,
-                title: "Phát triển thương hiệu",
-                desc: "Nâng cao danh tiếng và xây dựng thương hiệu cá nhân chuyên nghiệp trong lĩnh vực của bạn.",
-                gradient: "from-purple-500 to-pink-500",
-              },
-              {
-                icon: Zap,
-                title: "Công cụ hiện đại",
-                desc: "Sử dụng các công cụ giảng dạy AI tiên tiến để tạo khóa học chất lượng cao nhanh chóng.",
-                gradient: "from-yellow-500 to-orange-500",
-              },
-              {
-                icon: Award,
-                title: "Hỗ trợ 24/7",
-                desc: "Nhận hỗ trợ chuyên nghiệp từ đội ngũ chăm sóc giảng viên mọi lúc mọi nơi.",
-                gradient: "from-red-500 to-pink-500",
-              },
-              {
-                icon: BarChart3,
-                title: "Phân tích chi tiết",
-                desc: "Theo dõi tiến độ học viên, doanh thu và hiệu suất khóa học với dashboard trực quan.",
-                gradient: "from-indigo-500 to-purple-500",
-              },
-            ].map((benefit, i) => (
-              <motion.div key={i} variants={itemVariants} className="group">
-                <div className="h-full p-8 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
-                  <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${benefit.gradient} opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity`} />
-                  <div className={`w-14 h-14 bg-gradient-to-br ${benefit.gradient} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                    <benefit.icon className="w-7 h-7 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground dark:text-white mb-3">{benefit.title}</h3>
-                  <p className="text-muted-foreground dark:text-slate-300 leading-relaxed">{benefit.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+          {/* Card bên phải với thanh trượt */}
+          <div className="md:w-2/3 w-full relative">
+            {/* Carousel */}
+            <CarouselBenefits />
+          </div>
         </div>
       </section>
 
