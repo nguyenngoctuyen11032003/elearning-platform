@@ -5,6 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { Eye, EyeOff, Mail, Lock, User, Phone } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
+import { GoogleLoginButton } from "./google-login-button"
 
 interface AuthFormProps {
   type: "login" | "signup"
@@ -237,6 +238,20 @@ export function AuthForm({ type, role }: AuthFormProps) {
           )}
         </span>
       </button>
+
+      {/* Divider */}
+      {type === "login" && (
+        <>
+          <div className="relative flex items-center gap-3 my-6">
+            <div className="flex-1 h-px bg-gradient-to-r from-slate-200 dark:from-slate-700 to-transparent" />
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Hoặc</span>
+            <div className="flex-1 h-px bg-gradient-to-l from-slate-200 dark:from-slate-700 to-transparent" />
+          </div>
+
+          {/* Google Login Button */}
+          <GoogleLoginButton />
+        </>
+      )}
     </form>
   )
 }
