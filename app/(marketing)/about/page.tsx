@@ -42,7 +42,7 @@ export default function AboutPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setBgIndex((prev) => (prev + 1) % backgrounds.length)
-    }, 15000)
+    }, 5000)
 
     return () => clearInterval(interval)
   }, [])
@@ -57,6 +57,28 @@ export default function AboutPage() {
       prev === 0 ? backgrounds.length - 1 : prev - 1
     )
   }
+
+  const leaders = [
+    { name: "TS. Võ Trung Âu", role: "CEO", image: "/image/CEO_TrungAu.jpg" },
+    { name: "Ths. Vũ Tam Hanh", role: "CTO", image: "/image/CTO_TamHanh.jpg" },
+    { name: "Đỗ Thanh Toàn", role: "COO", image: "/image/COO_ThanhToan.jpg" },
+    { name: "Ths. Đặng Lê Trung", role: "CMO", image: "/image/CMO_LeTrung.jpg" },
+    { name: "Ths. Vũ Thị Hải Yến", role: "CHRO", image: "/image/CHRO_Ths.HaiYen.jpg" },
+    { name: "Trần Thị B", role: "Head of Content", image: "/placeholder.svg" },
+    { name: "Lê Minh C", role: "Community Manager", image: "/placeholder.svg" },
+    { name: "Phạm Hương D", role: "Lead Developer", image: "/placeholder.svg" },
+  ]
+
+  const LEADER_VISIBLE = 4
+  const [leaderPage, setLeaderPage] = useState(0)
+
+  const leaderTotalPages = Math.ceil(leaders.length / LEADER_VISIBLE)
+
+  const visibleLeaders = leaders.slice(
+    leaderPage * LEADER_VISIBLE,
+    leaderPage * LEADER_VISIBLE + LEADER_VISIBLE
+  )
+
 
 
   return (
@@ -298,55 +320,87 @@ export default function AboutPage() {
       </section>
 
       {/* Team Section */}
-      <section className="py-20 px-4 md:px-8">
+      <section className="py-20 px-4 md:px-8 relative">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
-              Đội ngũ lãnh đạo
-            </h2>
-            <p className="text-xl text-muted-foreground dark:text-slate-300 max-w-2xl mx-auto">
-              Những con người đầy nhiệt huyết đằng sau ICS Learning
-            </p>
-          </motion.div>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-          >
-            {[
-              { name: "TS. Võ Trung Âu", role: "CEO", image: "/image/CEO_TrungAu.jpg", gradient: "" },
-              { name: "Ths. Vũ Tam Hanh", role: "CTO", image: "/image/CTO_TamHanh.jpg", gradient: "" },
-              { name: "Đỗ Thanh Toàn", role: "COO", image: "/image/COO_ThanhToan.jpg", gradient: "" },
-              { name: "Ths. Đặng Lê Trung", role: "CMO", image: "/image/CMO_LeTrung.jpg", gradient: "" },
-            ].map((member, i) => (
-              <motion.div key={i} variants={itemVariants} className="group">
-                <div className="relative overflow-hidden rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 hover:shadow-2xl transition-all duration-300">
-                  <div className="relative h-80 overflow-hidden">
-                    <img
-                      src={member.image || "/placeholder.svg"}
-                      alt={member.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className={`absolute inset-0 bg-gradient-to-t ${member.gradient} opacity-0 group-hover:opacity-20 transition-opacity`} />
+          {/* TITLE + CONTROLS */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-12">
+            <div className="text-center md:text-left">
+              <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-3">
+                Đội ngũ lãnh đạo
+              </h2>
+              <p className="text-xl text-muted-foreground dark:text-slate-300 max-w-2xl">
+                Những con người đầy nhiệt huyết đằng sau ICS Learning
+              </p>
+            </div>
+
+            {/* BUTTONS */}
+            <div className="flex gap-3 justify-center md:justify-end">
+              <button
+                disabled={leaderPage === 0}
+                onClick={() => setLeaderPage((p) => p - 1)}
+                className={`w-11 h-11 rounded-full flex items-center justify-center text-xl transition
+                  ${leaderPage === 0
+                    ? "bg-slate-200 dark:bg-slate-800 opacity-40 cursor-not-allowed"
+                    : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:scale-110"
+                  }`}
+              >
+                ←
+              </button>
+
+              <button
+                disabled={leaderPage === leaderTotalPages - 1}
+                onClick={() => setLeaderPage((p) => p + 1)}
+                className={`w-11 h-11 rounded-full flex items-center justify-center text-xl transition
+                  ${leaderPage === leaderTotalPages - 1
+                    ? "bg-slate-200 dark:bg-slate-800 opacity-40 cursor-not-allowed"
+                    : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:scale-110"
+                  }`}
+              >
+                →
+              </button>
+            </div>
+          </div>
+
+          {/* GRID */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={leaderPage}
+              initial={{ x: 120, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -120, opacity: 0 }}
+              transition={{ duration: 0.45, ease: "easeInOut" }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+            >
+              {visibleLeaders.map((member, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.12 }}
+                  className="group"
+                >
+                  <div className="relative overflow-hidden rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 hover:shadow-2xl transition-all duration-300">
+                    <div className="relative h-80 overflow-hidden">
+                      <img
+                        src={member.image}
+                        alt={member.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    </div>
+                    <div className="p-6 text-center">
+                      <h3 className="text-xl font-semibold mb-1">{member.name}</h3>
+                      <p className="text-primary font-medium">{member.role}</p>
+                    </div>
                   </div>
-                  <div className="p-6 text-center">
-                    <h3 className="text-xl font-semibold text-foreground dark:text-white mb-1">{member.name}</h3>
-                    <p className="text-primary dark:text-accent font-medium">{member.role}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+
         </div>
       </section>
+
 
       {/* CTA Section */}
       <section className="py-20 px-4 md:px-8">

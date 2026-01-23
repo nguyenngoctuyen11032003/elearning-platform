@@ -49,11 +49,14 @@ const partners = [
   { name: "Apple", logo: "🍎" },
 ]
 
+
+
 export default function Home() {
   const [featuredCourses, setFeaturedCourses] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -74,6 +77,77 @@ export default function Home() {
 
     fetchData()
   }, [])
+
+  const FEATURES_VISIBLE = 4
+  const [featurePage, setFeaturePage] = useState(0)
+
+  const features = [
+    {
+      icon: Shield,
+      title: "Chất Lượng Đảm Bảo",
+      description: "100% khóa học được kiểm duyệt bởi chuyên gia. Hoàn tiền nếu không hài lòng.",
+      color: "from-blue-500 to-cyan-500",
+      bgColor: "bg-blue-50 dark:bg-blue-950/30"
+    },
+    {
+      icon: Clock,
+      title: "Học Mọi Lúc, Mọi Nơi",
+      description: "Truy cập trọn đời, học theo tốc độ riêng. Hỗ trợ offline trên mobile.",
+      color: "from-purple-500 to-pink-500",
+      bgColor: "bg-purple-50 dark:bg-purple-950/30"
+    },
+    {
+      icon: Users,
+      title: "Cộng Đồng 15K+",
+      description: "Kết nối, thảo luận và học hỏi cùng cộng đồng học viên năng động.",
+      color: "from-orange-500 to-red-500",
+      bgColor: "bg-orange-50 dark:bg-orange-950/30"
+    },
+    {
+      icon: Trophy,
+      title: "Chứng Chỉ Uy Tín",
+      description: "Nhận chứng chỉ được công nhận bởi doanh nghiệp sau khi hoàn thành.",
+      color: "from-green-500 to-emerald-500",
+      bgColor: "bg-green-50 dark:bg-green-950/30"
+    },
+    {
+      icon: Lightbulb,
+      title: "Nội Dung Thực Tế",
+      description: "Học từ dự án thực tế, bài tập case study từ doanh nghiệp hàng đầu.",
+      color: "from-yellow-500 to-amber-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-950/30"
+    },
+    {
+      icon: HeartHandshake,
+      title: "Hỗ Trợ 24/7",
+      description: "Đội ngũ support luôn sẵn sàng giải đáp mọi thắc mắc của bạn.",
+      color: "from-pink-500 to-rose-500",
+      bgColor: "bg-pink-50 dark:bg-pink-950/30"
+    },
+    {
+      icon: Brain,
+      title: "AI Tutor Thông Minh",
+      description: "Trợ lý AI cá nhân hóa giúp bạn học hiệu quả hơn.",
+      color: "from-indigo-500 to-purple-500",
+      bgColor: "bg-indigo-50 dark:bg-indigo-950/30"
+    },
+    {
+      icon: BarChart3,
+      title: "Theo Dõi Tiến Độ",
+      description: "Dashboard chi tiết giúp bạn theo dõi quá trình học.",
+      color: "from-teal-500 to-cyan-500",
+      bgColor: "bg-teal-50 dark:bg-teal-950/30"
+    }
+  ]
+
+  const featureTotalPages = Math.ceil(features.length / FEATURES_VISIBLE)
+
+  const visibleFeatures = features.slice(
+    featurePage * FEATURES_VISIBLE,
+    featurePage * FEATURES_VISIBLE + FEATURES_VISIBLE
+  )
+
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <Navbar />
@@ -314,93 +388,70 @@ export default function Home() {
               Chúng tôi cam kết mang đến trải nghiệm học tập chất lượng cao nhất với công nghệ hiện đại và đội ngũ giảng viên chuyên nghiệp
             </p>
           </motion.div>
+          {/* FEATURES SLIDER */}
+          <div className="relative overflow-visible pt-6">
 
-          {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              {
-                icon: Shield,
-                title: "Chất Lượng Đảm Bảo",
-                description: "100% khóa học được kiểm duyệt bởi chuyên gia. Hoàn tiền nếu không hài lòng.",
-                color: "from-blue-500 to-cyan-500",
-                bgColor: "bg-blue-50 dark:bg-blue-950/30"
-              },
-              {
-                icon: Clock,
-                title: "Học Mọi Lúc, Mọi Nơi",
-                description: "Truy cập trọn đời, học theo tốc độ riêng. Hỗ trợ offline trên mobile.",
-                color: "from-purple-500 to-pink-500",
-                bgColor: "bg-purple-50 dark:bg-purple-950/30"
-              },
-              {
-                icon: Users,
-                title: "Cộng Đồng 15K+",
-                description: "Kết nối, thảo luận và học hỏi cùng cộng đồng học viên năng động.",
-                color: "from-orange-500 to-red-500",
-                bgColor: "bg-orange-50 dark:bg-orange-950/30"
-              },
-              {
-                icon: Trophy,
-                title: "Chứng Chỉ Uy Tín",
-                description: "Nhận chứng chỉ được công nhận bởi doanh nghiệp sau khi hoàn thành.",
-                color: "from-green-500 to-emerald-500",
-                bgColor: "bg-green-50 dark:bg-green-950/30"
-              },
-              {
-                icon: Lightbulb,
-                title: "Nội Dung Thực Tế",
-                description: "Học từ dự án thực tế, bài tập case study từ doanh nghiệp hàng đầu.",
-                color: "from-yellow-500 to-amber-500",
-                bgColor: "bg-yellow-50 dark:bg-yellow-950/30"
-              },
-              {
-                icon: HeartHandshake,
-                title: "Hỗ Trợ 24/7",
-                description: "Đội ngũ support luôn sẵn sàng giải đáp mọi thắc mắc của bạn.",
-                color: "from-pink-500 to-rose-500",
-                bgColor: "bg-pink-50 dark:bg-pink-950/30"
-              },
-              {
-                icon: Brain,
-                title: "AI Tutor Thông Minh",
-                description: "Trợ lý AI cá nhân hóa giúp bạn học hiệu quả hơn với lộ trình riêng.",
-                color: "from-indigo-500 to-purple-500",
-                bgColor: "bg-indigo-50 dark:bg-indigo-950/30"
-              },
-              {
-                icon: BarChart3,
-                title: "Theo Dõi Tiến Độ",
-                description: "Dashboard chi tiết giúp bạn theo dõi quá trình học và đạt mục tiêu.",
-                color: "from-teal-500 to-cyan-500",
-                bgColor: "bg-teal-50 dark:bg-teal-950/30"
-              }
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className={`group relative p-8 ${feature.bgColor} rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1`}
+            <motion.div
+              key={featurePage}
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {visibleFeatures.map((feature, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.08 }}
+                    className={`group relative p-8 ${feature.bgColor} rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1`}
+                  >
+                    <div className={`inline-flex p-4 bg-gradient-to-br ${feature.color} rounded-2xl mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
+                      <feature.icon size={28} className="text-white" />
+                    </div>
+
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+                      {feature.title}
+                    </h3>
+
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                      {feature.description}
+                    </p>
+
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 rounded-3xl transition-all pointer-events-none" />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+            <div className="flex justify-center items-center gap-6 mt-14">
+              <button
+                onClick={() => setFeaturePage(p => Math.max(0, p - 1))}
+                disabled={featurePage === 0}
+                className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition
+                  ${featurePage === 0
+                    ? "bg-slate-200 dark:bg-slate-800 opacity-40 cursor-not-allowed"
+                    : "bg-slate-200 dark:bg-slate-800 hover:scale-110"
+                  }`}
               >
-                {/* Icon */}
-                <div className={`inline-flex p-4 bg-gradient-to-br ${feature.color} rounded-2xl mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                  <feature.icon size={28} className="text-white" />
-                </div>
+                ←
+              </button>
 
-                {/* Content */}
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  {feature.title}
-                </h3>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  {feature.description}
-                </p>
+              <button
+                onClick={() => setFeaturePage(p => Math.min(featureTotalPages - 1, p + 1))}
+                disabled={featurePage === featureTotalPages - 1}
+                className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition
+                  ${featurePage === featureTotalPages - 1
+                    ? "bg-slate-200 dark:bg-slate-800 opacity-40 cursor-not-allowed"
+                    : "bg-slate-200 dark:bg-slate-800 hover:scale-110"
+                  }`}
+              >
+                →
+              </button>
+            </div>
 
-                {/* Hover Glow Effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 rounded-3xl transition-all duration-300 pointer-events-none" />
-              </motion.div>
-            ))}
           </div>
+
         </div>
       </section>
 
@@ -426,7 +477,7 @@ export default function Home() {
           </motion.div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-4">
               {[...Array(8)].map((_, i) => (
                 <div key={i} className="rounded-3xl overflow-hidden bg-white dark:bg-slate-900 animate-pulse border border-slate-200 dark:border-slate-800">
                   <div className="h-56 bg-slate-200 dark:bg-slate-800" />
@@ -648,24 +699,35 @@ export default function Home() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-24 px-6 md:px-8 relative overflow-hidden border-2 border-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-3xl mx-6 md:mx-8 my-12">
-        {/* Background */}
-        <div className="absolute inset-0 -z-10 bg-cover bg-center bg-no-repeat rounded-3xl" style={{ backgroundImage: "url('/image/learning.jpg')" }} />
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-pink-600/5 -z-10 rounded-3xl" />
-        
-        {/* Animated Orbs */}
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-0 left-0 w-96 h-96 bg-white/20 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 10, repeat: Infinity }}
-          className="absolute bottom-0 right-0 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl"
+      <section className="relative isolate py-24 px-6 md:px-8 overflow-hidden rounded-3xl mx-6 md:mx-8 my-12">
+        {/* Background image */}
+        <div
+          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat rounded-3xl"
+          style={{ backgroundImage: "url('/image/learning.jpg')" }}
         />
 
-        <div className="max-w-5xl mx-auto text-center relative">
+        {/* Overlay – FIX DARK MODE + KHÔNG MẤT ẢNH */}
+        <div className="absolute inset-0 z-10 
+          bg-gradient-to-br 
+          from-blue-600/10 via-purple-600/10 to-pink-600/10
+          dark:from-black/35 dark:via-black/20 dark:to-black/35
+          rounded-3xl"
+        />
+
+        {/* Animated Orbs */}
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], opacity: [0.25, 0.45, 0.25] }}
+          transition={{ duration: 8, repeat: Infinity }}
+          className="absolute top-0 left-0 z-20 w-96 h-96 bg-white/20 rounded-full blur-3xl pointer-events-none"
+        />
+        <motion.div
+          animate={{ scale: [1, 1.3, 1], opacity: [0.25, 0.45, 0.25] }}
+          transition={{ duration: 10, repeat: Infinity }}
+          className="absolute bottom-0 right-0 z-20 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl pointer-events-none"
+        />
+
+        {/* CONTENT */}
+        <div className="relative z-30 max-w-5xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}

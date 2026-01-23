@@ -94,11 +94,6 @@ export function Footer() {
     },
   ]
 
-  const stats = [
-    { number: "10K+", label: "Học viên hoạt động" },
-    { number: "500+", label: "Khóa học chất lượng" },
-    { number: "100+", label: "Giảng viên xuất sắc" },
-  ]
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,139 +105,142 @@ export function Footer() {
   }
 
   return (
-    <footer className="bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 border-t border-slate-200 dark:border-slate-800">
+    <>
+      <footer className="bg-gray-200 dark:bg-gray-800 border-t-0">
       {/* Top Section - Brand + Stats */}
-      <div className="border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-            {/* Brand & About */}
-            <div className="lg:col-span-1">
+      <div className="border-b border-gray-400 dark:border-gray-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+          {/* GRID CHA: 2 CỘT LỚN */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_2fr] gap-16">
+
+            {/* ================= LEFT – BRAND ================= */}
+            <div>
               <Link href="/" className="flex items-center gap-3 mb-5 group">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
                   <GraduationCap className="text-white" size={28} />
                 </div>
                 <div>
-                  <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">ICS Learning</span>
-                  <p className="text-xs text-muted-foreground dark:text-slate-400">Nền tảng học trực tuyến</p>
+                  <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    ICS Learning
+                  </span>
+                  <p className="text-xs text-muted-foreground dark:text-slate-400">
+                    Nền tảng học trực tuyến
+                  </p>
                 </div>
               </Link>
-              <p className="text-sm text-muted-foreground dark:text-slate-400 leading-relaxed mt-4 max-w-sm">
-                Khám phá hàng ngàn khóa học chất lượng cao từ các chuyên gia hàng đầu. Nâng cao kỹ năng, phát triển sự nghiệp.
+
+              <p className="text-sm text-muted-foreground dark:text-slate-400 leading-relaxed max-w-sm">
+                Khám phá hàng ngàn khóa học chất lượng cao từ các chuyên gia hàng đầu.
+                Nâng cao kỹ năng, phát triển sự nghiệp.
               </p>
             </div>
 
-            {/* Stats */}
-            <div className="lg:col-span-2 grid grid-cols-3 gap-4">
-              {stats.map((stat, idx) => (
-                <div key={idx} className="text-center p-6 rounded-2xl bg-white/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800/50 transition-all">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    {idx === 0 && <Users size={20} className="text-blue-600 dark:text-blue-400" />}
-                    {idx === 1 && <BookOpen size={20} className="text-purple-600 dark:text-purple-400" />}
-                    {idx === 2 && <Award size={20} className="text-orange-600 dark:text-orange-400" />}
-                  </div>
-                  <p className="text-2xl font-bold text-foreground dark:text-white">{stat.number}</p>
-                  <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+            {/* ================= RIGHT – 3 CỘT GẦN NHAU ================= */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
 
-      {/* Middle Section - Links + Newsletter */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-          {/* Links Column 1 */}
-          <div className="lg:col-span-1">
-            <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">Khóa học</h4>
-            <ul className="space-y-3.5">
-              {footerLinks.courses.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors flex items-center gap-2 group font-medium"
-                  >
-                    <ChevronRight size={16} className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Links Column 2 */}
-          <div className="lg:col-span-1">
-            <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">Hỗ trợ</h4>
-            <ul className="space-y-3.5">
-              {footerLinks.support.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors flex items-center gap-2 group font-medium"
-                  >
-                    <ChevronRight size={16} className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Links Column 3 */}
-          <div className="lg:col-span-1">
-            <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">Công ty</h4>
-            <ul className="space-y-3.5">
-              {footerLinks.company.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors flex items-center gap-2 group font-medium"
-                  >
-                    <ChevronRight size={16} className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Newsletter */}
-          <div className="lg:col-span-1">
-            <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">Cập nhật</h4>
-            <p className="text-sm text-muted-foreground dark:text-slate-400 mb-4">Nhận các khóa học mới và ưu đãi đặc biệt</p>
-            <form onSubmit={handleSubscribe} className="space-y-3">
-              <div className="relative group">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email của bạn..."
-                  className="w-full px-4 py-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                  aria-label="Subscribe"
-                >
-                  <Send size={16} className="text-blue-600 dark:text-blue-400" />
-                </button>
+              {/* CÔNG TY */}
+              <div>
+                <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">
+                  Công ty
+                </h4>
+                <ul className="space-y-3.5">
+                  {footerLinks.company.map((link) => (
+                    <li key={link.name}>
+                      <Link
+                        href={link.href}
+                        className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors flex items-center gap-2 group font-medium"
+                      >
+                        <ChevronRight
+                          size={16}
+                          className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all"
+                        />
+                        {link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              {subscribed && (
-                <p className="text-xs text-green-600 dark:text-green-400 font-medium animate-pulse">Đăng ký thành công!</p>
-              )}
-            </form>
+
+              {/* HỖ TRỢ */}
+              <div>
+                <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">
+                  Hỗ trợ
+                </h4>
+                <ul className="space-y-3.5">
+                  {footerLinks.support.map((link) => (
+                    <li key={link.name}>
+                      <Link
+                        href={link.href}
+                        className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors flex items-center gap-2 group font-medium"
+                      >
+                        <ChevronRight
+                          size={16}
+                          className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all"
+                        />
+                        {link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* CẬP NHẬT */}
+              <div>
+                <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">
+                  Cập nhật
+                </h4>
+
+                <p className="text-sm text-muted-foreground dark:text-slate-400 mb-4">
+                  Nhận các khóa học mới và ưu đãi đặc biệt
+                </p>
+
+                <form onSubmit={handleSubscribe} className="space-y-3">
+                  <div className="relative group">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email của bạn..."
+                      className="w-full px-4 py-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm
+                      text-foreground dark:text-white placeholder:text-muted-foreground
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                      transition-all"
+                    />
+
+                    <button
+                      type="submit"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-md
+                      hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      <Send size={16} className="text-blue-600 dark:text-blue-400" />
+                    </button>
+                  </div>
+
+                  {subscribed && (
+                    <p className="text-xs text-green-600 dark:text-green-400 font-medium animate-pulse">
+                      Đăng ký thành công!
+                    </p>
+                  )}
+                </form>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
 
       {/* Bottom Section */}
-      <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-950/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="border-t border-slate-200 dark:border-slate-800 bg-gray-200 dark:bg-gray-800">
+        <div className="w-full border-b border-gray-400 dark:border-gray-500">
           {/* Contact Info */}
-          <div className="mb-8 pb-8 border-b border-slate-200 dark:border-slate-800">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="mt-8 mb-8 pb-8 border-b border-gray-400 dark:border-gray-500">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8
+                items-center
+                divide-y md:divide-y-0 md:divide-x
+                divide-gray-400 dark:divide-gray-500">
               {/* Phone */}
-              <a href="tel:1900123456" className="flex items-start gap-3 group cursor-pointer">
+              <a href="tel:1900123456" className="flex items-center gap-3 group cursor-pointer py-4 md:py-0 md:px-4 first:pt-0 md:first:pl-0">
                 <Phone size={18} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                 <div className="flex flex-col">
                   <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">Hotline</span>
@@ -251,7 +249,7 @@ export function Footer() {
               </a>
 
               {/* Email */}
-              <a href="mailto:support@icslearning.vn" className="flex items-start gap-3 group cursor-pointer">
+              <a href="mailto:support@icslearning.vn" className="flex items-center gap-3 group cursor-pointer py-4 md:py-0 md:px-4">
                 <Mail size={18} className="text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                 <div className="flex flex-col">
                   <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">Email</span>
@@ -260,7 +258,7 @@ export function Footer() {
               </a>
 
               {/* Address */}
-              <a href="#" className="flex items-start gap-3 group cursor-pointer">
+              <a href="#" className="flex items-center gap-3 group cursor-pointer py-4 md:py-0 md:px-4">
                 <MapPin size={18} className="text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                 <div className="flex flex-col">
                   <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">Địa chỉ</span>
@@ -269,7 +267,7 @@ export function Footer() {
               </a>
 
               {/* Social Links */}
-              <div>
+              <div className="py-4 md:py-0 md:px-4">
                 <h4 className="text-xs text-muted-foreground dark:text-slate-500 uppercase tracking-wide font-semibold mb-3">Theo dõi</h4>
                 <div className="flex gap-3">
                   {socialLinks.map((social) => {
@@ -304,18 +302,20 @@ export function Footer() {
               </div>
             </div>
           </div>
-
+                  
           {/* Copyright and Legal */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-            {/* Copyright */}
-            <div className="text-center md:text-left">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start">
               <p className="text-sm text-muted-foreground dark:text-slate-400 font-medium">
-                © {currentYear} <span className="text-foreground dark:text-white font-semibold">ICS Learning</span>. Bảo lưu mọi quyền.
+                © {currentYear}{' '}
+                <span className="text-foreground dark:text-white font-semibold">
+                  ICS Learning
+                </span>. Bảo lưu mọi quyền.
               </p>
             </div>
 
             {/* Legal Links */}
-            <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-4 text-center">
               {footerLinks.legal.map((link, idx) => (
                 <div key={link.name} className="flex items-center gap-4">
                   <Link
@@ -325,15 +325,15 @@ export function Footer() {
                     {link.name}
                   </Link>
                   {idx < footerLinks.legal.length - 1 && (
-                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-700" />
+                    <div className="h-4 w-px bg-gray-400 dark:bg-gray-500 shrink-0" />
                   )}
                 </div>
               ))}
             </div>
 
-            {/* Heart */}
-            <div className="text-center md:text-right">
-              <div className="flex items-center justify-center md:justify-end gap-1.5 text-sm text-muted-foreground dark:text-slate-400">
+            {/* Made with heart */}
+            <div className="flex items-center justify-center md:justify-end">
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-slate-400">
                 <span className="font-medium">Made with</span>
                 <Heart size={16} className="text-red-500 fill-red-500 animate-pulse" />
                 <span className="font-medium">in Vietnam</span>
@@ -342,7 +342,10 @@ export function Footer() {
           </div>
         </div>
       </div>
-    </footer>
+      {/* Đường kẻ cuối cùng full width */}
+      </footer>
+      <div className="w-full border-t border-gray-400 dark:border-gray-500" />
+    </>
   )
 }
 
@@ -351,7 +354,7 @@ export function CompactFooter() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="border-t border-slate-200 dark:border-slate-800 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+    <footer className="border-t border-slate-200 dark:border-slate-800 bg-gray-200 dark:bg-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Brand */}
