@@ -202,74 +202,82 @@ export default function TeacherCoursesPage() {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Khóa học của tôi</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Quản lý và tạo khóa học mới</p>
-          </div>
-          <Link
-            href="/teacher/courses/create"
-            className="flex items-center gap-2 bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-lg font-medium transition-smooth hover:shadow-lg w-fit"
-          >
-            <Plus size={20} /> Tạo khóa học mới
-          </Link>
-        </div>
+        {/* Header with Stats */}
+        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/bg_mycourses.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+          {/* Overlay for better readability */}
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
+          
+          <div className="relative z-10 space-y-8">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+              <div>
+                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Khóa học của tôi</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">Quản lý và tạo khóa học mới</p>
+              </div>
+              <Link
+                href="/teacher/courses/create"
+                className="flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
+              >
+                <Plus size={20} /> Tạo khóa học mới
+              </Link>
+            </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng</p>
-                <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalCourses}</p>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng</p>
+                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalCourses}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <BookOpen size={20} className="text-blue-600 dark:text-blue-400" />
+                  </div>
+                </div>
               </div>
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <BookOpen size={20} className="text-blue-600 dark:text-blue-400" />
+              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Nháp</p>
+                    <p className="text-2xl font-bold text-slate-600 dark:text-slate-400 mt-1">{draftCourses}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <Edit2 size={20} className="text-slate-600 dark:text-slate-400" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Nháp</p>
-                <p className="text-2xl font-bold text-slate-600 dark:text-slate-400 mt-1">{draftCourses}</p>
+              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Chờ duyệt</p>
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingCourses}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                </div>
               </div>
-              <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
-                <Edit2 size={20} className="text-slate-600 dark:text-slate-400" />
+              <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Đã duyệt</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{approvedCourses}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Chờ duyệt</p>
-                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingCourses}</p>
-              </div>
-              <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Đã duyệt</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{approvedCourses}</p>
-              </div>
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Từ chối</p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{rejectedCourses}</p>
-              </div>
-              <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-                <XCircle size={20} className="text-red-600 dark:text-red-400" />
+              <div className="animate-slideUp" style={{ animationDelay: "0.65s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Từ chối</p>
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{rejectedCourses}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <XCircle size={20} className="text-red-600 dark:text-red-400" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
