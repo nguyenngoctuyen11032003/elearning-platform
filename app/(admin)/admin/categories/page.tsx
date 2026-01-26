@@ -10,7 +10,8 @@ interface Category {
   courses: number
   students: number
   color: string
-  icon: string
+  icon?: string
+  image?: string
   createdAt: string
 }
 
@@ -27,7 +28,13 @@ export default function AdminCategoriesPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [newCategory, setNewCategory] = useState({ name: "", description: "", color: "#2563eb", icon: "📚" })
+  const [newCategory, setNewCategory] = useState({
+  name: "",
+  description: "",
+  color: "#2563eb",
+  icon: "",
+  image: undefined as string | undefined
+})
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; categoryId: string; categoryName: string }>({
     isOpen: false,
     categoryId: "",
@@ -41,30 +48,49 @@ export default function AdminCategoriesPage() {
       category.description.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleAddCategory = () => {
-    if (newCategory.name.trim()) {
-      setCategories([
-        ...categories,
-        {
-          id: Date.now().toString(),
-          name: newCategory.name,
-          description: newCategory.description,
-          courses: 0,
-          students: 0,
-          color: newCategory.color,
-          icon: newCategory.icon,
-          createdAt: new Date().toISOString().split("T")[0],
-        },
-      ])
-      setNewCategory({ name: "", description: "", color: "#2563eb", icon: "📚" })
-      setIsAdding(false)
-    }
+const handleAddCategory = () => {
+  if (newCategory.name.trim()) {
+    setCategories([
+      ...categories,
+      {
+        id: Date.now().toString(),
+        name: newCategory.name,
+        description: newCategory.description,
+        courses: 0,
+        students: 0,
+        color: newCategory.color,
+        icon: newCategory.icon || undefined, // 👈 optional
+        image: newCategory.image,
+        createdAt: new Date().toISOString().split("T")[0],
+      },
+    ])
+    setNewCategory({ name: "", description: "", color: "#2563eb", icon: "" , image: ""})
+    setIsAdding(false)
   }
+}
 
-  const handleUpdateCategory = (id: string, updatedName: string, updatedDescription: string, updatedColor: string, updatedIcon: string) => {
-    setCategories(categories.map((c) => (c.id === id ? { ...c, name: updatedName, description: updatedDescription, color: updatedColor, icon: updatedIcon } : c)))
-    setEditingId(null)
-  }
+const handleUpdateCategory = (
+  id: string,
+  updatedName: string,
+  updatedDescription: string,
+  updatedColor: string,
+  updatedIcon?: string
+) => {
+  setCategories(
+    categories.map((c) =>
+      c.id === id
+        ? {
+            ...c,
+            name: updatedName,
+            description: updatedDescription,
+            color: updatedColor,
+            icon: updatedIcon, // có thể undefined
+          }
+        : c
+    )
+  )
+  setEditingId(null)
+}
 
   const handleDelete = (id: string) => {
     const category = categories.find(c => c.id === id)
@@ -183,18 +209,59 @@ export default function AdminCategoriesPage() {
                     className="w-full h-12 rounded-lg cursor-pointer border border-border dark:border-slate-800"
                   />
                 </div>
-                <div className="flex-1">
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Icon</label>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">
+                    Icon (tuỳ chọn)
+                  </label>
                   <select
                     value={newCategory.icon}
-                    onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary text-2xl"
+                    onChange={(e) =>
+                      setNewCategory({
+                        ...newCategory,
+                        icon: e.target.value,
+                        image: undefined // 👈 xoá ảnh nếu chọn icon
+                      })
+                    }
+                    className="w-full rounded-lg px-4 py-3 border text-xl"
                   >
+                    <option value="">— Không chọn icon —</option>
                     {iconOptions.map((icon) => (
                       <option key={icon} value={icon}>{icon}</option>
                     ))}
                   </select>
                 </div>
+                <div>
+                    <label className="block text-sm font-semibold mb-2">
+                      Ảnh danh mục (tuỳ chọn)
+                    </label>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+
+                        const reader = new FileReader()
+                        reader.onload = () => {
+                          setNewCategory({
+                            ...newCategory,
+                            image: reader.result as string,
+                            icon: "" // 👈 xoá icon nếu upload ảnh
+                          })
+                        }
+                        reader.readAsDataURL(file)
+                      }}
+                    />
+
+                    {newCategory.image && (
+                      <img
+                        src={newCategory.image}
+                        className="mt-3 w-20 h-20 rounded-xl object-cover border"
+                      />
+                    )}
+                  </div>
+                  
               </div>
               <div className="md:col-span-2">
                 <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Mô tả</label>
