@@ -234,7 +234,7 @@ export function Footer() {
       <div className="border-t border-slate-200 dark:border-slate-800 bg-gray-200 dark:bg-gray-800">
         <div className="w-full border-b border-gray-400 dark:border-gray-500">
           {/* Contact Info */}
-          <div className="mt-8 mb-8 pb-8 border-b border-gray-400 dark:border-gray-500">
+          <div className="mt-8 mb-8 pb-8 border-b border-gray-400 dark:border-gray-500 px-10 md:px-12">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8
                 items-center
                 divide-y md:divide-y-0 md:divide-x
@@ -304,7 +304,7 @@ export function Footer() {
           </div>
                   
           {/* Copyright and Legal */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center text-center md:text-left">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center text-center md:text-left px-10 md:px-12 py-5 -mt-[30px]">
             <div className="flex items-center justify-center md:justify-start">
               <p className="text-sm text-muted-foreground dark:text-slate-400 font-medium">
                 © {currentYear}{' '}
@@ -315,9 +315,9 @@ export function Footer() {
             </div>
 
             {/* Legal Links */}
-            <div className="flex flex-wrap items-center justify-center gap-4 text-center">
+            <div className="flex flex-nowrap items-center justify-center gap-4 text-center">
               {footerLinks.legal.map((link, idx) => (
-                <div key={link.name} className="flex items-center gap-4">
+                <div key={link.name} className="flex items-center gap-4 whitespace-nowrap">
                   <Link
                     href={link.href}
                     className="text-sm text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium"
