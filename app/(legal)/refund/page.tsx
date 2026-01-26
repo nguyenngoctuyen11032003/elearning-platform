@@ -20,7 +20,16 @@ const fadeUp = {
 
 export default function RefundPolicyPage() {
   return (
-    <div className="relative min-h-screen bg-gray-50">
+    <div
+      className="relative min-h-screen bg-gray-50 bg-center bg-no-repeat"
+      style={{
+        backgroundImage: "url('/image/bg_leagl.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundColor: "#f8fafc",
+      }}
+    >
       {/* Back button */}
       <Link
         href="/"
@@ -48,22 +57,23 @@ export default function RefundPolicyPage() {
         >
           {/* Page indicator */}
 
-          <h1 className="text-3xl font-semibold">
-            Chính sách hoàn tiền
-          </h1>
+          <h1 className="text-3xl font-semibold">Chính sách hoàn tiền</h1>
 
           <p className="mt-3 text-white/90 max-w-2xl">
-            Chúng tôi mong muốn bạn học tập với sự an tâm tuyệt đối.
-            Nếu khóa học chưa phù hợp, ICS Learning luôn có chính sách hỗ trợ minh bạch.
+            Chúng tôi mong muốn bạn học tập với sự an tâm tuyệt đối. Nếu khóa
+            học chưa phù hợp, ICS Learning luôn có chính sách hỗ trợ minh bạch.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-4">
-            <Badge icon={<Clock size={18} />} text="Xử lý trong 5–7 ngày làm việc" />
-            <Badge icon={<ShieldCheck size={18} />} text="Minh bạch & công bằng" />
             <Badge
-              icon={<CheckCircle2 size={18} />}
-              text="Điều kiện rõ ràng"
+              icon={<Clock size={18} />}
+              text="Xử lý trong 5–7 ngày làm việc"
             />
+            <Badge
+              icon={<ShieldCheck size={18} />}
+              text="Minh bạch & công bằng"
+            />
+            <Badge icon={<CheckCircle2 size={18} />} text="Điều kiện rõ ràng" />
           </div>
         </motion.div>
       </div>
@@ -77,12 +87,36 @@ export default function RefundPolicyPage() {
               Nội dung
             </h2>
             <ul className="space-y-3 text-sm">
-              <li><a href="#summary" className="hover:text-primary">Tóm tắt nhanh</a></li>
-              <li><a href="#conditions" className="hover:text-primary">Điều kiện hoàn tiền</a></li>
-              <li><a href="#process" className="hover:text-primary">Quy trình hoàn tiền</a></li>
-              <li><a href="#timeline" className="hover:text-primary">Thời gian xử lý</a></li>
-              <li><a href="#method" className="hover:text-primary">Phương thức hoàn tiền</a></li>
-              <li><a href="#exceptions" className="hover:text-primary">Không áp dụng</a></li>
+              <li>
+                <a href="#summary" className="hover:text-primary">
+                  Tóm tắt nhanh
+                </a>
+              </li>
+              <li>
+                <a href="#conditions" className="hover:text-primary">
+                  Điều kiện hoàn tiền
+                </a>
+              </li>
+              <li>
+                <a href="#process" className="hover:text-primary">
+                  Quy trình hoàn tiền
+                </a>
+              </li>
+              <li>
+                <a href="#timeline" className="hover:text-primary">
+                  Thời gian xử lý
+                </a>
+              </li>
+              <li>
+                <a href="#method" className="hover:text-primary">
+                  Phương thức hoàn tiền
+                </a>
+              </li>
+              <li>
+                <a href="#exceptions" className="hover:text-primary">
+                  Không áp dụng
+                </a>
+              </li>
             </ul>
           </div>
         </aside>
@@ -148,9 +182,9 @@ export default function RefundPolicyPage() {
             icon={<Clock />}
           >
             <p>
-              Sau khi yêu cầu được chấp nhận, quá trình hoàn tiền thường mất
-              từ <strong> 5–7 ngày làm việc</strong>, tùy thuộc vào ngân hàng
-              hoặc cổng thanh toán của bạn.
+              Sau khi yêu cầu được chấp nhận, quá trình hoàn tiền thường mất từ{" "}
+              <strong> 5–7 ngày làm việc</strong>, tùy thuộc vào ngân hàng hoặc
+              cổng thanh toán của bạn.
             </p>
           </AnimatedSection>
 
@@ -160,8 +194,8 @@ export default function RefundPolicyPage() {
             icon={<CreditCard />}
           >
             <p>
-              Khoản tiền hoàn sẽ được chuyển về đúng phương thức thanh toán
-              bạn đã sử dụng khi mua khóa học.
+              Khoản tiền hoàn sẽ được chuyển về đúng phương thức thanh toán bạn
+              đã sử dụng khi mua khóa học.
             </p>
           </AnimatedSection>
 
