@@ -6,12 +6,11 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
 import { ThemeToggle } from "./theme-toggle"
-import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
+import { getInitials } from "@/lib/utils/avatar"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [mounted, setMounted] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -93,6 +92,9 @@ export function Navbar() {
         <Link href="/courses" className="hover:text-foreground transition-smooth">
           Khóa học
         </Link>
+        <Link href="/teachers" className="hover:text-foreground transition-smooth">
+          Giảng viên
+        </Link>
         {isAuthenticated && user ? (
           <Link 
             href={user.role === 'student' ? '/userdb' : user.role === 'teacher' ? '/teacher/dashboard' : '/admin/dashboard'} 
@@ -100,11 +102,7 @@ export function Navbar() {
           >
             Trang chủ của tôi
           </Link>
-        ) : (
-          <Link href="/teachers" className="hover:text-foreground transition-smooth">
-            Giảng viên
-          </Link>
-        )}
+        ) : null}
         <Link href="/about" className="hover:text-foreground transition-smooth">
           Về chúng tôi
         </Link>
@@ -120,20 +118,17 @@ export function Navbar() {
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="flex items-center gap-3 hover:opacity-80 transition-smooth px-3 py-2 rounded-lg hover:bg-secondary dark:hover:bg-slate-800"
               >
-                <img
-                  src={getRoleAvatar(user.role)}
-                  alt="Avatar"
-                  className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.style.display = 'none'
-                    if (target.nextSibling) return
-                    const div = document.createElement('div')
-                    div.className = 'w-10 h-10 rounded-full bg-primary flex items-center justify-center border-2 border-primary/20'
-                    div.innerHTML = `<span class="text-white font-bold text-sm">${getInitials(user.name)}</span>`
-                    target.parentNode?.appendChild(div)
-                  }}
-                />
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt="Avatar"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center border-2 border-primary/20">
+                    <span className="text-white font-bold text-sm">{getInitials(user.name)}</span>
+                  </div>
+                )}
                 <span className="text-sm font-medium text-foreground dark:text-white hidden sm:inline">{user.name}</span>
               </button>
 
@@ -143,11 +138,17 @@ export function Navbar() {
                   {/* User Info Header */}
                   <div className="px-4 py-4 border-b border-border dark:border-slate-800 bg-gradient-to-r from-primary/5 to-purple-500/5">
                     <div className="flex items-center gap-3">
-                      <img
-                        src={getRoleAvatar(user.role)}
-                        alt="Avatar"
-                        className="w-12 h-12 rounded-full object-cover border-2 border-primary/30"
-                      />
+                      {user.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt="Avatar"
+                          className="w-12 h-12 rounded-full object-cover border-2 border-primary/30"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center border-2 border-primary/30">
+                          <span className="text-white font-bold text-sm">{getInitials(user.name)}</span>
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground dark:text-white truncate">{user.name}</p>
                         <p className="text-xs text-muted-foreground dark:text-slate-400">
@@ -190,7 +191,7 @@ export function Navbar() {
                     <button
                       onClick={() => {
                         setShowProfileMenu(false)
-                        setShowLogoutConfirm(true)
+                        handleLogout()
                       }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/20 transition-smooth"
                     >
@@ -231,7 +232,10 @@ export function Navbar() {
             <Link href="/courses" className="text-sm hover:text-primary transition-smooth">
               Khóa học
             </Link>
-            {isAuthenticated ? (
+            <Link href="/teachers" className="text-sm hover:text-primary transition-smooth">
+              Giảng viên
+            </Link>
+            {isAuthenticated && user ? (
               <Link 
                 href={user?.role === 'student' ? '/userdb' : user?.role === 'teacher' ? '/teacher/dashboard' : '/admin/dashboard'} 
                 className="text-sm hover:text-primary transition-smooth"
@@ -264,7 +268,7 @@ export function Navbar() {
                   <button
                     onClick={() => {
                       setIsOpen(false)
-                      setShowLogoutConfirm(true)
+                      handleLogout()
                     }}
                     className="text-sm hover:text-primary transition-smooth text-left text-destructive w-full flex items-center gap-2 py-2"
                   >
@@ -286,32 +290,6 @@ export function Navbar() {
               </>
             )}
           </nav>
-        </div>
-      )}
-
-      {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 relative z-[10000]">
-            <h2 className="text-xl font-bold text-foreground dark:text-white mb-2">Xác nhận đăng xuất</h2>
-            <p className="text-muted-foreground dark:text-slate-400 mb-6">
-              Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className="flex-1 px-4 py-2 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium"
-              >
-                Đăng xuất
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </header>

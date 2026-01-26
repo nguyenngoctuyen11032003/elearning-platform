@@ -22,7 +22,6 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
-import { getRoleAvatar } from "@/lib/utils/avatar"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Tổng quan", href: "/userdb" },
@@ -134,20 +133,17 @@ export function StudentSidebar() {
             >
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center ring-2 ring-border dark:ring-slate-700 group-hover:ring-primary dark:group-hover:ring-accent group-hover:scale-105 transition-all shadow-md">
-                  <img
-                    src={getRoleAvatar(user.role)}
-                    alt={`${user.name || 'Student'} Avatar`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement
-                      target.style.display = 'none'
-                      if (target.nextSibling) return
-                      const span = document.createElement('span')
-                      span.className = 'text-white font-bold text-sm'
-                      span.textContent = user.name?.charAt(0).toUpperCase() || 'U'
-                      target.parentNode?.appendChild(span)
-                    }}
-                  />
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={`${user.name || 'Student'} Avatar`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white font-bold text-sm">
+                      {user.name?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground dark:text-white font-semibold text-sm truncate group-hover:text-primary dark:group-hover:text-accent transition-colors">
@@ -169,20 +165,17 @@ export function StudentSidebar() {
               title={user.name || 'Học viên'}
             >
               <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center ring-2 ring-border dark:ring-slate-700 hover:ring-primary dark:hover:ring-accent hover:scale-105 transition-all shadow-md">
-                <img
-                  src={getRoleAvatar(user.role)}
-                  alt={`${user.name || 'Student'} Avatar`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.style.display = 'none'
-                    if (target.nextSibling) return
-                    const span = document.createElement('span')
-                    span.className = 'text-white font-bold text-sm'
-                    span.textContent = user.name?.charAt(0).toUpperCase() || 'U'
-                    target.parentNode?.appendChild(span)
-                  }}
-                />
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={`${user.name || 'Student'} Avatar`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-white font-bold text-sm">
+                    {user.name?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                )}
               </div>
             </Link>
           )}

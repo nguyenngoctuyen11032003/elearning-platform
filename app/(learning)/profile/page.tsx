@@ -15,7 +15,7 @@ interface UserStats {
 }
 
 export default function StudentProfilePage() {
-  const { user, loading } = useAuth()
+  const { user, loading, refreshProfile } = useAuth()
   const [saving, setSaving] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [userStats, setUserStats] = useState<UserStats>({
@@ -82,8 +82,13 @@ export default function StudentProfilePage() {
         name: user.name || "",
         email: user.email || "",
         phone: user.phone || "",
-        address: "",
+        address: user.address || "",
       })
+      
+      // Set avatar preview from user data if available
+      if (user.avatar) {
+        setAvatarPreview(user.avatar)
+      }
     }
   }, [user])
 
@@ -97,17 +102,24 @@ export default function StudentProfilePage() {
     setPasswordData(prev => ({ ...prev, [name]: value }))
   }
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("Kích thước file không được vượt quá 2MB")
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Kích thước file không được vượt quá 5MB")
         return
       }
+      
+      // Store the actual file for upload
+      setSelectedFile(file)
+      
+      // Create preview
       const reader = new FileReader()
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string)
-        toast.success("Đã tải lên ảnh đại diện mới")
+        toast.success("Đã chọn ảnh đại diện mới")
       }
       reader.readAsDataURL(file)
     }
@@ -120,10 +132,28 @@ export default function StudentProfilePage() {
     try {
       setSaving(true)
 
+      // Upload avatar if a new one is selected
+      if (selectedFile) {
+        try {
+          const response = await apiClient.uploadAvatar(selectedFile)
+          console.log('Avatar uploaded successfully:', response)
+          // Refresh user data to get new avatar URL
+          // You might want to call a refresh function here
+        } catch (error) {
+          console.error('Avatar upload failed:', error)
+          toast.error("Có lỗi xảy ra khi tải lên ảnh đại diện")
+          return; // Stop if avatar upload fails
+        }
+      }
+
       await apiClient.updateProfile({
         name: profileData.name,
         phone: profileData.phone || undefined,
+        address: profileData.address || undefined,
       })
+
+      // Refresh profile data in auth context
+      await refreshProfile()
 
       toast.success("Cập nhật hồ sơ thành công!")
     } catch (error) {

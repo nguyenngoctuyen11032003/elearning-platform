@@ -7,6 +7,8 @@ export interface User {
   name: string;
   phone?: string;
   avatar?: string;
+  address?: string;
+  bio?: string;
   role: UserRole;
   status: UserStatus;
   createdAt: string;
@@ -60,4 +62,7 @@ export interface ApiError {
 export interface UpdateProfileRequest {
   name?: string;
   phone?: string;
+  address?: string;
+  bio?: string;
+  avatar?: string;
 }

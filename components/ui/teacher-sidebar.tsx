@@ -63,7 +63,7 @@ export function TeacherSidebar() {
 
         {/* Logo Section - Fixed Header */}
         <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50 mt-12 md:mt-0">
-          <Link href="/teacher/dashboard" className="flex items-center justify-center">
+          <Link href="/" className="flex items-center justify-center">
             <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className={`${
               isCollapsed ? "h-10" : "h-14"
             } w-auto rounded-full shadow-lg hover:shadow-xl transition-all`} />
@@ -109,20 +109,17 @@ export function TeacherSidebar() {
             >
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center ring-2 ring-border dark:ring-slate-700 group-hover:ring-primary dark:group-hover:ring-accent group-hover:scale-105 transition-all shadow-md">
-                  <img
-                    src={getRoleAvatar(user.role)}
-                    alt={`${user.name || 'Teacher'} Avatar`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement
-                      target.style.display = 'none'
-                      if (target.nextSibling) return
-                      const span = document.createElement('span')
-                      span.className = 'text-white font-bold text-sm'
-                      span.textContent = getInitials(user.name)
-                      target.parentNode?.appendChild(span)
-                    }}
-                  />
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={`${user.name || 'Teacher'} Avatar`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white font-bold text-sm">
+                      {getInitials(user.name)}
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground dark:text-white font-semibold text-sm truncate group-hover:text-primary dark:group-hover:text-accent transition-colors">
@@ -144,20 +141,17 @@ export function TeacherSidebar() {
               title={user.name || 'Giảng viên'}
             >
               <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center ring-2 ring-border dark:ring-slate-700 hover:ring-primary dark:hover:ring-accent hover:scale-105 transition-all shadow-md">
-                <img
-                  src={getRoleAvatar(user.role)}
-                  alt={`${user.name || 'Teacher'} Avatar`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.style.display = 'none'
-                    if (target.nextSibling) return
-                    const span = document.createElement('span')
-                    span.className = 'text-white font-bold text-sm'
-                    span.textContent = getInitials(user.name)
-                    target.parentNode?.appendChild(span)
-                  }}
-                />
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={`${user.name || 'Teacher'} Avatar`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-white font-bold text-sm">
+                    {getInitials(user.name)}
+                  </span>
+                )}
               </div>
             </Link>
           )}

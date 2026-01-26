@@ -173,6 +173,12 @@ export const API_ENDPOINTS = {
     APPROVE: (id: string) => `/api/certificate-templates/${id}/approve`,
     REJECT: (id: string) => `/api/certificate-templates/${id}/reject`,
   },
+  UPLOAD: {
+    AVATAR: '/api/upload/avatar',
+    IMAGE: '/api/upload/image',
+    VIDEO: '/api/upload/video',
+    DOCUMENT: '/api/upload/document',
+  },
 } as const;
 
 export { API_BASE_URL };

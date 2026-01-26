@@ -228,6 +228,56 @@ class ApiClient {
     );
   }
 
+  // File Upload methods
+  async uploadAvatar(file: File): Promise<{ url: string; message: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${this.baseURL}${API_ENDPOINTS.UPLOAD.AVATAR}`;
+    
+    const config: RequestInit = {
+      method: 'POST',
+      body: formData,
+    };
+
+    // Add auth token if available
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        config.headers = {
+          Authorization: `Bearer ${token}`,
+        };
+      }
+    }
+
+    try {
+      const response = await fetch(url, config);
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed with status ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const json = await response.json();
+        
+        // Handle wrapped response from backend interceptor
+        if (json && typeof json === 'object' && 'data' in json) {
+          return json.data as { url: string; message: string };
+        }
+        
+        return json;
+      }
+      
+      throw new Error('Invalid response format');
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('File upload failed');
+    }
+  }
+
   // Courses methods
   async getCourses(params?: { 
     category?: string; 
