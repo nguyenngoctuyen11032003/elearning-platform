@@ -2,39 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { X, User, Mail, Phone, MapPin, Calendar, Shield, Loader2 } from "lucide-react"
+import type { UpdateUserData, UserData } from "@/app/types/user"
 
 interface EditUserModalProps {
-  isOpen: boolean
-  onClose: () => void
   user: UserData | null
-  onSave: (userId: string, data: UpdateUserData) => Promise<void>
+  onClose: () => void
+  onSubmit: (updatedData: UpdateUserData) => Promise<void>
 }
 
-interface UserData {
-  id: string
-  name: string
-  email: string
-  phone?: string
-  role: "student" | "teacher" | "admin"
-  status: "active" | "inactive" | "pending"
-  avatar?: string
-  bio?: string
-  address?: string
-  dateOfBirth?: string
-  createdAt: string
-}
-
-interface UpdateUserData {
-  name?: string
-  phone?: string
-  role?: "student" | "teacher" | "admin"
-  status?: "active" | "inactive" | "pending"
-  bio?: string
-  address?: string
-  dateOfBirth?: string
-}
-
-export function EditUserModal({ isOpen, onClose, user, onSave }: EditUserModalProps) {
+export function EditUserModal({ onClose, user, onSubmit }: EditUserModalProps) {
   const [formData, setFormData] = useState<UpdateUserData>({})
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -69,21 +45,20 @@ export function EditUserModal({ isOpen, onClose, user, onSave }: EditUserModalPr
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  if (!validate() || !user) return
 
-    if (!validate() || !user) return
-
-    setLoading(true)
-    try {
-      await onSave(user.id, formData)
-      onClose()
-    } catch (error) {
-      console.error("Error saving user:", error)
-    } finally {
-      setLoading(false)
-    }
+  setLoading(true)
+  try {
+    await onSubmit(formData) // ✅ ĐÚNG
+    onClose()
+  } catch (error) {
+    console.error("Error saving user:", error)
+  } finally {
+    setLoading(false)
   }
+}
 
   const handleChange = (field: keyof UpdateUserData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -92,7 +67,7 @@ export function EditUserModal({ isOpen, onClose, user, onSave }: EditUserModalPr
     }
   }
 
-  if (!isOpen || !user) return null
+if (!user) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -277,7 +252,8 @@ export function EditUserModal({ isOpen, onClose, user, onSave }: EditUserModalPr
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground dark:text-slate-500">ID:</span>{" "}
-                <span className="text-foreground dark:text-white font-mono">{user.id.slice(0, 8)}...</span>
+                <span className="text-foreground dark:text-white font-mono">{String(user.id).slice(0, 8)
+}...</span>
               </div>
               <div>
                 <span className="text-muted-foreground dark:text-slate-500">Ngày tạo:</span>{" "}

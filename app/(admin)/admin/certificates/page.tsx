@@ -158,13 +158,14 @@ export default function AdminCertificatesPage() {
     setRejectionReason("")
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
+const formatDate = (date?: string) => {
+  if (!date) return "—"
+  const d = new Date(date)
+  return isNaN(d.getTime())
+    ? "—"
+    : d.toLocaleDateString("vi-VN")
+}
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
