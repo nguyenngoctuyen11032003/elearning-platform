@@ -64,9 +64,6 @@ export default function AboutPage() {
     { name: "Đỗ Thanh Toàn", role: "COO", image: "/image/COO_ThanhToan.jpg" },
     { name: "Ths. Đặng Lê Trung", role: "CMO", image: "/image/CMO_LeTrung.jpg" },
     { name: "Ths. Vũ Thị Hải Yến", role: "CHRO", image: "/image/CHRO_Ths.HaiYen.jpg" },
-    { name: "Trần Thị B", role: "Head of Content", image: "/placeholder.svg" },
-    { name: "Lê Minh C", role: "Community Manager", image: "/placeholder.svg" },
-    { name: "Phạm Hương D", role: "Lead Developer", image: "/placeholder.svg" },
   ]
 
   const LEADER_VISIBLE = 4
