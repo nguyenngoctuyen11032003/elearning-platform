@@ -70,13 +70,12 @@ export default function AboutPage() {
   ]
 
   const LEADER_VISIBLE = 4
-  const [leaderPage, setLeaderPage] = useState(0)
-
-  const leaderTotalPages = Math.ceil(leaders.length / LEADER_VISIBLE)
+  const [leaderStart, setLeaderStart] = useState(0)
+  const maxLeaderStart = Math.max(leaders.length - LEADER_VISIBLE, 0)
 
   const visibleLeaders = leaders.slice(
-    leaderPage * LEADER_VISIBLE,
-    leaderPage * LEADER_VISIBLE + LEADER_VISIBLE
+    leaderStart,
+    leaderStart + LEADER_VISIBLE
   )
 
 
@@ -337,10 +336,10 @@ export default function AboutPage() {
             {/* BUTTONS */}
             <div className="flex gap-3 justify-center md:justify-end">
               <button
-                disabled={leaderPage === 0}
-                onClick={() => setLeaderPage((p) => p - 1)}
+                disabled={leaderStart === 0}
+                onClick={() => setLeaderStart((p) => Math.max(0, p - 1))}
                 className={`w-11 h-11 rounded-full flex items-center justify-center text-xl transition
-                  ${leaderPage === 0
+                  ${leaderStart === 0
                     ? "bg-slate-200 dark:bg-slate-800 opacity-40 cursor-not-allowed"
                     : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:scale-110"
                   }`}
@@ -349,10 +348,10 @@ export default function AboutPage() {
               </button>
 
               <button
-                disabled={leaderPage === leaderTotalPages - 1}
-                onClick={() => setLeaderPage((p) => p + 1)}
+                disabled={leaderStart === maxLeaderStart}
+                onClick={() => setLeaderStart((p) => Math.min(maxLeaderStart, p + 1))}
                 className={`w-11 h-11 rounded-full flex items-center justify-center text-xl transition
-                  ${leaderPage === leaderTotalPages - 1
+                  ${leaderStart === maxLeaderStart
                     ? "bg-slate-200 dark:bg-slate-800 opacity-40 cursor-not-allowed"
                     : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:scale-110"
                   }`}
@@ -365,7 +364,7 @@ export default function AboutPage() {
           {/* GRID */}
           <AnimatePresence mode="wait">
             <motion.div
-              key={leaderPage}
+              key={leaderStart}
               initial={{ x: 120, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -120, opacity: 0 }}
