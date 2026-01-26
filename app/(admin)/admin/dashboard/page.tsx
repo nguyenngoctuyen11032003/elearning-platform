@@ -1,7 +1,8 @@
 "use client"
 
+import { StatCard } from "@/components/ui/stat-card"
 import { RollingNumber } from "@/components/ui/rolling-number"
-import { Users, BookOpen, CreditCard } from "lucide-react"
+import { Users, BookOpen, CreditCard, TrendingUp, Star, UserCheck, Target } from "lucide-react"
 import {
   AreaChart,
   Area,
@@ -23,22 +24,37 @@ import { useState } from "react"
 import { formatPrice } from "@/lib/format"
 
 const revenueData = [
-  { month: "Jan", revenue: 24000, teachers: 45, students: 400 },
-  { month: "Feb", revenue: 13980, teachers: 52, students: 300 },
-  { month: "Mar", revenue: 98000, teachers: 58, students: 200 },
-  { month: "Apr", revenue: 39080, teachers: 65, students: 278 },
-  { month: "May", revenue: 48000, teachers: 72, students: 189 },
-  { month: "Jun", revenue: 38000, teachers: 78, students: 239 },
+  { month: "1", revenue: 24000, teachers: 45, students: 400 },
+  { month: "2", revenue: 13980, teachers: 52, students: 300 },
+  { month: "3", revenue: 98000, teachers: 58, students: 200 },
+  { month: "4", revenue: 39080, teachers: 65, students: 278 },
+  { month: "5", revenue: 48000, teachers: 72, students: 189 },
+  { month: "6", revenue: 38000, teachers: 78, students: 239 },
+  { month: "7", revenue: 42000, teachers: 85, students: 280 },
+  { month: "8", revenue: 51000, teachers: 92, students: 320 },
+  { month: "9", revenue: 48000, teachers: 98, students: 300 },
+  { month: "10", revenue: 55000, teachers: 105, students: 350 },
+  { month: "11", revenue: 62000, teachers: 112, students: 380 },
+  { month: "12", revenue: 71000, teachers: 120, students: 420 },
 ]
 
 const categoryData = [
-  { name: "Lập trình", value: 35 },
-  { name: "Thiết kế", value: 25 },
-  { name: "Kinh doanh", value: 20 },
-  { name: "AI & Data", value: 20 },
+  { name: "Lập trình", value: 35, color: "#2563eb" },
+  { name: "Thiết kế", value: 25, color: "#06b6d4" },
+  { name: "Kinh doanh", value: 20, color: "#8b5cf6" },
+  { name: "AI & Data", value: 20, color: "#ec4899" },
 ]
 
-const COLORS = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899"]
+// Weekly platform statistics
+const weeklyStats = [
+  { day: "T2", activeUsers: 1200, newSignups: 45 },
+  { day: "T3", activeUsers: 1800, newSignups: 68 },
+  { day: "T4", activeUsers: 1400, newSignups: 52 },
+  { day: "T5", activeUsers: 2200, newSignups: 89 },
+  { day: "T6", activeUsers: 2800, newSignups: 125 },
+  { day: "T7", activeUsers: 3200, newSignups: 134 },
+  { day: "CN", activeUsers: 1600, newSignups: 78 },
+]
 
 const recentTransactions = [
   { id: 1, user: "Trần Văn A", course: "Next.js Advanced", amount: 499000, status: "success", date: "2025-01-15" },
@@ -54,86 +70,54 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white mb-2">Bảng điều khiển quản trị</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Tổng quan hệ thống ICS Learning</p>
-          </div>
-          <div className="flex gap-2">
-            {["day", "week", "month", "year"].map((period) => (
-              <button
-                key={period}
-                onClick={() => setFilterPeriod(period)}
-                className={`px-4 py-2 rounded-lg transition-smooth font-medium ${
-                  filterPeriod === period
-                    ? "bg-primary text-white"
-                    : "bg-secondary dark:bg-slate-800 text-foreground dark:text-white hover:bg-secondary/80"
-                }`}
-              >
-                {period === "day" ? "Ngày" : period === "week" ? "Tuần" : period === "month" ? "Tháng" : "Năm"}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Header with Background */}
+        <div className="relative overflow-hidden rounded-3xl p-8" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+          {/* Overlay for better readability */}
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/10"></div>
+          
+          <div className="relative z-10 space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Bảng điều khiển quản trị</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">Tổng quan hệ thống ICS Learning - Quản lý toàn diện</p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { value: "day", label: "Ngày" },
+                  { value: "week", label: "Tuần" },
+                  { value: "month", label: "Tháng" },
+                  { value: "year", label: "Năm" },
+                ].map((period) => (
+                  <button
+                    key={period.value}
+                    onClick={() => setFilterPeriod(period.value)}
+                    className={`px-4 py-2 rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
+                      filterPeriod === period.value
+                        ? "bg-white text-primary shadow-lg"
+                        : "bg-white/20 text-white hover:bg-white/30"
+                    }`}
+                  >
+                    {period.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* Stats - Changed to show Teachers and Students separately, removed completion rate */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng doanh thu</p>
-                <p className="text-3xl font-bold text-foreground dark:text-white mt-2">
-                  ₫<RollingNumber value={245230000} prefix="" suffix="" decimals={0} />
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">+18% so với tháng trước</p>
-              </div>
-              <CreditCard size={32} className="text-primary dark:text-accent opacity-20" />
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng giáo viên</p>
-                <p className="text-3xl font-bold text-foreground dark:text-white mt-2">
-                  <RollingNumber value={450} />
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">+45 giáo viên mới</p>
-              </div>
-              <Users size={32} className="text-primary dark:text-accent opacity-20" />
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng học viên</p>
-                <p className="text-3xl font-bold text-foreground dark:text-white mt-2">
-                  <RollingNumber value={12000} />
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">+405 học viên mới</p>
-              </div>
-              <Users size={32} className="text-primary dark:text-accent opacity-20" />
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng khóa học</p>
-                <p className="text-3xl font-bold text-foreground dark:text-white mt-2">
-                  <RollingNumber value={245} />
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">+12 khóa học mới</p>
-              </div>
-              <BookOpen size={32} className="text-primary dark:text-accent opacity-20" />
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard icon={TrendingUp} title="Tổng doanh thu" value="₫245,230,000" change="+18% so với tháng trước" />
+              <StatCard icon={UserCheck} title="Tổng giáo viên" value="450" change="+45 giáo viên mới" />
+              <StatCard icon={Users} title="Tổng học viên" value="12,000" change="+405 học viên mới" />
+              <StatCard icon={BookOpen} title="Tổng khóa học" value="245" change="+12 khóa học mới" />
             </div>
           </div>
         </div>
 
-        {/* Charts */}
+        {/* Main Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Revenue Chart */}
           <div className="lg:col-span-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Doanh thu</h3>
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">Doanh thu theo tháng</h3>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={revenueData}>
                 <defs>
@@ -150,7 +134,10 @@ export default function AdminDashboard() {
                     backgroundColor: "#1e293b",
                     border: "1px solid #334155",
                     borderRadius: "8px",
+                    color: "#fff"
                   }}
+                  itemStyle={{ color: "#fff" }}
+                  formatter={(value: number) => [`₫${value.toLocaleString()}k`, ""]}
                 />
                 <Legend />
                 <Area
@@ -166,59 +153,130 @@ export default function AdminDashboard() {
           </div>
 
           {/* Category Distribution */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Phân bố danh mục</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 animate-fadeIn">
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">Phân bố khóa học</h3>
+            <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
                   data={categoryData}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name} ${value}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={3}
                   dataKey="value"
+                  labelLine={false}
                 >
                   {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1e293b",
+                    border: "1px solid #334155",
+                    borderRadius: "8px",
+                    color: "#fff"
+                  }}
+                  itemStyle={{ color: "#fff" }}
+                  formatter={(value: number, name: string) => [`${value}%`, name]}
+                />
               </PieChart>
             </ResponsiveContainer>
+            <div className="flex flex-wrap gap-2 mt-4 justify-center">
+              {categoryData.map((item, index) => (
+                <div key={index} className="flex items-center gap-1.5 text-xs">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                  <span className="text-muted-foreground dark:text-slate-400">{item.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Growth Charts */}
+        {/* Additional Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Teacher Growth */}
+          {/* User Activity Chart */}
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 animate-fadeIn">
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">Hoạt động người dùng tuần này</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={weeklyStats}>
+                <defs>
+                  <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorSignups" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis dataKey="day" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1e293b",
+                    border: "1px solid #334155",
+                    borderRadius: "8px",
+                    color: "#fff"
+                  }}
+                />
+                <Legend />
+                <Area
+                  type="monotone"
+                  dataKey="activeUsers"
+                  stroke="#06b6d4"
+                  fillOpacity={1}
+                  fill="url(#colorActive)"
+                  name="Người dùng hoạt động"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="newSignups"
+                  stroke="#8b5cf6"
+                  fillOpacity={1}
+                  fill="url(#colorSignups)"
+                  name="Đăng ký mới"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Teacher & Student Growth */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Tăng trưởng giáo viên</h3>
-            <ResponsiveContainer width="100%" height={250}>
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">Tăng trưởng theo tháng</h3>
+            <ResponsiveContainer width="100%" height={280}>
               <LineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
-                <Tooltip />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1e293b",
+                    border: "1px solid #334155",
+                    borderRadius: "8px",
+                    color: "#fff"
+                  }}
+                />
                 <Legend />
-                <Line type="monotone" dataKey="teachers" stroke="#8b5cf6" strokeWidth={2} name="Giáo viên" />
+                <Line 
+                  type="monotone" 
+                  dataKey="teachers" 
+                  stroke="#8b5cf6" 
+                  strokeWidth={2} 
+                  dot={{ fill: "#8b5cf6" }}
+                  name="Giáo viên" 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="students" 
+                  stroke="#06b6d4" 
+                  strokeWidth={2} 
+                  dot={{ fill: "#06b6d4" }}
+                  name="Học viên" 
+                />
               </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Student Growth */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Tăng trưởng học viên</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="students" fill="#06b6d4" name="Học viên" radius={[8, 8, 0, 0]} />
-              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
