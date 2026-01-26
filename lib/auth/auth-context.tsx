@@ -51,6 +51,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUser(profile);
           } catch (error) {
             // If API call fails (backend down or token invalid), clear auth state completely
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            
+            // Check if it's a network error (API server not running)
+            if (errorMsg.includes('API server') || errorMsg.includes('Cannot connect')) {
+              console.warn(
+                '⚠️ Backend API server is not running.\n' +
+                '📝 Please start the backend server before accessing protected routes.\n' +
+                '💡 Run: cd ics-elearning-backend && npm run start'
+              );
+              // Don't clear auth state - user may reload after starting server
+              setLoading(false);
+              return;
+            }
+            
+            // For other errors (invalid token, etc), clear auth state
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
             setUser(null); // Ensure user state is cleared

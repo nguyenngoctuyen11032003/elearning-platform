@@ -99,19 +99,29 @@ class ApiClient {
     } catch (error) {
       // Handle network errors gracefully
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.error('Network error - Cannot connect to API server:', {
+        const isGetRequest = config.method === 'GET' || !config.method;
+        
+        console.error('❌ Network error - Cannot connect to API server:', {
           url,
           baseURL: this.baseURL,
           error: error.message,
+          suggestion: `Make sure the backend API server is running on ${this.baseURL}`,
         });
         
         // For read operations, return empty array/object instead of throwing
-        if (config.method === 'GET' || !config.method) {
-          console.warn('Returning empty response for GET request due to network error');
+        if (isGetRequest) {
+          console.warn('⚠️ Returning empty response for GET request due to network error');
           return (Array.isArray((endpoint as any)) ? [] : {}) as T;
         }
         
-        throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra xem backend có đang chạy không.');
+        throw new Error(
+          `❌ Không thể kết nối đến API server tại ${this.baseURL}.\n\n` +
+          `⚠️ Vui lòng:\n` +
+          `1. Đảm bảo backend API đang chạy trên ${this.baseURL}\n` +
+          `2. Kiểm tra console của backend để xem có lỗi gì không\n` +
+          `3. Đảm bảo database đã được khởi tạo\n` +
+          `4. Tải lại trang (F5) sau khi khởi động backend`
+        );
       }
       if (error instanceof Error) {
         throw error;
