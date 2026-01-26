@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Save, Bell, Lock, Eye, EyeOff, Moon, Sun, Palette, Mail, BookOpen, Award, Globe } from "lucide-react"
+import { Save, Bell, Moon, Sun, Palette, Mail, BookOpen, Award, Globe } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
@@ -11,7 +11,6 @@ export default function StudentSettingsPage() {
   const { user } = useAuth()
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
   const [settings, setSettings] = useState({
     emailNotifications: true,
     courseNotifications: true,
@@ -19,9 +18,6 @@ export default function StudentSettingsPage() {
     certificateNotifications: true,
     promotionNotifications: true,
     language: "vi",
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
   })
 
   useEffect(() => {
@@ -37,13 +33,6 @@ export default function StudentSettingsPage() {
     }))
   }
 
-  const togglePasswordVisibility = (field: string) => {
-    setShowPasswords((prev) => ({
-      ...prev,
-      [field]: !prev[field],
-    }))
-  }
-
   const handleSave = async () => {
     setIsSaving(true)
     try {
@@ -51,37 +40,6 @@ export default function StudentSettingsPage() {
       toast.success("Cài đặt đã được lưu thành công!")
     } catch (error) {
       toast.error("Có lỗi xảy ra khi lưu cài đặt")
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handlePasswordChange = async () => {
-    if (settings.newPassword !== settings.confirmPassword) {
-      toast.error("Mật khẩu mới không khớp!")
-      return
-    }
-
-    if (settings.newPassword.length < 6) {
-      toast.error("Mật khẩu mới phải có ít nhất 6 ký tự!")
-      return
-    }
-
-    setIsSaving(true)
-    try {
-      await apiClient.changePassword({
-        currentPassword: settings.currentPassword,
-        newPassword: settings.newPassword,
-      })
-      toast.success("Đổi mật khẩu thành công!")
-      setSettings(prev => ({
-        ...prev,
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      }))
-    } catch (error) {
-      toast.error("Có lỗi xảy ra khi đổi mật khẩu. Vui lòng kiểm tra mật khẩu hiện tại.")
     } finally {
       setIsSaving(false)
     }
@@ -97,15 +55,12 @@ export default function StudentSettingsPage() {
         </div>
 
       <Tabs defaultValue="notifications" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
+        <TabsList className="grid w-full grid-cols-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
           <TabsTrigger value="notifications" className="text-xs md:text-sm">
             Thông báo
           </TabsTrigger>
           <TabsTrigger value="appearance" className="text-xs md:text-sm">
             Giao diện
-          </TabsTrigger>
-          <TabsTrigger value="security" className="text-xs md:text-sm">
-            Bảo mật
           </TabsTrigger>
         </TabsList>
 
@@ -292,89 +247,6 @@ export default function StudentSettingsPage() {
             <p className="text-sm text-blue-900 dark:text-blue-200">
               Giao diện sẽ được lưu tự động và áp dụng cho tất cả các trang trong hệ thống.
             </p>
-          </div>
-        </TabsContent>
-
-        {/* Security */}
-        <TabsContent value="security" className="space-y-6 mt-6">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-            <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-              <Lock size={24} /> Đổi mật khẩu
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                  Mật khẩu hiện tại
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPasswords["current"] ? "text" : "password"}
-                    value={settings.currentPassword}
-                    onChange={(e) => handleSettingChange("currentPassword", e.target.value)}
-                    placeholder="Nhập mật khẩu hiện tại"
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 pr-10 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility("current")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
-                  >
-                    {showPasswords["current"] ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Mật khẩu mới</label>
-                <div className="relative">
-                  <input
-                    type={showPasswords["new"] ? "text" : "password"}
-                    value={settings.newPassword}
-                    onChange={(e) => handleSettingChange("newPassword", e.target.value)}
-                    placeholder="Nhập mật khẩu mới"
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 pr-10 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility("new")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
-                  >
-                    {showPasswords["new"] ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                  Xác nhận mật khẩu mới
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPasswords["confirm"] ? "text" : "password"}
-                    value={settings.confirmPassword}
-                    onChange={(e) => handleSettingChange("confirmPassword", e.target.value)}
-                    placeholder="Nhập lại mật khẩu mới"
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 pr-10 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility("confirm")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
-                  >
-                    {showPasswords["confirm"] ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground dark:text-slate-400">
-                Mật khẩu phải có ít nhất 6 ký tự.
-              </p>
-              <button
-                onClick={handlePasswordChange}
-                disabled={isSaving || !settings.currentPassword || !settings.newPassword || !settings.confirmPassword}
-                className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <Lock size={20} />
-                {isSaving ? "Đang xử lý..." : "Đổi mật khẩu"}
-              </button>
-            </div>
           </div>
         </TabsContent>
       </Tabs>

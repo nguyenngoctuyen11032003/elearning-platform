@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Calendar,
   CreditCard,
+  Settings,
 } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -33,6 +34,7 @@ const menuItems = [
   { icon: TrendingUp, label: "Tiến độ học tập", href: "/progress" },
   { icon: Calendar, label: "Lịch học", href: "/schedule" },
   { icon: CreditCard, label: "Thanh toán", href: "/payment-history" },
+  { icon: Settings, label: "Cài đặt", href: "/settings" },
 ]
 
 export function StudentSidebar() {

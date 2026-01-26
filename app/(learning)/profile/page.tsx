@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Save, Lock, User, Mail, Phone, Eye, EyeOff, Upload, Camera, MapPin, Award, BookOpen, Calendar, Moon, Sun, Globe, Bell, Settings as SettingsIcon } from "lucide-react"
+import { Save, Lock, User, Mail, Phone, Eye, EyeOff, Upload, Camera, MapPin, Award, BookOpen, Calendar } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
@@ -18,7 +18,6 @@ export default function StudentProfilePage() {
   const { user, loading } = useAuth()
   const [saving, setSaving] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [isDarkMode, setIsDarkMode] = useState(true)
   const [userStats, setUserStats] = useState<UserStats>({
     coursesEnrolled: 0,
     certificatesEarned: 0,
@@ -43,13 +42,6 @@ export default function StudentProfilePage() {
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
-  })
-
-  const [settings, setSettings] = useState({
-    emailNotifications: true,
-    courseNotifications: true,
-    certificateNotifications: true,
-    language: "vi",
   })
 
   // Fetch user statistics
@@ -95,12 +87,6 @@ export default function StudentProfilePage() {
     }
   }, [user])
 
-  useEffect(() => {
-    // Check current theme
-    const isDark = document.documentElement.classList.contains("dark")
-    setIsDarkMode(isDark)
-  }, [])
-
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setProfileData(prev => ({ ...prev, [name]: value }))
@@ -109,13 +95,6 @@ export default function StudentProfilePage() {
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setPasswordData(prev => ({ ...prev, [name]: value }))
-  }
-
-  const handleSettingChange = (key: string, value: string | boolean) => {
-    setSettings((prev) => ({
-      ...prev,
-      [key]: value,
-    }))
   }
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,21 +111,6 @@ export default function StudentProfilePage() {
       }
       reader.readAsDataURL(file)
     }
-  }
-
-  const toggleDarkMode = () => {
-    const html = document.documentElement
-    const newMode = !isDarkMode
-    
-    if (newMode) {
-      html.classList.add("dark")
-    } else {
-      html.classList.remove("dark")
-    }
-    
-    setIsDarkMode(newMode)
-    localStorage.setItem("theme", newMode ? "dark" : "light")
-    toast.success(`Đã chuyển sang ${newMode ? "chế độ tối" : "chế độ sáng"}`)
   }
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -200,18 +164,6 @@ export default function StudentProfilePage() {
     } catch (error) {
       console.error("Error changing password:", error)
       toast.error("Có lỗi xảy ra khi đổi mật khẩu. Vui lòng kiểm tra mật khẩu hiện tại.")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleSettingsSave = async () => {
-    try {
-      setSaving(true)
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      toast.success("Cài đặt đã được lưu thành công!")
-    } catch (error) {
-      toast.error("Có lỗi xảy ra khi lưu cài đặt")
     } finally {
       setSaving(false)
     }
@@ -354,7 +306,7 @@ export default function StudentProfilePage() {
 
       {/* Tabs for Profile, Password and Settings */}
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
+        <TabsList className="grid w-full grid-cols-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
           <TabsTrigger value="profile" className="text-xs md:text-sm">
             <User size={16} className="mr-2" />
             Thông tin
@@ -362,10 +314,6 @@ export default function StudentProfilePage() {
           <TabsTrigger value="password" className="text-xs md:text-sm">
             <Lock size={16} className="mr-2" />
             Mật khẩu
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="text-xs md:text-sm">
-            <SettingsIcon size={16} className="mr-2" />
-            Cài đặt
           </TabsTrigger>
         </TabsList>
 
@@ -550,146 +498,6 @@ export default function StudentProfilePage() {
                 {saving ? "Đang cập nhật..." : "Đổi mật khẩu"}
               </button>
             </form>
-          </div>
-        </TabsContent>
-
-        {/* Settings Tab */}
-        <TabsContent value="settings" className="mt-6">
-          <div className="space-y-6">
-            {/* Appearance Settings */}
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-              <h3 className="text-lg font-bold text-foreground dark:text-white flex items-center gap-2 mb-4">
-                <Sun size={20} className="text-primary dark:text-accent" />
-                Giao diện
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl hover:border-primary/50 dark:hover:border-accent/50 transition-all">
-                  <div className="flex items-center gap-3">
-                    {isDarkMode ? <Moon size={20} className="text-primary dark:text-accent" /> : <Sun size={20} className="text-primary dark:text-accent" />}
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">Chế độ tối</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">
-                        {isDarkMode ? "Bật chế độ tối" : "Bật chế độ sáng"}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={toggleDarkMode}
-                    className={`w-14 h-7 rounded-full transition-all shadow-inner ${
-                      isDarkMode ? "bg-gradient-to-r from-primary to-purple-600" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-6 h-6 bg-white rounded-full shadow-md transition-transform ${
-                        isDarkMode ? "translate-x-7" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Globe size={20} className="text-primary dark:text-accent" />
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">Ngôn ngữ</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">Chọn ngôn ngữ hiển thị</p>
-                    </div>
-                  </div>
-                  <select
-                    value={settings.language}
-                    onChange={(e) => handleSettingChange("language", e.target.value)}
-                    className="w-full bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                  >
-                    <option value="vi">Tiếng Việt</option>
-                    <option value="en">Tiếng Anh</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Notification Settings */}
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-              <h3 className="text-lg font-bold text-foreground dark:text-white flex items-center gap-2 mb-4">
-                <Bell size={20} className="text-primary dark:text-accent" />
-                Thông báo
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl hover:border-primary/50 dark:hover:border-accent/50 transition-all">
-                  <div className="flex items-center gap-3">
-                    <Mail size={20} className="text-primary dark:text-accent" />
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">Thông báo Email</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">Nhận thông báo qua email</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleSettingChange("emailNotifications", !settings.emailNotifications)}
-                    className={`w-14 h-7 rounded-full transition-all shadow-inner ${
-                      settings.emailNotifications ? "bg-gradient-to-r from-primary to-purple-600" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-6 h-6 bg-white rounded-full shadow-md transition-transform ${
-                        settings.emailNotifications ? "translate-x-7" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl hover:border-primary/50 dark:hover:border-accent/50 transition-all">
-                  <div className="flex items-center gap-3">
-                    <BookOpen size={20} className="text-primary dark:text-accent" />
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">Thông báo khóa học</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">Cập nhật về khóa học đã đăng ký</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleSettingChange("courseNotifications", !settings.courseNotifications)}
-                    className={`w-14 h-7 rounded-full transition-all shadow-inner ${
-                      settings.courseNotifications ? "bg-gradient-to-r from-primary to-purple-600" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-6 h-6 bg-white rounded-full shadow-md transition-transform ${
-                        settings.courseNotifications ? "translate-x-7" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl hover:border-primary/50 dark:hover:border-accent/50 transition-all">
-                  <div className="flex items-center gap-3">
-                    <Award size={20} className="text-primary dark:text-accent" />
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">Chứng chỉ</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">Thông báo khi nhận chứng chỉ mới</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleSettingChange("certificateNotifications", !settings.certificateNotifications)}
-                    className={`w-14 h-7 rounded-full transition-all shadow-inner ${
-                      settings.certificateNotifications ? "bg-gradient-to-r from-primary to-purple-600" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-6 h-6 bg-white rounded-full shadow-md transition-transform ${
-                        settings.certificateNotifications ? "translate-x-7" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              <button
-                onClick={handleSettingsSave}
-                disabled={saving}
-                className="mt-6 w-full px-6 py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Save size={18} />
-                {saving ? "Đang lưu..." : "Lưu cài đặt"}
-              </button>
-            </div>
           </div>
         </TabsContent>
       </Tabs>
