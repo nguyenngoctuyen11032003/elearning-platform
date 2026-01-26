@@ -1,59 +1,71 @@
-"use client"
+"use client";
 
-import { Navbar } from "@/components/ui/navbar"
-import { CourseCard } from "@/components/ui/course-card"
-import { SectionTitle } from "@/components/ui/section-title"
-import { Search, Filter, ChevronDown, Grid, List, Star, TrendingUp } from "lucide-react"
-import { useState, useEffect } from "react"
-import { apiClient } from "@/lib/api/client"
-import { Footer } from "@/components/ui/footer"
-import { useSearchParams } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
+import { Navbar } from "@/components/ui/navbar";
+import { CourseCard } from "@/components/ui/course-card";
+import { SectionTitle } from "@/components/ui/section-title";
+import {
+  Search,
+  Filter,
+  ChevronDown,
+  Grid,
+  List,
+  Star,
+  TrendingUp,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { apiClient } from "@/lib/api/client";
+import { Footer } from "@/components/ui/footer";
+import { useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function CoursesPage() {
-  const searchParams = useSearchParams()
-  const categoryParam = searchParams.get("category")
-  
-  const [allCourses, setAllCourses] = useState<any[]>([])
-  const [filteredCourses, setFilteredCourses] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState(categoryParam || "all")
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000])
-  const [categories, setCategories] = useState<any[]>([])
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [sortBy, setSortBy] = useState<"popular" | "newest" | "price-low" | "price-high">("popular")
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
+
+  const [allCourses, setAllCourses] = useState<any[]>([]);
+  const [filteredCourses, setFilteredCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(
+    categoryParam || "all",
+  );
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState<
+    "popular" | "newest" | "price-low" | "price-high"
+  >("popular");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true)
-        const courses = await apiClient.getCourses()
-        setAllCourses(courses)
-        
-        const cats = await apiClient.getCategories()
-        setCategories(cats)
-      } catch (error) {
-        console.error("Error fetching courses:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
+        setLoading(true);
+        const courses = await apiClient.getCourses();
+        setAllCourses(courses);
 
-    fetchData()
-  }, [])
+        const cats = await apiClient.getCategories();
+        setCategories(cats);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     // Ensure we start with an array
-    let filtered = Array.isArray(allCourses) ? [...allCourses] : []
+    let filtered = Array.isArray(allCourses) ? [...allCourses] : [];
 
     // Filter by search
     if (search && filtered.length > 0) {
       filtered = filtered.filter(
         (course) =>
           course.title?.toLowerCase().includes(search.toLowerCase()) ||
-          course.teacher?.name?.toLowerCase().includes(search.toLowerCase())
-      )
+          course.teacher?.name?.toLowerCase().includes(search.toLowerCase()),
+      );
     }
 
     // Filter by category
@@ -61,56 +73,68 @@ export default function CoursesPage() {
       filtered = filtered.filter(
         (course) =>
           course.category?.id === selectedCategory ||
-          course.category?.name === selectedCategory
-      )
+          course.category?.name === selectedCategory,
+      );
     }
 
     // Filter by price
     if (filtered.length > 0) {
-      filtered = filtered.filter(
-        (course) => {
-          const price = course.price || 0
-          return price >= priceRange[0] && price <= priceRange[1]
-        }
-      )
+      filtered = filtered.filter((course) => {
+        const price = course.price || 0;
+        return price >= priceRange[0] && price <= priceRange[1];
+      });
     }
 
     // Sort
     if (filtered.length > 0) {
       switch (sortBy) {
         case "popular":
-          filtered.sort((a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0))
-          break
+          filtered.sort(
+            (a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0),
+          );
+          break;
         case "newest":
-          filtered.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-          break
+          filtered.sort(
+            (a, b) =>
+              new Date(b.createdAt || 0).getTime() -
+              new Date(a.createdAt || 0).getTime(),
+          );
+          break;
         case "price-low":
-          filtered.sort((a, b) => (a.price || 0) - (b.price || 0))
-          break
+          filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+          break;
         case "price-high":
-          filtered.sort((a, b) => (b.price || 0) - (a.price || 0))
-          break
+          filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
+          break;
       }
     }
 
-    setFilteredCourses(filtered)
-  }, [search, selectedCategory, priceRange, allCourses, sortBy])
+    setFilteredCourses(filtered);
+  }, [search, selectedCategory, priceRange, allCourses, sortBy]);
 
   const handleReset = () => {
-    setSearch("")
-    setSelectedCategory("all")
-    setPriceRange([0, 1000000])
-  }
+    setSearch("");
+    setSelectedCategory("all");
+    setPriceRange([0, 1000000]);
+  };
 
   const priceRanges = [
     { label: "Miễn phí", min: 0, max: 0 },
     { label: "Dưới 300K", min: 0, max: 300000 },
     { label: "300K - 500K", min: 300000, max: 500000 },
     { label: "Trên 500K", min: 500000, max: Number.POSITIVE_INFINITY },
-  ]
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div
+      className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
+      style={{
+        backgroundImage: "url('/image/bg_course.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
       <Navbar />
 
       <div className="pt-24 pb-12 px-6 md:px-8">
@@ -123,13 +147,16 @@ export default function CoursesPage() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-full mb-4">
               <TrendingUp size={16} />
-              <span className="text-sm font-medium">Khám phá kiến thức mới</span>
+              <span className="text-sm font-medium">
+                Khám phá kiến thức mới
+              </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
               Danh sách khóa học
             </h1>
             <p className="text-lg text-muted-foreground dark:text-slate-400 max-w-2xl mx-auto">
-              Tìm khóa học phù hợp với mục tiêu học tập của bạn từ hàng trăm khóa học chất lượng cao
+              Tìm khóa học phù hợp với mục tiêu học tập của bạn từ hàng trăm
+              khóa học chất lượng cao
             </p>
           </motion.div>
 
@@ -140,7 +167,10 @@ export default function CoursesPage() {
             transition={{ delay: 0.1 }}
             className="mb-8 relative max-w-3xl mx-auto"
           >
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+            <Search
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              size={20}
+            />
             <input
               type="text"
               placeholder="Tìm kiếm khóa học, giảng viên, chủ đề..."
@@ -160,12 +190,15 @@ export default function CoursesPage() {
             >
               <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-6 sticky top-24 shadow-xl">
                 <h3 className="font-bold text-lg text-foreground dark:text-white mb-6 flex items-center gap-2">
-                  <Filter size={20} className="text-primary dark:text-accent" /> Bộ lọc
+                  <Filter size={20} className="text-primary dark:text-accent" />{" "}
+                  Bộ lọc
                 </h3>
 
                 {/* Category Filter */}
                 <div className="mb-6">
-                  <h4 className="text-sm font-medium text-foreground dark:text-white mb-3">Danh mục</h4>
+                  <h4 className="text-sm font-medium text-foreground dark:text-white mb-3">
+                    Danh mục
+                  </h4>
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -180,11 +213,17 @@ export default function CoursesPage() {
                       </span>
                     </label>
                     {categories.map((cat) => (
-                      <label key={cat.id} className="flex items-center gap-2 cursor-pointer">
+                      <label
+                        key={cat.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
                         <input
                           type="radio"
                           name="category"
-                          checked={selectedCategory === cat.id || selectedCategory === cat.name}
+                          checked={
+                            selectedCategory === cat.id ||
+                            selectedCategory === cat.name
+                          }
                           onChange={() => setSelectedCategory(cat.id)}
                           className="w-4 h-4"
                         />
@@ -198,14 +237,22 @@ export default function CoursesPage() {
 
                 {/* Price Filter */}
                 <div className="mb-6">
-                  <h4 className="text-sm font-medium text-foreground dark:text-white mb-3">Giá</h4>
+                  <h4 className="text-sm font-medium text-foreground dark:text-white mb-3">
+                    Giá
+                  </h4>
                   <div className="space-y-2">
                     {priceRanges.map((range) => (
-                      <label key={range.label} className="flex items-center gap-2 cursor-pointer">
+                      <label
+                        key={range.label}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
                         <input
                           type="radio"
                           name="price"
-                          checked={priceRange[0] === range.min && priceRange[1] === range.max}
+                          checked={
+                            priceRange[0] === range.min &&
+                            priceRange[1] === range.max
+                          }
                           onChange={() => setPriceRange([range.min, range.max])}
                           className="w-4 h-4"
                         />
@@ -237,7 +284,10 @@ export default function CoursesPage() {
               >
                 <div>
                   <p className="text-2xl font-bold text-foreground dark:text-white">
-                    <span className="text-primary dark:text-accent">{filteredCourses.length}</span> khóa học
+                    <span className="text-primary dark:text-accent">
+                      {filteredCourses.length}
+                    </span>{" "}
+                    khóa học
                   </p>
                   <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">
                     Tìm thấy cho bạn
@@ -257,7 +307,10 @@ export default function CoursesPage() {
                       <option value="price-low">Giá thấp → cao</option>
                       <option value="price-high">Giá cao → thấp</option>
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" size={16} />
+                    <ChevronDown
+                      className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground"
+                      size={16}
+                    />
                   </div>
 
                   {/* View Mode Toggle */}
@@ -294,10 +347,17 @@ export default function CoursesPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}
+                    className={
+                      viewMode === "grid"
+                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                        : "space-y-4"
+                    }
                   >
                     {[...Array(6)].map((_, i) => (
-                      <div key={i} className="rounded-2xl overflow-hidden bg-white dark:bg-slate-900 animate-pulse shadow-lg">
+                      <div
+                        key={i}
+                        className="rounded-2xl overflow-hidden bg-white dark:bg-slate-900 animate-pulse shadow-lg"
+                      >
                         <div className="h-48 bg-slate-200 dark:bg-slate-800" />
                         <div className="p-5 space-y-3">
                           <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded" />
@@ -313,7 +373,11 @@ export default function CoursesPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}
+                    className={
+                      viewMode === "grid"
+                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                        : "space-y-4"
+                    }
                   >
                     {filteredCourses.map((course, index) => (
                       <motion.div
@@ -368,5 +432,5 @@ export default function CoursesPage() {
       </div>
       <Footer />
     </div>
-  )
+  );
 }

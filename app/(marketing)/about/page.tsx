@@ -1,11 +1,21 @@
-"use client"
+"use client";
 
-import { Navbar } from "@/components/ui/navbar"
-import { Footer } from "@/components/ui/footer"
-import {Users, Target, Zap, Award, TrendingUp, Heart, Sparkles, Globe, Shield,} from "lucide-react"
-import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
-import { useEffect, useState } from "react"
+import { Navbar } from "@/components/ui/navbar";
+import { Footer } from "@/components/ui/footer";
+import {
+  Users,
+  Target,
+  Zap,
+  Award,
+  TrendingUp,
+  Heart,
+  Sparkles,
+  Globe,
+  Shield,
+} from "lucide-react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -15,7 +25,7 @@ const containerVariants = {
       staggerChildren: 0.1,
     },
   },
-}
+};
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -24,58 +34,60 @@ const itemVariants = {
     y: 0,
     transition: { duration: 0.5 },
   },
-}
+};
 
 /* ====== BACKGROUND SLIDER ====== */
 const backgrounds = [
   "/image/about_hero.png",
   "/image/about_hero2.png",
   "/image/about_hero3.png",
-]
-
-
+];
 
 export default function AboutPage() {
-  const [bgIndex, setBgIndex] = useState(0)
+  const [bgIndex, setBgIndex] = useState(0);
 
   // Auto slide
   useEffect(() => {
     const interval = setInterval(() => {
-      setBgIndex((prev) => (prev + 1) % backgrounds.length)
-    }, 5000)
+      setBgIndex((prev) => (prev + 1) % backgrounds.length);
+    }, 5000);
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
   // ===== NÚT CHUYỂN TAY (PHẢI Ở NGOÀI useEffect) =====
   const nextBg = () => {
-    setBgIndex((prev) => (prev + 1) % backgrounds.length)
-  }
+    setBgIndex((prev) => (prev + 1) % backgrounds.length);
+  };
 
   const prevBg = () => {
-    setBgIndex((prev) =>
-      prev === 0 ? backgrounds.length - 1 : prev - 1
-    )
-  }
+    setBgIndex((prev) => (prev === 0 ? backgrounds.length - 1 : prev - 1));
+  };
 
   const leaders = [
     { name: "TS. Võ Trung Âu", role: "CEO", image: "/image/CEO_TrungAu.jpg" },
     { name: "Ths. Vũ Tam Hanh", role: "CTO", image: "/image/CTO_TamHanh.jpg" },
     { name: "Đỗ Thanh Toàn", role: "COO", image: "/image/COO_ThanhToan.jpg" },
-    { name: "Ths. Đặng Lê Trung", role: "CMO", image: "/image/CMO_LeTrung.jpg" },
-    { name: "Ths. Vũ Thị Hải Yến", role: "CHRO", image: "/image/CHRO_Ths.HaiYen.jpg" },
-  ]
+    {
+      name: "Ths. Đặng Lê Trung",
+      role: "CMO",
+      image: "/image/CMO_LeTrung.jpg",
+    },
+    {
+      name: "Ths. Vũ Thị Hải Yến",
+      role: "CHRO",
+      image: "/image/CHRO_Ths.HaiYen.jpg",
+    },
+  ];
 
-  const LEADER_VISIBLE = 4
-  const [leaderStart, setLeaderStart] = useState(0)
-  const maxLeaderStart = Math.max(leaders.length - LEADER_VISIBLE, 0)
+  const LEADER_VISIBLE = 4;
+  const [leaderStart, setLeaderStart] = useState(0);
+  const maxLeaderStart = Math.max(leaders.length - LEADER_VISIBLE, 0);
 
   const visibleLeaders = leaders.slice(
     leaderStart,
-    leaderStart + LEADER_VISIBLE
-  )
-
-
+    leaderStart + LEADER_VISIBLE,
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-background dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -83,7 +95,6 @@ export default function AboutPage() {
 
       {/* ================= HERO SECTION ================= */}
       <section className="pt-32 pb-20 px-4 md:px-8 relative overflow-hidden">
-
         {/* Background slider */}
         <AnimatePresence>
           <motion.div
@@ -98,8 +109,8 @@ export default function AboutPage() {
             transition={{ duration: 1 }}
           />
         </AnimatePresence>
-        
-        {/* Manual controls */} 
+
+        {/* Manual controls */}
         <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 z-20 pointer-events-none">
           <button
             onClick={prevBg}
@@ -115,7 +126,6 @@ export default function AboutPage() {
             ›
           </button>
         </div>
-
 
         {/* Overlay */}
         <div className="absolute inset-0 bg-white/20 dark:bg-black/60" />
@@ -149,7 +159,8 @@ export default function AboutPage() {
           </h1>
 
           <p className="text-xl md:text-2xl text-black dark:text-white max-w-3xl mx-auto">
-            Chúng tôi tin rằng giáo dục là chìa khóa để mở ra những cơ hội vô hạn và thay đổi cuộc sống
+            Chúng tôi tin rằng giáo dục là chìa khóa để mở ra những cơ hội vô
+            hạn và thay đổi cuộc sống
           </p>
         </motion.div>
       </section>
@@ -164,17 +175,45 @@ export default function AboutPage() {
           className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
         >
           {[
-            { icon: Users, label: "50K+", desc: "Học viên toàn cầu", color: "from-blue-500 to-cyan-500" },
-            { icon: Target, label: "500+", desc: "Khóa học đa dạng", color: "from-purple-500 to-pink-500" },
-            { icon: Award, label: "200+", desc: "Giảng viên chuyên gia", color: "from-orange-500 to-red-500" },
-            { icon: TrendingUp, label: "4.8★", desc: "Đánh giá trung bình", color: "from-green-500 to-emerald-500" },
+            {
+              icon: Users,
+              label: "50K+",
+              desc: "Học viên toàn cầu",
+              color: "from-blue-500 to-cyan-500",
+            },
+            {
+              icon: Target,
+              label: "500+",
+              desc: "Khóa học đa dạng",
+              color: "from-purple-500 to-pink-500",
+            },
+            {
+              icon: Award,
+              label: "200+",
+              desc: "Giảng viên chuyên gia",
+              color: "from-orange-500 to-red-500",
+            },
+            {
+              icon: TrendingUp,
+              label: "4.8★",
+              desc: "Đánh giá trung bình",
+              color: "from-green-500 to-emerald-500",
+            },
           ].map((stat, i) => (
             <motion.div key={i} variants={itemVariants} className="group">
               <div className="relative p-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
-                <stat.icon className={`w-10 h-10 bg-gradient-to-br ${stat.color} bg-clip-text text-transparent mb-3`} />
-                <p className="text-3xl md:text-4xl font-bold text-foreground dark:text-white mb-1">{stat.label}</p>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">{stat.desc}</p>
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity`}
+                />
+                <stat.icon
+                  className={`w-10 h-10 bg-gradient-to-br ${stat.color} bg-clip-text text-transparent mb-3`}
+                />
+                <p className="text-3xl md:text-4xl font-bold text-foreground dark:text-white mb-1">
+                  {stat.label}
+                </p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">
+                  {stat.desc}
+                </p>
               </div>
             </motion.div>
           ))}
@@ -201,10 +240,15 @@ export default function AboutPage() {
               </h2>
               <div className="space-y-4 text-lg text-muted-foreground dark:text-slate-300">
                 <p>
-                  ICS Learning được thành lập với mục tiêu mang giáo dục chất lượng cao đến với mọi người, bất kể họ ở đâu hay hoàn cảnh ra sao.
+                  ICS Learning được thành lập với mục tiêu mang giáo dục chất
+                  lượng cao đến với mọi người, bất kể họ ở đâu hay hoàn cảnh ra
+                  sao.
                 </p>
                 <p>
-                  Chúng tôi tin rằng mọi người đều xứng đáng có cơ hội học tập từ những giảng viên tốt nhất thế giới. Thông qua công nghệ và sự đổi mới, chúng tôi tạo ra một nền tảng nơi kiến thức được chia sẻ tự do.
+                  Chúng tôi tin rằng mọi người đều xứng đáng có cơ hội học tập
+                  từ những giảng viên tốt nhất thế giới. Thông qua công nghệ và
+                  sự đổi mới, chúng tôi tạo ra một nền tảng nơi kiến thức được
+                  chia sẻ tự do.
                 </p>
               </div>
               <div className="flex flex-wrap gap-4">
@@ -232,10 +276,26 @@ export default function AboutPage() {
             >
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { icon: Globe, label: "Toàn cầu", desc: "Học viên từ 120+ quốc gia" },
-                  { icon: Shield, label: "Tin cậy", desc: "Bảo mật thông tin tuyệt đối" },
-                  { icon: Zap, label: "Nhanh chóng", desc: "Học mọi lúc mọi nơi" },
-                  { icon: Heart, label: "Chất lượng", desc: "Nội dung được kiểm duyệt" },
+                  {
+                    icon: Globe,
+                    label: "Toàn cầu",
+                    desc: "Học viên từ 120+ quốc gia",
+                  },
+                  {
+                    icon: Shield,
+                    label: "Tin cậy",
+                    desc: "Bảo mật thông tin tuyệt đối",
+                  },
+                  {
+                    icon: Zap,
+                    label: "Nhanh chóng",
+                    desc: "Học mọi lúc mọi nơi",
+                  },
+                  {
+                    icon: Heart,
+                    label: "Chất lượng",
+                    desc: "Nội dung được kiểm duyệt",
+                  },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
@@ -246,8 +306,12 @@ export default function AboutPage() {
                     className="p-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl hover:shadow-lg transition-all hover:-translate-y-1"
                   >
                     <item.icon className="w-8 h-8 text-primary dark:text-accent mb-3" />
-                    <h3 className="font-semibold text-foreground dark:text-white mb-1">{item.label}</h3>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">{item.desc}</p>
+                    <h3 className="font-semibold text-foreground dark:text-white mb-1">
+                      {item.label}
+                    </h3>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">
+                      {item.desc}
+                    </p>
                   </motion.div>
                 ))}
               </div>
@@ -257,7 +321,15 @@ export default function AboutPage() {
       </section>
 
       {/* Values Section */}
-      <section className="py-20 px-4 md:px-8 bg-card/50 dark:bg-slate-900/30">
+      <section
+        className="py-20 px-4 md:px-8 bg-card/50 dark:bg-slate-900/30"
+        style={{
+          backgroundImage: "url('/image/about_section.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -302,12 +374,20 @@ export default function AboutPage() {
             ].map((value, i) => (
               <motion.div key={i} variants={itemVariants} className="group">
                 <div className="h-full p-8 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
-                  <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${value.gradient} opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity`} />
-                  <div className={`w-14 h-14 bg-gradient-to-br ${value.gradient} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <div
+                    className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${value.gradient} opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity`}
+                  />
+                  <div
+                    className={`w-14 h-14 bg-gradient-to-br ${value.gradient} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
+                  >
                     <value.icon className="w-7 h-7 text-white" />
                   </div>
-                  <h3 className="text-2xl font-semibold text-foreground dark:text-white mb-3">{value.title}</h3>
-                  <p className="text-muted-foreground dark:text-slate-300 leading-relaxed">{value.desc}</p>
+                  <h3 className="text-2xl font-semibold text-foreground dark:text-white mb-3">
+                    {value.title}
+                  </h3>
+                  <p className="text-muted-foreground dark:text-slate-300 leading-relaxed">
+                    {value.desc}
+                  </p>
                 </div>
               </motion.div>
             ))}
@@ -318,7 +398,6 @@ export default function AboutPage() {
       {/* Team Section */}
       <section className="py-20 px-4 md:px-8 relative">
         <div className="max-w-6xl mx-auto">
-
           {/* TITLE + CONTROLS */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-12">
             <div className="text-center md:text-left">
@@ -336,9 +415,10 @@ export default function AboutPage() {
                 disabled={leaderStart === 0}
                 onClick={() => setLeaderStart((p) => Math.max(0, p - 1))}
                 className={`w-11 h-11 rounded-full flex items-center justify-center text-xl transition
-                  ${leaderStart === 0
-                    ? "bg-slate-200 dark:bg-slate-800 opacity-40 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:scale-110"
+                  ${
+                    leaderStart === 0
+                      ? "bg-slate-200 dark:bg-slate-800 opacity-40 cursor-not-allowed"
+                      : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:scale-110"
                   }`}
               >
                 ←
@@ -346,11 +426,14 @@ export default function AboutPage() {
 
               <button
                 disabled={leaderStart === maxLeaderStart}
-                onClick={() => setLeaderStart((p) => Math.min(maxLeaderStart, p + 1))}
+                onClick={() =>
+                  setLeaderStart((p) => Math.min(maxLeaderStart, p + 1))
+                }
                 className={`w-11 h-11 rounded-full flex items-center justify-center text-xl transition
-                  ${leaderStart === maxLeaderStart
-                    ? "bg-slate-200 dark:bg-slate-800 opacity-40 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:scale-110"
+                  ${
+                    leaderStart === maxLeaderStart
+                      ? "bg-slate-200 dark:bg-slate-800 opacity-40 cursor-not-allowed"
+                      : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:scale-110"
                   }`}
               >
                 →
@@ -385,7 +468,9 @@ export default function AboutPage() {
                       />
                     </div>
                     <div className="p-6 text-center">
-                      <h3 className="text-xl font-semibold mb-1">{member.name}</h3>
+                      <h3 className="text-xl font-semibold mb-1">
+                        {member.name}
+                      </h3>
                       <p className="text-primary font-medium">{member.role}</p>
                     </div>
                   </div>
@@ -393,10 +478,8 @@ export default function AboutPage() {
               ))}
             </motion.div>
           </AnimatePresence>
-
         </div>
       </section>
-
 
       {/* CTA Section */}
       <section className="py-20 px-4 md:px-8">
@@ -410,9 +493,12 @@ export default function AboutPage() {
           <div className="relative bg-gradient-to-r from-primary to-accent rounded-3xl p-12 text-center text-white overflow-hidden">
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
             <div className="relative z-10">
-              <h2 className="text-4xl md:text-5xl font-bold mb-4">Tham gia cộng đồng ICS Learning</h2>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                Tham gia cộng đồng ICS Learning
+              </h2>
               <p className="text-lg md:text-xl mb-8 opacity-90">
-                Bắt đầu hành trình học tập của bạn ngay hôm nay và mở ra cơ hội vô hạn
+                Bắt đầu hành trình học tập của bạn ngay hôm nay và mở ra cơ hội
+                vô hạn
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
@@ -437,5 +523,5 @@ export default function AboutPage() {
 
       <Footer />
     </div>
-  )
+  );
 }
