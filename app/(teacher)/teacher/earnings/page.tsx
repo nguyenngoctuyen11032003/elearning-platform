@@ -159,7 +159,7 @@ export default function TeacherEarningsPage() {
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
         {/* Hero Section with Background */}
-        <div className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn" style={{ backgroundImage: "url('/image/bg_payment.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
           <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
           
