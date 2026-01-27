@@ -119,53 +119,61 @@ const handleUpdateCategory = (
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Quản lý danh mục</h1>
-            <p className="text-muted-foreground dark:text-slate-400 mt-1">Phân loại và tổ chức các khóa học</p>
-          </div>
-          <button
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-lg text-white px-6 py-3 rounded-lg transition-smooth font-medium w-fit"
-          >
-            <Plus size={20} />
-            Thêm danh mục
-          </button>
-        </div>
+        {/* Header with Stats */}
+        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+          {/* Overlay for better readability */}
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
+          
+          <div className="relative z-10 space-y-8">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+              <div>
+                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Quản lý danh mục</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">Phân loại và tổ chức các khóa học</p>
+              </div>
+              <button
+                onClick={() => setIsAdding(true)}
+                className="flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
+              >
+                <Plus size={20} />
+                Thêm danh mục
+              </button>
+            </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng danh mục</p>
-                <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalCategories}</p>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
+                <div className="group flex items-center justify-between p-6 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng danh mục</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalCategories}</p>
+                  </div>
+                  <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <FolderOpen size={28} className="text-blue-600 dark:text-blue-400" />
+                  </div>
+                </div>
               </div>
-              <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center">
-                <FolderOpen size={28} className="text-blue-600 dark:text-blue-400" />
+              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
+                <div className="group flex items-center justify-between p-6 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng khóa học</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalCourses}</p>
+                  </div>
+                  <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <BookOpen size={28} className="text-green-600 dark:text-green-400" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng khóa học</p>
-                <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalCourses}</p>
-              </div>
-              <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center">
-                <BookOpen size={28} className="text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng học viên</p>
-                <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalStudents.toLocaleString('en-US')}</p>
-              </div>
-              <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center">
-                <TrendingUp size={28} className="text-purple-600 dark:text-purple-400" />
+              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+                <div className="group flex items-center justify-between p-6 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng học viên</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalStudents.toLocaleString('en-US')}</p>
+                  </div>
+                  <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <TrendingUp size={28} className="text-purple-600 dark:text-purple-400" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

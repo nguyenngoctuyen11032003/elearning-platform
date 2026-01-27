@@ -11,6 +11,7 @@ import {
   Users,
   BookOpen
 } from "lucide-react"
+import { StatCard } from "@/components/ui/stat-card"
 
 interface AnalyticsData {
   totalStudents: number
@@ -118,82 +119,74 @@ export default function TeacherAnalyticsPage() {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Phân tích & Thống kê</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Theo dõi hiệu suất khóa học của bạn</p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {[
-              { value: "day", label: "Ngày" },
-              { value: "week", label: "Tuần" },
-              { value: "month", label: "Tháng" },
-              { value: "year", label: "Năm" },
-            ].map((period) => (
-              <button
-                key={period.value}
-                onClick={() => setDateRange(period.value)}
-                className={`px-4 py-2 rounded-lg transition-smooth font-medium ${
-                  dateRange === period.value
-                    ? "bg-primary text-white"
-                    : "bg-secondary dark:bg-slate-800 text-foreground dark:text-white hover:bg-secondary/80"
-                }`}
-              >
-                {period.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Main Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                <Users size={24} className="text-blue-600 dark:text-blue-400" />
+        {/* Hero Section with Background */}
+        <div className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+          {/* Overlay for better readability */}
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
+          
+          <div className="relative z-10 space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+              <div>
+                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Phân tích & Thống kê</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">Theo dõi hiệu suất khóa học của bạn</p>
               </div>
-              <div className={`flex items-center gap-1 text-sm ${analytics!.studentGrowth > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {analytics!.studentGrowth > 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-                {Math.abs(analytics!.studentGrowth)}%
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { value: "day", label: "Ngày" },
+                  { value: "week", label: "Tuần" },
+                  { value: "month", label: "Tháng" },
+                  { value: "year", label: "Năm" },
+                ].map((period) => (
+                  <button
+                    key={period.value}
+                    onClick={() => setDateRange(period.value)}
+                    className={`px-4 py-2 rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
+                      dateRange === period.value
+                        ? "bg-white text-primary shadow-lg"
+                        : "bg-black/10 text-black dark:bg-white/20 dark:text-white hover:bg-black/30 dark:hover:bg-white/40"
+                    }`}
+                  >
+                    {period.label}
+                  </button>
+                ))}
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground dark:text-white">{analytics!.totalStudents.toLocaleString('en-US')}</p>
-            <p className="text-muted-foreground dark:text-slate-400 text-sm">Tổng học viên</p>
-          </div>
 
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                <DollarSign size={24} className="text-green-600 dark:text-green-400" />
+            {/* Main Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
+                <StatCard 
+                  icon={Users} 
+                  title="Tổng học viên" 
+                  value={analytics!.totalStudents.toLocaleString('en-US')} 
+                  change={`${analytics!.studentGrowth > 0 ? '+' : ''}${analytics!.studentGrowth}% so với tháng trước`} 
+                />
               </div>
-              <div className={`flex items-center gap-1 text-sm ${analytics!.revenueGrowth > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {analytics!.revenueGrowth > 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-                {Math.abs(analytics!.revenueGrowth)}%
+              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
+                <StatCard 
+                  icon={DollarSign} 
+                  title="Tổng doanh thu" 
+                  value={formatCurrency(analytics!.totalRevenue)} 
+                  change={`${analytics!.revenueGrowth > 0 ? '+' : ''}${analytics!.revenueGrowth}% so với tháng trước`} 
+                />
+              </div>
+              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+                <StatCard 
+                  icon={Eye} 
+                  title="Lượt xem" 
+                  value={analytics!.totalViews.toLocaleString('en-US')} 
+                  change="Tổng lượt xem khóa học" 
+                />
+              </div>
+              <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
+                <StatCard 
+                  icon={Star} 
+                  title="Đánh giá trung bình" 
+                  value={`${analytics!.averageRating}★`} 
+                  change="Từ tất cả học viên" 
+                />
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground dark:text-white">{formatCurrency(analytics!.totalRevenue)}</p>
-            <p className="text-muted-foreground dark:text-slate-400 text-sm">Tổng doanh thu</p>
-          </div>
-
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                <Eye size={24} className="text-purple-600 dark:text-purple-400" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-foreground dark:text-white">{analytics!.totalViews.toLocaleString('en-US')}</p>
-            <p className="text-muted-foreground dark:text-slate-400 text-sm">Lượt xem</p>
-          </div>
-
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
-                <Star size={24} className="text-yellow-600 dark:text-yellow-400" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-foreground dark:text-white">{analytics!.averageRating}</p>
-            <p className="text-muted-foreground dark:text-slate-400 text-sm">Đánh giá trung bình</p>
           </div>
         </div>
 

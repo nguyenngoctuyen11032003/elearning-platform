@@ -195,66 +195,76 @@ const formatDate = (date?: string) => {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground dark:text-white">Quản lý chứng chỉ</h1>
-          <p className="text-muted-foreground dark:text-slate-400">Xem xét, duyệt và quản lý các mẫu chứng chỉ từ giảng viên</p>
-        </div>
+        {/* Header with Stats */}
+        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+          {/* Overlay for better readability */}
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
+          
+          <div className="relative z-10 space-y-8">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+              <div>
+                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Quản lý chứng chỉ</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">Xem xét, duyệt và quản lý các mẫu chứng chỉ từ giảng viên</p>
+              </div>
+            </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng mẫu</p>
-                <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalCertificates}</p>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng mẫu</p>
+                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalCertificates}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <Award size={20} className="text-blue-600 dark:text-blue-400" />
+                  </div>
+                </div>
               </div>
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <Award size={20} className="text-blue-600 dark:text-blue-400" />
+              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Chờ duyệt</p>
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingCertificates}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Chờ duyệt</p>
-                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingCertificates}</p>
+              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Đã duyệt</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{approvedCertificates}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
+                  </div>
+                </div>
               </div>
-              <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
+              <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Từ chối</p>
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{rejectedCertificates}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <XCircle size={20} className="text-red-600 dark:text-red-400" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Đã duyệt</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{approvedCertificates}</p>
-              </div>
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Từ chối</p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{rejectedCertificates}</p>
-              </div>
-              <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-                <XCircle size={20} className="text-red-600 dark:text-red-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Đã cấp</p>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{totalIssued}</p>
-              </div>
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                <Download size={20} className="text-purple-600 dark:text-purple-400" />
+              <div className="animate-slideUp" style={{ animationDelay: "0.65s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Đã cấp</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{totalIssued}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <Download size={20} className="text-purple-600 dark:text-purple-400" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

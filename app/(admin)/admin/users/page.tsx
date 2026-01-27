@@ -290,63 +290,71 @@ const handleUpdateUser = async (updatedData: any) => {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Quản lý người dùng</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Quản lý tất cả người dùng trong hệ thống</p>
-          </div>
-          <button
-            onClick={() => setIsAddUserOpen(true)}
-            className="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center gap-2 w-fit"
-          >
-            <Plus size={20} /> Thêm người dùng
-          </button>
-        </div>
+        {/* Header with Stats */}
+        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+          {/* Overlay for better readability */}
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
+          
+          <div className="relative z-10 space-y-8">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+              <div>
+                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Quản lý người dùng</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">Quản lý tất cả người dùng trong hệ thống</p>
+              </div>
+              <button
+                onClick={() => setIsAddUserOpen(true)}
+                className="flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
+              >
+                <Plus size={20} /> Thêm người dùng
+              </button>
+            </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng người dùng</p>
-                <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalUsers}</p>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng người dùng</p>
+                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalUsers}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <User size={20} className="text-blue-600 dark:text-blue-400" />
+                  </div>
+                </div>
               </div>
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <User size={20} className="text-blue-600 dark:text-blue-400" />
+              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Học viên</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{totalStudents}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <BookOpen size={20} className="text-green-600 dark:text-green-400" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Học viên</p>
-                <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalStudents}</p>
+              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Giảng viên</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{totalTeachers}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <Award size={20} className="text-purple-600 dark:text-purple-400" />
+                  </div>
+                </div>
               </div>
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <BookOpen size={20} className="text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Giảng viên</p>
-                <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalTeachers}</p>
-              </div>
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                <Award size={20} className="text-purple-600 dark:text-purple-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Đang hoạt động</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{activeUsers}</p>
-              </div>
-              <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                <Clock size={20} className="text-emerald-600 dark:text-emerald-400" />
+              <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
+                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                  <div>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Đang hoạt động</p>
+                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{activeUsers}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <Clock size={20} className="text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -393,11 +401,11 @@ const handleUpdateUser = async (updatedData: any) => {
         </div>
 
         {/* Users Table */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden">
+        <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp" style={{ animationDelay: "0.2s" }}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
+                <tr className="border-b border-border dark:border-slate-800 bg-white/50 dark:bg-slate-800/50">
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Người dùng</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Liên hệ</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Vai trò</th>
@@ -411,7 +419,7 @@ const handleUpdateUser = async (updatedData: any) => {
                 {filteredUsers.map((user) => (
                   <tr
                     key={user.id}
-                    className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
+                    className="border-b border-border dark:border-slate-800 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-300"
                   >
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
