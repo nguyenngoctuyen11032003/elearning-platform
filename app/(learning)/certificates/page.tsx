@@ -5,6 +5,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Download, Share2, Award, Calendar, User, FileText, CheckCircle, ExternalLink } from "lucide-react"
 import { PremiumCard } from "@/components/ui/premium-card"
+import { PageHero } from "@/components/ui/page-hero"
 
 interface Certificate {
   id: string
@@ -65,72 +66,72 @@ export default function CertificatesPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold text-foreground dark:text-white">Chứng chỉ của tôi</h1>
-        <p className="text-muted-foreground dark:text-slate-400 mt-1">
-          Tổng cộng {certificates.length} chứng chỉ đã đạt được
-        </p>
-      </motion.div>
-
-      {/* Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+      <PageHero
+        title="Chứng chỉ của tôi"
+        subtitle={`Tổng cộng ${certificates.length} chứng chỉ đã đạt được`}
+        bgImage="/image/bg_certificate.png"
       >
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Award size={20} className="text-primary" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
+            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                  <Award size={20} className="text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground dark:text-white">{certificates.length}</p>
+                  <p className="text-xs text-muted-foreground">Chứng chỉ</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">{certificates.length}</p>
-              <p className="text-xs text-muted-foreground">Chứng chỉ</p>
+          </div>
+          <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
+            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                  <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground dark:text-white">
+                    {certificates.filter(c => c.validityPeriod === "Vĩnh viễn").length}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Vĩnh viễn</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                  <Calendar size={20} className="text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground dark:text-white">
+                    {certificates.filter(c => c.validityPeriod !== "Vĩnh viễn").length}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Có thời hạn</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
+            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                  <FileText size={20} className="text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground dark:text-white">
+                    {Math.round(certificates.reduce((sum, c) => sum + c.score, 0) / certificates.length || 0)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">Điểm TB</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-500/10 rounded-lg">
-              <CheckCircle size={20} className="text-green-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">
-                {certificates.filter(c => c.validityPeriod === "Vĩnh viễn").length}
-              </p>
-              <p className="text-xs text-muted-foreground">Vĩnh viễn</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-500/10 rounded-lg">
-              <Calendar size={20} className="text-yellow-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">
-                {certificates.filter(c => c.validityPeriod !== "Vĩnh viễn").length}
-              </p>
-              <p className="text-xs text-muted-foreground">Có thời hạn</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-500/10 rounded-lg">
-              <FileText size={20} className="text-purple-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">
-                {Math.round(certificates.reduce((sum, c) => sum + c.score, 0) / certificates.length || 0)}%
-              </p>
-              <p className="text-xs text-muted-foreground">Điểm TB</p>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      </PageHero>
 
       {/* Certificates Grid */}
       <div className="grid md:grid-cols-2 gap-6">

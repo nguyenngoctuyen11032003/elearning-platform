@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
+import { PageHero } from "@/components/ui/page-hero"
 
 interface EnrolledCourse {
   id: string
@@ -99,51 +100,58 @@ export default function MyCoursesPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground dark:text-white">Khóa học của tôi</h1>
-        <p className="text-muted-foreground dark:text-slate-400">Quản lý và theo dõi tiến độ học tập</p>
-      </div>
-
-      {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng khóa học</p>
-              <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{stats.total}</p>
+      <PageHero
+        title="Khóa học của tôi"
+        subtitle="Quản lý và theo dõi tiến độ học tập"
+        bgImage="/image/bg_mycourses.png"
+      >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
+            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div>
+                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng khóa học</p>
+                <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{stats.total}</p>
+              </div>
+              <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                <BookOpen size={20} className="text-primary" />
+              </div>
             </div>
-            <BookOpen size={24} className="text-primary dark:text-accent opacity-50" />
+          </div>
+          <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
+            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div>
+                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Đang học</p>
+                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{stats.inProgress}</p>
+              </div>
+              <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
+              </div>
+            </div>
+          </div>
+          <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div>
+                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Hoàn thành</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{stats.completed}</p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </div>
+          <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
+            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div>
+                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Chưa bắt đầu</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{stats.notStarted}</p>
+              </div>
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                <BarChart3 size={20} className="text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
           </div>
         </div>
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Đang học</p>
-              <p className="text-2xl font-bold text-yellow-500 mt-1">{stats.inProgress}</p>
-            </div>
-            <Clock size={24} className="text-yellow-500 opacity-50" />
-          </div>
-        </div>
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Hoàn thành</p>
-              <p className="text-2xl font-bold text-green-500 mt-1">{stats.completed}</p>
-            </div>
-            <CheckCircle size={24} className="text-green-500 opacity-50" />
-          </div>
-        </div>
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Chưa bắt đầu</p>
-              <p className="text-2xl font-bold text-muted-foreground dark:text-slate-400 mt-1">{stats.notStarted}</p>
-            </div>
-            <BarChart3 size={24} className="text-muted-foreground opacity-50" />
-          </div>
-        </div>
-      </div>
+      </PageHero>
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-4">

@@ -1,6 +1,6 @@
 "use client"
 
-import { Users, BookOpen, DollarSign, Download, X } from "lucide-react"
+import { Users, BookOpen, DollarSign, Download, X, TrendingUp } from "lucide-react"
 import {
   LineChart,
   Line,
@@ -18,6 +18,7 @@ import {
 } from "recharts"
 import { useState } from "react"
 import { formatStudentCount } from "@/lib/format"
+import { StatCard } from "@/components/ui/stat-card"
 
 const revenueData = [
   { month: "Jan", revenue: 4000, teachers: 240, students: 400 },
@@ -150,75 +151,75 @@ export default function AdminReportsPage() {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Báo cáo & Phân tích</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Xem chi tiết hiệu suất nền tảng</p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {[
-              { value: "day", label: "Ngày" },
-              { value: "week", label: "Tuần" },
-              { value: "month", label: "Tháng" },
-              { value: "year", label: "Năm" },
-            ].map((period) => (
-              <button
-                key={period.value}
-                onClick={() => setFilterPeriod(period.value)}
-                className={`px-4 py-2 rounded-lg transition-smooth font-medium ${
-                  filterPeriod === period.value
-                    ? "bg-primary text-white"
-                    : "bg-secondary dark:bg-slate-800 text-foreground dark:text-white hover:bg-secondary/80"
-                }`}
-              >
-                {period.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[
-            { icon: DollarSign, label: "Tổng doanh thu", value: "₫2.5B", change: "+12.5%", color: "green" },
-            { icon: Users, label: "Tổng giáo viên", value: "350", change: "+8.2%", color: "purple" },
-            { icon: Users, label: "Tổng học viên", value: "5,234", change: "+15.3%", color: "blue" },
-            { icon: BookOpen, label: "Khóa học", value: "156", change: "+4.3%", color: "orange" },
-          ].map((metric, i) => (
-            <div
-              key={i}
-              className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">{metric.label}</p>
-                  <p className="text-2xl font-bold text-foreground dark:text-white mt-2">{metric.value}</p>
-                  <p className={`text-xs mt-1 ${
-                    metric.color === "green" ? "text-green-600 dark:text-green-400" :
-                    metric.color === "purple" ? "text-purple-600 dark:text-purple-400" :
-                    metric.color === "blue" ? "text-blue-600 dark:text-blue-400" :
-                    "text-orange-600 dark:text-orange-400"
-                  }`}>
-                    {metric.change} so với kỳ trước
-                  </p>
-                </div>
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  metric.color === "green" ? "bg-green-100 dark:bg-green-900/30" :
-                  metric.color === "purple" ? "bg-purple-100 dark:bg-purple-900/30" :
-                  metric.color === "blue" ? "bg-blue-100 dark:bg-blue-900/30" :
-                  "bg-orange-100 dark:bg-orange-900/30"
-                }`}>
-                  <metric.icon size={24} className={
-                    metric.color === "green" ? "text-green-600 dark:text-green-400" :
-                    metric.color === "purple" ? "text-purple-600 dark:text-purple-400" :
-                    metric.color === "blue" ? "text-blue-600 dark:text-blue-400" :
-                    "text-orange-600 dark:text-orange-400"
-                  } />
-                </div>
+        {/* Hero Section with Background */}
+        <div className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn" style={{ backgroundImage: "url('/image/bg_report.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+          {/* Overlay for better readability */}
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
+          
+          <div className="relative z-10 space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+              <div>
+                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Báo cáo & Phân tích</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">Xem chi tiết hiệu suất nền tảng</p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { value: "day", label: "Ngày" },
+                  { value: "week", label: "Tuần" },
+                  { value: "month", label: "Tháng" },
+                  { value: "year", label: "Năm" },
+                ].map((period) => (
+                  <button
+                    key={period.value}
+                    onClick={() => setFilterPeriod(period.value)}
+                    className={`px-4 py-2 rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
+                      filterPeriod === period.value
+                        ? "bg-white text-primary shadow-lg"
+                        : "bg-black/10 text-black dark:bg-white/20 dark:text-white hover:bg-black/30 dark:hover:bg-white/40"
+                    }`}
+                  >
+                    {period.label}
+                  </button>
+                ))}
               </div>
             </div>
-          ))}
+
+            {/* Key Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
+                <StatCard 
+                  icon={DollarSign} 
+                  title="Tổng doanh thu" 
+                  value="₫2.5B" 
+                  change="+12.5% so với kỳ trước" 
+                />
+              </div>
+              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
+                <StatCard 
+                  icon={Users} 
+                  title="Tổng giáo viên" 
+                  value="350" 
+                  change="+8.2% so với kỳ trước" 
+                />
+              </div>
+              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+                <StatCard 
+                  icon={TrendingUp} 
+                  title="Tổng học viên" 
+                  value="5,234" 
+                  change="+15.3% so với kỳ trước" 
+                />
+              </div>
+              <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
+                <StatCard 
+                  icon={BookOpen} 
+                  title="Khóa học" 
+                  value="156" 
+                  change="+4.3% so với kỳ trước" 
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Charts */}

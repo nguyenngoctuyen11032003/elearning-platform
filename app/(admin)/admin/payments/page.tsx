@@ -193,63 +193,81 @@ export default function AdminPaymentsPage() {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Quản lý thanh toán</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Theo dõi và quản lý các giao dịch thanh toán</p>
-          </div>
-          <button
-            onClick={() => setIsExportOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium transition-smooth hover:shadow-lg w-fit"
-          >
-            <Download size={20} /> Xuất báo cáo
-          </button>
-        </div>
+        {/* Hero Section with Background */}
+        <div className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn" style={{ backgroundImage: "url('/image/bg_payment1.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+          {/* Overlay for better readability */}
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
+          
+          <div className="relative z-10 space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+              <div>
+                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Quản lý thanh toán</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">Theo dõi và quản lý các giao dịch thanh toán</p>
+              </div>
+              <button
+                onClick={() => setIsExportOpen(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-lg font-medium transition-all duration-300 hover:shadow-lg w-fit backdrop-blur-sm"
+              >
+                <Download size={20} /> Xuất báo cáo
+              </button>
+            </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng doanh thu</p>
-                <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">₫{formatNumber(totalRevenue)}</p>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng doanh thu</p>
+                      <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">₫{formatNumber(totalRevenue)}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                      <DollarSign size={20} className="text-green-600 dark:text-green-400" />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <DollarSign size={20} className="text-green-600 dark:text-green-400" />
+              
+              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Đang chờ xử lý</p>
+                      <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">₫{formatNumber(pendingAmount)}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                      <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Đang chờ xử lý</p>
-                <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">₫{formatNumber(pendingAmount)}</p>
+              
+              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Giao dịch thành công</p>
+                      <p className="text-xl font-bold text-foreground dark:text-white mt-1">{successCount}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                      <TrendingUp size={20} className="text-blue-600 dark:text-blue-400" />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Giao dịch thành công</p>
-                <p className="text-xl font-bold text-foreground dark:text-white mt-1">{successCount}</p>
-              </div>
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <TrendingUp size={20} className="text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng giao dịch</p>
-                <p className="text-xl font-bold text-foreground dark:text-white mt-1">{totalTransactions}</p>
-              </div>
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                <CreditCard size={20} className="text-purple-600 dark:text-purple-400" />
+              
+              <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng giao dịch</p>
+                      <p className="text-xl font-bold text-foreground dark:text-white mt-1">{totalTransactions}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                      <CreditCard size={20} className="text-purple-600 dark:text-purple-400" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

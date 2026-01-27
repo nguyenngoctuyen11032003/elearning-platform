@@ -158,39 +158,67 @@ export default function TeacherEarningsPage() {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        {/* Header with Filter */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Doanh thu</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Theo dõi thu nhập từ các khóa học của bạn</p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {[
-              { value: "day", label: "Ngày" },
-              { value: "week", label: "Tuần" },
-              { value: "month", label: "Tháng" },
-              { value: "year", label: "Năm" },
-            ].map((period) => (
-              <button
-                key={period.value}
-                onClick={() => setFilterPeriod(period.value)}
-                className={`px-4 py-2 rounded-lg transition-smooth font-medium ${
-                  filterPeriod === period.value
-                    ? "bg-primary text-white"
-                    : "bg-secondary dark:bg-slate-800 text-foreground dark:text-white hover:bg-secondary/80"
-                }`}
-              >
-                {period.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Hero Section with Background */}
+        <div className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn" style={{ backgroundImage: "url('/image/bg_payment.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}>
+          {/* Overlay for better readability */}
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
+          
+          <div className="relative z-10 space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+              <div>
+                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Doanh thu</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">Theo dõi thu nhập từ các khóa học của bạn</p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { value: "day", label: "Ngày" },
+                  { value: "week", label: "Tuần" },
+                  { value: "month", label: "Tháng" },
+                  { value: "year", label: "Năm" },
+                ].map((period) => (
+                  <button
+                    key={period.value}
+                    onClick={() => setFilterPeriod(period.value)}
+                    className={`px-4 py-2 rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
+                      filterPeriod === period.value
+                        ? "bg-white text-primary shadow-lg"
+                        : "bg-black/10 text-black dark:bg-white/20 dark:text-white hover:bg-black/30 dark:hover:bg-white/40"
+                    }`}
+                  >
+                    {period.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatCard icon={TrendingUp} title="Tổng doanh thu" value={`₫${formatPrice(totalRevenue)}`} change="+12.5% so với tháng trước" />
-          <StatCard icon={DollarSign} title="Doanh thu tháng này" value={`₫${formatPrice(thisMonthRevenue)}`} change="+8.2%" />
-          <StatCard icon={Users} title="Học viên mới tháng này" value={newStudentsCount.toString()} change="+5.1%" />
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
+                <StatCard 
+                  icon={TrendingUp} 
+                  title="Tổng doanh thu" 
+                  value={`₫${formatPrice(totalRevenue)}`} 
+                  change="+12.5% so với tháng trước" 
+                />
+              </div>
+              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
+                <StatCard 
+                  icon={DollarSign} 
+                  title="Doanh thu tháng này" 
+                  value={`₫${formatPrice(thisMonthRevenue)}`} 
+                  change="+8.2% so với tháng trước" 
+                />
+              </div>
+              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+                <StatCard 
+                  icon={Users} 
+                  title="Học viên mới tháng này" 
+                  value={newStudentsCount.toString()} 
+                  change="+5.1% so với tháng trước" 
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Chart */}

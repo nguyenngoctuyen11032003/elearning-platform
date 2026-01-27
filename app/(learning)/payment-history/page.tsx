@@ -21,6 +21,7 @@ import {
   Package
 } from "lucide-react"
 import Link from "next/link"
+import { PageHero } from "@/components/ui/page-hero"
 
 interface PaymentHistory {
   id: string
@@ -284,82 +285,47 @@ export default function PaymentHistoryPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="w-full space-y-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-primary via-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-2xl"
+        <PageHero
+          title="Lịch sử thanh toán"
+          subtitle="Quản lý các giao dịch mua khóa học của bạn"
+          bgImage="/image/bg_payment.jpg"
         >
-          <div className="flex items-center gap-4 mb-2">
-            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-              <CreditCard size={32} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
+              <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-slate-300">Tổng chi tiêu</p>
+                  <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{formatCurrency(totalSpent)}</p>
+                </div>
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                  <DollarSign size={20} className="text-green-600 dark:text-green-400" />
+                </div>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">Lịch sử thanh toán</h1>
-              <p className="text-white/80">Quản lý các giao dịch mua khóa học của bạn</p>
+            <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
+              <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-slate-300">Khóa học đã mua</p>
+                  <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalCourses}</p>
+                </div>
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                  <Package size={20} className="text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+            </div>
+            <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+              <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-slate-300">Đang chờ xử lý</p>
+                  <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{pendingPayments}</p>
+                </div>
+                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                  <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
+                </div>
+              </div>
             </div>
           </div>
-        </motion.div>
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-800"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
-                <DollarSign className="text-green-600 dark:text-green-400" size={24} />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tổng chi tiêu</p>
-                <p className="text-2xl font-bold text-foreground dark:text-white">
-                  {formatCurrency(totalSpent)}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-800"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-                <Package className="text-blue-600 dark:text-blue-400" size={24} />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Khóa học đã mua</p>
-                <p className="text-2xl font-bold text-foreground dark:text-white">
-                  {totalCourses}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-800"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl">
-                <Clock className="text-yellow-600 dark:text-yellow-400" size={24} />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Đang chờ xử lý</p>
-                <p className="text-2xl font-bold text-foreground dark:text-white">
-                  {pendingPayments}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
+        </PageHero>
 
         {/* Filters */}
         <motion.div
