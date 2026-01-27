@@ -265,7 +265,7 @@ export default function TeacherCertificatesPage() {
           {filteredTemplates.map((template) => (
             <div
               key={template.id}
-              className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow"
+              className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-visible hover:shadow-lg transition-shadow"
             >
               {/* Certificate Preview */}
               <div className="relative h-40 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
@@ -330,7 +330,7 @@ export default function TeacherCertificatesPage() {
                       <MoreVertical size={18} className="text-muted-foreground" />
                     </button>
                     {openMenu === template.id && (
-                      <div className="absolute right-0 mt-2 w-48 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg z-10">
+                      <div className="absolute right-0 bottom-full mb-2 w-48 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg z-50">
                         {template.status !== "approved" && (
                           <button
                             onClick={() => handleEdit(template.id)}
