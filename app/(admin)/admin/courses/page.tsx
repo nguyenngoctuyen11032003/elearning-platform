@@ -230,7 +230,7 @@ export default function AdminCoursesPage() {
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
         {/* Header with Stats */}
-        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/bg_mycourses.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/Bg_course1.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
           <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
           
