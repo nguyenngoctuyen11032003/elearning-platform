@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { Legend } from "recharts"
 import {
   TrendingUp,
   BookOpen,
@@ -18,6 +19,15 @@ import {
   ChevronRight
 } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart"
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid } from "recharts"
+import { PageHero } from "@/components/ui/page-hero"
 
 export default function ProgressPage() {
   const { user } = useAuth()
@@ -75,88 +85,79 @@ export default function ProgressPage() {
   const targetHours = weeklyProgress.reduce((sum, day) => sum + day.target, 0)
   const maxHours = Math.max(...weeklyProgress.map(d => d.hours))
 
+  const chartData = weeklyProgress.map((d) => ({
+    day: d.day,
+    hours: d.hours,
+    target: d.target,
+  }))
+
+  const chartConfig = {
+    hours: { label: "Giờ học", color: "#1E90FF" },
+    target: { label: "Mục tiêu", color: "#ef4444" },
+  }
+
+
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold text-foreground dark:text-white">Tiến độ học tập</h1>
-        <p className="text-muted-foreground dark:text-slate-400 mt-1">
-          Theo dõi và phân tích quá trình học của bạn
-        </p>
-      </motion.div>
-
-      {/* Overview Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+      <PageHero
+        title="Tiến độ học tập"
+        subtitle="Theo dõi và phân tích quá trình học của bạn"
+        bgImage="/image/bg_progress.png "
       >
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
-              <Clock className="text-white" size={20} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">{totalHours}h</p>
-              <p className="text-xs text-muted-foreground dark:text-slate-400">Giờ học tuần này</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
+            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div>
+                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Giờ học tuần này</p>
+                <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalHours}h</p>
+              </div>
+              <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                <Clock size={20} className="text-primary" />
+              </div>
             </div>
           </div>
-          <div className="h-1.5 bg-secondary dark:bg-slate-800 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-blue-500 rounded-full"
-              style={{ width: `${Math.min((totalHours / targetHours) * 100, 100)}%` }}
-            />
+          <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
+            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div>
+                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Bài học hoàn thành</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">63</p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">Mục tiêu: {targetHours}h</p>
+          <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
+            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div>
+                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Ngày liên tiếp</p>
+                <p className="text-2xl font-bold text-orange-500 dark:text-orange-400 mt-1">7</p>
+              </div>
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                <Flame size={20} className="text-orange-500 dark:text-orange-400" />
+              </div>
+            </div>
+          </div>
+          <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
+            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+              <div>
+                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Chứng chỉ đạt được</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">3</p>
+              </div>
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                <Award size={20} className="text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+          </div>
         </div>
+      </PageHero>
 
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
-              <CheckCircle className="text-white" size={20} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">63</p>
-              <p className="text-xs text-muted-foreground dark:text-slate-400">Bài học hoàn thành</p>
-            </div>
-          </div>
-          <p className="text-xs text-green-500 mt-2">+12 bài tuần này</p>
-        </div>
-
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
-              <Flame className="text-white" size={20} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">7</p>
-              <p className="text-xs text-muted-foreground dark:text-slate-400">Ngày liên tiếp</p>
-            </div>
-          </div>
-          <p className="text-xs text-orange-500 mt-2">Kỷ lục: 14 ngày</p>
-        </div>
-
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center">
-              <Award className="text-white" size={20} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">3</p>
-              <p className="text-xs text-muted-foreground dark:text-slate-400">Chứng chỉ đạt được</p>
-            </div>
-          </div>
-          <p className="text-xs text-purple-500 mt-2">1 đang chờ</p>
-        </div>
-      </motion.div>
-
-      {/* Weekly Activity Chart */}
+      {/* Weekly Activity Chart (Line + Column) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6"
+        className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-l p-3"
       >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-foreground dark:text-white">Hoạt động trong tuần</h2>
@@ -167,26 +168,23 @@ export default function ProgressPage() {
           </select>
         </div>
         
-        <div className="flex items-end justify-between gap-2 h-48">
-          {weeklyProgress.map((day, idx) => (
-            <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-              <div className="w-full flex flex-col items-center justify-end h-40">
-                <div 
-                  className={`w-full max-w-[40px] rounded-t-lg transition-all ${
-                    day.hours >= day.target 
-                      ? 'bg-gradient-to-t from-green-500 to-emerald-400' 
-                      : 'bg-gradient-to-t from-primary to-accent'
-                  }`}
-                  style={{ height: `${(day.hours / maxHours) * 100}%` }}
-                />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-semibold text-foreground dark:text-white">{day.hours}h</p>
-                <p className="text-xs text-muted-foreground dark:text-slate-400">{day.day}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <ChartContainer config={chartConfig} className=" ml-40 h-[460px] rounded-xl overflow-hidden">
+          <ComposedChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="day"
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 12 }} />
+            <YAxis tickLine={false}
+              axisLine={false}
+              allowDecimals={false}
+              tick={{ fontSize: 12 }}/>
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Legend />
+            <Bar dataKey="hours" name="Giờ học" fill="var(--color-hours)" radius={[20, 20, 0, 0]}   barSize={65}  />
+            <Line type="monotone" dataKey="target" name="Mục tiêu" stroke="#ef4444" strokeWidth={5} dot={{ r: 5 }} />
+          </ComposedChart>
+        </ChartContainer>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
