@@ -133,7 +133,8 @@ const fetchUsers = async () => {
     return
   }
 
-  const res = await fetch("http://localhost:5001/api/users", {
+  // Lấy tất cả users - set limit=1000 để không bị pagination
+  const res = await fetch("http://localhost:5001/api/users?limit=1000", {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -146,6 +147,7 @@ const fetchUsers = async () => {
   }
 
   const result = await res.json()
+  console.log("📊 Total users fetched:", result.data?.data?.length || 0)
   setUserList(result.data?.data ?? [])
 }
   useEffect(() => {
@@ -329,13 +331,14 @@ const handleUpdateUser = async (updatedData: any) => {
   const totalUsers = userList.length
   const totalStudents = userList.filter((u) => u.role === "student").length
   const totalTeachers = userList.filter((u) => u.role === "teacher").length
+  const totalAdmins = userList.filter((u) => u.role === "admin").length
   const activeUsers = userList.filter((u) => u.status === "active").length
 
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
         {/* Header with Stats */}
-        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/bg_login.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
           <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
           
@@ -392,11 +395,11 @@ const handleUpdateUser = async (updatedData: any) => {
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Đang hoạt động</p>
-                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{activeUsers}</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Quản trị viên</p>
+                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">{totalAdmins}</p>
                   </div>
-                  <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <Clock size={20} className="text-emerald-600 dark:text-emerald-400" />
+                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <Users size={20} className="text-orange-600 dark:text-orange-400" />
                   </div>
                 </div>
               </div>
@@ -492,8 +495,19 @@ const handleUpdateUser = async (updatedData: any) => {
                   >
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold">
-                          {user.name.charAt(0)}
+                        {user.avatar ? (
+                          <img
+                            src={user.avatar}
+                            alt={user.name}
+                            className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                            }}
+                          />
+                        ) : null}
+                        <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold ${user.avatar ? 'hidden' : ''}`}>
+                          {user.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="text-foreground dark:text-white font-medium">{user.name}</p>
