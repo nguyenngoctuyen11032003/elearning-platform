@@ -318,11 +318,11 @@ export default function CheckoutPage() {
                       <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 flex flex-col items-center">
                         <div className="mb-4 text-center">
                           <p className="text-sm text-muted-foreground dark:text-slate-400 mb-1">Thanh toán cho giảng viên</p>
-                          <p className="text-lg font-bold text-foreground dark:text-white">{selectedCourse.teacher}</p>
+                          <p className="text-lg font-bold text-foreground dark:text-white">{selectedCourse?.teacher}</p>
                         </div>
                         
                         <div className="w-72 h-72 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 rounded-2xl flex items-center justify-center mb-4 p-4 border-4 border-primary/20 dark:border-accent/20">
-                          {selectedCourse.teacherQR ? (
+                          {selectedCourse?.teacherQR ? (
                             <img
                               src={selectedCourse.teacherQR}
                               alt={`QR ${selectedCourse.teacher}`}
@@ -340,14 +340,14 @@ export default function CheckoutPage() {
                         
                         <div className="text-center w-full">
                           <p className="text-lg font-bold text-foreground dark:text-white mb-1">
-                            ₫{formatPrice(selectedCourse.price)}
+                            ₫{selectedCourse ? formatPrice(selectedCourse.price) : ""}
                           </p>
                           <p className="text-sm text-muted-foreground dark:text-slate-400">
                             Mã GD: #{Math.random().toString(36).substr(2, 9).toUpperCase()}
                           </p>
                           <div className="mt-4 pt-4 border-t border-border dark:border-slate-700">
                             <p className="text-xs text-muted-foreground dark:text-slate-400">
-                              {selectedCourse.title}
+                              {selectedCourse?.title}
                             </p>
                           </div>
                         </div>

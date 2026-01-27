@@ -164,7 +164,8 @@ export default function AssignmentsPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+        <Select value={selectedCourse?? ""}
+         onValueChange={(v) => setSelectedCourse("null")}>
           <SelectTrigger className="w-full sm:w-[240px]">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder="Lọc theo khóa học" />
@@ -179,7 +180,7 @@ export default function AssignmentsPage() {
           </SelectContent>
         </Select>
 
-        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+        <Select value={sortBy?? ""} onValueChange={(v) => setSortBy(v as SortOption)}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <Calendar className="h-4 w-4 mr-2" />
             <SelectValue placeholder="Sắp xếp theo" />

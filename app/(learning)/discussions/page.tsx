@@ -369,7 +369,8 @@ export default function DiscussionsPage() {
             className="pl-9"
           />
         </div>
-        <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+        <Select value={selectedCourse?? ""}
+         onValueChange={(v) => setSelectedCourse("null")}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder="Lọc theo khóa học" />
@@ -384,7 +385,8 @@ export default function DiscussionsPage() {
           </SelectContent>
         </Select>
         {selectedCourse !== 'all' && lessons.length > 0 && (
-          <Select value={selectedLesson} onValueChange={setSelectedLesson}>
+          <Select value={selectedLesson?? ""}
+           onValueChange={(v) => setSelectedLesson("")}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Lọc theo bài học" />
             </SelectTrigger>

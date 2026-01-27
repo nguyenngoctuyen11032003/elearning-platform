@@ -358,7 +358,10 @@ export default function TeacherAssignmentsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="course">Khóa học *</Label>
-                  <Select value={formData.courseId} onValueChange={handleCourseChange}>
+                  <Select value={formData.courseId?? ""}
+                   onValueChange={(v) =>
+                     setFormData({ ...formData, courseId: v })
+                    }>
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn khóa học" />
                     </SelectTrigger>

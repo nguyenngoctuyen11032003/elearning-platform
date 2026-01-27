@@ -1,7 +1,8 @@
 "use client"
-
-import { useState } from "react"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+import { useState, useEffect } from "react"
 import { Plus, Edit, Trash2, Save, X, Search, BookOpen, TrendingUp, FolderOpen, MoreVertical } from "lucide-react"
+import { authFetch } from "@/lib/authfetch"
 
 interface Category {
   id: string
@@ -14,16 +15,16 @@ interface Category {
   image?: string
   createdAt: string
 }
-
 export default function AdminCategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([
-    { id: "1", name: "Lập trình", description: "Các khóa học về lập trình web, mobile, và phần mềm", courses: 45, students: 2340, color: "#2563eb", icon: "💻", createdAt: "2024-01-15" },
-    { id: "2", name: "Thiết kế", description: "UI/UX Design, Graphic Design, Motion Graphics", courses: 32, students: 1890, color: "#06b6d4", icon: "🎨", createdAt: "2024-01-20" },
-    { id: "3", name: "Kinh doanh", description: "Marketing, Quản lý, Khởi nghiệp", courses: 28, students: 1560, color: "#8b5cf6", icon: "📈", createdAt: "2024-02-01" },
-    { id: "4", name: "AI & Machine Learning", description: "Trí tuệ nhân tạo, Deep Learning, Data Science", courses: 18, students: 980, color: "#ec4899", icon: "🤖", createdAt: "2024-02-15" },
-    { id: "5", name: "Ngoại ngữ", description: "Tiếng Anh, Tiếng Nhật, Tiếng Hàn", courses: 22, students: 1450, color: "#f59e0b", icon: "🌍", createdAt: "2024-03-01" },
-    { id: "6", name: "Phát triển cá nhân", description: "Kỹ năng mềm, Leadership, Productivity", courses: 15, students: 890, color: "#10b981", icon: "🚀", createdAt: "2024-03-15" },
-  ])
+  // const [categories, setCategories] = useState<Category[]>([
+  //   { id: "1", name: "Lập trình", description: "Các khóa học về lập trình web, mobile, và phần mềm", courses: 45, students: 2340, color: "#2563eb", icon: "💻", createdAt: "2024-01-15" },
+  //   { id: "2", name: "Thiết kế", description: "UI/UX Design, Graphic Design, Motion Graphics", courses: 32, students: 1890, color: "#06b6d4", icon: "🎨", createdAt: "2024-01-20" },
+  //   { id: "3", name: "Kinh doanh", description: "Marketing, Quản lý, Khởi nghiệp", courses: 28, students: 1560, color: "#8b5cf6", icon: "📈", createdAt: "2024-02-01" },
+  //   { id: "4", name: "AI & Machine Learning", description: "Trí tuệ nhân tạo, Deep Learning, Data Science", courses: 18, students: 980, color: "#ec4899", icon: "🤖", createdAt: "2024-02-15" },
+  //   { id: "5", name: "Ngoại ngữ", description: "Tiếng Anh, Tiếng Nhật, Tiếng Hàn", courses: 22, students: 1450, color: "#f59e0b", icon: "🌍", createdAt: "2024-03-01" },
+  //   { id: "6", name: "Phát triển cá nhân", description: "Kỹ năng mềm, Leadership, Productivity", courses: 15, students: 890, color: "#10b981", icon: "🚀", createdAt: "2024-03-15" },
+  // ])
+  const [categories, setCategories] = useState<Category[]>([])
 
   const [searchQuery, setSearchQuery] = useState("")
   const [isAdding, setIsAdding] = useState(false)
@@ -42,55 +43,79 @@ export default function AdminCategoriesPage() {
   })
   const [openMenu, setOpenMenu] = useState<string | null>(null)
 
-  const filteredCategories = categories.filter(
-    (category) =>
-      category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      category.description.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const q = searchQuery.toLowerCase()
 
-const handleAddCategory = () => {
-  if (newCategory.name.trim()) {
-    setCategories([
-      ...categories,
-      {
-        id: Date.now().toString(),
-        name: newCategory.name,
-        description: newCategory.description,
-        courses: 0,
-        students: 0,
-        color: newCategory.color,
-        icon: newCategory.icon || undefined, // 👈 optional
-        image: newCategory.image,
-        createdAt: new Date().toISOString().split("T")[0],
-      },
-    ])
-    setNewCategory({ name: "", description: "", color: "#2563eb", icon: "" , image: ""})
-    setIsAdding(false)
+const filteredCategories = categories.filter((category) =>
+  `${category.name ?? ""} ${category.description ?? ""}`
+    .toLowerCase()
+    .includes(q)
+)
+
+const handleAddCategory = async () => {
+  if (!newCategory.name.trim()) return
+
+  // ❌ CHƯA CHỌN ICON VÀ ẢNH
+  if (!newCategory.icon && !newCategory.image) {
+    alert("Vui lòng chọn icon hoặc ảnh cho danh mục")
+    return
   }
+
+  const res = await authFetch("/api/categories", {
+    method: "POST",
+    body: JSON.stringify({
+      name: newCategory.name,
+      description: newCategory.description,
+      icon: newCategory.icon || null,
+      image: newCategory.image || null,
+    }),
+  })
+
+  if (!res.ok) return
+
+  await fetchCategories()
+  setIsAdding(false)
 }
 
-const handleUpdateCategory = (
+
+const handleUpdateCategory = async (
   id: string,
   updatedName: string,
   updatedDescription: string,
   updatedColor: string,
   updatedIcon?: string
 ) => {
-  setCategories(
-    categories.map((c) =>
-      c.id === id
-        ? {
-            ...c,
-            name: updatedName,
-            description: updatedDescription,
-            color: updatedColor,
-            icon: updatedIcon, // có thể undefined
-          }
-        : c
-    )
+  const current = categories.find(c => c.id === id)
+
+  if (!current) return
+
+  // ❌ CHƯA CHỌN ICON & ẢNH
+  if (!current.icon && !current.image) {
+    alert("Danh mục cần có icon hoặc ảnh")
+    return
+  }
+
+  const res = await authFetch(`/api/categories/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      name: updatedName,
+      description: updatedDescription,
+      color: updatedColor,
+      icon: updatedIcon || null,
+      image: current.image || null
+    }),
+  })
+
+  if (!res.ok) return
+
+  const updated = await res.json()
+
+  setCategories(prev =>
+    prev.map(c => (c.id === id ? { ...c, ...updated } : c))
   )
+
   setEditingId(null)
 }
+
 
   const handleDelete = (id: string) => {
     const category = categories.find(c => c.id === id)
@@ -104,17 +129,50 @@ const handleUpdateCategory = (
     setOpenMenu(null)
   }
 
-  const confirmDelete = () => {
-    setCategories(categories.filter((c) => c.id !== deleteModal.categoryId))
-    setDeleteModal({ isOpen: false, categoryId: "", categoryName: "" })
+const confirmDelete = async () => {
+  const res = await authFetch(`/api/categories/${deleteModal.categoryId}`, {
+    method: "DELETE",
+  })
+
+  if (!res.ok) {
+    console.error("Delete failed")
+    return
   }
+
+  setCategories(prev =>
+    prev.filter(c => c.id !== deleteModal.categoryId)
+  )
+
+  setDeleteModal({ isOpen: false, categoryId: "", categoryName: "" })
+}
+
 
   // Stats
   const totalCategories = categories.length
   const totalCourses = categories.reduce((sum, c) => sum + c.courses, 0)
-  const totalStudents = categories.reduce((sum, c) => sum + c.students, 0)
+  const totalStudents = categories.reduce(
+  (sum, c) => sum + (c.students ?? 0),
+  0
+)
+
 
   const iconOptions = ["📚", "💻", "🎨", "📈", "🤖", "🌍", "🚀", "🎯", "💡", "🔬", "📱", "🎮"]
+const fetchCategories = async () => {
+  const res = await authFetch("/api/categories")
+  const json = await res.json()
+
+  setCategories(
+    (json.data ?? []).map((c: any) => ({
+      ...c,
+      courses: c.courses?.length ?? 0,
+      students: c.students ?? 0,
+    }))
+  )
+}
+
+useEffect(() => {
+  fetchCategories()
+}, [])
 
   return (
     <div className="min-h-screen w-full">
@@ -226,8 +284,8 @@ const handleUpdateCategory = (
                   >
                     <option value="">— Không chọn icon —</option>
                     {iconOptions.map((icon) => (
-                      <option key={icon} value={icon}>{icon}</option>
-                    ))}
+                    <option key={icon} value={icon}>{icon}</option>
+                  ))}
                   </select>
                 </div>
                 <div>
@@ -244,19 +302,19 @@ const handleUpdateCategory = (
 
                         const reader = new FileReader()
                         reader.onload = () => {
-                          setNewCategory({
-                            ...newCategory,
+                          setNewCategory(prev => ({
+                            ...prev,
                             image: reader.result as string,
-                            icon: "" // 👈 xoá icon nếu upload ảnh
-                          })
+                            icon: "" // 👈 chọn ảnh thì xoá icon
+                          }))
                         }
                         reader.readAsDataURL(file)
                       }}
                     />
-
                     {newCategory.image && (
                       <img
                         src={newCategory.image}
+                        alt={newCategory.name}
                         className="mt-3 w-20 h-20 rounded-xl object-cover border"
                       />
                     )}
@@ -322,18 +380,67 @@ const handleUpdateCategory = (
                         setCategories(categories.map((c) => (c.id === category.id ? { ...c, color: e.target.value } : c)))
                       }}
                       className="w-12 h-10 rounded-lg cursor-pointer border border-border"
+                      
                     />
                     <select
-                      value={category.icon}
-                      onChange={(e) => {
-                        setCategories(categories.map((c) => (c.id === category.id ? { ...c, icon: e.target.value } : c)))
-                      }}
+                    value={category.icon || ""}
+                    onChange={(e) => {
+                      setCategories(categories.map((c) =>
+                        c.id === category.id
+                          ? {
+                              ...c,
+                              icon: e.target.value,
+                              image: undefined // 👈 chọn icon thì xoá ảnh
+                            }
+                          : c
+                      ))
+                    }}
                       className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-2 border border-border dark:border-slate-800 text-xl"
                     >
+                      
+                       <option value="">— Không chọn icon —</option>
                       {iconOptions.map((icon) => (
                         <option key={icon} value={icon}>{icon}</option>
                       ))}
                     </select>
+                    <div className="space-y-2">
+                    <label className="block text-sm font-semibold">
+                      Ảnh danh mục
+                    </label>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+
+                        const reader = new FileReader()
+                        reader.onload = () => {
+                          setCategories(prev =>
+                            prev.map(c =>
+                              c.id === category.id
+                                ? {
+                                    ...c,
+                                    image: reader.result as string,
+                                    icon: "" // chọn ảnh thì xoá icon
+                                  }
+                                : c
+                            )
+                          )
+                        }
+                        reader.readAsDataURL(file)
+                      }}
+                    />
+
+                    {category.image && (
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-20 h-20 rounded-xl object-cover border"
+                      />
+                    )}
+                  </div>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -361,10 +468,18 @@ const handleUpdateCategory = (
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl"
+                          className="w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center"
                           style={{ backgroundColor: `${category.color}20` }}
                         >
-                          {category.icon}
+                          {category.image ? (
+                            <img
+                              src={category.image}
+                              alt={category.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-3xl">{category.icon}</span>
+                          )}
                         </div>
                         <div>
                           <h3 className="text-foreground dark:text-white font-bold text-lg">{category.name}</h3>
@@ -410,7 +525,7 @@ const handleUpdateCategory = (
                         <p className="text-muted-foreground dark:text-slate-400 text-xs">Khóa học</p>
                       </div>
                       <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3 text-center">
-                        <p className="text-foreground dark:text-white font-bold">{category.students.toLocaleString('en-US')}</p>
+                        <p className="text-foreground dark:text-white font-bold">{(category.students ?? 0).toLocaleString('en-US')}</p>
                         <p className="text-muted-foreground dark:text-slate-400 text-xs">Học viên</p>
                       </div>
                     </div>

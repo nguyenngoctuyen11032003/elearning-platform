@@ -125,10 +125,10 @@ export default function AdminUsersPage() {
 
   // ================= FETCH USERS =================
 const fetchUsers = async () => {
-  const token = localStorage.getItem("auth_token")
+  const token = localStorage.getItem("auth_token") // ✅ SỬA Ở ĐÂY
 
   if (!token) {
-    console.error("No auth token found")
+    console.error("No access token found")
     return
   }
 
@@ -212,6 +212,7 @@ const executeAction = async () => {
   if (!userId) return
 
   const token = localStorage.getItem("auth_token")
+
   if (!token) {
     alert("Chưa đăng nhập")
     return
