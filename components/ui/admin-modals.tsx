@@ -55,14 +55,55 @@ export function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     role: "student",
     password: "",
+    confirmPassword: "",
   })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Tên không được để trống"
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email không được để trống"
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Email không hợp lệ"
+    }
+
+    if (formData.phone && !/^[0-9]{10,11}$/.test(formData.phone)) {
+      newErrors.phone = "Số điện thoại không hợp lệ (10-11 số)"
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Mật khẩu không được để trống"
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Mật khẩu phải ít nhất 6 ký tự"
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Mật khẩu xác nhận không khớp"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onAdd(formData)
-    setFormData({ name: "", email: "", role: "student", password: "" })
+    
+    if (!validateForm()) {
+      return
+    }
+
+    const { confirmPassword, ...userData } = formData
+    onAdd(userData)
+    setFormData({ name: "", email: "", phone: "", role: "student", password: "", confirmPassword: "" })
+    setErrors({})
     onClose()
   }
 
@@ -87,10 +128,29 @@ export function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
             type="email"
             required
             value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, email: e.target.value })
+              setErrors({ ...errors, email: "" })
+            }}
             className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
             placeholder="Nhập email"
           />
+          {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+        </div>
+
+        <div>
+          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Số điện thoại</label>
+          <input
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => {
+              setFormData({ ...formData, phone: e.target.value })
+              setErrors({ ...errors, phone: "" })
+            }}
+            className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+            placeholder="Nhập số điện thoại (tùy chọn)"
+          />
+          {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
         </div>
 
         <div>
@@ -112,10 +172,30 @@ export function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
             type="password"
             required
             value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, password: e.target.value })
+              setErrors({ ...errors, password: "" })
+            }}
             className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder="Nhập mật khẩu"
+            placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
           />
+          {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+        </div>
+
+        <div>
+          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Xác nhận mật khẩu</label>
+          <input
+            type="password"
+            required
+            value={formData.confirmPassword}
+            onChange={(e) => {
+              setFormData({ ...formData, confirmPassword: e.target.value })
+              setErrors({ ...errors, confirmPassword: "" })
+            }}
+            className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+            placeholder="Nhập lại mật khẩu"
+          />
+          {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
         </div>
 
         <div className="flex gap-3 pt-4">

@@ -16,6 +16,7 @@ import {
   Award,
   Clock,
   User,
+  Users,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { AddUserModal, ConfirmDialog } from "@/components/ui/admin-modals"
@@ -107,8 +108,8 @@ import type { UserData, UpdateUserData } from "@/app/types/user"
 
 export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedRole, setSelectedRole] = useState<"all" | "student" | "teacher">("all")
-  const [selectedStatus, setSelectedStatus] = useState<"all" | "active" | "inactive">("all")
+  const [selectedRole, setSelectedRole] = useState<"all" | "student" | "teacher" | "admin">("all")
+  const [selectedStatus, setSelectedStatus] = useState<"all" | "active" | "inactive" | "pending">("all")
   const [openMenu, setOpenMenu] = useState<number | null>(null)
   const [isAddUserOpen, setIsAddUserOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
@@ -179,7 +180,7 @@ const handleAddUser = async (newUser: any) => {
       },
       body: JSON.stringify({
         email: newUser.email,
-        password: newUser.password || "123456", // tạm cho admin tạo
+        password: newUser.password || "123456",
         name: newUser.name,
         phone: newUser.phone,
         role: newUser.role || "student",
@@ -189,13 +190,13 @@ const handleAddUser = async (newUser: any) => {
     if (!res.ok) {
       const err = await res.json()
       console.error(err)
-      alert("Thêm người dùng thất bại")
+      alert(err.message || "Thêm người dùng thất bại")
       return
     }
 
-    alert("Thêm người dùng thành công")
+    alert("Đã thêm người dùng. Email xác thực đã được gửi tới người dùng.")
     setIsAddUserOpen(false)
-    fetchUsers()
+    await fetchUsers()
   } catch (err) {
     console.error(err)
     alert("Thêm người dùng thất bại")
@@ -239,10 +240,35 @@ const executeAction = async () => {
 
       alert("Đã xóa người dùng")
       await fetchUsers()
+    } else if (action === "lock" || action === "unlock") {
+      // Khóa hoặc mở khóa tài khoản
+      const newStatus = action === "lock" ? "inactive" : "active"
+      
+      const res = await fetch(
+        `http://localhost:5001/api/users/${userId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status: newStatus }),
+        }
+      )
+
+      if (!res.ok) {
+        const err = await res.json()
+        console.error(err)
+        alert(action === "lock" ? "Khóa tài khoản thất bại" : "Mở khóa tài khoản thất bại")
+        return
+      }
+
+      alert(action === "lock" ? "Đã khóa tài khoản" : "Đã mở khóa tài khoản")
+      await fetchUsers()
     }
   } catch (err) {
     console.error(err)
-    alert("Xóa người dùng thất bại")
+    alert("Thao tác thất bại")
   } finally {
     setConfirmDialog({ isOpen: false, action: "" })
     setOpenMenu(null)
@@ -252,26 +278,43 @@ const handleUpdateUser = async (updatedData: any) => {
   if (!editUser) return
 
   try {
+    const token = localStorage.getItem("auth_token")
+    if (!token) {
+      alert("Chưa đăng nhập")
+      return
+    }
+
+    console.log("Updating user:", editUser.id, "with data:", updatedData)
+
     const res = await fetch(
       `http://localhost:5001/api/users/${editUser.id}`,
       {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updatedData),
       }
     )
 
-    if (!res.ok) throw new Error("Update failed")
+    if (!res.ok) {
+      const errorData = await res.json()
+      console.error("Update error:", errorData)
+      alert(`Cập nhật thất bại: ${errorData.message || 'Lỗi không xác định'}`)
+      return
+    }
 
+    const result = await res.json()
+    console.log("Update success:", result)
+    
+    alert("Đã cập nhật người dùng thành công")
     await fetchUsers()
     setIsEditUserOpen(false)
     setEditUser(null)
   } catch (err) {
+    console.error("Update user error:", err)
     alert("Cập nhật người dùng thất bại")
-    console.error(err)
   }
 }
 
@@ -361,43 +404,68 @@ const handleUpdateUser = async (updatedData: any) => {
           </div>
         </div>
 
-        {/* Search & Filter */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
+        {/* Search & Filter - Redesigned */}
+        <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-border/50 dark:border-slate-800/50 rounded-2xl p-6 space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400" size={20} />
             <input
               type="text"
               placeholder="Tìm kiếm theo tên, email hoặc số điện thoại..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+              className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border-2 border-border/60 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary dark:focus:border-accent transition-all duration-300 text-foreground dark:text-white placeholder:text-muted-foreground/60"
             />
           </div>
-          <div className="flex gap-2 flex-wrap">
+          
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3 items-center">
+            <span className="text-sm font-semibold text-foreground dark:text-white">Lọc theo:</span>
+            
             {/* Role Filter */}
-            {["all", "student", "teacher"].map((role) => (
-              <button
-                key={role}
-                onClick={() => setSelectedRole(role as any)}
-                className={`px-4 py-3 rounded-lg transition-smooth font-medium ${
-                  selectedRole === role
-                    ? "bg-primary text-white"
-                    : "bg-card dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
-                }`}
-              >
-                {role === "all" ? "Tất cả" : role === "student" ? "Học viên" : "Giảng viên"}
-              </button>
-            ))}
+            <div className="flex gap-2">
+              {[
+                { value: "all", label: "Tất cả", icon: Users },
+                { value: "student", label: "Học viên", icon: BookOpen },
+                { value: "teacher", label: "Giảng viên", icon: Award },
+                { value: "admin", label: "Quản trị viên", icon: User }
+              ].map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  onClick={() => setSelectedRole(value as any)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-300 ${
+                    selectedRole === value
+                      ? "bg-gradient-to-r from-primary to-accent text-white shadow-md shadow-primary/30"
+                      : "bg-white dark:bg-slate-800 border-2 border-border/60 dark:border-slate-700 text-foreground dark:text-white hover:border-primary/50 dark:hover:border-accent/50 hover:shadow-md"
+                  }`}
+                >
+                  <Icon size={16} />
+                  <span className="text-sm">{label}</span>
+                </button>
+              ))}
+            </div>
+            
             {/* Status Filter */}
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value as any)}
-              className="px-4 py-3 rounded-lg bg-card dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="active">Hoạt động</option>
-              <option value="inactive">Không hoạt động</option>
-            </select>
+            <div className="flex gap-2">
+              {[
+                { value: "all", label: "Tất cả trạng thái" },
+                { value: "active", label: "Hoạt động" },
+                { value: "inactive", label: "Vô hiệu hóa" },
+                { value: "pending", label: "Chờ xác thực" }
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setSelectedStatus(value as any)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                    selectedStatus === value
+                      ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md"
+                      : "bg-white dark:bg-slate-800 border-2 border-border/60 dark:border-slate-700 text-foreground dark:text-white hover:border-emerald-400/50 hover:shadow-md"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -442,25 +510,32 @@ const handleUpdateUser = async (updatedData: any) => {
                     <td className="py-4 px-6">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          user.role === "teacher"
+                          user.role === "admin"
+                            ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
+                            : user.role === "teacher"
                             ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
                             : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                         }`}
                       >
-                        {user.role === "teacher" ? "Giảng viên" : "Học viên"}
+                        {user.role === "admin" ? "Quản trị viên" : user.role === "teacher" ? "Giảng viên" : "Học viên"}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white">{user.courses}</td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{formatDate(user.joinDate)}</td>
+                    <td className="py-4 px-6 text-foreground dark:text-white">{user.courses || "Chưa cập nhật"}</td>
+                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{user.joinDate ? formatDate(user.joinDate) : "Chưa cập nhật"}</td>
                     <td className="py-4 px-6">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 ${
                           user.status === "active"
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                            : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400"
+                            ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+                            : user.status === "pending"
+                            ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+                            : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
                         }`}
                       >
-                        {user.status === "active" ? "Hoạt động" : "Không hoạt động"}
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          user.status === "active" ? "bg-emerald-500" : user.status === "pending" ? "bg-amber-500" : "bg-red-500"
+                        }`} />
+                        {user.status === "active" ? "Hoạt động" : user.status === "pending" ? "Chờ xác thực" : "Vô hiệu hóa"}
                       </span>
                     </td>
                     <td className="py-4 px-6 relative">
