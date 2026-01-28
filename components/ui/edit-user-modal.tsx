@@ -79,16 +79,27 @@ if (!user) return null
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              {user.avatar ? (
+            <div className="relative w-12 h-12 flex-shrink-0">
+              {user.avatar && !user.avatar.includes('ui-avatars.com') ? (
                 <img
                   src={user.avatar}
                   alt={user.name}
-                  className="w-full h-full rounded-full object-cover"
+                  className="w-12 h-12 rounded-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
                 />
-              ) : (
-                <User className="w-6 h-6 text-white" />
-              )}
+              ) : null}
+              <div 
+                className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold"
+                style={{
+                  display: user.avatar && !user.avatar.includes('ui-avatars.com') ? 'none' : 'flex'
+                }}
+              >
+                {user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+              </div>
             </div>
             <div>
               <h3 className="text-xl font-semibold text-foreground dark:text-white">

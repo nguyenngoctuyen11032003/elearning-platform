@@ -253,18 +253,36 @@ export default function StudentProfilePage() {
                   src={avatarPreview}
                   alt={`${user.name || 'Học viên'} Avatar`}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    // Show initials fallback
+                    const fallback = target.parentElement?.querySelector('.avatar-fallback') as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
                 />
-              ) : (
+              ) : user.avatar && !user.avatar.includes('ui-avatars.com') ? (
                 <img
-                  src={getRoleAvatar(user.role)}
+                  src={user.avatar}
                   alt={`${user.name || 'Học viên'} Avatar`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.style.display = 'none'
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    // Show initials fallback
+                    const fallback = target.parentElement?.querySelector('.avatar-fallback') as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
                   }}
                 />
-              )}
+              ) : null}
+              <div 
+                className="avatar-fallback w-full h-full flex items-center justify-center text-white text-3xl font-bold"
+                style={{
+                  display: (avatarPreview || (user.avatar && !user.avatar.includes('ui-avatars.com'))) ? 'none' : 'flex'
+                }}
+              >
+                {user.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
+              </div>
             </div>
             {/* Upload Overlay */}
             <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">

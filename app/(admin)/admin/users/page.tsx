@@ -495,19 +495,28 @@ const handleUpdateUser = async (updatedData: any) => {
                   >
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        {user.avatar ? (
-                          <img
-                            src={user.avatar}
-                            alt={user.name}
-                            className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none'
-                              e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                        <div className="relative w-10 h-10 flex-shrink-0">
+                          {user.avatar && !user.avatar.includes('ui-avatars.com') ? (
+                            <img
+                              src={user.avatar}
+                              alt={user.name}
+                              className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
+                              onError={(e) => {
+                                // If image fails to load, hide it and show fallback
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div 
+                            className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold"
+                            style={{
+                              display: user.avatar && !user.avatar.includes('ui-avatars.com') ? 'none' : 'flex'
                             }}
-                          />
-                        ) : null}
-                        <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold ${user.avatar ? 'hidden' : ''}`}>
-                          {user.name.charAt(0).toUpperCase()}
+                          >
+                            {user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                          </div>
                         </div>
                         <div>
                           <p className="text-foreground dark:text-white font-medium">{user.name}</p>
@@ -644,8 +653,27 @@ const handleUpdateUser = async (updatedData: any) => {
             <div className="p-6 space-y-6">
               {/* Profile Header */}
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-2xl">
-                  {viewUser.name.charAt(0)}
+                <div className="relative w-20 h-20 flex-shrink-0">
+                  {viewUser.avatar && !viewUser.avatar.includes('ui-avatars.com') ? (
+                    <img
+                      src={viewUser.avatar}
+                      alt={viewUser.name}
+                      className="w-20 h-20 rounded-full object-cover border-4 border-primary/20"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div 
+                    className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-2xl"
+                    style={{
+                      display: viewUser.avatar && !viewUser.avatar.includes('ui-avatars.com') ? 'none' : 'flex'
+                    }}
+                  >
+                    {viewUser.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                  </div>
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold text-foreground dark:text-white">{viewUser.name}</h3>
