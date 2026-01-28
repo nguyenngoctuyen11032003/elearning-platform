@@ -10,7 +10,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { Footer } from "@/components/ui/footer"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { apiClient } from "@/lib/api/client"
 import { motion } from "framer-motion"
 
@@ -57,7 +57,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [categoriesPage, setCategoriesPage] = useState(0)
 
-  const CATEGORIES_PER_PAGE = 6
+  const CATEGORIES_PER_PAGE = 10
   
   useEffect(() => {
     const fetchData = async () => {
@@ -83,14 +83,19 @@ export default function Home() {
 
   const FEATURES_VISIBLE = 4
   const [featurePage, setFeaturePage] = useState(0)
+  const scrollPositionRef = useRef<number>(0)
 
   const handleCategoryPageChange = (newPage: number) => {
-    const scrollY = window.scrollY
+    scrollPositionRef.current = window.scrollY
     setCategoriesPage(newPage)
-    requestAnimationFrame(() => {
-      window.scrollTo(0, scrollY)
-    })
   }
+
+  useEffect(() => {
+    if (scrollPositionRef.current > 0) {
+      window.scrollTo(0, scrollPositionRef.current)
+      scrollPositionRef.current = 0
+    }
+  }, [categoriesPage])
 
   const features = [
     {
@@ -543,10 +548,12 @@ export default function Home() {
           )}
         </div>
       </section>
-
       {/* Categories */}
-      <section className="py-24 px-6 md:px-8 bg-white dark:bg-slate-950">
-        <div className="max-w-7xl mx-auto">
+      <section className="relative py-24 px-6 md:px-8 bg-cover bg-center bg-no-repeat rounded-3xl mx-6 md:mx-8 my-12" style={{ backgroundImage: "url('/image/bg_homecate.jpg')" }}>
+        <div className="absolute inset-0 bg-white/50 dark:bg-slate-950/70 rounded-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-b via-transparent rounded-3xl" style={{ backgroundImage: 'linear-gradient(to bottom, #f7f9fc, transparent, #f7f9fc)', '--tw-gradient-stops': 'var(--tw-gradient-from), var(--tw-gradient-to)' } as any} />
+        <div className="dark:absolute dark:inset-0 dark:rounded-3xl dark:hidden" style={{ backgroundImage: 'linear-gradient(to bottom, rgb(15, 23, 42), transparent, rgb(15, 23, 42))', backgroundSize: 'cover' }} />
+        <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -570,7 +577,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10"
           >
             {categories.length > 0 ? (
               categories.slice(categoriesPage * CATEGORIES_PER_PAGE, (categoriesPage + 1) * CATEGORIES_PER_PAGE).map((category, idx) => {
@@ -583,7 +590,7 @@ export default function Home() {
                   >
                     <Link
                       href={`/courses?category=${category.id}`}
-                      className="group block p-6 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-3xl hover:shadow-2xl transition-all duration-300 text-center h-full flex flex-col"
+                      className="group block p-8 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-2xl hover:shadow-xl transition-all duration-300 text-center h-full flex flex-col items-center justify-center"
                     >
                       <h3 className="font-bold text-slate-900 dark:text-white text-base mb-4 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2" title={category.name}>
                         {category.name}
@@ -594,19 +601,15 @@ export default function Home() {
                           <img
                             src={category.image}
                             alt={category.name}
-                            className="w-16 h-16 rounded-xl object-cover"
+                            className="w-20 h-20 rounded-lg object-cover"
                           />
                         ) : (
-                          <span className="text-7xl">{category.icon || "📚"}</span>
+                          <span className="text-6xl">{category.icon || "📚"}</span>
                         )}
                       </div>
 
-                      <p className="text-sl text-slate-600 dark:text-slate-400 mb-4 flex-grow line-clamp-2">
-                        {category.description || "Khám phá thêm về danh mục này"}
-                      </p>
-
-                      <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
-                        <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                      <div className="pt-3 border-t border-slate-200 dark:border-slate-700 w-full">
+                        <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                           {category.courseCount || category.courses?.length || 0}+ khóa học
                         </p>
                       </div>
@@ -673,8 +676,6 @@ export default function Home() {
           )}
         </div>
       </section>
-
-      {/* Social Proof - Testimonials */}
       <section className="py-24 px-6 md:px-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="max-w-7xl mx-auto">
           <motion.div
