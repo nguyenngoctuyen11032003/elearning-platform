@@ -549,10 +549,10 @@ export default function Home() {
         </div>
       </section>
       {/* Categories */}
-      <section className="relative py-24 px-6 md:px-8 bg-cover bg-center bg-no-repeat rounded-3xl mx-6 md:mx-8 my-12" style={{ backgroundImage: "url('/image/bg_homecate.jpg')" }}>
-        <div className="absolute inset-0 bg-white/50 dark:bg-slate-950/70 rounded-3xl" />
-        <div className="absolute inset-0 bg-gradient-to-b via-transparent rounded-3xl" style={{ backgroundImage: 'linear-gradient(to bottom, #f7f9fc, transparent, #f7f9fc)', '--tw-gradient-stops': 'var(--tw-gradient-from), var(--tw-gradient-to)' } as any} />
-        <div className="dark:absolute dark:inset-0 dark:rounded-3xl dark:hidden" style={{ backgroundImage: 'linear-gradient(to bottom, rgb(15, 23, 42), transparent, rgb(15, 23, 42))', backgroundSize: 'cover' }} />
+      <section className="relative py-24 px-6 md:px-8 bg-cover bg-center bg-no-repeat rounded-3xl mx-6 md:mx-8 my-12" style={{ backgroundImage: "url('/image/bg_homecate1.jpg')" }}>
+        <div className="absolute inset-0 bg-white/50 dark:bg-black/50 rounded-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-b via-transparent rounded-3xl dark:hidden" style={{ backgroundImage: 'linear-gradient(to bottom, #f7f9fc, transparent, #f7f9fc)', '--tw-gradient-stops': 'var(--tw-gradient-from), var(--tw-gradient-to)' } as any} />
+        <div className="hidden dark:absolute dark:inset-0 dark:rounded-3xl dark:block" style={{ backgroundImage: 'linear-gradient(to bottom, #0d1529, transparent, #0d1529)', backgroundSize: 'cover' }} />
         <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -567,7 +567,7 @@ export default function Home() {
             <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
               Khám Phá Lĩnh Vực Của Bạn
             </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-400">
+            <p className="text-xl text-slate-600 dark:text-white">
               Chọn lĩnh vực bạn muốn chinh phục và bắt đầu hành trình phát triển kỹ năng
             </p>
           </motion.div>

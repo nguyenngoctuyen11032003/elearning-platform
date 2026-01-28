@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronRight, Check, Plus, Trash2, FileText, Video, X } from "lucide-react"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 
 interface Section {
@@ -43,6 +43,11 @@ export default function CreateCoursePage() {
   const [sections, setSections] = useState<Section[]>([])
   const [currentSectionId, setCurrentSectionId] = useState<string | null>(null)
   const [currentLessonId, setCurrentLessonId] = useState<string | null>(null)
+  const [showLessonModal, setShowLessonModal] = useState(false)
+  const videoInputRef = useRef<HTMLInputElement>(null)
+  const documentInputRef = useRef<HTMLInputElement>(null)
+  const [draggedVideoZone, setDraggedVideoZone] = useState(false)
+  const [draggedDocumentZone, setDraggedDocumentZone] = useState(false)
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -184,6 +189,42 @@ export default function CreateCoursePage() {
         return s
       }),
     )
+  }
+
+  const handleVideoUpload = (file: File) => {
+    if (currentSectionId && currentLessonId) {
+      updateLesson(currentSectionId, currentLessonId, { videoFile: file })
+    }
+  }
+
+  const handleDocumentUpload = (file: File) => {
+    if (currentSectionId && currentLessonId) {
+      updateLesson(currentSectionId, currentLessonId, { documentFile: file })
+    }
+  }
+
+  const handleVideoDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDraggedVideoZone(false)
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      const file = files[0]
+      if (file.type.startsWith('video/')) {
+        handleVideoUpload(file)
+      }
+    }
+  }
+
+  const handleDocumentDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDraggedDocumentZone(false)
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      const file = files[0]
+      if (file.type === 'application/pdf' || file.type.includes('word') || file.type.includes('powerpoint') || file.type.includes('presentation')) {
+        handleDocumentUpload(file)
+      }
+    }
   }
 
   const currentSection = sections.find((s) => s.id === currentSectionId)
@@ -335,7 +376,7 @@ export default function CreateCoursePage() {
           {currentStep === 1 && (
             <div className="space-y-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-foreground dark:text-white">Nội dung khóa học</h3>
+                <h3 className="text-2xl font-semibold text-foreground dark:text-white">Nội dung khóa học</h3>
                 <button
                   onClick={addSection}
                   className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth"
@@ -370,27 +411,57 @@ export default function CreateCoursePage() {
 
                       <div className="space-y-3 ml-4">
                         {section.lessons.map((lesson) => (
-                          <div
-                            key={lesson.id}
-                            className="flex items-center justify-between p-3 bg-background dark:bg-slate-950 rounded-lg cursor-pointer hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
-                            onClick={() => {
-                              setCurrentSectionId(section.id)
-                              setCurrentLessonId(lesson.id)
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Video size={16} className="text-primary dark:text-accent" />
-                              <span className="text-foreground dark:text-white">{lesson.title}</span>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                deleteLesson(section.id, lesson.id)
+                          <div key={lesson.id}>
+                            <div
+                              className="flex items-center justify-between p-3 bg-background dark:bg-slate-950 rounded-lg cursor-pointer hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
+                              onClick={() => {
+                                setCurrentSectionId(section.id)
+                                setCurrentLessonId(lesson.id)
+                                setShowLessonModal(true)
                               }}
-                              className="p-1 text-destructive hover:bg-destructive/10 rounded transition-smooth"
                             >
-                              <Trash2 size={16} />
-                            </button>
+                              <div className="flex items-center gap-2">
+                                <Video size={16} className="text-primary dark:text-accent" />
+                                <span className="text-foreground dark:text-white">{lesson.title}</span>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  deleteLesson(section.id, lesson.id)
+                                }}
+                                className="p-1 text-destructive hover:bg-destructive/10 rounded transition-smooth"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                            
+                            {/* Lesson Details */}
+                            {(lesson.videoFile || lesson.documentFile || lesson.quizzes.length > 0) && (
+                              <div className="mt-2 ml-2 p-3 bg-secondary/30 dark:bg-slate-900/30 rounded-lg border border-border/50 dark:border-slate-800/50">
+                                {lesson.videoFile && (
+                                  <div className="text-sm text-muted-foreground dark:text-slate-400 mb-2">
+                                    <span className="font-medium">Video:</span> {lesson.videoFile.name}
+                                  </div>
+                                )}
+                                {lesson.documentFile && (
+                                  <div className="text-sm text-muted-foreground dark:text-slate-400 mb-2">
+                                    <span className="font-medium">Tài liệu:</span> {lesson.documentFile.name}
+                                  </div>
+                                )}
+                                {lesson.quizzes.length > 0 && (
+                                  <div className="text-sm text-muted-foreground dark:text-slate-400">
+                                    <span className="font-medium">Quiz:</span> {lesson.quizzes.length} câu hỏi
+                                    <div className="mt-1 space-y-1">
+                                      {lesson.quizzes.map((q, idx) => (
+                                        <div key={q.id} className="text-xs ml-2 text-muted-foreground/75 dark:text-slate-500">
+                                          • {idx + 1}. {q.question}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                         <button
@@ -405,126 +476,242 @@ export default function CreateCoursePage() {
                 </div>
               )}
 
-              {/* Lesson Editor */}
-              {currentLesson && (
-                <div className="mt-8 border-t border-border dark:border-slate-700 pt-8">
-                  <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">Chỉnh sửa bài học</h4>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                        Tên bài học
-                      </label>
-                      <input
-                        type="text"
-                        value={currentLesson.title}
-                        onChange={(e) => updateLesson(currentSectionId!, currentLessonId!, { title: e.target.value })}
-                        className="w-full px-4 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                        Mô tả bài học
-                      </label>
-                      <textarea
-                        value={currentLesson.description}
-                        onChange={(e) =>
-                          updateLesson(currentSectionId!, currentLessonId!, { description: e.target.value })
-                        }
-                        rows={3}
-                        className="w-full px-4 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                        Tải video
-                      </label>
-                      <div className="border-2 border-dashed border-border dark:border-slate-700 rounded-lg p-6 text-center hover:border-primary dark:hover:border-accent transition-smooth cursor-pointer">
-                        <Video size={32} className="mx-auto text-muted-foreground dark:text-slate-400 mb-2" />
-                        <p className="text-foreground dark:text-white font-medium">Kéo thả video vào đây</p>
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Hoặc nhấn để chọn tệp</p>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                        Tài liệu bổ sung
-                      </label>
-                      <div className="border-2 border-dashed border-border dark:border-slate-700 rounded-lg p-6 text-center hover:border-primary dark:hover:border-accent transition-smooth cursor-pointer">
-                        <FileText size={32} className="mx-auto text-muted-foreground dark:text-slate-400 mb-2" />
-                        <p className="text-foreground dark:text-white font-medium">Kéo thả tài liệu vào đây</p>
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">PDF, Word, PowerPoint...</p>
-                      </div>
+              {/* Lesson Editor Modal */}
+              {showLessonModal && currentLesson && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                  <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
+                    <div className="flex items-center justify-between p-8 border-b border-border dark:border-slate-800 sticky top-0 bg-card dark:bg-slate-900/60">
+                      <h4 className="text-lg font-semibold text-foreground dark:text-white">Chỉnh sửa bài học</h4>
+                      <button
+                        onClick={() => setShowLessonModal(false)}
+                        className="p-1 text-muted-foreground dark:text-slate-400 hover:bg-secondary dark:hover:bg-slate-800 rounded transition-smooth"
+                      >
+                        <X size={24} />
+                      </button>
                     </div>
 
-                    {/* Quiz Section */}
-                    <div className="mt-6 pt-6 border-t border-border dark:border-slate-700">
-                      <div className="flex items-center justify-between mb-4">
-                        <h5 className="font-semibold text-foreground dark:text-white">Quiz cho bài học này</h5>
-                        <button
-                          onClick={() => addQuiz(currentSectionId!, currentLessonId!)}
-                          className="flex items-center gap-2 px-3 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-sm font-medium hover:bg-primary/20 dark:hover:bg-primary/30 transition-smooth"
+                    <div className="p-8 space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                          Tên bài học
+                        </label>
+                        <input
+                          type="text"
+                          value={currentLesson.title}
+                          onChange={(e) => updateLesson(currentSectionId!, currentLessonId!, { title: e.target.value })}
+                          className="w-full px-4 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                          Mô tả bài học
+                        </label>
+                        <textarea
+                          value={currentLesson.description}
+                          onChange={(e) =>
+                            updateLesson(currentSectionId!, currentLessonId!, { description: e.target.value })
+                          }
+                          rows={3}
+                          className="w-full px-4 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                          Tải video
+                        </label>
+                        <div
+                          onDragOver={(e) => {
+                            e.preventDefault()
+                            setDraggedVideoZone(true)
+                          }}
+                          onDragLeave={() => setDraggedVideoZone(false)}
+                          onDrop={handleVideoDrop}
+                          onClick={() => videoInputRef.current?.click()}
+                          className={`border-2 border-dashed rounded-lg p-6 text-center transition-smooth cursor-pointer ${
+                            draggedVideoZone
+                              ? 'border-primary dark:border-accent bg-primary/5 dark:bg-primary/10'
+                              : 'border-border dark:border-slate-700 hover:border-primary dark:hover:border-accent'
+                          }`}
                         >
-                          <Plus size={16} />
-                          Thêm câu hỏi
-                        </button>
+                          <Video size={32} className="mx-auto text-muted-foreground dark:text-slate-400 mb-2" />
+                          {currentLesson?.videoFile ? (
+                            <>
+                              <p className="text-foreground dark:text-white font-medium text-green-600 dark:text-green-400">
+                                ✓ {currentLesson.videoFile.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
+                                {(currentLesson.videoFile.size / (1024 * 1024)).toFixed(2)} MB
+                              </p>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateLesson(currentSectionId!, currentLessonId!, { videoFile: undefined })
+                                }}
+                                className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
+                              >
+                                Xóa tệp
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-foreground dark:text-white font-medium">Kéo thả video vào đây</p>
+                              <p className="text-sm text-muted-foreground dark:text-slate-400">Hoặc nhấn để chọn tệp</p>
+                            </>
+                          )}
+                        </div>
+                        <input
+                          ref={videoInputRef}
+                          type="file"
+                          accept="video/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleVideoUpload(file)
+                          }}
+                          className="hidden"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                          Tài liệu bổ sung
+                        </label>
+                        <div
+                          onDragOver={(e) => {
+                            e.preventDefault()
+                            setDraggedDocumentZone(true)
+                          }}
+                          onDragLeave={() => setDraggedDocumentZone(false)}
+                          onDrop={handleDocumentDrop}
+                          onClick={() => documentInputRef.current?.click()}
+                          className={`border-2 border-dashed rounded-lg p-6 text-center transition-smooth cursor-pointer ${
+                            draggedDocumentZone
+                              ? 'border-primary dark:border-accent bg-primary/5 dark:bg-primary/10'
+                              : 'border-border dark:border-slate-700 hover:border-primary dark:hover:border-accent'
+                          }`}
+                        >
+                          <FileText size={32} className="mx-auto text-muted-foreground dark:text-slate-400 mb-2" />
+                          {currentLesson?.documentFile ? (
+                            <>
+                              <p className="text-foreground dark:text-white font-medium text-green-600 dark:text-green-400">
+                                ✓ {currentLesson.documentFile.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
+                                {(currentLesson.documentFile.size / (1024 * 1024)).toFixed(2)} MB
+                              </p>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateLesson(currentSectionId!, currentLessonId!, { documentFile: undefined })
+                                }}
+                                className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
+                              >
+                                Xóa tệp
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-foreground dark:text-white font-medium">Kéo thả tài liệu vào đây</p>
+                              <p className="text-sm text-muted-foreground dark:text-slate-400">PDF, Word, PowerPoint...</p>
+                            </>
+                          )}
+                        </div>
+                        <input
+                          ref={documentInputRef}
+                          type="file"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleDocumentUpload(file)
+                          }}
+                          className="hidden"
+                        />
                       </div>
 
-                      {currentLesson.quizzes.length === 0 ? (
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Chưa có câu hỏi nào</p>
-                      ) : (
-                        <div className="space-y-3">
-                          {currentLesson.quizzes.map((quiz) => (
-                            <div key={quiz.id} className="p-3 bg-background dark:bg-slate-950 rounded-lg">
-                              <div className="flex items-start justify-between mb-2">
-                                <input
-                                  type="text"
-                                  value={quiz.question}
-                                  onChange={(e) =>
-                                    updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
-                                      question: e.target.value,
-                                    })
-                                  }
-                                  className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm"
-                                />
-                                <button
-                                  onClick={() => deleteQuiz(currentSectionId!, currentLessonId!, quiz.id)}
-                                  className="ml-2 p-1 text-destructive hover:bg-destructive/10 rounded transition-smooth"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                              <div className="space-y-1">
-                                {quiz.options.map((option, idx) => (
-                                  <div key={idx} className="flex items-center gap-2">
-                                    <input
-                                      type="radio"
-                                      name={`correct-${quiz.id}`}
-                                      checked={quiz.correctAnswer === idx}
-                                      onChange={() =>
-                                        updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
-                                          correctAnswer: idx,
-                                        })
-                                      }
-                                      className="w-4 h-4"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={option}
-                                      onChange={(e) => {
-                                        const newOptions = [...quiz.options]
-                                        newOptions[idx] = e.target.value
-                                        updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
-                                          options: newOptions,
-                                        })
-                                      }}
-                                      className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm"
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
+                      {/* Quiz Section */}
+                      <div className="mt-6 pt-6 border-t border-border dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-4">
+                          <h5 className="font-semibold text-foreground dark:text-white">Quiz cho bài học này</h5>
+                          <button
+                            onClick={() => addQuiz(currentSectionId!, currentLessonId!)}
+                            className="flex items-center gap-2 px-3 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-sm font-medium hover:bg-primary/20 dark:hover:bg-primary/30 transition-smooth"
+                          >
+                            <Plus size={16} />
+                            Thêm câu hỏi
+                          </button>
                         </div>
-                      )}
+
+                        {currentLesson.quizzes.length === 0 ? (
+                          <p className="text-sm text-muted-foreground dark:text-slate-400">Chưa có câu hỏi nào</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {currentLesson.quizzes.map((quiz) => (
+                              <div key={quiz.id} className="p-3 bg-background dark:bg-slate-950 rounded-lg">
+                                <div className="flex items-start justify-between mb-2">
+                                  <input
+                                    type="text"
+                                    value={quiz.question}
+                                    onChange={(e) =>
+                                      updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
+                                        question: e.target.value,
+                                      })
+                                    }
+                                    className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm"
+                                  />
+                                  <button
+                                    onClick={() => deleteQuiz(currentSectionId!, currentLessonId!, quiz.id)}
+                                    className="ml-2 p-1 text-destructive hover:bg-destructive/10 rounded transition-smooth"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                                <div className="space-y-1">
+                                  {quiz.options.map((option, idx) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                      <input
+                                        type="radio"
+                                        name={`correct-${quiz.id}`}
+                                        checked={quiz.correctAnswer === idx}
+                                        onChange={() =>
+                                          updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
+                                            correctAnswer: idx,
+                                          })
+                                        }
+                                        className="w-4 h-4"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={option}
+                                        onChange={(e) => {
+                                          const newOptions = [...quiz.options]
+                                          newOptions[idx] = e.target.value
+                                          updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
+                                            options: newOptions,
+                                          })
+                                        }}
+                                        className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 p-8 border-t border-border dark:border-slate-800 sticky bottom-0 bg-card dark:bg-slate-900/60">
+                      <button
+                        onClick={() => setShowLessonModal(false)}
+                        className="px-6 py-2 border border-border dark:border-slate-800 rounded-lg font-medium text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
+                      >
+                        Đóng
+                      </button>
+                      <button
+                        onClick={() => setShowLessonModal(false)}
+                        className="px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth"
+                      >
+                        Lưu thay đổi
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -535,16 +722,68 @@ export default function CreateCoursePage() {
           {currentStep === 2 && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                <label className="block text-sm font-medium text-foreground dark:text-white mb-4">
                   Giá khóa học (VND)
                 </label>
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                  className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
-                />
+                <div className="space-y-6">
+                  {/* Price Display */}
+                  <div className="text-center">
+                    <span className="text-3xl font-bold text-primary dark:text-accent">
+                      {formData.price.toLocaleString("vi-VN")}
+                    </span>
+                    <span className="text-2xl font-semibold text-foreground dark:text-white ml-2">
+                      VNĐ
+                    </span>
+                  </div>
+
+                  {/* Price Input */}
+                  <div className="flex gap-3 items-center">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="0"
+                      value={formData.price?.toString() || ""}
+                      onKeyDown={(e) => {
+                       
+                        const allowedKeys = [
+                          "Backspace",
+                          "Delete",
+                          "ArrowLeft",
+                          "ArrowRight",
+                          "Tab",
+                        ]
+
+                        if (!/^[0-9]$/.test(e.key) && !allowedKeys.includes(e.key)) {
+                          e.preventDefault()
+                        }
+                      }}
+                      onChange={(e) => {
+                        
+                        const onlyNumber = e.target.value.replace(/\D/g, "")
+                        setFormData({ ...formData, price: Number(onlyNumber || 0) })
+                      }}
+                      className="flex-1 px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
+                    />
+
+                    <div className="text-lg font-semibold text-foreground dark:text-white">
+                      VNĐ
+                    </div>
+                  </div>
+
+                  {/* Free Option */}
+                  <div className="flex items-center gap-3 p-4 bg-secondary/30 dark:bg-slate-900/30 rounded-lg border border-border/50 dark:border-slate-800/50">
+                    <input
+                      type="checkbox"
+                      id="freePrice"
+                      checked={formData.price === 0}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.checked ? 0 : 100000 })}
+                      className="w-4 h-4 rounded cursor-pointer"
+                    />
+                    <label htmlFor="freePrice" className="text-sm font-medium text-foreground dark:text-white cursor-pointer">
+                      Miễn phí
+                    </label>
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Trạng thái</label>

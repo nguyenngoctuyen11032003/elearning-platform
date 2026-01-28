@@ -39,10 +39,10 @@ export default function AdminSettingsPage() {
     // Vision
     vision: "Trở thành nền tảng học trực tuyến số 1 Việt Nam, nơi mà mỗi học viên đều có thể phát triển kỹ năng và sự nghiệp của mình.",
     // Contact
-    supportEmail: "support@icslearning.com",
+    supportEmail: "support@icslearning.vn",
     businessEmail: "business@icslearning.com",
     phone: "+84 (028) 3823-6868",
-    hotline: "1900 6868",
+    hotline: "1900 1234",
     address: "Tầng 10, Tòa nhà ICS Tower, 123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh",
     workingHours: "Thứ 2 - Thứ 6: 8:00 - 18:00, Thứ 7: 8:00 - 12:00",
     // Social Media
@@ -52,7 +52,6 @@ export default function AdminSettingsPage() {
     youtube: "https://youtube.com/icslearning",
     linkedin: "https://linkedin.com/company/icslearning",
     tiktok: "https://tiktok.com/@icslearning",
-    zalo: "https://zalo.me/icslearning",
     // Branding
     primaryColor: "#2563eb",
     accentColor: "#06b6d4",
@@ -105,16 +104,16 @@ export default function AdminSettingsPage() {
 
         <Tabs defaultValue="general" className="w-full">
           <TabsList className="grid w-full grid-cols-4 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
-            <TabsTrigger value="general" className="text-xs md:text-sm">
+            <TabsTrigger value="general" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
               Chung
             </TabsTrigger>
-            <TabsTrigger value="contact" className="text-xs md:text-sm">
+            <TabsTrigger value="contact" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
               Liên hệ
             </TabsTrigger>
-            <TabsTrigger value="branding" className="text-xs md:text-sm">
+            <TabsTrigger value="branding" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
               Giao diện
             </TabsTrigger>
-            <TabsTrigger value="security" className="text-xs md:text-sm">
+            <TabsTrigger value="security" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
               Bảo mật
             </TabsTrigger>
           </TabsList>
@@ -215,17 +214,6 @@ export default function AdminSettingsPage() {
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                 />
               </div>
-              <div>
-                <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                  <Clock size={16} /> Giờ làm việc
-                </label>
-                <input
-                  type="text"
-                  value={settings.workingHours}
-                  onChange={(e) => handleSettingChange("workingHours", e.target.value)}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                />
-              </div>
             </div>
 
             {/* Social Media */}
@@ -260,30 +248,6 @@ export default function AdminSettingsPage() {
                 </div>
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <Youtube size={16} className="text-red-600" /> YouTube
-                  </label>
-                  <input
-                    type="url"
-                    value={settings.youtube}
-                    onChange={(e) => handleSettingChange("youtube", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    placeholder="https://youtube.com/..."
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <Linkedin size={16} className="text-blue-700" /> LinkedIn
-                  </label>
-                  <input
-                    type="url"
-                    value={settings.linkedin}
-                    onChange={(e) => handleSettingChange("linkedin", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    placeholder="https://linkedin.com/company/..."
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
                     </svg>
@@ -299,14 +263,27 @@ export default function AdminSettingsPage() {
                 </div>
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <MessageCircle size={16} className="text-blue-500" /> Zalo
+                    <Youtube size={16} className="text-red-600" /> YouTube
                   </label>
                   <input
                     type="url"
-                    value={settings.zalo}
-                    onChange={(e) => handleSettingChange("zalo", e.target.value)}
+                    value={settings.youtube}
+                    onChange={(e) => handleSettingChange("youtube", e.target.value)}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    placeholder="https://zalo.me/..."
+                    placeholder="https://youtube.com/..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
+                    <Linkedin size={16} className="text-blue-700" /> LinkedIn
+                  </label>
+                  <input
+                    type="url"
+                    value={settings.linkedin}
+                    onChange={(e) => handleSettingChange("linkedin", e.target.value)}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    placeholder="https://linkedin.com/company/..."
                   />
                 </div>
               </div>
