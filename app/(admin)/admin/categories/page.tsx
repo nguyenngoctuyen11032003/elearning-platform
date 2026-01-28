@@ -1,7 +1,7 @@
 "use client"
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
 import { useState, useEffect } from "react"
-import { Plus, Edit, Trash2, Save, X, Search, BookOpen, TrendingUp, FolderOpen, MoreVertical } from "lucide-react"
+import { Plus, Edit, Trash2, Save, X, Search, BookOpen, TrendingUp, FolderOpen, MoreVertical, ImagePlus } from "lucide-react"
 import { authFetch } from "@/lib/authfetch"
 
 interface Category {
@@ -51,29 +51,67 @@ const filteredCategories = categories.filter((category) =>
     .includes(q)
 )
 
+const [imageFile, setImageFile] = useState<File | null>(null)
+const [editImageFile, setEditImageFile] = useState<File | null>(null)
+const [isSubmitting, setIsSubmitting] = useState(false)
+
 const handleAddCategory = async () => {
-  if (!newCategory.name.trim()) return
+  if (!newCategory.name.trim()) {
+    alert("Vui lòng nhập tên danh mục")
+    return
+  }
 
   // ❌ CHƯA CHỌN ICON VÀ ẢNH
-  if (!newCategory.icon && !newCategory.image) {
+  if (!newCategory.icon && !imageFile) {
     alert("Vui lòng chọn icon hoặc ảnh cho danh mục")
     return
   }
 
-  const res = await authFetch("/api/categories", {
-    method: "POST",
-    body: JSON.stringify({
-      name: newCategory.name,
-      description: newCategory.description,
-      icon: newCategory.icon || null,
-      image: newCategory.image || null,
-    }),
-  })
+  setIsSubmitting(true)
 
-  if (!res.ok) return
+  try {
+    let imageUrl: string | null = null
 
-  await fetchCategories()
-  setIsAdding(false)
+    // Upload ảnh nếu có
+    if (imageFile) {
+      const formData = new FormData()
+      formData.append("file", imageFile)
+
+      const uploadRes = await authFetch("/api/upload/image", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (uploadRes.ok) {
+        const uploadData = await uploadRes.json()
+        imageUrl = uploadData.data?.url || uploadData.url || null
+      }
+    }
+
+    const res = await authFetch("/api/categories", {
+      method: "POST",
+      body: JSON.stringify({
+        name: newCategory.name,
+        description: newCategory.description,
+        icon: newCategory.icon || null,
+        image: imageUrl,
+      }),
+    })
+
+    if (!res.ok) {
+      setIsSubmitting(false)
+      return
+    }
+
+    await fetchCategories()
+    setNewCategory({ name: "", description: "", color: "#2563eb", icon: "", image: undefined })
+    setImageFile(null)
+    setIsAdding(false)
+  } catch (error) {
+    console.error("Error adding category:", error)
+  } finally {
+    setIsSubmitting(false)
+  }
 }
 
 
@@ -89,31 +127,56 @@ const handleUpdateCategory = async (
   if (!current) return
 
   // ❌ CHƯA CHỌN ICON & ẢNH
-  if (!current.icon && !current.image) {
+  if (!updatedIcon && !current.image && !editImageFile) {
     alert("Danh mục cần có icon hoặc ảnh")
     return
   }
 
-  const res = await authFetch(`/api/categories/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      name: updatedName,
-      description: updatedDescription,
-      color: updatedColor,
-      icon: updatedIcon || null,
-      image: current.image || null
-    }),
-  })
+  setIsSubmitting(true)
 
-  if (!res.ok) return
+  try {
+    let imageUrl: string | null = current.image || null
 
-  const updated = await res.json()
+    // Upload ảnh mới nếu có
+    if (editImageFile) {
+      const formData = new FormData()
+      formData.append("file", editImageFile)
 
-  setCategories(prev =>
-    prev.map(c => (c.id === id ? { ...c, ...updated } : c))
-  )
+      const uploadRes = await authFetch("/api/upload/image", {
+        method: "POST",
+        body: formData,
+      })
 
-  setEditingId(null)
+      if (uploadRes.ok) {
+        const uploadData = await uploadRes.json()
+        imageUrl = uploadData.data?.url || uploadData.url || null
+      }
+    }
+
+    const res = await authFetch(`/api/categories/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        name: updatedName,
+        description: updatedDescription,
+        color: updatedColor,
+        icon: updatedIcon || null,
+        image: imageUrl,
+      }),
+    })
+
+    if (!res.ok) {
+      setIsSubmitting(false)
+      return
+    }
+
+    await fetchCategories()
+    setEditImageFile(null)
+    setEditingId(null)
+  } catch (error) {
+    console.error("Error updating category:", error)
+  } finally {
+    setIsSubmitting(false)
+  }
 }
 
 
@@ -249,109 +312,126 @@ useEffect(() => {
           />
         </div>
 
-        {/* Add Category Form */}
+        {/* Add Category Modal */}
         {isAdding && (
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <h3 className="text-lg font-bold text-foreground dark:text-white mb-4">Thêm danh mục mới</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Tên danh mục</label>
-                <input
-                  type="text"
-                  placeholder="Nhập tên danh mục..."
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  autoFocus
-                />
+          <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 relative z-[10000] max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-foreground dark:text-white">Thêm danh mục mới</h2>
+                <button
+                  onClick={() => {
+                    setIsAdding(false)
+                    setNewCategory({ name: "", description: "", color: "#2563eb", icon: "", image: undefined })
+                    setImageFile(null)
+                  }}
+                  className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                >
+                  <X size={20} className="text-muted-foreground" />
+                </button>
               </div>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Màu sắc</label>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Tên danh mục</label>
                   <input
-                    type="color"
-                    value={newCategory.color}
-                    onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
-                    className="w-full h-12 rounded-lg cursor-pointer border border-border dark:border-slate-800"
+                    type="text"
+                    placeholder="Nhập tên danh mục..."
+                    value={newCategory.name}
+                    onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    autoFocus
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Icon (tuỳ chọn)
-                  </label>
-                  <select
-                    value={newCategory.icon}
-                    onChange={(e) =>
-                      setNewCategory({
-                        ...newCategory,
-                        icon: e.target.value,
-                        image: undefined // 👈 xoá ảnh nếu chọn icon
-                      })
-                    }
-                    className="w-full rounded-lg px-4 py-3 border text-xl"
-                  >
-                    <option value="">— Không chọn icon —</option>
-                    {iconOptions.map((icon) => (
-                    <option key={icon} value={icon}>{icon}</option>
-                  ))}
-                  </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-semibold mb-2">
-                      Ảnh danh mục (tuỳ chọn)
-                    </label>
 
-                    <input
-                      type="file"
-                      accept="image/*"
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Icon (tuỳ chọn)</label>
+                    <select
+                      value={newCategory.icon}
                       onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (!file) return
-
-                        const reader = new FileReader()
-                        reader.onload = () => {
-                          setNewCategory(prev => ({
-                            ...prev,
-                            image: reader.result as string,
-                            icon: "" // 👈 chọn ảnh thì xoá icon
-                          }))
-                        }
-                        reader.readAsDataURL(file)
+                        setImageFile(null) // Reset file khi chọn icon
+                        setNewCategory({
+                          ...newCategory,
+                          icon: e.target.value,
+                          image: undefined
+                        })
                       }}
-                    />
-                    {newCategory.image && (
-                      <img
-                        src={newCategory.image}
-                        alt={newCategory.name}
-                        className="mt-3 w-20 h-20 rounded-xl object-cover border"
-                      />
-                    )}
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 text-xl"
+                    >
+                      <option value="">— Không chọn icon —</option>
+                      {iconOptions.map((icon) => (
+                        <option key={icon} value={icon}>{icon}</option>
+                      ))}
+                    </select>
                   </div>
-                  
+                  <div>
+                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Ảnh danh mục (tuỳ chọn)</label>
+                    <div className="flex items-center gap-3">
+                      <label className="flex-1 flex items-center justify-center gap-2 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 cursor-pointer hover:bg-secondary dark:hover:bg-slate-800 transition-smooth">
+                        <ImagePlus size={20} className="text-muted-foreground" />
+                        <span className="text-sm">{imageFile ? imageFile.name : "Chọn ảnh..."}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (!file) return
+
+                            setImageFile(file)
+                            const reader = new FileReader()
+                            reader.onload = () => {
+                              setNewCategory(prev => ({
+                                ...prev,
+                                image: reader.result as string,
+                                icon: ""
+                              }))
+                            }
+                            reader.readAsDataURL(file)
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                      {newCategory.image && (
+                        <img
+                          src={newCategory.image}
+                          alt={newCategory.name}
+                          className="w-12 h-12 rounded-lg object-cover border"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Mô tả</label>
+                  <textarea
+                    placeholder="Nhập mô tả danh mục..."
+                    value={newCategory.description}
+                    onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-24 resize-none"
+                  />
+                </div>
               </div>
-              <div className="md:col-span-2">
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Mô tả</label>
-                <textarea
-                  placeholder="Nhập mô tả danh mục..."
-                  value={newCategory.description}
-                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-24 resize-none"
-                />
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setIsAdding(false)
+                    setNewCategory({ name: "", description: "", color: "#2563eb", icon: "", image: undefined })
+                    setImageFile(null)
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleAddCategory}
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save size={18} /> {isSubmitting ? "Đang lưu..." : "Thêm danh mục"}
+                </button>
               </div>
-            </div>
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={handleAddCategory}
-                className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth font-medium flex items-center gap-2"
-              >
-                <Save size={18} /> Lưu danh mục
-              </button>
-              <button
-                onClick={() => setIsAdding(false)}
-                className="px-6 py-2.5 border border-border dark:border-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-smooth font-medium flex items-center gap-2"
-              >
-                <X size={18} /> Hủy
-              </button>
             </div>
           </div>
         )}
@@ -393,6 +473,7 @@ useEffect(() => {
                     <select
                     value={category.icon || ""}
                     onChange={(e) => {
+                      setEditImageFile(null) // Reset file ảnh khi chọn icon
                       setCategories(categories.map((c) =>
                         c.id === category.id
                           ? {
@@ -423,6 +504,10 @@ useEffect(() => {
                         const file = e.target.files?.[0]
                         if (!file) return
 
+                        // Lưu file để upload
+                        setEditImageFile(file)
+                        
+                        // Preview ảnh
                         const reader = new FileReader()
                         reader.onload = () => {
                           setCategories(prev =>
@@ -453,12 +538,16 @@ useEffect(() => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleUpdateCategory(category.id, category.name, category.description, category.color, category.icon)}
-                      className="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth text-sm font-medium"
+                      disabled={isSubmitting}
+                      className="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Lưu
+                      {isSubmitting ? "Đang lưu..." : "Lưu"}
                     </button>
                     <button
-                      onClick={() => setEditingId(null)}
+                      onClick={() => {
+                        setEditingId(null)
+                        setEditImageFile(null)
+                      }}
                       className="flex-1 px-4 py-2 border border-border dark:border-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-smooth text-sm font-medium"
                     >
                       Hủy
@@ -477,7 +566,7 @@ useEffect(() => {
                       <div className="flex items-center gap-3">
                         <div
                           className="w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center"
-                          style={{ backgroundColor: `${category.color}20` }}
+                          style={{ backgroundColor: `${category.color || '#2563eb'}20` }}
                         >
                           {category.image ? (
                             <img
@@ -486,7 +575,7 @@ useEffect(() => {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <span className="text-3xl">{category.icon}</span>
+                            <span className="text-3xl">{category.icon || "📚"}</span>
                           )}
                         </div>
                         <div>

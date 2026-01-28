@@ -557,17 +557,6 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {categories.length > 0 ? (
               categories.map((category, idx) => {
-                const iconMap: {[key: string]: string} = {
-                  "Web": "💻",
-                  "Mobile": "📱",
-                  "AI": "🤖",
-                  "Data Science": "📊",
-                  "DevOps": "🔧",
-                  "UI/UX": "🎨",
-                  "Backend": "⚙️",
-                  "Frontend": "🎯",
-                  "Cloud": "☁️",
-                }
                 return (
                   <motion.div
                     key={category.id || category.name}
@@ -580,14 +569,22 @@ export default function Home() {
                       href={`/courses?category=${category.id}`}
                       className="group block p-8 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-3xl hover:shadow-2xl transition-all duration-300 text-center hover:-translate-y-2"
                     >
-                      <div className="text-5xl mb-4 group-hover:scale-125 transition-transform duration-300">
-                        {iconMap[category.name] || "📚"}
+                      <div className="mb-4 group-hover:scale-125 transition-transform duration-300 flex items-center justify-center">
+                        {category.image ? (
+                          <img
+                            src={category.image}
+                            alt={category.name}
+                            className="w-14 h-14 rounded-xl object-cover"
+                          />
+                        ) : (
+                          <span className="text-5xl">{category.icon || "📚"}</span>
+                        )}
                       </div>
                       <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {category.name}
                       </h3>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {category.courseCount || 50}+ khóa học
+                        {category.courseCount || category.courses?.length || 0}+ khóa học
                       </p>
                     </Link>
                   </motion.div>
