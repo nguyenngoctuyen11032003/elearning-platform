@@ -22,6 +22,7 @@ import { useState, useEffect } from "react"
 import { AddUserModal, ConfirmDialog } from "@/components/ui/admin-modals"
 import { EditUserModal } from "@/components/ui/edit-user-modal"
 import type { UserData, UpdateUserData } from "@/app/types/user"
+import { toast } from "sonner"
 
 // const users: UserData[] = [
 //   {
@@ -170,7 +171,7 @@ const handleAddUser = async (newUser: any) => {
     const token = localStorage.getItem("auth_token")
 
     if (!token) {
-      alert("Chưa đăng nhập")
+      toast.error("Chưa đăng nhập")
       return
     }
 
@@ -192,11 +193,13 @@ const handleAddUser = async (newUser: any) => {
     if (!res.ok) {
       const err = await res.json()
       console.error(err)
-      alert(err.message || "Thêm người dùng thất bại")
+      toast.error(err.message || "Thêm người dùng thất bại")
       return
     }
 
-    alert("Đã thêm người dùng. Email xác thực đã được gửi tới người dùng.")
+    toast.success("Đã thêm người dùng thành công! Email đăng nhập và mật khẩu đã được gửi tới người dùng.", {
+      duration: 5000,
+    })
     setIsAddUserOpen(false)
     await fetchUsers()
   } catch (err) {
@@ -217,7 +220,7 @@ const executeAction = async () => {
   const token = localStorage.getItem("auth_token")
 
   if (!token) {
-    alert("Chưa đăng nhập")
+    toast.error("Chưa đăng nhập")
     return
   }
 
@@ -236,11 +239,11 @@ const executeAction = async () => {
       if (!res.ok) {
         const err = await res.json()
         console.error(err)
-        alert("Xóa người dùng thất bại")
+        toast.error("Xóa người dùng thất bại")
         return
       }
 
-      alert("Đã xóa người dùng")
+      toast.success("Đã xóa người dùng thành công")
       await fetchUsers()
     } else if (action === "lock" || action === "unlock") {
       // Khóa hoặc mở khóa tài khoản
@@ -261,16 +264,16 @@ const executeAction = async () => {
       if (!res.ok) {
         const err = await res.json()
         console.error(err)
-        alert(action === "lock" ? "Khóa tài khoản thất bại" : "Mở khóa tài khoản thất bại")
+        toast.error(action === "lock" ? "Khóa tài khoản thất bại" : "Mở khóa tài khoản thất bại")
         return
       }
 
-      alert(action === "lock" ? "Đã khóa tài khoản" : "Đã mở khóa tài khoản")
+      toast.success(action === "lock" ? "Đã khóa tài khoản" : "Đã mở khóa tài khoản")
       await fetchUsers()
     }
   } catch (err) {
     console.error(err)
-    alert("Thao tác thất bại")
+    toast.error("Thao tác thất bại")
   } finally {
     setConfirmDialog({ isOpen: false, action: "" })
     setOpenMenu(null)
@@ -282,7 +285,7 @@ const handleUpdateUser = async (updatedData: any) => {
   try {
     const token = localStorage.getItem("auth_token")
     if (!token) {
-      alert("Chưa đăng nhập")
+      toast.error("Chưa đăng nhập")
       return
     }
 
@@ -303,20 +306,20 @@ const handleUpdateUser = async (updatedData: any) => {
     if (!res.ok) {
       const errorData = await res.json()
       console.error("Update error:", errorData)
-      alert(`Cập nhật thất bại: ${errorData.message || 'Lỗi không xác định'}`)
+      toast.error(`Cập nhật thất bại: ${errorData.message || 'Lỗi không xác định'}`)
       return
     }
 
     const result = await res.json()
     console.log("Update success:", result)
     
-    alert("Đã cập nhật người dùng thành công")
+    toast.success("Đã cập nhật người dùng thành công")
     await fetchUsers()
     setIsEditUserOpen(false)
     setEditUser(null)
   } catch (err) {
     console.error("Update user error:", err)
-    alert("Cập nhật người dùng thất bại")
+    toast.error("Cập nhật người dùng thất bại")
   }
 }
 

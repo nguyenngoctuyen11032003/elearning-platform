@@ -48,19 +48,41 @@ class ApiClient {
       
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
+        
         try {
+          // Clone response để có thể đọc lại nếu cần
+          const responseClone = response.clone();
           const contentType = response.headers.get('content-type');
+          
           if (contentType && contentType.includes('application/json')) {
-            const errorData: ApiError = await response.json();
-            errorMessage = Array.isArray(errorData.message)
-              ? errorData.message.join(', ')
-              : errorData.message || errorMessage;
+            try {
+              const errorData: ApiError = await response.json();
+              
+              // Backend mới trả format: { success: false, error: { message: "..." } }
+              if (errorData.success === false && errorData.error && typeof errorData.error === 'object') {
+                errorMessage = errorData.error.message;
+              }
+              // Backend cũ trả format: { message: "..." }
+              else if (errorData.message) {
+                errorMessage = Array.isArray(errorData.message)
+                  ? errorData.message.join(', ')
+                  : errorData.message;
+              }
+            } catch (jsonError) {
+              // Nếu parse JSON thất bại, thử đọc text
+              const textError = await responseClone.text();
+              if (textError) {
+                errorMessage = textError;
+              }
+            }
           } else {
+            // Không phải JSON, đọc text
             const textError = await response.text();
             errorMessage = textError || response.statusText || errorMessage;
           }
         } catch (parseError) {
-          // Nếu không parse được, dùng status text
+          // Fallback cuối cùng
+          console.error('Error parsing response:', parseError);
           errorMessage = response.statusText || errorMessage;
         }
         

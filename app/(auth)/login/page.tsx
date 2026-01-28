@@ -1,11 +1,39 @@
 "use client"
 
+import { useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, BookOpen, Users, Award, Sparkles, GraduationCap, Brain, Rocket } from "lucide-react"
 import { AuthForm } from "@/components/ui/auth-form"
 import { motion } from "framer-motion"
+import { toast } from "sonner"
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    // Kiểm tra error params từ Google OAuth hoặc auth error
+    const error = searchParams?.get('error')
+    const message = searchParams?.get('message')
+
+    if (error && message) {
+      // Đợi một chút để component render xong rồi mới show toast
+      const timer = setTimeout(() => {
+        toast.error(decodeURIComponent(message), {
+          duration: 5000,
+          description: 'Vui lòng kiểm tra lại thông tin đăng nhập'
+        })
+        
+        // Clear URL params sau khi hiển thị thông báo
+        if (window.history.replaceState) {
+          window.history.replaceState({}, '', '/login')
+        }
+      }, 500)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [searchParams])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
       {/* Hình nền phía sau */}

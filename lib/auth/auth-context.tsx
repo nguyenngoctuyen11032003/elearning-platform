@@ -111,27 +111,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
       let message = 'Đăng nhập thất bại';
 
       if (error instanceof Error) {
-        const errorMsg = error.message.toLowerCase();
+        const errorMsg = error.message;
         
-        // Parse specific error messages
-        if (errorMsg.includes('401') || errorMsg.includes('unauthorized')) {
-          message = 'Email hoặc mật khẩu không chính xác.';
-        } else if (errorMsg.includes('invalid') || errorMsg.includes('credentials')) {
-          message = 'Email hoặc mật khẩu không chính xác. Vui lòng thử lại.';
-        } else if (errorMsg.includes('not found') || errorMsg.includes('404')) {
-          message = 'Tài khoản không tồn tại. Vui lòng đăng ký.';
-        } else if (errorMsg.includes('inactive') || errorMsg.includes('pending')) {
-          message = 'Tài khoản của bạn chưa được kích hoạt. Vui lòng kiểm tra email.';
-        } else if (errorMsg.includes('kết nối') || errorMsg.includes('network')) {
-          message = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+        // Ưu tiên hiển thị message gốc từ backend nếu nó là tiếng Việt và có ý nghĩa cụ thể
+        if (errorMsg.includes('Tài khoản') || 
+            errorMsg.includes('bị khóa') || 
+            errorMsg.includes('vô hiệu hóa') || 
+            errorMsg.includes('chưa được kích hoạt') ||
+            errorMsg.includes('Email chưa được xác thực')) {
+          // Sử dụng message gốc từ backend
+          message = errorMsg;
         } else {
-          message = error.message;
+          // Fallback cho các lỗi khác
+          const errorMsgLower = errorMsg.toLowerCase();
+          
+          if (errorMsgLower.includes('locked')) {
+            message = 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với đội ngũ hỗ trợ để được kích hoạt lại.';
+          } else if (errorMsgLower.includes('disabled') || errorMsgLower.includes('deactivated')) {
+            message = 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ với đội ngũ hỗ trợ để được kích hoạt lại.';
+          } else if (errorMsgLower.includes('invalid') || errorMsgLower.includes('credentials')) {
+            message = 'Email hoặc mật khẩu không chính xác. Vui lòng thử lại.';
+          } else if (errorMsgLower.includes('not found')) {
+            message = 'Tài khoản không tồn tại. Vui lòng đăng ký.';
+          } else if (errorMsgLower.includes('inactive') || errorMsgLower.includes('pending')) {
+            message = 'Tài khoản của bạn chưa được kích hoạt. Vui lòng kiểm tra email.';
+          } else if (errorMsgLower.includes('kết nối') || errorMsgLower.includes('network')) {
+            message = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+          } else {
+            message = error.message;
+          }
         }
       }
 
       toast.error(message);
-      // Don't throw error again - just show toast notification
-      console.error('Login error:', message);
     } finally {
       setLoading(false);
     }

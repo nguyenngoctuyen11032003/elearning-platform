@@ -54,9 +54,14 @@ export interface ApiResponse<T = any> {
 }
 
 export interface ApiError {
-  statusCode: number;
-  message: string | string[];
-  error: string;
+  statusCode?: number;
+  message?: string | string[];
+  error?: string | {
+    code: string;
+    message: string;
+    details?: any;
+  };
+  success?: boolean;
 }
 
 export interface UpdateProfileRequest {

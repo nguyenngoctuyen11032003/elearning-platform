@@ -12,6 +12,18 @@ export function GoogleAuthCallback() {
   useEffect(() => {
     const token = searchParams.get('token')
     const userStr = searchParams.get('user')
+    const error = searchParams.get('error')
+    const message = searchParams.get('message')
+
+    // Kiểm tra nếu có lỗi từ backend
+    if (error) {
+      const errorMessage = message || 'Đăng nhập Google thất bại'
+      toast.error(decodeURIComponent(errorMessage))
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 2000)
+      return
+    }
 
     if (token && userStr) {
       try {
@@ -23,6 +35,8 @@ export function GoogleAuthCallback() {
         // Save user info to localStorage for auth context to pick up
         localStorage.setItem('user', JSON.stringify(userData))
         
+        toast.success('Đăng nhập Google thành công!')
+        
         // Redirect based on role
         const redirectUrl = getRedirectUrl(userData.role)
         window.location.href = redirectUrl
@@ -32,6 +46,7 @@ export function GoogleAuthCallback() {
         window.location.href = '/login'
       }
     } else {
+      toast.error('Thiếu thông tin đăng nhập')
       window.location.href = '/login'
     }
   }, [searchParams])

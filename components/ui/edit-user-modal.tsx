@@ -41,6 +41,8 @@ export function EditUserModal({ onClose, user, onSubmit }: EditUserModalProps) {
       newErrors.phone = "Số điện thoại không hợp lệ"
     }
 
+    // dateOfBirth is optional, no validation needed
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -51,7 +53,15 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   setLoading(true)
   try {
-    await onSubmit(formData) // ✅ ĐÚNG
+    // Filter out empty strings and undefined values
+    const cleanedData: UpdateUserData = {}
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        cleanedData[key as keyof UpdateUserData] = value as any
+      }
+    })
+    
+    await onSubmit(cleanedData)
     onClose()
   } catch (error) {
     console.error("Error saving user:", error)
