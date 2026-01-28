@@ -55,7 +55,9 @@ export default function Home() {
   const [featuredCourses, setFeaturedCourses] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [categoriesPage, setCategoriesPage] = useState(0)
 
+  const CATEGORIES_PER_PAGE = 6
   
   useEffect(() => {
     const fetchData = async () => {
@@ -66,6 +68,7 @@ export default function Home() {
 
         const categoriesRes = await apiClient.getCategories()
         setCategories(Array.isArray(categoriesRes) ? categoriesRes : [])
+        setCategoriesPage(0)
       } catch (error) {
         console.error("Error fetching data:", error)
         setFeaturedCourses([])
@@ -80,6 +83,14 @@ export default function Home() {
 
   const FEATURES_VISIBLE = 4
   const [featurePage, setFeaturePage] = useState(0)
+
+  const handleCategoryPageChange = (newPage: number) => {
+    const scrollY = window.scrollY
+    setCategoriesPage(newPage)
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY)
+    })
+  }
 
   const features = [
     {
@@ -554,38 +565,51 @@ export default function Home() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          <motion.div
+            key={categoriesPage}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
             {categories.length > 0 ? (
-              categories.map((category, idx) => {
+              categories.slice(categoriesPage * CATEGORIES_PER_PAGE, (categoriesPage + 1) * CATEGORIES_PER_PAGE).map((category, idx) => {
                 return (
                   <motion.div
                     key={category.id || category.name}
                     initial={{ opacity: 0, scale: 0.9 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
+                    animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: idx * 0.05 }}
                   >
                     <Link
                       href={`/courses?category=${category.id}`}
-                      className="group block p-8 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-3xl hover:shadow-2xl transition-all duration-300 text-center hover:-translate-y-2"
+                      className="group block p-6 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-3xl hover:shadow-2xl transition-all duration-300 text-center h-full flex flex-col"
                     >
+                      <h3 className="font-bold text-slate-900 dark:text-white text-base mb-4 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2" title={category.name}>
+                        {category.name}
+                      </h3>
+
                       <div className="mb-4 group-hover:scale-125 transition-transform duration-300 flex items-center justify-center">
                         {category.image ? (
                           <img
                             src={category.image}
                             alt={category.name}
-                            className="w-14 h-14 rounded-xl object-cover"
+                            className="w-16 h-16 rounded-xl object-cover"
                           />
                         ) : (
-                          <span className="text-5xl">{category.icon || "📚"}</span>
+                          <span className="text-7xl">{category.icon || "📚"}</span>
                         )}
                       </div>
-                      <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        {category.name}
-                      </h3>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {category.courseCount || category.courses?.length || 0}+ khóa học
+
+                      <p className="text-sl text-slate-600 dark:text-slate-400 mb-4 flex-grow line-clamp-2">
+                        {category.description || "Khám phá thêm về danh mục này"}
                       </p>
+
+                      <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
+                        <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                          {category.courseCount || category.courses?.length || 0}+ khóa học
+                        </p>
+                      </div>
                     </Link>
                   </motion.div>
                 )
@@ -596,7 +620,57 @@ export default function Home() {
                 <p className="text-slate-600 dark:text-slate-400 text-lg">Đang tải danh mục...</p>
               </div>
             )}
-          </div>
+          </motion.div>
+
+          {/* Pagination */}
+          {categories.length > CATEGORIES_PER_PAGE && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="flex justify-center items-center gap-6 mt-14"
+            >
+              <button
+                onClick={() => handleCategoryPageChange(Math.max(0, categoriesPage - 1))}
+                disabled={categoriesPage === 0}
+                className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition font-bold ${
+                  categoriesPage === 0
+                    ? "bg-slate-200 dark:bg-slate-800 opacity-40 cursor-not-allowed text-slate-500"
+                    : "bg-blue-600 hover:bg-blue-700 text-white hover:scale-110"
+                }`}
+              >
+                ←
+              </button>
+
+              <div className="flex gap-2">
+                {Array.from({ length: Math.ceil(categories.length / CATEGORIES_PER_PAGE) }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleCategoryPageChange(i)}
+                    className={`w-10 h-10 rounded-full font-semibold transition ${
+                      categoriesPage === i
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => handleCategoryPageChange(Math.min(Math.ceil(categories.length / CATEGORIES_PER_PAGE) - 1, categoriesPage + 1))}
+                disabled={categoriesPage === Math.ceil(categories.length / CATEGORIES_PER_PAGE) - 1}
+                className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition font-bold ${
+                  categoriesPage === Math.ceil(categories.length / CATEGORIES_PER_PAGE) - 1
+                    ? "bg-slate-200 dark:bg-slate-800 opacity-40 cursor-not-allowed text-slate-500"
+                    : "bg-blue-600 hover:bg-blue-700 text-white hover:scale-110"
+                }`}
+              >
+                →
+              </button>
+            </motion.div>
+          )}
         </div>
       </section>
 

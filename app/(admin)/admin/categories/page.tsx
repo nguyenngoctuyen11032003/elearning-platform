@@ -314,8 +314,8 @@ useEffect(() => {
 
         {/* Add Category Modal */}
         {isAdding && (
-          <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 relative z-[10000] max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 h-screen w-screen">
+            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 relative z-[10000] max-h-[90vh] overflow-y-auto flex flex-col">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-foreground dark:text-white">Thêm danh mục mới</h2>
                 <button
@@ -358,7 +358,7 @@ useEffect(() => {
                       }}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 text-xl"
                     >
-                      <option value="">— Không chọn icon —</option>
+                      <option value="">Không chọn icon</option>
                       {iconOptions.map((icon) => (
                         <option key={icon} value={icon}>{icon}</option>
                       ))}
@@ -460,63 +460,61 @@ useEffect(() => {
                     }}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary h-20 resize-none text-sm"
                   />
-                  <div className="flex gap-3">
-                    <input
-                      type="color"
-                      value={category.color}
-                      onChange={(e) => {
-                        setCategories(categories.map((c) => (c.id === category.id ? { ...c, color: e.target.value } : c)))
-                      }}
-                      className="w-12 h-10 rounded-lg cursor-pointer border border-border"
-                      
-                    />
+                  <div className="grid grid-cols-2 gap-4 items-start">
+                  {/* ICON */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold">Icon</label>
+
                     <select
-                    value={category.icon || ""}
-                    onChange={(e) => {
-                      setEditImageFile(null) // Reset file ảnh khi chọn icon
-                      setCategories(categories.map((c) =>
-                        c.id === category.id
-                          ? {
-                              ...c,
-                              icon: e.target.value,
-                              image: undefined // 👈 chọn icon thì xoá ảnh
-                            }
-                          : c
-                      ))
-                    }}
-                      className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-2 border border-border dark:border-slate-800 text-xl"
+                      value={category.icon || ""}
+                      onChange={(e) => {
+                        setEditImageFile(null) // Reset file ảnh khi chọn icon
+                        setCategories(
+                          categories.map((c) =>
+                            c.id === category.id
+                              ? {
+                                  ...c,
+                                  icon: e.target.value,
+                                  image: undefined, // chọn icon thì xoá ảnh
+                                }
+                              : c
+                          )
+                        )
+                      }}
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-2 border border-border dark:border-slate-800 text-base"
                     >
-                      
-                       <option value="">— Không chọn icon —</option>
+                      <option value="">Không chọn icon</option>
                       {iconOptions.map((icon) => (
-                        <option key={icon} value={icon}>{icon}</option>
+                        <option key={icon} value={icon}>
+                          {icon}
+                        </option>
                       ))}
                     </select>
-                    <div className="space-y-2">
-                    <label className="block text-sm font-semibold">
-                      Ảnh danh mục
-                    </label>
+                  </div>
+
+                  {/* IMAGE */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold">Ảnh danh mục</label>
 
                     <input
                       type="file"
                       accept="image/*"
+                      className="w-full text-sm"
                       onChange={(e) => {
                         const file = e.target.files?.[0]
                         if (!file) return
 
-                        // Lưu file để upload
                         setEditImageFile(file)
-                        
-                        // Preview ảnh
+
                         const reader = new FileReader()
                         reader.onload = () => {
-                          setCategories(prev =>
-                            prev.map(c =>
+                          setCategories((prev) =>
+                            prev.map((c) =>
                               c.id === category.id
                                 ? {
                                     ...c,
                                     image: reader.result as string,
-                                    icon: "" // chọn ảnh thì xoá icon
+                                    icon: "", // chọn ảnh thì xoá icon
                                   }
                                 : c
                             )
@@ -527,14 +525,16 @@ useEffect(() => {
                     />
 
                     {category.image && (
-                      <img
-                        src={category.image}
-                        alt={category.name}
-                        className="w-20 h-20 rounded-xl object-cover border"
-                      />
+                      <div className="flex justify-center">
+                        <img
+                          src={category.image}
+                          alt={category.name}
+                          className="w-20 h-20 rounded-xl object-cover border"
+                        />
+                      </div>
                     )}
                   </div>
-                  </div>
+                </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleUpdateCategory(category.id, category.name, category.description, category.color, category.icon)}
@@ -579,7 +579,7 @@ useEffect(() => {
                           )}
                         </div>
                         <div>
-                          <h3 className="text-foreground dark:text-white font-bold text-lg">{category.name}</h3>
+                          <h3 className="text-foreground dark:text-white font-bold text-lg truncate max-w-[150px]">{category.name}</h3>
                           <p className="text-muted-foreground dark:text-slate-400 text-sm">{category.courses} khóa học</p>
                         </div>
                       </div>
