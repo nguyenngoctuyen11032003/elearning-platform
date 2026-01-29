@@ -102,6 +102,7 @@ export default function TeacherCoursesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [openMenu, setOpenMenu] = useState<number | null>(null)
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "delete" | null>(null)
 
@@ -370,18 +371,24 @@ export default function TeacherCoursesPage() {
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white font-medium">₫{formatPrice(course.price)}</td>
                     <td className="py-4 px-6">{getStatusBadge(course.status)}</td>
-                    <td className="py-4 px-6 relative" data-dropdown>
+                    <td className="py-4 px-6" data-dropdown>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
+                          const rect = e.currentTarget.getBoundingClientRect()
+                          setMenuPos({ top: rect.bottom + 8, left: rect.right - 192 })
                           setOpenMenu(openMenu === course.id ? null : course.id)
                         }}
                         className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
                       >
                         <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
                       </button>
-                      {openMenu === course.id && (
-                        <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-xl z-50 min-w-48" data-dropdown>
+                      {openMenu === course.id && menuPos && (
+                        <div 
+                          className="fixed bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-xl z-[99999] min-w-48"
+                          style={{ top: menuPos.top, left: menuPos.left }}
+                          data-dropdown
+                        >
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
@@ -580,7 +587,8 @@ export default function TeacherCoursesPage() {
             </div>
           </div>
         </div>
-      )}    </div>
+      )}    
+
+    </div>
   )
 }
-
