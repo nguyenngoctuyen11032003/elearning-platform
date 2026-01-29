@@ -641,7 +641,7 @@ export default function CoursesPage() {
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-6 py-3 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl font-medium text-foreground dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     ← Trang trước
                   </button>

@@ -378,7 +378,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                 >
                                   <div 
                                     onClick={() => setExpandedLesson(expandedLesson === lesson.id ? null : lesson.id)}
-                                    className="flex items-start gap-3 mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                                    className={`flex items-start gap-3 mb-3 px-3 py-2 rounded-lg cursor-pointer transition-all ${
+                                      expandedLesson === lesson.id 
+                                        ? 'bg-primary/10 dark:bg-accent/10 border-2 border-primary dark:border-accent' 
+                                        : 'hover:opacity-80 border-2 border-transparent'
+                                    }`}
                                   >
                                     <span className="text-xs font-semibold text-primary dark:text-accent pt-1 px-2.5 py-1 bg-primary/10 dark:bg-accent/10 rounded-full">
                                       {idx + 1}

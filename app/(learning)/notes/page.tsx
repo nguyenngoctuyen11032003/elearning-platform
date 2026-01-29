@@ -75,20 +75,22 @@ export default function NotesPage() {
 
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCourse, setSelectedCourse] = useState("all")
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [isCreating, setIsCreating] = useState(false)
   const [editingNote, setEditingNote] = useState<Note | null>(null)
   const [newNote, setNewNote] = useState({ title: "", content: "", tags: "" })
   const [viewingNote, setViewingNote] = useState<Note | null>(null)
 
   const courses = [...new Set(notes.map(n => n.course))]
+  const allTags = [...new Set(notes.flatMap(n => n.tags))].sort()
 
   const filteredNotes = notes.filter((note) => {
     const matchesSearch = 
       note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      note.content.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCourse = selectedCourse === "all" || note.course === selectedCourse
-    return matchesSearch && matchesCourse
+    const matchesTags = selectedTags.length === 0 || selectedTags.some(tag => note.tags.includes(tag))
+    return matchesSearch && matchesCourse && matchesTags
   })
 
   const handleCreateNote = () => {
@@ -183,7 +185,7 @@ export default function NotesPage() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
           <input
             type="text"
-            placeholder="Tìm kiếm ghi chú, tags..."
+            placeholder="Tìm kiếm ghi chú..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-card dark:bg-slate-900/60 border-2 border-border dark:border-slate-800 text-foreground dark:text-white rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
@@ -203,6 +205,47 @@ export default function NotesPage() {
           </select>
         </div>
       </motion.div>
+
+      {/* Tags Filter */}
+      {allTags.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="flex flex-wrap gap-2 items-start"
+        >
+          <span className="text-sm font-medium text-muted-foreground pt-2">Tags:</span>
+          <div className="flex flex-wrap gap-2">
+            {allTags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => {
+                  setSelectedTags(prev => 
+                    prev.includes(tag) 
+                      ? prev.filter(t => t !== tag)
+                      : [...prev, tag]
+                  )
+                }}
+                className={`px-3.5 py-1.5 rounded-full font-medium text-sm transition-all ${
+                  selectedTags.includes(tag)
+                    ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg'
+                    : 'bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 text-foreground dark:text-white hover:border-primary dark:hover:border-accent'
+                }`}
+              >
+                #{tag}
+              </button>
+            ))}
+          </div>
+          {selectedTags.length > 0 && (
+            <button
+              onClick={() => setSelectedTags([])}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-auto"
+            >
+              Xóa bộ lọc
+            </button>
+          )}
+        </motion.div>
+      )}
 
       {/* Notes Grid */}
       {filteredNotes.length === 0 ? (
