@@ -31,7 +31,7 @@ const textSizes: Record<'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl', strin
   '4xl': 'text-8xl'
 }
 
-export const LogoDisplay = React.memo(function LogoDisplay({ 
+export function LogoDisplay({ 
   src, 
   size = 'md', 
   className,
@@ -39,20 +39,68 @@ export const LogoDisplay = React.memo(function LogoDisplay({
   variant = 'full'
 }: LogoDisplayProps) {
   const [imageError, setImageError] = React.useState(false)
-  const [isLoading, setIsLoading] = React.useState(!!src)
+  const [imageLoaded, setImageLoaded] = React.useState(false)
+  const imgRef = React.useRef<HTMLImageElement>(null)
 
+  // Force reload image when src changes or when page becomes visible
   React.useEffect(() => {
+    if (!src) return
+
     setImageError(false)
-    setIsLoading(!!src)
+    setImageLoaded(false)
+
+    // Preload image using Image API to ensure it loads
+    const img = new Image()
+    img.src = src
+    
+    img.onload = () => {
+      setImageLoaded(true)
+      // Force update the img element if it exists
+      if (imgRef.current) {
+        imgRef.current.src = src
+      }
+    }
+    
+    img.onerror = () => {
+      setImageError(true)
+      setImageLoaded(false)
+    }
+
+    // Cleanup
+    return () => {
+      img.onload = null
+      img.onerror = null
+    }
+  }, [src])
+
+  // Handle page visibility change - reload when tab becomes visible
+  React.useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && src && imgRef.current) {
+        // Force reload when page becomes visible
+        const currentSrc = imgRef.current.src
+        imgRef.current.src = ''
+        setTimeout(() => {
+          if (imgRef.current) {
+            imgRef.current.src = currentSrc
+          }
+        }, 0)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [src])
 
   const handleImageError = () => {
     setImageError(true)
-    setIsLoading(false)
+    setImageLoaded(false)
   }
 
   const handleImageLoad = () => {
-    setIsLoading(false)
+    setImageLoaded(true)
   }
 
   const sizeClass = sizeClasses[size]
@@ -62,7 +110,7 @@ export const LogoDisplay = React.memo(function LogoDisplay({
   if (src && !imageError) {
     return (
       <div className={cn('relative', className)}>
-        {isLoading && (
+        {!imageLoaded && (
           <div className={cn(
             'absolute inset-0 animate-pulse rounded-lg',
             'bg-gradient-to-br from-gray-200 via-gray-300 to-gray-400 dark:from-slate-700 dark:via-slate-600 dark:to-slate-800',
@@ -70,16 +118,16 @@ export const LogoDisplay = React.memo(function LogoDisplay({
           )} />
         )}
         <img
+          ref={imgRef}
           src={src}
           alt="Logo"
           className={cn(
-            'w-auto object-contain transition-opacity duration-200 rounded-full',
+            'w-auto object-contain transition-opacity duration-300 rounded-full',
             sizeClass,
-            isLoading ? 'opacity-0' : 'opacity-100'
+            imageLoaded ? 'opacity-100' : 'opacity-0'
           )}
           onError={handleImageError}
           onLoad={handleImageLoad}
-          loading="lazy"
         />
       </div>
     )
@@ -173,4 +221,4 @@ export const LogoDisplay = React.memo(function LogoDisplay({
       )}
     </div>
   )
-})
+}

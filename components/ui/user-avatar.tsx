@@ -26,7 +26,7 @@ const iconSizes = {
   xl: 32
 }
 
-export const UserAvatar = React.memo(function UserAvatar({ 
+export function UserAvatar({ 
   src, 
   name, 
   size = 'md', 
@@ -34,20 +34,68 @@ export const UserAvatar = React.memo(function UserAvatar({
   showIcon = true 
 }: UserAvatarProps) {
   const [imageError, setImageError] = React.useState(false)
-  const [isLoading, setIsLoading] = React.useState(!!src)
+  const [imageLoaded, setImageLoaded] = React.useState(false)
+  const imgRef = React.useRef<HTMLImageElement>(null)
 
+  // Force reload image when src changes or when page becomes visible
   React.useEffect(() => {
+    if (!src) return
+
     setImageError(false)
-    setIsLoading(!!src)
+    setImageLoaded(false)
+
+    // Preload image using Image API to ensure it loads
+    const img = new Image()
+    img.src = src
+    
+    img.onload = () => {
+      setImageLoaded(true)
+      // Force update the img element if it exists
+      if (imgRef.current) {
+        imgRef.current.src = src
+      }
+    }
+    
+    img.onerror = () => {
+      setImageError(true)
+      setImageLoaded(false)
+    }
+
+    // Cleanup
+    return () => {
+      img.onload = null
+      img.onerror = null
+    }
+  }, [src])
+
+  // Handle page visibility change - reload when tab becomes visible
+  React.useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && src && imgRef.current) {
+        // Force reload when page becomes visible
+        const currentSrc = imgRef.current.src
+        imgRef.current.src = ''
+        setTimeout(() => {
+          if (imgRef.current) {
+            imgRef.current.src = currentSrc
+          }
+        }, 0)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [src])
 
   const handleImageError = () => {
     setImageError(true)
-    setIsLoading(false)
+    setImageLoaded(false)
   }
 
   const handleImageLoad = () => {
-    setIsLoading(false)
+    setImageLoaded(true)
   }
 
   const getInitials = (name?: string): string => {
@@ -67,19 +115,19 @@ export const UserAvatar = React.memo(function UserAvatar({
   if (src && !imageError) {
     return (
       <div className={cn('relative rounded-full overflow-hidden', sizeClass, className)}>
-        {isLoading && (
+        {!imageLoaded && (
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 animate-pulse rounded-full" />
         )}
         <img
+          ref={imgRef}
           src={src}
           alt={name ? `${name}'s avatar` : 'User avatar'}
           className={cn(
-            'w-full h-full object-cover transition-opacity duration-200',
-            isLoading ? 'opacity-0' : 'opacity-100'
+            'w-full h-full object-cover transition-opacity duration-300',
+            imageLoaded ? 'opacity-100' : 'opacity-0'
           )}
           onError={handleImageError}
           onLoad={handleImageLoad}
-          loading="lazy"
         />
       </div>
     )
@@ -108,4 +156,4 @@ export const UserAvatar = React.memo(function UserAvatar({
       )}
     </div>
   )
-})
+}
