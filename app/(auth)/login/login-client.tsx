@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Users, Award, Sparkles, Brain } from "lucide-react"
 import { AuthForm } from "@/components/ui/auth-form"
+import { LogoDisplay } from "@/components/ui/logo-display"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
@@ -85,7 +86,12 @@ return (
                 className="text-center mb-12"
               >
                 <Link href="/" className="inline-flex justify-center mb-8">
-                  <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="h-28 w-auto rounded-full shadow-lg" />
+                  <LogoDisplay 
+                    src={config?.site_logo}
+                    size="4xl"
+                    variant="icon"
+                    showText={false}
+                  />
                 </Link>
 
                 <motion.h2
@@ -145,25 +151,6 @@ return (
                   </motion.div>
                 ))}
               </div>
-
-              {/* Stats */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9 }}
-                className="grid grid-cols-3 gap-4 pt-4"
-              >
-                {[
-                  { number: "15K+", label: "Học viên" },
-                  { number: "500+", label: "Khóa học" },
-                  { number: "4.9/5", label: "Đánh giá" }
-                ].map((stat, idx) => (
-                  <div key={idx} className="text-center p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-xl">
-                    <p className="text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{stat.number}</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">{stat.label}</p>
-                  </div>
-                ))}
-              </motion.div>
             </div>
 
             {/* Right Side - Login Form */}

@@ -26,7 +26,7 @@ const iconSizes = {
   xl: 32
 }
 
-export function UserAvatar({ 
+export const UserAvatar = React.memo(function UserAvatar({ 
   src, 
   name, 
   size = 'md', 
@@ -108,4 +108,4 @@ export function UserAvatar({
       )}
     </div>
   )
-}
+})

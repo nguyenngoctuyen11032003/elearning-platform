@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 
 interface LogoDisplayProps {
   src?: string | null
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl'
   className?: string
   showText?: boolean
   variant?: 'full' | 'compact' | 'icon'
@@ -15,17 +15,23 @@ const sizeClasses = {
   sm: 'h-8',
   md: 'h-12',
   lg: 'h-16',
-  xl: 'h-20'
+  xl: 'h-20',
+  '2xl': 'h-28',
+  '3xl': 'h-36',
+  '4xl': 'h-40'
 }
 
-const textSizes = {
+const textSizes: Record<'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl', string> = {
   sm: 'text-lg',
   md: 'text-xl',
   lg: 'text-2xl', 
-  xl: 'text-3xl'
+  xl: 'text-3xl',
+  '2xl': 'text-4xl',
+  '3xl': 'text-6xl',
+  '4xl': 'text-8xl'
 }
 
-export function LogoDisplay({ 
+export const LogoDisplay = React.memo(function LogoDisplay({ 
   src, 
   size = 'md', 
   className,
@@ -67,7 +73,7 @@ export function LogoDisplay({
           src={src}
           alt="Logo"
           className={cn(
-            'w-auto object-contain transition-opacity duration-200',
+            'w-auto object-contain transition-opacity duration-200 rounded-full',
             sizeClass,
             isLoading ? 'opacity-0' : 'opacity-100'
           )}
@@ -85,11 +91,14 @@ export function LogoDisplay({
       <div className={cn(
         'flex items-center justify-center font-bold',
         'bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600',
-        'text-white rounded-lg shadow-lg',
+        'text-white rounded-full shadow-lg',
         'w-12 h-12',
         size === 'sm' && 'w-8 h-8 text-sm',
         size === 'lg' && 'w-16 h-16 text-xl',
         size === 'xl' && 'w-20 h-20 text-2xl',
+        size === '2xl' && 'w-28 h-28 text-4xl',
+        size === '3xl' && 'w-36 h-36 text-6xl',
+        size === '4xl' && 'w-40 h-40 text-8xl',
         className
       )}>
         ICS
@@ -103,10 +112,13 @@ export function LogoDisplay({
         <div className={cn(
           'flex items-center justify-center font-bold',
           'bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600',
-          'text-white rounded-lg shadow-lg',
+          'text-white rounded-full shadow-lg',
           'w-8 h-8 text-sm',
           size === 'lg' && 'w-10 h-10 text-base',
-          size === 'xl' && 'w-12 h-12 text-lg'
+          size === 'xl' && 'w-12 h-12 text-lg',
+          size === '2xl' && 'w-16 h-16 text-2xl',
+          size === '3xl' && 'w-20 h-20 text-3xl',
+          size === '4xl' && 'w-24 h-24 text-4xl'
         )}>
           ICS
         </div>
@@ -129,11 +141,14 @@ export function LogoDisplay({
       <div className={cn(
         'flex items-center justify-center font-bold',
         'bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600',
-        'text-white rounded-lg shadow-lg',
+        'text-white rounded-full shadow-lg',
         'w-12 h-12 text-lg',
         size === 'sm' && 'w-8 h-8 text-sm',
         size === 'lg' && 'w-16 h-16 text-xl',
-        size === 'xl' && 'w-20 h-20 text-2xl'
+        size === 'xl' && 'w-20 h-20 text-2xl',
+        size === '2xl' && 'w-28 h-28 text-4xl',
+        size === '3xl' && 'w-36 h-36 text-6xl',
+        size === '4xl' && 'w-40 h-40 text-8xl'
       )}>
         ICS
       </div>
@@ -158,4 +173,4 @@ export function LogoDisplay({
       )}
     </div>
   )
-}
+})

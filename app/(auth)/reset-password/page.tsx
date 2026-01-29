@@ -5,6 +5,7 @@ import { ArrowLeft, Key, Shield, CheckCircle, Sparkles, GraduationCap } from "lu
 import { ResetPasswordForm } from "@/components/ui/reset-password-form"
 import { motion } from "framer-motion"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
+import { LogoDisplay } from "@/components/ui/logo-display"
 export default function ResetPasswordPage() {
     const { config } = useSystemConfig()
   return (
@@ -56,7 +57,12 @@ export default function ResetPasswordPage() {
               className="text-center mb-10"
             >
               <Link href="/" className="inline-flex justify-center">
-                <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="h-28 w-auto rounded-full shadow-lg" />
+                <LogoDisplay 
+                  src={config?.site_logo}
+                  size="2xl"
+                  variant="icon"
+                  showText={false}
+                />
               </Link>
             </motion.div>
 

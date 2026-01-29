@@ -23,6 +23,8 @@ import {
 import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
+import { LogoDisplay } from "@/components/ui/logo-display"
+import { UserAvatar } from "@/components/ui/user-avatar"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Tổng quan", href: "/userdb" },
@@ -90,9 +92,12 @@ export function StudentSidebar() {
         {/* Logo Section - Fixed Header */}
         <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50">
           <Link href="/" className="flex items-center justify-center">
-            <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className={`${
-              isCollapsed ? "h-10" : "h-14"
-            } w-auto rounded-full shadow-lg hover:shadow-xl transition-all`} />
+            <LogoDisplay 
+              src={config?.site_logo}
+              size={isCollapsed ? "md" : "lg"}
+              variant="icon"
+              showText={false}
+            />
           </Link>
           {!isCollapsed && (
             <div className="mt-2 text-center">
@@ -133,19 +138,12 @@ export function StudentSidebar() {
               className="block bg-gradient-to-br from-secondary/40 to-secondary/20 dark:from-slate-800/40 dark:to-slate-800/20 rounded-xl p-3 border border-border/70 dark:border-slate-700/70 hover:border-primary/50 dark:hover:border-accent/50 hover:shadow-md transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center ring-2 ring-border dark:ring-slate-700 group-hover:ring-primary dark:group-hover:ring-accent group-hover:scale-105 transition-all shadow-md">
-                  {user.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={`${user.name || 'Student'} Avatar`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-white font-bold text-sm">
-                      {user.name?.charAt(0).toUpperCase() || 'U'}
-                    </span>
-                  )}
-                </div>
+                <UserAvatar 
+                  src={user.avatar}
+                  name={user.name || 'Student'}
+                  size="md"
+                  className="group-hover:scale-105 transition-all shadow-md"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground dark:text-white font-semibold text-sm truncate group-hover:text-primary dark:group-hover:text-accent transition-colors">
                     {user.name || 'Học viên'}
@@ -165,19 +163,12 @@ export function StudentSidebar() {
               className="flex justify-center"
               title={user.name || 'Học viên'}
             >
-              <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center ring-2 ring-border dark:ring-slate-700 hover:ring-primary dark:hover:ring-accent hover:scale-105 transition-all shadow-md">
-                {user.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={`${user.name || 'Student'} Avatar`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-white font-bold text-sm">
-                    {user.name?.charAt(0).toUpperCase() || 'U'}
-                  </span>
-                )}
-              </div>
+              <UserAvatar 
+                src={user.avatar}
+                name={user.name || 'Student'}
+                size="md"
+                className="hover:scale-105 transition-all shadow-md"
+              />
             </Link>
           )}
 

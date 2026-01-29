@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useState } from "react"
 import { AuthForm } from "@/components/ui/auth-form"
+import { LogoDisplay } from "@/components/ui/logo-display"
 import { BookOpen, Users, ArrowLeft, Sparkles, GraduationCap, Award, Brain, Rocket, CheckCircle } from "lucide-react"
 import { motion } from "framer-motion"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
@@ -68,7 +69,12 @@ export default function SignupPage() {
                 className="text-center mb-12"
               >
                 <Link href="/" className="inline-flex justify-center mb-8">
-                  <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="h-28 w-auto rounded-full shadow-lg" />
+                  <LogoDisplay 
+                    src={config?.site_logo}
+                    size="4xl"
+                    variant="icon"
+                    showText={false}
+                  />
                 </Link>
 
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-tight mb-4">
@@ -134,7 +140,12 @@ export default function SignupPage() {
               {/* Mobile Logo */}
               <div className="lg:hidden text-center mb-8 sm:mb-10">
                 <Link href="/" className="inline-flex justify-center">
-                  <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="h-24 w-auto rounded-full shadow-lg" />
+                  <LogoDisplay 
+                    src={config?.site_logo}
+                    size="2xl"
+                    variant="icon"
+                    showText={false}
+                  />
                 </Link>
               </div>
 

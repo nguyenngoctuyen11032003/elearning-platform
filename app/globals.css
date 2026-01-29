@@ -120,6 +120,20 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* GPU Acceleration & Smooth Scrolling */
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Hardware acceleration for transforms */
+  img, video {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
 }
 
 /* Glass morphism effect */
@@ -130,6 +144,26 @@
 /* Smooth transitions for theme changes */
 .transition-smooth {
   @apply transition-all duration-300 ease-out;
+  will-change: transform, opacity;
+}
+
+/* Performance optimization for animations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Theme transition for all elements */
@@ -162,6 +196,8 @@ html[data-theme="dark"] {
 /* Button with smooth theme transitions */
 .btn-theme-transition {
   @apply transition-all duration-200 ease-in-out hover:scale-105 active:scale-95;
+  contain: layout style paint;
+  transform: translateZ(0);
 }
 
 /* Enhanced glass effect for different themes */
