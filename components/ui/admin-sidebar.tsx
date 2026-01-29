@@ -7,6 +7,8 @@ import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
+import { UserAvatar } from "@/components/ui/user-avatar"
+import { LogoDisplay } from "@/components/ui/logo-display"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
@@ -67,21 +69,14 @@ export function AdminSidebar() {
 
         {/* Logo Section - Fixed Header */}
         <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50 mt-12 md:mt-0">
-              <Link href="/" className="flex items-center justify-center">
-              {config?.site_logo && (
-                <div
-                  className={`${
-                    isCollapsed ? "w-15 h-15" : "w-20 h-20"
-                  } rounded-full overflow-hidden`}
-                >
-                  <img
-                    src={logoSrc || "/image/logo-ics.jpg"}
-                    alt="System Logo"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-              </Link>
+          <Link href="/" className="flex items-center justify-center">
+            <LogoDisplay
+              src={config?.site_logo}
+              size={isCollapsed ? "md" : "lg"}
+              variant={isCollapsed ? "icon" : "compact"}
+              showText={!isCollapsed}
+            />
+          </Link>
           {!isCollapsed && (
             <div className="mt-2 text-center">
               <h3 className="text-sm font-bold text-foreground dark:text-white">Admin Portal</h3>
@@ -122,19 +117,12 @@ export function AdminSidebar() {
               className="block bg-gradient-to-br from-secondary/40 to-secondary/20 dark:from-slate-800/40 dark:to-slate-800/20 rounded-xl p-3 border border-border/70 dark:border-slate-700/70 hover:border-primary/50 dark:hover:border-accent/50 hover:shadow-md transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center ring-2 ring-border dark:ring-slate-700 group-hover:ring-primary dark:group-hover:ring-accent group-hover:scale-105 transition-all shadow-md">
-                  {user.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={`${user.name || 'Admin'} Avatar`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-white font-bold text-sm">
-                      {getInitials(user.name)}
-                    </span>
-                  )}
-                </div>
+                <UserAvatar
+                  src={user.avatar}
+                  name={user.name}
+                  size="md"
+                  className="group-hover:scale-105 transition-all shadow-md"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground dark:text-white font-semibold text-sm truncate group-hover:text-primary dark:group-hover:text-accent transition-colors">
                     {user.name || 'Admin'}
@@ -154,19 +142,12 @@ export function AdminSidebar() {
               className="flex justify-center"
               title={user.name || 'Admin'}
             >
-              <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center ring-2 ring-border dark:ring-slate-700 hover:ring-primary dark:hover:ring-accent hover:scale-105 transition-all shadow-md">
-                {user.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={`${user.name || 'Admin'} Avatar`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-white font-bold text-sm">
-                    {getInitials(user.name)}
-                  </span>
-                )}
-              </div>
+              <UserAvatar
+                src={user.avatar}
+                name={user.name}
+                size="md"
+                className="hover:scale-105 transition-all shadow-md"
+              />
             </Link>
           )}
 

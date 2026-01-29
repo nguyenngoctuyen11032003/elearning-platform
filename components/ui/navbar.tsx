@@ -6,8 +6,9 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
 import { ThemeToggle } from "./theme-toggle"
-import { getInitials } from "@/lib/utils/avatar"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
+import { UserAvatar } from "@/components/ui/user-avatar"
+import { LogoDisplay } from "@/components/ui/logo-display"
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
@@ -48,9 +49,12 @@ export function Navbar() {
     return (
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-4 backdrop-blur-lg bg-background/80 dark:bg-slate-950/60 border-b border-border dark:border-slate-800">
         <Link href="/" className="flex items-center gap-2">
-        <div className="w-12 h-12 rounded-full overflow-hidden">
-          <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="w-full h-full object-cover" />
-          </div>
+          <LogoDisplay
+            src={config?.site_logo}
+            size="md"
+            variant="compact"
+            showText={true}
+          />
         </Link>
         <nav className="hidden md:flex gap-8 text-sm text-muted-foreground">
           <Link href="/" className="hover:text-foreground transition-smooth flex items-center gap-2">
@@ -83,13 +87,14 @@ export function Navbar() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-4 backdrop-blur-lg bg-background/80 dark:bg-slate-950/60 border-b border-border dark:border-slate-800">
+    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-2 backdrop-blur-lg bg-background/80 dark:bg-slate-950/60 border-b border-border dark:border-slate-800">
       <Link href="/" className="flex items-center gap-2">
-      <div className="w-20 h-20 rounded-full overflow-hidden">
-        {config?.site_logo && (
-        <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="w-full h-full object-cover" />
-        )}
-        </div>
+        <LogoDisplay
+          src={config?.site_logo}
+          size="md"
+          variant="compact"
+          showText={true}
+        />
       </Link>
 
       <nav className="hidden md:flex gap-8 text-sm text-muted-foreground">
@@ -123,19 +128,13 @@ export function Navbar() {
             <div className="relative" ref={profileMenuRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="flex items-center gap-3 hover:opacity-80 transition-smooth px-3 py-2 rounded-lg hover:bg-secondary dark:hover:bg-slate-800"
+                className="flex items-center gap-2 hover:opacity-80 transition-smooth px-2 py-1 rounded-lg hover:bg-secondary dark:hover:bg-slate-800"
               >
-                {user.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt="Avatar"
-                    className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center border-2 border-primary/20">
-                    <span className="text-white font-bold text-sm">{getInitials(user.name)}</span>
-                  </div>
-                )}
+                <UserAvatar 
+                  src={user.avatar} 
+                  name={user.name} 
+                  size="sm"
+                />
                 <span className="text-sm font-medium text-foreground dark:text-white hidden sm:inline">{user.name}</span>
               </button>
 
@@ -143,19 +142,13 @@ export function Navbar() {
               {showProfileMenu && (
                 <div className="absolute right-0 top-full mt-2 w-64 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl shadow-2xl z-50">
                   {/* User Info Header */}
-                  <div className="px-4 py-4 border-b border-border dark:border-slate-800 bg-gradient-to-r from-primary/5 to-purple-500/5">
+                  <div className="px-4 py-3 border-b border-border dark:border-slate-800 bg-gradient-to-r from-primary/5 to-purple-500/5">
                     <div className="flex items-center gap-3">
-                      {user.avatar ? (
-                        <img
-                          src={user.avatar}
-                          alt="Avatar"
-                          className="w-12 h-12 rounded-full object-cover border-2 border-primary/30"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center border-2 border-primary/30">
-                          <span className="text-white font-bold text-sm">{getInitials(user.name)}</span>
-                        </div>
-                      )}
+                      <UserAvatar 
+                        src={user.avatar} 
+                        name={user.name} 
+                        size="md"
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground dark:text-white truncate">{user.name}</p>
                         <p className="text-xs text-muted-foreground dark:text-slate-400">

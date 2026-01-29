@@ -329,16 +329,18 @@ export default function AdminSettingsPage() {
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-3">Logo</label>
                   <div className="flex items-center gap-4">
-                    <div className="w-24 h-24 rounded-full overflow-hidden">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-700 border-2 border-border dark:border-slate-600 flex items-center justify-center">
                       {logoPreview ? (
                         <img
-                          src={logoPreview || "/placeholder.svg"}
+                          src={logoPreview}
                           alt="Logo preview"
                           className="w-full h-full object-cover object-center"
                         />
-                        
                       ) : (
-                        <Upload size={32} className="text-muted-foreground dark:text-slate-400" />
+                        <div className="flex flex-col items-center justify-center text-center">
+                          <Upload size={24} className="text-muted-foreground dark:text-slate-400 mb-1" />
+                          <span className="text-xs text-muted-foreground dark:text-slate-400 font-medium">ICS</span>
+                        </div>
                       )}
                     </div>
                     <div className="flex-1">
