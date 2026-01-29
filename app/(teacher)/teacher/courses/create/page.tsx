@@ -479,8 +479,8 @@ export default function CreateCoursePage() {
               {/* Lesson Editor Modal */}
               {showLessonModal && currentLesson && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                  <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
-                    <div className="flex items-center justify-between p-8 border-b border-border dark:border-slate-800 sticky top-0 bg-card dark:bg-slate-900/60">
+                  <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
+                    <div className="flex items-center justify-between p-8 border-b border-border dark:border-slate-700 sticky top-0 bg-card dark:bg-slate-900">
                       <h4 className="text-lg font-semibold text-foreground dark:text-white">Chỉnh sửa bài học</h4>
                       <button
                         onClick={() => setShowLessonModal(false)}
@@ -699,7 +699,7 @@ export default function CreateCoursePage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 p-8 border-t border-border dark:border-slate-800 sticky bottom-0 bg-card dark:bg-slate-900/60">
+                    <div className="flex items-center justify-end gap-3 p-8 border-t border-border dark:border-slate-700 sticky bottom-0 bg-card dark:bg-slate-900">
                       <button
                         onClick={() => setShowLessonModal(false)}
                         className="px-6 py-2 border border-border dark:border-slate-800 rounded-lg font-medium text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
