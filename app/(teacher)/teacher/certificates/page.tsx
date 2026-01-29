@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -19,83 +19,90 @@ import {
   X,
   BookOpen,
   Users,
-  FileText
+  FileText,
+  Filter,
+  Download,
+  Share2,
+  TrendingUp
 } from "lucide-react"
 
 interface CertificateTemplate {
-  id: number
+  id: string
   title: string
   description: string
   courseId: string
-  courseName: string
+  courseName?: string
   status: "draft" | "pending" | "approved" | "rejected"
   createdAt: string
   validityPeriod: string
   templateImageUrl?: string
   rejectionReason?: string
   issuedCount: number
+  templateStyle: string
+  backgroundColor: string
+  borderColor: string
+  textColor: string
 }
-
-const initialTemplates: CertificateTemplate[] = [
-  {
-    id: 1,
-    title: "Chứng chỉ Next.js Master",
-    description: "Chứng nhận học viên đã hoàn thành và đạt yêu cầu khóa học Next.js",
-    courseId: "1",
-    courseName: "Lập trình Next.js từ cơ bản đến nâng cao",
-    status: "approved",
-    createdAt: "2024-01-20",
-    validityPeriod: "Vĩnh viễn",
-    templateImageUrl: "/placeholder.jpg",
-    issuedCount: 245
-  },
-  {
-    id: 2,
-    title: "Chứng chỉ React Expert",
-    description: "Chứng nhận thành thạo React Hooks và State Management",
-    courseId: "2",
-    courseName: "React Hooks Advanced & State Management",
-    status: "approved",
-    createdAt: "2024-02-25",
-    validityPeriod: "2 năm",
-    templateImageUrl: "/placeholder.jpg",
-    issuedCount: 189
-  },
-  {
-    id: 3,
-    title: "Chứng chỉ TypeScript Advanced",
-    description: "Chứng nhận kiến thức nâng cao về TypeScript",
-    courseId: "3",
-    courseName: "Advanced TypeScript Patterns",
-    status: "pending",
-    createdAt: "2025-01-10",
-    validityPeriod: "Vĩnh viễn",
-    templateImageUrl: "/placeholder.jpg",
-    issuedCount: 0
-  },
-  {
-    id: 4,
-    title: "Chứng chỉ Node.js Developer",
-    description: "Chứng nhận kỹ năng phát triển Backend với Node.js",
-    courseId: "4",
-    courseName: "Node.js Backend Development",
-    status: "rejected",
-    createdAt: "2025-01-08",
-    validityPeriod: "3 năm",
-    templateImageUrl: "/placeholder.jpg",
-    issuedCount: 0,
-    rejectionReason: "Mẫu chứng chỉ chưa đạt tiêu chuẩn. Cần bổ sung logo và watermark bảo mật."
-  },
-]
 
 export default function TeacherCertificatesPage() {
   const router = useRouter()
-  const [templates, setTemplates] = useState(initialTemplates)
+  const [templates, setTemplates] = useState<CertificateTemplate[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [openMenu, setOpenMenu] = useState<number | null>(null)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<CertificateTemplate | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "delete" | null>(null)
+
+  // Fetch templates from API
+  useEffect(() => {
+    fetchTemplates()
+  }, [])
+
+  const fetchTemplates = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/certificate-templates', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('📋 API Response:', data)
+        
+        // Handle array response
+        if (Array.isArray(data)) {
+          setTemplates(data.map((t: any) => ({
+            ...t,
+            courseName: t.course?.title || 'N/A'
+          })))
+        } 
+        // Handle object with data property
+        else if (data && Array.isArray(data.data)) {
+          setTemplates(data.data.map((t: any) => ({
+            ...t,
+            courseName: t.course?.title || 'N/A'
+          })))
+        }
+        // Handle empty or invalid response
+        else {
+          console.warn('⚠️ Unexpected API response format:', data)
+          setTemplates([])
+        }
+      } else {
+        console.error('❌ API Error:', response.status, response.statusText)
+        const errorData = await response.text()
+        console.error('Error details:', errorData)
+      }
+    } catch (error) {
+      console.error('❌ Error fetching templates:', error)
+      setTemplates([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Stats
   const totalTemplates = templates.length
@@ -109,7 +116,7 @@ export default function TeacherCertificatesPage() {
       (statusFilter === "all" || template.status === statusFilter)
   )
 
-  const handleEdit = (templateId: number) => {
+  const handleEdit = (templateId: string) => {
     router.push(`/teacher/certificates/${templateId}/edit`)
     setOpenMenu(null)
   }
@@ -120,17 +127,46 @@ export default function TeacherCertificatesPage() {
     setOpenMenu(null)
   }
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!selectedTemplate) return
-    setTemplates(templates.filter(t => t.id !== selectedTemplate.id))
+    
+    try {
+      const response = await fetch(`/api/certificate-templates/${selectedTemplate.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      })
+      
+      if (response.ok) {
+        setTemplates(templates.filter(t => t.id !== selectedTemplate.id))
+      }
+    } catch (error) {
+      console.error('Error deleting template:', error)
+    }
+    
     setViewMode(null)
     setSelectedTemplate(null)
   }
 
-  const handleSubmitForReview = (templateId: number) => {
-    setTemplates(templates.map(t =>
-      t.id === templateId ? { ...t, status: "pending" as const, rejectionReason: undefined } : t
-    ))
+  const handleSubmitForReview = async (templateId: string) => {
+    try {
+      const response = await fetch(`/api/certificate-templates/${templateId}/submit`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      })
+      
+      if (response.ok) {
+        setTemplates(templates.map(t =>
+          t.id === templateId ? { ...t, status: "pending" as const, rejectionReason: undefined } : t
+        ))
+      }
+    } catch (error) {
+      console.error('Error submitting template:', error)
+    }
+    
     setOpenMenu(null)
   }
 
