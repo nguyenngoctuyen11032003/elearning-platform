@@ -1,6 +1,9 @@
 "use client"
 
 import type React from "react"
+import { apiClient } from "@/lib/api/client"
+import { useSystemConfig } from "@/lib/system-config/system-config-context"
+import { toast } from "sonner"
 
 import { useState } from "react"
 import {
@@ -31,6 +34,8 @@ export default function AdminSettingsPage() {
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const { refresh } = useSystemConfig()
   const [settings, setSettings] = useState({
     // About ICS Learning
     aboutUs: "ICS Learning là nền tảng giáo dục trực tuyến hàng đầu Việt Nam, được thành lập với mục tiêu mang đến cơ hội học tập chất lượng cao cho mọi người, mọi lúc, mọi nơi. Với đội ngũ giảng viên giàu kinh nghiệm và công nghệ hiện đại, chúng tôi cam kết đồng hành cùng bạn trên con đường chinh phục tri thức.",
@@ -77,21 +82,45 @@ export default function AdminSettingsPage() {
   }
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+  const file = e.target.files?.[0]
+  if (file) {
+    setLogoFile(file) // 👈 THÊM DÒNG NÀY
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setLogoPreview(reader.result as string)
     }
+    reader.readAsDataURL(file)
   }
+}
+
 
   const handleSave = async () => {
+  try {
     setIsSaving(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    // 1. Nếu có logo mới → upload
+    if (logoFile) {
+  const uploadRes = await apiClient.uploadFile(logoFile)
+
+  await apiClient.updateSystemSettings({
+    key: "site_logo",
+    value: uploadRes.url,
+  })
+}
+
+
+    // 3. Refresh system config → sidebar đổi logo ngay
+    await refresh()
+
+    toast.success("Lưu cài đặt thành công!")
+  } catch (error) {
+    console.error(error)
+    toast.error("Lưu cài đặt thất bại")
+  } finally {
     setIsSaving(false)
   }
+}
 
   return (
     <div className="min-h-screen w-full">

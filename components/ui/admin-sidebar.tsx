@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -6,6 +6,7 @@ import { LayoutDashboard, Users, BookOpen, CreditCard, BarChart3, Settings, LogO
 import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
+import { useSystemConfig } from "@/lib/system-config/system-config-context"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
@@ -19,6 +20,7 @@ const menuItems = [
   { icon: Settings, label: "Cài đặt", href: "/admin/settings" },
 ]
 
+
 export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
@@ -26,12 +28,15 @@ export function AdminSidebar() {
   const [isOpen, setIsOpen] = useState(true)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-
+  const { config, loading } = useSystemConfig()
+    if (loading) {
+    return null
+  }
+  const logoSrc = config?.site_logo || "/image/logo-ics.jpg"
   const handleLogout = async () => {
     await logout()
     router.push("/login")
   }
-
   return (
     <>
       {/* Mobile Toggle */}
@@ -63,9 +68,10 @@ export function AdminSidebar() {
         {/* Logo Section - Fixed Header */}
         <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50 mt-12 md:mt-0">
           <Link href="/" className="flex items-center justify-center">
-            <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className={`${
-              isCollapsed ? "h-10" : "h-14"
-            } w-auto rounded-full shadow-lg hover:shadow-xl transition-all`} />
+            <img src={logoSrc || "/image/logo-ics.jpg"}
+              alt="System Logo"
+              className={`${isCollapsed ? "h-10" : "h-14"} w-auto rounded-full`}
+              />
           </Link>
           {!isCollapsed && (
             <div className="mt-2 text-center">

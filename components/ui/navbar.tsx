@@ -7,13 +7,14 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
 import { ThemeToggle } from "./theme-toggle"
 import { getInitials } from "@/lib/utils/avatar"
-
+import { useSystemConfig } from "@/lib/system-config/system-config-context"
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [mounted, setMounted] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const { config } = useSystemConfig()
   
   const { user, logout, loading, isAuthenticated } = useAuth()
 
@@ -47,7 +48,7 @@ export function Navbar() {
     return (
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-4 backdrop-blur-lg bg-background/80 dark:bg-slate-950/60 border-b border-border dark:border-slate-800">
         <Link href="/" className="flex items-center gap-2">
-          <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-12 w-auto rounded-full" />
+          <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="h-12 w-auto rounded-full" />
         </Link>
         <nav className="hidden md:flex gap-8 text-sm text-muted-foreground">
           <Link href="/" className="hover:text-foreground transition-smooth flex items-center gap-2">
@@ -82,7 +83,7 @@ export function Navbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-4 backdrop-blur-lg bg-background/80 dark:bg-slate-950/60 border-b border-border dark:border-slate-800">
       <Link href="/" className="flex items-center gap-2">
-        <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-12 w-auto rounded-full" />
+        <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="h-12 w-auto rounded-full" />
       </Link>
 
       <nav className="hidden md:flex gap-8 text-sm text-muted-foreground">

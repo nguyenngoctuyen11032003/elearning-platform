@@ -6,6 +6,7 @@ import { LayoutDashboard, BookOpen, Users, DollarSign, Settings, LogOut, Menu, X
 import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
+import { useSystemConfig } from "@/lib/system-config/system-config-context"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/teacher/dashboard" },
@@ -26,7 +27,7 @@ export function TeacherSidebar() {
   const [isOpen, setIsOpen] = useState(true)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-
+  const { config } = useSystemConfig()
   const handleLogout = async () => {
     await logout()
     router.push("/login")
@@ -64,7 +65,7 @@ export function TeacherSidebar() {
         {/* Logo Section - Fixed Header */}
         <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50 mt-12 md:mt-0">
           <Link href="/" className="flex items-center justify-center">
-            <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className={`${
+            <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className={`${
               isCollapsed ? "h-10" : "h-14"
             } w-auto rounded-full shadow-lg hover:shadow-xl transition-all`} />
           </Link>

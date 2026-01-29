@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth/auth-context"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
-
+import { SystemConfigProvider } from "@/lib/system-config/system-config-context"
 const roboto = Roboto({ 
   subsets: ["latin", "vietnamese"],
   weight: ["300", "400", "500", "700", "900"],
@@ -15,6 +15,7 @@ const roboto = Roboto({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL("http://localhost:3000"),
   title: "ICS Learning - Nền tảng học trực tuyến cao cấp",
   description: "Khám phá tri thức hiện đại. Học theo cách của bạn.",
   generator: "v0.app",
@@ -30,7 +31,9 @@ export default function RootLayout({
       <body className={`${roboto.variable} font-sans antialiased bg-background text-foreground transition-smooth`} style={{ fontFamily: 'var(--font-roboto), sans-serif' }}>
         <ThemeProvider>
           <AuthProvider>
+            <SystemConfigProvider>
             {children}
+            </SystemConfigProvider>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>

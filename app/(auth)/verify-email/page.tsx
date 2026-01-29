@@ -6,6 +6,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { CheckCircle, XCircle, ArrowLeft, Mail, RefreshCw, Sparkles, Shield, GraduationCap } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
+import { useSystemConfig } from "@/lib/system-config/system-config-context"
 
 type VerificationStatus = "loading" | "success" | "error" | "invalid"
 
@@ -15,7 +16,7 @@ function VerifyEmailContent() {
   const [status, setStatus] = useState<VerificationStatus>("loading")
   const [message, setMessage] = useState("")
   const [isRetrying, setIsRetrying] = useState(false)
-
+  const { config } = useSystemConfig()
   const token = searchParams.get("token")
 
   const verifyEmail = async (verificationToken: string) => {
@@ -208,7 +209,7 @@ function VerifyEmailContent() {
           {/* Logo */}
           <div className="text-center mb-10">
             <Link href="/" className="inline-flex justify-center">
-              <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-28 w-auto rounded-full shadow-lg" />
+              <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="h-28 w-auto rounded-full shadow-lg" />
             </Link>
           </div>
 

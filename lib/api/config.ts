@@ -179,6 +179,11 @@ export const API_ENDPOINTS = {
     VIDEO: '/api/upload/video',
     DOCUMENT: '/api/upload/document',
   },
+  SYSTEM_SETTINGS: {
+  GET: '/api/system-settings',
+  UPDATE: '/api/system-settings',
+},
+
 } as const;
 
 export { API_BASE_URL };

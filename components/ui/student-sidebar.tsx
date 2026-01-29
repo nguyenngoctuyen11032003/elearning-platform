@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
+import { useSystemConfig } from "@/lib/system-config/system-config-context"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Tổng quan", href: "/userdb" },
@@ -43,7 +44,7 @@ export function StudentSidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-
+  const { config } = useSystemConfig()
   const handleLogout = async () => {
     await logout()
     router.push("/login")
@@ -89,7 +90,7 @@ export function StudentSidebar() {
         {/* Logo Section - Fixed Header */}
         <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50">
           <Link href="/" className="flex items-center justify-center">
-            <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className={`${
+            <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className={`${
               isCollapsed ? "h-10" : "h-14"
             } w-auto rounded-full shadow-lg hover:shadow-xl transition-all`} />
           </Link>

@@ -1,16 +1,18 @@
 "use client"
 
 import type React from "react"
-
+import { SystemConfigProvider } from "@/lib/system-config/system-config-context"
 import { AdminSidebar } from "@/components/ui/admin-sidebar"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
+    <SystemConfigProvider>
     <div className="flex min-h-screen bg-background dark:bg-slate-950">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto overflow-x-hidden w-full">
         <div className="p-4 md:p-6 lg:p-8 w-full min-h-screen pb-20">{children}</div>
       </main>
     </div>
+    </SystemConfigProvider>
   )
 }

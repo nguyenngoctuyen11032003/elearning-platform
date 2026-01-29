@@ -12,6 +12,16 @@ import {
 } from './types';
 
 class ApiClient {
+  async getSystemSettings(): Promise<{ site_logo?: string }> {
+  return this.request('/api/system-settings')
+}
+
+async updateSystemSettings(data: { key: string; value: string }) {
+  return this.request('/api/system-settings', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
   private baseURL: string;
 
   constructor() {
@@ -259,11 +269,32 @@ class ApiClient {
       }
     );
   }
+  async uploadFile(file: File): Promise<{ url: string }> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await fetch(`${this.baseURL}/api/upload/image`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+    },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    throw new Error('Upload failed')
+  }
+
+  const json = await response.json()
+
+  // backend có interceptor { success, data }
+  return json.data ?? json
+}
 
   // File Upload methods
   async uploadAvatar(file: File): Promise<{ url: string; message: string }> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file); 
 
     const url = `${this.baseURL}${API_ENDPOINTS.UPLOAD.AVATAR}`;
     
@@ -1123,5 +1154,5 @@ class ApiClient {
     });
   }
 }
-
 export const apiClient = new ApiClient();
+
