@@ -67,12 +67,21 @@ export function AdminSidebar() {
 
         {/* Logo Section - Fixed Header */}
         <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50 mt-12 md:mt-0">
-          <Link href="/" className="flex items-center justify-center">
-            <img src={logoSrc || "/image/logo-ics.jpg"}
-              alt="System Logo"
-              className={`${isCollapsed ? "h-10" : "h-14"} w-auto rounded-full`}
-              />
-          </Link>
+              <Link href="/" className="flex items-center justify-center">
+              {config?.site_logo && (
+                <div
+                  className={`${
+                    isCollapsed ? "w-15 h-15" : "w-20 h-20"
+                  } rounded-full overflow-hidden`}
+                >
+                  <img
+                    src={logoSrc || "/image/logo-ics.jpg"}
+                    alt="System Logo"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              </Link>
           {!isCollapsed && (
             <div className="mt-2 text-center">
               <h3 className="text-sm font-bold text-foreground dark:text-white">Admin Portal</h3>

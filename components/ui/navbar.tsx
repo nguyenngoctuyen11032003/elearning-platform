@@ -48,7 +48,9 @@ export function Navbar() {
     return (
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-4 backdrop-blur-lg bg-background/80 dark:bg-slate-950/60 border-b border-border dark:border-slate-800">
         <Link href="/" className="flex items-center gap-2">
-          <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="h-12 w-auto rounded-full" />
+        <div className="w-12 h-12 rounded-full overflow-hidden">
+          <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="w-full h-full object-cover" />
+          </div>
         </Link>
         <nav className="hidden md:flex gap-8 text-sm text-muted-foreground">
           <Link href="/" className="hover:text-foreground transition-smooth flex items-center gap-2">
@@ -83,7 +85,11 @@ export function Navbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-4 backdrop-blur-lg bg-background/80 dark:bg-slate-950/60 border-b border-border dark:border-slate-800">
       <Link href="/" className="flex items-center gap-2">
-        <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="h-12 w-auto rounded-full" />
+      <div className="w-20 h-20 rounded-full overflow-hidden">
+        {config?.site_logo && (
+        <img src={config?.site_logo || "/images/logo.svg"} alt="ICS Cyber Security" className="w-full h-full object-cover" />
+        )}
+        </div>
       </Link>
 
       <nav className="hidden md:flex gap-8 text-sm text-muted-foreground">

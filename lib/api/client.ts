@@ -269,27 +269,22 @@ async updateSystemSettings(data: { key: string; value: string }) {
       }
     );
   }
-  async uploadFile(file: File): Promise<{ url: string }> {
+async uploadFile(file: File): Promise<{ url: string }> {
   const formData = new FormData()
   formData.append('file', file)
 
-  const response = await fetch(`${this.baseURL}/api/upload/image`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-    },
-    body: formData,
-  })
+  const result = await this.request<{ url: string }>(
+    '/api/upload/image',
+    {
+      method: 'POST',
+      body: formData,
+      headers: {}, // ⚠️ để trống, KHÔNG set Content-Type
+    }
+  )
 
-  if (!response.ok) {
-    throw new Error('Upload failed')
-  }
-
-  const json = await response.json()
-
-  // backend có interceptor { success, data }
-  return json.data ?? json
+  return result
 }
+
 
   // File Upload methods
   async uploadAvatar(file: File): Promise<{ url: string; message: string }> {
