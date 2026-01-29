@@ -197,24 +197,26 @@ export function Footer() {
 
                 <form onSubmit={handleSubscribe} className="space-y-3">
                   <div className="relative group">
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Email của bạn..."
-                      className="w-full px-4 py-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm
-                      text-foreground dark:text-white placeholder:text-muted-foreground
-                      focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                      transition-all"
-                    />
+                    <div className="relative w-[250px]">
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Email của bạn..."
+                        className="w-full pr-10 px-4 py-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm
+                        text-foreground dark:text-white placeholder:text-muted-foreground
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                        transition-all"
+                      />
 
-                    <button
-                      type="submit"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-md
-                      hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                    >
-                      <Send size={16} className="text-blue-600 dark:text-blue-400" />
-                    </button>
+                      <button
+                        type="submit"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md
+                        hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        <Send size={16} className="text-blue-600 dark:text-blue-400" />
+                      </button>
+                    </div>
                   </div>
 
                   {subscribed && (
