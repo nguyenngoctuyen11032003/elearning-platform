@@ -15,6 +15,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [expandedReview, setExpandedReview] = useState<string | null>(null)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
+  const [expandedLesson, setExpandedLesson] = useState<string | null>(null)
   const [newReview, setNewReview] = useState({ author: "", rating: 5, content: "" })
   const [reviews, setReviews] = useState([
     {
@@ -375,48 +376,65 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                   key={lesson.id}
                                   className="bg-white dark:bg-slate-900/50 rounded-lg p-4 border border-border dark:border-slate-700"
                                 >
-                                  <div className="flex items-start gap-3 mb-3">
+                                  <div 
+                                    onClick={() => setExpandedLesson(expandedLesson === lesson.id ? null : lesson.id)}
+                                    className="flex items-start gap-3 mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                                  >
                                     <span className="text-xs font-semibold text-primary dark:text-accent pt-1 px-2.5 py-1 bg-primary/10 dark:bg-accent/10 rounded-full">
                                       {idx + 1}
                                     </span>
                                     <p className="text-sm font-medium text-foreground dark:text-white flex-1">{lesson.title}</p>
+                                    <ChevronDown 
+                                      size={16} 
+                                      className={`text-muted-foreground dark:text-slate-400 transition-transform flex-shrink-0 ${expandedLesson === lesson.id ? 'rotate-180' : ''}`}
+                                    />
                                   </div>
-                                  <div className="space-y-3 ml-10">
-                                    <div className="flex items-start gap-2 text-xs text-muted-foreground dark:text-slate-400">
-                                      <div className="w-4 h-4 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                        <span className="text-blue-600 dark:text-blue-400">▶</span>
-                                      </div>
-                                      <div>
-                                        <p className="font-medium text-xs text-foreground dark:text-white">Video: {lesson.video}</p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-start gap-2 text-xs text-muted-foreground dark:text-slate-400">
-                                      <div className="w-4 h-4 rounded bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                        <span className="text-green-600 dark:text-green-400">📄</span>
-                                      </div>
-                                      <div>
-                                        <p className="font-medium text-xs text-foreground dark:text-white mb-1">{lesson.documents?.length || 0} tài liệu:</p>
-                                        <div className="space-y-1">
-                                          {lesson.documents?.map((doc: any, didx: number) => (
-                                            <p key={didx} className="text-xs text-slate-600 dark:text-slate-400">• {doc}</p>
-                                          ))}
+                                  <AnimatePresence>
+                                    {expandedLesson === lesson.id && (
+                                      <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                                        className="space-y-3 ml-10 pt-2"
+                                      >
+                                        <div className="flex items-start gap-2 text-xs text-muted-foreground dark:text-slate-400">
+                                          <div className="w-4 h-4 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <span className="text-blue-600 dark:text-blue-400">▶</span>
+                                          </div>
+                                          <div>
+                                            <p className="font-medium text-xs text-foreground dark:text-white">Video: {lesson.video}</p>
+                                          </div>
                                         </div>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-start gap-2 text-xs text-muted-foreground dark:text-slate-400">
-                                      <div className="w-4 h-4 rounded bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                        <span className="text-purple-600 dark:text-purple-400">?</span>
-                                      </div>
-                                      <div>
-                                        <p className="font-medium text-xs text-foreground dark:text-white mb-1">{lesson.questions?.length || 0} câu hỏi:</p>
-                                        <div className="space-y-1">
-                                          {lesson.questions?.map((q: any, qidx: number) => (
-                                            <p key={qidx} className="text-xs text-slate-600 dark:text-slate-400">• {q}</p>
-                                          ))}
+                                        <div className="flex items-start gap-2 text-xs text-muted-foreground dark:text-slate-400">
+                                          <div className="w-4 h-4 rounded bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <span className="text-green-600 dark:text-green-400">📄</span>
+                                          </div>
+                                          <div>
+                                            <p className="font-medium text-xs text-foreground dark:text-white mb-1">{lesson.documents?.length || 0} tài liệu:</p>
+                                            <div className="space-y-1">
+                                              {lesson.documents?.map((doc: any, didx: number) => (
+                                                <p key={didx} className="text-xs text-slate-600 dark:text-slate-400">• {doc}</p>
+                                              ))}
+                                            </div>
+                                          </div>
                                         </div>
-                                      </div>
-                                    </div>
-                                  </div>
+                                        <div className="flex items-start gap-2 text-xs text-muted-foreground dark:text-slate-400">
+                                          <div className="w-4 h-4 rounded bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <span className="text-purple-600 dark:text-purple-400">?</span>
+                                          </div>
+                                          <div>
+                                            <p className="font-medium text-xs text-foreground dark:text-white mb-1">{lesson.questions?.length || 0} câu hỏi:</p>
+                                            <div className="space-y-1">
+                                              {lesson.questions?.map((q: any, qidx: number) => (
+                                                <p key={qidx} className="text-xs text-slate-600 dark:text-slate-400">• {q}</p>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
                                 </motion.div>
                               ))}
                             </motion.div>
