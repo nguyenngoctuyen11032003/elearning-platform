@@ -15,10 +15,166 @@ import {
 import { useState, useEffect } from "react";
 import { apiClient } from "@/lib/api/client";
 import { Footer } from "@/components/ui/footer";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+
+const exampleCourses = [
+  {
+    id: 1,
+    title: "Lập trình Next.js từ cơ bản đến nâng cao",
+    description: "Khóa học toàn diện về Next.js, App Router, Server Components và deployment",
+    teacher: { name: "Nguyễn Văn A" },
+    price: 499000,
+    rating: 4.9,
+    image: "/placeholder.svg",
+    enrollmentCount: 1250,
+    createdAt: new Date().toISOString(),
+    category: { id: "1", name: "Lập trình" }
+  },
+  {
+    id: 2,
+    title: "React Hooks & State Management",
+    description: "Học sâu về React Hooks, Context API, Redux và các patterns nâng cao",
+    teacher: { name: "Trần Thị B" },
+    price: 399000,
+    rating: 4.8,
+    image: "/placeholder.svg",
+    enrollmentCount: 890,
+    createdAt: new Date().toISOString(),
+    category: { id: "1", name: "Lập trình" }
+  },
+  {
+    id: 3,
+    title: "Advanced TypeScript Patterns",
+    description: "Các pattern nâng cao trong TypeScript cho dự án lớn",
+    teacher: { name: "Lê Văn C" },
+    price: 349000,
+    rating: 4.7,
+    image: "/placeholder.svg",
+    enrollmentCount: 650,
+    createdAt: new Date().toISOString(),
+    category: { id: "1", name: "Lập trình" }
+  },
+  {
+    id: 4,
+    title: "Node.js Backend Development",
+    description: "Xây dựng backend với Node.js, Express và MongoDB",
+    teacher: { name: "Phạm Minh D" },
+    price: 449000,
+    rating: 4.6,
+    image: "/placeholder.svg",
+    enrollmentCount: 780,
+    createdAt: new Date().toISOString(),
+    category: { id: "2", name: "Backend" }
+  },
+  {
+    id: 5,
+    title: "GraphQL API Design",
+    description: "Thiết kế API với GraphQL và Apollo Server",
+    teacher: { name: "Hoàng Anh E" },
+    price: 299000,
+    rating: 4.5,
+    image: "/placeholder.svg",
+    enrollmentCount: 520,
+    createdAt: new Date().toISOString(),
+    category: { id: "2", name: "Backend" }
+  },
+  {
+    id: 6,
+    title: "Tailwind CSS Masterclass",
+    description: "Học cách sử dụng Tailwind CSS để tạo giao diện đẹp và responsive",
+    teacher: { name: "Vũ Thanh F" },
+    price: 199000,
+    rating: 4.8,
+    image: "/placeholder.svg",
+    enrollmentCount: 1450,
+    createdAt: new Date().toISOString(),
+    category: { id: "3", name: "Design" }
+  },
+  {
+    id: 7,
+    title: "Docker & Kubernetes Deep Dive",
+    description: "Làm chủ containerization và orchestration với Docker và Kubernetes",
+    teacher: { name: "Trần Minh G" },
+    price: 549000,
+    rating: 4.7,
+    image: "/placeholder.svg",
+    enrollmentCount: 420,
+    createdAt: new Date().toISOString(),
+    category: { id: "4", name: "DevOps" }
+  },
+  {
+    id: 8,
+    title: "Vue.js 3 & Composition API",
+    description: "Xây dựng ứng dụng web hiện đại với Vue.js 3 và Composition API",
+    teacher: { name: "Nguyễn Thị H" },
+    price: 379000,
+    rating: 4.6,
+    image: "/placeholder.svg",
+    enrollmentCount: 680,
+    createdAt: new Date().toISOString(),
+    category: { id: "1", name: "Lập trình" }
+  },
+  {
+    id: 9,
+    title: "Python Data Science",
+    description: "Khóa học toàn diện về Data Science với Python, Pandas, NumPy, Scikit-learn",
+    teacher: { name: "Lê Hoàng I" },
+    price: 429000,
+    rating: 4.9,
+    image: "/placeholder.svg",
+    enrollmentCount: 950,
+    createdAt: new Date().toISOString(),
+    category: { id: "1", name: "Lập trình" }
+  },
+  {
+    id: 10,
+    title: "AWS Cloud Architecture",
+    description: "Thiết kế và triển khai kiến trúc ứng dụng trên AWS",
+    teacher: { name: "Phạm Văn J" },
+    price: 599000,
+    rating: 4.8,
+    image: "/placeholder.svg",
+    enrollmentCount: 520,
+    createdAt: new Date().toISOString(),
+    category: { id: "4", name: "DevOps" }
+  },
+  {
+    id: 11,
+    title: "UI/UX Design with Figma",
+    description: "Thiết kế giao diện người dùng chuyên nghiệp với Figma",
+    teacher: { name: "Hoàng Anh K" },
+    price: 249000,
+    rating: 4.7,
+    image: "/placeholder.svg",
+    enrollmentCount: 820,
+    createdAt: new Date().toISOString(),
+    category: { id: "3", name: "Design" }
+  },
+  {
+    id: 12,
+    title: "PostgreSQL Advanced",
+    description: "Tối ưu hóa và quản lý cơ sở dữ liệu PostgreSQL",
+    teacher: { name: "Vũ Tuấn L" },
+    price: 349000,
+    rating: 4.6,
+    image: "/placeholder.svg",
+    enrollmentCount: 380,
+    createdAt: new Date().toISOString(),
+    category: { id: "2", name: "Backend" }
+  }
+];
+
+const exampleCategories = [
+  { id: "1", name: "Lập trình" },
+  { id: "2", name: "Backend" },
+  { id: "3", name: "Design" },
+  { id: "4", name: "DevOps" }
+];
 
 export default function CoursesPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category");
 
@@ -35,18 +191,25 @@ export default function CoursesPage() {
   const [sortBy, setSortBy] = useState<
     "popular" | "newest" | "price-low" | "price-high"
   >("popular");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const courses = await apiClient.getCourses();
-        setAllCourses(courses);
+        // Use example courses if API returns empty
+        setAllCourses(courses && courses.length > 0 ? courses : exampleCourses);
 
         const cats = await apiClient.getCategories();
-        setCategories(cats);
+        // Use example categories if API returns empty
+        setCategories(cats && cats.length > 0 ? cats : exampleCategories);
       } catch (error) {
         console.error("Error fetching courses:", error);
+        // Use example data on error
+        setAllCourses(exampleCourses);
+        setCategories(exampleCategories);
       } finally {
         setLoading(false);
       }
@@ -54,6 +217,13 @@ export default function CoursesPage() {
 
     fetchData();
   }, []);
+
+  // Update selectedCategory when URL param changes
+  useEffect(() => {
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+  }, [categoryParam]);
 
   useEffect(() => {
     // Ensure we start with an array
@@ -72,7 +242,7 @@ export default function CoursesPage() {
     if (selectedCategory !== "all" && filtered.length > 0) {
       filtered = filtered.filter(
         (course) =>
-          course.category?.id === selectedCategory ||
+          String(course.category?.id) === String(selectedCategory) ||
           course.category?.name === selectedCategory,
       );
     }
@@ -110,7 +280,15 @@ export default function CoursesPage() {
     }
 
     setFilteredCourses(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [search, selectedCategory, priceRange, allCourses, sortBy]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
+  const paginatedCourses = filteredCourses.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleReset = () => {
     setSearch("");
@@ -200,37 +378,63 @@ export default function CoursesPage() {
                     Danh mục
                   </h4>
                   <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <button
+                      onClick={() => {
+                        setSelectedCategory("all");
+                        router.push("/courses");
+                      }}
+                      className={`w-full flex items-center gap-2 cursor-pointer p-2 rounded-lg transition-smooth text-left ${
+                        selectedCategory === "all"
+                          ? "bg-primary/10 dark:bg-primary/20"
+                          : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }`}
+                    >
                       <input
                         type="radio"
                         name="category"
                         checked={selectedCategory === "all"}
-                        onChange={() => setSelectedCategory("all")}
+                        readOnly
                         className="w-4 h-4"
                       />
-                      <span className="text-sm text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white transition-smooth">
+                      <span className={`text-sm transition-smooth ${
+                        selectedCategory === "all"
+                          ? "text-foreground dark:text-white font-medium"
+                          : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
+                      }`}>
                         Tất cả
                       </span>
-                    </label>
+                    </button>
                     {categories.map((cat) => (
-                      <label
+                      <button
                         key={cat.id}
-                        className="flex items-center gap-2 cursor-pointer"
+                        onClick={() => {
+                          setSelectedCategory(String(cat.id));
+                          router.push(`/courses?category=${cat.id}`);
+                        }}
+                        className={`w-full flex items-center gap-2 cursor-pointer p-2 rounded-lg transition-smooth text-left ${
+                          selectedCategory === String(cat.id) || selectedCategory === cat.name
+                            ? "bg-primary/10 dark:bg-primary/20"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                        }`}
                       >
                         <input
                           type="radio"
                           name="category"
                           checked={
-                            selectedCategory === cat.id ||
+                            selectedCategory === String(cat.id) ||
                             selectedCategory === cat.name
                           }
-                          onChange={() => setSelectedCategory(cat.id)}
+                          readOnly
                           className="w-4 h-4"
                         />
-                        <span className="text-sm text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white transition-smooth">
+                        <span className={`text-sm transition-smooth ${
+                          selectedCategory === String(cat.id) || selectedCategory === cat.name
+                            ? "text-foreground dark:text-white font-medium"
+                            : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
+                        }`}>
                           {cat.name}
                         </span>
-                      </label>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -290,7 +494,7 @@ export default function CoursesPage() {
                     khóa học
                   </p>
                   <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">
-                    Tìm thấy cho bạn
+                    Trang {currentPage} / {totalPages}
                   </p>
                 </div>
 
@@ -379,7 +583,7 @@ export default function CoursesPage() {
                         : "space-y-4"
                     }
                   >
-                    {filteredCourses.map((course, index) => (
+                    {paginatedCourses.map((course, index) => (
                       <motion.div
                         key={course.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -426,7 +630,33 @@ export default function CoursesPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+              {/* Pagination */}
+              {filteredCourses.length > 0 && totalPages > 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="mt-8 flex items-center justify-center gap-4"
+                >
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    ← Trang trước
+                  </button>
+                  <span className="text-sm font-medium text-muted-foreground dark:text-slate-400">
+                    Trang {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Trang tiếp →
+                  </button>
+                </motion.div>
+              )}            </div>
           </div>
         </div>
       </div>

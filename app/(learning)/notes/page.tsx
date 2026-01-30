@@ -15,7 +15,8 @@ import {
   StickyNote,
   X,
   Save,
-  Clock
+  Clock,
+  Download
 } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
 
@@ -30,7 +31,17 @@ interface Note {
   updatedAt: string
   tags: string[]
   isFavorite: boolean
+  type: 'general' | 'deadline' | 'checklist' | 'plan'
+  items?: { id: string; title: string; deadline: string; priority: 'high' | 'medium' | 'low'; completed: boolean }[]
+  schedule?: { date: string; time: string; content: string }[]
 }
+
+const noteTypes = [
+  { value: 'general', label: 'Ghi chú thường', color: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300', icon: '📝' },
+  { value: 'deadline', label: 'Deadline Tracker', color: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300', icon: '⏰' },
+  { value: 'checklist', label: 'Checklist', color: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-300', icon: '☑' },
+  { value: 'plan', label: 'Lịch học / Plan', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300', icon: '📅' },
+]
 
 export default function NotesPage() {
   const { user } = useAuth()
@@ -45,7 +56,8 @@ export default function NotesPage() {
       createdAt: "2025-01-20",
       updatedAt: "2025-01-22",
       tags: ["routing", "nextjs", "architecture"],
-      isFavorite: true
+      isFavorite: true,
+      type: "general"
     },
     {
       id: "2",
@@ -57,7 +69,8 @@ export default function NotesPage() {
       createdAt: "2025-01-18",
       updatedAt: "2025-01-18",
       tags: ["server", "client", "components"],
-      isFavorite: false
+      isFavorite: false,
+      type: "general"
     },
     {
       id: "3",
@@ -69,31 +82,42 @@ export default function NotesPage() {
       createdAt: "2025-01-15",
       updatedAt: "2025-01-16",
       tags: ["react", "hooks", "state"],
-      isFavorite: true
+      isFavorite: true,
+      type: "general"
     },
   ])
 
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCourse, setSelectedCourse] = useState("all")
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [isCreating, setIsCreating] = useState(false)
   const [editingNote, setEditingNote] = useState<Note | null>(null)
-  const [newNote, setNewNote] = useState({ title: "", content: "", tags: "" })
+  const [newNote, setNewNote] = useState({ 
+    title: "", 
+    content: "", 
+    tags: "", 
+    type: 'general' as Note['type'],
+    items: [] as { id: string; title: string; deadline: string; priority: 'high' | 'medium' | 'low'; completed: boolean }[],
+    schedule: [] as { date: string; time: string; content: string }[]
+  })
   const [viewingNote, setViewingNote] = useState<Note | null>(null)
+  const [tagToDelete, setTagToDelete] = useState<string | null>(null)
 
   const courses = [...new Set(notes.map(n => n.course))]
+  const allTags = [...new Set(notes.flatMap(n => n.tags))].sort()
 
   const filteredNotes = notes.filter((note) => {
     const matchesSearch = 
       note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      note.content.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCourse = selectedCourse === "all" || note.course === selectedCourse
-    return matchesSearch && matchesCourse
+    const matchesTags = selectedTags.length === 0 || selectedTags.some(tag => note.tags.includes(tag))
+    return matchesSearch && matchesCourse && matchesTags
   })
 
   const handleCreateNote = () => {
-    if (newNote.title.trim() && newNote.content.trim()) {
-      const note: Note = {
+    if (newNote.title.trim() && (newNote.type === 'general' ? newNote.content.trim() : true)) {
+      const baseNote = {
         id: Date.now().toString(),
         title: newNote.title,
         content: newNote.content,
@@ -103,16 +127,34 @@ export default function NotesPage() {
         createdAt: new Date().toISOString().split("T")[0],
         updatedAt: new Date().toISOString().split("T")[0],
         tags: newNote.tags.split(",").map(t => t.trim()).filter(t => t),
-        isFavorite: false
+        isFavorite: false,
+      }
+      
+      let note: Note
+      if (newNote.type === 'deadline') {
+        note = { ...baseNote, type: 'deadline', items: newNote.items }
+      } else if (newNote.type === 'checklist') {
+        note = { ...baseNote, type: 'checklist', items: newNote.items }
+      } else if (newNote.type === 'plan') {
+        note = { ...baseNote, type: 'plan', schedule: newNote.schedule }
+      } else {
+        note = { ...baseNote, type: 'general', content: newNote.content }
       }
       setNotes([note, ...notes])
-      setNewNote({ title: "", content: "", tags: "" })
+      setNewNote({ 
+        title: "", 
+        content: "", 
+        tags: "", 
+        type: 'general',
+        items: [],
+        schedule: []
+      })
       setIsCreating(false)
     }
   }
 
   const handleUpdateNote = () => {
-    if (editingNote && editingNote.title.trim() && editingNote.content.trim()) {
+    if (editingNote && editingNote.title.trim() && (editingNote.type === 'general' ? editingNote.content.trim() : true)) {
       setNotes(notes.map(n => 
         n.id === editingNote.id 
           ? { ...editingNote, updatedAt: new Date().toISOString().split("T")[0] }
@@ -140,6 +182,20 @@ export default function NotesPage() {
       month: 'short',
       year: 'numeric'
     })
+  }
+
+  const handleExportNotes = () => {
+    const notesToExport = filteredNotes.length > 0 ? filteredNotes : notes
+    const dataStr = JSON.stringify(notesToExport, null, 2)
+    const dataBlob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(dataBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `ghi-chú-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -183,26 +239,67 @@ export default function NotesPage() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
           <input
             type="text"
-            placeholder="Tìm kiếm ghi chú, tags..."
+            placeholder="Tìm kiếm ghi chú..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-card dark:bg-slate-900/60 border-2 border-border dark:border-slate-800 text-foreground dark:text-white rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Filter size={18} className="text-muted-foreground" />
-          <select
-            value={selectedCourse}
-            onChange={(e) => setSelectedCourse(e.target.value)}
-            className="bg-card dark:bg-slate-900/60 border-2 border-border dark:border-slate-800 text-foreground dark:text-white rounded-xl px-4 py-3 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors min-w-[200px]"
-          >
-            <option value="all">Tất cả khóa học</option>
-            {courses.map(course => (
-              <option key={course} value={course}>{course}</option>
-            ))}
-          </select>
-        </div>
       </motion.div>
+
+      {/* Tags Filter */}
+      {allTags.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="flex flex-wrap gap-2 items-start"
+        >
+          <span className="text-sm font-medium text-muted-foreground pt-2">Tags:</span>
+          <div className="flex flex-wrap gap-2 flex-1">
+            {allTags.map(tag => (
+              <div key={tag} className="relative group">
+                <button
+                  onClick={() => {
+                    setSelectedTags(prev => 
+                      prev.includes(tag) 
+                        ? prev.filter(t => t !== tag)
+                        : [...prev, tag]
+                    )
+                  }}
+                  className={`px-3.5 py-1.5 rounded-full font-medium text-sm transition-all ${
+                    selectedTags.includes(tag)
+                      ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg'
+                      : 'bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 text-foreground dark:text-white hover:border-primary dark:hover:border-accent'
+                  }`}
+                >
+                  #{tag}
+                </button>
+                <button
+                  onClick={() => setTagToDelete(tag)}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg"
+                  title="Xóa tag"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => setSelectedTags([])}
+            disabled={selectedTags.length === 0}
+            className={`px-3.5 py-1.5 rounded-full mr-5 font-medium text-sm transition-all flex items-center gap-1.5 ${
+              selectedTags.length > 0
+                ? 'bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30'
+                : 'bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 text-muted-foreground cursor-not-allowed opacity-50'
+            }`}
+            title="Xóa tất cả bộ lọc"
+          >
+            <X size={20} />
+            Xóa tất cả
+          </button>
+        </motion.div>
+      )}
 
       {/* Notes Grid */}
       {filteredNotes.length === 0 ? (
@@ -243,9 +340,19 @@ export default function NotesPage() {
               onClick={() => setViewingNote(note)}
             >
               <div className="flex items-start justify-between mb-3">
-                <h3 className="font-bold text-lg text-foreground dark:text-white line-clamp-1 flex-1 group-hover:text-primary dark:group-hover:text-accent transition-colors">
-                  {note.title}
-                </h3>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold text-lg text-foreground dark:text-white line-clamp-1 flex-1 group-hover:text-primary dark:group-hover:text-accent transition-colors" title={note.title}>
+                      {note.title}
+                    </h3>
+                    <span className="text-sm px-2.5 py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0" style={{
+                      backgroundColor: noteTypes.find(nt => nt.value === note.type)?.color?.split(' ')[0],
+                      color: noteTypes.find(nt => nt.value === note.type)?.color?.includes('text-') ? 'inherit' : 'currentColor'
+                    }}>
+                      {noteTypes.find(nt => nt.value === note.type)?.icon} {noteTypes.find(nt => nt.value === note.type)?.label.split(' ')[0]}
+                    </span>
+                  </div>
+                </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
                     onClick={(e) => {
@@ -280,9 +387,68 @@ export default function NotesPage() {
                 </div>
               </div>
 
-              <p className="text-sm text-muted-foreground dark:text-slate-400 line-clamp-3 mb-4 leading-relaxed">
-                {note.content}
-              </p>
+              {note.type === 'general' && (
+                <p className="text-sm text-muted-foreground dark:text-slate-400 line-clamp-3 mb-4 leading-relaxed">
+                  {note.content}
+                </p>
+              )}
+              {(note.type === 'deadline' || note.type === 'checklist') && (
+                <div className="mb-4 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-2">
+                    <span className="font-medium">{note.items?.length || 0} {note.type === 'deadline' ? 'deadline' : 'mục'}</span>
+                    {note.items && note.items.length > 0 && (
+                      <span className="text-xs">({note.items.filter(i => i.completed).length} hoàn thành)</span>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    {note.items?.slice(0, 2).map((item) => (
+                      <div key={item.id} className="text-xs">
+                        {note.type === 'deadline' ? (
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`line-clamp-1 ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground dark:text-white'}`}>
+                              {item.title}
+                            </span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0 ${
+                              item.priority === 'high' ? 'bg-red-500/20 text-red-600 dark:text-red-400' :
+                              item.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' :
+                              'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                            }`}>
+                              {item.priority === 'high' ? '⚠' : item.priority === 'medium' ? '○' : '○'}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="text-xs">
+                            <span className={`line-clamp-1 ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground dark:text-white'}`}>
+                              {item.title}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {note.items && note.items.length > 2 && (
+                      <div className="text-xs text-muted-foreground">+{note.items.length - 2} {note.type === 'deadline' ? 'deadline' : 'mục'} khác</div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {note.type === 'plan' && (
+                <div className="mb-4 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-2">
+                    <span className="font-medium">{note.schedule?.length || 0} lịch</span>
+                  </div>
+                  <div className="space-y-1">
+                    {note.schedule?.slice(0, 2).map((item, idx) => (
+                      <div key={idx} className="text-xs line-clamp-1 text-foreground dark:text-white">
+                        <span className="font-medium">{item.date ? formatDate(item.date) : 'Chưa có ngày'}</span>
+                        {item.time && <span className="text-muted-foreground"> • {item.time}</span>}
+                      </div>
+                    ))}
+                    {note.schedule && note.schedule.length > 2 && (
+                      <div className="text-xs text-muted-foreground">+{note.schedule.length - 2} lịch khác</div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Tags */}
               {note.tags.length > 0 && (
@@ -356,12 +522,207 @@ export default function NotesPage() {
                   onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors text-lg font-semibold"
                 />
-                <textarea
-                  placeholder="Viết nội dung ghi chú của bạn..."
-                  value={newNote.content}
-                  onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors h-48 resize-none"
-                />
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Loại ghi chú</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {noteTypes.map((nt) => (
+                      <button
+                        key={nt.value}
+                        onClick={() => setNewNote({ ...newNote, type: nt.value as any })}
+                        className={`px-3 py-2 rounded-lg font-medium text-sm transition-all ${
+                          newNote.type === nt.value
+                            ? nt.color + ' ring-2 ring-primary shadow-lg'
+                            : nt.color + ' opacity-60'
+                        }`}
+                      >
+                        {nt.icon} {nt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {newNote.type === 'general' && (
+                  <textarea
+                    placeholder="Viết nội dung ghi chú của bạn..."
+                    value={newNote.content}
+                    onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors h-48 resize-none"
+                  />
+                )}
+                {(newNote.type === 'deadline' || newNote.type === 'checklist') && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground block">
+                      {newNote.type === 'deadline' ? 'Các deadline' : 'Các mục kiểm tra'}
+                    </label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {newNote.items?.map((item, idx) => (
+                        <div key={item.id} className="space-y-1.5">
+                          {newNote.type === 'deadline' ? (
+                            <>
+                              <div className="flex gap-2 items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={item.completed}
+                                  onChange={(e) => {
+                                    const updated = [...newNote.items!]
+                                    updated[idx].completed = e.target.checked
+                                    setNewNote({ ...newNote, items: updated })
+                                  }}
+                                  className="w-4 h-4 rounded cursor-pointer flex-shrink-0"
+                                />
+                                <input
+                                  type="text"
+                                  value={item.title}
+                                  onChange={(e) => {
+                                    const updated = [...newNote.items!]
+                                    updated[idx].title = e.target.value
+                                    setNewNote({ ...newNote, items: updated })
+                                  }}
+                                  placeholder="Tên công việc"
+                                  className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <input
+                                  type="date"
+                                  value={item.deadline}
+                                  onChange={(e) => {
+                                    const updated = [...newNote.items!]
+                                    updated[idx].deadline = e.target.value
+                                    setNewNote({ ...newNote, items: updated })
+                                  }}
+                                  className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary text-sm"
+                                />
+                                <select
+                                  value={item.priority}
+                                  onChange={(e) => {
+                                    const updated = [...newNote.items!]
+                                    updated[idx].priority = e.target.value as 'high' | 'medium' | 'low'
+                                    setNewNote({ ...newNote, items: updated })
+                                  }}
+                                  className="bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-2 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary text-sm"
+                                >
+                                  <option value="low">Thấp</option>
+                                  <option value="medium">Bình thường</option>
+                                  <option value="high">Cao</option>
+                                </select>
+                                <button
+                                  onClick={() => {
+                                    const updated = newNote.items!.filter((_, i) => i !== idx)
+                                    setNewNote({ ...newNote, items: updated })
+                                  }}
+                                  className="p-1 hover:bg-red-500/10 rounded text-red-500"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex gap-2 items-center">
+                              <input
+                                type="checkbox"
+                                checked={item.completed}
+                                onChange={(e) => {
+                                  const updated = [...newNote.items!]
+                                  updated[idx].completed = e.target.checked
+                                  setNewNote({ ...newNote, items: updated })
+                                }}
+                                className="w-4 h-4 rounded cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={item.title}
+                                onChange={(e) => {
+                                  const updated = [...newNote.items!]
+                                  updated[idx].title = e.target.value
+                                  setNewNote({ ...newNote, items: updated })
+                                }}
+                                className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary"
+                              />
+                              <button
+                                onClick={() => {
+                                  const updated = newNote.items!.filter((_, i) => i !== idx)
+                                  setNewNote({ ...newNote, items: updated })
+                                }}
+                                className="p-1 hover:bg-red-500/10 rounded text-red-500"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newItem = { id: Date.now().toString(), title: '', deadline: '', priority: 'medium' as const, completed: false }
+                        setNewNote({ ...newNote, items: [...(newNote.items || []), newItem] })
+                      }}
+                      className="w-full px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {newNote.type === 'deadline' ? '+ Thêm deadline' : '+ Thêm mục'}
+                    </button>
+                  </div>
+                )}
+                {newNote.type === 'plan' && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground block">Lịch học</label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {newNote.schedule?.map((item, idx) => (
+                        <div key={idx} className="flex gap-2 items-end">
+                          <input
+                            type="date"
+                            value={item.date}
+                            onChange={(e) => {
+                              const updated = [...newNote.schedule!]
+                              updated[idx].date = e.target.value
+                              setNewNote({ ...newNote, schedule: updated })
+                            }}
+                            className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary"
+                          />
+                          <input
+                            type="time"
+                            value={item.time}
+                            onChange={(e) => {
+                              const updated = [...newNote.schedule!]
+                              updated[idx].time = e.target.value
+                              setNewNote({ ...newNote, schedule: updated })
+                            }}
+                            className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary"
+                          />
+                          <input
+                            type="text"
+                            value={item.content}
+                            onChange={(e) => {
+                              const updated = [...newNote.schedule!]
+                              updated[idx].content = e.target.value
+                              setNewNote({ ...newNote, schedule: updated })
+                            }}
+                            placeholder="Nội dung"
+                            className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary"
+                          />
+                          <button
+                            onClick={() => {
+                              const updated = newNote.schedule!.filter((_, i) => i !== idx)
+                              setNewNote({ ...newNote, schedule: updated })
+                            }}
+                            className="p-1 hover:bg-red-500/10 rounded text-red-500"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newItem = { date: '', time: '', content: '' }
+                        setNewNote({ ...newNote, schedule: [...(newNote.schedule || []), newItem] })
+                      }}
+                      className="w-full px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
+                    >
+                      + Thêm lịch
+                    </button>
+                  </div>
+                )}
                 <input
                   type="text"
                   placeholder="Tags (phân cách bằng dấu phẩy: react, nextjs, hooks)"
@@ -378,7 +739,7 @@ export default function NotesPage() {
                   </button>
                   <button 
                     onClick={handleCreateNote}
-                    disabled={!newNote.title.trim() || !newNote.content.trim()}
+                    disabled={!newNote.title.trim()}
                     className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Save size={18} />
@@ -405,7 +766,7 @@ export default function NotesPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-800 rounded-2xl p-6 max-w-2xl w-full shadow-2xl"
+              className="bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-800 rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
@@ -428,22 +789,224 @@ export default function NotesPage() {
                   onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors text-lg font-semibold"
                 />
-                <textarea
-                  placeholder="Viết nội dung ghi chú của bạn..."
-                  value={editingNote.content}
-                  onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors h-48 resize-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Tags (phân cách bằng dấu phẩy)"
-                  value={editingNote.tags.join(", ")}
-                  onChange={(e) => setEditingNote({ 
-                    ...editingNote, 
-                    tags: e.target.value.split(",").map(t => t.trim()).filter(t => t)
-                  })}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                />
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Loại ghi chú</label>
+                  <div className="px-3 py-2 rounded-lg text-sm font-medium" style={{
+                    backgroundColor: noteTypes.find(nt => nt.value === editingNote.type)?.color?.split(' ')[0],
+                  }}>
+                    {noteTypes.find(nt => nt.value === editingNote.type)?.icon} {noteTypes.find(nt => nt.value === editingNote.type)?.label}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">Không thể thay đổi loại ghi chú khi chỉnh sửa</p>
+                </div>
+                {editingNote.type === 'general' && (
+                  <textarea
+                    placeholder="Viết nội dung ghi chú của bạn..."
+                    value={editingNote.content}
+                    onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors h-48 resize-none"
+                  />
+                )}
+                {(editingNote.type === 'deadline' || editingNote.type === 'checklist') && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground block">
+                      {editingNote.type === 'deadline' ? 'Các deadline' : 'Các mục kiểm tra'}
+                    </label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {editingNote.items?.map((item, idx) => (
+                        <div key={item.id} className="space-y-1.5">
+                          {editingNote.type === 'deadline' ? (
+                            <>
+                              <div className="flex gap-2 items-center">
+                                <input
+                                  type="text"
+                                  value={item.title}
+                                  onChange={(e) => {
+                                    const updated = [...editingNote.items!]
+                                    updated[idx].title = e.target.value
+                                    setEditingNote({ ...editingNote, items: updated })
+                                  }}
+                                  placeholder="Tên công việc"
+                                  className={`flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary ${item.completed ? 'line-through text-muted-foreground' : ''}`}
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <input
+                                  type="date"
+                                  value={item.deadline}
+                                  onChange={(e) => {
+                                    const updated = [...editingNote.items!]
+                                    updated[idx].deadline = e.target.value
+                                    setEditingNote({ ...editingNote, items: updated })
+                                  }}
+                                  className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary text-sm"
+                                />
+                                <select
+                                  value={item.priority}
+                                  onChange={(e) => {
+                                    const updated = [...editingNote.items!]
+                                    updated[idx].priority = e.target.value as 'high' | 'medium' | 'low'
+                                    setEditingNote({ ...editingNote, items: updated })
+                                  }}
+                                  className="bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-2 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary text-sm"
+                                >
+                                  <option value="low">Thấp</option>
+                                  <option value="medium">Bình thường</option>
+                                  <option value="high">Cao</option>
+                                </select>
+                                <button
+                                  onClick={() => {
+                                    const updated = editingNote.items!.filter((_, i) => i !== idx)
+                                    setEditingNote({ ...editingNote, items: updated })
+                                  }}
+                                  className="p-1 hover:bg-red-500/10 rounded text-red-500"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex gap-2 items-center">
+                              <input
+                                type="text"
+                                value={item.title}
+                                onChange={(e) => {
+                                  const updated = [...editingNote.items!]
+                                  updated[idx].title = e.target.value
+                                  setEditingNote({ ...editingNote, items: updated })
+                                }}
+                                className={`flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary ${item.completed ? 'line-through text-muted-foreground' : ''}`}
+                              />
+                              <button
+                                onClick={() => {
+                                  const updated = editingNote.items!.filter((_, i) => i !== idx)
+                                  setEditingNote({ ...editingNote, items: updated })
+                                }}
+                                className="p-1 hover:bg-red-500/10 rounded text-red-500"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newItem = { id: Date.now().toString(), title: '', deadline: '', priority: 'medium' as const, completed: false }
+                        setEditingNote({ ...editingNote, items: [...(editingNote.items || []), newItem] })
+                      }}
+                      className="w-full px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {editingNote.type === 'deadline' ? '+ Thêm deadline' : '+ Thêm mục'}
+                    </button>
+                  </div>
+                )}
+                {editingNote.type === 'plan' && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground block">Lịch học</label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {editingNote.schedule?.map((item, idx) => (
+                        <div key={idx} className="flex gap-2 items-end">
+                          <input
+                            type="date"
+                            value={item.date}
+                            onChange={(e) => {
+                              const updated = [...editingNote.schedule!]
+                              updated[idx].date = e.target.value
+                              setEditingNote({ ...editingNote, schedule: updated })
+                            }}
+                            className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary"
+                          />
+                          <input
+                            type="time"
+                            value={item.time}
+                            onChange={(e) => {
+                              const updated = [...editingNote.schedule!]
+                              updated[idx].time = e.target.value
+                              setEditingNote({ ...editingNote, schedule: updated })
+                            }}
+                            className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary"
+                          />
+                          <input
+                            type="text"
+                            value={item.content}
+                            onChange={(e) => {
+                              const updated = [...editingNote.schedule!]
+                              updated[idx].content = e.target.value
+                              setEditingNote({ ...editingNote, schedule: updated })
+                            }}
+                            placeholder="Nội dung"
+                            className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary"
+                          />
+                          <button
+                            onClick={() => {
+                              const updated = editingNote.schedule!.filter((_, i) => i !== idx)
+                              setEditingNote({ ...editingNote, schedule: updated })
+                            }}
+                            className="p-1 hover:bg-red-500/10 rounded text-red-500"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newItem = { date: '', time: '', content: '' }
+                        setEditingNote({ ...editingNote, schedule: [...(editingNote.schedule || []), newItem] })
+                      }}
+                      className="w-full px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
+                    >
+                      + Thêm lịch
+                    </button>
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Tags</label>
+                  {editingNote.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {editingNote.tags.map((tag, i) => (
+                        <div
+                          key={i}
+                          className="px-3 py-1.5 bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary dark:text-accent text-sm rounded-full font-medium flex items-center gap-2 group"
+                        >
+                          #{tag}
+                          <button
+                            onClick={() => setEditingNote({
+                              ...editingNote,
+                              tags: editingNote.tags.filter((_, index) => index !== i)
+                            })}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    placeholder="Thêm tag mới (nhấn Enter hoặc Dấu phẩy để thêm)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault()
+                        const input = e.target as HTMLInputElement
+                        const tagValue = input.value.replace(',', '').trim()
+                        if (tagValue) {
+                          const newTag = tagValue
+                          if (!editingNote.tags.includes(newTag)) {
+                            setEditingNote({ 
+                              ...editingNote, 
+                              tags: [...editingNote.tags, newTag]
+                            })
+                          }
+                          input.value = ""
+                        }
+                      }
+                    }}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
+                  />
+                </div>
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => setEditingNote(null)}
@@ -453,7 +1016,7 @@ export default function NotesPage() {
                   </button>
                   <button 
                     onClick={handleUpdateNote}
-                    disabled={!editingNote.title.trim() || !editingNote.content.trim()}
+                    disabled={!editingNote.title.trim() || (editingNote.type === 'general' ? !editingNote.content.trim() : false)}
                     className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Save size={18} />
@@ -485,7 +1048,12 @@ export default function NotesPage() {
             >
               <div className="flex items-start justify-between mb-6">
                 <div className="flex-1 pr-4">
-                  <h2 className="text-3xl font-bold text-foreground dark:text-white mb-2">{viewingNote.title}</h2>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h2 className="text-3xl font-bold text-foreground dark:text-white">{viewingNote.title}</h2>
+                    <span className="text-xl">
+                      {noteTypes.find(nt => nt.value === viewingNote.type)?.icon}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <BookOpen size={14} />
@@ -499,6 +1067,24 @@ export default function NotesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      const dataStr = JSON.stringify(viewingNote, null, 2)
+                      const dataBlob = new Blob([dataStr], { type: 'application/json' })
+                      const url = URL.createObjectURL(dataBlob)
+                      const link = document.createElement('a')
+                      link.href = url
+                      link.download = `${viewingNote.title.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`
+                      document.body.appendChild(link)
+                      link.click()
+                      document.body.removeChild(link)
+                      URL.revokeObjectURL(url)
+                    }}
+                    className="p-2 hover:bg-blue-500/10 rounded-lg text-blue-500 dark:text-blue-400 transition-colors"
+                    title="Xuất ghi chú này"
+                  >
+                    <Download size={20} />
+                  </button>
                   <button 
                     onClick={() => {
                       toggleFavorite(viewingNote.id)
@@ -529,14 +1115,126 @@ export default function NotesPage() {
                 </div>
               </div>
 
-              <div className="prose prose-slate dark:prose-invert max-w-none">
-                <p className="text-foreground dark:text-white whitespace-pre-wrap leading-relaxed">
-                  {viewingNote.content}
-                </p>
-              </div>
+              {/* Content based on type */}
+              {viewingNote.type === 'general' && (
+                <div className="prose prose-slate dark:prose-invert max-w-none mb-6">
+                  <p className="text-foreground dark:text-white whitespace-pre-wrap leading-relaxed">
+                    {viewingNote.content}
+                  </p>
+                </div>
+              )}
+
+              {(viewingNote.type === 'deadline' || viewingNote.type === 'checklist') && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-foreground dark:text-white mb-3">
+                    {viewingNote.type === 'deadline' ? '⏰ Các Deadline' : '☑ Các mục kiểm tra'}
+                  </h3>
+                  <div className="space-y-2">
+                    {viewingNote.items?.map((item) => (
+                      <div key={item.id} className="p-3 bg-background dark:bg-slate-950/50 rounded-lg">
+                        {viewingNote.type === 'deadline' ? (
+                          <>
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-start gap-3 flex-1">
+                                <input
+                                  type="checkbox"
+                                  checked={item.completed}
+                                  onChange={(e) => {
+                                    const updatedItems = viewingNote.items!.map(i => 
+                                      i.id === item.id ? { ...i, completed: e.target.checked } : i
+                                    )
+                                    const updatedNote = { ...viewingNote, items: updatedItems }
+                                    const idx = notes.findIndex(n => n.id === viewingNote.id)
+                                    const newNotes = [...notes]
+                                    newNotes[idx] = updatedNote
+                                    setNotes(newNotes)
+                                    setViewingNote(updatedNote)
+                                  }}
+                                  className="w-5 h-5 rounded cursor-pointer mt-0.5 flex-shrink-0"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <h4 className={`font-medium ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground dark:text-white'}`}>
+                                    {item.title}
+                                  </h4>
+                                </div>
+                              </div>
+                              <span className={`text-xs px-2 py-1 rounded-full font-medium ml-2 flex-shrink-0 ${
+                                item.priority === 'high' ? 'bg-red-500/20 text-red-600 dark:text-red-400' :
+                                item.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' :
+                                'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                              }`}>
+                                {item.priority === 'high' ? 'Cao' : item.priority === 'medium' ? 'Bình thường' : 'Thấp'}
+                              </span>
+                            </div>
+                            {item.deadline && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground ml-8">
+                                <Calendar size={14} />
+                                {formatDate(item.deadline)}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={item.completed}
+                              onChange={(e) => {
+                                const updatedItems = viewingNote.items!.map(i => 
+                                  i.id === item.id ? { ...i, completed: e.target.checked } : i
+                                )
+                                const updatedNote = { ...viewingNote, items: updatedItems }
+                                const idx = notes.findIndex(n => n.id === viewingNote.id)
+                                const newNotes = [...notes]
+                                newNotes[idx] = updatedNote
+                                setNotes(newNotes)
+                                setViewingNote(updatedNote)
+                              }}
+                              className="w-5 h-5 rounded cursor-pointer"
+                            />
+                            <span className={`flex-1 ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground dark:text-white'}`}>
+                              {item.title}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {viewingNote.type === 'plan' && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-foreground dark:text-white mb-3">📅 Lịch học</h3>
+                  <div className="space-y-2">
+                    {viewingNote.schedule?.map((item, idx) => (
+                      <div key={idx} className="p-4 bg-background dark:bg-slate-950/50 rounded-lg border-l-4 border-primary">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Calendar size={16} className="text-primary" />
+                            <span className="font-semibold text-foreground dark:text-white">
+                              {item.date ? formatDate(item.date) : 'Chưa có ngày'}
+                            </span>
+                          </div>
+                          {item.time && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Clock size={14} />
+                              {item.time}
+                            </div>
+                          )}
+                        </div>
+                        {item.content && (
+                          <p className="text-foreground dark:text-white ml-6">
+                            {item.content}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {viewingNote.tags.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-border dark:border-slate-800">
+                <div className="mb-6 pt-6 border-t border-border dark:border-slate-800">
                   <p className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
                     <Tag size={14} />
                     Tags
@@ -554,11 +1252,64 @@ export default function NotesPage() {
                 </div>
               )}
 
-              <div className="mt-6 pt-6 border-t border-border dark:border-slate-800 text-xs text-muted-foreground">
+              <div className="pt-6 border-t border-border dark:border-slate-800 text-xs text-muted-foreground">
                 <div className="flex items-center justify-between">
                   <span>Tạo lúc: {formatDate(viewingNote.createdAt)}</span>
                   <span>Cập nhật: {formatDate(viewingNote.updatedAt)}</span>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Tag Confirmation Modal */}
+      <AnimatePresence>
+        {tagToDelete && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setTagToDelete(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-500/10 rounded-full">
+                <Trash2 size={24} className="text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground dark:text-white mb-2 text-center">
+                Xóa tag?
+              </h3>
+              <p className="text-sm text-muted-foreground text-center mb-6">
+                Bạn có chắc chắn muốn xóa tag <span className="font-semibold text-foreground">#{tagToDelete}</span>? Các ghi chú sử dụng tag này sẽ vẫn được giữ lại.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setTagToDelete(null)}
+                  className="flex-1 px-4 py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button 
+                  onClick={() => {
+                    setNotes(notes.map(note => ({
+                      ...note,
+                      tags: note.tags.filter(t => t !== tagToDelete)
+                    })))
+                    setSelectedTags(selectedTags.filter(t => t !== tagToDelete))
+                    setTagToDelete(null)
+                  }}
+                  className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={16} />
+                  Xóa
+                </button>
               </div>
             </motion.div>
           </motion.div>
