@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Mail, Phone, MapPin, Clock, Send, Facebook, Instagram, Youtube, Linkedin, MessageCircle } from "lucide-react"
 import { Navbar } from "@/components/ui/navbar"
 import { Footer } from "@/components/ui/footer"
-
+import { useSystemConfig } from "@/lib/system-config/system-config-context"
 export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: "",
@@ -14,7 +14,7 @@ export default function ContactPage() {
     message: ""
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-
+  const { config: settings } = useSystemConfig()
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -57,42 +57,46 @@ export default function ContactPage() {
       setIsSubmitting(false)
     }
   }
-
+if (!settings) return null
   const contactInfo = [
-    {
-      icon: Phone,
-      title: "Hotline",
-      content: "1900 6868",
-      description: "Hỗ trợ 24/7"
-    },
-    {
-      icon: Mail,
-      title: "Email",
-      content: "support@icslearning.vn",
-      description: "Phản hồi trong 24h"
-    },
-    {
-      icon: MapPin,
-      title: "Địa chỉ",
-      content: "123 Nguyễn Huệ, Q.1, TP.HCM",
-      description: "Việt Nam"
+  {
+    icon: Phone,
+    title: "Hotline",
+    content: settings.hotline,
+    description: "Hỗ trợ 24/7",
+  },
+  {
+    icon: Mail,
+    title: "Email",
+    content: settings.supportEmail,
+    description: "Phản hồi trong 24h",
+  },
+  {
+    icon: MapPin,
+    title: "Địa chỉ",
+    content: settings.address,
+    description: "Việt Nam",
     },
     {
       icon: Clock,
       title: "Giờ làm việc",
-      content: "T2-T6: 8:00 - 18:00",
+      content: settings.address,
       description: "T7: 8:00 - 12:00"
     }
   ]
 
-  const socialLinks = [
-    { icon: Facebook, href: "#", label: "Facebook", color: "hover:text-blue-500" },
-    { icon: Instagram, href: "#", label: "Instagram", color: "hover:text-pink-500" },
-    { icon: Youtube, href: "#", label: "Youtube", color: "hover:text-red-500" },
-    { icon: MessageCircle, href: "#", label: "Zalo", color: "hover:text-blue-400" },
-    { icon: Linkedin, href: "#", label: "LinkedIn", color: "hover:text-blue-600" }
-  ]
+const socialLinks = settings
+  ? [
+      { icon: Facebook, href: settings.facebook, label: "Facebook" },
+      { icon: Instagram, href: settings.instagram, label: "Instagram" },
+      { icon: MessageCircle, href: settings.tiktok, label: "TikTok" },
+      { icon: Youtube, href: settings.youtube, label: "Youtube" },
+      { icon: Linkedin, href: settings.linkedin, label: "LinkedIn" },
+    ].filter(s => s.href) // tránh link rỗng
+  : [];
 
+if (!settings) return null
+console.log(settings.facebook)
   return (
     <>
       <Navbar />
@@ -262,15 +266,24 @@ export default function ContactPage() {
                 <div className="flex gap-3">
                   {socialLinks.map((social, index) => {
                     const Icon = social.icon
+                    const fixUrl = (url?: string) => {
+                    if (!url) return "#"; // tránh crash
+                    if (url.startsWith("http://") || url.startsWith("https://")) {
+                      return url;
+                    }
+                    return `https://${url}`;
+                  };
                     return (
                       <a
-                        key={index}
-                        href={social.href}
-                        aria-label={social.label}
-                        className={`w-12 h-12 rounded-xl bg-secondary dark:bg-slate-800 flex items-center justify-center text-muted-foreground transition-all ${social.color}`}
-                      >
-                        <Icon size={20} />
-                      </a>
+                    key={index}
+                    href={fixUrl(social.href)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={social.label}
+                    className="w-12 h-12 rounded-xl bg-secondary dark:bg-slate-800 flex items-center justify-center text-muted-foreground transition-all hover:scale-110 hover:text-primary"
+                    >
+                      <Icon size={20} />
+                    </a> 
                     )
                   })}
                 </div>
@@ -287,3 +300,4 @@ export default function ContactPage() {
     </>
   )
 }
+

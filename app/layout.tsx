@@ -42,3 +42,4 @@ export default function RootLayout({
     </html>
   )
 }
+console.log("FETCH SYSTEM CONFIG")

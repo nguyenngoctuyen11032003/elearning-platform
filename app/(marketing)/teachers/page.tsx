@@ -254,7 +254,7 @@ const teachers = [
       </section>
 
       {/* Benefits Section */}
-      <section id="benefits" className="py-20 px-4 md:px-8">
+      <section id="/benefits" className="py-20 px-4 md:px-8">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-12 items-start">
           {/* Title bên trái */}
           <motion.div

@@ -18,6 +18,8 @@ import {
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
+import { useSystemConfig } from "@/lib/system-config/system-config-context"
+import { apiClient } from "@/lib/api/client"
 
 export default function TeacherSettingsPage() {
   const [isDarkMode, setIsDarkMode] = useState(true)
@@ -63,12 +65,23 @@ export default function TeacherSettingsPage() {
     }
   }
 
-  const handleSave = async () => {
-    setIsSaving(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+const { refresh } = useSystemConfig()
+
+const handleSave = async () => {
+  setIsSaving(true)
+
+  try {
+    await apiClient.updateManySystemSettings(settings)
+
+    await refresh() // reload config mới từ server
+
+    toast.success("Cài đặt đã được lưu thành công!")
+  } catch (error) {
+    toast.error("Có lỗi xảy ra khi lưu cài đặt")
+  } finally {
     setIsSaving(false)
-    toast.success("Đã lưu cài đặt thành công")
   }
+}
 
   return (
     <div className="min-h-screen w-full">

@@ -42,9 +42,34 @@ const backgrounds = [
   "/image/about_hero2.png",
   "/image/about_hero3.png",
 ];
+const heroContents = [
+  {
+    badge: "Hành trình 10+ năm phát triển",
+    title: "Về ICS Learning",
+    getContent: (data: any) => data.about_ics,
+  },
+  {
+    badge: "Sứ mệnh",
+    title: "Sứ mệnh của chúng tôi",
+    getContent: (data: any) => data.mission,
+  },
+  {
+    badge: "Tầm nhìn",
+    title: "Tầm nhìn chiến lược",
+    getContent: (data: any) => data.vision,
+  },
+];
 
 export default function AboutPage() {
   const [bgIndex, setBgIndex] = useState(0);
+
+  const [systemData, setSystemData] = useState<{
+  about_ics: string;
+  mission: string;
+  vision: string;
+} | null>(null);
+
+const [loading, setLoading] = useState(true);
 
   // Auto slide
   useEffect(() => {
@@ -89,6 +114,24 @@ export default function AboutPage() {
     leaderStart + LEADER_VISIBLE,
   );
 
+  useEffect(() => {
+  const fetchSystemSettings = async () => {
+    try {
+      const res = await fetch("http://localhost:5001/api/system-settings");
+      const json = await res.json();
+
+      if (json.success) {
+        setSystemData(json.data);
+      }
+    } catch (error) {
+      console.error("Failed to load system settings", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchSystemSettings();
+}, [])
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-background dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <Navbar />
@@ -134,35 +177,46 @@ export default function AboutPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.15),transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(168,85,247,0.15),transparent_50%)]" />
 
-        {/* Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="max-w-5xl mx-auto text-center space-y-6 relative z-10"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring" }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-accent/10 rounded-full text-primary dark:text-accent font-medium text-sm mb-4"
-          >
-            <Sparkles size={16} />
-            <span>Hành trình 10+ năm phát triển</span>
-          </motion.div>
+{/* Content */}
+{!loading && systemData && (
+  <motion.div
+    key={bgIndex}
+    initial={{ opacity: 0, y: 30 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.8 }}
+    className="max-w-5xl mx-auto text-center space-y-6 relative z-10"
+  >
+    {/* Badge */}
+    <motion.div
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      transition={{ delay: 0.2, type: "spring" }}
+      className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-accent/10 rounded-full text-primary dark:text-accent font-medium text-sm mb-4"
+    >
+      <Sparkles size={16} />
+      <span>{heroContents[bgIndex].badge}</span>
+    </motion.div>
 
-          <h1 className="text-5xl md:text-7xl font-bold text-foreground dark:text-white leading-tight">
-            Về{" "}
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              ICS Learning
-            </span>
-          </h1>
+    {/* Title */}
+    <h1 className="text-5xl md:text-7xl font-bold text-foreground dark:text-white leading-tight">
+      {bgIndex === 0 ? (
+        <>
+          Về{" "}
+          <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            ICS Learning
+          </span>
+        </>
+      ) : (
+        heroContents[bgIndex].title
+      )}
+    </h1>
 
-          <p className="text-xl md:text-2xl text-black dark:text-white max-w-3xl mx-auto">
-            Chúng tôi tin rằng giáo dục là chìa khóa để mở ra những cơ hội vô
-            hạn và thay đổi cuộc sống
-          </p>
-        </motion.div>
+    {/* Text from backend */}
+    <p className="text-lg md:text-xl text-black dark:text-white max-w-3xl mx-auto leading-relaxed">
+      {heroContents[bgIndex].getContent(systemData)}
+    </p>
+  </motion.div>
+)}
       </section>
 
       {/* Stats Section */}

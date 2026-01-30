@@ -6,19 +6,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
+import { useSystemConfig } from "@/lib/system-config/system-config-context"
+import { SystemSettings } from "@/app/types/system-settings"
 
 export default function StudentSettingsPage() {
   const { user } = useAuth()
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [settings, setSettings] = useState({
-    emailNotifications: true,
-    courseNotifications: true,
-    newCourseNotifications: true,
-    certificateNotifications: true,
-    promotionNotifications: true,
-    language: "vi",
-  })
+
+  const { config } = useSystemConfig()
+
+useEffect(() => {
+  if (config) {
+    setSettings(config)
+  }
+}, [config])
 
   useEffect(() => {
     // Check current theme
@@ -33,17 +35,26 @@ export default function StudentSettingsPage() {
     }))
   }
 
-  const handleSave = async () => {
-    setIsSaving(true)
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast.success("Cài đặt đã được lưu thành công!")
-    } catch (error) {
-      toast.error("Có lỗi xảy ra khi lưu cài đặt")
-    } finally {
-      setIsSaving(false)
-    }
+  const { refresh } = useSystemConfig()
+
+const handleSave = async () => {
+  setIsSaving(true)
+
+  try {
+    await apiClient.updateManySystemSettings(settings)
+
+    await refresh() // reload config mới từ server
+
+    toast.success("Cài đặt đã được lưu thành công!")
+  } catch (error) {
+    toast.error("Có lỗi xảy ra khi lưu cài đặt")
+  } finally {
+    setIsSaving(false)
   }
+}
+  
+if (!config) return null
+const [settings, setSettings] = useState<SystemSettings>(config)
 
   return (
     <div className="min-h-screen w-full">

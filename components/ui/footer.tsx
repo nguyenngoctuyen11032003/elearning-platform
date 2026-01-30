@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   GraduationCap,
   Facebook,
@@ -24,6 +24,24 @@ export function Footer() {
   const currentYear = new Date().getFullYear()
   const [email, setEmail] = useState("")
   const [subscribed, setSubscribed] = useState(false)
+  const [settings, setSettings] = useState<any>(null);
+
+useEffect(() => {
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch("http://localhost:5001/api/system-settings");
+      const data = await res.json();
+
+      if (data.success) {
+        setSettings(data.data);
+      }
+    } catch (err) {
+      console.log("Failed to load settings");
+    }
+  };
+
+  fetchSettings();
+}, []);
 
   const footerLinks = {
     courses: [
@@ -54,21 +72,21 @@ export function Footer() {
   const socialLinks = [
     { 
       icon: Facebook, 
-      href: "#", 
-      label: "Facebook", 
+      href: settings?.facebook, 
+      label: "Facebook" , 
       color: "hover:text-white dark:hover:text-white",
       bgColor: "hover:bg-blue-600 dark:hover:bg-blue-600"
     },
     { 
       icon: Instagram, 
-      href: "#", 
+      href: settings?.instagram, 
       label: "Instagram", 
       color: "hover:text-white dark:hover:text-white",
       bgColor: "hover:bg-gradient-to-br hover:from-purple-600 hover:via-pink-600 hover:to-orange-500"
     },
     { 
       icon: MessageCircle, 
-      href: "#", 
+      href: settings?.tiktok, 
       label: "TikTok", 
       color: "hover:text-white dark:hover:text-white",
       bgColor: "hover:bg-black dark:hover:bg-white dark:hover:text-black",
@@ -80,14 +98,14 @@ export function Footer() {
     },
     { 
       icon: Youtube, 
-      href: "#", 
+      href: settings?.youtube, 
       label: "Youtube", 
       color: "hover:text-white dark:hover:text-white",
       bgColor: "hover:bg-red-600 dark:hover:bg-red-600"
     },
     { 
       icon: Linkedin, 
-      href: "#", 
+      href: settings?.linkedin, 
       label: "LinkedIn", 
       color: "hover:text-white dark:hover:text-white",
       bgColor: "hover:bg-blue-700 dark:hover:bg-blue-700"
@@ -103,7 +121,13 @@ export function Footer() {
       setTimeout(() => setSubscribed(false), 3000)
     }
   }
-
+const fixUrl = (url: string) => {
+  if (!url) return "#"
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url
+  }
+  return `https://${url}`
+}
   return (
     <>
       <footer className="bg-gray-200 dark:bg-gray-800 border-t-0">
@@ -273,11 +297,16 @@ export function Footer() {
                 <h4 className="text-xs text-muted-foreground dark:text-slate-500 uppercase tracking-wide font-semibold mb-3">Theo dõi</h4>
                 <div className="flex gap-3">
                   {socialLinks.map((social) => {
+                    console.log("SOCIAL:", social.href)
                     const Icon = social.icon
+                    const url = fixUrl(social.href)
+                    console.log("FIXED:", url)
                     return (
                       <a
                         key={social.label}
-                        href={social.href}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         aria-label={social.label}
                         title={social.label}
                         className={`

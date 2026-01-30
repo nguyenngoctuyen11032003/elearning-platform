@@ -71,3 +71,18 @@ export interface UpdateProfileRequest {
   bio?: string;
   avatar?: string;
 }
+export interface SystemSettings {
+  facebook?: string;
+  youtube?: string;
+  instagram?: string;
+  tiktok?: string;
+  linkedin?: string;
+  hotline?: string;
+  email?: string;
+  address?: string;
+  mission?: string;
+  vision?: string;
+  about_ics?: string;
+  site_logo?: string
+}
+

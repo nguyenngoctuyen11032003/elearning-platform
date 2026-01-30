@@ -4,8 +4,8 @@ import type React from "react"
 import { apiClient } from "@/lib/api/client"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { toast } from "sonner"
-
-import { useState } from "react"
+import type { SystemSettings } from "@/app/types/system-settings"
+import { useState, useEffect } from "react"
 import {
   Save,
   Moon,
@@ -29,6 +29,7 @@ import {
   Heart,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DEFAULT_SYSTEM_SETTINGS } from "../../../../lib/system-config/default-system-settings"
 
 export default function AdminSettingsPage() {
   const [isDarkMode, setIsDarkMode] = useState(true)
@@ -36,43 +37,19 @@ export default function AdminSettingsPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const { refresh } = useSystemConfig()
-  const [settings, setSettings] = useState({
-    // About ICS Learning
-    aboutUs: "ICS Learning là nền tảng giáo dục trực tuyến hàng đầu Việt Nam, được thành lập với mục tiêu mang đến cơ hội học tập chất lượng cao cho mọi người, mọi lúc, mọi nơi. Với đội ngũ giảng viên giàu kinh nghiệm và công nghệ hiện đại, chúng tôi cam kết đồng hành cùng bạn trên con đường chinh phục tri thức.",
-    // Mission
-    mission: "Sứ mệnh của ICS Learning là dân chủ hóa giáo dục, mang kiến thức đến gần hơn với mọi người. Chúng tôi tin rằng việc học không bao giờ là quá muộn và mỗi người đều xứng đáng được tiếp cận với những khóa học chất lượng cao với chi phí hợp lý.",
-    // Vision
-    vision: "Trở thành nền tảng học trực tuyến số 1 Việt Nam, nơi mà mỗi học viên đều có thể phát triển kỹ năng và sự nghiệp của mình.",
-    // Contact
-    supportEmail: "support@icslearning.vn",
-    businessEmail: "business@icslearning.com",
-    phone: "+84 (028) 3823-6868",
-    hotline: "1900 1234",
-    address: "Tầng 10, Tòa nhà ICS Tower, 123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh",
-    workingHours: "Thứ 2 - Thứ 6: 8:00 - 18:00, Thứ 7: 8:00 - 12:00",
-    // Social Media
-    facebook: "https://facebook.com/icslearning",
-    instagram: "https://instagram.com/icslearning",
-    twitter: "https://twitter.com/icslearning",
-    youtube: "https://youtube.com/icslearning",
-    linkedin: "https://linkedin.com/company/icslearning",
-    tiktok: "https://tiktok.com/@icslearning",
-    // Branding
-    primaryColor: "#2563eb",
-    accentColor: "#06b6d4",
-    // System
-    maintenanceMode: false,
-    stripeKey: "sk_test_...",
-    muxToken: "mux_token_...",
-    openaiKey: "sk_...",
-    smtpHost: "smtp.gmail.com",
-    smtpPort: "587",
-    smtpEmail: "noreply@icslearning.com",
-    smtpPassword: "••••••••",
-    aiAssistantEnabled: true,
-    emailNotifications: true,
-    language: "vi",
-  })
+  const { config } = useSystemConfig()
+  const { setConfig } = useSystemConfig()
+const [settings, setSettings] = useState<SystemSettings | null>(null)
+
+useEffect(() => {
+  console.log("CONFIG:", config)
+  if (config && !settings) {
+    setSettings({
+      ...DEFAULT_SYSTEM_SETTINGS,
+      ...config,
+    })
+  }
+}, [config])
 
   const handleSettingChange = (key: string, value: string | boolean) => {
     setSettings((prev) => ({
@@ -94,34 +71,32 @@ export default function AdminSettingsPage() {
   }
 }
 
-
-  const handleSave = async () => {
+const handleSave = async () => {
   try {
     setIsSaving(true)
 
-    // 1. Nếu có logo mới → upload
+    let updatedSettings = { ...settings }
+
+    // upload logo nếu có
     if (logoFile) {
-  const uploadRes = await apiClient.uploadFile(logoFile)
+      const uploadRes = await apiClient.uploadFile(logoFile)
+      updatedSettings.site_logo = uploadRes.url
+    }
 
-  await apiClient.updateSystemSettings({
-    key: "site_logo",
-    value: uploadRes.url,
-  })
-}
+    // ✅ GỬI 1 REQUEST DUY NHẤT
+    await apiClient.updateManySystemSettings(updatedSettings)
 
-
-    // 3. Refresh system config → sidebar đổi logo ngay
-    await refresh()
+    setConfig(updatedSettings) // ⭐ update global ngay
 
     toast.success("Lưu cài đặt thành công!")
-  } catch (error) {
-    console.error(error)
-    toast.error("Lưu cài đặt thất bại")
+  } catch (err) {
+    console.error(err)
+    toast.error("Lưu thất bại")
   } finally {
     setIsSaving(false)
   }
 }
-
+if (!settings) return null
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
@@ -160,8 +135,8 @@ export default function AdminSettingsPage() {
                     Giới thiệu về ICS Learning
                   </label>
                   <textarea
-                    value={settings.aboutUs}
-                    onChange={(e) => handleSettingChange("aboutUs", e.target.value)}
+                    value={settings.about_ics}
+                    onChange={(e) => handleSettingChange("about_ics", e.target.value)}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-32 resize-none"
                     placeholder="Mô tả về ICS Learning..."
                   />
@@ -517,4 +492,3 @@ export default function AdminSettingsPage() {
     </div>
   )
 }
-

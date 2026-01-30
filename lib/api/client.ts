@@ -12,7 +12,7 @@ import {
 } from './types';
 
 class ApiClient {
-  async getSystemSettings(): Promise<{ site_logo?: string }> {
+  async getSystemSettings(): Promise<Record<string, any>> {
   return this.request('/api/system-settings')
 }
 
@@ -35,6 +35,7 @@ async updateSystemSettings(data: { key: string; value: string }) {
     const url = `${this.baseURL}${endpoint}`;
     
     const config: RequestInit = {
+      cache: "no-store",
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -54,7 +55,10 @@ async updateSystemSettings(data: { key: string; value: string }) {
     }
 
     try {
-      const response = await fetch(url, config);
+      const response = await fetch(url, {
+      ...config,
+      cache: "no-store"
+    });
       
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
@@ -294,6 +298,7 @@ async uploadFile(file: File): Promise<{ url: string }> {
     const url = `${this.baseURL}${API_ENDPOINTS.UPLOAD.AVATAR}`;
     
     const config: RequestInit = {
+      cache: "no-store",
       method: 'POST',
       body: formData,
     };
@@ -309,8 +314,10 @@ async uploadFile(file: File): Promise<{ url: string }> {
     }
 
     try {
-      const response = await fetch(url, config);
-      
+      const response = await fetch(url, {
+      ...config,
+      cache: "no-store"
+    });
       if (!response.ok) {
         throw new Error(`Upload failed with status ${response.status}`);
       }
@@ -1148,6 +1155,14 @@ async uploadFile(file: File): Promise<{ url: string }> {
       method: 'DELETE',
     });
   }
+  async updateManySystemSettings(data: Record<string, any>) {
+  return this.request('/api/system-settings', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
 }
 export const apiClient = new ApiClient();
 
+console.log("API URL:", process.env.NEXT_PUBLIC_API_URL)
