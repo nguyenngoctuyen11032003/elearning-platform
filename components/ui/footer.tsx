@@ -266,20 +266,20 @@ const fixUrl = (url: string) => {
                 divide-y md:divide-y-0 md:divide-x
                 divide-gray-400 dark:divide-gray-500">
               {/* Phone */}
-              <a href="tel:1900123456" className="flex items-center gap-3 group cursor-pointer py-4 md:py-0 md:px-4 first:pt-0 md:first:pl-0">
+              <a href={`tel:${settings?.hotline || '1900123456'}`} className="flex items-center gap-3 group cursor-pointer py-4 md:py-0 md:px-4 first:pt-0 md:first:pl-0">
                 <Phone size={18} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                 <div className="flex flex-col">
                   <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">Hotline</span>
-                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">1900 1234</span>
+                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{settings?.hotline || '1900 1234'}</span>
                 </div>
               </a>
 
               {/* Email */}
-              <a href="mailto:support@icslearning.vn" className="flex items-center gap-3 group cursor-pointer py-4 md:py-0 md:px-4">
+              <a href={`mailto:${settings?.supportEmail || 'support@icslearning.vn'}`} className="flex items-center gap-3 group cursor-pointer py-4 md:py-0 md:px-4">
                 <Mail size={18} className="text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                 <div className="flex flex-col">
                   <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">Email</span>
-                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">support@icslearning.vn</span>
+                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{settings?.supportEmail || 'support@icslearning.vn'}</span>
                 </div>
               </a>
 
@@ -288,7 +288,7 @@ const fixUrl = (url: string) => {
                 <MapPin size={18} className="text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                 <div className="flex flex-col">
                   <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">Địa chỉ</span>
-                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">123 Nguyễn Huệ, Q.1, TP.HCM</span>
+                  <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{settings?.address || '123 Nguyễn Huệ, Q.1, TP.HCM'}</span>
                 </div>
               </a>
 
