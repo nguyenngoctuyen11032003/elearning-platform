@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { BookOpen, Clock, Award, Play, CheckCircle, BarChart3, Search } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -26,15 +27,148 @@ interface EnrolledCourse {
   enrolledAt: string
 }
 
+const MOCK_COURSES: EnrolledCourse[] = [
+  {
+    id: "enroll-1",
+    courseId: "course-1",
+    course: {
+      id: "course-1",
+      title: "JavaScript Nâng Cao: Mastering Async & Await",
+      description: "Học JavaScript advanced concepts",
+      thumbnail: "/image/logo-ics.jpg",
+      teacher: { name: "Nguyễn Văn A" },
+      lessons: Array(15).fill(null)
+    },
+    progress: 75,
+    status: "in-progress",
+    enrolledAt: "2025-12-01"
+  },
+  {
+    id: "enroll-2",
+    courseId: "course-2",
+    course: {
+      id: "course-2",
+      title: "React 18: Build Production Apps",
+      description: "Xây dựng ứng dụng React chuyên nghiệp",
+      thumbnail: "/image/course-2.jpg",
+      teacher: { name: "Trần Thị B" },
+      lessons: Array(20).fill(null)
+    },
+    progress: 100,
+    status: "completed",
+    enrolledAt: "2025-10-15"
+  },
+  {
+    id: "enroll-3",
+    courseId: "course-3",
+    course: {
+      id: "course-3",
+      title: "TypeScript Từ Zero to Hero",
+      description: "Học TypeScript từ cơ bản đến nâng cao",
+      thumbnail: "/image/course-3.jpg",
+      teacher: { name: "Phạm Văn C" },
+      lessons: Array(18).fill(null)
+    },
+    progress: 45,
+    status: "in-progress",
+    enrolledAt: "2025-12-10"
+  },
+  {
+    id: "enroll-4",
+    courseId: "course-4",
+    course: {
+      id: "course-4",
+      title: "Next.js 14: Full Stack Development",
+      description: "Phát triển ứng dụng full stack với Next.js",
+      thumbnail: "/image/course-4.jpg",
+      teacher: { name: "Lê Minh D" },
+      lessons: Array(25).fill(null)
+    },
+    progress: 0,
+    status: "not-started",
+    enrolledAt: "2026-01-15"
+  },
+  {
+    id: "enroll-5",
+    courseId: "course-5",
+    course: {
+      id: "course-5",
+      title: "Tailwind CSS: Modern Styling",
+      description: "Thiết kế giao diện với Tailwind CSS",
+      thumbnail: "/image/course-5.jpg",
+      teacher: { name: "Đỗ Hồng E" },
+      lessons: Array(12).fill(null)
+    },
+    progress: 90,
+    status: "in-progress",
+    enrolledAt: "2025-11-20"
+  },
+  {
+    id: "enroll-6",
+    courseId: "course-6",
+    course: {
+      id: "course-6",
+      title: "Node.js & Express: Backend API",
+      description: "Xây dựng backend API với Node.js",
+      thumbnail: "/image/course-6.jpg",
+      teacher: { name: "Bùi Văn F" },
+      lessons: Array(22).fill(null)
+    },
+    progress: 60,
+    status: "in-progress",
+    enrolledAt: "2025-11-05"
+  },
+  {
+    id: "enroll-7",
+    courseId: "course-7",
+    course: {
+      id: "course-7",
+      title: "Database Design & SQL Mastery",
+      description: "Thiết kế database và SQL advanced",
+      thumbnail: "/image/course-7.jpg",
+      teacher: { name: "Vũ Thị G" },
+      lessons: Array(16).fill(null)
+    },
+    progress: 100,
+    status: "completed",
+    enrolledAt: "2025-09-10"
+  },
+  {
+    id: "enroll-8",
+    courseId: "course-8",
+    course: {
+      id: "course-8",
+      title: "Docker & Kubernetes: DevOps Essentials",
+      description: "Tìm hiểu Docker và Kubernetes",
+      thumbnail: "/image/course-8.jpg",
+      teacher: { name: "Hoàng Văn H" },
+      lessons: Array(19).fill(null)
+    },
+    progress: 25,
+    status: "in-progress",
+    enrolledAt: "2026-01-20"
+  }
+]
+
+const ITEMS_PER_PAGE = 6
+
 export default function MyCoursesPage() {
   const { user } = useAuth()
   const [courses, setCourses] = useState<EnrolledCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     const fetchEnrollments = async () => {
+      // Use mock data in development
+      if (process.env.NODE_ENV === "development") {
+        setCourses(MOCK_COURSES)
+        setLoading(false)
+        return
+      }
+
       if (!user?.id) {
         setLoading(false)
         return
@@ -70,6 +204,21 @@ export default function MyCoursesPage() {
 
     return matchesFilter && matchesSearch
   })
+
+  const totalPages = Math.ceil(filteredCourses.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const paginatedCourses = filteredCourses.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+
+  // Reset to page 1 when filter or search changes
+  const handleFilterChange = (newFilter: string) => {
+    setFilter(newFilter)
+    setCurrentPage(1)
+  }
+
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term)
+    setCurrentPage(1)
+  }
 
   const stats = {
     total: courses.length,
@@ -154,14 +303,19 @@ export default function MyCoursesPage() {
       </PageHero>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="flex flex-col md:flex-row gap-4"
+      >
         <div className="relative flex-1">
           <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             placeholder="Tìm kiếm khóa học..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
           />
         </div>
@@ -174,7 +328,7 @@ export default function MyCoursesPage() {
           ].map(option => (
             <button
               key={option.value}
-              onClick={() => setFilter(option.value)}
+              onClick={() => handleFilterChange(option.value)}
               className={`px-4 py-2 rounded-lg font-medium transition-all ${
                 filter === option.value
                   ? "bg-primary dark:bg-accent text-white"
@@ -185,11 +339,15 @@ export default function MyCoursesPage() {
             </button>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Course Grid */}
       {filteredCourses.length === 0 ? (
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-12 text-center">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-12 text-center"
+        >
           <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground" />
           <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">
             {searchTerm || filter !== "all"
@@ -210,84 +368,115 @@ export default function MyCoursesPage() {
               Khám phá khóa học
             </Link>
           )}
-        </div>
+        </motion.div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map(enrollment => (
-            <div
-              key={enrollment.id}
-              className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden hover:shadow-lg transition-all group"
-            >
-              <div className="relative aspect-video bg-muted dark:bg-slate-800">
-                <img
-                  src={enrollment.course.thumbnail || "/placeholder.jpg"}
-                  alt={enrollment.course.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Link
-                    href={`/player/${enrollment.courseId}`}
-                    className="px-6 py-3 bg-white text-black rounded-lg font-medium flex items-center gap-2 hover:bg-white/90 transition-all"
-                  >
-                    <Play size={20} />
-                    Tiếp tục học
-                  </Link>
-                </div>
-                {enrollment.progress === 100 && (
-                  <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                    <CheckCircle size={12} />
-                    Hoàn thành
-                  </div>
-                )}
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-foreground dark:text-white line-clamp-2 mb-2">
-                  {enrollment.course.title}
-                </h3>
-                <p className="text-sm text-muted-foreground dark:text-slate-400 mb-3">
-                  {enrollment.course.teacher?.name || "Giảng viên"}
-                </p>
-
-                {/* Progress Bar */}
-                <div className="mb-3">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-muted-foreground dark:text-slate-400">Tiến độ</span>
-                    <span className="font-medium text-foreground dark:text-white">{enrollment.progress}%</span>
-                  </div>
-                  <div className="h-2 bg-secondary dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all"
-                      style={{ width: `${enrollment.progress}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground dark:text-slate-400">
-                    {enrollment.course.lessons?.length || 0} bài học
-                  </span>
-                  {enrollment.progress === 100 ? (
-                    <Link
-                      href={`/certificates?courseId=${enrollment.courseId}`}
-                      className="text-primary dark:text-accent hover:underline flex items-center gap-1"
-                    >
-                      <Award size={14} />
-                      Xem chứng chỉ
-                    </Link>
-                  ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedCourses.map((enrollment, idx) => (
+              <motion.div
+                key={enrollment.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden hover:shadow-lg transition-all group"
+              >
+                <div className="relative aspect-video bg-muted dark:bg-slate-800">
+                  <img
+                    src={enrollment.course.thumbnail || "/placeholder.jpg"}
+                    alt={enrollment.course.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <Link
                       href={`/player/${enrollment.courseId}`}
-                      className="text-primary dark:text-accent hover:underline flex items-center gap-1"
+                      className="px-6 py-3 bg-white text-black rounded-lg font-medium flex items-center gap-2 hover:bg-white/90 transition-all"
                     >
-                      <Play size={14} />
-                      {enrollment.progress > 0 ? "Tiếp tục" : "Bắt đầu"}
+                      <Play size={20} />
+                      Tiếp tục học
                     </Link>
+                  </div>
+                  {enrollment.progress === 100 && (
+                    <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                      <CheckCircle size={12} />
+                      Hoàn thành
+                    </div>
                   )}
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+                <div className="p-4">
+                  <h3 className="font-semibold text-foreground dark:text-white line-clamp-2 mb-2">
+                    {enrollment.course.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400 mb-3">
+                    {enrollment.course.teacher?.name || "Giảng viên"}
+                  </p>
+
+                  {/* Progress Bar */}
+                  <div className="mb-3">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-muted-foreground dark:text-slate-400">Tiến độ</span>
+                      <span className="font-medium text-foreground dark:text-white">{enrollment.progress}%</span>
+                    </div>
+                    <div className="h-2 bg-secondary dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all"
+                        style={{ width: `${enrollment.progress}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground dark:text-slate-400">
+                      {enrollment.course.lessons?.length || 0} bài học
+                    </span>
+                    {enrollment.progress === 100 ? (
+                      <Link
+                        href={`/certificates?courseId=${enrollment.courseId}`}
+                        className="text-primary dark:text-accent hover:underline flex items-center gap-1"
+                      >
+                        <Award size={14} />
+                        Xem chứng chỉ
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/player/${enrollment.courseId}`}
+                        className="text-primary dark:text-accent hover:underline flex items-center gap-1"
+                      >
+                        <Play size={14} />
+                        {enrollment.progress > 0 ? "Tiếp tục" : "Bắt đầu"}
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex items-center justify-center gap-1 mt-8"
+            >
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <motion.button
+                  key={page}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg font-medium transition-all ${
+                    currentPage === page
+                      ? "bg-primary dark:bg-accent text-white shadow-lg"
+                      : "bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
+                  }`}
+                >
+                  {page}
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+        </>
       )}
     </div>
   )

@@ -92,6 +92,7 @@ export default function NotesPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [isCreating, setIsCreating] = useState(false)
   const [editingNote, setEditingNote] = useState<Note | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
   const [newNote, setNewNote] = useState({ 
     title: "", 
     content: "", 
@@ -102,6 +103,8 @@ export default function NotesPage() {
   })
   const [viewingNote, setViewingNote] = useState<Note | null>(null)
   const [tagToDelete, setTagToDelete] = useState<string | null>(null)
+
+  const ITEMS_PER_PAGE = 6
 
   const courses = [...new Set(notes.map(n => n.course))]
   const allTags = [...new Set(notes.flatMap(n => n.tags))].sort()
@@ -114,6 +117,28 @@ export default function NotesPage() {
     const matchesTags = selectedTags.length === 0 || selectedTags.some(tag => note.tags.includes(tag))
     return matchesSearch && matchesCourse && matchesTags
   })
+
+  const totalPages = Math.ceil(filteredNotes.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const paginatedNotes = filteredNotes.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+
+  // Reset to page 1 when filters change
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term)
+    setCurrentPage(1)
+  }
+
+  const handleCourseChange = (course: string) => {
+    setSelectedCourse(course)
+    setCurrentPage(1)
+  }
+
+  const handleTagSelect = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    )
+    setCurrentPage(1)
+  }
 
   const handleCreateNote = () => {
     if (newNote.title.trim() && (newNote.type === 'general' ? newNote.content.trim() : true)) {
@@ -241,7 +266,7 @@ export default function NotesPage() {
             type="text"
             placeholder="Tìm kiếm ghi chú..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full bg-card dark:bg-slate-900/60 border-2 border-border dark:border-slate-800 text-foreground dark:text-white rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
           />
         </div>
@@ -260,13 +285,7 @@ export default function NotesPage() {
             {allTags.map(tag => (
               <div key={tag} className="relative group">
                 <button
-                  onClick={() => {
-                    setSelectedTags(prev => 
-                      prev.includes(tag) 
-                        ? prev.filter(t => t !== tag)
-                        : [...prev, tag]
-                    )
-                  }}
+                  onClick={() => handleTagSelect(tag)}
                   className={`px-3.5 py-1.5 rounded-full font-medium text-sm transition-all ${
                     selectedTags.includes(tag)
                       ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg'
@@ -329,16 +348,17 @@ export default function NotesPage() {
           )}
         </motion.div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredNotes.map((note, idx) => (
-            <motion.div
-              key={note.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-              className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5 hover:shadow-xl hover:shadow-primary/10 dark:hover:shadow-accent/10 transition-all group cursor-pointer"
-              onClick={() => setViewingNote(note)}
-            >
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {paginatedNotes.map((note, idx) => (
+              <motion.div
+                key={note.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5 hover:shadow-xl hover:shadow-primary/10 dark:hover:shadow-accent/10 transition-all group cursor-pointer"
+                onClick={() => setViewingNote(note)}
+              >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -482,7 +502,34 @@ export default function NotesPage() {
               </div>
             </motion.div>
           ))}
-        </div>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex items-center justify-center gap-1 mt-8"
+            >
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <motion.button
+                  key={page}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg font-medium transition-all ${
+                    currentPage === page
+                      ? "bg-primary dark:bg-accent text-white shadow-lg"
+                      : "bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
+                  }`}
+                >
+                  {page}
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+        </>
       )}
 
       {/* Create Note Modal */}
