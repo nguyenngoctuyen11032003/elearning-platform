@@ -2,6 +2,7 @@
 
 import { Navbar } from "@/components/ui/navbar"
 import { Footer } from "@/components/ui/footer"
+import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button"
 import { BarChart3, Users, TrendingUp, Award, Zap, DollarSign, Sparkles, BookOpen, Video, Globe } from "lucide-react"
 import { CarouselBenefits } from "./CarouselBenefits";
 import Link from "next/link"
@@ -582,6 +583,9 @@ const teachers = [
       </section>
 
       <Footer />
+
+      {/* Scroll to Top Button */}
+      <ScrollToTopButton />
     </div>
   )
 }

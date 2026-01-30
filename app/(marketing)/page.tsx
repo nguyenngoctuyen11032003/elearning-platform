@@ -3,6 +3,7 @@
 import { Navbar } from "@/components/ui/navbar"
 import { CourseCard } from "@/components/ui/course-card"
 import { SectionTitle } from "@/components/ui/section-title"
+import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button"
 import { 
   ArrowRight, Play, Users, Award, Zap, BookOpen, Star, TrendingUp, Sparkles,
   Target, Shield, Clock, CheckCircle, Globe, Lightbulb, Trophy, HeartHandshake,
@@ -64,7 +65,62 @@ export default function Home() {
       try {
         setLoading(true)
         const coursesRes = await apiClient.getCourses()
-        setFeaturedCourses(Array.isArray(coursesRes) ? coursesRes.slice(0, 8) : [])
+        
+        // Mock data nếu API không trả về
+        const mockCourses = [
+          {
+            id: "1",
+            title: "JavaScript Nâng Cao: Mastering Async & Await",
+            teacher: { name: "Nguyễn Văn A" },
+            price: 599000,
+            rating: 5,
+            image: "/image/logo-ics.jpg",
+            enrollmentCount: 1200
+          },
+          {
+            id: "2",
+            title: "React 18: Build Production Apps",
+            teacher: { name: "Trần Thị B" },
+            price: 699000,
+            rating: 4.9,
+            image: "/placeholder.svg",
+            enrollmentCount: 950
+          },
+          {
+            id: "3",
+            title: "TypeScript Từ Zero to Hero",
+            teacher: { name: "Phạm Văn C" },
+            price: 549000,
+            rating: 4.9,
+            image: "/image/logo-ics.jpg",
+            enrollmentCount: 850
+          },
+          {
+            id: "4",
+            title: "Next.js 14: Full Stack Development",
+            teacher: { name: "Lê Minh D" },
+            price: 799000,
+            rating: 4.8,
+            image: "/placeholder.svg",
+            enrollmentCount: 720
+          },
+          {
+            id: "5",
+            title: "Tailwind CSS: Modern Styling",
+            teacher: { name: "Đỗ Hồng E" },
+            price: 399000,
+            rating: 4.8,
+            image: "/image/logo-ics.jpg",
+            enrollmentCount: 1100
+          }
+        ]
+        
+        // Lấy 5 khóa học có đánh giá cao nhất
+        const courses = Array.isArray(coursesRes) && coursesRes.length > 0 ? coursesRes : mockCourses
+        const sortedCourses = courses
+          .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+          .slice(0, 5)
+        setFeaturedCourses(sortedCourses)
 
         const categoriesRes = await apiClient.getCategories()
         setCategories(Array.isArray(categoriesRes) ? categoriesRes : [])
@@ -487,14 +543,14 @@ export default function Home() {
             <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
               Khóa Học Được Yêu Thích Nhất
             </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+            <p className="text-xl text-slate-600 dark:text-slate-400">
               Các khóa học chất lượng cao được hàng ngàn học viên tin tưởng và đánh giá 5 sao
             </p>
           </motion.div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-4">
-              {[...Array(8)].map((_, i) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pt-4">
+              {[...Array(5)].map((_, i) => (
                 <div key={i} className="rounded-3xl overflow-hidden bg-white dark:bg-slate-900 animate-pulse border border-slate-200 dark:border-slate-800">
                   <div className="h-56 bg-slate-200 dark:bg-slate-800" />
                   <div className="p-6 space-y-4">
@@ -507,19 +563,30 @@ export default function Home() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
                 {featuredCourses.length > 0 ? (
-                  featuredCourses.map((course) => (
-                    <CourseCard
+                  featuredCourses.map((course, idx) => (
+                    <motion.div
                       key={course.id}
-                      id={course.id}
-                      title={course.title}
-                      teacher={course.teacher?.name || "Chuyên gia hàng đầu"}
-                      price={course.price}
-                      rating={course.rating || 4.8}
-                      image={course.image || "/placeholder.svg"}
-                      students={course.enrollmentCount || 0}
-                    />
+                      initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ 
+                        duration: 0.6, 
+                        ease: "easeOut",
+                        delay: idx * 0.15
+                      }}
+                    >
+                      <CourseCard
+                        id={course.id}
+                        title={course.title}
+                        teacher={course.teacher?.name || "Chuyên gia hàng đầu"}
+                        price={course.price}
+                        rating={course.rating || 4.8}
+                        image={course.image || "/placeholder.svg"}
+                        students={course.enrollmentCount || 0}
+                      />
+                    </motion.div>
                   ))
                 ) : (
                   <div className="col-span-full text-center py-12">
@@ -538,10 +605,10 @@ export default function Home() {
               >
                 <Link
                   href="/courses"
-                  className="group inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                  className="group inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold text-base shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
                 >
                   Xem Tất Cả Khóa Học
-                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
               </motion.div>
             </>
@@ -879,6 +946,9 @@ export default function Home() {
 
       {/* Footer */}
       <Footer />
+
+      {/* Scroll to Top Button */}
+      <ScrollToTopButton />
     </div>
   )
 }

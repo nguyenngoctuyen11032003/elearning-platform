@@ -3,6 +3,7 @@
 import { Navbar } from "@/components/ui/navbar";
 import { CourseCard } from "@/components/ui/course-card";
 import { SectionTitle } from "@/components/ui/section-title";
+import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button";
 import {
   Search,
   Filter,
@@ -87,7 +88,7 @@ const exampleCourses = [
     teacher: { name: "Vũ Thanh F" },
     price: 199000,
     rating: 4.8,
-    image: "/placeholder.svg",
+    image: "/image/logo-ics.jpg",
     enrollmentCount: 1450,
     createdAt: new Date().toISOString(),
     category: { id: "3", name: "Design" }
@@ -661,6 +662,9 @@ export default function CoursesPage() {
         </div>
       </div>
       <Footer />
+
+      {/* Scroll to Top Button */}
+      <ScrollToTopButton />
     </div>
   );
 }
