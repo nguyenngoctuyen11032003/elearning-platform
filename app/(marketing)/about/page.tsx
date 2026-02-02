@@ -2,7 +2,6 @@
 
 import { Navbar } from "@/components/ui/navbar";
 import { Footer } from "@/components/ui/footer";
-import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button";
 import {
   Users,
   Target,
@@ -17,6 +16,8 @@ import {
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
+import Image from "next/image";
+
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -138,22 +139,26 @@ const [loading, setLoading] = useState(true);
       <Navbar />
 
       {/* ================= HERO SECTION ================= */}
-      <section className="pt-32 pb-20 px-4 md:px-8 relative overflow-hidden min-h-[300px] md:min-h-[350px] w-full">
+      <section className="pt-32 pb-20 px-4 md:px-8 relative overflow-hidden min-h-[350px]">
         {/* Background slider */}
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           <motion.div
             key={backgrounds[bgIndex]}
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat w-full h-full"
-            style={{
-              backgroundImage: `url(${backgrounds[bgIndex]})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-            initial={{ opacity: 0, scale: 1.05 }}
+            className="absolute inset-0 z-0"
+            initial={{ opacity: 0, scale: 1.03 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.4, ease: "easeInOut" }}
-          />
+            exit={{ opacity: 0, scale: 1.03 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+          >
+            <Image
+              src={backgrounds[bgIndex]}
+              alt="Hero background"
+              fill
+              priority
+              className="object-cover object-center"
+              sizes="100vw"
+            />
+          </motion.div>
         </AnimatePresence>
 
         {/* Manual controls */}
@@ -184,16 +189,16 @@ const [loading, setLoading] = useState(true);
 {!loading && systemData && (
   <motion.div
     key={bgIndex}
-    initial={{ opacity: 0, y: 40 }}
+    initial={{ opacity: 0, y: 30 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 1, ease: "easeOut" }}
+    transition={{ duration: 0.8 }}
     className="max-w-5xl mx-auto text-center space-y-6 relative z-10"
   >
     {/* Badge */}
     <motion.div
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ delay: 0.3, duration: 0.6, type: "spring", stiffness: 120, damping: 15 }}
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      transition={{ delay: 0.2, type: "spring" }}
       className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-accent/10 rounded-full text-primary dark:text-accent font-medium text-sm mb-4"
     >
       <Sparkles size={16} />
@@ -281,10 +286,10 @@ const [loading, setLoading] = useState(true);
       <section className="py-20 px-4 md:px-8">
         <div className="max-w-6xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            transition={{ duration: 0.6 }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
           >
             <div className="space-y-6">
@@ -328,7 +333,7 @@ const [loading, setLoading] = useState(true);
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
+              transition={{ duration: 0.6 }}
               className="relative"
             >
               <div className="grid grid-cols-2 gap-4">
@@ -502,10 +507,10 @@ const [loading, setLoading] = useState(true);
           <AnimatePresence mode="wait">
             <motion.div
               key={leaderStart}
-              initial={{ x: 100, opacity: 0 }}
+              initial={{ x: 120, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -100, opacity: 0 }}
-              transition={{ duration: 0.6, ease: "easeInOut" }}
+              exit={{ x: -120, opacity: 0 }}
+              transition={{ duration: 0.45, ease: "easeInOut" }}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
             >
               {visibleLeaders.map((member, i) => (
@@ -541,10 +546,9 @@ const [loading, setLoading] = useState(true);
       {/* CTA Section */}
       <section className="py-20 px-4 md:px-8">
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
           className="max-w-4xl mx-auto relative"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-3xl blur-2xl opacity-20" />
@@ -580,9 +584,6 @@ const [loading, setLoading] = useState(true);
       </section>
 
       <Footer />
-
-      {/* Scroll to Top Button */}
-      <ScrollToTopButton />
     </div>
   );
 }

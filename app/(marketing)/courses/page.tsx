@@ -28,7 +28,7 @@ const exampleCourses = [
     teacher: { name: "Nguyễn Văn A" },
     price: 499000,
     rating: 4.9,
-    image: "/placeholder.svg",
+    image: "/image/logo-ics.jpg",
     enrollmentCount: 1250,
     createdAt: new Date().toISOString(),
     category: { id: "1", name: "Lập trình" }
@@ -88,7 +88,7 @@ const exampleCourses = [
     teacher: { name: "Vũ Thanh F" },
     price: 199000,
     rating: 4.8,
-    image: "/image/logo-ics.jpg",
+    image: "/placeholder.svg",
     enrollmentCount: 1450,
     createdAt: new Date().toISOString(),
     category: { id: "3", name: "Design" }
