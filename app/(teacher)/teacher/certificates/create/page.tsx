@@ -146,7 +146,7 @@ const templateStyles = [
     id: "minimalist",
     name: "Tối giản Monochrome",
     icon: Target,
-    colors: { bg: "#fafafa", border: "#171717", text: "#171717" },
+    colors: { bg: "#ffffff", border: "#374151", text: "#1f2937" },
     borderStyle: "solid",
     borderWidth: "2px",
     cornerStyle: "minimal",
@@ -404,12 +404,13 @@ export default function CreateCertificatePage() {
             </div>
 
             {/* Certificate Preview */}
-            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-border/50 dark:border-slate-800/50 rounded-3xl p-8 shadow-2xl">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-border/50 dark:border-slate-800/50 rounded-3xl p-6 shadow-2xl">
               <div
                 className="relative w-full rounded-xl overflow-hidden shadow-2xl transform hover:scale-[1.01] transition-transform duration-500"
                 style={{ 
-                  aspectRatio: '1.6 / 1',
+                  aspectRatio: '1 / 1.414',
                   maxWidth: '100%',
+                  minHeight: '600px',
                   backgroundColor: formData.backgroundColor,
                   backgroundImage: formData.templateImageUrl ? `url(${formData.templateImageUrl})` : 'none',
                   backgroundSize: 'cover',
@@ -423,142 +424,149 @@ export default function CreateCertificatePage() {
                 )}
 
                 {/* Logo - Top Left */}
-                <div className="absolute top-5 left-5 z-20">
+                <div className="absolute top-6 left-6 z-20">
                   {formData.logoUrl ? (
                     <img 
                       src={formData.logoUrl} 
                       alt="Logo" 
-                      className="w-12 h-12 object-contain rounded-lg shadow-md bg-white/95 dark:bg-slate-900/95 p-1"
+                      className="w-14 h-14 object-contain rounded-lg shadow-md bg-white/95 dark:bg-slate-900/95 p-1.5"
                     />
                   ) : (
-                    <div className="w-12 h-12 bg-white/95 dark:bg-slate-900/95 rounded-lg shadow-md flex items-center justify-center backdrop-blur-sm border border-slate-200 dark:border-slate-700">
-                      <ImageIcon size={18} className="text-slate-400" />
+                    <div className="w-14 h-14 bg-white/95 dark:bg-slate-900/95 rounded-lg shadow-md flex items-center justify-center backdrop-blur-sm border border-slate-200 dark:border-slate-700">
+                      <ImageIcon size={20} className="text-slate-400" />
                     </div>
                   )}
                 </div>
 
                 {/* Dynamic Border - Responds to borderStyle selection */}
                 <div
-                  className="absolute inset-4 rounded-lg"
+                  className="absolute inset-5 rounded-lg"
                   style={{
-                    border: `3px ${formData.borderStyle} ${formData.borderColor}`,
+                    border: `4px ${formData.borderStyle} ${formData.borderColor}`,
                     boxShadow: `0 0 0 1px ${formData.backgroundColor}`
                   }}
                 />
 
                 {/* Main Content */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center px-12 py-10 text-center">
-                  {/* Title Vietnamese - At Top */}
-                  <div className="mb-2">
-                    <h3
-                      className="text-xs font-bold tracking-wider uppercase mb-1"
-                      style={{ 
-                        color: formData.borderColor,
-                        letterSpacing: '0.2em'
-                      }}
-                    >
-                      CHỨNG CHỈ HOÀN THÀNH
-                    </h3>
-                    <div className="w-16 h-px mx-auto" style={{ backgroundColor: formData.borderColor }} />
-                  </div>
-
-                  {/* Badge Icon - Below Title, Inside Border */}
-                  <div className="relative mb-3">
-                    <div
-                      className="p-2.5 rounded-full shadow-lg"
-                      style={{ 
-                        backgroundColor: formData.textColor,
-                        border: `2px solid ${formData.borderColor}`,
-                        boxShadow: `0 0 12px ${formData.borderColor}40`
-                      }}
-                    >
-                      {formData.badgeStyle === "star" && <Star size={28} style={{ color: formData.borderColor }} fill={formData.borderColor} />}
-                      {formData.badgeStyle === "award" && <Award size={28} style={{ color: formData.borderColor }} fill={formData.borderColor} />}
-                      {formData.badgeStyle === "crown" && <Crown size={28} style={{ color: formData.borderColor }} fill={formData.borderColor} />}
-                      {formData.badgeStyle === "hexagon" && <Hexagon size={28} style={{ color: formData.borderColor }} fill={formData.borderColor} />}
-                      {formData.badgeStyle === "shield" && <Shield size={28} style={{ color: formData.borderColor }} fill={formData.borderColor} />}
-                      {formData.badgeStyle === "trophy" && <Trophy size={28} style={{ color: formData.borderColor }} fill={formData.borderColor} />}
+                <div className="absolute inset-0 flex flex-col items-center justify-between px-16 py-16 text-center">
+                  {/* Top Section */}
+                  <div className="w-full space-y-6">
+                    {/* Title Vietnamese - At Top */}
+                    <div className="mb-6">
+                      <h3
+                        className="text-base font-bold tracking-wider uppercase mb-3"
+                        style={{ 
+                          color: formData.borderColor,
+                          letterSpacing: '0.25em'
+                        }}
+                      >
+                        CHỨNG CHỈ HOÀN THÀNH
+                      </h3>
+                      <div className="w-24 h-px mx-auto" style={{ backgroundColor: formData.borderColor }} />
                     </div>
-                  </div>
 
-                  {/* Certificate Name */}
-                  <h2
-                    className="text-xl font-bold mb-3 leading-tight max-w-lg"
-                    style={{ 
-                      color: formData.textColor
-                    }}
-                  >
-                    {formData.title || "Tên chứng chỉ"}
-                  </h2>
+                    {/* Badge Icon - Below Title, Inside Border */}
+                    <div className="relative mb-6">
+                      <div
+                        className="p-4 rounded-full shadow-lg mx-auto w-fit"
+                        style={{ 
+                          backgroundColor: formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? formData.borderColor : formData.textColor,
+                          border: `3px solid ${formData.borderColor}`,
+                          boxShadow: `0 0 20px ${formData.borderColor}50`
+                        }}
+                      >
+                        {formData.badgeStyle === "star" && <Star size={36} style={{ color: formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? '#ffffff' : formData.borderColor }} fill={formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? '#ffffff' : formData.borderColor} />}
+                        {formData.badgeStyle === "award" && <Award size={36} style={{ color: formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? '#ffffff' : formData.borderColor }} fill={formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? '#ffffff' : formData.borderColor} />}
+                        {formData.badgeStyle === "crown" && <Crown size={36} style={{ color: formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? '#ffffff' : formData.borderColor }} fill={formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? '#ffffff' : formData.borderColor} />}
+                        {formData.badgeStyle === "hexagon" && <Hexagon size={36} style={{ color: formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? '#ffffff' : formData.borderColor }} fill={formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? '#ffffff' : formData.borderColor} />}
+                        {formData.badgeStyle === "shield" && <Shield size={36} style={{ color: formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? '#ffffff' : formData.borderColor }} fill={formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? '#ffffff' : formData.borderColor} />}
+                        {formData.badgeStyle === "trophy" && <Trophy size={36} style={{ color: formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? '#ffffff' : formData.borderColor }} fill={formData.backgroundColor === '#ffffff' || formData.backgroundColor === '#fafafa' ? '#ffffff' : formData.borderColor} />}
+                      </div>
+                    </div>
 
-                  {/* Simple Divider */}
-                  <div className="w-12 h-px mb-2 mx-auto" style={{ backgroundColor: formData.borderColor }} />
-
-                  {/* Presented To */}
-                  <p className="text-xs mb-2 opacity-70" style={{ color: formData.textColor }}>
-                    Chứng nhận rằng
-                  </p>
-
-                  {/* Student Name */}
-                  <div className="mb-2">
-                    <p
-                      className="text-lg font-semibold mb-1 px-6"
+                    {/* Certificate Name */}
+                    <h2
+                      className="text-2xl font-bold mb-5 leading-tight max-w-md mx-auto"
                       style={{ 
-                        color: formData.textColor,
-                        fontStyle: 'italic'
+                        color: formData.textColor
                       }}
                     >
-                      [Tên học viên]
+                      {formData.title || "Tên chứng chỉ"}
+                    </h2>
+
+                    {/* Simple Divider */}
+                    <div className="w-20 h-0.5 mb-5 mx-auto" style={{ backgroundColor: formData.borderColor }} />
+
+                    {/* Presented To */}
+                    <p className="text-sm mb-4 opacity-70" style={{ color: formData.textColor }}>
+                      Chứng nhận rằng
                     </p>
-                    <div className="w-40 h-px mx-auto" style={{ backgroundColor: formData.borderColor }} />
+
+                    {/* Student Name */}
+                    <div className="mb-6">
+                      <p
+                        className="text-2xl font-semibold mb-3 px-6"
+                        style={{ 
+                          color: formData.textColor,
+                          fontStyle: 'italic'
+                        }}
+                      >
+                        [Tên học viên]
+                      </p>
+                      <div className="w-56 h-0.5 mx-auto" style={{ backgroundColor: formData.borderColor }} />
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-base mb-4 max-w-lg mx-auto opacity-80 leading-relaxed" style={{ color: formData.textColor }}>
+                      {formData.description || "Đã hoàn thành xuất sắc khóa học"}
+                    </p>
+
+                    {/* Course Name */}
+                    <div className="mb-8">
+                      <p
+                        className="text-lg font-bold max-w-lg mx-auto leading-relaxed"
+                        style={{ 
+                          color: formData.borderColor
+                        }}
+                      >
+                        {selectedCourse?.title || "[Tên khóa học]"}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Description */}
-                  <p className="text-xs mb-2 max-w-md opacity-70" style={{ color: formData.textColor }}>
-                    {formData.description || "Đã hoàn thành xuất sắc khóa học"}
-                  </p>
-
-                  {/* Course Name */}
-                  <p
-                    className="text-sm font-semibold mb-8 max-w-md"
-                    style={{ 
-                      color: formData.borderColor
-                    }}
-                  >
-                    {selectedCourse?.title || "[Tên khóa học]"}
-                  </p>
-
-                  {/* Signature Section - Bottom Center with Better Design */}
-                  <div className="flex items-center justify-center gap-20 mt-auto">
-                    <div className="text-center">
-                      <div className="w-24 h-12 mb-2 mx-auto flex items-end justify-center">
-                        {formData.signatureUrl ? (
-                          <img 
-                            src={formData.signatureUrl} 
-                            alt="Signature" 
-                            className="max-w-full max-h-full object-contain"
-                          />
-                        ) : (
-                          <div className="w-full h-px" style={{ backgroundColor: formData.borderColor }} />
-                        )}
+                  {/* Bottom Section - Signatures */}
+                  <div className="w-full">
+                    <div className="flex items-center justify-center gap-20">
+                      <div className="text-center">
+                        <div className="w-32 h-16 mb-3 mx-auto flex items-end justify-center">
+                          {formData.signatureUrl ? (
+                            <img 
+                              src={formData.signatureUrl} 
+                              alt="Signature" 
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          ) : (
+                            <div className="w-full h-0.5" style={{ backgroundColor: formData.borderColor }} />
+                          )}
+                        </div>
+                        <p className="text-sm font-semibold mb-1" style={{ color: formData.textColor }}>Chữ ký</p>
+                        <p className="text-xs opacity-60" style={{ color: formData.textColor }}>Giảng viên</p>
                       </div>
-                      <p className="text-xs font-semibold" style={{ color: formData.textColor }}>Chữ ký</p>
-                      <p className="text-xs opacity-60" style={{ color: formData.textColor }}>Giảng viên</p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="w-24 h-12 mb-2 mx-auto flex items-end justify-center">
-                        <div className="w-full h-px" style={{ backgroundColor: formData.borderColor }} />
+                      
+                      <div className="text-center">
+                        <div className="w-32 h-16 mb-3 mx-auto flex items-end justify-center">
+                          <div className="w-full h-0.5" style={{ backgroundColor: formData.borderColor }} />
+                        </div>
+                        <p className="text-sm font-semibold mb-1" style={{ color: formData.textColor }}>Ngày cấp</p>
+                        <p className="text-xs opacity-60" style={{ color: formData.textColor }}>[DD/MM/YYYY]</p>
                       </div>
-                      <p className="text-xs font-semibold" style={{ color: formData.textColor }}>Ngày cấp</p>
-                      <p className="text-xs opacity-60" style={{ color: formData.textColor }}>[DD/MM/YYYY]</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Validity Period Badge - Bottom Left, Away from Border */}
                 <div
-                  className="absolute bottom-6 left-6 px-3 py-1.5 rounded-lg text-xs font-medium"
+                  className="absolute bottom-8 left-8 px-4 py-2 rounded-lg text-sm font-medium"
                   style={{ 
                     backgroundColor: `${formData.borderColor}10`, 
                     color: formData.borderColor, 
