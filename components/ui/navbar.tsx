@@ -104,9 +104,11 @@ export function Navbar() {
         <Link href="/courses" className="hover:text-foreground transition-smooth">
           Khóa học
         </Link>
-        <Link href="/teachers" className="hover:text-foreground transition-smooth">
-          Giảng viên
-        </Link>
+        {!isAuthenticated && (
+          <Link href="/teachers" className="hover:text-foreground transition-smooth">
+            Giảng viên
+          </Link>
+        )}
         {isAuthenticated && user ? (
           <Link 
             href={user.role === 'student' ? '/userdb' : user.role === 'teacher' ? '/teacher/dashboard' : '/admin/dashboard'} 
@@ -232,9 +234,11 @@ export function Navbar() {
             <Link href="/courses" className="text-sm hover:text-primary transition-smooth">
               Khóa học
             </Link>
-            <Link href="/teachers" className="text-sm hover:text-primary transition-smooth">
-              Giảng viên
-            </Link>
+            {!isAuthenticated && (
+              <Link href="/teachers" className="text-sm hover:text-primary transition-smooth">
+                Giảng viên
+              </Link>
+            )}
             {isAuthenticated && user ? (
               <Link 
                 href={user?.role === 'student' ? '/userdb' : user?.role === 'teacher' ? '/teacher/dashboard' : '/admin/dashboard'} 
@@ -242,11 +246,7 @@ export function Navbar() {
               >
                 Trang chủ của tôi
               </Link>
-            ) : (
-              <Link href="/teachers" className="text-sm hover:text-primary transition-smooth">
-                Giảng viên
-              </Link>
-            )}
+            ) : null}
             <Link href="/about" className="text-sm hover:text-primary transition-smooth">
               Về chúng tôi
             </Link>
