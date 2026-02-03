@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import Image from "next/image"
 import { Legend } from "recharts"
 import {
   TrendingUp,
@@ -26,7 +27,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart"
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid } from "recharts"
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
 import { PageHero } from "@/components/ui/page-hero"
 
 export default function ProgressPage() {
@@ -50,7 +51,10 @@ export default function ProgressPage() {
       totalLessons: 40,
       completedLessons: 30,
       lastAccessed: "2 giờ trước",
-      estimatedCompletion: "7 ngày"
+      estimatedCompletion: "7 ngày",
+      icon: "🚴",
+      bgColor: "bg-purple-100 dark:bg-purple-900/30",
+      image: "/image/logo-ics.jpg"
     },
     {
       id: "2",
@@ -59,7 +63,10 @@ export default function ProgressPage() {
       totalLessons: 30,
       completedLessons: 18,
       lastAccessed: "1 ngày trước",
-      estimatedCompletion: "14 ngày"
+      estimatedCompletion: "14 ngày",
+      icon: "🏃",
+      bgColor: "bg-blue-100 dark:bg-blue-900/30",
+      image: "/image/logo-ics.jpg"
     },
     {
       id: "3",
@@ -68,7 +75,29 @@ export default function ProgressPage() {
       totalLessons: 33,
       completedLessons: 15,
       lastAccessed: "3 ngày trước",
-      estimatedCompletion: "21 ngày"
+      estimatedCompletion: "21 ngày",
+      icon: "💪",
+      bgColor: "bg-green-100 dark:bg-green-900/30",
+      image: "/image/courses/figma.jpg"
+    },
+  ]
+
+  const completedCourses = [
+    {
+      id: "4",
+      title: "JavaScript cơ bản",
+      progress: 100,
+      totalLessons: 25,
+      completedLessons: 25,
+      completedDate: "2 tuần trước"
+    },
+    {
+      id: "5",
+      title: "HTML & CSS từ A-Z",
+      progress: 100,
+      totalLessons: 20,
+      completedLessons: 20,
+      completedDate: "1 tháng trước"
     },
   ]
 
@@ -96,6 +125,14 @@ export default function ProgressPage() {
     target: { label: "Mục tiêu", color: "#ef4444" },
   }
 
+  // Data for course completion pie chart
+  const COLORS = ["#1E90FF", "#00C9A7", "#FFB84D", "#FF6B9D", "#9D4EDD", "#3A86FF"]
+  const allCourses = [...courseProgress, ...completedCourses]
+  const courseCompletionData = allCourses.map((course) => ({
+    name: course.title.substring(0, 20),
+    value: course.progress,
+    fullName: course.title,
+  }))
 
   return (
     <div className="space-y-8">
@@ -152,84 +189,166 @@ export default function ProgressPage() {
         </div>
       </PageHero>
 
-      {/* Weekly Activity Chart (Line + Column) */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-l p-3"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-foreground dark:text-white">Hoạt động trong tuần</h2>
-          <select className="bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm">
-            <option>Tuần này</option>
-            <option>Tuần trước</option>
-            <option>Tháng này</option>
-          </select>
-        </div>
-        
-        <ChartContainer config={chartConfig} className=" ml-40 h-[460px] rounded-xl overflow-hidden">
-          <ComposedChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="day"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fontSize: 12 }} />
-            <YAxis tickLine={false}
-              axisLine={false}
-              allowDecimals={false}
-              tick={{ fontSize: 12 }}/>
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <Legend />
-            <Bar dataKey="hours" name="Giờ học" fill="var(--color-hours)" radius={[20, 20, 0, 0]}   barSize={65}  />
-            <Line type="monotone" dataKey="target" name="Mục tiêu" stroke="#ef4444" strokeWidth={5} dot={{ r: 5 }} />
-          </ComposedChart>
-        </ChartContainer>
-      </motion.div>
-
+      {/* Weekly Activity & Course Completion Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Course Progress */}
+        {/* Weekly Activity Chart (Line + Column) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 flex flex-col"
+        >
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="text-xl font-bold text-foreground dark:text-white">Hoạt động trong tuần</h2>
+            <select className="bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm">
+              <option>Tuần này</option>
+              <option>Tuần trước</option>
+              <option>Tháng này</option>
+            </select>
+          </div>
+          
+          <div className="h-[320px]">
+            <ChartContainer config={chartConfig} className="h-full w-full rounded-xl overflow-hidden">
+              <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 12 }} />
+                <YAxis tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                  tick={{ fontSize: 12 }}/>
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend wrapperStyle={{ fontSize: '15px', fontWeight: '600', paddingTop: '12px' }} />
+                <Bar dataKey="hours" name="Giờ học" fill="var(--color-hours)" radius={[20, 20, 0, 0]} barSize={45} />
+                <Line type="monotone" dataKey="target" name="Mục tiêu" stroke="#ef4444" strokeWidth={2} dot={{ r: 5 }} />
+              </ComposedChart>
+            </ChartContainer>
+          </div>
+        </motion.div>
+
+        {/* Course Completion Pie Chart */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6"
+          className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 flex flex-col"
+        >
+          <h2 className="text-xl font-bold text-foreground dark:text-white mb-6">Hoàn thành khóa học</h2>
+          <div className="flex-1 flex flex-col items-center justify-between min-h-[400px]">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={courseCompletionData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, value }) => `${value}%`}
+                  outerRadius={90}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {courseCompletionData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => `${value}%`} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="w-full space-y-2">
+              {courseCompletionData.map((course, idx) => (
+                <div key={idx} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+                    />
+                    <span className="text-foreground dark:text-white line-clamp-1" title={course.fullName}>
+                      {course.fullName}
+                    </span>
+                  </div>
+                  <span className="font-bold text-primary dark:text-accent">{course.value}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Active Courses */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="lg:col-span-2"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-foreground dark:text-white">Tiến độ khóa học</h2>
+            <h2 className="text-xl font-bold text-foreground dark:text-white">Khóa học đang học</h2>
             <Link href="/my-courses" className="text-sm text-primary dark:text-accent hover:underline">
               Xem tất cả
             </Link>
           </div>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courseProgress.map((course, idx) => (
               <div 
                 key={course.id}
-                className="p-4 bg-secondary/50 dark:bg-slate-800/50 rounded-xl"
+                className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-3xl p-6 hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/30 transition-all duration-300 flex flex-col items-center text-center"
               >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-medium text-foreground dark:text-white text-sm line-clamp-1 flex-1">
-                    {course.title}
-                  </h3>
-                  <span className="text-sm font-bold text-primary dark:text-accent ml-2">
-                    {course.progress}%
-                  </span>
-                </div>
-                <div className="h-2 bg-secondary dark:bg-slate-700 rounded-full overflow-hidden mb-2">
-                  <div 
-                    className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all"
-                    style={{ width: `${course.progress}%` }}
+                {/* Course Image */}
+                <div className="w-full h-32 rounded-2xl overflow-hidden mb-4 bg-secondary dark:bg-slate-800 flex items-center justify-center">
+                  <Image
+                    src={course.image}
+                    alt={course.title}
+                    width={200}
+                    height={130}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
                   />
                 </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground dark:text-slate-400">
-                  <span>{course.completedLessons}/{course.totalLessons} bài học</span>
-                  <span>Còn ~{course.estimatedCompletion}</span>
+
+                {/* Title */}
+                <h3 className="font-semibold text-foreground dark:text-white text-sm line-clamp-2 mb-4">
+                  {course.title}
+                </h3>
+
+                {/* Progress Bar */}
+                <div className="w-full mb-4">
+                  <div className="h-2 bg-secondary dark:bg-slate-700 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${course.progress}%` }}
+                      transition={{ delay: 0.3 + idx * 0.1, duration: 0.8 }}
+                      className="h-full bg-gradient-to-r from-primary via-blue-500 to-accent rounded-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Info Section */}
+                <div className="w-full space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground dark:text-slate-400">Progress</span>
+                    <span className="font-bold text-primary dark:text-accent">{course.progress}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground dark:text-slate-400">Thời gian còn lại</span>
+                    <span className="font-bold text-primary dark:text-accent">~{course.estimatedCompletion}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground dark:text-slate-400">Bài học</span>
+                    <span className="font-bold text-foreground dark:text-white">{course.completedLessons}/{course.totalLessons}</span>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </motion.div>
+      </div>
 
+      <div className="grid grid-cols-1 gap-6">
         {/* Achievements */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
