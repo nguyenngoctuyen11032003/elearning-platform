@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/auth/auth-context"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 import { SystemConfigProvider } from "@/lib/system-config/system-config-context"
+import { MaintenanceWatcher } from "@/lib/system-config/maintenance-watcher"
 const roboto = Roboto({ 
   subsets: ["latin", "vietnamese"],
   weight: ["300", "400", "500", "700", "900"],
@@ -32,6 +33,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <SystemConfigProvider>
+            <MaintenanceWatcher />
             {children}
             </SystemConfigProvider>
             <Toaster />
@@ -42,4 +44,3 @@ export default function RootLayout({
     </html>
   )
 }
-console.log("FETCH SYSTEM CONFIG")

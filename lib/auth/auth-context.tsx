@@ -8,12 +8,20 @@ import { toast } from 'sonner';
 
 type AuthUser = Omit<User, 'status' | 'createdAt' | 'updatedAt'>;
 
+type LogoutOptions = {
+  redirect?: string | null;
+  message?: string;
+  toastType?: 'success' | 'error';
+  skipApi?: boolean;
+};
+
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   login: (data: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
+  forceLogout: (options?: LogoutOptions) => Promise<void>;
   refreshToken: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   isAuthenticated: boolean;
@@ -37,6 +45,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const clearAuthState = () => {
+    setUser(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+    }
+  };
 
   // Initialize auth state from localStorage
   useEffect(() => {
@@ -165,22 +181,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const logout = async () => {
-    try {
-      await apiClient.logout();
-    } catch (error) {
-      // Ignore logout errors - clear local state anyway
-      console.log('Logout API call failed, clearing local state anyway');
-    } finally {
-      // Always clear user state and local storage
-      setUser(null);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
+  const forceLogout = async (options: LogoutOptions = {}) => {
+    const { redirect = '/', message, toastType = 'success', skipApi = false } = options;
+
+    if (!skipApi) {
+      try {
+        await apiClient.logout();
+      } catch (error) {
+        console.log('Logout API call failed, clearing local state anyway');
       }
-      toast.success('Đã đăng xuất thành công');
-      router.push('/');
     }
+
+    clearAuthState();
+
+    if (message) {
+      if (toastType === 'error') {
+        toast.error(message);
+      } else {
+        toast.success(message);
+      }
+    }
+
+    if (redirect) {
+      router.replace(redirect);
+    }
+  };
+
+  const logout = async () => {
+    await forceLogout({
+      message: 'Đã đăng xuất thành công',
+      toastType: 'success',
+      skipApi: false,
+      redirect: '/',
+    });
   };
 
   const refreshToken = async () => {
@@ -210,6 +243,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     register,
     logout,
+    forceLogout,
     refreshToken,
     refreshProfile,
     isAuthenticated: !!user,

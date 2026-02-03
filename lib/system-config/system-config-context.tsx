@@ -10,10 +10,39 @@ import React, {
 } from "react"
 import { apiClient } from "@/lib/api/client"
 import type { SystemSettings } from "@/app/types/system-settings"
+import { DEFAULT_SYSTEM_SETTINGS } from "./default-system-settings"
 
 /* ================= TYPES ================= */
 
 export type SystemConfig = SystemSettings
+
+const BOOLEAN_KEYS: (keyof SystemSettings)[] = [
+  "maintenanceMode",
+  "emailNotifications",
+  "aiAssistantEnabled",
+  "courseNotifications",
+  "newCourseNotifications",
+  "certificateNotifications",
+  "promotionNotifications",
+]
+
+const normalizeSystemSettings = (raw: Record<string, any> | null): SystemSettings => {
+  const merged: Record<string, any> = {
+    ...DEFAULT_SYSTEM_SETTINGS,
+    ...(raw || {}),
+  }
+
+  BOOLEAN_KEYS.forEach((key) => {
+    const value = merged[key]
+    if (typeof value === "string") {
+      const lower = value.toLowerCase()
+      if (lower === "true") merged[key] = true
+      if (lower === "false") merged[key] = false
+    }
+  })
+
+  return merged as SystemSettings
+}
 
 /* ================= CONTEXT ================= */
 
@@ -46,9 +75,10 @@ export function SystemConfigProvider({
       setLoading(true)
 
       const data = await apiClient.getSystemSettings()
+      const normalized = normalizeSystemSettings(data as Record<string, any>)
 
       // request() của bạn đã unwrap {data}
-      setConfig(data)
+      setConfig(normalized)
 
     } catch (e) {
       console.error("Failed to load system config", e)
