@@ -33,7 +33,13 @@ async updateSystemSettings(data: { key: string; value: string }) {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+    const headers: Record<string, string> = {
+  ...(options.headers as Record<string, string>),
+}
+
+if (!(options.body instanceof FormData)) {
+  headers['Content-Type'] = 'application/json'
+}
     const config: RequestInit = {
       cache: "no-store",
       headers: {
@@ -177,11 +183,14 @@ async updateSystemSettings(data: { key: string; value: string }) {
     );
 
     // Store token in localStorage
-    if (typeof window !== 'undefined' && response.access_token) {
-      localStorage.setItem('auth_token', response.access_token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-    }
+    const token =
+  (response as any).access_token ||
+  (response as any).accessToken;
 
+if (typeof window !== 'undefined' && token) {
+  localStorage.setItem('auth_token', token);
+  localStorage.setItem('user', JSON.stringify(response.user));
+}
     return response;
   }
 
@@ -863,7 +872,7 @@ async uploadFile(file: File): Promise<{ url: string }> {
 
   // ================== Dashboard Stats API ==================
   async getAdminDashboardStats(): Promise<any> {
-    return this.request('/admin/dashboard/stats');
+    return this.request('/api/admin/dashboard/stats');
   }
 
   async getTeacherDashboardStats(): Promise<any> {

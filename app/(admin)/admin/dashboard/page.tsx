@@ -20,23 +20,25 @@ import {
   BarChart,
   Bar,
 } from "recharts"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { formatPrice } from "@/lib/format"
+import { apiClient } from "@/lib/api/client"
+import { format } from "date-fns/format"
 
-const revenueData = [
-  { month: "1", revenue: 24000, teachers: 45, students: 400 },
-  { month: "2", revenue: 13980, teachers: 52, students: 300 },
-  { month: "3", revenue: 98000, teachers: 58, students: 200 },
-  { month: "4", revenue: 39080, teachers: 65, students: 278 },
-  { month: "5", revenue: 48000, teachers: 72, students: 189 },
-  { month: "6", revenue: 38000, teachers: 78, students: 239 },
-  { month: "7", revenue: 42000, teachers: 85, students: 280 },
-  { month: "8", revenue: 51000, teachers: 92, students: 320 },
-  { month: "9", revenue: 48000, teachers: 98, students: 300 },
-  { month: "10", revenue: 55000, teachers: 105, students: 350 },
-  { month: "11", revenue: 62000, teachers: 112, students: 380 },
-  { month: "12", revenue: 71000, teachers: 120, students: 420 },
-]
+// const revenueData = [
+//   { month: "1", revenue: 24000, teachers: 45, students: 400 },
+//   { month: "2", revenue: 13980, teachers: 52, students: 300 },
+//   { month: "3", revenue: 98000, teachers: 58, students: 200 },
+//   { month: "4", revenue: 39080, teachers: 65, students: 278 },
+//   { month: "5", revenue: 48000, teachers: 72, students: 189 },
+//   { month: "6", revenue: 38000, teachers: 78, students: 239 },
+//   { month: "7", revenue: 42000, teachers: 85, students: 280 },
+//   { month: "8", revenue: 51000, teachers: 92, students: 320 },
+//   { month: "9", revenue: 48000, teachers: 98, students: 300 },
+//   { month: "10", revenue: 55000, teachers: 105, students: 350 },
+//   { month: "11", revenue: 62000, teachers: 112, students: 380 },
+//   { month: "12", revenue: 71000, teachers: 120, students: 420 },
+// ]
 
 const categoryData = [
   { name: "Lập trình", value: 35, color: "#2563eb" },
@@ -46,27 +48,144 @@ const categoryData = [
 ]
 
 // Weekly platform statistics
-const weeklyStats = [
-  { day: "T2", activeUsers: 1200, newSignups: 45 },
-  { day: "T3", activeUsers: 1800, newSignups: 68 },
-  { day: "T4", activeUsers: 1400, newSignups: 52 },
-  { day: "T5", activeUsers: 2200, newSignups: 89 },
-  { day: "T6", activeUsers: 2800, newSignups: 125 },
-  { day: "T7", activeUsers: 3200, newSignups: 134 },
-  { day: "CN", activeUsers: 1600, newSignups: 78 },
-]
+// const weeklyStats = [
+//   { day: "T2", activeUsers: 1200, newSignups: 45 },
+//   { day: "T3", activeUsers: 1800, newSignups: 68 },
+//   { day: "T4", activeUsers: 1400, newSignups: 52 },
+//   { day: "T5", activeUsers: 2200, newSignups: 89 },
+//   { day: "T6", activeUsers: 2800, newSignups: 125 },
+//   { day: "T7", activeUsers: 3200, newSignups: 134 },
+//   { day: "CN", activeUsers: 1600, newSignups: 78 },
+// ]
 
-const recentTransactions = [
-  { id: 1, user: "Trần Văn A", course: "Next.js Advanced", amount: 499000, status: "success", date: "2025-01-15" },
-  { id: 2, user: "Nguyễn Thị B", course: "React Hooks", amount: 399000, status: "success", date: "2025-01-14" },
-  { id: 3, user: "Lê Minh C", course: "Python Data Science", amount: 549000, status: "pending", date: "2025-01-13" },
-  { id: 4, user: "Phạm Quốc D", course: "UI/UX Design", amount: 349000, status: "success", date: "2025-01-12" },
-  { id: 5, user: "Hoàng Thị E", course: "Branding", amount: 349000, status: "failed", date: "2025-01-11" },
-]
+// const recentTransactions = [
+//   { id: 1, user: "Trần Văn A", course: "Next.js Advanced", amount: 499000, status: "success", date: "2025-01-15" },
+//   { id: 2, user: "Nguyễn Thị B", course: "React Hooks", amount: 399000, status: "success", date: "2025-01-14" },
+//   { id: 3, user: "Lê Minh C", course: "Python Data Science", amount: 549000, status: "pending", date: "2025-01-13" },
+//   { id: 4, user: "Phạm Quốc D", course: "UI/UX Design", amount: 349000, status: "success", date: "2025-01-12" },
+//   { id: 5, user: "Hoàng Thị E", course: "Branding", amount: 349000, status: "failed", date: "2025-01-11" },
+// ]
 
 export default function AdminDashboard() {
   const [filterPeriod, setFilterPeriod] = useState("month")
 
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<any>(null)
+  const [revenueData, setRevenueData] = useState<any[]>([])
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([])
+  const revenueMap = new Map<string, number>()
+  const [weeklyStats, setWeeklyStats] = useState<any[]>([])
+  const [growthData, setGrowthData] = useState<any[]>([])
+
+type Transaction = {
+  createdAt: string
+  amount: string
+}
+
+function buildRevenueChart(transactions: Transaction[]) {
+  const revenueMap = new Map<string, number>()
+
+  transactions.forEach((tx) => {
+    const day = format(new Date(tx.createdAt), "d MMM") // ví dụ: 29 Jan
+    const amount = Number(tx.amount)
+
+    revenueMap.set(day, (revenueMap.get(day) || 0) + amount)
+  })
+
+  return {
+    labels: Array.from(revenueMap.keys()),
+    data: Array.from(revenueMap.values()),
+  }
+}
+
+useEffect(() => {
+  const loadDashboard = async () => {
+    setLoading(true)
+    try {
+      const res = await apiClient.getAdminDashboardStats()
+      const dashboard = res.data ?? res
+
+      /* ================== STATS ================== */
+      setStats(dashboard)
+
+      /* ================== REVENUE CHART ================== */
+      if (
+        dashboard.revenueChart?.labels?.length &&
+        dashboard.revenueChart?.data?.length
+      ) {
+        // Ưu tiên dữ liệu backend
+        setRevenueData(
+          dashboard.revenueChart.labels.map((label: string, i: number) => ({
+            month: label,
+            revenue: Number(dashboard.revenueChart.data?.[i] ?? 0),
+            teachers: dashboard.revenueChart.teachers?.[i] ?? 0,
+            students: dashboard.revenueChart.students?.[i] ?? 0,
+          }))
+        )
+      } else if (dashboard.recentTransactions?.length) {
+        // Fallback từ recentTransactions
+        const revenueChart = buildRevenueChart(
+          dashboard.recentTransactions
+        )
+
+        setRevenueData(
+          revenueChart.labels.map((label: string, i: number) => ({
+            month: label,
+            revenue: revenueChart.data?.[i] ?? 0,
+            teachers: 0,
+            students: 0,
+          }))
+        )
+      } else {
+        setRevenueData([])
+      }
+
+      /* ================== WEEKLY STATS ================== */
+      setWeeklyStats(
+        Array.isArray(dashboard.weeklyStats)
+          ? dashboard.weeklyStats.map((item: any) => ({
+              day: item.day,
+              activeUsers: item.activeUsers,
+              newSignups: item.newSignups,
+            }))
+          : []
+      )
+
+      /* ================== GROWTH CHART ================== */
+      setGrowthData(
+        Array.isArray(dashboard.growthChart)
+          ? dashboard.growthChart
+          : []
+      )
+
+      /* ================== RECENT TRANSACTIONS ================== */
+      setRecentTransactions(
+        (dashboard.recentTransactions ?? []).map((item: any) => ({
+          id: item.id,
+          user: item.studentName,
+          course: item.courseName,
+          amount: Number(item.amount),
+          status: item.status === "completed" ? "success" : "failed",
+          date: new Date(item.createdAt).toLocaleDateString("vi-VN"),
+        }))
+      )
+    } catch (err) {
+      console.error("Dashboard error:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  loadDashboard()
+}, [])
+
+if (loading) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p>Đang tải dashboard...</p>
+    </div>
+  )
+}
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
@@ -105,10 +224,26 @@ export default function AdminDashboard() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard icon={TrendingUp} title="Tổng doanh thu" value="₫245,230,000" change="+18% so với tháng trước" />
-              <StatCard icon={UserCheck} title="Tổng giáo viên" value="450" change="+45 giáo viên mới" />
-              <StatCard icon={Users} title="Tổng học viên" value="12,000" change="+405 học viên mới" />
-              <StatCard icon={BookOpen} title="Tổng khóa học" value="245" change="+12 khóa học mới" />
+              <StatCard
+  icon={UserCheck}
+  title="Tổng giáo viên"
+  value={stats?.totalTeachers || 0}
+  change={`+${stats?.teacherGrowth || 0}% so với tháng trước`}
+/>
+
+<StatCard
+  icon={Users}
+  title="Tổng học viên"
+  value={stats?.totalStudents || 0}
+  change={`+${stats?.studentGrowth || 0}% so với tháng trước`}
+/>
+
+<StatCard
+  icon={BookOpen}
+  title="Tổng khóa học"
+  value={stats?.totalCourses || 0}
+  change={`+${stats?.courseGrowth || 0}% so với tháng trước`}
+/>
             </div>
           </div>
         </div>
@@ -118,6 +253,11 @@ export default function AdminDashboard() {
           {/* Revenue Chart */}
           <div className="lg:col-span-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">Doanh thu theo tháng</h3>
+            {revenueData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">
+                Chưa có dữ liệu doanh thu
+              </p>
+            ) : (
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={revenueData}>
                 <defs>
@@ -150,6 +290,7 @@ export default function AdminDashboard() {
                 />
               </AreaChart>
             </ResponsiveContainer>
+            )}
           </div>
 
           {/* Category Distribution */}
@@ -199,6 +340,11 @@ export default function AdminDashboard() {
           {/* User Activity Chart */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 animate-fadeIn">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">Hoạt động người dùng tuần này</h3>
+            {weeklyStats.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center">
+              Chưa có dữ liệu tuần này
+            </p>
+          ) : (
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={weeklyStats}>
                 <defs>
@@ -241,11 +387,17 @@ export default function AdminDashboard() {
                 />
               </AreaChart>
             </ResponsiveContainer>
+          )}
           </div>
 
           {/* Teacher & Student Growth */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">Tăng trưởng theo tháng</h3>
+            {growthData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">
+                Chưa có dữ liệu tăng trưởng
+              </p>
+            ) : (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -278,6 +430,7 @@ export default function AdminDashboard() {
                 />
               </LineChart>
             </ResponsiveContainer>
+            )}
           </div>
         </div>
 
