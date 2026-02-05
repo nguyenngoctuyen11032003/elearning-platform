@@ -6,6 +6,7 @@ export type UserRole = "student" | "teacher" | "admin"
 export type UserStatus = "active" | "inactive" | "pending"
 
 export interface UserData {
+  lastLoginAt: any
   joinDate: string
   id: number                 
   name: string
