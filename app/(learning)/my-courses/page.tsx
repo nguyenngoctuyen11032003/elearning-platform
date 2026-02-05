@@ -261,13 +261,13 @@ export default function MyCoursesPage() {
         </motion.div>
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="flex gap-6 p-8">
+        <div className="flex-1 overflow-y-auto scrollbar-hide">
+          <div className="flex gap-4 p-6">
             {/* Courses Grid */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex-1"
+              className="flex-1 "
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -355,7 +355,7 @@ export default function MyCoursesPage() {
                             </div>
                             <div className="h-2 bg-secondary dark:bg-slate-800 rounded-full overflow-hidden">
                               <motion.div
-                                className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
+                                className="h-full bg-gradient-to-r from-primary to-purple-500 rounded-full"
                                 initial={{ width: 0 }}
                                 animate={{ width: `${enrollment.progress}%` }}
                                 transition={{ delay: idx * 0.05 + 0.2, duration: 0.6 }}
