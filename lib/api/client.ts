@@ -876,7 +876,7 @@ async uploadFile(file: File): Promise<{ url: string }> {
   }
 
   async getTeacherDashboardStats(): Promise<any> {
-    return this.request('/teacher/dashboard/stats');
+    return this.request('/api/teacher/dashboard/stats');
   }
 
   async getStudentDashboardStats(): Promise<any> {
