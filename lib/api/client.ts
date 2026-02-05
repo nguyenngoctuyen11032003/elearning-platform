@@ -515,8 +515,7 @@ async uploadFile(file: File): Promise<{ url: string }> {
     try {
       const user = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
       if (!user) return [];
-      const userId = JSON.parse(user).id;
-      const result = await this.request(API_ENDPOINTS.CERTIFICATES.BY_STUDENT(userId));
+      const result = await this.request(API_ENDPOINTS.CERTIFICATES.MY);
       return Array.isArray(result) ? result : [];
     } catch (error) {
       console.error('Error fetching certificates:', error);

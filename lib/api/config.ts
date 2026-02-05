@@ -66,7 +66,7 @@ export const API_ENDPOINTS = {
   CERTIFICATES: {
     LIST: '/api/certificates',
     BY_ID: (id: string) => `/api/certificates/${id}`,
-    BY_STUDENT: (studentId: string) => `/api/certificates/student/${studentId}`,
+    MY: '/api/certificates/my-certificates',
   },
   PAYMENTS: {
     LIST: '/api/payments',
