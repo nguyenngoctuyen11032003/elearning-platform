@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   Plus, 
@@ -45,48 +45,53 @@ const noteTypes = [
 
 export default function NotesPage() {
   const { user } = useAuth()
+  const token =
+  typeof window !== 'undefined'
+    ? localStorage.getItem('auth_token')
+    : null
   const [notes, setNotes] = useState<Note[]>([
-    {
-      id: "1",
-      title: "Next.js App Router",
-      content: "App Router là cách mới để định tuyến trong Next.js 13+. Sử dụng thư mục app/ thay vì pages/. Hỗ trợ Server Components mặc định, layouts, loading states và error handling tốt hơn.\n\nƯu điểm:\n- Tối ưu hiệu suất với Server Components\n- Nested layouts linh hoạt\n- Streaming và Suspense\n- Data fetching tích hợp",
-      course: "Lập trình Next.js",
-      courseId: "1",
-      lessonTitle: "Bài 5: App Router Architecture",
-      createdAt: "2025-01-20",
-      updatedAt: "2025-01-22",
-      tags: ["routing", "nextjs", "architecture"],
-      isFavorite: true,
-      type: "general"
-    },
-    {
-      id: "2",
-      title: "Server Components vs Client Components",
-      content: "Server Components render trên server, giảm bundle size. Client Components cần 'use client' directive.\n\nKhi nào dùng Server Components:\n- Fetch data\n- Access backend trực tiếp\n- Không cần interactivity\n\nKhi nào dùng Client Components:\n- Event handlers\n- useState, useEffect\n- Browser APIs",
-      course: "Lập trình Next.js",
-      courseId: "1",
-      lessonTitle: "Bài 8: Server Components",
-      createdAt: "2025-01-18",
-      updatedAt: "2025-01-18",
-      tags: ["server", "client", "components"],
-      isFavorite: false,
-      type: "general"
-    },
-    {
-      id: "3",
-      title: "useReducer Pattern",
-      content: "useReducer phù hợp khi state logic phức tạp. Syntax: const [state, dispatch] = useReducer(reducer, initialState).\n\nReducer là pure function nhận state và action, trả về state mới.",
-      course: "React Hooks",
-      courseId: "2",
-      lessonTitle: "Bài 12: useReducer Hook",
-      createdAt: "2025-01-15",
-      updatedAt: "2025-01-16",
-      tags: ["react", "hooks", "state"],
-      isFavorite: true,
-      type: "general"
-    },
+    // {
+    //   id: "1",
+    //   title: "Next.js App Router",
+    //   content: "App Router là cách mới để định tuyến trong Next.js 13+. Sử dụng thư mục app/ thay vì pages/. Hỗ trợ Server Components mặc định, layouts, loading states và error handling tốt hơn.\n\nƯu điểm:\n- Tối ưu hiệu suất với Server Components\n- Nested layouts linh hoạt\n- Streaming và Suspense\n- Data fetching tích hợp",
+    //   course: "Lập trình Next.js",
+    //   courseId: "1",
+    //   lessonTitle: "Bài 5: App Router Architecture",
+    //   createdAt: "2025-01-20",
+    //   updatedAt: "2025-01-22",
+    //   tags: ["routing", "nextjs", "architecture"],
+    //   isFavorite: true,
+    //   type: "general"
+    // },
+    // {
+    //   id: "2",
+    //   title: "Server Components vs Client Components",
+    //   content: "Server Components render trên server, giảm bundle size. Client Components cần 'use client' directive.\n\nKhi nào dùng Server Components:\n- Fetch data\n- Access backend trực tiếp\n- Không cần interactivity\n\nKhi nào dùng Client Components:\n- Event handlers\n- useState, useEffect\n- Browser APIs",
+    //   course: "Lập trình Next.js",
+    //   courseId: "1",
+    //   lessonTitle: "Bài 8: Server Components",
+    //   createdAt: "2025-01-18",
+    //   updatedAt: "2025-01-18",
+    //   tags: ["server", "client", "components"],
+    //   isFavorite: false,
+    //   type: "general"
+    // },
+    // {
+    //   id: "3",
+    //   title: "useReducer Pattern",
+    //   content: "useReducer phù hợp khi state logic phức tạp. Syntax: const [state, dispatch] = useReducer(reducer, initialState).\n\nReducer là pure function nhận state và action, trả về state mới.",
+    //   course: "React Hooks",
+    //   courseId: "2",
+    //   lessonTitle: "Bài 12: useReducer Hook",
+    //   createdAt: "2025-01-15",
+    //   updatedAt: "2025-01-16",
+    //   tags: ["react", "hooks", "state"],
+    //   isFavorite: true,
+    //   type: "general"
+    // },
   ])
-
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCourse, setSelectedCourse] = useState("all")
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -110,14 +115,22 @@ export default function NotesPage() {
   const allTags = [...new Set(notes.flatMap(n => n.tags))].sort()
 
   const filteredNotes = notes.filter((note) => {
-    const matchesSearch = 
-      note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCourse = selectedCourse === "all" || note.course === selectedCourse
-    const matchesTags = selectedTags.length === 0 || selectedTags.some(tag => note.tags.includes(tag))
-    return matchesSearch && matchesCourse && matchesTags
-  })
+  const title = note.title ?? ""
+  const content = note.content ?? ""
 
+  const matchesSearch =
+    title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    content.toLowerCase().includes(searchTerm.toLowerCase())
+
+  const matchesCourse =
+    selectedCourse === "all" || note.course === selectedCourse
+
+  const matchesTags =
+    selectedTags.length === 0 ||
+    selectedTags.some(tag => note.tags?.includes(tag))
+
+  return matchesSearch && matchesCourse && matchesTags
+})
   const totalPages = Math.ceil(filteredNotes.length / ITEMS_PER_PAGE)
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
   const paginatedNotes = filteredNotes.slice(startIndex, startIndex + ITEMS_PER_PAGE)
@@ -201,14 +214,18 @@ export default function NotesPage() {
     ))
   }
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('vi-VN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    })
-  }
+ const formatDate = (dateStr?: string) => {
+  if (!dateStr) return '—'
 
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return '—'
+
+  return d.toLocaleDateString('vi-VN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}
   const handleExportNotes = () => {
     const notesToExport = filteredNotes.length > 0 ? filteredNotes : notes
     const dataStr = JSON.stringify(notesToExport, null, 2)
@@ -222,6 +239,64 @@ export default function NotesPage() {
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
   }
+useEffect(() => {
+  if (!token) return
+
+  const fetchNotes = async () => {
+    try {
+      setLoading(true)
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/my-notes`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        throw new Error(json?.error?.message || "Không lấy được ghi chú")
+      }
+
+      setNotes(
+  (json.data ?? json).map((n: any) => {
+    const ts = n.timestamp
+
+    const date =
+      typeof ts === 'number'
+        ? new Date(ts * 1000) // nếu backend trả seconds
+        : new Date(ts)
+
+    return {
+      id: n.id,
+      title: n.title ?? n.content?.split('\n')[0] ?? 'Ghi chú',
+      content: n.content,
+      course: n.course?.title ?? 'Chưa phân loại',
+      courseId: n.course?.id ?? '',
+      lessonTitle: n.lesson?.title ?? 'Ghi chú',
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt,
+      tags: [],
+      isFavorite: false,
+      type: 'general',
+      items: [],
+      schedule: [],
+    }
+  })
+)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  fetchNotes()
+}, [token])
 
   return (
     <div className="space-y-6">
@@ -282,8 +357,8 @@ export default function NotesPage() {
         >
           <span className="text-sm font-medium text-muted-foreground pt-2">Tags:</span>
           <div className="flex flex-wrap gap-2 flex-1">
-            {allTags.map(tag => (
-              <div key={tag} className="relative group">
+            {allTags.map((tag, index) => (
+  <div key={`${tag}-${index}`} className="relative group">
                 <button
                   onClick={() => handleTagSelect(tag)}
                   className={`px-3.5 py-1.5 rounded-full font-medium text-sm transition-all ${
@@ -471,7 +546,7 @@ export default function NotesPage() {
               )}
 
               {/* Tags */}
-              {note.tags.length > 0 && (
+              {(note.tags?.length ?? 0) > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-4">
                   {note.tags.slice(0, 3).map((tag, i) => (
                     <span 

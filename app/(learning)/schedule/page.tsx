@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Calendar,
@@ -20,6 +20,7 @@ import {
   Tag
 } from "lucide-react"
 import { toast } from "sonner"
+import { scheduleApi } from '@/lib/api/schedule.api'
 
 interface ScheduleItem {
   id: string
@@ -39,53 +40,53 @@ interface ScheduleItem {
 export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([
-    {
-      id: "1",
-      title: "Server Components & Data Fetching",
-      course: "Next.js nâng cao",
-      type: "lesson",
-      status: "todo",
-      time: "09:00",
-      duration: "45 phút",
-      completed: false,
-      dueDate: "2026-02-04",
-      description: "Học về Server Components trong Next.js 13+"
-    },
-    {
-      id: "2",
-      title: "useReducer và Context API",
-      course: "React Hooks",
-      type: "lesson",
-      status: "in-progress",
-      time: "14:00",
-      duration: "30 phút",
-      completed: false,
-      dueDate: "2026-02-04",
-      description: "State management với useReducer"
-    },
-    {
-      id: "3",
-      title: "Bài thi thử React",
-      course: "React Hooks",
-      type: "exam",
-      status: "todo",
-      time: "10:00",
-      duration: "60 phút",
-      completed: false,
-      dueDate: "2026-02-05"
-    },
-    {
-      id: "4",
-      title: "Live Session: Q&A Next.js",
-      course: "Next.js nâng cao",
-      type: "live",
-      status: "completed",
-      time: "20:00",
-      duration: "90 phút",
-      completed: true,
-      important: true,
-      dueDate: "2026-02-03"
-    },
+    // {
+    //   id: "1",
+    //   title: "Server Components & Data Fetching",
+    //   course: "Next.js nâng cao",
+    //   type: "lesson",
+    //   status: "todo",
+    //   time: "09:00",
+    //   duration: "45 phút",
+    //   completed: false,
+    //   dueDate: "2026-02-04",
+    //   description: "Học về Server Components trong Next.js 13+"
+    // },
+    // {
+    //   id: "2",
+    //   title: "useReducer và Context API",
+    //   course: "React Hooks",
+    //   type: "lesson",
+    //   status: "in-progress",
+    //   time: "14:00",
+    //   duration: "30 phút",
+    //   completed: false,
+    //   dueDate: "2026-02-04",
+    //   description: "State management với useReducer"
+    // },
+    // {
+    //   id: "3",
+    //   title: "Bài thi thử React",
+    //   course: "React Hooks",
+    //   type: "exam",
+    //   status: "todo",
+    //   time: "10:00",
+    //   duration: "60 phút",
+    //   completed: false,
+    //   dueDate: "2026-02-05"
+    // },
+    // {
+    //   id: "4",
+    //   title: "Live Session: Q&A Next.js",
+    //   course: "Next.js nâng cao",
+    //   type: "live",
+    //   status: "completed",
+    //   time: "20:00",
+    //   duration: "90 phút",
+    //   completed: true,
+    //   important: true,
+    //   dueDate: "2026-02-03"
+    // },
   ])
   
   const [isCreating, setIsCreating] = useState(false)
@@ -122,26 +123,38 @@ export default function SchedulePage() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))
   }
 
-  const handleCreateItem = () => {
-    if (!newItem.title?.trim() || !newItem.course?.trim()) {
-      toast.error("Vui lòng nhập đầy đủ thông tin")
-      return
-    }
+const handleCreateItem = async () => {
+  if (!newItem.title?.trim() || !newItem.course?.trim()) {
+    toast.error("Vui lòng nhập đầy đủ thông tin")
+    return
+  }
 
-    const item: ScheduleItem = {
-      id: Date.now().toString(),
-      title: newItem.title!,
-      course: newItem.course!,
-      type: newItem.type || "lesson",
-      status: newItem.status || "todo",
-      time: newItem.time || "09:00",
-      duration: newItem.duration || "30 phút",
-      completed: false,
-      dueDate: newItem.dueDate || selectedDate || formatDateToString(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()),
-      description: newItem.description
-    }
+  try {
+    const payload = {
+  title: newItem.title,
+  course: newItem.course,
+  type: newItem.type ?? 'lesson',
+  status: newItem.status ?? 'todo',
+  time: newItem.time ?? '09:00',
+  duration: newItem.duration ?? '30 phút',
+  dueDate:
+    newItem.dueDate ||
+    selectedDate ||
+    formatDateToString(
+      new Date().getFullYear(),
+      new Date().getMonth(),
+      new Date().getDate()
+    ),
 
-    setScheduleItems([...scheduleItems, item])
+  // 🔥 ÉP BOOLEAN RÕ RÀNG
+  completed: newItem.status === 'completed',
+
+  description: newItem.description ?? '',
+}
+    const created = await scheduleApi.create(payload)
+
+    // backend trả về object vừa lưu trong DB
+    setScheduleItems(prev => [...prev, created])
     setNewItem({
       title: "",
       course: "",
@@ -150,35 +163,91 @@ export default function SchedulePage() {
       time: "09:00",
       duration: "30 phút",
       completed: false,
-      description: ""
+      description: "",
+      dueDate: undefined,
     })
+
     setIsCreating(false)
-    toast.success("Đã thêm lịch học mới")
+    toast.success("Đã lưu lịch học vào hệ thống")
+  } catch (e) {
+    toast.error("Lưu lịch học thất bại")
+  }
+}
+
+const handleUpdateItem = async () => {
+  if (!editingItem) return
+
+  const payload = {
+    title: editingItem.title,
+    course: editingItem.course,
+    type: editingItem.type,
+    status: editingItem.status,
+    time: editingItem.time,
+    duration: editingItem.duration,
+    dueDate: editingItem.dueDate,
+    completed: editingItem.status === 'completed',
+    description: editingItem.description ?? '',
+    important: editingItem.important ?? false,
+    tags: editingItem.tags ?? [],
   }
 
-  const handleUpdateItem = () => {
-    if (!editingItem || !editingItem.title?.trim() || !editingItem.course?.trim()) {
-      toast.error("Vui lòng nhập đầy đủ thông tin")
-      return
-    }
+  try {
+    await scheduleApi.update(editingItem.id, payload)
 
-    setScheduleItems(scheduleItems.map(item => 
-      item.id === editingItem.id ? editingItem : item
-    ))
+    setScheduleItems(prev =>
+      prev.map(item =>
+        item.id === editingItem.id ? { ...item, ...payload } : item
+      )
+    )
+
     setEditingItem(null)
-    toast.success("Đã cập nhật lịch học")
+    toast.success("Đã cập nhật thành công")
+  } catch (e) {
+    toast.error("Cập nhật thất bại")
+  }
+}
+
+const handleDeleteItem = async (id: string) => {
+  try {
+    await scheduleApi.remove(id)
+
+    setScheduleItems(prev => prev.filter(item => item.id !== id))
+    toast.success("Đã xoá khỏi DB")
+  } catch {
+    toast.error("Xoá thất bại")
+  }
+}
+const handleQuickStatusChange = async (
+  item: ScheduleItem,
+  nextStatus: 'todo' | 'in-progress' | 'completed'
+) => {
+  const payload = {
+    status: nextStatus,
+    completed: nextStatus === 'completed',
   }
 
-  const handleDeleteItem = (id: string) => {
-    setScheduleItems(scheduleItems.filter(item => item.id !== id))
-    toast.success("Đã xóa lịch học")
-  }
+  try {
+    // 🔥 PATCH DB
+    await scheduleApi.update(item.id, payload)
 
-  const changeStatus = (id: string, newStatus: 'todo' | 'in-progress' | 'completed') => {
-    setScheduleItems(scheduleItems.map(item =>
-      item.id === id ? { ...item, status: newStatus, completed: newStatus === 'completed' } : item
-    ))
+    // 🔥 UPDATE UI
+    setScheduleItems(prev =>
+      prev.map(i =>
+        i.id === item.id
+          ? { ...i, ...payload }
+          : i
+      )
+    )
+
+    toast.success(
+      nextStatus === 'in-progress'
+        ? 'Đã bắt đầu công việc'
+        : 'Đã hoàn thành 🎉'
+    )
+  } catch {
+    toast.error('Cập nhật trạng thái thất bại')
   }
+}
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -238,7 +307,22 @@ export default function SchedulePage() {
     const itemsForDate = getItemsForSelectedDate()
     return itemsForDate.filter(item => item.status === status)
   }
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const res = await scheduleApi.getAll()
+      setScheduleItems(res.data || [])
+    } catch {
+      toast.error('Không tải được lịch học')
+    }
+  }
 
+  fetchData() // load lần đầu
+
+  const interval = setInterval(fetchData, 5000) // ⏱ 5 giây sync 1 lần
+
+  return () => clearInterval(interval)
+}, [])
   return (
     <div className="flex gap-6 min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
       {/* Main Content - Kanban Board */}
@@ -303,7 +387,7 @@ export default function SchedulePage() {
               <div className="flex flex-col gap-3 flex-1 min-h-[500px] bg-card/50 dark:bg-slate-800/30 rounded-2xl p-4 border border-border/50 dark:border-slate-700/50">
                 {getFilteredItems(status).map((item, idx) => (
                   <motion.div
-                    key={item.id}
+                    key={item.id ?? `schedule-${idx}`}  
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: idx * 0.05 }}
@@ -348,13 +432,21 @@ export default function SchedulePage() {
 
                     <div className="flex gap-2 pt-2 border-t border-border dark:border-slate-700">
                       {status !== 'completed' && (
-                        <button
-                          onClick={() => changeStatus(item.id, status === 'todo' ? 'in-progress' : 'completed')}
-                          className="flex-1 px-2 py-1 text-xs bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent hover:bg-primary/20 dark:hover:bg-primary/30 rounded font-medium transition-colors"
-                        >
-                          {status === 'todo' ? 'Bắt đầu' : 'Hoàn thành'}
-                        </button>
-                      )}
+                    <button
+                      onClick={() =>
+                        handleQuickStatusChange(
+                          item,
+                          status === 'todo' ? 'in-progress' : 'completed'
+                        )
+                      }
+                      className="flex-1 px-2 py-1 text-xs bg-primary/10
+                        dark:bg-primary/20 text-primary dark:text-accent
+                        hover:bg-primary/20 dark:hover:bg-primary/30
+                        rounded font-medium transition-colors"
+                    >
+                      {status === 'todo' ? 'Bắt đầu' : 'Hoàn thành'}
+                    </button>
+                  )}
                       <button
                         onClick={() => handleDeleteItem(item.id)}
                         className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors"
@@ -468,10 +560,10 @@ export default function SchedulePage() {
           <div className="space-y-3">
             {scheduleItems
               .filter(item => item.status !== 'completed')
-              .sort((a, b) => a.time.localeCompare(b.time))
+              .sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''))
               .slice(0, 5)
               .map((item, idx) => (
-                <div key={item.id} className="flex items-center gap-3 pb-3 border-b border-border/50 dark:border-slate-700/50 last:border-b-0">
+                <div key={item.id ?? `upcoming-${idx}`} className="flex items-center gap-3 pb-3 border-b border-border/50 dark:border-slate-700/50 last:border-b-0">
                   <div className={`w-2 h-2 rounded-full ${
                     item.status === 'todo' ? 'bg-red-500' :
                     item.status === 'in-progress' ? 'bg-yellow-500' :

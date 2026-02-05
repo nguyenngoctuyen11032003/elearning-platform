@@ -173,6 +173,13 @@ export const API_ENDPOINTS = {
     APPROVE: (id: string) => `/api/certificate-templates/${id}/approve`,
     REJECT: (id: string) => `/api/certificate-templates/${id}/reject`,
   },
+  SCHEDULE: {
+  LIST: '/api/schedule',
+  CREATE: '/api/schedule',
+  BY_ID: (id: string) => `/api/schedule/${id}`,
+  UPDATE: (id: string) => `/api/schedule/${id}`,
+  DELETE: (id: string) => `/api/schedule/${id}`,
+},
   UPLOAD: {
     AVATAR: '/api/upload/avatar',
     IMAGE: '/api/upload/image',
