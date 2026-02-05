@@ -1,7 +1,6 @@
 "use client"
 
 import { StatCard } from "@/components/ui/stat-card"
-import { RollingNumber } from "@/components/ui/rolling-number"
 import { Users, BookOpen, CreditCard, TrendingUp, Star, UserCheck, Target } from "lucide-react"
 import {
   AreaChart,
@@ -21,7 +20,7 @@ import {
   Bar,
 } from "recharts"
 import { useState, useEffect } from "react"
-import { formatPrice } from "@/lib/format"
+import { formatPrice, formatCurrency } from "@/lib/format"
 import { apiClient } from "@/lib/api/client"
 import { format } from "date-fns/format"
 
@@ -40,49 +39,26 @@ import { format } from "date-fns/format"
 //   { month: "12", revenue: 71000, teachers: 120, students: 420 },
 // ]
 
-const categoryData = [
-  { name: "Lập trình", value: 35, color: "#2563eb" },
-  { name: "Thiết kế", value: 25, color: "#06b6d4" },
-  { name: "Kinh doanh", value: 20, color: "#8b5cf6" },
-  { name: "AI & Data", value: 20, color: "#ec4899" },
-]
+type RevenuePoint = { month: string; revenue: number }
+type WeeklyPoint = { day: string; activeUsers: number; newSignups: number }
+type GrowthPoint = { month: string; teachers: number; students: number }
+type CategoryItem = { name: string; value: number; color: string; percentage?: number }
+type Transaction = { id: string; user: string; course: string; amount: number; status: string; date: string }
 
-// Weekly platform statistics
-// const weeklyStats = [
-//   { day: "T2", activeUsers: 1200, newSignups: 45 },
-//   { day: "T3", activeUsers: 1800, newSignups: 68 },
-//   { day: "T4", activeUsers: 1400, newSignups: 52 },
-//   { day: "T5", activeUsers: 2200, newSignups: 89 },
-//   { day: "T6", activeUsers: 2800, newSignups: 125 },
-//   { day: "T7", activeUsers: 3200, newSignups: 134 },
-//   { day: "CN", activeUsers: 1600, newSignups: 78 },
-// ]
-
-// const recentTransactions = [
-//   { id: 1, user: "Trần Văn A", course: "Next.js Advanced", amount: 499000, status: "success", date: "2025-01-15" },
-//   { id: 2, user: "Nguyễn Thị B", course: "React Hooks", amount: 399000, status: "success", date: "2025-01-14" },
-//   { id: 3, user: "Lê Minh C", course: "Python Data Science", amount: 549000, status: "pending", date: "2025-01-13" },
-//   { id: 4, user: "Phạm Quốc D", course: "UI/UX Design", amount: 349000, status: "success", date: "2025-01-12" },
-//   { id: 5, user: "Hoàng Thị E", course: "Branding", amount: 349000, status: "failed", date: "2025-01-11" },
-// ]
+const pieColors = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"]
 
 export default function AdminDashboard() {
   const [filterPeriod, setFilterPeriod] = useState("month")
 
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
-  const [revenueData, setRevenueData] = useState<any[]>([])
-  const [recentTransactions, setRecentTransactions] = useState<any[]>([])
-  const revenueMap = new Map<string, number>()
-  const [weeklyStats, setWeeklyStats] = useState<any[]>([])
-  const [growthData, setGrowthData] = useState<any[]>([])
+  const [revenueData, setRevenueData] = useState<RevenuePoint[]>([])
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyPoint[]>([])
+  const [growthData, setGrowthData] = useState<GrowthPoint[]>([])
+  const [categoryData, setCategoryData] = useState<CategoryItem[]>([])
 
-type Transaction = {
-  createdAt: string
-  amount: string
-}
-
-function buildRevenueChart(transactions: Transaction[]) {
+function buildRevenueChart(transactions: { createdAt: string; amount: number }[]) {
   const revenueMap = new Map<string, number>()
 
   transactions.forEach((tx) => {
@@ -106,34 +82,43 @@ useEffect(() => {
       const dashboard = res.data ?? res
 
       /* ================== STATS ================== */
-      setStats(dashboard)
+      const normalizedStats = {
+        ...dashboard,
+        totalRevenue: Number(dashboard.totalRevenue ?? 0),
+        totalTeachers: Number(dashboard.totalTeachers ?? 0),
+        totalStudents: Number(dashboard.totalStudents ?? 0),
+        totalCourses: Number(dashboard.totalCourses ?? 0),
+        revenueGrowth: Number(dashboard.revenueGrowth ?? 0),
+        teacherGrowth: Number(dashboard.teacherGrowth ?? 0),
+        studentGrowth: Number(dashboard.studentGrowth ?? 0),
+        courseGrowth: Number(dashboard.courseGrowth ?? 0),
+      }
+      setStats(normalizedStats)
 
       /* ================== REVENUE CHART ================== */
       if (
         dashboard.revenueChart?.labels?.length &&
         dashboard.revenueChart?.data?.length
       ) {
-        // Ưu tiên dữ liệu backend
+        const chart = dashboard.revenueChart
         setRevenueData(
-          dashboard.revenueChart.labels.map((label: string, i: number) => ({
+          chart.labels.map((label: string, i: number) => ({
             month: label,
-            revenue: Number(dashboard.revenueChart.data?.[i] ?? 0),
-            teachers: dashboard.revenueChart.teachers?.[i] ?? 0,
-            students: dashboard.revenueChart.students?.[i] ?? 0,
+            revenue: Number(chart.data?.[i] ?? 0),
           }))
         )
       } else if (dashboard.recentTransactions?.length) {
-        // Fallback từ recentTransactions
         const revenueChart = buildRevenueChart(
-          dashboard.recentTransactions
+          dashboard.recentTransactions.map((t: any) => ({
+            createdAt: t.createdAt,
+            amount: Number(t.amount ?? 0),
+          }))
         )
 
         setRevenueData(
           revenueChart.labels.map((label: string, i: number) => ({
             month: label,
             revenue: revenueChart.data?.[i] ?? 0,
-            teachers: 0,
-            students: 0,
           }))
         )
       } else {
@@ -145,8 +130,8 @@ useEffect(() => {
         Array.isArray(dashboard.weeklyStats)
           ? dashboard.weeklyStats.map((item: any) => ({
               day: item.day,
-              activeUsers: item.activeUsers,
-              newSignups: item.newSignups,
+              activeUsers: Number(item.activeUsers ?? 0),
+              newSignups: Number(item.newSignups ?? 0),
             }))
           : []
       )
@@ -154,7 +139,25 @@ useEffect(() => {
       /* ================== GROWTH CHART ================== */
       setGrowthData(
         Array.isArray(dashboard.growthChart)
-          ? dashboard.growthChart
+          ? dashboard.growthChart.map((item: any) => ({
+              month: item.month?.length === 7
+                ? format(new Date(`${item.month}-01`), "MM/yyyy")
+                : item.month,
+              teachers: Number(item.teachers ?? 0),
+              students: Number(item.students ?? 0),
+            }))
+          : []
+      )
+
+      /* ================== CATEGORY DISTRIBUTION ================== */
+      setCategoryData(
+        Array.isArray(dashboard.categoryDistribution)
+          ? dashboard.categoryDistribution.map((item: any, idx: number) => ({
+              name: item.categoryName,
+              value: Number(item.courseCount ?? 0),
+              percentage: Number(item.percentage ?? 0),
+              color: pieColors[idx % pieColors.length],
+            }))
           : []
       )
 
@@ -164,8 +167,13 @@ useEffect(() => {
           id: item.id,
           user: item.studentName,
           course: item.courseName,
-          amount: Number(item.amount),
-          status: item.status === "completed" ? "success" : "failed",
+          amount: Number(item.amount ?? 0),
+          status:
+            item.status === "completed"
+              ? "success"
+              : item.status === "pending"
+                ? "pending"
+                : "failed",
           date: new Date(item.createdAt).toLocaleDateString("vi-VN"),
         }))
       )
@@ -247,7 +255,7 @@ if (loading) {
 <StatCard
   icon={CreditCard}
   title="Tổng doanh thu"
-  value={`₫${formatPrice(stats?.totalRevenue || 0)}`}
+  value={formatCurrency(Math.round(Number(stats?.totalRevenue || 0)))}
   change={`${stats?.revenueGrowth || 0}% so với 30 ngày trước`}
 />
 
@@ -274,7 +282,7 @@ if (loading) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis stroke="#94a3b8" />
+                <XAxis dataKey="month" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
                 <Tooltip
                   contentStyle={{
@@ -284,7 +292,7 @@ if (loading) {
                     color: "#fff"
                   }}
                   itemStyle={{ color: "#fff" }}
-                  formatter={(value: number) => [`₫${value.toLocaleString()}k`, ""]}
+                  formatter={(value: number) => [formatCurrency(Math.round(value)), "Doanh thu"]}
                 />
                 <Legend />
                 <Area
@@ -303,42 +311,51 @@ if (loading) {
           {/* Category Distribution */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 animate-fadeIn">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">Phân bố khóa học</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={3}
-                  dataKey="value"
-                  labelLine={false}
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+            {categoryData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">Chưa có dữ liệu danh mục</p>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={3}
+                      dataKey="value"
+                      labelLine={false}
+                    >
+                      {categoryData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#1e293b",
+                        border: "1px solid #334155",
+                        borderRadius: "8px",
+                        color: "#fff"
+                      }}
+                      itemStyle={{ color: "#fff" }}
+                      formatter={(value: number, name: string, props) => [
+                        `${value} khóa (${categoryData[props?.payload?.index || 0]?.percentage ?? 0}%)`,
+                        name,
+                      ]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex flex-wrap gap-2 mt-4 justify-center">
+                  {categoryData.map((item, index) => (
+                    <div key={index} className="flex items-center gap-1.5 text-xs">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-muted-foreground dark:text-slate-400">{item.name} ({item.percentage ?? 0}%)</span>
+                    </div>
                   ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1e293b",
-                    border: "1px solid #334155",
-                    borderRadius: "8px",
-                    color: "#fff"
-                  }}
-                  itemStyle={{ color: "#fff" }}
-                  formatter={(value: number, name: string) => [`${value}%`, name]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex flex-wrap gap-2 mt-4 justify-center">
-              {categoryData.map((item, index) => (
-                <div key={index} className="flex items-center gap-1.5 text-xs">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-muted-foreground dark:text-slate-400">{item.name}</span>
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -406,9 +423,9 @@ if (loading) {
               </p>
             ) : (
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={revenueData}>
+              <LineChart data={growthData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis stroke="#94a3b8" />
+                <XAxis dataKey="month" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
                 <Tooltip
                   contentStyle={{
