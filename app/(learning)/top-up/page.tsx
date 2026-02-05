@@ -74,7 +74,7 @@ const topUpPrices = [100000, 200000, 500000, 1000000, 2000000, 5000000]
 
 export default function TopUpPage() {
   const { user } = useAuth()
-  const { theme, resolvedTheme } = useTheme()
+  const { resolvedTheme } = useTheme()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [balance, setBalance] = useState(5000000)

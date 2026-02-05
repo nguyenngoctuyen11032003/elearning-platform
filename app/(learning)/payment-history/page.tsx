@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useTheme } from "next-themes"
 import { motion } from "framer-motion"
-import { Download, Search, CreditCard, Moon, Sun, Wallet, Plus } from "lucide-react"
+import { Download, Search, CreditCard, Wallet, Plus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
