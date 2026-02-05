@@ -29,10 +29,6 @@ const nextConfig = {
   poweredByHeader: false,
   // Enable strict mode for better performance
   reactStrictMode: true,
-  // Optimize fonts
-  optimizeFonts: true,
-  // Enable SWC minification for faster builds
-  swcMinify: true,
 }
 
 export default nextConfig

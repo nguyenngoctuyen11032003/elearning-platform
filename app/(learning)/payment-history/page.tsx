@@ -4,8 +4,9 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useTheme } from "next-themes"
 import { motion } from "framer-motion"
-import { Download, Search, CreditCard, Moon, Sun } from "lucide-react"
+import { Download, Search, CreditCard, Moon, Sun, Wallet, Plus } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface PaymentHistory {
   id: string
@@ -24,6 +25,7 @@ interface PaymentHistory {
 export default function PaymentHistoryPage() {
   const { user } = useAuth()
   const { theme, setTheme, resolvedTheme } = useTheme()
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [payments, setPayments] = useState<PaymentHistory[]>([])
   const [filteredPayments, setFilteredPayments] = useState<PaymentHistory[]>([])
@@ -31,6 +33,7 @@ export default function PaymentHistoryPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedPayment, setSelectedPayment] = useState<PaymentHistory | null>(null)
   const [viewingDetails, setViewingDetails] = useState(false)
+  const [balance, setBalance] = useState(5000000)
 
   useEffect(() => {
     setMounted(true)
@@ -266,9 +269,20 @@ export default function PaymentHistoryPage() {
             </div>
 
             {/* Top Balance Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className={`${isDarkMode ? 'bg-gradient-to-br from-blue-900 to-blue-800 border-blue-700' : 'bg-gradient-to-br from-blue-500 to-blue-600 border-blue-400'} rounded-2xl p-4 sm:p-6 border shadow-lg text-white hover:shadow-xl transition-all`}>
+                <p className={`text-xs ${isDarkMode ? 'text-blue-200' : 'text-blue-100'} mb-2`}>SỐ DƯ HIỆN TẠI</p>
+                <p className="text-2xl sm:text-3xl font-bold mb-4">{formatCurrency(balance)}</p>
+                <button
+                  onClick={() => router.push("/top-up")}
+                  className={`w-full px-3 py-2 ${isDarkMode ? 'bg-blue-700/70 hover:bg-blue-600/70' : 'bg-white/20 hover:bg-white/30'} rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm`}
+                >
+                  <Plus size={16} />
+                  Nạp tiền
+                </button>
+              </div>
               <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm hover:shadow-md transition-all`}>
-                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>TỔNG SỐ DƯ</p>
+                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>TỔNG ĐÃ CHI</p>
                 <p className={`text-2xl sm:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatCurrency(totalSpent)}</p>
               </div>
               <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm hover:shadow-md transition-all flex items-center justify-between`}>
