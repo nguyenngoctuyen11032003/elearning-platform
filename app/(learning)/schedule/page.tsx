@@ -324,21 +324,24 @@ useEffect(() => {
   return () => clearInterval(interval)
 }, [])
   return (
-    <div className="flex gap-6 min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
+    <div className="flex flex-col lg:flex-row gap-6 min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 sm:p-6">
       {/* Main Content - Kanban Board */}
-      <div className="flex-1">
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+      <div className="flex-1 w-full lg:w-auto">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
                 Lịch học hàng ngày
               </h1>
-              <p className="text-muted-foreground dark:text-slate-400 mt-1">
+              <p className="text-xs sm:text-base text-muted-foreground dark:text-slate-400 mt-1 truncate">
                 {selectedDate ? (
                   <>Các công việc ngày {new Date(selectedDate + 'T00:00:00').toLocaleDateString('vi-VN')} 
                     <button 
                       onClick={() => setSelectedDate(null)}
-                      className="ml-2 px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                      className="ml-2 px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors inline-block"
                     >
                       Xóa lọc
                     </button>
@@ -350,51 +353,51 @@ useEffect(() => {
             </div>
             <button 
               onClick={() => setIsCreating(true)}
-              className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg"
+              className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg whitespace-nowrap flex-shrink-0 text-sm sm:text-base"
             >
-              <Plus size={20} />
-              Thêm công việc
+              <Plus size={18} />
+              <span className="hidden sm:inline">Thêm công việc</span>
+              <span className="sm:hidden">Thêm</span>
             </button>
           </div>
         </motion.div>
 
         {/* Kanban Columns */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {(['todo', 'in-progress', 'completed'] as const).map((status) => (
             <motion.div
-              key={status}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="flex flex-col"
+              className="flex flex-col w-full sm:w-auto"
             >
               {/* Column Header */}
-              <div className="mb-4 flex items-center gap-2">
+              <div className="mb-3 sm:mb-4 flex items-center gap-2">
                 <div className={`w-3 h-3 rounded-full ${
                   status === 'todo' ? 'bg-red-500' :
                   status === 'in-progress' ? 'bg-yellow-500' :
                   'bg-green-500'
                 }`} />
-                <h2 className="text-lg font-bold text-foreground dark:text-white">
+                <h2 className="text-base sm:text-lg font-bold text-foreground dark:text-white">
                   {getStatusLabel(status)}
                 </h2>
-                <span className="ml-auto text-sm font-semibold text-muted-foreground dark:text-slate-400">
+                <span className="ml-auto text-xs sm:text-sm font-semibold text-muted-foreground dark:text-slate-400">
                   {getFilteredItems(status).length}
                 </span>
               </div>
 
               {/* Cards Container */}
-              <div className="flex flex-col gap-3 flex-1 min-h-[500px] bg-card/50 dark:bg-slate-800/30 rounded-2xl p-4 border border-border/50 dark:border-slate-700/50">
+              <div className="flex flex-col gap-3 flex-1 min-h-[300px] sm:min-h-[500px] bg-card/50 dark:bg-slate-800/30 rounded-2xl p-3 sm:p-4 border border-border/50 dark:border-slate-700/50 overflow-y-auto">
                 {getFilteredItems(status).map((item, idx) => (
                   <motion.div
                     key={item.id ?? `schedule-${idx}`}  
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: idx * 0.05 }}
-                    className={`p-4 bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-700 rounded-xl cursor-pointer group hover:shadow-lg transition-all ${getStatusColor(status)}`}
+                    className={`p-3 sm:p-4 bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-700 rounded-xl cursor-pointer group hover:shadow-lg transition-all ${getStatusColor(status)}`}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className={`px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${getTypeColor(item.type)}`}>
+                    <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
+                      <div className={`px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 flex-shrink-0 ${getTypeColor(item.type)}`}>
                         {getTypeIcon(item.type)}
                         {item.type === 'lesson' ? 'Bài học' : item.type === 'exam' ? 'Bài thi' : 'Live session'}
                       </div>
@@ -406,31 +409,35 @@ useEffect(() => {
                       </button>
                     </div>
 
-                    <h3 className="font-semibold text-foreground dark:text-white mb-2 line-clamp-2">
+                    <h3 className="font-semibold text-foreground dark:text-white mb-2 line-clamp-2 text-sm">
                       {item.title}
                     </h3>
 
-                    <p className="text-sm text-muted-foreground dark:text-slate-400 mb-3">
+                    <p className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400 mb-2 sm:mb-3 line-clamp-1">
                       {item.course}
                     </p>
 
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground dark:text-slate-500 mb-3">
-                      <Calendar size={14} />
-                      <span>{item.dueDate ? new Date(item.dueDate + 'T00:00:00').toLocaleDateString('vi-VN') : 'Chưa đặt'}</span>
-                      <span>•</span>
-                      <Clock size={14} />
-                      <span>{item.time}</span>
-                      <span>•</span>
-                      <span>{item.duration}</span>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2 text-xs text-muted-foreground dark:text-slate-500 mb-2 sm:mb-3">
+                      <div className="flex items-center gap-1">
+                        <Calendar size={13} className="flex-shrink-0" />
+                        <span className="truncate">{item.dueDate ? new Date(item.dueDate + 'T00:00:00').toLocaleDateString('vi-VN') : 'Chưa đặt'}</span>
+                      </div>
+                      <span className="hidden sm:inline">•</span>
+                      <div className="flex items-center gap-1">
+                        <Clock size={13} className="flex-shrink-0" />
+                        <span>{item.time}</span>
+                      </div>
+                      <span className="hidden sm:inline">•</span>
+                      <span className="truncate">{item.duration}</span>
                     </div>
 
                     {item.important && (
-                      <div className="mb-3 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded text-xs font-medium">
+                      <div className="mb-2 sm:mb-3 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded text-xs font-medium">
                         🔔 Quan trọng
                       </div>
                     )}
 
-                    <div className="flex gap-2 pt-2 border-t border-border dark:border-slate-700">
+                    <div className="flex gap-2 pt-2 sm:pt-3 border-t border-border dark:border-slate-700">
                       {status !== 'completed' && (
                     <button
                       onClick={() =>
@@ -449,7 +456,7 @@ useEffect(() => {
                   )}
                       <button
                         onClick={() => handleDeleteItem(item.id)}
-                        className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                        className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors flex-shrink-0"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -473,30 +480,30 @@ useEffect(() => {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.2 }}
-        className="w-80 space-y-6"
+        className="w-full lg:w-80 space-y-4 sm:space-y-6"
       >
         {/* Calendar */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 shadow-lg">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
             <button 
               onClick={prevMonth}
-              className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
             >
               <ChevronLeft size={20} className="text-foreground dark:text-white" />
             </button>
-            <h2 className="text-lg font-bold text-foreground dark:text-white">
+            <h2 className="text-base sm:text-lg font-bold text-foreground dark:text-white truncate">
               Tháng {currentDate.getMonth() + 1} năm {currentDate.getFullYear()}
             </h2>
             <button 
               onClick={nextMonth}
-              className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
             >
               <ChevronRight size={20} className="text-foreground dark:text-white" />
             </button>
           </div>
 
           {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-2 mb-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
             {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day) => (
               <div key={day} className="text-center text-xs font-semibold text-muted-foreground dark:text-slate-400">
                 {day}
@@ -505,7 +512,7 @@ useEffect(() => {
           </div>
 
           {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {Array.from({ length: getFirstDayOfMonth(currentDate) }).map((_, i) => (
               <div key={`empty-${i}`} />
             ))}
@@ -524,7 +531,7 @@ useEffect(() => {
                 <button
                   key={day}
                   onClick={() => handleDateClick(day)}
-                  className={`p-2 rounded-lg text-sm font-semibold transition-colors relative ${
+                  className={`p-1 sm:p-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors relative ${
                     isSelected
                       ? 'bg-blue-500 text-white shadow-lg ring-2 ring-blue-300'
                       : 'text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800'
@@ -542,8 +549,8 @@ useEffect(() => {
         </div>
 
         {/* Your Task */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 shadow-lg">
-          <h3 className="text-lg font-bold text-foreground dark:text-white mb-4">Công việc của bạn</h3>
+        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-lg">
+          <h3 className="text-base sm:text-lg font-bold text-foreground dark:text-white mb-3 sm:mb-4">Công việc của bạn</h3>
           <div className="flex flex-wrap gap-2">
             <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full text-xs font-medium">
               🎯 Sắp tới
@@ -555,9 +562,9 @@ useEffect(() => {
         </div>
 
         {/* Upcoming Activity */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 shadow-lg">
-          <h3 className="text-lg font-bold text-foreground dark:text-white mb-4">Hoạt động sắp tới</h3>
-          <div className="space-y-3">
+        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-lg">
+          <h3 className="text-base sm:text-lg font-bold text-foreground dark:text-white mb-3 sm:mb-4">Hoạt động sắp tới</h3>
+          <div className="space-y-2 sm:space-y-3 max-h-[300px] sm:max-h-none overflow-y-auto">
             {scheduleItems
               .filter(item => item.status !== 'completed')
               .sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''))
@@ -573,7 +580,7 @@ useEffect(() => {
                     <p className="text-xs font-semibold text-muted-foreground dark:text-slate-400">
                       {item.time}
                     </p>
-                    <p className="text-sm text-foreground dark:text-white truncate">
+                    <p className="text-xs sm:text-sm text-foreground dark:text-white truncate">
                       {item.title}
                     </p>
                   </div>
@@ -590,53 +597,53 @@ useEffect(() => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
             onClick={() => setIsCreating(false)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl"
+              className="bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-foreground dark:text-white">Thêm công việc mới</h2>
-                <button onClick={() => setIsCreating(false)} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg">
+              <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white flex-1">Thêm công việc mới</h2>
+                <button onClick={() => setIsCreating(false)} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg flex-shrink-0">
                   <X size={20} className="text-muted-foreground" />
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Tiêu đề</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Tiêu đề</label>
                   <input
                     type="text"
                     value={newItem.title}
                     onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     placeholder="Nhập tiêu đề công việc..."
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Khóa học</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Khóa học</label>
                   <input
                     type="text"
                     value={newItem.course}
                     onChange={(e) => setNewItem({ ...newItem, course: e.target.value })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     placeholder="Tên khóa học..."
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Loại</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Loại</label>
                     <select
                       value={newItem.type}
                       onChange={(e) => setNewItem({ ...newItem, type: e.target.value as any })}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     >
                       <option value="lesson">Bài học</option>
                       <option value="exam">Bài thi</option>
@@ -644,11 +651,11 @@ useEffect(() => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Trạng thái</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Trạng thái</label>
                     <select
                       value={newItem.status}
                       onChange={(e) => setNewItem({ ...newItem, status: e.target.value as any })}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     >
                       <option value="todo">Chưa làm</option>
                       <option value="in-progress">Đang làm</option>
@@ -657,60 +664,60 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Thời gian</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Thời gian</label>
                     <input
                       type="time"
                       value={newItem.time}
                       onChange={(e) => setNewItem({ ...newItem, time: e.target.value })}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Ngày</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Ngày</label>
                     <input
                       type="date"
                       value={newItem.dueDate || ''}
                       onChange={(e) => setNewItem({ ...newItem, dueDate: e.target.value })}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Thời lượng</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Thời lượng</label>
                   <input
                     type="text"
                     value={newItem.duration}
                     onChange={(e) => setNewItem({ ...newItem, duration: e.target.value })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     placeholder="VD: 45 phút"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Mô tả (tùy chọn)</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Mô tả (tùy chọn)</label>
                   <textarea
                     value={newItem.description}
                     onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent h-20 resize-none"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent h-20 resize-none text-sm"
                     placeholder="Nhập mô tả..."
                   />
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-2 sm:gap-3 pt-2">
                   <button
                     onClick={() => setIsCreating(false)}
-                    className="flex-1 px-4 py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors text-sm"
                   >
                     Hủy
                   </button>
                   <button
                     onClick={handleCreateItem}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm"
                   >
-                    <Save size={18} />
+                    <Save size={16} />
                     Lưu
                   </button>
                 </div>
@@ -727,51 +734,51 @@ useEffect(() => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
             onClick={() => setEditingItem(null)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl"
+              className="bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-foreground dark:text-white">Chỉnh sửa công việc</h2>
-                <button onClick={() => setEditingItem(null)} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg">
+              <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white flex-1">Chỉnh sửa công việc</h2>
+                <button onClick={() => setEditingItem(null)} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg flex-shrink-0">
                   <X size={20} className="text-muted-foreground" />
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Tiêu đề</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Tiêu đề</label>
                   <input
                     type="text"
                     value={editingItem.title}
                     onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Khóa học</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Khóa học</label>
                   <input
                     type="text"
                     value={editingItem.course}
                     onChange={(e) => setEditingItem({ ...editingItem, course: e.target.value })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Loại</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Loại</label>
                     <select
                       value={editingItem.type}
                       onChange={(e) => setEditingItem({ ...editingItem, type: e.target.value as any })}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     >
                       <option value="lesson">Bài học</option>
                       <option value="exam">Bài thi</option>
@@ -779,11 +786,11 @@ useEffect(() => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Trạng thái</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Trạng thái</label>
                     <select
                       value={editingItem.status}
                       onChange={(e) => setEditingItem({ ...editingItem, status: e.target.value as any })}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     >
                       <option value="todo">Chưa làm</option>
                       <option value="in-progress">Đang làm</option>
@@ -792,58 +799,58 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Thời gian</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Thời gian</label>
                     <input
                       type="time"
                       value={editingItem.time}
                       onChange={(e) => setEditingItem({ ...editingItem, time: e.target.value })}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Ngày</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Ngày</label>
                     <input
                       type="date"
                       value={editingItem.dueDate || ''}
                       onChange={(e) => setEditingItem({ ...editingItem, dueDate: e.target.value })}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Thời lượng</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Thời lượng</label>
                   <input
                     type="text"
                     value={editingItem.duration}
                     onChange={(e) => setEditingItem({ ...editingItem, duration: e.target.value })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Mô tả (tùy chọn)</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Mô tả (tùy chọn)</label>
                   <textarea
                     value={editingItem.description || ""}
                     onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent h-20 resize-none"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent h-20 resize-none text-sm"
                   />
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-2 sm:gap-3 pt-2">
                   <button
                     onClick={() => setEditingItem(null)}
-                    className="flex-1 px-4 py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors text-sm"
                   >
                     Hủy
                   </button>
                   <button
                     onClick={handleUpdateItem}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm"
                   >
-                    <Save size={18} />
+                    <Save size={16} />
                     Cập nhật
                   </button>
                 </div>
