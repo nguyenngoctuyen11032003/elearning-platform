@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { Users, BookOpen, DollarSign, Download, X, TrendingUp } from "lucide-react"
 import {
   LineChart,
@@ -16,77 +17,178 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts"
-import { useState } from "react"
-import { formatStudentCount } from "@/lib/format"
+import { formatCurrency, formatNumber, formatStudentCount } from "@/lib/format"
 import { StatCard } from "@/components/ui/stat-card"
+import { apiClient } from "@/lib/api/client"
+import { toast } from "sonner"
 
-const revenueData = [
-  { month: "Jan", revenue: 4000, teachers: 240, students: 400 },
-  { month: "Feb", revenue: 3000, teachers: 221, students: 350 },
-  { month: "Mar", revenue: 2000, teachers: 229, students: 300 },
-  { month: "Apr", revenue: 2780, teachers: 200, students: 280 },
-  { month: "May", revenue: 1890, teachers: 229, students: 250 },
-  { month: "Jun", revenue: 2390, teachers: 200, students: 320 },
-  { month: "Jul", revenue: 3490, teachers: 250, students: 380 },
-  { month: "Aug", revenue: 4200, teachers: 280, students: 420 },
-  { month: "Sep", revenue: 3800, teachers: 260, students: 400 },
-  { month: "Oct", revenue: 4500, teachers: 300, students: 450 },
-  { month: "Nov", revenue: 5100, teachers: 320, students: 480 },
-  { month: "Dec", revenue: 5800, teachers: 350, students: 520 },
+// Types mirror backend admin report DTOs
+type RevenueByMonth = { month: string; revenue: number; orders: number; growth: number }
+type RevenueByCategory = { categoryName: string; revenue: number; orderCount: number; percentage: number }
+type CoursePerformance = { courseId: string; courseTitle: string; teacherName: string; enrollments: number; revenue: number; averageRating: number; completionRate: number }
+type CategoryRate = { categoryName: string; totalEnrollments: number; completedEnrollments: number; completionRate: number }
+type GrowthPoint = { month: string; teachers: number; students: number }
+
+// Color palette for charts
+const pieColors = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#14b8a6", "#6366f1"]
+
+const sampleRevenueByMonth: RevenueByMonth[] = [
+  { month: "2025-01", revenue: 32000000, orders: 120, growth: 5 },
+  { month: "2025-02", revenue: 38000000, orders: 136, growth: 18 },
+  { month: "2025-03", revenue: 42000000, orders: 150, growth: 11 },
+  { month: "2025-04", revenue: 47000000, orders: 165, growth: 12 },
+  { month: "2025-05", revenue: 52000000, orders: 178, growth: 11 },
+  { month: "2025-06", revenue: 56000000, orders: 190, growth: 8 },
 ]
 
-// Weekly data
-const weeklyData = [
-  { day: "T2", revenue: 800, students: 45 },
-  { day: "T3", revenue: 920, students: 52 },
-  { day: "T4", revenue: 750, students: 38 },
-  { day: "T5", revenue: 1100, students: 61 },
-  { day: "T6", revenue: 980, students: 55 },
-  { day: "T7", revenue: 1250, students: 72 },
-  { day: "CN", revenue: 600, students: 35 },
+const sampleRevenueByCategory: RevenueByCategory[] = [
+  { categoryName: "An ninh mạng", revenue: 32000000, orderCount: 110, percentage: 35 },
+  { categoryName: "Lập trình", revenue: 28000000, orderCount: 95, percentage: 30 },
+  { categoryName: "Cloud", revenue: 20000000, orderCount: 70, percentage: 22 },
+  { categoryName: "Khác", revenue: 8000000, orderCount: 30, percentage: 13 },
 ]
 
-// Daily data (last 7 days)
-const dailyData = [
-  { date: "13/01", revenue: 180, students: 12 },
-  { date: "14/01", revenue: 220, students: 15 },
-  { date: "15/01", revenue: 195, students: 11 },
-  { date: "16/01", revenue: 280, students: 18 },
-  { date: "17/01", revenue: 310, students: 22 },
-  { date: "18/01", revenue: 245, students: 16 },
-  { date: "19/01", revenue: 290, students: 19 },
+const sampleCoursePerformance: CoursePerformance[] = [
+  {
+    courseId: "sample-1",
+    courseTitle: "Pentest căn bản",
+    teacherName: "Nguyễn Minh",
+    enrollments: 120,
+    revenue: 18000000,
+    averageRating: 4.7,
+    completionRate: 86,
+  },
+  {
+    courseId: "sample-2",
+    courseTitle: "React + NestJS",
+    teacherName: "Lê Anh",
+    enrollments: 140,
+    revenue: 21000000,
+    averageRating: 4.5,
+    completionRate: 78,
+  },
 ]
 
-const categoryData = [
-  { name: "Lập trình", value: 35, fill: "#2563eb" },
-  { name: "Thiết kế", value: 25, fill: "#06b6d4" },
-  { name: "AI & Data", value: 20, fill: "#8b5cf6" },
-  { name: "Marketing", value: 20, fill: "#ec4899" },
+const sampleCompletionRates: CategoryRate[] = [
+  { categoryName: "An ninh mạng", totalEnrollments: 200, completedEnrollments: 164, completionRate: 82 },
+  { categoryName: "Lập trình", totalEnrollments: 180, completedEnrollments: 130, completionRate: 72 },
 ]
 
-const coursePerformance = [
-  { id: 1, title: "Next.js Advanced", students: 1250, rating: 4.8, revenue: 624500000, teacher: "Nguyễn Thị B", category: "Lập trình" },
-  { id: 2, title: "React Hooks Mastery", students: 890, rating: 4.7, revenue: 445000000, teacher: "Nguyễn Thị B", category: "Lập trình" },
-  { id: 3, title: "UI/UX Design Pro", students: 1567, rating: 4.9, revenue: 783500000, teacher: "Lê Văn G", category: "Thiết kế" },
-  { id: 4, title: "Python Data Science", students: 450, rating: 4.6, revenue: 225000000, teacher: "Trần Minh E", category: "AI & Data" },
-  { id: 5, title: "Digital Marketing", students: 680, rating: 4.5, revenue: 340000000, teacher: "Phạm Thị I", category: "Marketing" },
+const sampleGrowth: GrowthPoint[] = [
+  { month: "2025-01", teachers: 12, students: 220 },
+  { month: "2025-02", teachers: 15, students: 260 },
+  { month: "2025-03", teachers: 18, students: 300 },
+  { month: "2025-04", teachers: 20, students: 340 },
+  { month: "2025-05", teachers: 22, students: 380 },
+  { month: "2025-06", teachers: 24, students: 420 },
 ]
-
-const teachers = [...new Set(coursePerformance.map(c => c.teacher))]
-const categories = [...new Set(coursePerformance.map(c => c.category))]
-const courses = coursePerformance.map(c => c.title)
 
 export default function AdminReportsPage() {
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [selectedReport, setSelectedReport] = useState("revenue")
   const [filterPeriod, setFilterPeriod] = useState("month")
 
-  // Export options
-  const [exportCourse, setExportCourse] = useState("all")
-  const [exportTeacher, setExportTeacher] = useState("all")
-  const [exportCategory, setExportCategory] = useState("all")
-  const [exportDateFrom, setExportDateFrom] = useState("")
-  const [exportDateTo, setExportDateTo] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [revenueByMonth, setRevenueByMonth] = useState<RevenueByMonth[]>([])
+  const [revenueByCategory, setRevenueByCategory] = useState<RevenueByCategory[]>([])
+  const [coursePerformance, setCoursePerformance] = useState<CoursePerformance[]>([])
+  const [completionRates, setCompletionRates] = useState<CategoryRate[]>([])
+  const [growthChart, setGrowthChart] = useState<GrowthPoint[]>([])
+
+  const [totals, setTotals] = useState({
+    totalRevenue: 0,
+    platformRevenue: 0,
+    teacherRevenue: 0,
+    totalTeachers: 0,
+    totalStudents: 0,
+    totalCourses: 0,
+    totalUsers: 0,
+  })
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      try {
+        const [revenueReport, userReport, performanceReport, dashboardStats, growthStats] = await Promise.all([
+          apiClient.getAdminRevenueReport(),
+          apiClient.getAdminUserReport(),
+          apiClient.getAdminPerformanceReport(),
+          apiClient.getAdminDashboardStats(),
+          apiClient.getAdminGrowthStats(),
+        ])
+
+        // Determine if we have real data from database
+        const hasPayments = Boolean(revenueReport?.revenueByMonth?.length)
+        const hasCourses = Boolean(performanceReport?.topPerformingCourses?.length)
+        const hasCompletion = Boolean(performanceReport?.completionRates?.length)
+
+        const teacherSeries = Array.isArray(growthStats?.teachersByMonth) ? growthStats.teachersByMonth : []
+        const studentSeries = Array.isArray(growthStats?.studentsByMonth) ? growthStats.studentsByMonth : []
+        const monthSet = new Set<string>([...teacherSeries.map((m: any) => m.month), ...studentSeries.map((s: any) => s.month)])
+        const mergedGrowth = Array.from(monthSet)
+          .sort()
+          .map((month) => {
+            const t = teacherSeries.find((m: any) => m.month === month)
+            const s = studentSeries.find((m: any) => m.month === month)
+            return {
+              month,
+              teachers: Number(t?.count ?? 0),
+              students: Number(s?.count ?? 0),
+            }
+          })
+        const hasGrowth = mergedGrowth.some((item) => item.teachers > 0 || item.students > 0)
+
+        // Set chart data - prefer real DB data
+        setRevenueByMonth(hasPayments ? revenueReport.revenueByMonth : sampleRevenueByMonth)
+        setRevenueByCategory(hasPayments ? revenueReport.revenueByCategory : sampleRevenueByCategory)
+        setCoursePerformance(hasCourses ? performanceReport.topPerformingCourses : sampleCoursePerformance)
+        setCompletionRates(hasCompletion ? performanceReport.completionRates : sampleCompletionRates)
+        setGrowthChart(hasGrowth ? mergedGrowth : sampleGrowth)
+
+        // Helper function to safely convert to number
+        const toNumber = (val: any): number => {
+          const num = Number(val)
+          return isNaN(num) ? 0 : Math.round(num)
+        }
+
+        // Set totals - prefer real DB data, ensure proper number conversion
+        setTotals({
+          totalRevenue: hasPayments ? toNumber(revenueReport.totalRevenue) : sampleRevenueByMonth.reduce((s, i) => s + i.revenue, 0),
+          platformRevenue: hasPayments ? toNumber(revenueReport.platformRevenue) : sampleRevenueByMonth.reduce((s, i) => s + i.revenue, 0) * 0.3,
+          teacherRevenue: hasPayments ? toNumber(revenueReport.teacherRevenue) : sampleRevenueByMonth.reduce((s, i) => s + i.revenue, 0) * 0.7,
+          totalTeachers: toNumber(dashboardStats?.totalTeachers || sampleGrowth[sampleGrowth.length - 1].teachers),
+          totalStudents: toNumber(dashboardStats?.totalStudents || sampleGrowth[sampleGrowth.length - 1].students),
+          totalCourses: toNumber(dashboardStats?.totalCourses || sampleCoursePerformance.length),
+          totalUsers: toNumber(userReport?.totalUsers || sampleGrowth[sampleGrowth.length - 1].students + sampleGrowth[sampleGrowth.length - 1].teachers),
+        })
+      } catch (error) {
+        console.error("Error loading reports", error)
+        toast.error("Không thể tải báo cáo. Vui lòng thử lại.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [])
+
+  const categoryData = useMemo(
+    () =>
+      revenueByCategory.map((c, idx) => ({
+        name: c.categoryName || "Khác",
+        value: Number(c.percentage || 0),
+        fill: pieColors[idx % pieColors.length],
+      })),
+    [revenueByCategory]
+  )
+
+  const chartData = useMemo(() => {
+    if (filterPeriod === "month" || filterPeriod === "year") return revenueByMonth
+    return revenueByMonth.slice(-6)
+  }, [filterPeriod, revenueByMonth])
+
+  const teacherGrowth = growthChart.map((g) => ({ month: g.month, teachers: g.teachers }))
+  const studentGrowth = growthChart.map((g) => ({ month: g.month, students: g.students }))
 
   const handleExport = (reportType: string) => {
     setSelectedReport(reportType)
@@ -94,35 +196,25 @@ export default function AdminReportsPage() {
   }
 
   const executeExport = () => {
-    // Generate CSV based on report type and filters
     let data: any[] = []
     let headers: string[] = []
 
     if (selectedReport === "revenue") {
-      headers = ["Tháng", "Doanh thu", "Giáo viên", "Học viên"]
-      data = revenueData.map(r => [r.month, r.revenue.toString(), r.teachers.toString(), r.students.toString()])
+      headers = ["Kỳ", "Doanh thu", "Đơn hàng", "Tăng trưởng (%)"]
+      data = revenueByMonth.map((r) => [r.month, r.revenue, r.orders, r.growth])
     } else if (selectedReport === "courses") {
-      let filteredCourses = coursePerformance
-      if (exportCourse !== "all") {
-        filteredCourses = filteredCourses.filter(c => c.title === exportCourse)
-      }
-      if (exportTeacher !== "all") {
-        filteredCourses = filteredCourses.filter(c => c.teacher === exportTeacher)
-      }
-      if (exportCategory !== "all") {
-        filteredCourses = filteredCourses.filter(c => c.category === exportCategory)
-      }
-      headers = ["Khóa học", "Giảng viên", "Danh mục", "Học viên", "Đánh giá", "Doanh thu"]
-      data = filteredCourses.map(c => [c.title, c.teacher, c.category, c.students.toString(), c.rating.toString(), c.revenue.toString()])
+      headers = ["Khóa học", "Giảng viên", "Học viên", "Doanh thu", "Đánh giá", "Hoàn thành (%)"]
+      data = coursePerformance.map((c) => [c.courseTitle, c.teacherName, c.enrollments, c.revenue, c.averageRating, c.completionRate])
     } else if (selectedReport === "category") {
-      headers = ["Danh mục", "Tỷ lệ (%)"]
-      data = categoryData.map(c => [c.name, c.value.toString()])
+      headers = ["Danh mục", "Doanh thu", "Đơn hàng", "Tỷ lệ (%)"]
+      data = revenueByCategory.map((c) => [c.categoryName, c.revenue, c.orderCount, c.percentage])
     } else if (selectedReport === "teachers" || selectedReport === "students") {
-      headers = ["Tháng", selectedReport === "teachers" ? "Số giáo viên" : "Số học viên"]
-      data = revenueData.map(r => [r.month, selectedReport === "teachers" ? r.teachers.toString() : r.students.toString()])
+      headers = ["Thời gian", selectedReport === "teachers" ? "Giáo viên" : "Học viên"]
+      const src = selectedReport === "teachers" ? teacherGrowth : studentGrowth
+      data = src.map((r) => [r.month, selectedReport === "teachers" ? r.teachers : r.students])
     }
 
-    const csvContent = [headers, ...data].map(row => row.join(",")).join("\n")
+    const csvContent = [headers, ...data].map((row) => row.join(",")).join("\n")
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
     const link = document.createElement("a")
     link.href = URL.createObjectURL(blob)
@@ -132,32 +224,38 @@ export default function AdminReportsPage() {
     setIsExportOpen(false)
   }
 
-  // Get data based on period
-  const getChartData = () => {
-    switch (filterPeriod) {
-      case "day":
-        return dailyData
-      case "week":
-        return weeklyData
-      case "month":
-      case "year":
-      default:
-        return revenueData
-    }
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-64 rounded-3xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 rounded-2xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-80 rounded-2xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    )
   }
-
-  const chartData = getChartData()
 
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        {/* Hero Section with Background */}
-        <div className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn" style={{ backgroundImage: "url('/image/bg_report.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-          {/* Overlay for better readability */}
-          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
-          
+        <div
+          className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn"
+          style={{ backgroundImage: "url('/image/bg_report.png')", backgroundSize: "cover", backgroundPosition: "center" }}
+        >
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl" />
+
           <div className="relative z-10 space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+            <div
+              className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown"
+              style={{ animationDelay: "0.15s" }}
+            >
               <div>
                 <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Báo cáo & Phân tích</h1>
                 <p className="text-black/70 dark:text-white/80 drop-shadow">Xem chi tiết hiệu suất nền tảng</p>
@@ -184,61 +282,33 @@ export default function AdminReportsPage() {
               </div>
             </div>
 
-            {/* Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <StatCard 
-                  icon={DollarSign} 
-                  title="Tổng doanh thu" 
-                  value="₫2.5B" 
-                  change="+12.5% so với kỳ trước" 
-                />
+                <StatCard icon={DollarSign} title="Tổng doanh thu" value={formatCurrency(totals.totalRevenue)} change="Cập nhật theo kỳ" />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <StatCard 
-                  icon={Users} 
-                  title="Tổng giáo viên" 
-                  value="350" 
-                  change="+8.2% so với kỳ trước" 
-                />
+                <StatCard icon={Users} title="Tổng giáo viên" value={formatNumber(totals.totalTeachers)} change="Cập nhật theo kỳ" />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <StatCard 
-                  icon={TrendingUp} 
-                  title="Tổng học viên" 
-                  value="5,234" 
-                  change="+15.3% so với kỳ trước" 
-                />
+                <StatCard icon={TrendingUp} title="Tổng học viên" value={formatNumber(totals.totalStudents)} change="Cập nhật theo kỳ" />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <StatCard 
-                  icon={BookOpen} 
-                  title="Khóa học" 
-                  value="156" 
-                  change="+4.3% so với kỳ trước" 
-                />
+                <StatCard icon={BookOpen} title="Khóa học" value={formatNumber(totals.totalCourses)} change="Cập nhật theo kỳ" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Revenue Chart */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-bold text-foreground dark:text-white">Biểu đồ doanh thu</h2>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">
-                  {filterPeriod === "day" ? "7 ngày gần nhất" :
-                   filterPeriod === "week" ? "Tuần này" :
-                   filterPeriod === "month" ? "12 tháng" : "Cả năm"}
+                  {filterPeriod === "day" ? "7 ngày gần nhất" : filterPeriod === "week" ? "Tuần này" : filterPeriod === "month" ? "12 tháng" : "Cả năm"}
                 </p>
               </div>
-              <button
-                onClick={() => handleExport("revenue")}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-              >
+              <button onClick={() => handleExport("revenue")} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
             </div>
@@ -247,24 +317,21 @@ export default function AdminReportsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey={filterPeriod === "day" ? "date" : filterPeriod === "week" ? "day" : "month"} stroke="#9ca3af" />
                 <YAxis stroke="#9ca3af" />
-                <Tooltip />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 <Legend />
                 <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} name="Doanh thu" />
+                <Line type="monotone" dataKey="orders" stroke="#16a34a" strokeWidth={2} name="Đơn hàng" />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Category Distribution */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-bold text-foreground dark:text-white">Phân bố theo danh mục</h2>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Tỷ lệ khóa học theo danh mục</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">Tỷ lệ doanh thu theo danh mục</p>
               </div>
-              <button
-                onClick={() => handleExport("category")}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-              >
+              <button onClick={() => handleExport("category")} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
             </div>
@@ -284,60 +351,51 @@ export default function AdminReportsPage() {
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value) => `${value}%`} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Growth Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Teacher Growth */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-bold text-foreground dark:text-white">Tăng trưởng giáo viên</h2>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">Số lượng giáo viên theo thời gian</p>
               </div>
-              <button
-                onClick={() => handleExport("teachers")}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-              >
+              <button onClick={() => handleExport("teachers")} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={revenueData}>
+              <LineChart data={teacherGrowth}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" stroke="#9ca3af" />
                 <YAxis stroke="#9ca3af" />
-                <Tooltip />
+                <Tooltip formatter={(value) => formatNumber(Number(value))} />
                 <Legend />
                 <Line type="monotone" dataKey="teachers" stroke="#8b5cf6" strokeWidth={2} name="Giáo viên" />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Student Growth */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-bold text-foreground dark:text-white">Tăng trưởng học viên</h2>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">Số lượng học viên theo thời gian</p>
               </div>
-              <button
-                onClick={() => handleExport("students")}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-              >
+              <button onClick={() => handleExport("students")} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueData}>
+              <BarChart data={studentGrowth}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" stroke="#9ca3af" />
                 <YAxis stroke="#9ca3af" />
-                <Tooltip />
+                <Tooltip formatter={(value) => formatNumber(Number(value))} />
                 <Legend />
                 <Bar dataKey="students" fill="#06b6d4" name="Học viên" radius={[8, 8, 0, 0]} />
               </BarChart>
@@ -345,7 +403,6 @@ export default function AdminReportsPage() {
           </div>
         </div>
 
-        {/* Course Performance */}
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -365,35 +422,65 @@ export default function AdminReportsPage() {
                 <tr className="border-b border-border dark:border-slate-800">
                   <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Khóa học</th>
                   <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Giảng viên</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Danh mục</th>
                   <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Học viên</th>
                   <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Đánh giá</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Hoàn thành</th>
                   <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Doanh thu</th>
                 </tr>
               </thead>
               <tbody>
+                {coursePerformance.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-4 px-4 text-center text-muted-foreground">Chưa có dữ liệu</td>
+                  </tr>
+                )}
                 {coursePerformance.map((course) => (
                   <tr
-                    key={course.id}
+                    key={course.courseId}
                     className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
                   >
-                    <td className="py-3 px-4 text-foreground dark:text-white font-medium">{course.title}</td>
-                    <td className="py-3 px-4 text-muted-foreground dark:text-slate-400">{course.teacher}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-1 bg-secondary dark:bg-slate-800 rounded text-foreground dark:text-white text-xs">
-                        {course.category}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-foreground dark:text-white">{formatStudentCount(course.students)}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1">
-                        <span className="text-yellow-400">★</span>
-                        <span className="text-foreground dark:text-white font-medium">{course.rating}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-primary dark:text-accent font-semibold">
-                      ₫{(course.revenue / 1000000).toFixed(1)}M
-                    </td>
+                    <td className="py-3 px-4 text-foreground dark:text-white font-medium">{course.courseTitle}</td>
+                    <td className="py-3 px-4 text-muted-foreground dark:text-slate-400">{course.teacherName}</td>
+                    <td className="py-3 px-4 text-foreground dark:text-white">{formatStudentCount(course.enrollments)}</td>
+                    <td className="py-3 px-4 text-foreground dark:text-white">{course.averageRating?.toFixed(1) || "-"}</td>
+                    <td className="py-3 px-4 text-foreground dark:text-white">{`${course.completionRate?.toFixed(1) || 0}%`}</td>
+                    <td className="py-3 px-4 text-primary dark:text-accent font-semibold">{formatCurrency(course.revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-bold text-foreground dark:text-white">Tỷ lệ hoàn thành theo danh mục</h2>
+              <p className="text-sm text-muted-foreground dark:text-slate-400">Theo dõi mức độ hoàn thành của học viên</p>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border dark:border-slate-800">
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Danh mục</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Tổng ghi danh</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Hoàn thành</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Tỷ lệ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {completionRates.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-4 px-4 text-center text-muted-foreground">Chưa có dữ liệu</td>
+                  </tr>
+                )}
+                {completionRates.map((item) => (
+                  <tr key={item.categoryName} className="border-b border-border dark:border-slate-800">
+                    <td className="py-3 px-4 text-foreground dark:text-white font-medium">{item.categoryName}</td>
+                    <td className="py-3 px-4 text-foreground dark:text-white">{formatStudentCount(item.totalEnrollments)}</td>
+                    <td className="py-3 px-4 text-foreground dark:text-white">{formatStudentCount(item.completedEnrollments)}</td>
+                    <td className="py-3 px-4 text-foreground dark:text-white">{`${item.completionRate?.toFixed(1) || 0}%`}</td>
                   </tr>
                 ))}
               </tbody>
@@ -402,142 +489,20 @@ export default function AdminReportsPage() {
         </div>
       </div>
 
-      {/* Export Modal */}
       {isExportOpen && (
         <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
             <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
               <h2 className="text-xl font-bold text-foreground dark:text-white">
-                Xuất báo cáo: {
-                  selectedReport === "revenue" ? "Báo cáo doanh thu" :
-                  selectedReport === "category" ? "Báo cáo danh mục" :
-                  selectedReport === "teachers" ? "Báo cáo giáo viên" :
-                  selectedReport === "students" ? "Báo cáo học viên" :
-                  "Báo cáo khóa học"
-                }
+                Xuất báo cáo: {selectedReport === "revenue" ? "Báo cáo doanh thu" : selectedReport === "category" ? "Báo cáo danh mục" : selectedReport === "teachers" ? "Báo cáo giáo viên" : selectedReport === "students" ? "Báo cáo học viên" : "Báo cáo khóa học"}
               </h2>
-              <button
-                onClick={() => setIsExportOpen(false)}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-              >
+              <button onClick={() => setIsExportOpen(false)} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
                 <X size={20} className="text-muted-foreground" />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
-              {/* Revenue report options */}
-              {selectedReport === "revenue" && (
-                <>
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Khóa học</label>
-                    <select
-                      value={exportCourse}
-                      onChange={(e) => setExportCourse(e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="all">Tất cả khóa học</option>
-                      {courses.map((course) => (
-                        <option key={course} value={course}>{course}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Giảng viên</label>
-                    <select
-                      value={exportTeacher}
-                      onChange={(e) => setExportTeacher(e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="all">Tất cả giảng viên</option>
-                      {teachers.map((teacher) => (
-                        <option key={teacher} value={teacher}>{teacher}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Danh mục</label>
-                    <select
-                      value={exportCategory}
-                      onChange={(e) => setExportCategory(e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="all">Tất cả danh mục</option>
-                      {categories.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {/* Course report options */}
-              {selectedReport === "courses" && (
-                <>
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Khóa học</label>
-                    <select
-                      value={exportCourse}
-                      onChange={(e) => setExportCourse(e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="all">Tất cả khóa học</option>
-                      {courses.map((course) => (
-                        <option key={course} value={course}>{course}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Giảng viên</label>
-                    <select
-                      value={exportTeacher}
-                      onChange={(e) => setExportTeacher(e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="all">Tất cả giảng viên</option>
-                      {teachers.map((teacher) => (
-                        <option key={teacher} value={teacher}>{teacher}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Danh mục</label>
-                    <select
-                      value={exportCategory}
-                      onChange={(e) => setExportCategory(e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="all">Tất cả danh mục</option>
-                      {categories.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {/* Date Range for all reports */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Từ ngày</label>
-                  <input
-                    type="date"
-                    value={exportDateFrom}
-                    onChange={(e) => setExportDateFrom(e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Đến ngày</label>
-                  <input
-                    type="date"
-                    value={exportDateTo}
-                    onChange={(e) => setExportDateTo(e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-              </div>
-
-              {/* Export Button */}
+              <p className="text-sm text-muted-foreground">File CSV sẽ chứa toàn bộ dữ liệu đang hiển thị.</p>
               <button
                 onClick={executeExport}
                 className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
