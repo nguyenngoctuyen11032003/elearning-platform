@@ -323,13 +323,16 @@ const handleUpdateUser = async (updatedData: any) => {
   }
 }
 
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    })
-
+const formatDate = (dateString?: string) => {
+  if (!dateString) return "Chưa cập nhật"
+  const d = new Date(dateString)
+  if (isNaN(d.getTime())) return "Chưa cập nhật"
+  return d.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+}
   // ================= STATS =================
   const totalUsers = userList.length
   const totalStudents = userList.filter((u) => u.role === "student").length
@@ -547,7 +550,8 @@ const handleUpdateUser = async (updatedData: any) => {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white">{user.courses || "Chưa cập nhật"}</td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{user.joinDate ? formatDate(user.joinDate) : "Chưa cập nhật"}</td>
+                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{user.createdAt ? formatDate(user.createdAt) : "Chưa cập nhật"}
+</td>
                     <td className="py-4 px-6">
                       <span
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 ${
@@ -722,14 +726,22 @@ const handleUpdateUser = async (updatedData: any) => {
                     <Calendar size={16} />
                     <span className="text-sm">Ngày tham gia</span>
                   </div>
-                  <p className="text-foreground dark:text-white font-medium">{formatDate(viewUser.joinDate)}</p>
+                  <p className="text-foreground dark:text-white font-medium">
+                  {viewUser.createdAt ? formatDate(viewUser.createdAt) : "Chưa cập nhật"}
+                </p>
                 </div>
                 <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                   <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                     <Clock size={16} />
                     <span className="text-sm">Hoạt động gần nhất</span>
                   </div>
-                  <p className="text-foreground dark:text-white font-medium">{formatDate(viewUser.lastActive || "")}</p>
+                  <p className="text-foreground dark:text-white font-medium">
+                  {viewUser.lastLoginAt
+                    ? formatDate(viewUser.lastLoginAt)
+                    : viewUser.createdAt
+                      ? `${formatDate(viewUser.createdAt)} (lần đầu)`
+                      : "Chưa cập nhật"}
+                </p>
                 </div>
               </div>
 
@@ -859,5 +871,3 @@ const handleUpdateUser = async (updatedData: any) => {
     </div>
   )
 }
-
-

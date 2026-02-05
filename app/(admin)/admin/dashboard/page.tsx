@@ -244,6 +244,13 @@ if (loading) {
   value={stats?.totalCourses || 0}
   change={`+${stats?.courseGrowth || 0}% so với tháng trước`}
 />
+<StatCard
+  icon={CreditCard}
+  title="Tổng doanh thu"
+  value={`₫${formatPrice(stats?.totalRevenue || 0)}`}
+  change={`${stats?.revenueGrowth || 0}% so với 30 ngày trước`}
+/>
+
             </div>
           </div>
         </div>
