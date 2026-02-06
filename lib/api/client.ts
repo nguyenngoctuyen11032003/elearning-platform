@@ -535,6 +535,58 @@ async uploadFile(file: File): Promise<{ url: string }> {
     });
   }
 
+  // Admin payments
+  async getAdminPayments(params?: {
+    page?: number
+    limit?: number
+    status?: string
+    userId?: string
+    courseId?: string
+    teacherId?: string
+    startDate?: string
+    endDate?: string
+    search?: string
+  }): Promise<any> {
+    const queryParams = new URLSearchParams()
+    if (params?.page) queryParams.append('page', params.page.toString())
+    if (params?.limit) queryParams.append('limit', params.limit.toString())
+    if (params?.status) queryParams.append('status', params.status)
+    if (params?.userId) queryParams.append('userId', params.userId)
+    if (params?.courseId) queryParams.append('courseId', params.courseId)
+    if (params?.teacherId) queryParams.append('teacherId', params.teacherId)
+    if (params?.startDate) queryParams.append('startDate', params.startDate)
+    if (params?.endDate) queryParams.append('endDate', params.endDate)
+    if (params?.search) queryParams.append('search', params.search)
+
+    const endpoint = `${API_ENDPOINTS.PAYMENTS.ADMIN_ALL}${
+      queryParams.toString() ? `?${queryParams.toString()}` : ''
+    }`
+
+    return this.request(endpoint)
+  }
+
+  async getAdminPaymentStats(params?: { startDate?: string; endDate?: string }): Promise<any> {
+    const queryParams = new URLSearchParams()
+    if (params?.startDate) queryParams.append('startDate', params.startDate)
+    if (params?.endDate) queryParams.append('endDate', params.endDate)
+
+    const endpoint = `${API_ENDPOINTS.PAYMENTS.ADMIN_STATS}${
+      queryParams.toString() ? `?${queryParams.toString()}` : ''
+    }`
+
+    return this.request(endpoint)
+  }
+
+  async exportAdminPayments(filters: Record<string, any> = {}): Promise<any> {
+    return this.request(API_ENDPOINTS.PAYMENTS.ADMIN_EXPORT, {
+      method: 'POST',
+      headers: {
+        Accept: 'text/csv,application/json',
+      },
+      body: JSON.stringify(filters),
+    })
+  }
+
   // Notes methods
   async getNotesByCourse(courseId: string): Promise<any[]> {
     try {

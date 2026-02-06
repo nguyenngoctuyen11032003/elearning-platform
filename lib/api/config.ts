@@ -72,6 +72,9 @@ export const API_ENDPOINTS = {
     LIST: '/api/payments',
     BY_ID: (id: string) => `/api/payments/${id}`,
     CREATE: '/api/payments',
+    ADMIN_ALL: '/api/payments/admin/all',
+    ADMIN_STATS: '/api/payments/admin/stats',
+    ADMIN_EXPORT: '/api/payments/admin/export',
   },
   NOTES: {
     LIST: '/api/notes',

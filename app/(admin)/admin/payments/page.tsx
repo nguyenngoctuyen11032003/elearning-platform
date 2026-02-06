@@ -1,7 +1,9 @@
 "use client"
 
 import { Search, Download, Eye, DollarSign, TrendingUp, CreditCard, Clock, X, User, BookOpen } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
+import { apiClient } from "@/lib/api/client"
 import { formatPrice, formatNumber } from "@/lib/format"
 
 interface Payment {
@@ -20,105 +22,36 @@ interface Payment {
   transactionId: string
 }
 
-const payments: Payment[] = [
-  {
-    id: "PAY001",
-    user: "Trần Văn A",
-    userEmail: "tran.van.a@example.com",
-    userPhone: "0912345678",
-    course: "Next.js Advanced",
-    courseId: "COURSE001",
-    teacher: "Nguyễn Thị B",
-    teacherEmail: "nguyen.thi.b@example.com",
-    amount: 499000,
-    method: "VNPay",
-    status: "success",
-    date: "2025-01-15",
-    transactionId: "VNP12345678"
-  },
-  {
-    id: "PAY002",
-    user: "Lê Minh C",
-    userEmail: "le.minh.c@example.com",
-    userPhone: "0923456789",
-    course: "React Hooks Mastery",
-    courseId: "COURSE002",
-    teacher: "Nguyễn Thị B",
-    teacherEmail: "nguyen.thi.b@example.com",
-    amount: 399000,
-    method: "MoMo",
-    status: "success",
-    date: "2025-01-14",
-    transactionId: "MOMO87654321"
-  },
-  {
-    id: "PAY003",
-    user: "Phạm Quốc D",
-    userEmail: "pham.quoc.d@example.com",
-    userPhone: "0934567890",
-    course: "Python Data Science",
-    courseId: "COURSE003",
-    teacher: "Trần Minh E",
-    teacherEmail: "tran.minh.e@example.com",
-    amount: 549000,
-    method: "VNPay",
-    status: "pending",
-    date: "2025-01-13",
-    transactionId: "VNP23456789"
-  },
-  {
-    id: "PAY004",
-    user: "Hoàng Thị F",
-    userEmail: "hoang.thi.f@example.com",
-    userPhone: "0945678901",
-    course: "UI/UX Design Fundamentals",
-    courseId: "COURSE004",
-    teacher: "Lê Văn G",
-    teacherEmail: "le.van.g@example.com",
-    amount: 349000,
-    method: "Stripe",
-    status: "success",
-    date: "2025-01-12",
-    transactionId: "STRIPE34567890"
-  },
-  {
-    id: "PAY005",
-    user: "Nguyễn Văn H",
-    userEmail: "nguyen.van.h@example.com",
-    userPhone: "0956789012",
-    course: "Digital Marketing Pro",
-    courseId: "COURSE005",
-    teacher: "Phạm Thị I",
-    teacherEmail: "pham.thi.i@example.com",
-    amount: 349000,
-    method: "MoMo",
-    status: "failed",
-    date: "2025-01-11",
-    transactionId: "MOMO45678901"
-  },
-  {
-    id: "PAY006",
-    user: "Đặng Văn J",
-    userEmail: "dang.van.j@example.com",
-    userPhone: "0967890123",
-    course: "Next.js Advanced",
-    courseId: "COURSE001",
-    teacher: "Nguyễn Thị B",
-    teacherEmail: "nguyen.thi.b@example.com",
-    amount: 499000,
-    method: "VNPay",
-    status: "success",
-    date: "2025-01-10",
-    transactionId: "VNP56789012"
-  },
-]
+interface PaymentStats {
+  totalRevenue: number
+  pendingTransactions: number
+  completedTransactions: number
+  failedTransactions: number
+  totalTransactions: number
+}
 
-// Get unique values for filters
-const uniqueCourses = [...new Set(payments.map(p => p.course))]
-const uniqueUsers = [...new Set(payments.map(p => p.user))]
-const uniqueTeachers = [...new Set(payments.map(p => p.teacher))]
+const normalizeStatus = (status?: string): Payment["status"] => {
+  const normalized = status?.toLowerCase?.()
+  if (normalized === "completed" || normalized === "success") return "success"
+  if (normalized === "pending") return "pending"
+  return "failed"
+}
+
+const normalizeMethod = (method?: string) => {
+  if (!method) return "Khác"
+  return method.toUpperCase()
+}
 
 export default function AdminPaymentsPage() {
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [stats, setStats] = useState<PaymentStats>({
+    totalRevenue: 0,
+    pendingTransactions: 0,
+    completedTransactions: 0,
+    failedTransactions: 0,
+    totalTransactions: 0,
+  })
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "success" | "pending" | "failed">("all")
   const [isExportOpen, setIsExportOpen] = useState(false)
@@ -132,19 +65,87 @@ export default function AdminPaymentsPage() {
   const [exportDateFrom, setExportDateFrom] = useState<string>("")
   const [exportDateTo, setExportDateTo] = useState<string>("")
 
-  const filteredPayments = payments.filter(
-    (payment) =>
-      (payment.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        payment.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        payment.course.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        payment.teacher.toLowerCase().includes(searchQuery.toLowerCase())) &&
-      (statusFilter === "all" || payment.status === statusFilter),
-  )
+  const loadPayments = async () => {
+    setLoading(true)
+    try {
+      const [listRes, statsRes] = await Promise.all([
+        apiClient.getAdminPayments({ limit: 200 }),
+        apiClient.getAdminPaymentStats(),
+      ])
 
-  const totalRevenue = payments.filter((p) => p.status === "success").reduce((sum, p) => sum + p.amount, 0)
+      const rawList = (listRes as any)?.data ?? listRes ?? []
+
+      const mapped: Payment[] = Array.isArray(rawList)
+        ? rawList.map((p: any) => {
+            const student = p.student || {}
+            const course = p.course || {}
+            const teacher = course.teacher || {}
+            const paidAt = p.paidAt || p.createdAt || new Date()
+
+            return {
+              id: p.id || p.transactionId,
+              transactionId: p.transactionId || p.id || "",
+              user: student.name || "Không rõ",
+              userEmail: student.email || "",
+              userPhone: student.phoneNumber || student.phone || "",
+              course: course.title || "Không rõ",
+              courseId: course.id || "",
+              teacher: teacher.name || "",
+              teacherEmail: teacher.email || "",
+              amount: Number(p.finalAmount ?? p.amount ?? 0),
+              method: normalizeMethod(p.paymentMethod),
+              status: normalizeStatus(p.status),
+              date: new Date(paidAt).toISOString(),
+            }
+          })
+        : []
+
+      setPayments(mapped)
+
+      const derivedRevenue = mapped
+        .filter((p) => p.status === "success")
+        .reduce((sum, p) => sum + Number(p.amount || 0), 0)
+
+      setStats({
+        totalRevenue: Number(statsRes?.totalRevenue ?? derivedRevenue),
+        pendingTransactions: Number(statsRes?.pendingTransactions ?? mapped.filter((p) => p.status === "pending").length),
+        completedTransactions: Number(statsRes?.completedTransactions ?? mapped.filter((p) => p.status === "success").length),
+        failedTransactions: Number(statsRes?.failedTransactions ?? mapped.filter((p) => p.status === "failed").length),
+        totalTransactions: Number(statsRes?.totalTransactions ?? mapped.length),
+      })
+    } catch (error) {
+      console.error("Error loading payments", error)
+      toast.error("Không thể tải dữ liệu thanh toán")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadPayments()
+  }, [])
+
+  const uniqueCourses = useMemo(() => Array.from(new Set(payments.map((p) => p.course).filter(Boolean))), [payments])
+  const uniqueUsers = useMemo(() => Array.from(new Set(payments.map((p) => p.user).filter(Boolean))), [payments])
+  const uniqueTeachers = useMemo(() => Array.from(new Set(payments.map((p) => p.teacher).filter(Boolean))), [payments])
+
+  const filteredPayments = useMemo(() => {
+    const keyword = searchQuery.toLowerCase()
+    return payments.filter(
+      (payment) =>
+        ((payment.id || "").toLowerCase().includes(keyword) ||
+          (payment.user || "").toLowerCase().includes(keyword) ||
+          (payment.course || "").toLowerCase().includes(keyword) ||
+          (payment.teacher || "").toLowerCase().includes(keyword)) &&
+        (statusFilter === "all" || payment.status === statusFilter),
+    )
+  }, [payments, searchQuery, statusFilter])
+
+  const derivedRevenue = payments.filter((p) => p.status === "success").reduce((sum, p) => sum + p.amount, 0)
+  const totalRevenue = stats.totalRevenue || derivedRevenue
   const pendingAmount = payments.filter((p) => p.status === "pending").reduce((sum, p) => sum + p.amount, 0)
-  const successCount = payments.filter((p) => p.status === "success").length
-  const totalTransactions = payments.length
+  const successCount = stats.completedTransactions || payments.filter((p) => p.status === "success").length
+  const totalTransactions = stats.totalTransactions || payments.length
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('vi-VN', {
@@ -188,6 +189,20 @@ export default function AdminPaymentsPage() {
     link.click()
 
     setIsExportOpen(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-64 rounded-3xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 rounded-2xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+          ))}
+        </div>
+        <div className="h-[520px] rounded-2xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+      </div>
+    )
   }
 
   return (
