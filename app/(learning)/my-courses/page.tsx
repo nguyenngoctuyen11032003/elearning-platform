@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { BookOpen, Clock, Award, Play, CheckCircle, BarChart3, Search, TrendingUp, Star, Grid3x3, Zap, Settings, User, MoreVertical, ChevronRight } from "lucide-react"
+import { BookOpen, Clock, Award, Play, CheckCircle, BarChart3, Search, TrendingUp, Star, Grid3x3, Zap, Settings, User, MoreVertical, ChevronRight, Pin, Trash2, Share2 } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
@@ -51,7 +51,7 @@ const MOCK_COURSES: EnrolledCourse[] = [
       id: "course-2",
       title: "React 18: Build Production Apps",
       description: "Xây dựng ứng dụng React chuyên nghiệp",
-      thumbnail: "/image/course-2.jpg",
+      thumbnail: "/image/python.png",
       teacher: { name: "Trần Thị B" },
       lessons: Array(20).fill(null)
     },
@@ -133,6 +133,9 @@ export default function MyCoursesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [expandCourses, setExpandCourses] = useState(false)
+  const [pinnedCourses, setPinnedCourses] = useState<Set<string>>(new Set())
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const fetchEnrollments = async () => {
@@ -167,6 +170,18 @@ export default function MyCoursesPage() {
     fetchEnrollments()
   }, [user?.id])
 
+  // Handle click outside menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuId(null)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
   const filteredCourses = courses.filter(enrollment => {
     const matchesFilter =
       filter === "all" ||
@@ -177,6 +192,14 @@ export default function MyCoursesPage() {
     const matchesSearch = enrollment.course.title.toLowerCase().includes(searchTerm.toLowerCase())
 
     return matchesFilter && matchesSearch
+  }).sort((a, b) => {
+    // Pinned courses first
+    const aIsPinned = pinnedCourses.has(a.id)
+    const bIsPinned = pinnedCourses.has(b.id)
+    
+    if (aIsPinned && !bIsPinned) return -1
+    if (!aIsPinned && bIsPinned) return 1
+    return 0
   })
 
   const totalPages = Math.ceil(filteredCourses.length / ITEMS_PER_PAGE)
@@ -193,6 +216,41 @@ export default function MyCoursesPage() {
   const handleSearchChange = (term: string) => {
     setSearchTerm(term)
     setCurrentPage(1)
+  }
+
+  const togglePinCourse = (courseId: string) => {
+    setPinnedCourses(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(courseId)) {
+        newSet.delete(courseId)
+        toast.success("Bỏ ghim khóa học")
+      } else {
+        newSet.add(courseId)
+        toast.success("Đã ghim khóa học")
+      }
+      return newSet
+    })
+    setOpenMenuId(null)
+  }
+
+  const handleRemoveCourse = (courseId: string) => {
+    // Implement remove course functionality
+    toast.info("Chức năng này sẽ được thêm sớm")
+    setOpenMenuId(null)
+  }
+
+  const handleShareCourse = (courseTitle: string) => {
+    // Implement share functionality
+    if (navigator.share) {
+      navigator.share({
+        title: "Khóa học ICS",
+        text: `Hãy check out khóa học này: ${courseTitle}`,
+        url: window.location.href
+      })
+    } else {
+      toast.info("Chức năng này sẽ được thêm sớm")
+    }
+    setOpenMenuId(null)
   }
 
   const stats = {
@@ -292,30 +350,38 @@ export default function MyCoursesPage() {
               {filteredCourses.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredCourses.map((enrollment, idx) => {
-                    const colors = [
-                      { bg: "from-pink-400 to-pink-500", icon: "🎨", light: "bg-pink-100 dark:bg-pink-900/20" },
-                      { bg: "from-purple-500 to-purple-600", icon: "✨", light: "bg-purple-100 dark:bg-purple-900/20" },
-                      { bg: "from-cyan-400 to-cyan-500", icon: "🎭", light: "bg-cyan-100 dark:bg-cyan-900/20" },
-                      { bg: "from-orange-400 to-orange-500", icon: "🖌️", light: "bg-orange-100 dark:bg-orange-900/20" },
-                    ]
-                    const color = colors[idx % colors.length]
                     const lessons = enrollment.course.lessons || []
+                    const courseImage = enrollment.course.thumbnail || "/image/logo-ics.jpg"
 
                     return (
                       <motion.div
                         key={enrollment.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.05 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
                         whileHover={{ y: -4 }}
                         className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 group"
                       >
-                        {/* Header with gradient */}
+                        {/* Header with image */}
                         <motion.div
-                          className={`relative aspect-video bg-gradient-to-br ${color.bg} flex items-center justify-center overflow-hidden`}
+                          className="relative aspect-video bg-gray-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden"
                           whileHover={{ scale: 1.05 }}
                         >
-                          <span className="text-6xl">{color.icon}</span>
+                          <img 
+                            src={courseImage} 
+                            alt={enrollment.course.title}
+                            className="w-full h-full object-cover"
+                          />
+                          {pinnedCourses.has(enrollment.id) && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="absolute top-3 right-3 bg-white dark:bg-slate-900 rounded-full p-2 shadow-lg"
+                            >
+                              <Pin size={16} className="text-yellow-500 fill-yellow-500" />
+                            </motion.div>
+                          )}
                         </motion.div>
 
                         {/* Card Content */}
@@ -325,13 +391,53 @@ export default function MyCoursesPage() {
                               <h3 className="font-bold text-foreground dark:text-white line-clamp-2 mb-1">
                                 {enrollment.course.title}
                               </h3>
-                              <p className={`text-xs font-medium ${color.light} px-2 py-1 rounded inline-block`}>
+                              <p className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded inline-block">
                                 {enrollment.progress === 100 ? "Hoàn thành" : "Đang học"}
                               </p>
                             </div>
-                            <button className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                              <MoreVertical size={16} />
-                            </button>
+                            <div className="relative group">
+                              <button 
+                                onClick={() => setOpenMenuId(openMenuId === enrollment.id ? null : enrollment.id)}
+                                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                              >
+                                <MoreVertical size={16} />
+                              </button>
+                              
+                              {/* Dropdown Menu */}
+                              <AnimatePresence>
+                                {openMenuId === enrollment.id && (
+                                  <motion.div
+                                    ref={menuRef}
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="absolute right-0 mt-1 bg-white dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden w-48"
+                                  >
+                                    <button
+                                      onClick={() => togglePinCourse(enrollment.id)}
+                                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-secondary dark:hover:bg-slate-700 transition-colors text-sm text-foreground dark:text-white"
+                                    >
+                                      <Pin size={16} />
+                                      {pinnedCourses.has(enrollment.id) ? "Bỏ ghim" : "Ghim khóa học"}
+                                    </button>
+                                    <button
+                                      onClick={() => handleShareCourse(enrollment.course.title)}
+                                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-secondary dark:hover:bg-slate-700 transition-colors text-sm text-foreground dark:text-white border-t border-border dark:border-slate-700"
+                                    >
+                                      <Share2 size={16} />
+                                      Chia sẻ
+                                    </button>
+                                    <button
+                                      onClick={() => handleRemoveCourse(enrollment.id)}
+                                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm text-red-600 dark:text-red-400 border-t border-border dark:border-slate-700"
+                                    >
+                                      <Trash2 size={16} />
+                                      Xóa
+                                    </button>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
                           </div>
 
                           {/* Lessons Preview */}
@@ -358,7 +464,7 @@ export default function MyCoursesPage() {
                                 className="h-full bg-gradient-to-r from-primary to-purple-500 rounded-full"
                                 initial={{ width: 0 }}
                                 animate={{ width: `${enrollment.progress}%` }}
-                                transition={{ delay: idx * 0.05 + 0.2, duration: 0.6 }}
+                                transition={{ duration: 0.6 }}
                               />
                             </div>
                           </div>

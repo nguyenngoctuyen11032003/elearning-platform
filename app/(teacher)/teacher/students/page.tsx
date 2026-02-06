@@ -314,6 +314,7 @@ export default function TeacherStudentsPage() {
           </div>
         </div>
 
+<<<<<<< HEAD
         {/* Search & Filter */}
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
@@ -347,45 +348,194 @@ export default function TeacherStudentsPage() {
             <option value="inactive">Không hoạt động</option>
           </select>
         </div>
+=======
+        {/* Main Content - 2 Column Layout (Responsive) */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Right Sidebar - Filters & Summary (Top on Mobile, Right on Desktop) */}
+          <div className="w-full lg:w-72 lg:flex-shrink-0 lg:order-2">
+            <div className="space-y-6">
+              {/* Filters Card */}
+              <div className="animate-slideUp bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 sticky top-6" style={{ animationDelay: "0.2s" }}>
+                <h3 className="font-semibold text-foreground dark:text-white mb-4">Bộ lọc</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground dark:text-slate-400 block mb-2">Khóa học</label>
+                    <select
+                      value={filterCourse}
+                      onChange={(e) => setFilterCourse(e.target.value)}
+                      className="w-full px-3 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg text-sm text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="all">Tất cả</option>
+                      {courses.map((course) => (
+                        <option key={course.id} value={course.id}>{course.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground dark:text-slate-400 block mb-2">Trạng thái</label>
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="w-full px-3 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg text-sm text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="all">Tất cả</option>
+                      <option value="active">Đang học</option>
+                      <option value="completed">Hoàn thành</option>
+                      <option value="inactive">Không hoạt động</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+>>>>>>> 0d3281c3c27ad53e9e19ac0fd0a193bd7c97047a
 
-        {/* Students Table */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Học viên</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Khóa học</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Tiến độ</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Điểm Quiz</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Ngày tham gia</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Trạng thái</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStudents.map((student) => (
-                  <tr
+              {/* Summary Card */}
+              <div className="animate-slideUp bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 sticky top-6" style={{ animationDelay: "0.35s" }}>
+                <h3 className="font-semibold text-foreground dark:text-white mb-6">Tổng quan</h3>
+                
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-xs text-muted-foreground dark:text-slate-400 mb-2">Tỷ lệ hoàn thành</p>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary mb-2">
+                        {totalStudents > 0 ? Math.round((completedStudents / totalStudents) * 100) : 0}%
+                      </div>
+                      <div className="w-full h-2 bg-secondary dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-green-500 rounded-full"
+                          style={{ width: `${totalStudents > 0 ? (completedStudents / totalStudents) * 100 : 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-border dark:border-slate-800">
+                    <p className="text-xs font-semibold text-foreground dark:text-white mb-3 uppercase text-muted-foreground">Thống kê</p>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground dark:text-slate-400">Đang học:</span>
+                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">{activeStudents}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground dark:text-slate-400">Hoàn thành:</span>
+                        <span className="text-sm font-semibold text-green-600 dark:text-green-400">{completedStudents}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground dark:text-slate-400">Không hoạt động:</span>
+                        <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                          {totalStudents - activeStudents - completedStudents}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Left - Students Grid (Main Content) */}
+          <div className="flex-1 lg:order-1 space-y-4">
+            {/* Search Bar */}
+            <div className="animate-slideUp relative" style={{ animationDelay: "0.15s" }}>
+              <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
+              <input
+                type="text"
+                placeholder="Tìm kiếm học viên..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+              />
+            </div>
+
+            {/* Students Grid */}
+            {filteredStudents.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredStudents.map((student, index) => (
+                  <div
                     key={student.id}
-                    className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
+                    className="animate-slideUp bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
+                    style={{ animationDelay: `${0.25 + index * 0.08}s` }}
                   >
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3 flex-1">
                         <img
                           src={student.avatar}
                           alt={student.name}
-                          className="w-10 h-10 rounded-full object-cover bg-secondary"
+                          className="w-12 h-12 rounded-full object-cover bg-secondary"
                         />
-                        <div>
-                          <p className="font-medium text-foreground dark:text-white">{student.name}</p>
-                          <p className="text-xs text-muted-foreground dark:text-slate-400">{student.email}</p>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-foreground dark:text-white truncate">{student.name}</h4>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400 truncate">{student.email}</p>
                         </div>
                       </div>
+<<<<<<< HEAD
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white">{student.course}</td>
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 w-20 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+=======
+                      <div className="relative" data-dropdown>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpenMenu(openMenu === student.id ? null : student.id)
+                          }}
+                          className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth opacity-0 group-hover:opacity-100"
+                        >
+                          <MoreVertical size={16} className="text-muted-foreground dark:text-slate-400" />
+                        </button>
+                        {openMenu === student.id && (
+                          <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-xl z-50 min-w-40" data-dropdown>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleViewDetails(student)
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg text-sm"
+                            >
+                              <Eye size={16} /> Xem chi tiết
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRemoveClick(student)
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg text-sm"
+                            >
+                              <UserX size={16} /> Xóa học viên
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Course & Status */}
+                    <div className="mb-4 pb-4 border-b border-border dark:border-slate-800">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400 mb-1">Khóa học</p>
+                          <p className="text-sm font-medium text-foreground dark:text-white">{student.course}</p>
+                        </div>
+                        {getStatusBadge(student.status)}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground dark:text-slate-400">
+                        <Calendar size={14} />
+                        <span>Tham gia: {formatDate(student.joinDate)}</span>
+                      </div>
+                    </div>
+
+                    {/* Progress */}
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between mb-2 items-center">
+                          <span className="text-xs text-muted-foreground dark:text-slate-400">Tiến độ</span>
+                          <span className="text-sm font-semibold text-foreground dark:text-white">{student.progress}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-secondary dark:bg-slate-800 rounded-full overflow-hidden">
+>>>>>>> 0d3281c3c27ad53e9e19ac0fd0a193bd7c97047a
                           <div
                             className={`h-full rounded-full ${
                               student.progress === 100 
@@ -397,8 +547,8 @@ export default function TeacherStudentsPage() {
                             style={{ width: `${student.progress}%` }}
                           />
                         </div>
-                        <span className="text-foreground dark:text-white text-xs font-medium">{student.progress}%</span>
                       </div>
+<<<<<<< HEAD
                     </td>
                     <td className="py-4 px-6">
                       <span className={`font-medium ${
@@ -457,6 +607,37 @@ export default function TeacherStudentsPage() {
                 )}
               </tbody>
             </table>
+=======
+
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">Điểm Quiz</p>
+                          <p className={`text-sm font-semibold ${
+                            student.quizScore >= 80 
+                              ? "text-green-600 dark:text-green-400" 
+                              : student.quizScore >= 60 
+                                ? "text-yellow-600 dark:text-yellow-400" 
+                                : "text-red-600 dark:text-red-400"
+                          }`}>
+                            {student.quizScore}%
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">Bài học</p>
+                          <p className="text-sm font-semibold text-foreground dark:text-white">{student.lessonsCompleted}/{student.totalLessons}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl py-12 text-center">
+                <Users size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy học viên nào</p>
+              </div>
+            )}
+>>>>>>> 0d3281c3c27ad53e9e19ac0fd0a193bd7c97047a
           </div>
         </div>
 

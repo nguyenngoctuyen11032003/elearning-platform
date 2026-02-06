@@ -241,103 +241,110 @@ export default function TeacherReviewsPage() {
           </select>
         </div>
 
-        {/* Reviews List */}
-        <div className="space-y-4">
-          {filteredReviews.map((review) => (
+        {/* Reviews Grid - Card Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredReviews.map((review, index) => (
             <div
               key={review.id}
-              className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6"
+              className="animate-slideUp bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group flex flex-col"
+              style={{ animationDelay: `${0.15 + index * 0.08}s` }}
             >
-              {/* Review Header */}
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-                <div className="flex items-start gap-4">
+              {/* Header with Avatar and Menu */}
+              <div className="p-6 border-b border-border dark:border-slate-800">
+                <div className="flex items-start justify-between mb-4">
                   <img
                     src={review.studentAvatar}
                     alt={review.studentName}
-                    className="w-12 h-12 rounded-full object-cover bg-secondary"
+                    className="w-16 h-16 rounded-full object-cover bg-secondary"
                   />
-                  <div>
-                    <h3 className="font-semibold text-foreground dark:text-white">{review.studentName}</h3>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">{review.studentEmail}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      {renderStars(review.rating)}
-                      <span className="text-xs text-muted-foreground dark:text-slate-400">
-                        {formatDate(review.createdAt)}
-                      </span>
-                    </div>
+                  <button className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
+                    <span className="text-2xl">⋯</span>
+                  </button>
+                </div>
+                <h3 className="font-semibold text-foreground dark:text-white text-lg">{review.studentName}</h3>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{review.studentEmail}</p>
+              </div>
+
+              {/* Rating and Course */}
+              <div className="px-6 py-4 space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground dark:text-slate-400 mb-2">Đánh giá</p>
+                  <div className="flex items-center gap-2">
+                    {renderStars(review.rating)}
+                    <span className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">{review.rating}.0</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 bg-secondary dark:bg-slate-800 rounded-full text-xs font-medium text-foreground dark:text-white flex items-center gap-1">
-                    <BookOpen size={12} />
-                    {review.courseName.length > 30 ? review.courseName.substring(0, 30) + "..." : review.courseName}
-                  </span>
+
+                <div>
+                  <p className="text-xs text-muted-foreground dark:text-slate-400 mb-1">Khóa học</p>
+                  <p className="text-sm font-medium text-foreground dark:text-white line-clamp-2">{review.courseName}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground dark:text-slate-400 mb-1">Ngày đánh giá</p>
+                  <p className="text-sm text-foreground dark:text-white">{formatDate(review.createdAt)}</p>
                 </div>
               </div>
 
-              {/* Review Content */}
-              <p className="text-foreground dark:text-white mb-4">{review.comment}</p>
+              {/* Comment Preview */}
+              <div className="px-6 py-4 border-t border-border dark:border-slate-800 flex-grow">
+                <p className="text-sm text-foreground dark:text-white line-clamp-3">{review.comment}</p>
+              </div>
 
               {/* Helpful Count */}
+<<<<<<< HEAD
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center gap-1 text-muted-foreground dark:text-slate-400 text-sm">
                   <ThumbsUp size={16} />
                   <span>{(review.helpful ?? 0)} người thấy hữu ích</span>
                 </div>
+=======
+              <div className="px-6 py-3 border-t border-border dark:border-slate-800 flex items-center gap-2 text-muted-foreground dark:text-slate-400 text-xs">
+                <ThumbsUp size={14} />
+                <span>{review.helpful} người thấy hữu ích</span>
+>>>>>>> 0d3281c3c27ad53e9e19ac0fd0a193bd7c97047a
               </div>
 
-              {/* Teacher Response */}
-              {review.response && (
-                <div className="bg-primary/5 dark:bg-accent/5 border border-primary/20 dark:border-accent/20 rounded-xl p-4 mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 bg-primary dark:bg-accent rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">GV</span>
-                    </div>
-                    <span className="font-semibold text-foreground dark:text-white text-sm">Phản hồi của giảng viên</span>
-                    {review.responseDate && (
-                      <span className="text-xs text-muted-foreground dark:text-slate-400">
-                        • {formatDate(review.responseDate)}
-                      </span>
-                    )}
+              {/* Actions */}
+              <div className="px-6 py-4 border-t border-border dark:border-slate-800 space-y-2">
+                {review.response ? (
+                  <div className="bg-primary/5 dark:bg-accent/5 rounded-lg p-3 text-xs">
+                    <p className="text-primary dark:text-accent font-semibold mb-1">✓ Đã phản hồi</p>
+                    <p className="text-foreground dark:text-white line-clamp-2">{review.response}</p>
                   </div>
-                  <p className="text-foreground dark:text-white text-sm">{review.response}</p>
-                </div>
-              )}
+                ) : (
+                  <button
+                    onClick={() => setReplyingTo(review.id)}
+                    className="w-full px-4 py-2 rounded-lg font-medium bg-primary hover:bg-primary/90 text-white transition-all flex items-center justify-center gap-2"
+                  >
+                    <MessageSquare size={16} /> Phản hồi
+                  </button>
+                )}
+              </div>
 
-              {/* Reply Input */}
-              {!review.response && (
-                <div>
-                  {replyingTo === review.id ? (
-                    <div className="space-y-3">
-                      <textarea
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        placeholder="Nhập phản hồi của bạn..."
-                        className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary resize-none h-24"
-                      />
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={() => { setReplyingTo(null); setReplyText(""); }}
-                          className="px-4 py-2 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
-                        >
-                          Hủy
-                        </button>
-                        <button
-                          onClick={() => handleReply(review.id)}
-                          className="px-4 py-2 rounded-lg font-medium bg-gradient-to-r from-primary to-accent text-white hover:shadow-lg flex items-center gap-2"
-                        >
-                          <Send size={16} /> Gửi phản hồi
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
+              {/* Reply Input Modal */}
+              {replyingTo === review.id && (
+                <div className="px-6 pb-4 space-y-3 border-t border-border dark:border-slate-800">
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Nhập phản hồi của bạn..."
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
+                  />
+                  <div className="flex gap-2">
                     <button
-                      onClick={() => setReplyingTo(review.id)}
-                      className="text-primary dark:text-accent hover:underline text-sm font-medium flex items-center gap-1"
+                      onClick={() => { setReplyingTo(null); setReplyText(""); }}
+                      className="flex-1 px-3 py-2 rounded-lg font-medium text-sm border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
                     >
-                      <MessageSquare size={16} /> Phản hồi đánh giá này
+                      Hủy
                     </button>
-                  )}
+                    <button
+                      onClick={() => handleReply(review.id)}
+                      className="flex-1 px-3 py-2 rounded-lg font-medium text-sm bg-primary hover:bg-primary/90 text-white flex items-center justify-center gap-1"
+                    >
+                      <Send size={14} /> Gửi
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

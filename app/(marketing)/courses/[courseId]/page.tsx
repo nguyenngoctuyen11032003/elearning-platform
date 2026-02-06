@@ -97,7 +97,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     students: 1250,
     duration: "40 giờ",
     level: "Trung cấp",
-    image: "/placeholder.jpg",
+    image: "/image/python.png",
     description:
       "Khóa học toàn diện về Next.js, từ những khái niệm cơ bản đến các kỹ thuật nâng cao. Bạn sẽ học cách xây dựng các ứng dụng web hiệu suất cao với React và Next.js.",
     sections: [
@@ -293,11 +293,21 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Course Info */}
               <div className="lg:col-span-2">
-                <img
-                  src={"/image/logo-ics.jpg"}
-                  alt={course.title}
-                  className="w-full h-96 object-cover rounded-2xl mb-6 mt-12"
-                />
+                <div className="relative w-full h-96 rounded-2xl overflow-hidden mb-6 mt-12">
+                  <img
+                    src={course.image || "/image/python.png"}
+                    alt={course.title}
+                    className="w-full h-full object-cover z-10"
+                    style={{ display: 'block' }}
+                  />
+                  <div className="absolute top-3 right-3 w-12 h-12 rounded-lg overflow-hidden border border-white/30 shadow-lg z-20">
+                    <img
+                      src="/image/logo-ics.jpg"
+                      alt="ICS Logo"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
                 <h1 className="text-4xl font-bold text-foreground dark:text-white mb-4">{course.title}</h1>
                 <p className="text-lg text-muted-foreground dark:text-slate-400 mb-6">{course.description}</p>
 
@@ -605,9 +615,29 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                   </div>
 
                   {/* Buttons */}
-                  <Link href="/checkout" className="block">
+                  <button
+                    onClick={() => {
+                      const courseData = {
+                        id: course.id,
+                        title: course.title,
+                        teacher: course.teacher,
+                        teacherId: course.id,
+                        price: course.price,
+                        rating: course.rating,
+                        students: course.students,
+                        image: course.image,
+                        description: course.description,
+                        duration: course.duration,
+                        level: course.level,
+                        sections: course.sections,
+                      }
+                      localStorage.setItem("checkoutCourse", JSON.stringify(courseData))
+                      window.location.href = "/checkout"
+                    }}
+                    className="w-full"
+                  >
                     <AnimatedButton className="w-full">Ghi danh ngay</AnimatedButton>
-                  </Link>
+                  </button>
 
                   <button
                     onClick={() => setIsWishlisted(!isWishlisted)}
