@@ -1,10 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Download, TrendingUp, DollarSign, Users, X, Eye, CreditCard, Calendar, BookOpen } from "lucide-react"
+import { toast } from "sonner"
 import { StatCard } from "@/components/ui/stat-card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { formatPrice } from "@/lib/format"
+import { apiClient } from "@/lib/api/client"
 
 interface Payment {
   id: string
@@ -18,72 +20,27 @@ interface Payment {
   transactionId: string
 }
 
-const payments: Payment[] = [
-  {
-    id: "PAY001",
-    student: "Trần Văn A",
-    studentEmail: "tran.van.a@example.com",
-    course: "Next.js Advanced",
-    amount: 499000,
-    method: "VNPay",
-    status: "success",
-    date: "2025-01-15",
-    transactionId: "VNP12345678"
-  },
-  {
-    id: "PAY002",
-    student: "Lê Minh C",
-    studentEmail: "le.minh.c@example.com",
-    course: "Next.js Advanced",
-    amount: 499000,
-    method: "MoMo",
-    status: "success",
-    date: "2025-01-14",
-    transactionId: "MOMO87654321"
-  },
-  {
-    id: "PAY003",
-    student: "Phạm Quốc D",
-    studentEmail: "pham.quoc.d@example.com",
-    course: "React Hooks Mastery",
-    amount: 399000,
-    method: "VNPay",
-    status: "pending",
-    date: "2025-01-13",
-    transactionId: "VNP23456789"
-  },
-  {
-    id: "PAY004",
-    student: "Hoàng Thị F",
-    studentEmail: "hoang.thi.f@example.com",
-    course: "Next.js Advanced",
-    amount: 499000,
-    method: "Stripe",
-    status: "success",
-    date: "2025-01-12",
-    transactionId: "STRIPE34567890"
-  },
-  {
-    id: "PAY005",
-    student: "Nguyễn Văn H",
-    studentEmail: "nguyen.van.h@example.com",
-    course: "React Hooks Mastery",
-    amount: 399000,
-    method: "MoMo",
-    status: "failed",
-    date: "2025-01-11",
-    transactionId: "MOMO45678901"
-  },
-]
+const normalizeStatus = (status?: string): Payment["status"] => {
+  const normalized = status?.toLowerCase?.()
+  if (normalized === "completed" || normalized === "success") return "success"
+  if (normalized === "pending") return "pending"
+  return "failed"
+}
 
-const courses = [
-  { id: "1", title: "Next.js Advanced" },
-  { id: "2", title: "React Hooks Mastery" },
-]
-
-const students = [...new Set(payments.map(p => p.student))]
+const normalizeMethod = (method?: string) => {
+  if (!method) return "Khác"
+  return method.toUpperCase()
+}
 
 export default function TeacherEarningsPage() {
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [byCourse, setByCourse] = useState<{ courseId: string; courseName: string; earnings: number; enrollments: number }[]>([])
+  const [stats, setStats] = useState({
+    totalEarnings: 0,
+    pendingEarnings: 0,
+    paidEarnings: 0,
+  })
+  const [loading, setLoading] = useState(true)
   const [filterPeriod, setFilterPeriod] = useState("month")
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
@@ -94,25 +51,70 @@ export default function TeacherEarningsPage() {
   const [exportDateFrom, setExportDateFrom] = useState<string>("")
   const [exportDateTo, setExportDateTo] = useState<string>("")
 
-  const earningsData = [
-    { month: "1", revenue: 2400, students: 24 },
-    { month: "2", revenue: 3210, students: 32 },
-    { month: "3", revenue: 2290, students: 23 },
-    { month: "4", revenue: 2000, students: 20 },
-    { month: "5", revenue: 2181, students: 22 },
-    { month: "6", revenue: 2500, students: 25 },
-    { month: "7", revenue: 2800, students: 28 },
-    { month: "8", revenue: 3100, students: 31 },
-    { month: "9", revenue: 2900, students: 29 },
-    { month: "10", revenue: 3400, students: 34 },
-    { month: "11", revenue: 3800, students: 38 },
-    { month: "12", revenue: 4200, students: 42 },
-  ]
+    const loadEarnings = async () => {
+      setLoading(true)
+      try {
+        const res = await apiClient.getTeacherEarnings()
+        const paymentsRaw = Array.isArray(res?.payments) ? res.payments : []
+        const mappedPayments: Payment[] = paymentsRaw.map((p: any) => ({
+          id: p.id || p.transactionId,
+          student: p.studentName || "Không rõ",
+          studentEmail: p.studentEmail || "",
+          course: p.courseName || "Không rõ",
+          amount: Number(p.amount ?? 0),
+          method: normalizeMethod(p.method),
+          status: normalizeStatus(p.status),
+          date: new Date(p.date || new Date()).toISOString(),
+          transactionId: p.transactionId || p.id || "",
+        }))
 
-  // Calculate totals
-  const totalRevenue = payments.filter(p => p.status === "success").reduce((sum, p) => sum + p.amount, 0)
-  const thisMonthRevenue = payments.filter(p => p.status === "success" && p.date.startsWith("2025-01")).reduce((sum, p) => sum + p.amount, 0)
-  const newStudentsCount = payments.filter(p => p.status === "success" && p.date.startsWith("2025-01")).length
+        setPayments(mappedPayments)
+        setByCourse(res?.byCourse || [])
+        setStats({
+          totalEarnings: Number(res?.totalEarnings ?? 0),
+          pendingEarnings: Number(res?.pendingEarnings ?? 0),
+          paidEarnings: Number(res?.paidEarnings ?? 0),
+        })
+      } catch (error) {
+        console.error("Error loading teacher earnings", error)
+        toast.error("Không thể tải dữ liệu doanh thu")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    useEffect(() => {
+      loadEarnings()
+    }, [])
+
+    const earningsData = useMemo(
+      () =>
+        byCourse.map((c) => ({
+          name: c.courseName,
+          revenue: c.earnings,
+          students: c.enrollments,
+        })),
+      [byCourse]
+    )
+
+    const totalRevenue = stats.totalEarnings || payments.filter(p => p.status === "success").reduce((sum, p) => sum + p.amount, 0)
+
+    const thisMonthRevenue = useMemo(() => {
+      const now = new Date()
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+      return payments
+        .filter(p => p.status === "success" && p.date.startsWith(monthKey))
+        .reduce((sum, p) => sum + p.amount, 0)
+    }, [payments])
+
+    const newStudentsCount = useMemo(() => {
+      const now = new Date()
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+      return payments.filter(p => p.status === "success" && p.date.startsWith(monthKey)).length
+    }, [payments])
+
+    const uniqueCourses = useMemo(() => Array.from(new Set(payments.map((p) => p.course).filter(Boolean))), [payments])
+    const uniqueStudents = useMemo(() => Array.from(new Set(payments.map((p) => p.student).filter(Boolean))), [payments])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('vi-VN', {
@@ -153,6 +155,20 @@ export default function TeacherEarningsPage() {
     link.click()
 
     setIsExportOpen(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-64 rounded-3xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+          ))}
+        </div>
+        <div className="h-[420px] rounded-2xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+      </div>
+    )
   }
 
   return (
@@ -236,7 +252,7 @@ export default function TeacherEarningsPage() {
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={earningsData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis stroke="#94a3b8" />
+              <XAxis dataKey="name" stroke="#94a3b8" />
               <YAxis stroke="#94a3b8" />
               <Tooltip
                 contentStyle={{
@@ -460,8 +476,8 @@ export default function TeacherEarningsPage() {
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="all">Tất cả khóa học</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.title}>{course.title}</option>
+                  {uniqueCourses.map((course) => (
+                    <option key={course} value={course}>{course}</option>
                   ))}
                 </select>
               </div>
@@ -477,7 +493,7 @@ export default function TeacherEarningsPage() {
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="all">Tất cả học viên</option>
-                  {students.map((student) => (
+                  {uniqueStudents.map((student) => (
                     <option key={student} value={student}>{student}</option>
                   ))}
                 </select>

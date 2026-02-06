@@ -1,10 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Search, Download, MoreVertical, Eye, UserX, Users, BookOpen, TrendingUp, Award, X, Mail, Calendar, Clock, CheckCircle } from "lucide-react"
+import { apiClient } from "@/lib/api/client"
+import { toast } from "sonner"
 
 interface Student {
   id: string
+  studentId: string
   name: string
   email: string
   phone: string
@@ -20,93 +23,12 @@ interface Student {
   quizScore: number
 }
 
-const initialStudents: Student[] = [
-  {
-    id: "1",
-    name: "Trần Minh Anh",
-    email: "minh.anh@email.com",
-    phone: "0901234567",
-    avatar: "/placeholder-user.jpg",
-    course: "Next.js Advanced",
-    courseId: "COURSE001",
-    progress: 85,
-    joinDate: "2024-01-15",
-    lastActive: "2025-01-18",
-    status: "active",
-    lessonsCompleted: 38,
-    totalLessons: 45,
-    quizScore: 92,
-  },
-  {
-    id: "2",
-    name: "Nguyễn Văn Bình",
-    email: "van.binh@email.com",
-    phone: "0912345678",
-    avatar: "/placeholder-user.jpg",
-    course: "React Hooks Mastery",
-    courseId: "COURSE002",
-    progress: 60,
-    joinDate: "2024-02-20",
-    lastActive: "2025-01-17",
-    status: "active",
-    lessonsCompleted: 21,
-    totalLessons: 35,
-    quizScore: 78,
-  },
-  {
-    id: "3",
-    name: "Phạm Thị Cẩm",
-    email: "thi.cam@email.com",
-    phone: "0923456789",
-    avatar: "/placeholder-user.jpg",
-    course: "Next.js Advanced",
-    courseId: "COURSE001",
-    progress: 100,
-    joinDate: "2024-01-10",
-    lastActive: "2025-01-15",
-    status: "completed",
-    lessonsCompleted: 45,
-    totalLessons: 45,
-    quizScore: 95,
-  },
-  {
-    id: "4",
-    name: "Lê Hoàng Dũng",
-    email: "hoang.dung@email.com",
-    phone: "0934567890",
-    avatar: "/placeholder-user.jpg",
-    course: "React Hooks Mastery",
-    courseId: "COURSE002",
-    progress: 25,
-    joinDate: "2024-03-01",
-    lastActive: "2025-01-10",
-    status: "inactive",
-    lessonsCompleted: 9,
-    totalLessons: 35,
-    quizScore: 65,
-  },
-  {
-    id: "5",
-    name: "Võ Thị E",
-    email: "thi.e@email.com",
-    phone: "0945678901",
-    avatar: "/placeholder-user.jpg",
-    course: "Next.js Advanced",
-    courseId: "COURSE001",
-    progress: 45,
-    joinDate: "2024-02-28",
-    lastActive: "2025-01-18",
-    status: "active",
-    lessonsCompleted: 20,
-    totalLessons: 45,
-    quizScore: 82,
-  },
-]
-
-const courses = [
-  { id: "COURSE001", title: "Next.js Advanced" },
-  { id: "COURSE002", title: "React Hooks Mastery" },
-]
+const normalizeStatus = (status?: string): Student["status"] => {
+  const s = (status || "").toString().trim().toLowerCase()
+  if (s === "completed") return "completed"
+  if (s === "active" || s === "in_progress" || s === "progress") return "active"
+  return "inactive"
+}
 
 export default function TeacherStudentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -115,13 +37,104 @@ export default function TeacherStudentsPage() {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "remove" | null>(null)
-  const [students, setStudents] = useState(initialStudents)
+  const [students, setStudents] = useState<Student[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Stats
-  const totalStudents = students.length
-  const activeStudents = students.filter(s => s.status === "active").length
-  const completedStudents = students.filter(s => s.status === "completed").length
-  const avgProgress = Math.round(students.reduce((sum, s) => sum + s.progress, 0) / students.length)
+  useEffect(() => {
+    const loadStudents = async () => {
+      setLoading(true)
+      try {
+        const res = await apiClient.getTeacherStudents()
+        const rows = Array.isArray(res?.data) ? res.data : []
+        const mapped: Student[] = rows.map((s: any) => ({
+          id: s.id,
+          studentId: s.studentId || s.id,
+          name: s.name || "Không rõ",
+          email: s.email || "",
+          phone: s.phone || "",
+          avatar: s.avatar || "/placeholder-user.jpg",
+          course: s.courseName || "",
+          courseId: s.courseId || "",
+          progress: Number(s.progress ?? 0),
+          joinDate: s.joinDate ? new Date(s.joinDate).toISOString() : "",
+          lastActive: s.lastActive ? new Date(s.lastActive).toISOString() : "",
+          status: normalizeStatus(s.status),
+          lessonsCompleted: 0,
+          totalLessons: 0,
+          quizScore: 0,
+        }))
+        setStudents(mapped)
+      } catch (error) {
+        console.error("Failed to load students", error)
+        toast.error("Không thể tải danh sách học viên")
+        setStudents([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadStudents()
+  }, [])
+
+  // Stats - Use useMemo to deduplicate students by unique studentId
+  const uniqueStudents = useMemo(() => {
+    const map = new Map<string, {
+      base: Student
+      progressSum: number
+      enrollCount: number
+      hasCompleted: boolean
+      hasActive: boolean
+    }>()
+
+    students.forEach(s => {
+      const key = s.studentId || s.email || s.id // prefer studentId; fallback to email/id
+      const isCompleted = s.status === "completed" || (s.progress ?? 0) >= 100
+      const isActive = s.status === "active"
+
+      if (!map.has(key)) {
+        map.set(key, {
+          base: s,
+          progressSum: s.progress || 0,
+          enrollCount: 1,
+          hasCompleted: isCompleted,
+          hasActive: isActive,
+        })
+      } else {
+        const prev = map.get(key)!
+        map.set(key, {
+          base: prev.base, // keep first as base
+          progressSum: prev.progressSum + (s.progress || 0),
+          enrollCount: prev.enrollCount + 1,
+          hasCompleted: prev.hasCompleted || isCompleted,
+          hasActive: prev.hasActive || isActive,
+        })
+      }
+    })
+
+    return Array.from(map.values()).map(({ base, progressSum, enrollCount, hasCompleted, hasActive }) => ({
+      ...base,
+      // Aggregate status: completed wins over active, then inactive
+      status: hasCompleted ? "completed" : hasActive ? "active" : "inactive",
+      // Average progress across that student's enrollments
+      progress: enrollCount > 0 ? Math.round(progressSum / enrollCount) : 0,
+    }))
+  }, [students])
+
+  const totalStudents = uniqueStudents.length
+  const activeStudents = uniqueStudents.filter(s => s.status === "active").length
+  const completedStudents = uniqueStudents.filter(s => s.status === "completed").length
+  const avgProgress = uniqueStudents.length > 0 ? Math.round(uniqueStudents.reduce((sum, s) => sum + s.progress, 0) / uniqueStudents.length) : 0
+
+  const courseOptions = useMemo(
+    () => {
+      const map = new Map<string, string>()
+      students.forEach(s => {
+        if (s.courseId) map.set(s.courseId, s.course || s.courseId)
+      })
+      return Array.from(map.entries()).map(([id, title]) => ({ id, title }))
+    },
+    [students]
+  )
 
   const filteredStudents = students.filter((student) => {
     const matchSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -150,27 +163,26 @@ export default function TeacherStudentsPage() {
     setSelectedStudent(null)
   }
 
-  const handleExport = () => {
-    const headers = ["Tên", "Email", "SĐT", "Khóa học", "Tiến độ", "Ngày tham gia", "Trạng thái"]
-    const rows = filteredStudents.map(s => [
-      s.name,
-      s.email,
-      s.phone,
-      s.course,
-      `${s.progress}%`,
-      s.joinDate,
-      s.status === "active" ? "Đang học" : s.status === "completed" ? "Hoàn thành" : "Không hoạt động"
-    ])
-    const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n")
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const link = document.createElement("a")
-    link.href = URL.createObjectURL(blob)
-    link.download = `students_${new Date().toISOString().split("T")[0]}.csv`
-    link.click()
+  const handleExport = async () => {
+    try {
+      const blob = await apiClient.exportTeacherStudents()
+      if (blob instanceof Blob) {
+        const link = document.createElement("a")
+        link.href = URL.createObjectURL(blob)
+        link.download = `students_${new Date().toISOString().split("T")[0]}.csv`
+        link.click()
+      }
+    } catch (error) {
+      console.error("Failed to export students", error)
+      toast.error("Xuất danh sách thất bại")
+    }
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN', {
+    if (!dateString) return ""
+    const d = new Date(dateString)
+    if (Number.isNaN(d.getTime())) return ""
+    return d.toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -213,6 +225,21 @@ export default function TeacherStudentsPage() {
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
   }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen w-full space-y-6">
+        <div className="h-40 rounded-3xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="h-24 rounded-2xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+          ))}
+        </div>
+        <div className="h-12 rounded-lg bg-slate-200 dark:bg-slate-800 animate-pulse" />
+        <div className="h-[400px] rounded-2xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen w-full">
@@ -305,7 +332,7 @@ export default function TeacherStudentsPage() {
             className="px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="all">Tất cả khóa học</option>
-            {courses.map((course) => (
+            {courseOptions.map((course) => (
               <option key={course.id} value={course.id}>{course.title}</option>
             ))}
           </select>
@@ -358,7 +385,7 @@ export default function TeacherStudentsPage() {
                     <td className="py-4 px-6 text-foreground dark:text-white">{student.course}</td>
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2">
-                        <div className="w-24 h-2 bg-secondary dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="flex-1 w-20 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full ${
                               student.progress === 100 
@@ -421,18 +448,17 @@ export default function TeacherStudentsPage() {
                     </td>
                   </tr>
                 ))}
+                {filteredStudents.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-muted-foreground dark:text-slate-400">
+                      Chưa có học viên nào
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
-
-          {filteredStudents.length === 0 && (
-            <div className="py-12 text-center">
-              <Users size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy học viên nào</p>
-            </div>
-          )}
         </div>
-      </div>
 
       {/* Student Detail Modal */}
       {viewMode === "view" && selectedStudent && (
@@ -555,7 +581,9 @@ export default function TeacherStudentsPage() {
             </div>
           </div>
         </div>
-      )}    </div>
+      )}
+    </div>
+  </div>
   )
 }
 

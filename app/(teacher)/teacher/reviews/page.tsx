@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Star, MessageSquare, ThumbsUp, Search, BookOpen, TrendingUp, Users, X, Send, StarIcon } from "lucide-react"
+import { Star, MessageSquare, ThumbsUp, Search, BookOpen, TrendingUp, Send } from "lucide-react"
 import { toast } from "sonner"
+import { apiClient } from "@/lib/api/client"
 
 interface Review {
   id: string
@@ -19,104 +20,54 @@ interface Review {
   responseDate?: string
 }
 
+interface ReviewStats {
+  totalReviews: number
+  averageRating: number
+  fiveStarCount: number
+  responseRate: number
+}
+
+interface CourseOption {
+  id: string
+  name: string
+}
+
 export default function TeacherReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<ReviewStats>({ totalReviews: 0, averageRating: 0, fiveStarCount: 0, responseRate: 0 })
+  const [courses, setCourses] = useState<CourseOption[]>([])
   const [ratingFilter, setRatingFilter] = useState("all")
   const [courseFilter, setCourseFilter] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState("")
   const [selectedReview, setSelectedReview] = useState<Review | null>(null)
-
-  // Mock data
   useEffect(() => {
-    const mockReviews: Review[] = [
-      {
-        id: "1",
-        courseName: "Lập trình Next.js từ cơ bản đến nâng cao",
-        courseId: "course-1",
-        studentName: "Nguyễn Văn A",
-        studentAvatar: "/placeholder-user.jpg",
-        studentEmail: "nguyenvana@email.com",
-        rating: 5,
-        comment: "Khóa học tuyệt vời! Giảng viên giảng dạy rất dễ hiểu và chi tiết. Tôi đã học được rất nhiều kiến thức mới về Next.js, đặc biệt là App Router và Server Components. Highly recommend!",
-        createdAt: "2024-12-15T10:30:00Z",
-        helpful: 12,
-        response: "Cảm ơn bạn đã đánh giá! Rất vui vì khóa học đã giúp ích cho bạn trong việc học Next.js.",
-        responseDate: "2024-12-16T08:00:00Z"
-      },
-      {
-        id: "2",
-        courseName: "React Hooks & State Management",
-        courseId: "course-2",
-        studentName: "Trần Thị B",
-        studentAvatar: "/placeholder-user.jpg",
-        studentEmail: "tranthib@email.com",
-        rating: 4,
-        comment: "Nội dung khóa học rất hay và chi tiết về React Hooks. Tuy nhiên tôi mong có thêm nhiều bài tập thực hành hơn để củng cố kiến thức.",
-        createdAt: "2024-12-14T15:45:00Z",
-        helpful: 8
-      },
-      {
-        id: "3",
-        courseName: "Lập trình Next.js từ cơ bản đến nâng cao",
-        courseId: "course-1",
-        studentName: "Lê Văn C",
-        studentAvatar: "/placeholder-user.jpg",
-        studentEmail: "levanc@email.com",
-        rating: 5,
-        comment: "Đây là khóa học tốt nhất về Next.js mà tôi từng học. Giảng viên nhiệt tình, nội dung cập nhật liên tục. Highly recommend cho mọi người!",
-        createdAt: "2024-12-13T09:20:00Z",
-        helpful: 15,
-        response: "Cảm ơn bạn rất nhiều! Mình sẽ tiếp tục cập nhật nội dung mới nhất cho khóa học.",
-        responseDate: "2024-12-14T07:00:00Z"
-      },
-      {
-        id: "4",
-        courseName: "React Hooks & State Management",
-        courseId: "course-2",
-        studentName: "Phạm Thị D",
-        studentAvatar: "/placeholder-user.jpg",
-        studentEmail: "phamthid@email.com",
-        rating: 3,
-        comment: "Khóa học ổn nhưng cần cập nhật thêm các tính năng mới của React như Server Components và use() hook.",
-        createdAt: "2024-12-12T14:00:00Z",
-        helpful: 3
-      },
-      {
-        id: "5",
-        courseName: "Lập trình Next.js từ cơ bản đến nâng cao",
-        courseId: "course-1",
-        studentName: "Hoàng Văn E",
-        studentAvatar: "/placeholder-user.jpg",
-        studentEmail: "hoangvane@email.com",
-        rating: 4,
-        comment: "Khóa học rất tốt cho người mới bắt đầu. Giảng viên giải thích rõ ràng từng concept.",
-        createdAt: "2024-12-11T11:30:00Z",
-        helpful: 6
+    const loadReviews = async () => {
+      setLoading(true)
+      try {
+        const res = await apiClient.getTeacherReviews()
+        const list = Array.isArray(res?.reviews) ? res.reviews : []
+        setReviews(list)
+        setStats(res?.stats || { totalReviews: list.length, averageRating: 0, fiveStarCount: 0, responseRate: 0 })
+        setCourses(Array.isArray(res?.courses) ? res.courses : [])
+      } catch (error) {
+        console.error('Failed to load reviews', error)
+        toast.error('Không thể tải đánh giá')
+        setReviews([])
+      } finally {
+        setLoading(false)
       }
-    ]
+    }
 
-    setTimeout(() => {
-      setReviews(mockReviews)
-      setLoading(false)
-    }, 500)
+    loadReviews()
   }, [])
 
   // Stats
-  const avgRating = reviews.length > 0
-    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-    : "0.0"
-  const fiveStarCount = reviews.filter(r => r.rating === 5).length
-  const responseRate = reviews.length > 0
-    ? Math.round((reviews.filter(r => r.response).length / reviews.length) * 100)
-    : 0
-
-  const courses = [...new Set(reviews.map(r => ({ id: r.courseId, name: r.courseName })))]
-    .filter((course, index, self) =>
-      index === self.findIndex(c => c.id === course.id)
-    )
+  const avgRating = (stats.averageRating || 0).toFixed(1)
+  const fiveStarCount = stats.fiveStarCount || 0
+  const responseRate = stats.responseRate || 0
 
   const filteredReviews = reviews.filter(review => {
     const matchesRating = ratingFilter === "all" || review.rating === parseInt(ratingFilter)
@@ -126,20 +77,26 @@ export default function TeacherReviewsPage() {
     return matchesRating && matchesCourse && matchesSearch
   })
 
-  const handleReply = (reviewId: string) => {
+  const handleReply = async (reviewId: string) => {
     if (!replyText.trim()) {
       toast.error("Vui lòng nhập nội dung phản hồi")
       return
     }
 
-    setReviews(prev => prev.map(review =>
-      review.id === reviewId
-        ? { ...review, response: replyText, responseDate: new Date().toISOString() }
-        : review
-    ))
-    setReplyText("")
-    setReplyingTo(null)
-    toast.success("Phản hồi đã được gửi!")
+    try {
+      const res = await apiClient.replyTeacherReview(reviewId, replyText.trim())
+      setReviews(prev => prev.map(review =>
+        review.id === reviewId
+          ? { ...review, response: res?.response || replyText, responseDate: res?.responseDate || new Date().toISOString() }
+          : review
+      ))
+      setReplyText("")
+      setReplyingTo(null)
+      toast.success("Phản hồi đã được gửi!")
+    } catch (error) {
+      console.error('Failed to reply review', error)
+      toast.error("Gửi phản hồi thất bại")
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -202,7 +159,7 @@ export default function TeacherReviewsPage() {
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng đánh giá</p>
-                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{reviews.length}</p>
+                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{stats.totalReviews}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <MessageSquare size={20} className="text-blue-600 dark:text-blue-400" />
@@ -325,7 +282,7 @@ export default function TeacherReviewsPage() {
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center gap-1 text-muted-foreground dark:text-slate-400 text-sm">
                   <ThumbsUp size={16} />
-                  <span>{review.helpful} người thấy hữu ích</span>
+                  <span>{(review.helpful ?? 0)} người thấy hữu ích</span>
                 </div>
               </div>
 

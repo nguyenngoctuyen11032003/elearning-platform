@@ -194,6 +194,16 @@ export const API_ENDPOINTS = {
   UPDATE: '/api/system-settings',
 },
 
+  TEACHER: {
+    DASHBOARD: '/api/teacher/dashboard/stats',
+    EARNINGS: '/api/teacher/earnings',
+    STUDENTS: '/api/teacher/students',
+    EXPORT_EARNINGS: '/api/teacher/earnings/export',
+    EXPORT_STUDENTS: '/api/teacher/students/export',
+    REVIEWS: '/api/teacher/reviews',
+    REVIEW_REPLY: (id: string) => `/api/teacher/reviews/${id}/reply`,
+  },
+
 } as const;
 
 export { API_BASE_URL };

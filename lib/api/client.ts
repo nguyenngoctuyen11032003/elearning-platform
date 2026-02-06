@@ -535,6 +535,44 @@ async uploadFile(file: File): Promise<{ url: string }> {
     });
   }
 
+  // Teacher endpoints
+  async getTeacherEarnings(): Promise<any> {
+    return this.request(API_ENDPOINTS.TEACHER.EARNINGS)
+  }
+
+  async exportTeacherEarnings(): Promise<Blob | any> {
+    return this.request(API_ENDPOINTS.TEACHER.EXPORT_EARNINGS, {
+      method: 'POST',
+      headers: {
+        Accept: 'text/csv,application/json',
+      },
+    })
+  }
+
+  async getTeacherStudents(): Promise<any> {
+    return this.request(API_ENDPOINTS.TEACHER.STUDENTS)
+  }
+
+  async exportTeacherStudents(): Promise<Blob | any> {
+    return this.request(API_ENDPOINTS.TEACHER.EXPORT_STUDENTS, {
+      method: 'POST',
+      headers: {
+        Accept: 'text/csv,application/json',
+      },
+    })
+  }
+
+  async getTeacherReviews(): Promise<any> {
+    return this.request(API_ENDPOINTS.TEACHER.REVIEWS)
+  }
+
+  async replyTeacherReview(id: string, reply: string): Promise<any> {
+    return this.request(API_ENDPOINTS.TEACHER.REVIEW_REPLY(id), {
+      method: 'POST',
+      body: JSON.stringify({ reply }),
+    })
+  }
+
   // Admin payments
   async getAdminPayments(params?: {
     page?: number

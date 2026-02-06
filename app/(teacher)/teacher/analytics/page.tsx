@@ -12,10 +12,13 @@ import {
   BookOpen
 } from "lucide-react"
 import { StatCard } from "@/components/ui/stat-card"
+import { apiClient } from "@/lib/api/client"
+import { toast } from "sonner"
 
 interface AnalyticsData {
   totalStudents: number
   totalCourses: number
+  activeCourses: number
   totalRevenue: number
   totalViews: number
   averageRating: number
@@ -37,59 +40,46 @@ export default function TeacherAnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [coursePerformance, setCoursePerformance] = useState<CoursePerformance[]>([])
   const [loading, setLoading] = useState(true)
-  const [dateRange, setDateRange] = useState("30days")
+  const [dateRange, setDateRange] = useState("month")
 
   useEffect(() => {
-    // Mock data
-    setTimeout(() => {
-      setAnalytics({
-        totalStudents: 1250,
-        totalCourses: 8,
-        totalRevenue: 45000000,
-        totalViews: 25600,
-        averageRating: 4.8,
-        completionRate: 72,
-        studentGrowth: 15.3,
-        revenueGrowth: 23.5,
-      })
+    const loadAnalytics = async () => {
+      setLoading(true)
+      try {
+        const res = await apiClient.getTeacherDashboardStats()
+        setAnalytics({
+          totalStudents: Number(res?.totalStudents ?? 0),
+          totalCourses: Number(res?.totalCourses ?? 0),
+          activeCourses: Number(res?.activeCourses ?? 0),
+          totalRevenue: Number(res?.totalRevenue ?? 0),
+          totalViews: Number(res?.totalViews ?? 0),
+          averageRating: Number(res?.averageRating ?? 0),
+          completionRate: Number(res?.completionRate ?? 0),
+          studentGrowth: Number(res?.studentGrowth ?? 0),
+          revenueGrowth: Number(res?.revenueGrowth ?? 0),
+        })
+        setCoursePerformance(Array.isArray(res?.coursePerformance) ? res.coursePerformance : [])
+      } catch (error) {
+        console.error("Failed to load teacher analytics", error)
+        toast.error("Không thể tải dữ liệu phân tích")
+        setAnalytics({
+          totalStudents: 0,
+          totalCourses: 0,
+          activeCourses: 0,
+          totalRevenue: 0,
+          totalViews: 0,
+          averageRating: 0,
+          completionRate: 0,
+          studentGrowth: 0,
+          revenueGrowth: 0,
+        })
+        setCoursePerformance([])
+      } finally {
+        setLoading(false)
+      }
+    }
 
-      setCoursePerformance([
-        {
-          id: "1",
-          title: "Lập trình Next.js từ cơ bản đến nâng cao",
-          students: 450,
-          revenue: 18000000,
-          rating: 4.9,
-          completionRate: 78,
-        },
-        {
-          id: "2",
-          title: "React Hooks & State Management",
-          students: 380,
-          revenue: 12500000,
-          rating: 4.8,
-          completionRate: 82,
-        },
-        {
-          id: "3",
-          title: "TypeScript Fundamentals",
-          students: 220,
-          revenue: 8800000,
-          rating: 4.7,
-          completionRate: 65,
-        },
-        {
-          id: "4",
-          title: "Node.js Backend Development",
-          students: 200,
-          revenue: 5700000,
-          rating: 4.6,
-          completionRate: 58,
-        },
-      ])
-
-      setLoading(false)
-    }, 1000)
+    loadAnalytics()
   }, [dateRange])
 
   const formatCurrency = (amount: number) => {
@@ -158,31 +148,31 @@ export default function TeacherAnalyticsPage() {
                 <StatCard 
                   icon={Users} 
                   title="Tổng học viên" 
-                  value={analytics!.totalStudents.toLocaleString('en-US')} 
-                  change={`${analytics!.studentGrowth > 0 ? '+' : ''}${analytics!.studentGrowth}% so với tháng trước`} 
+                  value={(analytics?.totalStudents || 0).toLocaleString('en-US')} 
+                  change={`${(analytics?.studentGrowth || 0) > 0 ? '+' : ''}${analytics?.studentGrowth || 0}% so với tháng trước`} 
                 />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
                 <StatCard 
                   icon={DollarSign} 
                   title="Tổng doanh thu" 
-                  value={formatCurrency(analytics!.totalRevenue)} 
-                  change={`${analytics!.revenueGrowth > 0 ? '+' : ''}${analytics!.revenueGrowth}% so với tháng trước`} 
+                  value={formatCurrency(analytics?.totalRevenue || 0)} 
+                  change={`${(analytics?.revenueGrowth || 0) > 0 ? '+' : ''}${analytics?.revenueGrowth || 0}% so với tháng trước`} 
                 />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
                 <StatCard 
                   icon={Eye} 
-                  title="Lượt xem" 
-                  value={analytics!.totalViews.toLocaleString('en-US')} 
-                  change="Tổng lượt xem khóa học" 
+                  title="Lượt đăng ký" 
+                  value={(analytics?.totalViews || 0).toLocaleString('en-US')} 
+                  change="Tổng lượt đăng ký khóa học" 
                 />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
                 <StatCard 
                   icon={Star} 
                   title="Đánh giá trung bình" 
-                  value={`${analytics!.averageRating}★`} 
+                  value={`${analytics?.averageRating ?? 0}★`} 
                   change="Từ tất cả học viên" 
                 />
               </div>
@@ -216,12 +206,12 @@ export default function TeacherAnalyticsPage() {
                     stroke="currentColor"
                     strokeWidth="8"
                     fill="none"
-                    strokeDasharray={`${analytics!.completionRate * 2.51} 251`}
+                    strokeDasharray={`${(analytics?.completionRate || 0) * 2.51} 251`}
                     className="text-primary dark:text-accent"
                   />
                 </svg>
                 <span className="absolute inset-0 flex items-center justify-center text-xl font-bold text-foreground dark:text-white">
-                  {analytics!.completionRate}%
+                  {analytics?.completionRate ?? 0}%
                 </span>
               </div>
               <div>
@@ -242,11 +232,11 @@ export default function TeacherAnalyticsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-background dark:bg-slate-950 rounded-xl p-4 text-center">
-                <p className="text-3xl font-bold text-foreground dark:text-white">{analytics!.totalCourses}</p>
+                <p className="text-3xl font-bold text-foreground dark:text-white">{analytics?.totalCourses ?? 0}</p>
                 <p className="text-muted-foreground dark:text-slate-400 text-sm">Tổng khóa học</p>
               </div>
               <div className="bg-background dark:bg-slate-950 rounded-xl p-4 text-center">
-                <p className="text-3xl font-bold text-green-500">5</p>
+                <p className="text-3xl font-bold text-green-500">{analytics?.activeCourses ?? 0}</p>
                 <p className="text-muted-foreground dark:text-slate-400 text-sm">Đang hoạt động</p>
               </div>
             </div>
@@ -298,6 +288,13 @@ export default function TeacherAnalyticsPage() {
                     </td>
                   </tr>
                 ))}
+                {coursePerformance.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-muted-foreground dark:text-slate-400">
+                      Chưa có dữ liệu hiệu suất khóa học
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
