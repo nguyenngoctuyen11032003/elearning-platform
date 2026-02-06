@@ -328,7 +328,6 @@ export default function AdminPaymentsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">ID giao dịch</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Người dùng</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Khóa học</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Giảng viên</th>
@@ -345,7 +344,6 @@ export default function AdminPaymentsPage() {
                     key={payment.id}
                     className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
                   >
-                    <td className="py-4 px-6 text-foreground dark:text-white font-medium">{payment.id}</td>
                     <td className="py-4 px-6">
                       <div>
                         <p className="text-foreground dark:text-white font-medium">{payment.user}</p>
