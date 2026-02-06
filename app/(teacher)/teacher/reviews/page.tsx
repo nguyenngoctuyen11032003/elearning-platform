@@ -292,17 +292,9 @@ export default function TeacherReviewsPage() {
               </div>
 
               {/* Helpful Count */}
-<<<<<<< HEAD
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center gap-1 text-muted-foreground dark:text-slate-400 text-sm">
-                  <ThumbsUp size={16} />
-                  <span>{(review.helpful ?? 0)} người thấy hữu ích</span>
-                </div>
-=======
               <div className="px-6 py-3 border-t border-border dark:border-slate-800 flex items-center gap-2 text-muted-foreground dark:text-slate-400 text-xs">
                 <ThumbsUp size={14} />
-                <span>{review.helpful} người thấy hữu ích</span>
->>>>>>> 0d3281c3c27ad53e9e19ac0fd0a193bd7c97047a
+                <span>{(review.helpful ?? 0)} người thấy hữu ích</span>
               </div>
 
               {/* Actions */}
