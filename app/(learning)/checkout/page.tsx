@@ -52,6 +52,8 @@ export default function CheckoutPage() {
   const [selectedCourse, setSelectedCourse] = useState<CheckoutItem | null>(null)
   const [checkoutItems, setCheckoutItems] = useState<CheckoutItem[]>([])
   const [checkoutTotal, setCheckoutTotal] = useState<CheckoutTotal>({ subtotal: 0, discount: 0, total: 0 })
+  const [paymentMethod, setPaymentMethod] = useState<"qr" | "wallet">("qr")
+  const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
 
   useEffect(() => {
     // Check if coming from a single course detail page
@@ -441,18 +443,70 @@ export default function CheckoutPage() {
               className={`${checkoutItems.length === 1 ? "lg:col-span-1" : "lg:col-span-3"}`}
             >
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
-                    <QrCode size={24} className="text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-foreground dark:text-white">Thanh toán QR Code</h2>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Nhanh chóng & An toàn</p>
+                {/* Payment Method Selector */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-foreground dark:text-white mb-3">Chọn phương thức thanh toán:</h3>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setPaymentMethod("qr")
+                        setQrGenerated(false)
+                      }}
+                      className={`flex-1 p-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
+                        paymentMethod === "qr"
+                          ? "border-primary dark:border-accent bg-primary/5 dark:bg-accent/5"
+                          : "border-border dark:border-slate-800 hover:border-primary/50"
+                      }`}
+                    >
+                      <QrCode size={18} />
+                      <span className="text-sm font-medium">Mã QR</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPaymentMethod("wallet")
+                        setQrGenerated(false)
+                        setSelectedWallet(null)
+                      }}
+                      className={`flex-1 p-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
+                        paymentMethod === "wallet"
+                          ? "border-primary dark:border-accent bg-primary/5 dark:bg-accent/5"
+                          : "border-border dark:border-slate-800 hover:border-primary/50"
+                      }`}
+                    >
+                      <span className="text-lg">💳</span>
+                      <span className="text-sm font-medium">Ví điện tử</span>
+                    </button>
                   </div>
                 </div>
 
+                {/* QR Payment Header */}
+                {paymentMethod === "qr" && (
+                  <div className="flex items-center gap-3 mb-6 pb-6 border-b border-border dark:border-slate-800">
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
+                      <QrCode size={24} className="text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl md:text-2xl font-bold text-foreground dark:text-white">Thanh toán QR Code</h2>
+                      <p className="text-sm text-muted-foreground dark:text-slate-400">Nhanh chóng & An toàn</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Wallet Payment Header */}
+                {paymentMethod === "wallet" && (
+                  <div className="flex items-center gap-3 mb-6 pb-6 border-b border-border dark:border-slate-800">
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-2xl">
+                      💳
+                    </div>
+                    <div>
+                      <h2 className="text-xl md:text-2xl font-bold text-foreground dark:text-white">Thanh toán Ví</h2>
+                      <p className="text-sm text-muted-foreground dark:text-slate-400">Momo, Zalo Pay, VietQR</p>
+                    </div>
+                  </div>
+                )}
+
                 <AnimatePresence mode="wait">
-                  {!qrGenerated ? (
+                  {paymentMethod === "qr" && !qrGenerated ? (
                     <motion.div
                       key="generate"
                       initial={{ opacity: 0 }}
@@ -501,7 +555,7 @@ export default function CheckoutPage() {
                         Hỗ trợ tất cả ngân hàng và ví điện tử tại Việt Nam
                       </p>
                     </motion.div>
-                  ) : (
+                  ) : paymentMethod === "qr" && qrGenerated ? (
                     <motion.div
                       key="qr"
                       initial={{ opacity: 0, scale: 0.9 }}
@@ -587,7 +641,57 @@ export default function CheckoutPage() {
                         </Link>
                       </p>
                     </motion.div>
-                  )}
+                  ) : paymentMethod === "wallet" ? (
+                    <motion.div
+                      key="wallet"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="space-y-6"
+                    >
+                      <div className="bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 dark:from-primary/20 dark:via-accent/20 dark:to-primary/10 rounded-xl p-6 space-y-4">
+                        <h3 className="font-semibold text-foreground dark:text-white">Chọn ví thanh toán:</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            { name: "Momo", icon: "📱", color: "from-pink-500 to-orange-500", balance: null },
+                            { name: "Zalo Pay", icon: "⚡", color: "from-blue-500 to-cyan-500", balance: null },
+                            { name: "VietQR", icon: "🏦", color: "from-green-500 to-emerald-500", balance: null },
+                            { name: "Ví của tôi", icon: "👛", color: "from-purple-500 to-pink-500", balance: "1,250,000₫" },
+                          ].map((wallet) => (
+                            <button
+                              key={wallet.name}
+                              onClick={() => setSelectedWallet(wallet.name)}
+                              className={`p-4 rounded-lg border-2 transition-all text-center ${
+                                selectedWallet === wallet.name
+                                  ? "border-primary dark:border-accent bg-primary/10 dark:bg-accent/10"
+                                  : "border-border dark:border-slate-800 hover:border-primary/50 dark:hover:border-accent/50 hover:bg-primary/5 dark:hover:bg-accent/5"
+                              }`}
+                            >
+                              <p className="text-3xl mb-2">{wallet.icon}</p>
+                              <p className="text-sm font-semibold text-foreground dark:text-white">{wallet.name}</p>
+                              {wallet.balance && (
+                                <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">
+                                  Số dư: {wallet.balance}
+                                </p>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handlePayment}
+                        disabled={isProcessing || !selectedWallet}
+                        className="w-full px-6 py-4 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-2xl transition-all font-semibold text-lg hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isProcessing ? "Đang xử lý..." : selectedWallet ? `Thanh toán qua ${selectedWallet}` : "Vui lòng chọn ví thanh toán"}
+                      </button>
+
+                      <p className="text-center text-xs text-muted-foreground dark:text-slate-400">
+                        Bạn sẽ được chuyển hướng đến ứng dụng ví của bạn để hoàn tất thanh toán
+                      </p>
+                    </motion.div>
+                  ) : null}
                 </AnimatePresence>
               </div>
             </motion.div>
