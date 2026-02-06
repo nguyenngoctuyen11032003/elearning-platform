@@ -78,7 +78,7 @@ export default function ProgressPage() {
       estimatedCompletion: "21 ngày",
       icon: "💪",
       bgColor: "bg-green-100 dark:bg-green-900/30",
-      image: "/image/courses/figma.jpg"
+      image: "/image/figma.jpg"
     },
   ]
 

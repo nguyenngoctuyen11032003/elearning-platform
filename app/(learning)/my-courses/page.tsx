@@ -289,50 +289,50 @@ export default function MyCoursesPage() {
   const suggestedCourses = courses.filter(c => c.progress === 0).slice(0, 3)
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+    <div className="flex flex-col lg:flex-row h-auto lg:h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navigation Bar */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-slate-900/60 border-b border-border dark:border-slate-800 px-8 py-6 flex items-center justify-between"
+          className="bg-white dark:bg-slate-900/60 border-b border-border dark:border-slate-800 px-4 md:px-8 py-4 md:py-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0"
         >
           <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Khóa học của tôi</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground dark:text-white">Khóa học của tôi</h1>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="relative flex-1 md:flex-none">
+              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Tìm kiếm..."
                 value={searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-secondary dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full md:w-auto pl-10 pr-4 py-2 bg-secondary dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
-            <button className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors">
-              <Star size={20} />
+            <button className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0">
+              <Star size={18} />
             </button>
           </div>
         </motion.div>
 
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto scrollbar-hide">
-          <div className="flex gap-4 p-6">
+          <div className="flex flex-col lg:flex-row gap-4 p-4 md:p-6">
             {/* Courses Grid */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex-1 "
             >
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 mb-8">
                 <div>
-                  <h2 className="text-xl font-bold text-foreground dark:text-white mb-2">Khóa học đang học</h2>
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">Tổng cộng {courses.length} khóa học</p>
+                  <h2 className="text-lg md:text-xl font-bold text-foreground dark:text-white mb-1 md:mb-2">Khóa học đang học</h2>
+                  <p className="text-xs md:text-sm text-muted-foreground dark:text-slate-400">Tổng cộng {courses.length} khóa học</p>
                 </div>
-                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg px-4 py-2">
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg px-3 md:px-4 py-2 text-sm md:text-base">
                   <span className="text-sm font-medium text-foreground dark:text-white">Sắp xếp theo</span>
                   <select
                     value={filter}
@@ -348,7 +348,7 @@ export default function MyCoursesPage() {
               </div>
 
               {filteredCourses.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   {filteredCourses.map((enrollment, idx) => {
                     const lessons = enrollment.course.lessons || []
                     const courseImage = enrollment.course.thumbnail || "/image/logo-ics.jpg"
@@ -385,10 +385,10 @@ export default function MyCoursesPage() {
                         </motion.div>
 
                         {/* Card Content */}
-                        <div className="p-6">
+                        <div className="p-4 md:p-6">
                           <div className="flex items-start justify-between mb-4">
                             <div>
-                              <h3 className="font-bold text-foreground dark:text-white line-clamp-2 mb-1">
+                              <h3 className="font-bold text-sm md:text-base text-foreground dark:text-white line-clamp-2 mb-1">
                                 {enrollment.course.title}
                               </h3>
                               <p className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded inline-block">
@@ -398,7 +398,7 @@ export default function MyCoursesPage() {
                             <div className="relative group">
                               <button 
                                 onClick={() => setOpenMenuId(openMenuId === enrollment.id ? null : enrollment.id)}
-                                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                            className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                               >
                                 <MoreVertical size={16} />
                               </button>
@@ -442,14 +442,8 @@ export default function MyCoursesPage() {
 
                           {/* Lessons Preview */}
                           <div className="space-y-2 mb-4">
-                            {lessons.slice(0, 3).map((_, i) => (
-                              <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground dark:text-slate-400">
-                                <div className="w-2 h-2 rounded-full bg-primary"></div>
-                                <span>Bài {i + 1}: {enrollment.course.title.slice(0, 20)}...</span>
-                              </div>
-                            ))}
-                            {lessons.length > 3 && (
-                              <p className="text-xs text-primary dark:text-accent font-medium">+{lessons.length - 3} bài khác</p>
+                            {lessons.length > 0 && (
+                              <p className="text-xs text-primary dark:text-accent font-medium">+{lessons.length} bài khác</p>
                             )}
                           </div>
 
@@ -470,9 +464,9 @@ export default function MyCoursesPage() {
                           </div>
 
                           {/* Teacher and Avatars */}
-                          <div className="flex items-center justify-between pt-4 border-t border-border dark:border-slate-800">
+                          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pt-4 border-t border-border dark:border-slate-800">
                             <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xs font-bold">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                                 {enrollment.course.teacher?.name?.charAt(0) || "T"}
                               </div>
                               <div>
@@ -484,7 +478,7 @@ export default function MyCoursesPage() {
                             </div>
                             <Link
                               href={`/player/${enrollment.courseId}`}
-                              className="flex items-center gap-1 text-primary dark:text-accent hover:gap-2 transition-all text-xs font-medium"
+                              className="flex items-center gap-1 text-primary dark:text-accent hover:gap-2 transition-all text-xs font-medium whitespace-nowrap"
                             >
                               Tiếp tục
                               <ChevronRight size={14} />
@@ -507,13 +501,13 @@ export default function MyCoursesPage() {
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="w-80 space-y-6 flex flex-col"
+              className="w-full lg:w-80 space-y-4 lg:space-y-6 flex flex-col"
             >
               {/* Total Project Card */}
-              <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-6 shadow-lg">
-                <h3 className="text-lg font-bold text-foreground dark:text-white mb-6">Tổng khóa học</h3>
-                <div className="flex items-center justify-center mb-6">
-                  <div className="w-48 h-48">
+              <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg">
+                <h3 className="text-base md:text-lg font-bold text-foreground dark:text-white mb-4 md:mb-6">Tổng khóa học</h3>
+                <div className="flex items-center justify-center mb-4 md:mb-6">
+                  <div className="w-32 h-32 md:w-48 md:h-48">
                     <svg viewBox="0 0 100 100" className="w-full h-full">
                       <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" strokeWidth="8" />
                       <circle
@@ -537,7 +531,7 @@ export default function MyCoursesPage() {
                     </svg>
                   </div>
                 </div>
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2 text-xs md:text-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground dark:text-slate-400">Tổng cộng: {stats.total}</span>
                   </div>
@@ -548,9 +542,9 @@ export default function MyCoursesPage() {
               </div>
 
               {/* Completed Courses List */}
-              <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-6 shadow-lg min-h-[350px]">
-                <h3 className="text-lg font-bold text-foreground dark:text-white mb-6">Đã hoàn thành</h3>
-                <div className="space-y-4">
+              <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg min-h-auto lg:min-h-[350px]">
+                <h3 className="text-base md:text-lg font-bold text-foreground dark:text-white mb-4 md:mb-6">Đã hoàn thành</h3>
+                <div className="space-y-3 md:space-y-4">
                   {courses
                     .filter(c => c.progress === 100)
                     .map((enrollment) => (
@@ -578,15 +572,14 @@ export default function MyCoursesPage() {
               </div>
 
               {/* Buy More Courses */}
-              <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-8 shadow-lg text-white flex flex-col justify-center">
-
-                <h3 className="text-2xl font-bold mb-3">Mua thêm khóa học</h3>
-                <p className="text-base text-white/90 mb-6">Khám phá các khóa học mới và nâng cao kỹ năng của bạn</p>
+              <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-4 md:p-8 shadow-lg text-white flex flex-col justify-center">
+                <h3 className="text-lg md:text-2xl font-bold mb-2 md:mb-3">Mua thêm khóa học</h3>
+                <p className="text-sm md:text-base text-white/90 mb-4 md:mb-6">Khám phá các khóa học mới và nâng cao kỹ năng của bạn</p>
                 <Link
                   href="/courses"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-white/90 transition-all w-full"
+                  className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-white/90 transition-all w-full text-sm md:text-base"
                 >
-                  <BookOpen size={18} />
+                  <BookOpen size={16} className="md:w-[18px] md:h-[18px]" />
                   Khám phá khóa học
                 </Link>
               </div>
