@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { createPortal } from "react-dom"
 import { Users, BookOpen, DollarSign, Download, X, TrendingUp } from "lucide-react"
+import * as XLSX from "xlsx"
 import {
   LineChart,
   Line,
@@ -87,6 +89,8 @@ export default function AdminReportsPage() {
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [selectedReport, setSelectedReport] = useState("revenue")
   const [filterPeriod, setFilterPeriod] = useState("month")
+  const [exportAnchor, setExportAnchor] = useState<HTMLButtonElement | null>(null)
+  const [exportMenuPos, setExportMenuPos] = useState<{ top: number; left: number } | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [revenueByMonth, setRevenueByMonth] = useState<RevenueByMonth[]>([])
@@ -172,6 +176,25 @@ export default function AdminReportsPage() {
     load()
   }, [])
 
+  useEffect(() => {
+    if (!isExportOpen || !exportAnchor) return
+    const updatePosition = () => {
+      const rect = exportAnchor.getBoundingClientRect()
+      const menuWidth = 420
+      const left = Math.max(12, rect.right - menuWidth)
+      setExportMenuPos({ top: rect.bottom + 8, left })
+    }
+
+    updatePosition()
+    window.addEventListener("resize", updatePosition)
+    window.addEventListener("scroll", updatePosition, true)
+
+    return () => {
+      window.removeEventListener("resize", updatePosition)
+      window.removeEventListener("scroll", updatePosition, true)
+    }
+  }, [isExportOpen, exportAnchor])
+
   const categoryData = useMemo(
     () =>
       revenueByCategory.map((c, idx) => ({
@@ -190,8 +213,9 @@ export default function AdminReportsPage() {
   const teacherGrowth = growthChart.map((g) => ({ month: g.month, teachers: g.teachers }))
   const studentGrowth = growthChart.map((g) => ({ month: g.month, students: g.students }))
 
-  const handleExport = (reportType: string) => {
+  const handleExport = (reportType: string, anchor: HTMLButtonElement) => {
     setSelectedReport(reportType)
+    setExportAnchor(anchor)
     setIsExportOpen(true)
   }
 
@@ -214,12 +238,35 @@ export default function AdminReportsPage() {
       data = src.map((r) => [r.month, selectedReport === "teachers" ? r.teachers : r.students])
     }
 
-    const csvContent = [headers, ...data].map((row) => row.join(",")).join("\n")
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const link = document.createElement("a")
-    link.href = URL.createObjectURL(blob)
-    link.download = `${selectedReport}_report_${new Date().toISOString().split("T")[0]}.csv`
-    link.click()
+    const reportName =
+      selectedReport === "revenue"
+        ? "Báo cáo doanh thu"
+        : selectedReport === "category"
+          ? "Báo cáo danh mục"
+          : selectedReport === "teachers"
+            ? "Báo cáo giáo viên"
+            : selectedReport === "students"
+              ? "Báo cáo học viên"
+              : "Báo cáo khóa học"
+    const exportDate = new Date().toLocaleDateString("vi-VN")
+    const bannerLines = [[`Báo cáo: ${reportName}`], [`Ngày xuất: ${exportDate}`]]
+    const aoa = [...bannerLines, headers, ...data]
+
+    const worksheet = XLSX.utils.aoa_to_sheet(aoa)
+    const colCount = Math.max(...aoa.map((row) => row.length))
+    worksheet["!cols"] = Array.from({ length: colCount }, (_, colIndex) => {
+      const maxLen = Math.max(
+        ...aoa.map((row) => {
+          const value = row[colIndex]
+          return value === undefined || value === null ? 0 : String(value).length
+        })
+      )
+      return { wch: Math.min(60, Math.max(10, maxLen + 2)) }
+    })
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bao cao")
+    XLSX.writeFile(workbook, `${selectedReport}_report_${new Date().toISOString().split("T")[0]}.xlsx`)
 
     setIsExportOpen(false)
   }
@@ -308,7 +355,10 @@ export default function AdminReportsPage() {
                   {filterPeriod === "day" ? "7 ngày gần nhất" : filterPeriod === "week" ? "Tuần này" : filterPeriod === "month" ? "12 tháng" : "Cả năm"}
                 </p>
               </div>
-              <button onClick={() => handleExport("revenue")} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
+              <button
+                onClick={(event) => handleExport("revenue", event.currentTarget)}
+                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+              >
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
             </div>
@@ -331,7 +381,10 @@ export default function AdminReportsPage() {
                 <h2 className="text-lg font-bold text-foreground dark:text-white">Phân bố theo danh mục</h2>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">Tỷ lệ doanh thu theo danh mục</p>
               </div>
-              <button onClick={() => handleExport("category")} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
+              <button
+                onClick={(event) => handleExport("category", event.currentTarget)}
+                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+              >
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
             </div>
@@ -364,7 +417,10 @@ export default function AdminReportsPage() {
                 <h2 className="text-lg font-bold text-foreground dark:text-white">Tăng trưởng giáo viên</h2>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">Số lượng giáo viên theo thời gian</p>
               </div>
-              <button onClick={() => handleExport("teachers")} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
+              <button
+                onClick={(event) => handleExport("teachers", event.currentTarget)}
+                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+              >
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
             </div>
@@ -386,7 +442,10 @@ export default function AdminReportsPage() {
                 <h2 className="text-lg font-bold text-foreground dark:text-white">Tăng trưởng học viên</h2>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">Số lượng học viên theo thời gian</p>
               </div>
-              <button onClick={() => handleExport("students")} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
+              <button
+                onClick={(event) => handleExport("students", event.currentTarget)}
+                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+              >
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
             </div>
@@ -410,7 +469,7 @@ export default function AdminReportsPage() {
               <p className="text-sm text-muted-foreground dark:text-slate-400">Thống kê chi tiết theo khóa học</p>
             </div>
             <button
-              onClick={() => handleExport("courses")}
+              onClick={(event) => handleExport("courses", event.currentTarget)}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg transition-smooth hover:shadow-lg"
             >
               <Download size={16} /> Xuất báo cáo
@@ -489,30 +548,36 @@ export default function AdminReportsPage() {
         </div>
       </div>
 
-      {isExportOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
-            <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-foreground dark:text-white">
-                Xuất báo cáo: {selectedReport === "revenue" ? "Báo cáo doanh thu" : selectedReport === "category" ? "Báo cáo danh mục" : selectedReport === "teachers" ? "Báo cáo giáo viên" : selectedReport === "students" ? "Báo cáo học viên" : "Báo cáo khóa học"}
-              </h2>
-              <button onClick={() => setIsExportOpen(false)} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
-                <X size={20} className="text-muted-foreground" />
-              </button>
-            </div>
+      {isExportOpen && exportMenuPos && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed z-[9999]"
+              style={{ top: exportMenuPos.top, left: exportMenuPos.left, width: 420, maxWidth: "calc(100vw - 24px)" }}
+            >
+              <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
+                <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-foreground dark:text-white">
+                    Xuất báo cáo: {selectedReport === "revenue" ? "Báo cáo doanh thu" : selectedReport === "category" ? "Báo cáo danh mục" : selectedReport === "teachers" ? "Báo cáo giáo viên" : selectedReport === "students" ? "Báo cáo học viên" : "Báo cáo khóa học"}
+                  </h2>
+                  <button onClick={() => setIsExportOpen(false)} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
+                    <X size={20} className="text-muted-foreground" />
+                  </button>
+                </div>
 
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-muted-foreground">File CSV sẽ chứa toàn bộ dữ liệu đang hiển thị.</p>
-              <button
-                onClick={executeExport}
-                className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
-              >
-                <Download size={20} /> Xuất báo cáo CSV
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <div className="p-6 space-y-4">
+                  <p className="text-sm text-muted-foreground">File Excel sẽ chứa toàn bộ dữ liệu đang hiển thị.</p>
+                  <button
+                    onClick={executeExport}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
+                  >
+                    <Download size={20} /> Xuất báo cáo Excel
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   )
 }

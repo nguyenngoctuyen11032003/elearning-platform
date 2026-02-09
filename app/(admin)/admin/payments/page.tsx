@@ -1,7 +1,9 @@
 "use client"
 
 import { Search, Download, Eye, DollarSign, TrendingUp, CreditCard, Clock, X, User, BookOpen } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import * as XLSX from "xlsx"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { formatPrice, formatNumber } from "@/lib/format"
@@ -56,6 +58,8 @@ export default function AdminPaymentsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "success" | "pending" | "failed">("all")
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
+  const exportButtonRef = useRef<HTMLButtonElement | null>(null)
+  const [exportMenuPos, setExportMenuPos] = useState<{ top: number; left: number } | null>(null)
 
   // Export filters
   const [exportStatus, setExportStatus] = useState<string>("all")
@@ -125,6 +129,26 @@ export default function AdminPaymentsPage() {
     loadPayments()
   }, [])
 
+  useEffect(() => {
+    if (!isExportOpen) return
+    const updatePosition = () => {
+      const rect = exportButtonRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const menuWidth = 420
+      const left = Math.max(12, rect.right - menuWidth)
+      setExportMenuPos({ top: rect.bottom + 8, left })
+    }
+
+    updatePosition()
+    window.addEventListener("resize", updatePosition)
+    window.addEventListener("scroll", updatePosition, true)
+
+    return () => {
+      window.removeEventListener("resize", updatePosition)
+      window.removeEventListener("scroll", updatePosition, true)
+    }
+  }, [isExportOpen])
+
   const uniqueCourses = useMemo(() => Array.from(new Set(payments.map((p) => p.course).filter(Boolean))), [payments])
   const uniqueUsers = useMemo(() => Array.from(new Set(payments.map((p) => p.user).filter(Boolean))), [payments])
   const uniqueTeachers = useMemo(() => Array.from(new Set(payments.map((p) => p.teacher).filter(Boolean))), [payments])
@@ -167,9 +191,8 @@ export default function AdminPaymentsPage() {
       return true
     })
 
-    // Create CSV content
     const headers = ["ID", "Người dùng", "Email", "Khóa học", "Giảng viên", "Số tiền", "Phương thức", "Trạng thái", "Ngày"]
-    const rows = exportData.map(p => [
+    const rows = exportData.map((p) => [
       p.id,
       p.user,
       p.userEmail,
@@ -178,15 +201,28 @@ export default function AdminPaymentsPage() {
       p.amount.toString(),
       p.method,
       p.status === "success" ? "Thành công" : p.status === "pending" ? "Chờ xử lý" : "Thất bại",
-      p.date
+      formatDate(p.date),
     ])
 
-    const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n")
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const link = document.createElement("a")
-    link.href = URL.createObjectURL(blob)
-    link.download = `payments_report_${new Date().toISOString().split("T")[0]}.csv`
-    link.click()
+    const exportDate = new Date().toLocaleDateString("vi-VN")
+    const bannerLines = [["Báo cáo: Thanh toán"], [`Ngày xuất: ${exportDate}`]]
+    const aoa = [...bannerLines, headers, ...rows]
+
+    const worksheet = XLSX.utils.aoa_to_sheet(aoa)
+    const colCount = Math.max(...aoa.map((row) => row.length))
+    worksheet["!cols"] = Array.from({ length: colCount }, (_, colIndex) => {
+      const maxLen = Math.max(
+        ...aoa.map((row) => {
+          const value = row[colIndex]
+          return value === undefined || value === null ? 0 : String(value).length
+        })
+      )
+      return { wch: Math.min(60, Math.max(10, maxLen + 2)) }
+    })
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Thanh toan")
+    XLSX.writeFile(workbook, `payments_report_${new Date().toISOString().split("T")[0]}.xlsx`)
 
     setIsExportOpen(false)
   }
@@ -209,17 +245,24 @@ export default function AdminPaymentsPage() {
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
         {/* Hero Section with Background */}
-        <div className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn" style={{ backgroundImage: "url('/image/bg_payment1.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div
+          className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn"
+          style={{ backgroundImage: "url('/image/bg_payment1.png')", backgroundSize: "cover", backgroundPosition: "center" }}
+        >
           {/* Overlay for better readability */}
           <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
-          
+
           <div className="relative z-10 space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+            <div
+              className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown"
+              style={{ animationDelay: "0.15s" }}
+            >
               <div>
                 <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Quản lý thanh toán</h1>
                 <p className="text-black/70 dark:text-white/80 drop-shadow">Theo dõi và quản lý các giao dịch thanh toán</p>
               </div>
               <button
+                ref={exportButtonRef}
                 onClick={() => setIsExportOpen(true)}
                 className="flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-lg font-medium transition-all duration-300 hover:shadow-lg w-fit backdrop-blur-sm"
               >
@@ -496,113 +539,119 @@ export default function AdminPaymentsPage() {
       )}
 
       {/* Export Modal */}
-      {isExportOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
-            <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-foreground dark:text-white">Xuất báo cáo thanh toán</h2>
-              <button
-                onClick={() => setIsExportOpen(false)}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-              >
-                <X size={20} className="text-muted-foreground" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {/* Status Filter */}
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Trạng thái</label>
-                <select
-                  value={exportStatus}
-                  onChange={(e) => setExportStatus(e.target.value)}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="all">Tất cả trạng thái</option>
-                  <option value="success">Thành công</option>
-                  <option value="pending">Chờ xử lý</option>
-                  <option value="failed">Thất bại</option>
-                </select>
-              </div>
-
-              {/* User Filter */}
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Người dùng</label>
-                <select
-                  value={exportUser}
-                  onChange={(e) => setExportUser(e.target.value)}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="all">Tất cả người dùng</option>
-                  {uniqueUsers.map((user) => (
-                    <option key={user} value={user}>{user}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Course Filter */}
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Khóa học</label>
-                <select
-                  value={exportCourse}
-                  onChange={(e) => setExportCourse(e.target.value)}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="all">Tất cả khóa học</option>
-                  {uniqueCourses.map((course) => (
-                    <option key={course} value={course}>{course}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Teacher Filter */}
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Giảng viên</label>
-                <select
-                  value={exportTeacher}
-                  onChange={(e) => setExportTeacher(e.target.value)}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="all">Tất cả giảng viên</option>
-                  {uniqueTeachers.map((teacher) => (
-                    <option key={teacher} value={teacher}>{teacher}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Date Range */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Từ ngày</label>
-                  <input
-                    type="date"
-                    value={exportDateFrom}
-                    onChange={(e) => setExportDateFrom(e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+      {isExportOpen && exportMenuPos && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed z-[9999]"
+              style={{ top: exportMenuPos.top, left: exportMenuPos.left, width: 420, maxWidth: "calc(100vw - 24px)" }}
+            >
+              <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
+                <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-foreground dark:text-white">Xuất báo cáo thanh toán</h2>
+                  <button
+                    onClick={() => setIsExportOpen(false)}
+                    className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                  >
+                    <X size={20} className="text-muted-foreground" />
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Đến ngày</label>
-                  <input
-                    type="date"
-                    value={exportDateTo}
-                    onChange={(e) => setExportDateTo(e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+
+                <div className="p-6 space-y-4">
+                  {/* Status Filter */}
+                  <div>
+                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Trạng thái</label>
+                    <select
+                      value={exportStatus}
+                      onChange={(e) => setExportStatus(e.target.value)}
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="all">Tất cả trạng thái</option>
+                      <option value="success">Thành công</option>
+                      <option value="pending">Chờ xử lý</option>
+                      <option value="failed">Thất bại</option>
+                    </select>
+                  </div>
+
+                  {/* User Filter */}
+                  <div>
+                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Người dùng</label>
+                    <select
+                      value={exportUser}
+                      onChange={(e) => setExportUser(e.target.value)}
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="all">Tất cả người dùng</option>
+                      {uniqueUsers.map((user) => (
+                        <option key={user} value={user}>{user}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Course Filter */}
+                  <div>
+                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Khóa học</label>
+                    <select
+                      value={exportCourse}
+                      onChange={(e) => setExportCourse(e.target.value)}
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="all">Tất cả khóa học</option>
+                      {uniqueCourses.map((course) => (
+                        <option key={course} value={course}>{course}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Teacher Filter */}
+                  <div>
+                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Giảng viên</label>
+                    <select
+                      value={exportTeacher}
+                      onChange={(e) => setExportTeacher(e.target.value)}
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="all">Tất cả giảng viên</option>
+                      {uniqueTeachers.map((teacher) => (
+                        <option key={teacher} value={teacher}>{teacher}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Date Range */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Từ ngày</label>
+                      <input
+                        type="date"
+                        value={exportDateFrom}
+                        onChange={(e) => setExportDateFrom(e.target.value)}
+                        className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Đến ngày</label>
+                      <input
+                        type="date"
+                        value={exportDateTo}
+                        onChange={(e) => setExportDateTo(e.target.value)}
+                        className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Export Button */}
+                  <button
+                    onClick={handleExport}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
+                  >
+                    <Download size={20} /> Xuất báo cáo Excel
+                  </button>
                 </div>
               </div>
-
-              {/* Export Button */}
-              <button
-                onClick={handleExport}
-                className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
-              >
-                <Download size={20} /> Xuất báo cáo CSV
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   )
 }

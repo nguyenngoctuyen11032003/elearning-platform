@@ -1,7 +1,9 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { Download, TrendingUp, DollarSign, Users, X, Eye, CreditCard, Calendar, BookOpen } from "lucide-react"
+import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import { StatCard } from "@/components/ui/stat-card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
@@ -44,6 +46,8 @@ export default function TeacherEarningsPage() {
   const [filterPeriod, setFilterPeriod] = useState("month")
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
+  const exportButtonRef = useRef<HTMLButtonElement | null>(null)
+  const [exportMenuPos, setExportMenuPos] = useState<{ top: number; left: number } | null>(null)
 
   // Export filters
   const [exportCourse, setExportCourse] = useState<string>("all")
@@ -86,6 +90,26 @@ export default function TeacherEarningsPage() {
     useEffect(() => {
       loadEarnings()
     }, [])
+
+    useEffect(() => {
+      if (!isExportOpen) return
+      const updatePosition = () => {
+        const rect = exportButtonRef.current?.getBoundingClientRect()
+        if (!rect) return
+        const menuWidth = 420
+        const left = Math.max(12, rect.right - menuWidth)
+        setExportMenuPos({ top: rect.bottom + 8, left })
+      }
+
+      updatePosition()
+      window.addEventListener("resize", updatePosition)
+      window.addEventListener("scroll", updatePosition, true)
+
+      return () => {
+        window.removeEventListener("resize", updatePosition)
+        window.removeEventListener("scroll", updatePosition, true)
+      }
+    }, [isExportOpen])
 
     const earningsData = useMemo(
       () =>
@@ -134,9 +158,8 @@ export default function TeacherEarningsPage() {
       return true
     })
 
-    // Create CSV content
     const headers = ["ID", "Học viên", "Email", "Khóa học", "Số tiền", "Phương thức", "Trạng thái", "Ngày"]
-    const rows = exportData.map(p => [
+    const rows = exportData.map((p) => [
       p.id,
       p.student,
       p.studentEmail,
@@ -144,15 +167,28 @@ export default function TeacherEarningsPage() {
       p.amount.toString(),
       p.method,
       p.status === "success" ? "Thành công" : p.status === "pending" ? "Chờ xử lý" : "Thất bại",
-      p.date
+      formatDate(p.date),
     ])
 
-    const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n")
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const link = document.createElement("a")
-    link.href = URL.createObjectURL(blob)
-    link.download = `earnings_report_${new Date().toISOString().split("T")[0]}.csv`
-    link.click()
+    const exportDate = new Date().toLocaleDateString("vi-VN")
+    const bannerLines = [["Báo cáo: Doanh thu giáo viên"], [`Ngày xuất: ${exportDate}`]]
+    const aoa = [...bannerLines, headers, ...rows]
+
+    const worksheet = XLSX.utils.aoa_to_sheet(aoa)
+    const colCount = Math.max(...aoa.map((row) => row.length))
+    worksheet["!cols"] = Array.from({ length: colCount }, (_, colIndex) => {
+      const maxLen = Math.max(
+        ...aoa.map((row) => {
+          const value = row[colIndex]
+          return value === undefined || value === null ? 0 : String(value).length
+        })
+      )
+      return { wch: Math.min(60, Math.max(10, maxLen + 2)) }
+    })
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Doanh thu")
+    XLSX.writeFile(workbook, `earnings_report_${new Date().toISOString().split("T")[0]}.xlsx`)
 
     setIsExportOpen(false)
   }
@@ -242,6 +278,7 @@ export default function TeacherEarningsPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <h2 className="text-xl font-bold text-foreground dark:text-white">Biểu đồ doanh thu</h2>
             <button
+              ref={exportButtonRef}
               onClick={() => setIsExportOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium transition-smooth hover:shadow-lg w-fit"
             >
@@ -362,7 +399,6 @@ export default function TeacherEarningsPage() {
               <p className="text-muted-foreground dark:text-slate-400">Chưa có giao dịch nào</p>
             </div>
           )}
-        </div>
       </div>
 
       {/* Payment Detail Modal */}
@@ -451,91 +487,98 @@ export default function TeacherEarningsPage() {
       )}
 
       {/* Export Modal */}
-      {isExportOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-foreground dark:text-white">Xuất báo cáo doanh thu</h2>
-              <button
-                onClick={() => setIsExportOpen(false)}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-              >
-                <X size={20} className="text-muted-foreground" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {/* Course Filter */}
-              <div>
-                <label className="text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                  <BookOpen size={16} /> Khóa học
-                </label>
-                <select
-                  value={exportCourse}
-                  onChange={(e) => setExportCourse(e.target.value)}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="all">Tất cả khóa học</option>
-                  {uniqueCourses.map((course) => (
-                    <option key={course} value={course}>{course}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Student Filter */}
-              <div>
-                <label className="text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                  <Users size={16} /> Học viên
-                </label>
-                <select
-                  value={exportStudent}
-                  onChange={(e) => setExportStudent(e.target.value)}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="all">Tất cả học viên</option>
-                  {uniqueStudents.map((student) => (
-                    <option key={student} value={student}>{student}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Date Range */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <Calendar size={16} /> Từ ngày
-                  </label>
-                  <input
-                    type="date"
-                    value={exportDateFrom}
-                    onChange={(e) => setExportDateFrom(e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+      {isExportOpen && exportMenuPos && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed z-[9999]"
+              style={{ top: exportMenuPos.top, left: exportMenuPos.left, width: 420, maxWidth: "calc(100vw - 24px)" }}
+            >
+              <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-foreground dark:text-white">Xuất báo cáo doanh thu</h2>
+                  <button
+                    onClick={() => setIsExportOpen(false)}
+                    className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                  >
+                    <X size={20} className="text-muted-foreground" />
+                  </button>
                 </div>
-                <div>
-                  <label className="text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <Calendar size={16} /> Đến ngày
-                  </label>
-                  <input
-                    type="date"
-                    value={exportDateTo}
-                    onChange={(e) => setExportDateTo(e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+
+                <div className="p-6 space-y-4">
+                  {/* Course Filter */}
+                  <div>
+                    <label className="text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                      <BookOpen size={16} /> Khóa học
+                    </label>
+                    <select
+                      value={exportCourse}
+                      onChange={(e) => setExportCourse(e.target.value)}
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="all">Tất cả khóa học</option>
+                      {uniqueCourses.map((course) => (
+                        <option key={course} value={course}>{course}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Student Filter */}
+                  <div>
+                    <label className="text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Users size={16} /> Học viên
+                    </label>
+                    <select
+                      value={exportStudent}
+                      onChange={(e) => setExportStudent(e.target.value)}
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="all">Tất cả học viên</option>
+                      {uniqueStudents.map((student) => (
+                        <option key={student} value={student}>{student}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Date Range */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                        <Calendar size={16} /> Từ ngày
+                      </label>
+                      <input
+                        type="date"
+                        value={exportDateFrom}
+                        onChange={(e) => setExportDateFrom(e.target.value)}
+                        className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                        <Calendar size={16} /> Đến ngày
+                      </label>
+                      <input
+                        type="date"
+                        value={exportDateTo}
+                        onChange={(e) => setExportDateTo(e.target.value)}
+                        className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Export Button */}
+                  <button
+                    onClick={handleExport}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
+                  >
+                    <Download size={20} /> Xuất báo cáo Excel
+                  </button>
                 </div>
               </div>
-
-              {/* Export Button */}
-              <button
-                onClick={handleExport}
-                className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
-              >
-                <Download size={20} /> Xuất báo cáo CSV
-              </button>
-            </div>
-          </div>
-        </div>
-      )}  </div>
+            </div>,
+            document.body
+          )
+        : null}
+    </div>
   )
 }
 
