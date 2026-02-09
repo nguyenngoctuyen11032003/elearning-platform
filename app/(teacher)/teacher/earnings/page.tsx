@@ -399,6 +399,7 @@ export default function TeacherEarningsPage() {
               <p className="text-muted-foreground dark:text-slate-400">Chưa có giao dịch nào</p>
             </div>
           )}
+        </div>
       </div>
 
       {/* Payment Detail Modal */}
