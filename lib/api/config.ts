@@ -82,6 +82,8 @@ export const API_ENDPOINTS = {
     CREATE: '/api/notes',
     UPDATE: (id: string) => `/api/notes/${id}`,
     DELETE: (id: string) => `/api/notes/${id}`,
+    FAVORITES: '/api/notes/favorites',
+    TOGGLE_FAVORITE: (id: string) => `/api/notes/${id}/toggle-favorite`,
   },
   WISHLISTS: {
     LIST: '/api/wishlists',

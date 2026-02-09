@@ -107,6 +107,9 @@ export default function NotesPage() {
   })
   const [viewingNote, setViewingNote] = useState<Note | null>(null)
   const [tagToDelete, setTagToDelete] = useState<string | null>(null)
+  const [showingFavoritesModal, setShowingFavoritesModal] = useState(false)
+  const [favoriteNotes, setFavoriteNotes] = useState<Note[]>([])
+  const [loadingFavorites, setLoadingFavorites] = useState(false)
 
   const ITEMS_PER_PAGE = 6
 
@@ -184,7 +187,7 @@ export default function NotesPage() {
           createdAt: n.createdAt,
           updatedAt: n.updatedAt,
           tags: [],
-          isFavorite: false,
+          isFavorite: n.isFavorite || false,
           type: n.type || 'general',
           items: n.items || [],
           schedule: n.schedule || [],
@@ -437,6 +440,84 @@ export default function NotesPage() {
       console.error('Export error:', err)
     }
   }
+
+  const fetchFavorites = useCallback(async () => {
+    if (!token) return
+    try {
+      setLoadingFavorites(true)
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/favorites`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        throw new Error(json?.error?.message || "Không lấy được ghi chú yêu thích")
+      }
+
+      setFavoriteNotes(
+        (json.data ?? json).map((n: any) => ({
+          id: n.id,
+          title: n.title ?? n.content?.split('\n')[0] ?? 'Ghi chú',
+          content: n.content || '',
+          course: n.course?.title ?? 'Chưa phân loại',
+          courseId: n.course?.id ?? '',
+          lessonTitle: n.lesson?.title ?? 'Ghi chú',
+          createdAt: n.createdAt,
+          updatedAt: n.updatedAt,
+          tags: [],
+          isFavorite: n.isFavorite || true,
+          type: n.type || 'general',
+          items: n.items || [],
+          schedule: n.schedule || [],
+        }))
+      )
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoadingFavorites(false)
+    }
+  }, [token])
+
+  const handleToggleFavorite = async (noteId: string) => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/${noteId}/toggle-favorite`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      if (!res.ok) throw new Error('Thay đổi yêu thích thất bại')
+
+      // Update local state
+      setNotes(notes.map(n => 
+        n.id === noteId ? { ...n, isFavorite: !n.isFavorite } : n
+      ))
+
+      // Refresh favorites if modal is open
+      if (showingFavoritesModal) {
+        await fetchFavorites()
+      }
+    } catch (err: any) {
+      console.error('Toggle favorite error:', err)
+    }
+  }
+
+  const handleShowFavorites = async () => {
+    setShowingFavoritesModal(true)
+    await fetchFavorites()
+  }
+
 useEffect(() => {
   fetchNotes()
 }, [fetchNotes])
@@ -462,6 +543,14 @@ useEffect(() => {
             </p>
           </div>
           <div className="flex gap-3">
+            <button 
+              onClick={handleShowFavorites}
+              title="Xem ghi chú yêu thích"
+              className="px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg hover:shadow-xl"
+            >
+              <Star size={20} />
+              <span className="hidden sm:inline">Yêu thích</span>
+            </button>
             <button 
               onClick={handleExportToExcel}
               title="Xuất ra file Excel"
@@ -605,7 +694,7 @@ useEffect(() => {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
-                      toggleFavorite(note.id)
+                      handleToggleFavorite(note.id)
                     }}
                     className="p-2 hover:bg-yellow-500/20 rounded-lg transition-all"
                     title="Thêm vào yêu thích"
@@ -1618,6 +1707,123 @@ useEffect(() => {
                   <Trash2 size={16} />
                   Xóa
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Favorites Modal */}
+      <AnimatePresence>
+        {showingFavoritesModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowingFavoritesModal(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-800 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 dark:from-yellow-900/20 dark:to-orange-900/20 p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Star size={28} className="text-yellow-500" />
+                  <div>
+                    <h3 className="text-xl font-bold text-foreground dark:text-white">
+                      Ghi chú yêu thích
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {loadingFavorites ? 'Đang tải...' : `${favoriteNotes.length} ghi chú`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowingFavoritesModal(false)}
+                  className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  <X size={24} className="text-muted-foreground" />
+                </button>
+              </div>
+
+              <div className="p-6">
+                {loadingFavorites ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin">
+                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                    </div>
+                    <p className="mt-4 text-muted-foreground">Đang tải ghi chú yêu thích...</p>
+                  </div>
+                ) : favoriteNotes.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Star size={48} className="mx-auto text-yellow-500/30 mb-4" />
+                    <p className="text-lg text-muted-foreground">
+                      Bạn chưa có ghi chú yêu thích nào
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Nhấp vào biểu tượng sao để thêm ghi chú vào yêu thích
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {favoriteNotes.map((note) => (
+                      <motion.div
+                        key={note.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 bg-secondary/50 dark:bg-slate-800/50 hover:bg-secondary dark:hover:bg-slate-800 rounded-xl border border-border dark:border-slate-700 cursor-pointer transition-all group"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xl">
+                                {note.type === 'general' ? '📝' : note.type === 'deadline' ? '⏰' : note.type === 'checklist' ? '☑' : '📅'}
+                              </span>
+                              <h4 className="font-semibold text-foreground dark:text-white truncate">
+                                {note.title}
+                              </h4>
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                              {note.content || `${note.items?.length || 0} mục` || `${note.schedule?.length || 0} lịch`}
+                            </p>
+                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                              {note.course && (
+                                <span className="px-2 py-1 bg-primary/10 rounded-md">
+                                  📚 {note.course}
+                                </span>
+                              )}
+                              {note.lessonTitle && (
+                                <span className="px-2 py-1 bg-secondary/50 rounded-md">
+                                  🎯 {note.lessonTitle}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => setViewingNote(note)}
+                              className="p-2 hover:bg-background dark:hover:bg-slate-900 rounded-lg transition-colors"
+                              title="Xem chi tiết"
+                            >
+                              <BookOpen size={18} className="text-primary" />
+                            </button>
+                            <button
+                              onClick={() => handleToggleFavorite(note.id)}
+                              className="p-2 hover:bg-background dark:hover:bg-slate-900 rounded-lg transition-colors"
+                              title="Bỏ khỏi yêu thích"
+                            >
+                              <Star size={18} className="text-yellow-500 fill-yellow-500" />
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
