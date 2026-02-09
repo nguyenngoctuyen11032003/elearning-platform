@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   Plus, 
@@ -100,7 +100,7 @@ export default function NotesPage() {
   const [newNote, setNewNote] = useState({ 
     title: "", 
     content: "", 
-    tags: "", 
+    tags: [] as string[], 
     type: 'general' as Note['type'],
     items: [] as { id: string; title: string; deadline: string; priority: 'high' | 'medium' | 'low'; completed: boolean }[],
     schedule: [] as { date: string; time: string; content: string }[]
@@ -152,59 +152,198 @@ export default function NotesPage() {
     setCurrentPage(1)
   }
 
-  const handleCreateNote = () => {
-    if (newNote.title.trim() && (newNote.type === 'general' ? newNote.content.trim() : true)) {
-      const baseNote = {
-        id: Date.now().toString(),
-        title: newNote.title,
-        content: newNote.content,
-        course: "Lập trình Next.js",
-        courseId: "1",
-        lessonTitle: "Ghi chú tự do",
-        createdAt: new Date().toISOString().split("T")[0],
-        updatedAt: new Date().toISOString().split("T")[0],
-        tags: newNote.tags.split(",").map(t => t.trim()).filter(t => t),
-        isFavorite: false,
-      }
-      
-      let note: Note
-      if (newNote.type === 'deadline') {
-        note = { ...baseNote, type: 'deadline', items: newNote.items }
-      } else if (newNote.type === 'checklist') {
-        note = { ...baseNote, type: 'checklist', items: newNote.items }
-      } else if (newNote.type === 'plan') {
-        note = { ...baseNote, type: 'plan', schedule: newNote.schedule }
-      } else {
-        note = { ...baseNote, type: 'general', content: newNote.content }
-      }
-      setNotes([note, ...notes])
-      setNewNote({ 
-        title: "", 
-        content: "", 
-        tags: "", 
-        type: 'general',
-        items: [],
-        schedule: []
-      })
-      setIsCreating(false)
-    }
-  }
+  const fetchNotes = useCallback(async () => {
+    if (!token) return
+    try {
+      setLoading(true)
 
-  const handleUpdateNote = () => {
-    if (editingNote && editingNote.title.trim() && (editingNote.type === 'general' ? editingNote.content.trim() : true)) {
-      setNotes(notes.map(n => 
-        n.id === editingNote.id 
-          ? { ...editingNote, updatedAt: new Date().toISOString().split("T")[0] }
-          : n
-      ))
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/my-notes`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        throw new Error(json?.error?.message || "Không lấy được ghi chú")
+      }
+
+      setNotes(
+        (json.data ?? json).map((n: any) => ({
+          id: n.id,
+          title: n.title ?? n.content?.split('\n')[0] ?? 'Ghi chú',
+          content: n.content || '',
+          course: n.course?.title ?? 'Chưa phân loại',
+          courseId: n.course?.id ?? '',
+          lessonTitle: n.lesson?.title ?? 'Ghi chú',
+          createdAt: n.createdAt,
+          updatedAt: n.updatedAt,
+          tags: [],
+          isFavorite: false,
+          type: n.type || 'general',
+          items: n.items || [],
+          schedule: n.schedule || [],
+        }))
+      )
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [token])
+
+  const handleCreateNote = async () => {
+  try {
+    // Validate based on note type
+    if (newNote.type === 'general' && !newNote.content?.trim()) {
+      console.error('Ghi chú thường cần có nội dung');
+      return;
+    }
+    
+    if ((newNote.type === 'deadline' || newNote.type === 'checklist') && (!newNote.items || newNote.items.length === 0)) {
+      console.error('Loại này cần có ít nhất một mục');
+      return;
+    }
+    
+    if (newNote.type === 'plan' && (!newNote.schedule || newNote.schedule.length === 0)) {
+      console.error('Lịch học cần có ít nhất một lịch');
+      return;
+    }
+
+    const payload: any = {
+      type: newNote.type,
+      timestamp: 0,
+    };
+
+    // Add content only for general notes
+    if (newNote.type === 'general') {
+      payload.content = newNote.content;
+    }
+
+    // Add items for deadline/checklist
+    if ((newNote.type === 'deadline' || newNote.type === 'checklist') && newNote.items?.length > 0) {
+      payload.items = newNote.items;
+    }
+
+    // Add schedule for plan notes
+    if (newNote.type === 'plan' && newNote.schedule?.length > 0) {
+      payload.schedule = newNote.schedule;
+    }
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) throw new Error('Tạo note thất bại');
+
+    // Fetch lại danh sách để cập nhật
+    await fetchNotes();
+
+    setIsCreating(false);
+    setNewNote({
+      title: '',
+      content: '',
+      tags: [],
+      type: 'general',
+      items: [],
+      schedule: [],
+    });
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+  const handleUpdateNote = async () => {
+    if (!editingNote) return;
+
+    // Validate based on note type
+    if (editingNote.type === 'general' && !editingNote.content?.trim()) {
+      console.error('Ghi chú thường cần có nội dung');
+      return;
+    }
+    
+    if ((editingNote.type === 'deadline' || editingNote.type === 'checklist') && (!editingNote.items || editingNote.items.length === 0)) {
+      console.error('Loại này cần có ít nhất một mục');
+      return;
+    }
+    
+    if (editingNote.type === 'plan' && (!editingNote.schedule || editingNote.schedule.length === 0)) {
+      console.error('Lịch học cần có ít nhất một lịch');
+      return;
+    }
+
+    try {
+      const payload: any = {
+        type: editingNote.type,
+      };
+
+      // Add content only for general notes
+      if (editingNote.type === 'general') {
+        payload.content = editingNote.content;
+      }
+
+      // Add items for deadline/checklist
+      if ((editingNote.type === 'deadline' || editingNote.type === 'checklist') && (editingNote.items ?? []).length > 0) {
+        payload.items = editingNote.items;
+      }
+
+      // Add schedule for plan notes
+      if (editingNote.type === 'plan' && (editingNote.schedule ?? []).length > 0) {
+        payload.schedule = editingNote.schedule;
+      }
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/${editingNote.id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!res.ok) throw new Error('Cập nhật note thất bại');
+
+      // Fetch lại danh sách để cập nhật
+      await fetchNotes();
       setEditingNote(null)
+    } catch (err) {
+      console.error(err);
     }
   }
 
-  const handleDeleteNote = (id: string) => {
-    setNotes(notes.filter(n => n.id !== id))
-    if (viewingNote?.id === id) setViewingNote(null)
-    if (editingNote?.id === id) setEditingNote(null)
+  const handleDeleteNote = async (id: string) => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/${id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error('Xóa note thất bại');
+
+      setNotes(notes.filter(n => n.id !== id))
+      if (viewingNote?.id === id) setViewingNote(null)
+      if (editingNote?.id === id) setEditingNote(null)
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   const toggleFavorite = (id: string) => {
@@ -238,15 +377,11 @@ export default function NotesPage() {
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
   }
-useEffect(() => {
-  if (!token) return
 
-  const fetchNotes = async () => {
+  const handleExportToExcel = async () => {
     try {
-      setLoading(true)
-
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/my-notes`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/export/excel`,
         {
           method: "GET",
           headers: {
@@ -255,47 +390,56 @@ useEffect(() => {
         }
       )
 
-      const json = await res.json()
-
       if (!res.ok) {
-        throw new Error(json?.error?.message || "Không lấy được ghi chú")
+        throw new Error('Xuất Excel thất bại')
       }
 
-      setNotes(
-  (json.data ?? json).map((n: any) => {
-    const ts = n.timestamp
-
-    const date =
-      typeof ts === 'number'
-        ? new Date(ts * 1000) // nếu backend trả seconds
-        : new Date(ts)
-
-    return {
-      id: n.id,
-      title: n.title ?? n.content?.split('\n')[0] ?? 'Ghi chú',
-      content: n.content,
-      course: n.course?.title ?? 'Chưa phân loại',
-      courseId: n.course?.id ?? '',
-      lessonTitle: n.lesson?.title ?? 'Ghi chú',
-      createdAt: n.createdAt,
-      updatedAt: n.updatedAt,
-      tags: [],
-      isFavorite: false,
-      type: 'general',
-      items: [],
-      schedule: [],
-    }
-  })
-)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `ghi-chu-${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
     } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+      console.error('Export error:', err)
     }
   }
 
+  const handleExportSingleNoteToExcel = async (noteId: string) => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/${noteId}/export/excel`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      if (!res.ok) {
+        throw new Error('Xuất Excel thất bại')
+      }
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `ghi-chu-${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      console.error('Export error:', err)
+    }
+  }
+useEffect(() => {
   fetchNotes()
-}, [token])
+}, [fetchNotes])
 
   return (
     <div className="space-y-6">
@@ -317,13 +461,23 @@ useEffect(() => {
               </span>
             </p>
           </div>
-          <button 
-            onClick={() => setIsCreating(true)}
-            className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30"
-          >
-            <Plus size={20} />
-            Ghi chú mới
-          </button>
+          <div className="flex gap-3">
+            <button 
+              onClick={handleExportToExcel}
+              title="Xuất ra file Excel"
+              className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg hover:shadow-xl"
+            >
+              <Download size={20} />
+              <span className="hidden sm:inline">Excel</span>
+            </button>
+            <button 
+              onClick={() => setIsCreating(true)}
+              className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30"
+            >
+              <Plus size={20} />
+              Ghi chú mới
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -447,17 +601,18 @@ useEffect(() => {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1">
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
                       toggleFavorite(note.id)
                     }}
-                    className="p-1.5 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg"
+                    className="p-2 hover:bg-yellow-500/20 rounded-lg transition-all"
+                    title="Thêm vào yêu thích"
                   >
                     <Star 
-                      size={16} 
-                      className={note.isFavorite ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"} 
+                      size={20} 
+                      className={note.isFavorite ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground hover:text-yellow-500"} 
                     />
                   </button>
                   <button 
@@ -465,18 +620,20 @@ useEffect(() => {
                       e.stopPropagation()
                       setEditingNote(note)
                     }}
-                    className="p-1.5 hover:bg-primary/10 rounded-lg text-primary dark:text-accent"
+                    className="p-2 hover:bg-blue-500/20 rounded-lg text-blue-500 dark:text-blue-400 transition-all"
+                    title="Chỉnh sửa"
                   >
-                    <Edit3 size={16} />
+                    <Edit3 size={20} />
                   </button>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
                       handleDeleteNote(note.id)
                     }}
-                    className="p-1.5 hover:bg-red-500/10 rounded-lg text-red-500"
+                    className="p-2 hover:bg-red-500/20 rounded-lg text-red-500 dark:text-red-400 transition-all hover:scale-110"
+                    title="Xóa"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={22} className="font-bold" />
                   </button>
                 </div>
               </div>
@@ -789,7 +946,7 @@ useEffect(() => {
                     <label className="text-sm font-medium text-muted-foreground block">Lịch học</label>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {newNote.schedule?.map((item, idx) => (
-                        <div key={idx} className="flex gap-2 items-end">
+                        <div key={`schedule-${idx}-${item.date}-${item.time}`} className="flex gap-2 items-end">
                           <input
                             type="date"
                             value={item.date}
@@ -844,26 +1001,64 @@ useEffect(() => {
                     </button>
                   </div>
                 )}
-                <input
-                  type="text"
-                  placeholder="Tags (phân cách bằng dấu phẩy: react, nextjs, hooks)"
-                  value={newNote.tags}
-                  onChange={(e) => setNewNote({ ...newNote, tags: e.target.value })}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                />
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Tags</label>
+                  {newNote.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {newNote.tags.map((tag, i) => (
+                        <div
+                          key={`new-tag-${i}-${tag}`}
+                          className="px-3 py-1.5 bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary dark:text-accent text-sm rounded-full font-medium flex items-center gap-2 group"
+                        >
+                          #{tag}
+                          <button
+                            onClick={() => setNewNote({
+                              ...newNote,
+                              tags: newNote.tags.filter((_, index) => index !== i)
+                            })}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    placeholder="Thêm tag mới (nhấn Enter hoặc Dấu phẩy để thêm)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault()
+                        const input = e.target as HTMLInputElement
+                        const tagValue = input.value.replace(',', '').trim()
+                        if (tagValue) {
+                          if (!newNote.tags.includes(tagValue)) {
+                            setNewNote({ 
+                              ...newNote, 
+                              tags: [...newNote.tags, tagValue]
+                            })
+                          }
+                          input.value = ""
+                        }
+                      }
+                    }}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
+                  />
+                </div>
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => setIsCreating(false)}
-                    className="flex-1 px-4 py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+                    className="flex-1 px-4 py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-all hover:shadow-md"
                   >
                     Hủy
                   </button>
                   <button 
                     onClick={handleCreateNote}
                     disabled={!newNote.title.trim()}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-bold hover:shadow-xl shadow-lg shadow-green-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    <Save size={18} />
+                    <Save size={22} />
                     Lưu ghi chú
                   </button>
                 </div>
@@ -1027,7 +1222,7 @@ useEffect(() => {
                     <label className="text-sm font-medium text-muted-foreground block">Lịch học</label>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {editingNote.schedule?.map((item, idx) => (
-                        <div key={idx} className="flex gap-2 items-end">
+                        <div key={`edit-schedule-${idx}-${item.date}-${item.time}`} className="flex gap-2 items-end">
                           <input
                             type="date"
                             value={item.date}
@@ -1084,18 +1279,18 @@ useEffect(() => {
                 )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">Tags</label>
-                  {editingNote.tags.length > 0 && (
+                  {(editingNote.tags?.length ?? 0) > 0 && (
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {editingNote.tags.map((tag, i) => (
+                      {editingNote.tags?.map((tag, i) => (
                         <div
-                          key={i}
+                          key={`edit-tag-${i}-${tag}`}
                           className="px-3 py-1.5 bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary dark:text-accent text-sm rounded-full font-medium flex items-center gap-2 group"
                         >
                           #{tag}
                           <button
                             onClick={() => setEditingNote({
                               ...editingNote,
-                              tags: editingNote.tags.filter((_, index) => index !== i)
+                              tags: (editingNote.tags ?? []).filter((_, index) => index !== i)
                             })}
                             className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500"
                           >
@@ -1115,10 +1310,10 @@ useEffect(() => {
                         const tagValue = input.value.replace(',', '').trim()
                         if (tagValue) {
                           const newTag = tagValue
-                          if (!editingNote.tags.includes(newTag)) {
+                          if (!(editingNote.tags ?? []).includes(newTag)) {
                             setEditingNote({ 
                               ...editingNote, 
-                              tags: [...editingNote.tags, newTag]
+                              tags: [...(editingNote.tags ?? []), newTag]
                             })
                           }
                           input.value = ""
@@ -1131,16 +1326,16 @@ useEffect(() => {
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => setEditingNote(null)}
-                    className="flex-1 px-4 py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+                    className="flex-1 px-4 py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-all hover:shadow-md"
                   >
                     Hủy
                   </button>
                   <button 
                     onClick={handleUpdateNote}
                     disabled={!editingNote.title.trim() || (editingNote.type === 'general' ? !editingNote.content.trim() : false)}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-xl font-bold hover:shadow-xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    <Save size={18} />
+                    <Edit3 size={22} />
                     Cập nhật
                   </button>
                 </div>
@@ -1189,33 +1384,23 @@ useEffect(() => {
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => {
-                      const dataStr = JSON.stringify(viewingNote, null, 2)
-                      const dataBlob = new Blob([dataStr], { type: 'application/json' })
-                      const url = URL.createObjectURL(dataBlob)
-                      const link = document.createElement('a')
-                      link.href = url
-                      link.download = `${viewingNote.title.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`
-                      document.body.appendChild(link)
-                      link.click()
-                      document.body.removeChild(link)
-                      URL.revokeObjectURL(url)
-                    }}
-                    className="p-2 hover:bg-blue-500/10 rounded-lg text-blue-500 dark:text-blue-400 transition-colors"
-                    title="Xuất ghi chú này"
+                    onClick={() => handleExportSingleNoteToExcel(viewingNote.id)}
+                    className="p-2 hover:bg-green-500/20 rounded-lg text-green-500 dark:text-green-400 transition-all hover:scale-110"
+                    title="Xuất ghi chú này ra file Excel"
                   >
-                    <Download size={20} />
+                    <Download size={22} />
                   </button>
                   <button 
                     onClick={() => {
                       toggleFavorite(viewingNote.id)
                       setViewingNote({...viewingNote, isFavorite: !viewingNote.isFavorite})
                     }}
-                    className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    className="p-2 hover:bg-yellow-500/20 rounded-lg transition-all"
+                    title="Thêm vào yêu thích"
                   >
                     <Star 
-                      size={20} 
-                      className={viewingNote.isFavorite ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"} 
+                      size={22} 
+                      className={viewingNote.isFavorite ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground hover:text-yellow-500"} 
                     />
                   </button>
                   <button 
@@ -1223,15 +1408,17 @@ useEffect(() => {
                       setEditingNote(viewingNote)
                       setViewingNote(null)
                     }}
-                    className="p-2 hover:bg-primary/10 rounded-lg text-primary dark:text-accent transition-colors"
+                    className="p-2 hover:bg-blue-500/20 rounded-lg text-blue-500 dark:text-blue-400 transition-all hover:scale-110"
+                    title="Chỉnh sửa"
                   >
-                    <Edit3 size={20} />
+                    <Edit3 size={22} />
                   </button>
                   <button 
                     onClick={() => setViewingNote(null)}
-                    className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-all"
+                    title="Đóng"
                   >
-                    <X size={20} className="text-muted-foreground" />
+                    <X size={22} className="text-muted-foreground" />
                   </button>
                 </div>
               </div>
@@ -1328,7 +1515,7 @@ useEffect(() => {
                   <h3 className="font-semibold text-foreground dark:text-white mb-3">📅 Lịch học</h3>
                   <div className="space-y-2">
                     {viewingNote.schedule?.map((item, idx) => (
-                      <div key={idx} className="p-4 bg-background dark:bg-slate-950/50 rounded-lg border-l-4 border-primary">
+                      <div key={`view-schedule-${idx}-${item.date}-${item.time}`} className="p-4 bg-background dark:bg-slate-950/50 rounded-lg border-l-4 border-primary">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <Calendar size={16} className="text-primary" />
@@ -1354,16 +1541,16 @@ useEffect(() => {
                 </div>
               )}
 
-              {viewingNote.tags.length > 0 && (
+              {(viewingNote.tags?.length ?? 0) > 0 && (
                 <div className="mb-6 pt-6 border-t border-border dark:border-slate-800">
                   <p className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
                     <Tag size={14} />
                     Tags
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {viewingNote.tags.map((tag, i) => (
+                    {viewingNote.tags?.map((tag, i) => (
                       <span 
-                        key={i}
+                        key={`view-tag-${i}-${tag}`}
                         className="px-3 py-1.5 bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary dark:text-accent text-sm rounded-full font-medium"
                       >
                         #{tag}

@@ -115,6 +115,34 @@ export default function SchedulePage() {
     "July", "August", "September", "October", "November", "December"
   ]
 
+  // 🔔 Helper Functions for Deadline Notifications
+  const getTodayDateString = () => {
+    const today = new Date()
+    return formatDateToString(today.getFullYear(), today.getMonth(), today.getDate())
+  }
+
+  const isDateNotToday = (dateString?: string) => {
+    if (!dateString) return false
+    return dateString !== getTodayDateString()
+  }
+
+  const getDaysUntilDeadline = (dateString?: string) => {
+    if (!dateString) return 0
+    const today = new Date(getTodayDateString())
+    const deadline = new Date(dateString)
+    const diffTime = deadline.getTime() - today.getTime()
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  }
+
+  const getDeadlineStatus = (dateString?: string) => {
+    const days = getDaysUntilDeadline(dateString)
+    if (days < 0) return { status: 'overdue', label: 'Quá hạn', color: 'bg-red-500/20 text-red-600 dark:text-red-400' }
+    if (days === 0) return { status: 'today', label: 'Hôm nay', color: 'bg-orange-500/20 text-orange-600 dark:text-orange-400' }
+    if (days === 1) return { status: 'tomorrow', label: 'Ngày mai', color: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' }
+    if (days <= 3) return { status: 'soon', label: `${days} ngày nữa`, color: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' }
+    return { status: 'future', label: `${days} ngày nữa`, color: 'bg-slate-500/20 text-slate-600 dark:text-slate-400' }
+  }
+
   const prevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))
   }
@@ -129,31 +157,42 @@ const handleCreateItem = async () => {
     return
   }
 
+  const dueDate = newItem.dueDate || selectedDate || formatDateToString(
+    new Date().getFullYear(),
+    new Date().getMonth(),
+    new Date().getDate()
+  )
+
+  // Check if not today and warn user
+  if (isDateNotToday(dueDate)) {
+    const days = getDaysUntilDeadline(dueDate)
+    if (days > 0) {
+      toast.warning(`Công việc chưa đến ngày làm (${days} ngày nữa)`, {
+        description: `Hạn chót: ${dueDate}. Hãy hoàn thành đúng hẹn!`,
+        duration: 5000
+      })
+    } else if (days < 0) {
+      toast.error(`Chưa đến ngày làm - Deadline đã quá hạn ${Math.abs(days)} ngày!`, {
+        description: 'Bạn cần hoàn thành ngay lập tức!',
+        duration: 5000
+      })
+    }
+  }
+
   try {
     const payload = {
-  title: newItem.title,
-  course: newItem.course,
-  type: newItem.type ?? 'lesson',
-  status: newItem.status ?? 'todo',
-  time: newItem.time ?? '09:00',
-  duration: newItem.duration ?? '30 phút',
-  dueDate:
-    newItem.dueDate ||
-    selectedDate ||
-    formatDateToString(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      new Date().getDate()
-    ),
-
-  // 🔥 ÉP BOOLEAN RÕ RÀNG
-  completed: newItem.status === 'completed',
-
-  description: newItem.description ?? '',
-}
+      title: newItem.title,
+      course: newItem.course,
+      type: newItem.type ?? 'lesson',
+      status: newItem.status ?? 'todo',
+      time: newItem.time ?? '09:00',
+      duration: newItem.duration ?? '30 phút',
+      dueDate,
+      completed: newItem.status === 'completed',
+      description: newItem.description ?? '',
+    }
     const created = await scheduleApi.create(payload)
 
-    // backend trả về object vừa lưu trong DB
     setScheduleItems(prev => [...prev, created])
     setNewItem({
       title: "",
@@ -176,6 +215,22 @@ const handleCreateItem = async () => {
 
 const handleUpdateItem = async () => {
   if (!editingItem) return
+
+  // Check if not today and warn user
+  if (isDateNotToday(editingItem.dueDate)) {
+    const days = getDaysUntilDeadline(editingItem.dueDate)
+    if (days > 0) {
+      toast.warning(`Công việc chưa đến ngày làm (${days} ngày nữa)`, {
+        description: `Hạn chót: ${editingItem.dueDate}. Hãy hoàn thành đúng hẹn!`,
+        duration: 5000
+      })
+    } else if (days < 0) {
+      toast.error(`Deadline đã quá hạn ${Math.abs(days)} ngày!`, {
+        description: 'Bạn cần hoàn thành ngay lập tức!',
+        duration: 5000
+      })
+    }
+  }
 
   const payload = {
     title: editingItem.title,
@@ -311,15 +366,52 @@ useEffect(() => {
   const fetchData = async () => {
     try {
       const res = await scheduleApi.getAll()
-      setScheduleItems(res.data || [])
-    } catch {
+      const items = res.data || []
+      setScheduleItems(items)
+
+      // Check for approaching deadlines and notify user
+      items.forEach((item: { status: string; dueDate: string | undefined; title: any; time: any; course: any }) => {
+        if (item.status !== 'completed' && item.dueDate) {
+          const days = getDaysUntilDeadline(item.dueDate)
+          
+          // Deadline is today
+          if (days === 0) {
+            toast.error(`DEADLINE Hôm nay: ${item.title}!`, {
+              description: `Thời gian: ${item.time}, Khóa học: ${item.course}`,
+              duration: 4000
+            })
+          }
+          // Deadline is tomorrow
+          else if (days === 1) {
+            toast.warning(`Deadline ngày mai: ${item.title}`, {
+              description: `Hoàn thành vào lúc ${item.time}`,
+              duration: 4000
+            })
+          }
+          // Deadline in 2-3 days
+          else if (days > 0 && days <= 3) {
+            toast.info(`${item.title} - ${days} ngày nữa`, {
+              description: `Deadline: ${item.dueDate}. Sắp hết thời hạn!`,
+              duration: 4000
+            })
+          }
+          // Overdue
+          else if (days < 0) {
+            toast.error(`Quá Hạn ${Math.abs(days)} Ngày: ${item.title}!`, {
+              description: 'Bạn cần hoàn thiện ngay!',
+              duration: 5000
+            })
+          }
+        }
+      })
+    } catch (error) {
       toast.error('Không tải được lịch học')
     }
   }
 
   fetchData() // load lần đầu
 
-  const interval = setInterval(fetchData, 5000) // ⏱ 5 giây sync 1 lần
+  const interval = setInterval(fetchData, 30000) // ⏱ 30 giây check deadline 1 lần
 
   return () => clearInterval(interval)
 }, [])
@@ -418,6 +510,16 @@ useEffect(() => {
                       {item.course}
                     </p>
 
+                    {/* Deadline Status Warning Badge */}
+                    {isDateNotToday(item.dueDate) && item.status !== 'completed' && (
+                      <div className={`mb-2 sm:mb-3 px-2 py-1 rounded text-xs font-medium ${getDeadlineStatus(item.dueDate).color}`}>
+                        {getDeadlineStatus(item.dueDate).status === 'overdue' && 'Quá hạn'}
+                        {getDeadlineStatus(item.dueDate).status === 'tomorrow' && 'Ngày mai'}
+                        {getDeadlineStatus(item.dueDate).status === 'soon' && 'Sắp đến - ' + getDeadlineStatus(item.dueDate).label}
+                        {getDeadlineStatus(item.dueDate).status === 'future' && 'Chưa đến ngày làm'}
+                      </div>
+                    )}
+
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2 text-xs text-muted-foreground dark:text-slate-500 mb-2 sm:mb-3">
                       <div className="flex items-center gap-1">
                         <Calendar size={13} className="flex-shrink-0" />
@@ -441,16 +543,27 @@ useEffect(() => {
                     <div className="flex gap-2 pt-2 sm:pt-3 border-t border-border dark:border-slate-700">
                       {status !== 'completed' && (
                     <button
-                      onClick={() =>
+                      onClick={() => {
+                        const daysUntil = getDaysUntilDeadline(item.dueDate)
+                        if (status === 'todo' && daysUntil > 0) {
+                          toast.warning('Chưa đến giờ làm', {
+                            description: `Hãy quay lại vào ngày ${item.dueDate || 'đã quy định'}`,
+                            duration: 3000
+                          })
+                          return
+                        }
                         handleQuickStatusChange(
                           item,
                           status === 'todo' ? 'in-progress' : 'completed'
                         )
-                      }
-                      className="flex-1 px-2 py-1 text-xs bg-primary/10
-                        dark:bg-primary/20 text-primary dark:text-accent
-                        hover:bg-primary/20 dark:hover:bg-primary/30
-                        rounded font-medium transition-colors"
+                      }}
+                      disabled={status === 'todo' && getDaysUntilDeadline(item.dueDate) > 0}
+                      title={status === 'todo' && getDaysUntilDeadline(item.dueDate) > 0 ? 'Chưa đến giờ làm' : ''}
+                      className={`flex-1 px-2 py-1 text-xs rounded font-medium transition-colors ${
+                        status === 'todo' && getDaysUntilDeadline(item.dueDate) > 0
+                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
+                          : 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent hover:bg-primary/20 dark:hover:bg-primary/30'
+                      }`}
                     >
                       {status === 'todo' ? 'Bắt đầu' : 'Hoàn thành'}
                     </button>
