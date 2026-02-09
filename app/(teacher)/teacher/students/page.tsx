@@ -14,6 +14,7 @@ import {
   UserX,
   Users,
 } from "lucide-react"
+import * as XLSX from "xlsx"
 import { toast } from "sonner"
 
 import { apiClient } from "@/lib/api/client"
@@ -96,55 +97,6 @@ export default function TeacherStudentsPage() {
     loadStudents()
   }, [])
 
-  const uniqueStudents = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        base: Student
-        progressSum: number
-        enrollCount: number
-        hasCompleted: boolean
-        hasActive: boolean
-      }
-    >()
-
-    students.forEach((s) => {
-      const key = s.studentId || s.email || s.id
-      const isCompleted = s.status === "completed" || (s.progress ?? 0) >= 100
-      const isActive = s.status === "active"
-
-      if (!map.has(key)) {
-        map.set(key, {
-          base: s,
-          progressSum: s.progress || 0,
-          enrollCount: 1,
-          hasCompleted: isCompleted,
-          hasActive: isActive,
-        })
-      } else {
-        const prev = map.get(key)!
-        map.set(key, {
-          base: prev.base,
-          progressSum: prev.progressSum + (s.progress || 0),
-          enrollCount: prev.enrollCount + 1,
-          hasCompleted: prev.hasCompleted || isCompleted,
-          hasActive: prev.hasActive || isActive,
-        })
-      }
-    })
-
-    return Array.from(map.values()).map(({ base, progressSum, enrollCount, hasCompleted, hasActive }) => ({
-      ...base,
-      status: hasCompleted ? "completed" : hasActive ? "active" : "inactive",
-      progress: enrollCount > 0 ? Math.round(progressSum / enrollCount) : 0,
-    }))
-  }, [students])
-
-  const totalStudents = uniqueStudents.length
-  const activeStudents = uniqueStudents.filter((s) => s.status === "active").length
-  const completedStudents = uniqueStudents.filter((s) => s.status === "completed").length
-  const avgProgress = uniqueStudents.length > 0 ? Math.round(uniqueStudents.reduce((sum, s) => sum + s.progress, 0) / uniqueStudents.length) : 0
-
   const courseOptions = useMemo(() => {
     const map = new Map<string, string>()
     students.forEach((s) => {
@@ -159,6 +111,21 @@ export default function TeacherStudentsPage() {
     const matchStatus = filterStatus === "all" || student.status === filterStatus
     return matchSearch && matchCourse && matchStatus
   })
+
+  const totalStudents = useMemo(() => {
+    const seen = new Set<string>()
+    filteredStudents.forEach((student) => {
+      const key = `${student.studentId || student.id || ""}::${student.name || ""}`
+      seen.add(key)
+    })
+    return seen.size
+  }, [filteredStudents])
+  const activeStudents = filteredStudents.filter((s) => s.status === "active").length
+  const completedStudents = filteredStudents.filter((s) => s.status === "completed").length
+  const avgProgress =
+    filteredStudents.length > 0
+      ? Math.round(filteredStudents.reduce((sum, s) => sum + s.progress, 0) / filteredStudents.length)
+      : 0
 
   const handleViewDetails = (student: Student) => {
     setSelectedStudent(student)
@@ -179,15 +146,95 @@ export default function TeacherStudentsPage() {
     setSelectedStudent(null)
   }
 
-  const handleExport = async () => {
+  const handleExport = () => {
     try {
-      const blob = await apiClient.exportTeacherStudents()
-      if (blob instanceof Blob) {
-        const link = document.createElement("a")
-        link.href = URL.createObjectURL(blob)
-        link.download = `students_${new Date().toISOString().split("T")[0]}.csv`
-        link.click()
+      const statusLabel = (status: Student["status"]) => {
+        if (status === "completed") return "Hoàn thành"
+        if (status === "active") return "Đang học"
+        return "Không hoạt động"
       }
+
+      const headers = ["Mã học viên", "Học viên", "Email", "Khóa học", "Tiến độ", "Điểm Quiz", "Ngày tham gia", "Trạng thái"]
+      const exportDate = new Date().toLocaleDateString("vi-VN")
+      const bannerLines = [["Báo cáo: Danh sách học viên"], [`Ngày xuất: ${exportDate}`]]
+      const groups = new Map<string, Student[]>()
+
+      filteredStudents.forEach((student) => {
+        const key = `${student.studentId || student.id || ""}::${student.name || ""}`
+        if (!groups.has(key)) {
+          groups.set(key, [])
+        }
+        groups.get(key)!.push(student)
+      })
+
+      const rows: Array<Array<string | number>> = []
+      const merges: XLSX.Range[] = []
+      let rowIndex = bannerLines.length + 1
+
+      groups.forEach((group) => {
+        group.forEach((student, index) => {
+          rows.push([
+            index === 0 ? student.studentId : "",
+            index === 0 ? student.name : "",
+            index === 0 ? student.email : "",
+            student.course,
+            `${student.progress}%`,
+            `${student.quizScore}%`,
+            formatDate(student.joinDate),
+            statusLabel(student.status),
+          ])
+        })
+
+        if (group.length > 1) {
+          ;[0, 1, 2].forEach((col) => {
+            merges.push({
+              s: { r: rowIndex, c: col },
+              e: { r: rowIndex + group.length - 1, c: col },
+            })
+          })
+        }
+
+        rowIndex += group.length
+      })
+
+      const aoa = [...bannerLines, headers, ...rows]
+      const worksheet = XLSX.utils.aoa_to_sheet(aoa)
+      worksheet["!merges"] = merges
+
+      const lastCol = headers.length - 1
+      bannerLines.forEach((_, index) => {
+        merges.push({
+          s: { r: index, c: 0 },
+          e: { r: index, c: lastCol },
+        })
+      })
+
+      aoa.forEach((row, r) => {
+        row.forEach((_, c) => {
+          const cellAddress = XLSX.utils.encode_cell({ r, c })
+          const cell = worksheet[cellAddress]
+          if (!cell) return
+          cell.s = {
+            font: { name: "Times New Roman" },
+            alignment: { horizontal: "center", vertical: "center" },
+          }
+        })
+      })
+
+      const colCount = Math.max(...aoa.map((row) => row.length))
+      worksheet["!cols"] = Array.from({ length: colCount }, (_, colIndex) => {
+        const maxLen = Math.max(
+          ...aoa.map((row) => {
+            const value = row[colIndex]
+            return value === undefined || value === null ? 0 : String(value).length
+          })
+        )
+        return { wch: Math.min(60, Math.max(10, maxLen + 2)) }
+      })
+
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Hoc vien")
+      XLSX.writeFile(workbook, `students_report_${new Date().toISOString().split("T")[0]}.xlsx`)
     } catch (error) {
       console.error("Failed to export students", error)
       toast.error("Xuất danh sách thất bại")
