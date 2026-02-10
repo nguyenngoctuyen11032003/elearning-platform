@@ -573,7 +573,7 @@ const formatDate = (date?: string) => {
           {!isLoading && viewTab === "issued" && filteredIssuedCertificates.length === 0 && (
             <div className="py-12 text-center">
               <Award size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground dark:text-slate-400">Không có chứng chỉ đã cấp</p>
+              <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy chứng chỉ nào</p>
             </div>
           )}
         </div>
