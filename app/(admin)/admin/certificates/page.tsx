@@ -1,120 +1,121 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Search, MoreVertical, CheckCircle, Clock, XCircle, Award, Eye, X, AlertCircle, User, BookOpen, Calendar, Download } from "lucide-react"
-import { ConfirmDialog } from "@/components/ui/admin-modals"
+import { Modal } from "@/components/ui/admin-modals"
 
-interface Certificate {
+interface CertificateTemplate {
   id: string
   title: string
   description: string
-  course: string
   courseId: string
-  teacher: string
-  teacherEmail: string
-  status: "pending" | "approved" | "rejected"
+  course?: {
+    id: string
+    title: string
+  } | null
+  teacher?: {
+    id: string
+    name: string
+    email: string
+  } | null
+  status: "draft" | "pending" | "approved" | "rejected"
   createdAt: string
   validityPeriod: string
-  template: string
   rejectionReason?: string
   issuedCount: number
 }
 
-const initialCertificates: Certificate[] = [
-  {
-    id: "1",
-    title: "Chứng chỉ hoàn thành Next.js Advanced",
-    description: "Chứng nhận học viên đã hoàn thành khóa học Next.js từ cơ bản đến nâng cao với điểm số đạt yêu cầu",
-    course: "Lập trình Next.js từ cơ bản đến nâng cao",
-    courseId: "COURSE001",
-    teacher: "Nguyễn Ngọc Tuyền",
-    teacherEmail: "tuyen@example.com",
-    status: "approved",
-    createdAt: "2024-01-20",
-    validityPeriod: "Vĩnh viễn",
-    template: "template-nextjs",
-    issuedCount: 245
-  },
-  {
-    id: "2",
-    title: "Chứng chỉ React Hooks Master",
-    description: "Chứng nhận thành thạo React Hooks và State Management",
-    course: "React Hooks Advanced & State Management",
-    courseId: "COURSE002",
-    teacher: "Trần Minh Tuấn",
-    teacherEmail: "tuan@example.com",
-    status: "approved",
-    createdAt: "2024-02-25",
-    validityPeriod: "2 năm",
-    template: "template-react",
-    issuedCount: 189
-  },
-  {
-    id: "3",
-    title: "Chứng chỉ AI & Machine Learning Cơ bản",
-    description: "Chứng nhận kiến thức nền tảng về AI và Machine Learning",
-    course: "AI & Machine Learning cho người mới bắt đầu",
-    courseId: "COURSE003",
-    teacher: "Phạm Thị Hương",
-    teacherEmail: "huong@example.com",
-    status: "pending",
-    createdAt: "2024-03-12",
-    validityPeriod: "3 năm",
-    template: "template-ai",
-    issuedCount: 0
-  },
-  {
-    id: "4",
-    title: "Chứng chỉ UI/UX Designer Professional",
-    description: "Chứng nhận chuyên nghiệp về thiết kế UI/UX với Figma",
-    course: "UI/UX Design Masterclass với Figma",
-    courseId: "COURSE004",
-    teacher: "Lê Thị Hương",
-    teacherEmail: "huongle@example.com",
-    status: "approved",
-    createdAt: "2024-01-10",
-    validityPeriod: "Vĩnh viễn",
-    template: "template-design",
-    issuedCount: 312
-  },
-  {
-    id: "5",
-    title: "Chứng chỉ Python Data Analyst",
-    description: "Chứng nhận kỹ năng phân tích dữ liệu với Python",
-    course: "Python cho Data Science",
-    courseId: "COURSE005",
-    teacher: "Trần Văn Đức",
-    teacherEmail: "duc@example.com",
-    status: "rejected",
-    createdAt: "2024-03-18",
-    validityPeriod: "2 năm",
-    template: "template-python",
-    issuedCount: 0,
-    rejectionReason: "Mẫu chứng chỉ chưa đạt tiêu chuẩn. Cần bổ sung logo trường và watermark bảo mật."
-  },
-]
+interface ExamSummary {
+  id: string
+  title: string
+  type: "practice" | "official"
+  status: "draft" | "pending" | "approved" | "rejected"
+  courseId: string
+  course?: {
+    id: string
+    title: string
+  } | null
+}
 
 export default function AdminCertificatesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [certificates, setCertificates] = useState(initialCertificates)
+  const [certificates, setCertificates] = useState<CertificateTemplate[]>([])
+  const [exams, setExams] = useState<ExamSummary[]>([])
   const [openMenu, setOpenMenu] = useState<string | null>(null)
-  const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null)
+  const [selectedCertificate, setSelectedCertificate] = useState<CertificateTemplate | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "reject" | null>(null)
   const [rejectionReason, setRejectionReason] = useState("")
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean
-    action: string
-    certificateId?: string
-  }>({ isOpen: false, action: "" })
+  const [isLoading, setIsLoading] = useState(true)
+  const [approveModalOpen, setApproveModalOpen] = useState(false)
+  const [approveTarget, setApproveTarget] = useState<CertificateTemplate | null>(null)
+  const [selectedExamId, setSelectedExamId] = useState("")
+  const [isApproving, setIsApproving] = useState(false)
 
-  const filteredCertificates = certificates.filter(
-    (cert) =>
-      (cert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cert.teacher.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cert.course.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (statusFilter === "all" || cert.status === statusFilter),
-  )
+  const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
+
+  const normalizeList = (data: any): any[] => {
+    if (Array.isArray(data)) return data
+    if (data && Array.isArray(data.data)) return data.data
+    if (data?.data?.data && Array.isArray(data.data.data)) return data.data.data
+    return []
+  }
+
+  const fetchCertificates = async () => {
+    try {
+      const response = await fetch("/api/admin/certificate-templates", {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      })
+
+      if (!response.ok) return
+      const data = await response.json()
+      setCertificates(normalizeList(data))
+    } catch (error) {
+      console.error("Error fetching certificates:", error)
+    }
+  }
+
+  const fetchExams = async () => {
+    try {
+      const response = await fetch("/api/admin/exams", {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      })
+
+      if (!response.ok) return
+      const data = await response.json()
+      setExams(normalizeList(data))
+    } catch (error) {
+      console.error("Error fetching exams:", error)
+    }
+  }
+
+  useEffect(() => {
+    let isMounted = true
+    const load = async () => {
+      setIsLoading(true)
+      await Promise.all([fetchCertificates(), fetchExams()])
+      if (isMounted) setIsLoading(false)
+    }
+    load()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const filteredCertificates = certificates.filter((cert) => {
+    const courseTitle = cert.course?.title || ""
+    const teacherName = cert.teacher?.name || ""
+    const matchesSearch =
+      cert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      teacherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      courseTitle.toLowerCase().includes(searchTerm.toLowerCase())
+
+    return matchesSearch && (statusFilter === "all" || cert.status === statusFilter)
+  })
 
   // Stats
   const totalCertificates = certificates.length
@@ -123,39 +124,79 @@ export default function AdminCertificatesPage() {
   const rejectedCertificates = certificates.filter(c => c.status === "rejected").length
   const totalIssued = certificates.reduce((sum, c) => sum + c.issuedCount, 0)
 
-  const handleAction = (action: string, certificateId: string, certificate?: Certificate) => {
+  const handleAction = (action: string, certificateId: string, certificate?: CertificateTemplate) => {
     setSelectedCertificate(certificate || null)
     if (action === "view") {
       setViewMode("view")
     } else if (action === "reject") {
       setViewMode("reject")
       setRejectionReason("")
-    } else {
-      setConfirmDialog({ isOpen: true, action, certificateId })
+    } else if (action === "approve") {
+      setApproveTarget(certificate || null)
+      setApproveModalOpen(true)
+      const defaultExam = exams.find(
+        (exam) =>
+          exam.type === "official" &&
+          exam.courseId === (certificate?.courseId || ""),
+      )
+      setSelectedExamId(defaultExam?.id || "")
     }
     setOpenMenu(null)
   }
 
-  const executeAction = () => {
-    const { action, certificateId } = confirmDialog
-    if (action === "approve") {
-      setCertificates(certificates.map((c) => (c.id === certificateId ? { ...c, status: "approved" as const } : c)))
-    } else if (action === "delete") {
-      setCertificates(certificates.filter((c) => c.id !== certificateId))
+  const handleReject = async () => {
+    if (!selectedCertificate || !rejectionReason.trim()) return
+    try {
+      const response = await fetch(`/api/admin/certificate-templates/${selectedCertificate.id}/reject`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify({ reason: rejectionReason }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Reject failed")
+      }
+
+      await fetchCertificates()
+      setViewMode(null)
+      setSelectedCertificate(null)
+      setRejectionReason("")
+    } catch (error) {
+      console.error("Reject error:", error)
+      alert("Không thể từ chối chứng chỉ. Vui lòng thử lại.")
     }
-    setConfirmDialog({ isOpen: false, action: "" })
   }
 
-  const handleReject = () => {
-    if (!selectedCertificate || !rejectionReason.trim()) return
-    setCertificates(certificates.map(c =>
-      c.id === selectedCertificate.id
-        ? { ...c, status: "rejected" as const, rejectionReason: rejectionReason }
-        : c
-    ))
-    setViewMode(null)
-    setSelectedCertificate(null)
-    setRejectionReason("")
+  const handleApprove = async () => {
+    if (!approveTarget || !selectedExamId) return
+    setIsApproving(true)
+    try {
+      const response = await fetch(`/api/admin/certificate-templates/${approveTarget.id}/approve`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify({ examId: selectedExamId }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Approve failed")
+      }
+
+      await fetchCertificates()
+      setApproveModalOpen(false)
+      setApproveTarget(null)
+      setSelectedExamId("")
+    } catch (error) {
+      console.error("Approve error:", error)
+      alert("Không thể duyệt chứng chỉ. Vui lòng thử lại.")
+    } finally {
+      setIsApproving(false)
+    }
   }
 
 const formatDate = (date?: string) => {
@@ -165,6 +206,14 @@ const formatDate = (date?: string) => {
     ? "—"
     : d.toLocaleDateString("vi-VN")
 }
+
+  const availableExams = approveTarget
+    ? exams.filter(
+        (exam) =>
+          exam.type === "official" &&
+          exam.courseId === approveTarget.courseId,
+      )
+    : []
 
 
   const getStatusBadge = (status: string) => {
@@ -185,6 +234,12 @@ const formatDate = (date?: string) => {
         return (
           <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
             <XCircle size={14} /> Từ chối
+          </span>
+        )
+      case "draft":
+        return (
+          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400">
+            <Clock size={14} /> Nháp
           </span>
         )
       default:
@@ -306,88 +361,95 @@ const formatDate = (date?: string) => {
 
         {/* Certificates Table */}
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Chứng chỉ</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Khóa học</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Giảng viên</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Hiệu lực</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Đã cấp</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Trạng thái</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCertificates.map((cert) => (
-                  <tr
-                    key={cert.id}
-                    className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
-                  >
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                          <Award size={20} className="text-white" />
-                        </div>
-                        <div>
-                          <p className="text-foreground dark:text-white font-medium line-clamp-1">{cert.title}</p>
-                          <p className="text-muted-foreground dark:text-slate-400 text-xs">Tạo: {formatDate(cert.createdAt)}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400 max-w-[200px] truncate">
-                      {cert.course}
-                    </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white">{cert.teacher}</td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{cert.validityPeriod}</td>
-                    <td className="py-4 px-6">
-                      <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-medium">
-                        {cert.issuedCount}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">{getStatusBadge(cert.status)}</td>
-                    <td className="py-4 px-6 relative">
-                      <button
-                        onClick={() => setOpenMenu(openMenu === cert.id ? null : cert.id)}
-                        className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-                      >
-                        <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
-                      </button>
-                      {openMenu === cert.id && (
-                        <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-10 min-w-48">
-                          <button
-                            onClick={() => handleAction("view", cert.id, cert)}
-                            className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
-                          >
-                            <Eye size={16} /> Xem chi tiết
-                          </button>
-                          {cert.status === "pending" && (
-                            <>
-                              <button
-                                onClick={() => handleAction("approve", cert.id, cert)}
-                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-green-600 dark:text-green-400"
-                              >
-                                <CheckCircle size={16} /> Duyệt chứng chỉ
-                              </button>
-                              <button
-                                onClick={() => handleAction("reject", cert.id, cert)}
-                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-red-600 dark:text-red-400"
-                              >
-                                <XCircle size={16} /> Từ chối
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </td>
+          {isLoading ? (
+            <div className="py-12 text-center">
+              <Award size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground dark:text-slate-400">Đang tải chứng chỉ...</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
+                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Chứng chỉ</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Khóa học</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Giảng viên</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Hiệu lực</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Đã cấp</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Trạng thái</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Hành động</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredCertificates.map((cert) => (
+                    <tr
+                      key={cert.id}
+                      className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
+                    >
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+                            <Award size={20} className="text-white" />
+                          </div>
+                          <div>
+                            <p className="text-foreground dark:text-white font-medium line-clamp-1">{cert.title}</p>
+                            <p className="text-muted-foreground dark:text-slate-400 text-xs">Tạo: {formatDate(cert.createdAt)}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-muted-foreground dark:text-slate-400 max-w-[200px] truncate">
+                        {cert.course?.title || "—"}
+                      </td>
+                      <td className="py-4 px-6 text-foreground dark:text-white">{cert.teacher?.name || "—"}</td>
+                      <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{cert.validityPeriod}</td>
+                      <td className="py-4 px-6">
+                        <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-medium">
+                          {cert.issuedCount}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">{getStatusBadge(cert.status)}</td>
+                      <td className="py-4 px-6 relative">
+                        <button
+                          onClick={() => setOpenMenu(openMenu === cert.id ? null : cert.id)}
+                          className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                        >
+                          <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
+                        </button>
+                        {openMenu === cert.id && (
+                          <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-10 min-w-48">
+                            <button
+                              onClick={() => handleAction("view", cert.id, cert)}
+                              className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
+                            >
+                              <Eye size={16} /> Xem chi tiết
+                            </button>
+                            {cert.status === "pending" && (
+                              <>
+                                <button
+                                  onClick={() => handleAction("approve", cert.id, cert)}
+                                  className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-green-600 dark:text-green-400"
+                                >
+                                  <CheckCircle size={16} /> Duyệt chứng chỉ
+                                </button>
+                                <button
+                                  onClick={() => handleAction("reject", cert.id, cert)}
+                                  className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-red-600 dark:text-red-400"
+                                >
+                                  <XCircle size={16} /> Từ chối
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-          {filteredCertificates.length === 0 && (
+          {!isLoading && filteredCertificates.length === 0 && (
             <div className="py-12 text-center">
               <Award size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy chứng chỉ nào</p>
@@ -441,15 +503,15 @@ const formatDate = (date?: string) => {
                     <BookOpen size={16} />
                     <span className="text-sm">Khóa học</span>
                   </div>
-                  <p className="text-foreground dark:text-white font-medium">{selectedCertificate.course}</p>
+                    <p className="text-foreground dark:text-white font-medium">{selectedCertificate.course?.title || "—"}</p>
                 </div>
                 <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                   <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                     <User size={16} />
                     <span className="text-sm">Giảng viên</span>
                   </div>
-                  <p className="text-foreground dark:text-white font-medium">{selectedCertificate.teacher}</p>
-                  <p className="text-muted-foreground dark:text-slate-400 text-xs">{selectedCertificate.teacherEmail}</p>
+                  <p className="text-foreground dark:text-white font-medium">{selectedCertificate.teacher?.name || "—"}</p>
+                  <p className="text-muted-foreground dark:text-slate-400 text-xs">{selectedCertificate.teacher?.email || "—"}</p>
                 </div>
                 <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                   <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
@@ -493,6 +555,72 @@ const formatDate = (date?: string) => {
         </div>
       )}
 
+      <Modal
+        isOpen={approveModalOpen && !!approveTarget}
+        onClose={() => {
+          setApproveModalOpen(false)
+          setApproveTarget(null)
+          setSelectedExamId("")
+        }}
+        title="Duyệt chứng chỉ và gắn bài thi"
+        size="md"
+      >
+        <div className="space-y-5">
+          <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+            <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Chứng chỉ</p>
+            <p className="text-foreground dark:text-white font-medium">{approveTarget?.title}</p>
+            <p className="text-muted-foreground dark:text-slate-400 text-xs mt-1">
+              Khóa học: {approveTarget?.course?.title || "—"}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
+              Chọn bài thi thật <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={selectedExamId}
+              onChange={(e) => setSelectedExamId(e.target.value)}
+              className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Chọn bài thi</option>
+              {availableExams.map((exam) => (
+                <option key={exam.id} value={exam.id}>
+                  {exam.title} • {exam.course?.title || ""}
+                </option>
+              ))}
+            </select>
+            {availableExams.length === 0 && (
+              <p className="text-xs text-muted-foreground dark:text-slate-500 mt-2">
+                Không có bài thi thật phù hợp cho khóa học này.
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setApproveModalOpen(false)
+                setApproveTarget(null)
+                setSelectedExamId("")
+              }}
+              className="flex-1 py-3 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={handleApprove}
+              disabled={!selectedExamId || isApproving}
+              className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <CheckCircle size={18} /> {isApproving ? "Đang duyệt..." : "Duyệt và lưu"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Reject Certificate Modal */}
       {viewMode === "reject" && selectedCertificate && (
         <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
@@ -510,7 +638,7 @@ const formatDate = (date?: string) => {
               <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                 <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Chứng chỉ</p>
                 <p className="text-foreground dark:text-white font-medium">{selectedCertificate.title}</p>
-                <p className="text-muted-foreground dark:text-slate-400 text-xs mt-1">Giảng viên: {selectedCertificate.teacher}</p>
+                <p className="text-muted-foreground dark:text-slate-400 text-xs mt-1">Giảng viên: {selectedCertificate.teacher?.name || "—"}</p>
               </div>
 
               <div>
@@ -548,18 +676,6 @@ const formatDate = (date?: string) => {
         </div>
       )}
 
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ isOpen: false, action: "" })}
-        onConfirm={executeAction}
-        title={confirmDialog.action === "approve" ? "Duyệt chứng chỉ" : "Xóa chứng chỉ"}
-        message={
-          confirmDialog.action === "approve"
-            ? `Bạn có chắc chắn muốn duyệt chứng chỉ "${selectedCertificate?.title}" không? Chứng chỉ sẽ có hiệu lực và học viên có thể nhận được sau khi hoàn thành khóa học.`
-            : `Bạn có chắc chắn muốn xóa chứng chỉ "${selectedCertificate?.title}" không? Hành động này không thể hoàn tác.`
-        }
-        isDangerous={confirmDialog.action === "delete"}
-      />
     </div>
   )
 }

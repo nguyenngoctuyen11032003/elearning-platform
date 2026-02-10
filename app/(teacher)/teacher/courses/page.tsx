@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import { formatPrice } from "@/lib/format"
 
 interface Course {
-  id: number
+  id: string
   title: string
   description: string
   students: number
@@ -19,92 +19,92 @@ interface Course {
   lessons: number
   duration: string
   category: string
-  rejectionReason?: string
+  rejectionReason?: string | null
 }
 
-const initialCourses: Course[] = [
-  {
-    id: 1,
-    title: "Lập trình Next.js từ cơ bản đến nâng cao",
-    description: "Khóa học toàn diện về Next.js, App Router, Server Components và deployment",
-    students: 1250,
-    rating: 4.9,
-    price: 499000,
-    status: "approved",
-    createdAt: "2024-12-01",
-    thumbnail: "/placeholder.jpg",
-    lessons: 45,
-    duration: "40 giờ",
-    category: "Lập trình",
-  },
-  {
-    id: 2,
-    title: "React Hooks & State Management",
-    description: "Học sâu về React Hooks, Context API, Redux và các patterns nâng cao",
-    students: 890,
-    rating: 4.8,
-    price: 399000,
-    status: "approved",
-    createdAt: "2024-11-15",
-    thumbnail: "/placeholder.jpg",
-    lessons: 35,
-    duration: "30 giờ",
-    category: "Lập trình",
-  },
-  {
-    id: 3,
-    title: "Advanced TypeScript Patterns",
-    description: "Các pattern nâng cao trong TypeScript cho dự án lớn",
-    students: 0,
-    rating: 0,
-    price: 349000,
-    status: "draft",
-    createdAt: "2025-01-10",
-    thumbnail: "/placeholder.jpg",
-    lessons: 25,
-    duration: "20 giờ",
-    category: "Lập trình",
-  },
-  {
-    id: 4,
-    title: "Node.js Backend Development",
-    description: "Xây dựng backend với Node.js, Express và MongoDB",
-    students: 0,
-    rating: 0,
-    price: 449000,
-    status: "pending",
-    createdAt: "2025-01-12",
-    thumbnail: "/placeholder.jpg",
-    lessons: 40,
-    duration: "35 giờ",
-    category: "Backend",
-  },
-  {
-    id: 5,
-    title: "GraphQL API Design",
-    description: "Thiết kế API với GraphQL và Apollo Server",
-    students: 0,
-    rating: 0,
-    price: 299000,
-    status: "rejected",
-    createdAt: "2025-01-08",
-    thumbnail: "/placeholder.jpg",
-    lessons: 20,
-    duration: "15 giờ",
-    category: "Backend",
-    rejectionReason: "Nội dung khóa học chưa đầy đủ. Cần bổ sung thêm các bài tập thực hành và dự án cuối khóa.",
-  },
-]
+interface BackendCourse {
+  id: string
+  title: string
+  description?: string
+  price?: number
+  status?: "draft" | "pending" | "published" | "rejected"
+  createdAt?: string
+  thumbnail?: string
+  duration?: number
+  enrollmentCount?: number
+  rating?: number
+  rejectionReason?: string | null
+  category?: {
+    name?: string
+  } | null
+  lessons?: Array<{ id: string }>
+}
 
 export default function TeacherCoursesPage() {
   const router = useRouter()
-  const [courses, setCourses] = useState(initialCourses)
+  const [courses, setCourses] = useState<Course[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [openMenu, setOpenMenu] = useState<number | null>(null)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "delete" | null>(null)
+
+  const normalizeList = (data: any): BackendCourse[] => {
+    if (Array.isArray(data)) return data
+    if (data && Array.isArray(data.data)) return data.data
+    if (data?.data?.data && Array.isArray(data.data.data)) return data.data.data
+    return []
+  }
+
+  const mapCourse = (course: BackendCourse): Course => {
+    const statusMap: Record<string, Course["status"]> = {
+      published: "approved",
+      draft: "draft",
+      pending: "pending",
+      rejected: "rejected",
+    }
+
+    const durationHours = course.duration ? Math.round(course.duration / 60) : 0
+    return {
+      id: course.id,
+      title: course.title,
+      description: course.description || "",
+      students: course.enrollmentCount || 0,
+      rating: course.rating || 0,
+      price: course.price || 0,
+      status: statusMap[course.status || "draft"] || "draft",
+      createdAt: course.createdAt || "",
+      thumbnail: course.thumbnail || "/placeholder.jpg",
+      lessons: course.lessons?.length || 0,
+      duration: durationHours > 0 ? `${durationHours} giờ` : "—",
+      category: course.category?.name || "—",
+      rejectionReason: course.rejectionReason || null,
+    }
+  }
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch("/api/courses?limit=200")
+        if (!response.ok) {
+          throw new Error("Failed to fetch courses")
+        }
+
+        const data = await response.json()
+        const list = normalizeList(data).map(mapCourse)
+        setCourses(list)
+      } catch (error) {
+        console.error("Error fetching courses:", error)
+        setCourses([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchCourses()
+  }, [])
 
   // Stats
   const totalCourses = courses.length
@@ -125,7 +125,7 @@ export default function TeacherCoursesPage() {
     setOpenMenu(null)
   }
 
-  const handleEdit = (courseId: number) => {
+  const handleEdit = (courseId: string) => {
     router.push(`/teacher/courses/${courseId}/edit`)
     setOpenMenu(null)
   }
@@ -143,7 +143,7 @@ export default function TeacherCoursesPage() {
     setSelectedCourse(null)
   }
 
-  const handleSubmitForReview = (courseId: number) => {
+  const handleSubmitForReview = (courseId: string) => {
     setCourses(courses.map(c =>
       c.id === courseId ? { ...c, status: "pending" as const } : c
     ))
@@ -335,11 +335,18 @@ export default function TeacherCoursesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredCourses.map((course) => (
-                  <tr
-                    key={course.id}
-                    className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
-                  >
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-muted-foreground dark:text-slate-400">
+                      Đang tải khóa học...
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCourses.map((course) => (
+                    <tr
+                      key={course.id}
+                      className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
+                    >
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <img
@@ -441,13 +448,14 @@ export default function TeacherCoursesPage() {
                         </div>
                       )}
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
-          {filteredCourses.length === 0 && (
+          {!isLoading && filteredCourses.length === 0 && (
             <div className="py-12 text-center">
               <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy khóa học nào</p>

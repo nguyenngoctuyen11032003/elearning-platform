@@ -28,6 +28,7 @@ import {
   AlertCircle,
   X
 } from "lucide-react"
+// Course data comes from backend to ensure valid UUIDs
 
 interface CertificateData {
   title: string
@@ -187,7 +188,8 @@ export default function CreateCertificatePage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
-  const [loading, setLoading] = useState(true)
+
+  const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
 
   const [formData, setFormData] = useState<CertificateData>({
     title: "",
@@ -209,29 +211,61 @@ export default function CreateCertificatePage() {
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingBackground, setUploadingBackground] = useState(false)
   const [uploadingSignature, setUploadingSignature] = useState(false)
+  const getFrontendBaseUrl = () => {
+    if (typeof window === "undefined") return ""
+    return process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin
+  }
+  const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 
   useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        let nextCourses: Course[] = []
+        const response = await fetch(`${getFrontendBaseUrl()}/api/courses?limit=200`)
+
+        if (response.ok) {
+          const data = await response.json()
+          if (Array.isArray(data)) {
+            nextCourses = data
+          } else if (data && Array.isArray(data.data)) {
+            nextCourses = data.data
+          } else if (data?.data?.data && Array.isArray(data.data.data)) {
+            nextCourses = data.data.data
+          }
+        }
+
+        if (nextCourses.length === 0) {
+          const fallback = await fetch(`${getFrontendBaseUrl()}/api/courses/teacher/my-courses`, {
+            headers: {
+              Authorization: `Bearer ${getAuthToken()}`,
+            },
+          })
+
+          if (fallback.ok) {
+            const fallbackData = await fallback.json()
+            if (Array.isArray(fallbackData)) {
+              nextCourses = fallbackData
+            } else if (fallbackData && Array.isArray(fallbackData.data)) {
+              nextCourses = fallbackData.data
+            } else if (fallbackData?.data?.data && Array.isArray(fallbackData.data.data)) {
+              nextCourses = fallbackData.data.data
+            }
+          }
+        }
+
+        setCourses(nextCourses)
+
+        if (formData.courseId && !nextCourses.some((course) => course.id === formData.courseId)) {
+          setFormData((prev) => ({ ...prev, courseId: "" }))
+        }
+      } catch (error) {
+        console.error("Error fetching courses:", error)
+        setCourses([])
+      }
+    }
+
     fetchCourses()
   }, [])
-
-  const fetchCourses = async () => {
-    try {
-      const response = await fetch('/api/courses/teacher/my-courses', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        setCourses(data)
-      }
-    } catch (error) {
-      console.error('Error fetching courses:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const selectTemplate = (templateId: string) => {
     const template = templateStyles.find(t => t.id === templateId)
@@ -258,7 +292,7 @@ export default function CreateCertificatePage() {
       const response = await fetch('/api/upload/image', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${getAuthToken()}`
         },
         body: formDataToSend
       })
@@ -268,20 +302,24 @@ export default function CreateCertificatePage() {
       }
 
       const result = await response.json()
+      const uploadedUrl = result?.url || result?.data?.url || ""
+      if (!uploadedUrl) {
+        throw new Error('Upload failed')
+      }
       
       // Update form data with uploaded file URL
       setFormData(prev => {
         if (type === 'logo') {
-          return { ...prev, logoUrl: result.url }
+          return { ...prev, logoUrl: uploadedUrl }
         } else if (type === 'background') {
-          return { ...prev, templateImageUrl: result.url }
+          return { ...prev, templateImageUrl: uploadedUrl }
         } else if (type === 'signature') {
-          return { ...prev, signatureUrl: result.url }
+          return { ...prev, signatureUrl: uploadedUrl }
         }
         return prev
       })
 
-      return result.url
+      return uploadedUrl
     } catch (error) {
       console.error('Upload error:', error)
       alert(`Lỗi khi tải lên ${type === 'logo' ? 'logo' : type === 'background' ? 'ảnh nền' : 'chữ ký'}`)
@@ -309,6 +347,9 @@ export default function CreateCertificatePage() {
     const newErrors: Record<string, string> = {}
     if (!formData.title.trim()) newErrors.title = "Vui lòng nhập tên chứng chỉ"
     if (!formData.courseId) newErrors.courseId = "Vui lòng chọn khóa học"
+    if (formData.courseId && !isUuid(formData.courseId)) {
+      newErrors.courseId = "Khóa học không hợp lệ, vui lòng tải lại"
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -318,24 +359,25 @@ export default function CreateCertificatePage() {
 
     setIsSubmitting(true)
     try {
-      const response = await fetch('/api/certificate-templates', {
+      const response = await fetch(`${getFrontendBaseUrl()}/api/certificate-templates`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${getAuthToken()}`
         },
         body: JSON.stringify(formData)
       })
 
       if (response.ok) {
         const template = await response.json()
+        const templateId = template?.id || template?.data?.id
         
         // If not saving as draft, submit for review
-        if (!asDraft) {
-          await fetch(`/api/certificate-templates/${template.id}/submit`, {
+        if (!asDraft && templateId) {
+          await fetch(`${getFrontendBaseUrl()}/api/certificate-templates/${templateId}/submit`, {
             method: 'PATCH',
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${getAuthToken()}`
             }
           })
         }
@@ -892,7 +934,7 @@ export default function CreateCertificatePage() {
                     value={formData.courseId}
                     onChange={(e) => {
                       const selectedId = e.target.value
-                      const selected = courses.find(c => c.id === selectedId)
+                      const selected = courses.find(c => String(c.id) === selectedId)
                       setFormData({ ...formData, courseId: selectedId })
                     }}
                     className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 rounded-xl text-foreground dark:text-white transition-all focus:ring-4 focus:ring-primary/20 ${

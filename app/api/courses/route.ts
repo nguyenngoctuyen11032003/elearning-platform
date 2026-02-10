@@ -1,38 +1,64 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
-// Mock database
-const courses = [
-  {
-    id: "1",
-    title: "Lập trình Next.js từ Cơ bản đến Nâng cao",
-    description: "Khóa học toàn diện về Next.js",
-    price: 499000,
-    instructor: "Nguyễn Ngọc Tuyền",
-    students: 1250,
-    rating: 4.8,
-  },
-  {
-    id: "2",
-    title: "React Hooks Advanced",
-    description: "Nắm vững React Hooks",
-    price: 399000,
-    instructor: "Trần Minh Tuấn",
-    students: 890,
-    rating: 4.7,
-  },
-]
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001"
 
-export async function GET() {
-  return NextResponse.json(courses)
+export async function GET(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get("Authorization")
+    const url = new URL(request.url)
+    const query = url.searchParams.toString()
+
+    const response = await fetch(`${API_URL}/api/courses${query ? `?${query}` : ""}`, {
+      method: "GET",
+      headers: authHeader ? { Authorization: authHeader } : {},
+    })
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: "Failed to fetch courses from backend" },
+        { status: response.status }
+      )
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error("Error fetching courses:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch courses" },
+      { status: 500 }
+    )
+  }
 }
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  const newCourse = {
-    id: Date.now().toString(),
-    ...body,
-    students: 0,
-    rating: 0,
+  try {
+    const authHeader = request.headers.get("Authorization")
+    const body = await request.json()
+
+    const response = await fetch(`${API_URL}/api/courses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: "Failed to create course" },
+        { status: response.status }
+      )
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data, { status: 201 })
+  } catch (error) {
+    console.error("Error creating course:", error)
+    return NextResponse.json(
+      { error: "Failed to create course" },
+      { status: 500 }
+    )
   }
-  return NextResponse.json(newCourse, { status: 201 })
 }

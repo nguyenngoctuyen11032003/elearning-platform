@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,6 +34,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return NextResponse.json({ error: 'Missing authorization token' }, { status: 401 });
+    }
     const body = await req.json();
 
     const response = await fetch(`${API_URL}/api/certificates/templates`, {
@@ -46,8 +49,15 @@ export async function POST(req: NextRequest) {
     });
 
     if (!response.ok) {
+      let errorPayload: any = null;
+      try {
+        errorPayload = await response.json();
+      } catch (parseError) {
+        const text = await response.text();
+        errorPayload = text ? { message: text } : null;
+      }
       return NextResponse.json(
-        { error: 'Failed to create template' },
+        { error: 'Failed to create template', details: errorPayload },
         { status: response.status }
       );
     }
