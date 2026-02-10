@@ -37,10 +37,33 @@ interface ExamSummary {
   } | null
 }
 
+interface IssuedCertificate {
+  id: string
+  certificateNumber?: string
+  status: "pending" | "approved" | "rejected"
+  issueDate?: string
+  createdAt?: string
+  rejectionReason?: string | null
+  imageUrl?: string | null
+  metadata?: {
+    courseName?: string
+  } | null
+  course?: {
+    id: string
+    title: string
+  } | null
+  student?: {
+    id: string
+    name: string
+    email: string
+  } | null
+}
+
 export default function AdminCertificatesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [certificates, setCertificates] = useState<CertificateTemplate[]>([])
+  const [issuedCertificates, setIssuedCertificates] = useState<IssuedCertificate[]>([])
   const [exams, setExams] = useState<ExamSummary[]>([])
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateTemplate | null>(null)
@@ -51,6 +74,7 @@ export default function AdminCertificatesPage() {
   const [approveTarget, setApproveTarget] = useState<CertificateTemplate | null>(null)
   const [selectedExamId, setSelectedExamId] = useState("")
   const [isApproving, setIsApproving] = useState(false)
+  const [viewTab, setViewTab] = useState<"templates" | "issued">("templates")
 
   const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
 
@@ -93,11 +117,27 @@ export default function AdminCertificatesPage() {
     }
   }
 
+  const fetchIssuedCertificates = async () => {
+    try {
+      const response = await fetch("/api/admin/certificates", {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      })
+
+      if (!response.ok) return
+      const data = await response.json()
+      setIssuedCertificates(normalizeList(data))
+    } catch (error) {
+      console.error("Error fetching issued certificates:", error)
+    }
+  }
+
   useEffect(() => {
     let isMounted = true
     const load = async () => {
       setIsLoading(true)
-      await Promise.all([fetchCertificates(), fetchExams()])
+      await Promise.all([fetchCertificates(), fetchExams(), fetchIssuedCertificates()])
       if (isMounted) setIsLoading(false)
     }
     load()
@@ -112,6 +152,20 @@ export default function AdminCertificatesPage() {
     const matchesSearch =
       cert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       teacherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      courseTitle.toLowerCase().includes(searchTerm.toLowerCase())
+
+    return matchesSearch && (statusFilter === "all" || cert.status === statusFilter)
+  })
+
+  const filteredIssuedCertificates = issuedCertificates.filter((cert) => {
+    const courseTitle = cert.course?.title || cert.metadata?.courseName || ""
+    const studentName = cert.student?.name || ""
+    const studentEmail = cert.student?.email || ""
+    const certNumber = cert.certificateNumber || ""
+    const matchesSearch =
+      certNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      studentEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
       courseTitle.toLowerCase().includes(searchTerm.toLowerCase())
 
     return matchesSearch && (statusFilter === "all" || cert.status === statusFilter)
@@ -338,6 +392,26 @@ const formatDate = (date?: string) => {
             />
           </div>
           <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setViewTab("templates")}
+              className={`px-4 py-3 rounded-lg transition-smooth font-medium ${
+                viewTab === "templates"
+                  ? "bg-primary text-white"
+                  : "bg-card dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
+              }`}
+            >
+              Mẫu chứng chỉ
+            </button>
+            <button
+              onClick={() => setViewTab("issued")}
+              className={`px-4 py-3 rounded-lg transition-smooth font-medium ${
+                viewTab === "issued"
+                  ? "bg-primary text-white"
+                  : "bg-card dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
+              }`}
+            >
+              Chứng chỉ đã cấp
+            </button>
             {[
               { value: "all", label: "Tất cả" },
               { value: "pending", label: "Chờ duyệt" },
@@ -366,7 +440,7 @@ const formatDate = (date?: string) => {
               <Award size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground dark:text-slate-400">Đang tải chứng chỉ...</p>
             </div>
-          ) : (
+          ) : viewTab === "templates" ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -449,12 +523,57 @@ const formatDate = (date?: string) => {
                 </tbody>
               </table>
             </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
+                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Số chứng chỉ</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Học viên</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Khóa học</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Ngày cấp</th>
+                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredIssuedCertificates.map((cert) => (
+                    <tr
+                      key={cert.id}
+                      className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
+                    >
+                      <td className="py-4 px-6 text-foreground dark:text-white">
+                        {cert.certificateNumber || "—"}
+                      </td>
+                      <td className="py-4 px-6">
+                        <div>
+                          <p className="text-foreground dark:text-white font-medium">{cert.student?.name || "—"}</p>
+                          <p className="text-muted-foreground dark:text-slate-400 text-xs">{cert.student?.email || ""}</p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">
+                        {cert.course?.title || cert.metadata?.courseName || "—"}
+                      </td>
+                      <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">
+                        {formatDate(cert.issueDate || cert.createdAt)}
+                      </td>
+                      <td className="py-4 px-6">{getStatusBadge(cert.status)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
-          {!isLoading && filteredCertificates.length === 0 && (
+          {!isLoading && viewTab === "templates" && filteredCertificates.length === 0 && (
             <div className="py-12 text-center">
               <Award size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy chứng chỉ nào</p>
+            </div>
+          )}
+          {!isLoading && viewTab === "issued" && filteredIssuedCertificates.length === 0 && (
+            <div className="py-12 text-center">
+              <Award size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground dark:text-slate-400">Không có chứng chỉ đã cấp</p>
             </div>
           )}
         </div>
