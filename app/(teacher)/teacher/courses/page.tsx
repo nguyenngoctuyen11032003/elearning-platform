@@ -46,8 +46,7 @@ export default function TeacherCoursesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [openMenu, setOpenMenu] = useState<string | null>(null)
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "delete" | null>(null)
 
@@ -122,18 +121,18 @@ export default function TeacherCoursesPage() {
   const handleViewDetails = (course: Course) => {
     setSelectedCourse(course)
     setViewMode("view")
-    setOpenMenu(null)
+    setMenuOpenId(null)
   }
 
   const handleEdit = (courseId: string) => {
     router.push(`/teacher/courses/${courseId}/edit`)
-    setOpenMenu(null)
+    setMenuOpenId(null)
   }
 
   const handleDeleteClick = (course: Course) => {
     setSelectedCourse(course)
     setViewMode("delete")
-    setOpenMenu(null)
+    setMenuOpenId(null)
   }
 
   const handleDeleteConfirm = () => {
@@ -147,7 +146,7 @@ export default function TeacherCoursesPage() {
     setCourses(courses.map(c =>
       c.id === courseId ? { ...c, status: "pending" as const } : c
     ))
-    setOpenMenu(null)
+    setMenuOpenId(null)
   }
 
   // Close dropdown when clicking outside
@@ -155,7 +154,7 @@ export default function TeacherCoursesPage() {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element
       if (!target.closest('[data-dropdown]')) {
-        setOpenMenu(null)
+        setMenuOpenId(null)
       }
     }
     document.addEventListener('click', handleClickOutside)
@@ -320,7 +319,7 @@ export default function TeacherCoursesPage() {
         </div>
 
         {/* Courses Table */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden">
+        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-visible">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -345,7 +344,9 @@ export default function TeacherCoursesPage() {
                   filteredCourses.map((course) => (
                     <tr
                       key={course.id}
-                      className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
+                      className={`border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth relative ${
+                        menuOpenId === course.id ? "z-20" : "z-0"
+                      }`}
                     >
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
@@ -379,74 +380,73 @@ export default function TeacherCoursesPage() {
                     <td className="py-4 px-6 text-foreground dark:text-white font-medium">₫{formatPrice(course.price)}</td>
                     <td className="py-4 px-6">{getStatusBadge(course.status)}</td>
                     <td className="py-4 px-6" data-dropdown>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const rect = e.currentTarget.getBoundingClientRect()
-                          setMenuPos({ top: rect.bottom + 8, left: rect.right - 192 })
-                          setOpenMenu(openMenu === course.id ? null : course.id)
-                        }}
-                        className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-                      >
-                        <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
-                      </button>
-                      {openMenu === course.id && menuPos && (
-                        <div 
-                          className="fixed bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-xl z-[99999] min-w-48"
-                          style={{ top: menuPos.top, left: menuPos.left }}
-                          data-dropdown
+                      <div className="relative inline-flex" data-dropdown>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setMenuOpenId(menuOpenId === course.id ? null : course.id)
+                          }}
+                          className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
                         >
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleViewDetails(course)
-                            }}
-                            className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
+                          <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
+                        </button>
+                        {menuOpenId === course.id && (
+                          <div
+                            className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-xl z-[99999] min-w-48"
+                            data-dropdown
                           >
-                            <Eye size={16} /> Xem chi tiết
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleEdit(course.id)
-                            }}
-                            className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
-                          >
-                            <Edit2 size={16} /> Chỉnh sửa
-                          </button>
-                          {course.status === "draft" && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                handleSubmitForReview(course.id)
+                                handleViewDetails(course)
                               }}
-                              className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-primary dark:text-accent"
+                              className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
                             >
-                              <Send size={16} /> Gửi duyệt
+                              <Eye size={16} /> Xem chi tiết
                             </button>
-                          )}
-                          {course.status === "rejected" && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                handleSubmitForReview(course.id)
+                                handleEdit(course.id)
                               }}
-                              className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-primary dark:text-accent"
+                              className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
                             >
-                              <Send size={16} /> Gửi duyệt lại
+                              <Edit2 size={16} /> Chỉnh sửa
                             </button>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteClick(course)
-                            }}
-                            className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg"
-                          >
-                            <Trash2 size={16} /> Xóa khóa học
-                          </button>
-                        </div>
-                      )}
+                            {course.status === "draft" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleSubmitForReview(course.id)
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-primary dark:text-accent"
+                              >
+                                <Send size={16} /> Gửi duyệt
+                              </button>
+                            )}
+                            {course.status === "rejected" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleSubmitForReview(course.id)
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-primary dark:text-accent"
+                              >
+                                <Send size={16} /> Gửi duyệt lại
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteClick(course)
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg"
+                            >
+                              <Trash2 size={16} /> Xóa khóa học
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     </tr>
                   ))

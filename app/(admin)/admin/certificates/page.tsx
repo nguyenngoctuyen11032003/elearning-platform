@@ -360,7 +360,7 @@ const formatDate = (date?: string) => {
         </div>
 
         {/* Certificates Table */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden">
+        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-visible">
           {isLoading ? (
             <div className="py-12 text-center">
               <Award size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -384,7 +384,9 @@ const formatDate = (date?: string) => {
                   {filteredCertificates.map((cert) => (
                     <tr
                       key={cert.id}
-                      className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
+                      className={`border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth relative ${
+                        openMenu === cert.id ? "z-20" : "z-0"
+                      }`}
                     >
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">

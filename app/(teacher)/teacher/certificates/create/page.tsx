@@ -188,6 +188,7 @@ export default function CreateCertificatePage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
+  const [editTemplateId, setEditTemplateId] = useState<string | null>(null)
 
   const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
 
@@ -218,6 +219,21 @@ export default function CreateCertificatePage() {
   const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 
   useEffect(() => {
+    const savedDraft = localStorage.getItem("certificate_template_draft")
+    const storedEditId = localStorage.getItem("certificate_template_edit_id")
+    setEditTemplateId(storedEditId)
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft) as Partial<CertificateData>
+        setFormData((prev) => ({
+          ...prev,
+          ...parsed,
+        }))
+      } catch (error) {
+        console.error("Failed to parse certificate draft", error)
+      }
+    }
+
     const fetchCourses = async () => {
       try {
         let nextCourses: Course[] = []
@@ -359,8 +375,9 @@ export default function CreateCertificatePage() {
 
     setIsSubmitting(true)
     try {
-      const response = await fetch(`${getFrontendBaseUrl()}/api/certificate-templates`, {
-        method: 'POST',
+      const targetId = editTemplateId
+      const response = await fetch(`${getFrontendBaseUrl()}/api/certificate-templates${targetId ? `/${targetId}` : ""}`, {
+        method: targetId ? "PATCH" : "POST",
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${getAuthToken()}`
@@ -370,7 +387,7 @@ export default function CreateCertificatePage() {
 
       if (response.ok) {
         const template = await response.json()
-        const templateId = template?.id || template?.data?.id
+        const templateId = targetId || template?.id || template?.data?.id
         
         // If not saving as draft, submit for review
         if (!asDraft && templateId) {
@@ -382,6 +399,8 @@ export default function CreateCertificatePage() {
           })
         }
         
+        localStorage.removeItem("certificate_template_draft")
+        localStorage.removeItem("certificate_template_edit_id")
         router.push("/teacher/certificates")
       }
     } catch (error) {
