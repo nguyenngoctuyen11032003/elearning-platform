@@ -51,6 +51,14 @@ interface Course {
   title: string
 }
 
+interface CertificateTemplate extends CertificateData {
+  id: string
+  status?: string
+  createdAt?: string
+  updatedAt?: string
+  course?: Course
+}
+
 // 10 Professional Template Designs with Unique Styles
 const templateStyles = [
   {
@@ -189,6 +197,9 @@ export default function CreateCertificatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
   const [editTemplateId, setEditTemplateId] = useState<string | null>(null)
+  const [templates, setTemplates] = useState<CertificateTemplate[]>([])
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
+  const [templatesError, setTemplatesError] = useState<string | null>(null)
 
   const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
 
@@ -217,6 +228,43 @@ export default function CreateCertificatePage() {
     return process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin
   }
   const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+
+  const normalizeList = <T,>(payload: any): T[] => {
+    if (Array.isArray(payload)) return payload
+    if (payload?.data && Array.isArray(payload.data)) return payload.data
+    if (payload?.data?.data && Array.isArray(payload.data.data)) return payload.data.data
+    return []
+  }
+
+  const applyTemplate = (template: CertificateTemplate) => {
+    setEditTemplateId(template.id)
+    const nextData: CertificateData = {
+      title: template.title || "",
+      description: template.description || "",
+      courseId: template.courseId || "",
+      validityPeriod: template.validityPeriod || "Vĩnh viễn",
+      backgroundColor: template.backgroundColor || "#1a1a2e",
+      borderColor: template.borderColor || "#d4af37",
+      borderStyle: template.borderStyle || "double",
+      textColor: template.textColor || "#ffffff",
+      logoUrl: template.logoUrl || "",
+      signatureUrl: template.signatureUrl || "",
+      templateImageUrl: template.templateImageUrl || "",
+      templateStyle: template.templateStyle || "classic",
+      badgeStyle: template.badgeStyle || "star",
+    }
+    setFormData((prev) => ({ ...prev, ...nextData }))
+    setErrors({})
+    localStorage.setItem("certificate_template_draft", JSON.stringify(nextData))
+    localStorage.setItem("certificate_template_edit_id", template.id)
+  }
+
+  const statusLabelMap: Record<string, { label: string; className: string }> = {
+    draft: { label: "Nháp", className: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
+    pending: { label: "Chờ duyệt", className: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300" },
+    approved: { label: "Đã duyệt", className: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
+    rejected: { label: "Từ chối", className: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
+  }
 
   useEffect(() => {
     const savedDraft = localStorage.getItem("certificate_template_draft")
@@ -280,7 +328,41 @@ export default function CreateCertificatePage() {
       }
     }
 
+    const fetchTemplates = async () => {
+      setIsLoadingTemplates(true)
+      setTemplatesError(null)
+      try {
+        const token = getAuthToken()
+        if (!token) {
+          setTemplatesError("Vui lòng đăng nhập để xem mẫu chứng chỉ.")
+          setTemplates([])
+          return
+        }
+
+        const response = await fetch(`${getFrontendBaseUrl()}/api/certificate-templates`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch templates")
+        }
+
+        const data = await response.json()
+        const nextTemplates = normalizeList<CertificateTemplate>(data)
+        setTemplates(nextTemplates)
+      } catch (error) {
+        console.error("Error fetching templates:", error)
+        setTemplates([])
+        setTemplatesError("Không thể tải mẫu chứng chỉ từ hệ thống.")
+      } finally {
+        setIsLoadingTemplates(false)
+      }
+    }
+
     fetchCourses()
+    fetchTemplates()
   }, [])
 
   const selectTemplate = (templateId: string) => {
@@ -919,6 +1001,162 @@ export default function CreateCertificatePage() {
 
           {/* Left Panel - Settings */}
           <div className="lg:order-1 space-y-6">
+            {/* Existing Templates */}
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-border/50 dark:border-slate-800/50 rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-foreground dark:text-white flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500/10 rounded-xl">
+                    <Award size={24} className="text-emerald-500" />
+                  </div>
+                  Mẫu chứng chỉ đã có
+                </h2>
+              </div>
+
+              {isLoadingTemplates && (
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  Đang tải mẫu chứng chỉ...
+                </div>
+              )}
+
+              {!isLoadingTemplates && templatesError && (
+                <div className="text-sm text-red-500 flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  {templatesError}
+                </div>
+              )}
+
+              {!isLoadingTemplates && !templatesError && templates.length === 0 && (
+                <p className="text-sm text-muted-foreground">Chưa có mẫu chứng chỉ nào được lưu.</p>
+              )}
+
+              {!isLoadingTemplates && !templatesError && templates.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {templates.map((template) => {
+                    const statusInfo = template.status ? statusLabelMap[template.status] : undefined
+                    const isActive = editTemplateId === template.id
+                    return (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => applyTemplate(template)}
+                        className={`group w-full text-left p-4 rounded-2xl border-2 transition-all hover:shadow-lg ${
+                          isActive
+                            ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
+                            : "border-border dark:border-slate-700 hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="flex gap-4">
+                          <div
+                            className="relative w-16 h-20 rounded-xl border flex-shrink-0 overflow-hidden"
+                            style={{
+                              backgroundColor: template.backgroundColor || "#2d2daa",
+                              borderColor: template.borderColor || "#d4af37",
+                              borderStyle: template.borderStyle || "solid",
+                              backgroundImage: template.templateImageUrl ? `url(${template.templateImageUrl})` : "none",
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                            }}
+                          >
+                            {template.templateImageUrl && (
+                              <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-white/10" />
+                            )}
+                            <div
+                              className="absolute inset-1 rounded-lg"
+                              style={{
+                                border: `2px ${template.borderStyle || "double"} ${template.borderColor || "#d4af37"}`,
+                              }}
+                            />
+                            <div className="absolute inset-1.5 flex flex-col items-center text-center">
+                              <div className="flex items-center justify-between w-full">
+                                {template.logoUrl ? (
+                                  <img
+                                    src={template.logoUrl}
+                                    alt="Logo"
+                                    className="w-4 h-4 object-contain rounded-sm bg-white/90 p-0.5"
+                                  />
+                                ) : (
+                                  <div className="w-4 h-4 rounded-sm bg-white/80" />
+                                )}
+                                <span
+                                  className="text-[6px] font-semibold tracking-[0.2em] uppercase"
+                                  style={{ color: template.borderColor || "#d4af37" }}
+                                >
+                                  Chung chi
+                                </span>
+                              </div>
+
+                              <div
+                                className="w-6 h-px my-1"
+                                style={{ backgroundColor: template.borderColor || "#d4af37" }}
+                              />
+
+                              <div
+                                className="w-6 h-6 rounded-full flex items-center justify-center"
+                                style={{
+                                  backgroundColor: template.textColor || "#ffffff",
+                                  color: template.borderColor || "#d4af37",
+                                  border: `1px solid ${template.borderColor || "#d4af37"}`,
+                                }}
+                              >
+                                <Award size={10} />
+                              </div>
+
+                              <h4 className="text-[8px] font-semibold leading-tight mt-1 line-clamp-2">
+                                {template.title}
+                              </h4>
+                              <p className="text-[6px] opacity-70 mt-0.5" style={{ color: "#ffffff" }}>
+                                Chứng nhận
+                              </p>
+                              <p className="text-[7px] font-semibold italic" style={{ color: "#ffffff" }}>
+                                [Tên học viên]
+                              </p>
+                              <div
+                                className="w-10 h-px my-1"
+                                style={{ backgroundColor: template.borderColor || "#d4af37" }}
+                              />
+                              <p className="text-[6px] opacity-80 line-clamp-2">{template.description}</p>
+                              <p
+                                className="text-[6px] font-semibold mt-1 line-clamp-1"
+                                style={{ color: template.borderColor || "#d4af37" }}
+                              >
+                                {template.course?.title || "[Tên khóa học]"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-semibold text-foreground dark:text-white line-clamp-2">
+                              {template.title || "Chứng chỉ chưa đặt tên"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                              {template.course?.title || selectedCourse?.title || "Chưa gắn khóa học"}
+                            </p>
+                            <div className="flex items-center gap-2 mt-3 flex-wrap">
+                              {statusInfo && (
+                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusInfo.className}`}>
+                                  {statusInfo.label}
+                                </span>
+                              )}
+                              {template.validityPeriod && (
+                                <span className="text-xs px-2 py-1 rounded-full font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                  {template.validityPeriod}
+                                </span>
+                              )}
+                              {isActive && (
+                                <span className="text-xs px-2 py-1 rounded-full font-medium bg-primary/10 text-primary">
+                                  Đang chỉnh sửa
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Basic Info */}
             <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-border/50 dark:border-slate-800/50 rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all">
               <h2 className="text-2xl font-bold text-foreground dark:text-white flex items-center gap-3 mb-6">

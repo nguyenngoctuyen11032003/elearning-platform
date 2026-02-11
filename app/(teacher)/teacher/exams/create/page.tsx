@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -45,23 +45,10 @@ interface Course {
 interface CertificateTemplate {
   id: string
   title: string
-  courseName: string
+  courseId: string
+  courseName?: string
+  status?: string
 }
-
-// Mock data - sẽ được thay thế bằng API
-const mockCourses: Course[] = [
-  { id: "1", title: "Lập trình Next.js từ cơ bản đến nâng cao" },
-  { id: "2", title: "React Hooks Advanced & State Management" },
-  { id: "3", title: "Advanced TypeScript Patterns" },
-  { id: "4", title: "Node.js Backend Development" },
-  { id: "5", title: "GraphQL API Design" },
-]
-
-const mockCertificates: CertificateTemplate[] = [
-  { id: "cert-1", title: "Chứng chỉ Next.js Master", courseName: "Lập trình Next.js từ cơ bản đến nâng cao" },
-  { id: "cert-2", title: "Chứng chỉ React Expert", courseName: "React Hooks Advanced & State Management" },
-  { id: "cert-3", title: "Chứng chỉ Node.js Developer", courseName: "Node.js Backend Development" },
-]
 
 export default function CreateExamPage() {
   const router = useRouter()
@@ -69,6 +56,9 @@ export default function CreateExamPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
+  const [courses, setCourses] = useState<Course[]>([])
+  const [templates, setTemplates] = useState<CertificateTemplate[]>([])
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -87,9 +77,77 @@ export default function CreateExamPage() {
   const [questions, setQuestions] = useState<Question[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  useEffect(() => {
+    fetchCourses()
+    fetchTemplates()
+  }, [])
+
+  const normalizeList = <T,>(payload: any): T[] => {
+    if (Array.isArray(payload)) return payload
+    if (payload?.data && Array.isArray(payload.data)) return payload.data
+    if (payload?.data?.data && Array.isArray(payload.data.data)) return payload.data.data
+    return []
+  }
+
+  const fetchCourses = async () => {
+    try {
+      let nextCourses: Course[] = []
+      const response = await fetch("/api/courses?limit=200")
+      if (response.ok) {
+        const data = await response.json()
+        nextCourses = normalizeList<Course>(data)
+      }
+
+      if (nextCourses.length === 0) {
+        const fallback = await fetch("/api/courses/teacher/my-courses", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        })
+        if (fallback.ok) {
+          const fallbackData = await fallback.json()
+          nextCourses = normalizeList<Course>(fallbackData)
+        }
+      }
+
+      setCourses(nextCourses)
+    } catch (error) {
+      console.error("Error fetching courses:", error)
+      setCourses([])
+    }
+  }
+
+  const fetchTemplates = async () => {
+    try {
+      setIsLoadingTemplates(true)
+      const response = await fetch("/api/certificate-templates", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        const list = normalizeList<CertificateTemplate>(data).map((t: any) => ({
+          ...t,
+          courseName: t.course?.title || t.courseName,
+        }))
+        setTemplates(list)
+      } else {
+        setTemplates([])
+      }
+    } catch (error) {
+      console.error("Error fetching templates:", error)
+      setTemplates([])
+    } finally {
+      setIsLoadingTemplates(false)
+    }
+  }
+
   // Filter certificates by selected course
-  const availableCertificates = mockCertificates.filter(
-    cert => cert.courseName === mockCourses.find(c => c.id === formData.courseId)?.title
+  const availableCertificates = templates.filter(
+    (cert) =>
+      cert.status === "approved" &&
+      cert.courseId === formData.courseId
   )
 
   const validateStep = (step: number): boolean => {
@@ -170,17 +228,29 @@ export default function CreateExamPage() {
     setIsSubmitting(true)
     try {
       // API call here
-      const examData = {
+      const examData: any = {
         ...formData,
+        type: formData.type,
         questions,
         status: asDraft ? "draft" : "pending",
       }
-      console.log("Submitting exam:", examData)
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (formData.type !== "official") {
+        delete examData.certificateTemplateId
+      }
 
-      router.push("/teacher/exams")
+      const response = await fetch("/api/exams", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify(examData),
+      })
+
+      if (response.ok) {
+        router.push("/teacher/exams")
+      }
     } catch (error) {
       console.error("Error creating exam:", error)
     } finally {
@@ -288,7 +358,7 @@ export default function CreateExamPage() {
                   }`}
                 >
                   <option value="">Chọn khóa học</option>
-                  {mockCourses.map(course => (
+                  {courses.map(course => (
                     <option key={course.id} value={course.id}>{course.title}</option>
                   ))}
                 </select>
@@ -346,6 +416,10 @@ export default function CreateExamPage() {
                         <AlertCircle size={16} />
                         Vui lòng chọn khóa học trước để xem danh sách chứng chỉ
                       </p>
+                    </div>
+                  ) : isLoadingTemplates ? (
+                    <div className="p-4 bg-slate-100/80 dark:bg-slate-800/60 border border-border dark:border-slate-700 rounded-xl">
+                      <p className="text-sm text-muted-foreground">Đang tải chứng chỉ...</p>
                     </div>
                   ) : availableCertificates.length === 0 ? (
                     <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">

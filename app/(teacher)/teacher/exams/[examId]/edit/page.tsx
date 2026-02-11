@@ -45,57 +45,9 @@ interface Course {
 interface CertificateTemplate {
   id: string
   title: string
-  courseName: string
-}
-
-// Mock data
-const mockCourses: Course[] = [
-  { id: "1", title: "Lập trình Next.js từ cơ bản đến nâng cao" },
-  { id: "2", title: "React Hooks Advanced & State Management" },
-  { id: "3", title: "Advanced TypeScript Patterns" },
-  { id: "4", title: "Node.js Backend Development" },
-  { id: "5", title: "GraphQL API Design" },
-]
-
-const mockCertificates: CertificateTemplate[] = [
-  { id: "cert-1", title: "Chứng chỉ Next.js Master", courseName: "Lập trình Next.js từ cơ bản đến nâng cao" },
-  { id: "cert-2", title: "Chứng chỉ React Expert", courseName: "React Hooks Advanced & State Management" },
-  { id: "cert-3", title: "Chứng chỉ Node.js Developer", courseName: "Node.js Backend Development" },
-]
-
-// Mock existing exam data
-const mockExamData = {
-  id: "1",
-  title: "Bài thi cuối khóa Next.js",
-  description: "Bài thi đánh giá kiến thức toàn diện về Next.js",
-  courseId: "1",
-  type: "official" as const,
-  certificateTemplateId: "cert-1",
-  timeLimit: 90,
-  passingScore: 70,
-  maxAttempts: 2,
-  shuffleQuestions: true,
-  showCorrectAnswers: true,
-  questions: [
-    {
-      id: "q1",
-      type: "multiple_choice" as const,
-      question: "Next.js 13+ sử dụng hệ thống routing nào mặc định?",
-      options: ["Pages Router", "App Router", "React Router", "Express Router"],
-      correctAnswer: "App Router",
-      points: 10,
-      explanation: "App Router là hệ thống routing mới trong Next.js 13+"
-    },
-    {
-      id: "q2",
-      type: "true_false" as const,
-      question: "'use client' directive bắt buộc phải có ở mọi component",
-      options: ["Đúng", "Sai"],
-      correctAnswer: "Sai",
-      points: 10,
-      explanation: "Chỉ Client Components mới cần 'use client'"
-    }
-  ]
+  courseId: string
+  courseName?: string
+  status?: string
 }
 
 export default function EditExamPage() {
@@ -108,6 +60,9 @@ export default function EditExamPage() {
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [courses, setCourses] = useState<Course[]>([])
+  const [templates, setTemplates] = useState<CertificateTemplate[]>([])
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -125,40 +80,110 @@ export default function EditExamPage() {
   const [questions, setQuestions] = useState<Question[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Load exam data
   useEffect(() => {
-    const loadExam = async () => {
-      setIsLoading(true)
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500))
-
-        // Load mock data
-        setFormData({
-          title: mockExamData.title,
-          description: mockExamData.description,
-          courseId: mockExamData.courseId,
-          type: mockExamData.type,
-          certificateTemplateId: mockExamData.certificateTemplateId,
-          timeLimit: mockExamData.timeLimit,
-          passingScore: mockExamData.passingScore,
-          maxAttempts: mockExamData.maxAttempts,
-          shuffleQuestions: mockExamData.shuffleQuestions,
-          showCorrectAnswers: mockExamData.showCorrectAnswers,
-        })
-        setQuestions(mockExamData.questions)
-      } catch (error) {
-        console.error("Error loading exam:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
+    fetchCourses()
+    fetchTemplates()
     loadExam()
   }, [examId])
 
-  const availableCertificates = mockCertificates.filter(
-    cert => cert.courseName === mockCourses.find(c => c.id === formData.courseId)?.title
+  const normalizeList = <T,>(payload: any): T[] => {
+    if (Array.isArray(payload)) return payload
+    if (payload?.data && Array.isArray(payload.data)) return payload.data
+    if (payload?.data?.data && Array.isArray(payload.data.data)) return payload.data.data
+    return []
+  }
+
+  const fetchCourses = async () => {
+    try {
+      let nextCourses: Course[] = []
+      const response = await fetch("/api/courses?limit=200")
+      if (response.ok) {
+        const data = await response.json()
+        nextCourses = normalizeList<Course>(data)
+      }
+
+      if (nextCourses.length === 0) {
+        const fallback = await fetch("/api/courses/teacher/my-courses", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        })
+        if (fallback.ok) {
+          const fallbackData = await fallback.json()
+          nextCourses = normalizeList<Course>(fallbackData)
+        }
+      }
+
+      setCourses(nextCourses)
+    } catch (error) {
+      console.error("Error fetching courses:", error)
+      setCourses([])
+    }
+  }
+
+  const fetchTemplates = async () => {
+    try {
+      setIsLoadingTemplates(true)
+      const response = await fetch("/api/certificate-templates", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        const list = normalizeList<CertificateTemplate>(data).map((t: any) => ({
+          ...t,
+          courseName: t.course?.title || t.courseName,
+        }))
+        setTemplates(list)
+      } else {
+        setTemplates([])
+      }
+    } catch (error) {
+      console.error("Error fetching templates:", error)
+      setTemplates([])
+    } finally {
+      setIsLoadingTemplates(false)
+    }
+  }
+
+  const loadExam = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/exams/${examId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      })
+      if (!response.ok) {
+        throw new Error("Failed to fetch exam")
+      }
+
+      const data = await response.json()
+      setFormData({
+        title: data.title || "",
+        description: data.description || "",
+        courseId: data.courseId || "",
+        type: String(data.type || "practice").toLowerCase() as "practice" | "official",
+        certificateTemplateId: data.certificateTemplateId || "",
+        timeLimit: data.timeLimit || 60,
+        passingScore: data.passingScore || 70,
+        maxAttempts: data.maxAttempts || 3,
+        shuffleQuestions: data.shuffleQuestions ?? true,
+        showCorrectAnswers: data.showCorrectAnswers ?? true,
+      })
+      setQuestions(Array.isArray(data.questions) ? data.questions : [])
+    } catch (error) {
+      console.error("Error loading exam:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const availableCertificates = templates.filter(
+    (cert) =>
+      cert.status === "approved" &&
+      cert.courseId === formData.courseId
   )
 
   const validateStep = (step: number): boolean => {
@@ -235,16 +260,28 @@ export default function EditExamPage() {
 
     setIsSubmitting(true)
     try {
-      const examData = {
-        id: examId,
+      const examData: any = {
         ...formData,
         questions,
         status: asDraft ? "draft" : "pending",
       }
-      console.log("Updating exam:", examData)
 
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      router.push("/teacher/exams")
+      if (formData.type !== "official") {
+        delete examData.certificateTemplateId
+      }
+
+      const response = await fetch(`/api/exams/${examId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify(examData),
+      })
+
+      if (response.ok) {
+        router.push("/teacher/exams")
+      }
     } catch (error) {
       console.error("Error updating exam:", error)
     } finally {
@@ -358,7 +395,7 @@ export default function EditExamPage() {
                   }`}
                 >
                   <option value="">Chọn khóa học</option>
-                  {mockCourses.map(course => (
+                  {courses.map(course => (
                     <option key={course.id} value={course.id}>{course.title}</option>
                   ))}
                 </select>
@@ -414,6 +451,10 @@ export default function EditExamPage() {
                         <AlertCircle size={16} />
                         Vui lòng chọn khóa học trước
                       </p>
+                    </div>
+                  ) : isLoadingTemplates ? (
+                    <div className="p-4 bg-slate-100/80 dark:bg-slate-800/60 border border-border dark:border-slate-700 rounded-xl">
+                      <p className="text-sm text-muted-foreground">Đang tải chứng chỉ...</p>
                     </div>
                   ) : availableCertificates.length === 0 ? (
                     <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">

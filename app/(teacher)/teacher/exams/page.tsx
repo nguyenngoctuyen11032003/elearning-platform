@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -25,118 +25,108 @@ import {
 } from "lucide-react"
 
 interface Exam {
-  id: number
+  id: string
   title: string
   description: string
   courseId: string
-  courseName: string
+  courseName?: string
   type: "practice" | "official"
   status: "draft" | "pending" | "approved" | "rejected"
   createdAt: string
   timeLimit: number
   passingScore: number
   maxAttempts: number
-  questionsCount: number
+  questionsCount?: number
   certificateTemplateId?: string
   certificateTemplateName?: string
   rejectionReason?: string
-  attemptCount: number
+  attemptCount?: number
+  course?: {
+    title?: string
+  }
 }
 
-const initialExams: Exam[] = [
-  {
-    id: 1,
-    title: "Bài thi cuối khóa Next.js",
-    description: "Bài thi đánh giá kiến thức toàn diện về Next.js, App Router và Server Components",
-    courseId: "1",
-    courseName: "Lập trình Next.js từ cơ bản đến nâng cao",
-    type: "official",
-    status: "approved",
-    createdAt: "2024-01-20",
-    timeLimit: 90,
-    passingScore: 70,
-    maxAttempts: 2,
-    questionsCount: 50,
-    certificateTemplateId: "cert-1",
-    certificateTemplateName: "Chứng chỉ Next.js Master",
-    attemptCount: 245
-  },
-  {
-    id: 2,
-    title: "Bài thi thử React Hooks",
-    description: "Bài thi luyện tập về React Hooks và State Management",
-    courseId: "2",
-    courseName: "React Hooks Advanced & State Management",
-    type: "practice",
-    status: "approved",
-    createdAt: "2024-02-25",
-    timeLimit: 60,
-    passingScore: 60,
-    maxAttempts: 5,
-    questionsCount: 30,
-    attemptCount: 189
-  },
-  {
-    id: 3,
-    title: "Bài thi TypeScript Patterns",
-    description: "Bài thi thử về các pattern nâng cao trong TypeScript",
-    courseId: "3",
-    courseName: "Advanced TypeScript Patterns",
-    type: "practice",
-    status: "draft",
-    createdAt: "2025-01-10",
-    timeLimit: 45,
-    passingScore: 50,
-    maxAttempts: 10,
-    questionsCount: 20,
-    attemptCount: 0
-  },
-  {
-    id: 4,
-    title: "Bài thi Node.js Backend",
-    description: "Bài thi chính thức cho khóa Node.js Backend Development",
-    courseId: "4",
-    courseName: "Node.js Backend Development",
-    type: "official",
-    status: "pending",
-    createdAt: "2025-01-12",
-    timeLimit: 120,
-    passingScore: 75,
-    maxAttempts: 1,
-    questionsCount: 60,
-    certificateTemplateId: "cert-2",
-    certificateTemplateName: "Chứng chỉ Node.js Developer",
-    attemptCount: 0
-  },
-  {
-    id: 5,
-    title: "Bài thi GraphQL API",
-    description: "Bài thi chính thức về thiết kế API với GraphQL",
-    courseId: "5",
-    courseName: "GraphQL API Design",
-    type: "official",
-    status: "rejected",
-    createdAt: "2025-01-08",
-    timeLimit: 80,
-    passingScore: 70,
-    maxAttempts: 2,
-    questionsCount: 40,
-    certificateTemplateId: "cert-3",
-    certificateTemplateName: "Chứng chỉ GraphQL Expert",
-    attemptCount: 0,
-    rejectionReason: "Câu hỏi chưa đủ chất lượng. Cần bổ sung thêm câu hỏi về mutations và subscriptions."
-  },
-]
+interface CertificateTemplate {
+  id: string
+  title: string
+}
 
 export default function TeacherExamsPage() {
   const router = useRouter()
-  const [exams, setExams] = useState(initialExams)
+  const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
+  const [exams, setExams] = useState<Exam[]>([])
+  const [templates, setTemplates] = useState<CertificateTemplate[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
-  const [openMenu, setOpenMenu] = useState<number | null>(null)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "delete" | null>(null)
+
+  useEffect(() => {
+    fetchExams()
+    fetchTemplates()
+  }, [])
+
+  const normalizeList = <T,>(payload: any): T[] => {
+    if (Array.isArray(payload)) return payload
+    if (payload?.data && Array.isArray(payload.data)) return payload.data
+    if (payload?.data?.data && Array.isArray(payload.data.data)) return payload.data.data
+    return []
+  }
+
+  const fetchExams = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch("/api/exams", {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const list = normalizeList<Exam>(data).map((exam) => ({
+          ...exam,
+          type: String(exam.type || "practice").toLowerCase() as Exam["type"],
+          courseName: exam.course?.title || exam.courseName,
+          questionsCount: Array.isArray((exam as any).questions)
+            ? (exam as any).questions.length
+            : exam.questionsCount || 0,
+          attemptCount: (exam as any).attemptCount || exam.attemptCount || 0,
+        }))
+        setExams(list)
+      } else {
+        setExams([])
+      }
+    } catch (error) {
+      console.error("❌ Error fetching exams:", error)
+      setExams([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await fetch("/api/certificate-templates", {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setTemplates(normalizeList<CertificateTemplate>(data))
+      } else {
+        setTemplates([])
+      }
+    } catch (error) {
+      console.error("❌ Error fetching templates:", error)
+      setTemplates([])
+    }
+  }
 
   // Stats
   const totalExams = exams.length
@@ -152,7 +142,12 @@ export default function TeacherExamsPage() {
       (typeFilter === "all" || exam.type === typeFilter)
   )
 
-  const handleEdit = (examId: number) => {
+  const getTemplateName = (templateId?: string) => {
+    if (!templateId) return ""
+    return templates.find((t) => t.id === templateId)?.title || ""
+  }
+
+  const handleEdit = (examId: string) => {
     router.push(`/teacher/exams/${examId}/edit`)
     setOpenMenu(null)
   }
@@ -163,17 +158,65 @@ export default function TeacherExamsPage() {
     setOpenMenu(null)
   }
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!selectedExam) return
-    setExams(exams.filter(exam => exam.id !== selectedExam.id))
-    setViewMode(null)
-    setSelectedExam(null)
+    try {
+      const response = await fetch(`/api/exams/${selectedExam.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      })
+
+      if (response.ok) {
+        setExams(exams.filter(exam => exam.id !== selectedExam.id))
+        setViewMode(null)
+        setSelectedExam(null)
+      }
+    } catch (error) {
+      console.error("Error deleting exam:", error)
+    }
   }
 
-  const handleSubmitForReview = (examId: number) => {
-    setExams(exams.map(e =>
-      e.id === examId ? { ...e, status: "pending" as const, rejectionReason: undefined } : e
-    ))
+  const handleSubmitForReview = async (examId: string) => {
+    try {
+      const response = await fetch(`/api/exams/${examId}/submit-for-approval`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      })
+
+      if (response.ok) {
+        setExams(exams.map(e =>
+          e.id === examId ? { ...e, status: "pending" as const, rejectionReason: undefined } : e
+        ))
+      }
+    } catch (error) {
+      console.error("Error submitting exam:", error)
+    }
+    setOpenMenu(null)
+  }
+
+  const handleRemoveCertificate = async (examId: string) => {
+    try {
+      const response = await fetch(`/api/exams/${examId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify({ certificateTemplateId: null }),
+      })
+
+      if (response.ok) {
+        setExams(exams.map(e =>
+          e.id === examId ? { ...e, certificateTemplateId: undefined, certificateTemplateName: undefined } : e
+        ))
+      }
+    } catch (error) {
+      console.error("Error removing certificate:", error)
+    }
     setOpenMenu(null)
   }
 
@@ -342,7 +385,15 @@ export default function TeacherExamsPage() {
 
         {/* Exams List */}
         <div className="grid gap-4">
-          {filteredExams.map((exam) => (
+          {isLoading && (
+            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 text-sm text-muted-foreground">
+              Đang tải bài thi...
+            </div>
+          )}
+
+          {!isLoading && filteredExams.map((exam) => {
+            const templateName = exam.certificateTemplateName || getTemplateName(exam.certificateTemplateId)
+            return (
             <div
               key={exam.id}
               className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 hover:shadow-lg transition-shadow"
@@ -368,9 +419,9 @@ export default function TeacherExamsPage() {
                     <span className="flex items-center gap-1">
                       <Users size={14} /> {exam.attemptCount} lượt thi
                     </span>
-                    {exam.type === "official" && exam.certificateTemplateName && (
+                    {exam.type === "official" && templateName && (
                       <span className="flex items-center gap-1 text-purple-500">
-                        <Award size={14} /> {exam.certificateTemplateName}
+                        <Award size={14} /> {templateName}
                       </span>
                     )}
                   </div>
@@ -425,6 +476,15 @@ export default function TeacherExamsPage() {
                             Chỉnh sửa
                           </button>
                         )}
+                        {exam.type === "official" && exam.certificateTemplateId && exam.status !== "approved" && (
+                          <button
+                            onClick={() => handleRemoveCertificate(exam.id)}
+                            className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-amber-600"
+                          >
+                            <Award size={16} />
+                            Bỏ chứng chỉ
+                          </button>
+                        )}
                         {exam.status !== "approved" && (
                           <button
                             onClick={() => handleDeleteClick(exam)}
@@ -445,9 +505,9 @@ export default function TeacherExamsPage() {
                 </div>
               </div>
             </div>
-          ))}
+          )})}
 
-          {filteredExams.length === 0 && (
+          {!isLoading && filteredExams.length === 0 && (
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-12 text-center">
               <FileText size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
               <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">Chưa có bài thi nào</h3>
@@ -523,11 +583,13 @@ export default function TeacherExamsPage() {
                   </div>
                 </div>
 
-                {selectedExam.type === "official" && selectedExam.certificateTemplateName && (
+                {selectedExam.type === "official" && (selectedExam.certificateTemplateName || getTemplateName(selectedExam.certificateTemplateId)) && (
                   <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded-xl">
                     <div className="flex items-center gap-2 text-purple-500">
                       <Award size={20} />
-                      <span className="font-medium">Chứng chỉ: {selectedExam.certificateTemplateName}</span>
+                      <span className="font-medium">
+                        Chứng chỉ: {selectedExam.certificateTemplateName || getTemplateName(selectedExam.certificateTemplateId)}
+                      </span>
                     </div>
                     <p className="text-sm text-purple-400 mt-1">
                       Học viên đạt điểm sẽ được cấp chứng chỉ này

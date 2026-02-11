@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import {
   Plus,
   Search,
@@ -32,20 +33,37 @@ interface CertificateTemplate {
   description: string
   courseId: string
   courseName?: string
+  teacherId?: string
   status: "draft" | "pending" | "approved" | "rejected"
   createdAt: string
+  updatedAt?: string
   validityPeriod: string
   templateImageUrl?: string
+  logoUrl?: string
+  signatureUrl?: string
   rejectionReason?: string
   issuedCount: number
   templateStyle: string
+  badgeStyle?: string
   backgroundColor: string
   borderColor: string
+  borderStyle?: string
   textColor: string
+}
+
+interface ExamItem {
+  id: string
+  title: string
+  type?: string
+  status?: string
+  course?: {
+    title?: string
+  }
 }
 
 export default function TeacherCertificatesPage() {
   const router = useRouter()
+  const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -53,10 +71,17 @@ export default function TeacherCertificatesPage() {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<CertificateTemplate | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "delete" | null>(null)
+  const [exams, setExams] = useState<ExamItem[]>([])
+  const [isLoadingExams, setIsLoadingExams] = useState(false)
+  const [useTemplate, setUseTemplate] = useState<CertificateTemplate | null>(null)
+  const [selectedExamId, setSelectedExamId] = useState("")
+  const [assignError, setAssignError] = useState<string | null>(null)
+  const [isAssigning, setIsAssigning] = useState(false)
 
   // Fetch templates from API
   useEffect(() => {
     fetchTemplates()
+    fetchExams()
   }, [])
 
   const fetchTemplates = async () => {
@@ -64,7 +89,7 @@ export default function TeacherCertificatesPage() {
       setLoading(true)
       const response = await fetch('/api/certificate-templates', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${getAuthToken()}`
         }
       })
       
@@ -104,6 +129,42 @@ export default function TeacherCertificatesPage() {
     }
   }
 
+  const fetchExams = async () => {
+    try {
+      setIsLoadingExams(true)
+      const response = await fetch("/api/exams", {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (Array.isArray(data)) {
+          setExams(data)
+        } else if (data && Array.isArray(data.data)) {
+          setExams(data.data)
+        } else {
+          setExams([])
+        }
+      } else {
+        setExams([])
+      }
+    } catch (error) {
+      console.error("❌ Error fetching exams:", error)
+      setExams([])
+    } finally {
+      setIsLoadingExams(false)
+    }
+  }
+
+  const formatDateTime = (value?: string) => {
+    if (!value) return "-"
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return value
+    return parsed.toLocaleString("vi-VN")
+  }
+
   // Stats
   const totalTemplates = templates.length
   const pendingTemplates = templates.filter(t => t.status === "pending").length
@@ -114,6 +175,10 @@ export default function TeacherCertificatesPage() {
     (template) =>
       template.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
       (statusFilter === "all" || template.status === statusFilter)
+  )
+
+  const officialExams = exams.filter(
+    (exam) => String(exam.type || "").toLowerCase() === "official"
   )
 
   const handleEdit = (templateId: string) => {
@@ -188,6 +253,50 @@ export default function TeacherCertificatesPage() {
     }
     
     setOpenMenu(null)
+  }
+
+  const handleOpenUseModal = (template: CertificateTemplate) => {
+    setUseTemplate(template)
+    setSelectedExamId("")
+    setAssignError(null)
+  }
+
+  const handleAssignTemplate = async () => {
+    if (!useTemplate || !selectedExamId) {
+      setAssignError("Vui lòng chọn bài thi thật để gán chứng chỉ.")
+      return
+    }
+
+    try {
+      setIsAssigning(true)
+      setAssignError(null)
+      const response = await fetch(`/api/exams/${selectedExamId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify({ certificateTemplateId: useTemplate.id }),
+      })
+
+      if (!response.ok) {
+        const message = "Không thể gán chứng chỉ cho bài thi. Vui lòng thử lại."
+        setAssignError(message)
+        toast.error(message)
+        return
+      }
+
+      toast.success("Gán chứng chỉ thành công.")
+      setUseTemplate(null)
+      setSelectedExamId("")
+    } catch (error) {
+      const message = "Không thể gán chứng chỉ cho bài thi. Vui lòng thử lại."
+      console.error("Error assigning template:", error)
+      setAssignError(message)
+      toast.error(message)
+    } finally {
+      setIsAssigning(false)
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -317,109 +426,9 @@ export default function TeacherCertificatesPage() {
         </div>
 
         {/* Templates Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTemplates.map((template) => (
-            <div
-              key={template.id}
-              className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-visible hover:shadow-lg transition-shadow"
-            >
-              {/* Certificate Preview */}
-              <div className="relative h-40 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                <Award size={48} className="text-primary/40" />
-                <div className="absolute top-3 right-3">
-                  {getStatusBadge(template.status)}
-                </div>
-              </div>
-
-              <div className="p-5">
-                <h3 className="font-semibold text-foreground dark:text-white text-lg mb-2">{template.title}</h3>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm mb-3 line-clamp-2">{template.description}</p>
-
-                <div className="space-y-2 text-sm text-muted-foreground dark:text-slate-400">
-                  <p className="flex items-center gap-2">
-                    <BookOpen size={14} /> {template.courseName}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <Clock size={14} /> Hiệu lực: {template.validityPeriod}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <Users size={14} /> Đã cấp: {template.issuedCount} chứng chỉ
-                  </p>
-                </div>
-
-                {template.status === "rejected" && template.rejectionReason && (
-                  <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                    <p className="text-xs text-red-500 flex items-start gap-2">
-                      <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-                      <span>{template.rejectionReason}</span>
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border dark:border-slate-700">
-                  {(template.status === "draft" || template.status === "rejected") && (
-                    <button
-                      onClick={() => handleSubmitForReview(template.id)}
-                      className="flex-1 px-3 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Send size={14} />
-                      Gửi duyệt
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => {
-                      setSelectedTemplate(template)
-                      setViewMode("view")
-                    }}
-                    className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
-                    title="Xem chi tiết"
-                  >
-                    <Eye size={18} className="text-muted-foreground" />
-                  </button>
-
-                  <div className="relative">
-                    <button
-                      onClick={() => setOpenMenu(openMenu === template.id ? null : template.id)}
-                      className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
-                    >
-                      <MoreVertical size={18} className="text-muted-foreground" />
-                    </button>
-                    {openMenu === template.id && (
-                      <div className="absolute right-0 bottom-full mb-2 w-48 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg z-[9999]">
-                        {template.status !== "approved" && (
-                          <button
-                            onClick={() => handleEdit(template.id)}
-                            className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 rounded-t-xl"
-                          >
-                            <Edit2 size={16} />
-                            Chỉnh sửa
-                          </button>
-                        )}
-                        {template.status !== "approved" && (
-                          <button
-                            onClick={() => handleDeleteClick(template)}
-                            className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-b-xl"
-                          >
-                            <Trash2 size={16} />
-                            Xóa
-                          </button>
-                        )}
-                        {template.status === "approved" && (
-                          <p className="px-4 py-3 text-sm text-muted-foreground dark:text-slate-400">
-                            Không thể chỉnh sửa mẫu đã duyệt
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {filteredTemplates.length === 0 && (
-            <div className="col-span-full bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-12 text-center">
+        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+          {filteredTemplates.length === 0 ? (
+            <div className="text-center py-10">
               <Award size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
               <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">Chưa có mẫu chứng chỉ nào</h3>
               <p className="text-muted-foreground dark:text-slate-400 mb-4">
@@ -433,9 +442,203 @@ export default function TeacherCertificatesPage() {
                 Tạo mẫu chứng chỉ
               </Link>
             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredTemplates.map((template) => (
+                <div
+                  key={template.id}
+                  className="bg-white/90 dark:bg-slate-900/70 border border-border dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-lg transition-shadow"
+                >
+                  <div className="flex items-start justify-end gap-3">
+                    <div>{getStatusBadge(template.status)}</div>
+                  </div>
+
+                    <div className="mt-4">
+                      <div
+                        className="relative w-full rounded-xl overflow-hidden shadow-md"
+                        style={{
+                          aspectRatio: "3 / 4",
+                          backgroundColor: template.backgroundColor || "#1a1a2e",
+                          backgroundImage: template.templateImageUrl ? `url(${template.templateImageUrl})` : "none",
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                          color: template.textColor || "#ffffff",
+                        }}
+                      >
+                        {template.templateImageUrl && (
+                          <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-white/10" />
+                        )}
+
+                        <div
+                          className="absolute inset-3 rounded-lg"
+                          style={{
+                            border: `2px ${template.borderStyle || "double"} ${template.borderColor || "#d4af37"}`,
+                          }}
+                        />
+
+                        <div className="absolute top-3 left-3 z-10">
+                          {template.logoUrl ? (
+                            <img
+                              src={template.logoUrl}
+                              alt="Logo"
+                              className="w-8 h-8 object-contain rounded-md bg-white/90 p-1"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-md bg-white/80" />
+                          )}
+                        </div>
+
+                        <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
+                          <p
+                            className="text-[10px] font-semibold tracking-[0.25em] uppercase"
+                            style={{ color: template.borderColor || "#d4af37" }}
+                          >
+                            Chứng chỉ hoàn thành
+                          </p>
+                          <div
+                            className="w-10 h-px my-2"
+                            style={{ backgroundColor: template.borderColor || "#d4af37" }}
+                          />
+
+                          <div
+                            className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                            style={{
+                              backgroundColor: template.textColor || "#ffffff",
+                              color: template.borderColor || "#d4af37",
+                              border: `2px solid ${template.borderColor || "#d4af37"}`,
+                            }}
+                          >
+                            <Award size={20} />
+                          </div>
+
+                          <h4 className="text-sm font-semibold leading-snug">
+                            {template.title}
+                          </h4>
+                          <div
+                            className="w-10 h-px my-2"
+                            style={{ backgroundColor: template.borderColor || "#d4af37" }}
+                          />
+                          <p className="text-[11px] opacity-70">Chứng nhận rằng</p>
+                          <p className="text-sm font-semibold italic mt-1">[Tên học viên]</p>
+                          <div
+                            className="w-24 h-px mt-2"
+                            style={{ backgroundColor: template.borderColor || "#d4af37" }}
+                          />
+                          <p className="text-[11px] mt-3 opacity-80 line-clamp-2">
+                            {template.description}
+                          </p>
+                          <p
+                            className="text-[11px] font-semibold mt-2"
+                            style={{ color: template.borderColor || "#d4af37" }}
+                          >
+                            {template.courseName || "[Tên khóa học]"}
+                          </p>
+                        </div>
+
+                        <div className="absolute bottom-3 left-3 text-[10px]">
+                          <span
+                            className="px-2 py-1 rounded-md"
+                            style={{
+                              color: template.borderColor || "#d4af37",
+                              border: `1px solid ${template.borderColor || "#d4af37"}`,
+                              backgroundColor: `${template.borderColor || "#d4af37"}20`,
+                            }}
+                          >
+                            {template.validityPeriod}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                  <div className="mt-4">
+                    <h3 className="text-lg font-semibold text-foreground dark:text-white">{template.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{template.description}</p>
+                  </div>
+
+                  {template.status === "approved" && (
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenUseModal(template)}
+                        className="w-full px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
+                      >
+                        Sử dụng
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
+        {/* Use Template Modal */}
+        {useTemplate && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-foreground dark:text-white">
+                  Gán chứng chỉ cho bài thi
+                </h3>
+                <button
+                  onClick={() => setUseTemplate(null)}
+                  className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="text-sm text-muted-foreground">
+                  Chỉ hiển thị các bài thi thật (official).
+                </div>
+
+                <select
+                  value={selectedExamId}
+                  onChange={(e) => setSelectedExamId(e.target.value)}
+                  className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
+                  disabled={isLoadingExams}
+                >
+                  <option value="">Chọn bài thi thật</option>
+                  {officialExams.map((exam) => (
+                    <option key={exam.id} value={exam.id}>
+                      {exam.title}{exam.course?.title ? ` - ${exam.course.title}` : ""}
+                    </option>
+                  ))}
+                </select>
+
+                {!isLoadingExams && officialExams.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Chưa có bài thi thật nào để gán chứng chỉ.
+                  </p>
+                )}
+
+                {assignError && (
+                  <p className="text-sm text-red-500">{assignError}</p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setUseTemplate(null)}
+                  className="px-4 py-2 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+                  disabled={isAssigning}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAssignTemplate}
+                  className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
+                  disabled={isAssigning || officialExams.length === 0}
+                >
+                  {isAssigning ? "Đang gán..." : "Gán chứng chỉ"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {/* View Modal */}
         {selectedTemplate && viewMode === "view" && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
