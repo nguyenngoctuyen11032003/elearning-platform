@@ -70,21 +70,12 @@ export function AdminSidebar() {
         {/* Logo Section - Fixed Header */}
         <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50 mt-12 md:mt-0">
           <Link href="/" className="flex items-center justify-center">
-            <div className="
-              w-20 h-20
-              rounded-full
-              overflow-hidden
-              bg-gradient-to-br from-gray-100 to-gray-200
-              border-2 border-border
-              flex items-center justify-center
-            ">
-              <img
-                src={config?.site_logo}
-                alt="logo"
-                className="w-full h-full object-cover object-center"
-              />
-            </div>
-
+            <LogoDisplay 
+              src={config?.site_logo}
+              size={isCollapsed ? "md" : "lg"}
+              variant="icon"
+              showText={false}
+            />
           </Link>
           {!isCollapsed && (
             <div className="mt-2 text-center">

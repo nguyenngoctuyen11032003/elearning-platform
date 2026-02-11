@@ -52,9 +52,10 @@ const handleSave = async () => {
     setIsSaving(false)
   }
 }
-  
+
+const [settings, setSettings] = useState<SystemSettings>(config || {})
+
 if (!config) return null
-const [settings, setSettings] = useState<SystemSettings>(config)
 
   return (
     <div className="min-h-screen w-full">

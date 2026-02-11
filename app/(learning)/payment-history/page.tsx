@@ -120,6 +120,7 @@ export default function PaymentHistoryPage() {
     },
   ]
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setPayments(mockPaymentHistory)
     setFilteredPayments(mockPaymentHistory)

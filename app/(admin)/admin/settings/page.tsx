@@ -49,6 +49,7 @@ useEffect(() => {
       ...config,
     })
   }
+// eslint-disable-next-line react-hooks/exhaustive-deps
 }, [config])
 
   const handleSettingChange = (key: string, value: string | boolean) => {

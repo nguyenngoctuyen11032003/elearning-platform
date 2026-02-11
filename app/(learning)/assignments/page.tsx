@@ -54,6 +54,7 @@ export default function AssignmentsPage() {
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [courses, setCourses] = useState<any[]>([]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadData();
   }, [selectedCourse]);

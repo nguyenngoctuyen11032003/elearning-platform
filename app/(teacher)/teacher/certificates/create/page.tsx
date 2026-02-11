@@ -229,6 +229,7 @@ export default function CreateCertificatePage() {
   }
   const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 
+<<<<<<< HEAD
   const normalizeList = <T,>(payload: any): T[] => {
     if (Array.isArray(payload)) return payload
     if (payload?.data && Array.isArray(payload.data)) return payload.data
@@ -266,6 +267,9 @@ export default function CreateCertificatePage() {
     rejected: { label: "Từ chối", className: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
   }
 
+=======
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+>>>>>>> 4672d87bf45caac4a8c8fe8b70d3937557742494
   useEffect(() => {
     const savedDraft = localStorage.getItem("certificate_template_draft")
     const storedEditId = localStorage.getItem("certificate_template_edit_id")

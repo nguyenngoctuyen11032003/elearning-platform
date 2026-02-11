@@ -133,6 +133,7 @@ export default function AdminCertificatesPage() {
     }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let isMounted = true
     const load = async () => {

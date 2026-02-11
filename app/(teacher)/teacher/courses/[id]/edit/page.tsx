@@ -89,6 +89,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         console.error('Error loading course data:', error)
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedParams.id])
 
   // Auto-save to localStorage whenever course or sections change
@@ -98,6 +99,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       sections,
     }
     localStorage.setItem(`course-${resolvedParams.id}`, JSON.stringify(autoSaveData))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [course, sections, resolvedParams.id])
 
   // Get all lessons from all sections for display
