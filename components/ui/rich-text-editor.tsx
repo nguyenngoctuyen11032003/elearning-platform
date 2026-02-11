@@ -64,9 +64,8 @@ const MenuButton = ({ onClick, isActive, disabled, children, title }: MenuButton
 )
 
 const MenuBar = ({ editor }: { editor: Editor | null }) => {
-  if (!editor) return null
-
   const setLink = useCallback(() => {
+    if (!editor) return
     const previousUrl = editor.getAttributes("link").href
     const url = window.prompt("URL", previousUrl)
 
@@ -78,6 +77,8 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
 
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
   }, [editor])
+
+  if (!editor) return null
 
   return (
     <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border dark:border-slate-700 bg-secondary/30 dark:bg-slate-800/30">

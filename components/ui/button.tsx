@@ -5,7 +5,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium shadow-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-px aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
@@ -19,6 +19,14 @@ const buttonVariants = cva(
         ghost:
           'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
         link: 'text-primary underline-offset-4 hover:underline',
+        success:
+          'bg-emerald-600 text-white hover:bg-emerald-500 focus-visible:ring-emerald-200 dark:focus-visible:ring-emerald-500/40',
+        warning:
+          'bg-amber-500 text-amber-950 hover:bg-amber-400 focus-visible:ring-amber-200 dark:focus-visible:ring-amber-500/40',
+        info:
+          'bg-sky-500 text-sky-50 hover:bg-sky-400 focus-visible:ring-sky-200 dark:focus-visible:ring-sky-500/40',
+        muted:
+          'bg-muted text-foreground hover:bg-muted/80 dark:bg-slate-800/60 dark:hover:bg-slate-800',
       },
       size: {
         default: 'h-9 px-4 py-2 has-[>svg]:px-3',

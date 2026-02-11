@@ -98,6 +98,7 @@ export default function DiscussionsPage() {
     } else {
       loadDiscussions();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLesson]);
 
   const loadInitialData = async () => {
