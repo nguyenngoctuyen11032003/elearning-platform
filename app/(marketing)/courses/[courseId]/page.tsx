@@ -615,7 +615,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                   </div>
 
                   {/* Buttons */}
-                  <button
+                  <AnimatedButton
+                    className="w-full"
                     onClick={() => {
                       const courseData = {
                         id: course.id,
@@ -634,10 +635,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                       localStorage.setItem("checkoutCourse", JSON.stringify(courseData))
                       window.location.href = "/checkout"
                     }}
-                    className="w-full"
                   >
-                    <AnimatedButton className="w-full">Ghi danh ngay</AnimatedButton>
-                  </button>
+                    Ghi danh ngay
+                  </AnimatedButton>
 
                   <button
                     onClick={() => setIsWishlisted(!isWishlisted)}

@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { Menu, X, Home, LogOut, User, Settings } from "lucide-react"
+import { Menu, X, Home, LogOut, User, Settings, MessageCircle } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
 import { ThemeToggle } from "./theme-toggle"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
@@ -15,6 +15,7 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const pathname = usePathname()
   const { config } = useSystemConfig()
   
   const { user, logout, loading, isAuthenticated } = useAuth()
@@ -22,6 +23,18 @@ export function Navbar() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (pathname === "/") {
+      document.body.dataset.chatbot = "header"
+    } else {
+      delete document.body.dataset.chatbot
+    }
+
+    return () => {
+      delete document.body.dataset.chatbot
+    }
+  }, [pathname])
 
   // Close profile menu when clicking outside
   useEffect(() => {
@@ -43,6 +56,22 @@ export function Navbar() {
   const handleLogout = () => {
     logout()
     router.push("/login")
+  }
+
+  const handleChatbotOpen = () => {
+    const botContainer = document.getElementById("gim-bot-tool-bot-container")
+    if (botContainer) {
+      botContainer.style.position = "fixed"
+      botContainer.style.right = "24px"
+      botContainer.style.top = "72px"
+      botContainer.style.bottom = "auto"
+      botContainer.style.zIndex = "10001"
+    }
+
+    const chatButton = document.getElementById("gim-bot-tool-button")
+    if (chatButton) {
+      chatButton.click()
+    }
   }
 
   if (!mounted) {
@@ -72,6 +101,16 @@ export function Navbar() {
         </nav>
         <div className="hidden md:flex items-center gap-4">
           <ThemeToggle />
+          {pathname === "/" && (
+            <button
+              type="button"
+              onClick={handleChatbotOpen}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
+            >
+              <MessageCircle size={16} />
+              Chatbot
+            </button>
+          )}
           <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-smooth">
             Đăng nhập
           </Link>
@@ -126,6 +165,16 @@ export function Navbar() {
         {isAuthenticated && user ? (
           <>
             <ThemeToggle />
+            {pathname === "/" && (
+              <button
+                type="button"
+                onClick={handleChatbotOpen}
+                className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
+              >
+                <MessageCircle size={16} />
+                Chatbot
+              </button>
+            )}
             {/* Simple Avatar Button - Click to view profile or show mini menu */}
             <div className="relative" ref={profileMenuRef}>
               <button
@@ -208,6 +257,16 @@ export function Navbar() {
         ) : (
           <>
             <ThemeToggle />
+            {pathname === "/" && (
+              <button
+                type="button"
+                onClick={handleChatbotOpen}
+                className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
+              >
+                <MessageCircle size={16} />
+                Chatbot
+              </button>
+            )}
             <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-smooth">
               Đăng nhập
             </Link>
@@ -250,6 +309,15 @@ export function Navbar() {
             <Link href="/about" className="text-sm hover:text-primary transition-smooth">
               Về chúng tôi
             </Link>
+            {pathname === "/" && (
+              <button
+                type="button"
+                onClick={handleChatbotOpen}
+                className="text-sm hover:text-primary transition-smooth flex items-center gap-2"
+              >
+                <MessageCircle size={16} /> Chatbot
+              </button>
+            )}
             {isAuthenticated ? (
               <>
                 <div className="border-t border-border dark:border-slate-800 pt-4 mt-2">

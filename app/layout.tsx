@@ -1,5 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
+import Script from "next/script"
 import { Roboto } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -40,6 +41,117 @@ export default function RootLayout({
           </AuthProvider>
         </ThemeProvider>
         <Analytics />
+        <Script id="gim-chatbot" strategy="afterInteractive">
+          {`window.__gim = window.__gim || {};
+window.__gim.licenseId = "604927107960698062";
+(function(c,o){const e=[],n={_handler:null,_version:"1.0",_queue:e,on:function(){return e.push(["on",arguments]),n},call:function(){return e.push(["call",arguments]),n},loadScript:function(){const t=o.createElement("script");t.async=!0,t.type="text/javascript",t.src="https://botsdk.stg.gim.beango.com/index.umd.js",o.head.appendChild(t)}};n.loadScript(),window.GIMBotTool=n})(window,document);`}
+        </Script>
+        <Script id="gim-chatbot-stick" strategy="afterInteractive">
+          {`(function(){
+  var fixButton = function(){
+    var container = document.getElementById("gim-bot-tool-button-container");
+    if (!container) return;
+    
+    // Handle visibility based on data attribute
+    if (document.body.dataset.chatbot === "header") {
+      container.style.display = "none";
+      return;
+    }
+    container.style.display = "";
+    
+    // Move to body if needed
+    if (container.parentElement !== document.body) {
+      document.body.appendChild(container);
+    }
+    
+    // Apply viewport-fixed positioning with inset
+    container.style.position = "fixed";
+    container.style.inset = "auto 24px 24px auto";
+    container.style.transform = "none";
+    container.style.willChange = "transform";
+    container.style.zIndex = "2147483647";
+    
+    // Handle bot container (chat panel)
+    var botContainer = document.getElementById("gim-bot-tool-bot-container");
+    if (botContainer) {
+      if (botContainer.parentElement !== document.body) {
+        document.body.appendChild(botContainer);
+      }
+      botContainer.style.position = "fixed";
+      botContainer.style.right = "24px";
+      botContainer.style.bottom = "96px";
+      botContainer.style.top = "auto";
+      botContainer.style.zIndex = "10000";
+    }
+  };
+
+  // Initial fix
+  fixButton();
+  
+  // Keep observer running to continuously reposition if SDK re-renders
+  var observer = new MutationObserver(function(){
+    fixButton();
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  
+  // Handle scroll on viewport element
+  var scrollEl = document.querySelector(".main") || window;
+  scrollEl.addEventListener("scroll", function(){
+    fixButton();
+  }, { passive: true });
+})();`}
+        </Script>
+        <div id="gim-chatbot-popup" role="status" aria-live="polite">
+          <span>Bạn cần hỗ trợ gì hôm nay?</span>
+          <button type="button" aria-label="Đóng thông báo" id="gim-chatbot-popup-close">×</button>
+        </div>
+        <Script id="gim-chatbot-popup-script" strategy="afterInteractive">
+          {`(function(){
+  var popup = document.getElementById("gim-chatbot-popup");
+  var closeBtn = document.getElementById("gim-chatbot-popup-close");
+  if (!popup) return;
+  var dismissed = false;
+
+  var showPopup = function(){
+    if (!dismissed) popup.classList.add("is-visible");
+  };
+  var hidePopup = function(){ popup.classList.remove("is-visible"); };
+
+  var bindChatButton = function(){
+    var chatButton = document.getElementById("gim-bot-tool-button");
+    if (chatButton && !chatButton.__popupBound) {
+      chatButton.addEventListener("click", function(){
+        dismissed = true;
+        hidePopup();
+      });
+      chatButton.__popupBound = true;
+    }
+  };
+
+  var onScroll = function(){
+    if (dismissed) return;
+    if (window.scrollY > 200) {
+      showPopup();
+    } else {
+      hidePopup();
+    }
+  };
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", function(){
+      dismissed = true;
+      hidePopup();
+    });
+  }
+
+  bindChatButton();
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  var observer = new MutationObserver(function(){ bindChatButton(); });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+})();`}
+        </Script>
       </body>
     </html>
   )

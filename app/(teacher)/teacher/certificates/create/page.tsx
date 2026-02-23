@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth/auth-context"
 import {
   ArrowLeft,
   Save,
@@ -53,6 +54,7 @@ interface Course {
 
 interface CertificateTemplate extends CertificateData {
   id: string
+  teacherId?: string
   status?: string
   createdAt?: string
   updatedAt?: string
@@ -192,8 +194,16 @@ const badgeStyles = [
   { id: "trophy", name: "Cúp", icon: Trophy },
 ]
 
+const statusLabelMap: Record<string, { label: string; className: string }> = {
+  draft: { label: "Nháp", className: "bg-gray-500/10 text-gray-500" },
+  pending: { label: "Chờ duyệt", className: "bg-yellow-500/10 text-yellow-500" },
+  approved: { label: "Đã duyệt", className: "bg-green-500/10 text-green-500" },
+  rejected: { label: "Từ chối", className: "bg-red-500/10 text-red-500" },
+}
+
 export default function CreateCertificatePage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
   const [editTemplateId, setEditTemplateId] = useState<string | null>(null)
@@ -203,7 +213,14 @@ export default function CreateCertificatePage() {
 
   const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
 
-  const [formData, setFormData] = useState<CertificateData>({
+  const normalizeList = <T,>(payload: any): T[] => {
+    if (Array.isArray(payload)) return payload
+    if (payload?.data && Array.isArray(payload.data)) return payload.data
+    if (payload?.data?.data && Array.isArray(payload.data.data)) return payload.data.data
+    return []
+  }
+
+  const blankTemplate: CertificateData = {
     title: "",
     description: "",
     courseId: "",
@@ -217,7 +234,9 @@ export default function CreateCertificatePage() {
     templateImageUrl: "",
     templateStyle: "classic",
     badgeStyle: "star",
-  })
+  }
+
+  const [formData, setFormData] = useState<CertificateData>(blankTemplate)
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -229,47 +248,7 @@ export default function CreateCertificatePage() {
   }
   const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 
-<<<<<<< HEAD
-  const normalizeList = <T,>(payload: any): T[] => {
-    if (Array.isArray(payload)) return payload
-    if (payload?.data && Array.isArray(payload.data)) return payload.data
-    if (payload?.data?.data && Array.isArray(payload.data.data)) return payload.data.data
-    return []
-  }
-
-  const applyTemplate = (template: CertificateTemplate) => {
-    setEditTemplateId(template.id)
-    const nextData: CertificateData = {
-      title: template.title || "",
-      description: template.description || "",
-      courseId: template.courseId || "",
-      validityPeriod: template.validityPeriod || "Vĩnh viễn",
-      backgroundColor: template.backgroundColor || "#1a1a2e",
-      borderColor: template.borderColor || "#d4af37",
-      borderStyle: template.borderStyle || "double",
-      textColor: template.textColor || "#ffffff",
-      logoUrl: template.logoUrl || "",
-      signatureUrl: template.signatureUrl || "",
-      templateImageUrl: template.templateImageUrl || "",
-      templateStyle: template.templateStyle || "classic",
-      badgeStyle: template.badgeStyle || "star",
-    }
-    setFormData((prev) => ({ ...prev, ...nextData }))
-    setErrors({})
-    localStorage.setItem("certificate_template_draft", JSON.stringify(nextData))
-    localStorage.setItem("certificate_template_edit_id", template.id)
-  }
-
-  const statusLabelMap: Record<string, { label: string; className: string }> = {
-    draft: { label: "Nháp", className: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
-    pending: { label: "Chờ duyệt", className: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300" },
-    approved: { label: "Đã duyệt", className: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
-    rejected: { label: "Từ chối", className: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
-  }
-
-=======
   // eslint-disable-next-line react-hooks/exhaustive-deps
->>>>>>> 4672d87bf45caac4a8c8fe8b70d3937557742494
   useEffect(() => {
     const savedDraft = localStorage.getItem("certificate_template_draft")
     const storedEditId = localStorage.getItem("certificate_template_edit_id")
@@ -443,6 +422,62 @@ export default function CreateCertificatePage() {
       }
       return prev
     })
+  }
+
+  const applyTemplateAsCopy = (template: CertificateTemplate) => {
+    const nextDraft: CertificateData = {
+      title: template.title || "",
+      description: template.description || "",
+      courseId: template.courseId || "",
+      validityPeriod: template.validityPeriod || "Vĩnh viễn",
+      backgroundColor: template.backgroundColor || "#1a1a2e",
+      borderColor: template.borderColor || "#d4af37",
+      borderStyle: template.borderStyle || "double",
+      textColor: template.textColor || "#ffffff",
+      logoUrl: template.logoUrl || "",
+      signatureUrl: template.signatureUrl || "",
+      templateImageUrl: template.templateImageUrl || "",
+      templateStyle: template.templateStyle || "classic",
+      badgeStyle: template.badgeStyle || "star",
+    }
+
+    setEditTemplateId(null)
+    setFormData(nextDraft)
+    setErrors({})
+    localStorage.setItem("certificate_template_draft", JSON.stringify(nextDraft))
+    localStorage.removeItem("certificate_template_edit_id")
+  }
+
+  const editTemplate = (template: CertificateTemplate) => {
+    const nextDraft: CertificateData = {
+      title: template.title || "",
+      description: template.description || "",
+      courseId: template.courseId || "",
+      validityPeriod: template.validityPeriod || "Vĩnh viễn",
+      backgroundColor: template.backgroundColor || "#1a1a2e",
+      borderColor: template.borderColor || "#d4af37",
+      borderStyle: template.borderStyle || "double",
+      textColor: template.textColor || "#ffffff",
+      logoUrl: template.logoUrl || "",
+      signatureUrl: template.signatureUrl || "",
+      templateImageUrl: template.templateImageUrl || "",
+      templateStyle: template.templateStyle || "classic",
+      badgeStyle: template.badgeStyle || "star",
+    }
+
+    setEditTemplateId(template.id)
+    setFormData(nextDraft)
+    setErrors({})
+    localStorage.setItem("certificate_template_draft", JSON.stringify(nextDraft))
+    localStorage.setItem("certificate_template_edit_id", template.id)
+  }
+
+  const resetToBlank = () => {
+    setEditTemplateId(null)
+    setFormData(blankTemplate)
+    setErrors({})
+    localStorage.removeItem("certificate_template_draft")
+    localStorage.removeItem("certificate_template_edit_id")
   }
 
   const validateForm = (): boolean => {
@@ -1034,23 +1069,46 @@ export default function CreateCertificatePage() {
                 <p className="text-sm text-muted-foreground">Chưa có mẫu chứng chỉ nào được lưu.</p>
               )}
 
-              {!isLoadingTemplates && !templatesError && templates.length > 0 && (
+              {!isLoadingTemplates && !templatesError && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={resetToBlank}
+                    className={`group p-4 rounded-2xl border-2 border-dashed transition-all text-left hover:shadow-lg ${
+                      !editTemplateId
+                        ? "border-primary/60 bg-primary/5"
+                        : "border-border dark:border-slate-700 hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Sparkles size={20} className="text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground dark:text-white">Tự tạo mẫu mới</p>
+                        <p className="text-xs text-muted-foreground">Bắt đầu từ trang trống</p>
+                      </div>
+                    </div>
+                  </button>
                   {templates.map((template) => {
                     const statusInfo = template.status ? statusLabelMap[template.status] : undefined
                     const isActive = editTemplateId === template.id
+                    const isOwner = Boolean(user?.id && template.teacherId && template.teacherId === user.id)
                     return (
-                      <button
+                      <div
                         key={template.id}
-                        type="button"
-                        onClick={() => applyTemplate(template)}
                         className={`group w-full text-left p-4 rounded-2xl border-2 transition-all hover:shadow-lg ${
                           isActive
                             ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
                             : "border-border dark:border-slate-700 hover:border-primary/50"
                         }`}
                       >
-                        <div className="flex gap-4">
+                        <button
+                          type="button"
+                          onClick={() => applyTemplateAsCopy(template)}
+                          className="w-full text-left"
+                        >
+                          <div className="flex gap-4">
                           <div
                             className="relative w-16 h-20 rounded-xl border flex-shrink-0 overflow-hidden"
                             style={{
@@ -1154,7 +1212,26 @@ export default function CreateCertificatePage() {
                             </div>
                           </div>
                         </div>
-                      </button>
+                        </button>
+                        <div className="mt-3 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => applyTemplateAsCopy(template)}
+                            className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition"
+                          >
+                            Dùng mẫu
+                          </button>
+                          {isOwner && (
+                            <button
+                              type="button"
+                              onClick={() => editTemplate(template)}
+                              className="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition"
+                            >
+                              Chỉnh sửa
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     )
                   })}
                 </div>
