@@ -203,7 +203,7 @@ a:hover {
 
 #gim-bot-tool-button-container,
 #gim-bot-tool-button {
-  position: fixed !important;
+  position: absolute !important;
   bottom: 24px !important;
   right: 24px !important;
   left: auto !important;
@@ -213,7 +213,7 @@ a:hover {
 }
 
 #gim-bot-tool-bot-container {
-  position: fixed !important;
+  position: absolute !important;
   right: 24px !important;
   bottom: 96px !important;
   top: auto !important;

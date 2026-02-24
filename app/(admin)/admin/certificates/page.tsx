@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Search, MoreVertical, CheckCircle, Clock, XCircle, Award, Eye, X, AlertCircle, User, BookOpen, Calendar, Download } from "lucide-react"
 import { Modal } from "@/components/ui/admin-modals"
 
@@ -23,6 +23,12 @@ interface CertificateTemplate {
   validityPeriod: string
   rejectionReason?: string
   issuedCount: number
+  templateImageUrl?: string
+  logoUrl?: string
+  backgroundColor?: string
+  borderColor?: string
+  borderStyle?: string
+  textColor?: string
 }
 
 interface ExamSummary {
@@ -60,6 +66,21 @@ interface IssuedCertificate {
 }
 
 export default function AdminCertificatesPage() {
+      // Helper to set anchor for modal
+      const openAnchoredModal = (cardId: string) => {
+        const card = cardRefs.current[cardId]
+        if (card) {
+          const rect = card.getBoundingClientRect()
+          setAnchorStyle({
+            top: rect.top + window.scrollY,
+            left: rect.left + window.scrollX,
+            width: rect.width,
+          })
+        } else {
+          setAnchorStyle(null)
+        }
+      }
+    const [anchorStyle, setAnchorStyle] = useState<{ top: number; left: number; width: number } | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [certificates, setCertificates] = useState<CertificateTemplate[]>([])
@@ -68,6 +89,7 @@ export default function AdminCertificatesPage() {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateTemplate | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "reject" | null>(null)
+  const [viewDetailModalOpen, setViewDetailModalOpen] = useState(false)
   const [rejectionReason, setRejectionReason] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [approveModalOpen, setApproveModalOpen] = useState(false)
@@ -75,6 +97,10 @@ export default function AdminCertificatesPage() {
   const [selectedExamId, setSelectedExamId] = useState("")
   const [isApproving, setIsApproving] = useState(false)
   const [viewTab, setViewTab] = useState<"templates" | "issued">("templates")
+  const [activeCertId, setActiveCertId] = useState<string | null>(null)
+
+  // Add cardRefs for certificate card element references
+  const cardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
 
   const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
 
@@ -181,12 +207,17 @@ export default function AdminCertificatesPage() {
 
   const handleAction = (action: string, certificateId: string, certificate?: CertificateTemplate) => {
     setSelectedCertificate(certificate || null)
+    setActiveCertId(certificateId)
     if (action === "view") {
-      setViewMode("view")
+      openAnchoredModal(certificateId)
+      setViewDetailModalOpen(true)
+      setViewMode(null)
     } else if (action === "reject") {
+      openAnchoredModal(certificateId)
       setViewMode("reject")
       setRejectionReason("")
     } else if (action === "approve") {
+      openAnchoredModal(certificateId)
       setApproveTarget(certificate || null)
       setApproveModalOpen(true)
       const defaultExam = exams.find(
@@ -219,6 +250,7 @@ export default function AdminCertificatesPage() {
       setViewMode(null)
       setSelectedCertificate(null)
       setRejectionReason("")
+      setActiveCertId(null)
     } catch (error) {
       console.error("Reject error:", error)
       alert("Không thể từ chối chứng chỉ. Vui lòng thử lại.")
@@ -246,6 +278,9 @@ export default function AdminCertificatesPage() {
       setApproveModalOpen(false)
       setApproveTarget(null)
       setSelectedExamId("")
+      setStatusFilter("approved")
+      setActiveCertId(null)
+      setViewTab("templates")
     } catch (error) {
       console.error("Approve error:", error)
       alert("Không thể duyệt chứng chỉ. Vui lòng thử lại.")
@@ -274,31 +309,31 @@ const formatDate = (date?: string) => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
-        return (
-          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+        return [
+          <span key="approved" className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
             <CheckCircle size={14} /> Đã duyệt
           </span>
-        )
+        ];
       case "pending":
-        return (
-          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
+        return [
+          <span key="pending" className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
             <Clock size={14} /> Chờ duyệt
           </span>
-        )
+        ];
       case "rejected":
-        return (
-          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+        return [
+          <span key="rejected" className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
             <XCircle size={14} /> Từ chối
           </span>
-        )
+        ];
       case "draft":
-        return (
-          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400">
+        return [
+          <span key="draft" className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400">
             <Clock size={14} /> Nháp
           </span>
-        )
+        ];
       default:
-        return null
+        return null;
     }
   }
 
@@ -442,87 +477,191 @@ const formatDate = (date?: string) => {
               <p className="text-muted-foreground dark:text-slate-400">Đang tải chứng chỉ...</p>
             </div>
           ) : viewTab === "templates" ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
-                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Chứng chỉ</th>
-                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Khóa học</th>
-                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Giảng viên</th>
-                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Hiệu lực</th>
-                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Đã cấp</th>
-                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Trạng thái</th>
-                    <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <div className="p-6">
+              {filteredCertificates.length === 0 ? (
+                <div className="py-12 text-center">
+                  <Award size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy chứng chỉ nào</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {filteredCertificates.map((cert) => (
-                    <tr
+                    <div
                       key={cert.id}
-                      className={`border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth relative ${
-                        openMenu === cert.id ? "z-20" : "z-0"
-                      }`}
+                      ref={(el) => { cardRefs.current[cert.id] = el; }}
+                      className={`relative bg-white/90 dark:bg-slate-900/70 border border-border dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-lg transition-shadow ${openMenu === cert.id ? "z-20" : "z-0"} ${activeCertId === cert.id ? "ring-2 ring-green-500" : ""}`}
                     >
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                            <Award size={20} className="text-white" />
-                          </div>
-                          <div>
-                            <p className="text-foreground dark:text-white font-medium line-clamp-1">{cert.title}</p>
-                            <p className="text-muted-foreground dark:text-slate-400 text-xs">Tạo: {formatDate(cert.createdAt)}</p>
-                          </div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>{getStatusBadge(cert.status)}</div>
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenMenu(openMenu === cert.id ? null : cert.id)}
+                            className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                          >
+                            <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
+                          </button>
+                          {openMenu === cert.id && (
+                            <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-30 min-w-48">
+                              <button
+                                onClick={() => handleAction("view", cert.id, cert)}
+                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
+                              >
+                                <Eye size={16} /> Xem chi tiết
+                              </button>
+                              {cert.status === "pending" && (
+                                <>
+                                  <button
+                                    onClick={() => handleAction("approve", cert.id, cert)}
+                                    className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-green-600 dark:text-green-400"
+                                  >
+                                    <CheckCircle size={16} /> Duyệt chứng chỉ
+                                  </button>
+                                  <button
+                                    onClick={() => handleAction("reject", cert.id, cert)}
+                                    className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-red-600 dark:text-red-400"
+                                  >
+                                    <XCircle size={16} /> Từ chối
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </td>
-                      <td className="py-4 px-6 text-muted-foreground dark:text-slate-400 max-w-[200px] truncate">
-                        {cert.course?.title || "—"}
-                      </td>
-                      <td className="py-4 px-6 text-foreground dark:text-white">{cert.teacher?.name || "—"}</td>
-                      <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{cert.validityPeriod}</td>
-                      <td className="py-4 px-6">
-                        <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-medium">
-                          {cert.issuedCount}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6">{getStatusBadge(cert.status)}</td>
-                      <td className="py-4 px-6 relative">
-                        <button
-                          onClick={() => setOpenMenu(openMenu === cert.id ? null : cert.id)}
-                          className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                      </div>
+
+                      <div className="mt-4">
+                        <div
+                          className="relative w-full rounded-xl overflow-hidden shadow-md"
+                          style={{
+                            aspectRatio: "3 / 4",
+                            backgroundColor: cert.backgroundColor || "#243447",
+                            backgroundImage: cert.templateImageUrl ? `url(${cert.templateImageUrl})` : "none",
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                            color: cert.textColor || "#ffffff",
+                          }}
                         >
-                          <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
-                        </button>
-                        {openMenu === cert.id && (
-                          <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-10 min-w-48">
-                            <button
-                              onClick={() => handleAction("view", cert.id, cert)}
-                              className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
-                            >
-                              <Eye size={16} /> Xem chi tiết
-                            </button>
-                            {cert.status === "pending" && (
-                              <>
-                                <button
-                                  onClick={() => handleAction("approve", cert.id, cert)}
-                                  className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-green-600 dark:text-green-400"
-                                >
-                                  <CheckCircle size={16} /> Duyệt chứng chỉ
-                                </button>
-                                <button
-                                  onClick={() => handleAction("reject", cert.id, cert)}
-                                  className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-red-600 dark:text-red-400"
-                                >
-                                  <XCircle size={16} /> Từ chối
-                                </button>
-                              </>
+                          {cert.templateImageUrl && (
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-white/10" />
+                          )}
+
+                          <div
+                            className="absolute inset-3 rounded-lg"
+                            style={{
+                              border: `2px ${cert.borderStyle || "double"} ${cert.borderColor || "#d4af37"}`,
+                            }}
+                          />
+
+                          <div className="absolute top-3 left-3 z-10">
+                            {cert.logoUrl ? (
+                              <img
+                                src={cert.logoUrl}
+                                alt="Logo"
+                                className="w-8 h-8 object-contain rounded-md bg-white/90 p-1"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-md bg-white/80" />
                             )}
                           </div>
-                        )}
-                      </td>
-                    </tr>
+
+                          <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
+                            <p
+                              className="text-[10px] font-semibold tracking-[0.25em] uppercase"
+                              style={{ color: cert.borderColor || "#d4af37" }}
+                            >
+                              Chứng chỉ hoàn thành
+                            </p>
+                            <div
+                              className="w-10 h-px my-2"
+                              style={{ backgroundColor: cert.borderColor || "#d4af37" }}
+                            />
+
+                            <div
+                              className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                              style={{
+                                backgroundColor: cert.textColor || "#ffffff",
+                                color: cert.borderColor || "#d4af37",
+                                border: `2px solid ${cert.borderColor || "#d4af37"}`,
+                              }}
+                            >
+                              <Award size={20} />
+                            </div>
+
+                            <h4 className="text-sm font-semibold leading-snug">{cert.title}</h4>
+                            <div
+                              className="w-10 h-px my-2"
+                              style={{ backgroundColor: cert.borderColor || "#d4af37" }}
+                            />
+                            <p className="text-[11px] opacity-70">Chứng nhận rằng</p>
+                            <p className="text-sm font-semibold italic mt-1">[Tên học viên]</p>
+                            <div
+                              className="w-24 h-px mt-2"
+                              style={{ backgroundColor: cert.borderColor || "#d4af37" }}
+                            />
+                            <p className="text-[11px] mt-3 opacity-80 line-clamp-2">
+                              {cert.description}
+                            </p>
+                            <p
+                              className="text-[11px] font-semibold mt-2"
+                              style={{ color: cert.borderColor || "#d4af37" }}
+                            >
+                              {cert.course?.title || "[Tên khóa học]"}
+                            </p>
+                          </div>
+
+                          <div className="absolute bottom-3 left-3 text-[10px]">
+                            <span
+                              className="px-2 py-1 rounded-md"
+                              style={{
+                                color: cert.borderColor || "#d4af37",
+                                border: `1px solid ${cert.borderColor || "#d4af37"}`,
+                                backgroundColor: `${cert.borderColor || "#d4af37"}20`,
+                              }}
+                            >
+                              {cert.validityPeriod}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-2">
+                        <h3 className="text-lg font-semibold text-foreground dark:text-white line-clamp-2">{cert.title}</h3>
+                        <p className="text-sm text-muted-foreground dark:text-slate-400 line-clamp-2">{cert.description}</p>
+                        <p className="text-sm text-muted-foreground dark:text-slate-400 line-clamp-1">
+                          Khóa học: <span className="text-foreground dark:text-white">{cert.course?.title || "—"}</span>
+                        </p>
+                        <p className="text-sm text-muted-foreground dark:text-slate-400 line-clamp-1">
+                          Giảng viên: <span className="text-foreground dark:text-white">{cert.teacher?.name || "—"}</span>
+                        </p>
+
+                        <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground dark:text-slate-500">
+                          <span>Tạo: {formatDate(cert.createdAt)}</span>
+                          <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full font-medium">
+                            Đã cấp: {cert.issuedCount}
+                          </span>
+                        </div>
+                      </div>
+
+                      {cert.status === "pending" && (
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => handleAction("approve", cert.id, cert)}
+                            className="py-2 rounded-lg font-medium flex items-center justify-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
+                          >
+                            <CheckCircle size={16} /> Duyệt
+                          </button>
+                          <button
+                            onClick={() => handleAction("reject", cert.id, cert)}
+                            className="py-2 rounded-lg font-medium flex items-center justify-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50"
+                          >
+                            <XCircle size={16} /> Từ chối
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -564,13 +703,6 @@ const formatDate = (date?: string) => {
               </table>
             </div>
           )}
-
-          {!isLoading && viewTab === "templates" && filteredCertificates.length === 0 && (
-            <div className="py-12 text-center">
-              <Award size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy chứng chỉ nào</p>
-            </div>
-          )}
           {!isLoading && viewTab === "issued" && filteredIssuedCertificates.length === 0 && (
             <div className="py-12 text-center">
               <Award size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -580,218 +712,230 @@ const formatDate = (date?: string) => {
         </div>
       </div>
 
-      {/* View Certificate Detail Modal */}
-      {viewMode === "view" && selectedCertificate && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-foreground dark:text-white">Chi tiết chứng chỉ</h2>
-              <button
-                onClick={() => { setViewMode(null); setSelectedCertificate(null); }}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-              >
-                <X size={20} className="text-muted-foreground" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Certificate Header */}
-              <div className="flex items-start gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Award size={32} className="text-white" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-foreground dark:text-white">{selectedCertificate.title}</h3>
-                  <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">{selectedCertificate.description}</p>
-                  <div className="mt-2">{getStatusBadge(selectedCertificate.status)}</div>
-                </div>
-              </div>
-
-              {/* Rejection Reason if rejected */}
-              {selectedCertificate.status === "rejected" && selectedCertificate.rejectionReason && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
-                  <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-2">
-                    <AlertCircle size={18} />
-                    <span className="font-semibold">Lý do từ chối</span>
-                  </div>
-                  <p className="text-red-600 dark:text-red-300 text-sm">{selectedCertificate.rejectionReason}</p>
-                </div>
-              )}
-
-              {/* Certificate Info */}
-              <div className="grid grid-cols-2 gap-4">
+      {approveModalOpen && approveTarget && anchorStyle && (
+        <div className="fixed inset-0 z-[999]" style={{ pointerEvents: 'auto' }}>
+          <div className="absolute inset-0 bg-black/30" onClick={() => {
+            setApproveModalOpen(false)
+            setApproveTarget(null)
+            setSelectedExamId("")
+            setAnchorStyle(null)
+          }} />
+          <div
+            className="absolute"
+            style={{
+              top: anchorStyle.top,
+              left: anchorStyle.left,
+              width: anchorStyle.width,
+            }}
+          >
+            <div className="bg-card border rounded-2xl shadow-2xl p-5">
+              <div className="space-y-5">
                 <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
-                    <BookOpen size={16} />
-                    <span className="text-sm">Khóa học</span>
-                  </div>
-                    <p className="text-foreground dark:text-white font-medium">{selectedCertificate.course?.title || "—"}</p>
+                  <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Chứng chỉ</p>
+                  <p className="text-foreground dark:text-white font-medium">{approveTarget?.title}</p>
+                  <p className="text-muted-foreground dark:text-slate-400 text-xs mt-1">
+                    Khóa học: {approveTarget?.course?.title || "—"}
+                  </p>
                 </div>
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
-                    <User size={16} />
-                    <span className="text-sm">Giảng viên</span>
-                  </div>
-                  <p className="text-foreground dark:text-white font-medium">{selectedCertificate.teacher?.name || "—"}</p>
-                  <p className="text-muted-foreground dark:text-slate-400 text-xs">{selectedCertificate.teacher?.email || "—"}</p>
+                <div>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
+                    Chọn bài thi thật <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedExamId}
+                    onChange={(e) => setSelectedExamId(e.target.value)}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Chọn bài thi</option>
+                    {availableExams.map((exam) => (
+                      <option key={exam.id} value={exam.id}>
+                        {exam.title} • {exam.course?.title || ""}
+                      </option>
+                    ))}
+                  </select>
+                  {availableExams.length === 0 && (
+                    <p className="text-xs text-muted-foreground dark:text-slate-500 mt-2">
+                      Không có bài thi thật phù hợp cho khóa học này.
+                    </p>
+                  )}
                 </div>
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
-                    <Calendar size={16} />
-                    <span className="text-sm">Thời hạn hiệu lực</span>
-                  </div>
-                  <p className="text-foreground dark:text-white font-medium">{selectedCertificate.validityPeriod}</p>
-                </div>
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
-                    <Download size={16} />
-                    <span className="text-sm">Số lượng đã cấp</span>
-                  </div>
-                  <p className="text-foreground dark:text-white font-medium">{selectedCertificate.issuedCount} chứng chỉ</p>
-                </div>
-              </div>
-
-              {/* Actions */}
-              {selectedCertificate.status === "pending" && (
-                <div className="flex gap-3 pt-4 border-t border-border dark:border-slate-800">
+                <div className="flex gap-3 pt-2">
                   <button
+                    type="button"
                     onClick={() => {
-                      handleAction("approve", selectedCertificate.id, selectedCertificate)
-                      setViewMode(null)
-                      setSelectedCertificate(null)
+                      setApproveModalOpen(false)
+                      setApproveTarget(null)
+                      setSelectedExamId("")
+                      setAnchorStyle(null)
                     }}
-                    className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
+                    className="flex-1 py-3 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
                   >
-                    <CheckCircle size={18} /> Duyệt chứng chỉ
+                    Hủy
                   </button>
                   <button
-                    onClick={() => setViewMode("reject")}
-                    className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50"
+                    type="button"
+                    onClick={handleApprove}
+                    disabled={!selectedExamId || isApproving}
+                    className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <XCircle size={18} /> Từ chối
+                    <CheckCircle size={18} /> {isApproving ? "Đang duyệt..." : "Duyệt và lưu"}
                   </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      <Modal
-        isOpen={approveModalOpen && !!approveTarget}
-        onClose={() => {
-          setApproveModalOpen(false)
-          setApproveTarget(null)
-          setSelectedExamId("")
-        }}
-        title="Duyệt chứng chỉ và gắn bài thi"
-        size="md"
-      >
-        <div className="space-y-5">
-          <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-            <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Chứng chỉ</p>
-            <p className="text-foreground dark:text-white font-medium">{approveTarget?.title}</p>
-            <p className="text-muted-foreground dark:text-slate-400 text-xs mt-1">
-              Khóa học: {approveTarget?.course?.title || "—"}
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-              Chọn bài thi thật <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={selectedExamId}
-              onChange={(e) => setSelectedExamId(e.target.value)}
-              className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">Chọn bài thi</option>
-              {availableExams.map((exam) => (
-                <option key={exam.id} value={exam.id}>
-                  {exam.title} • {exam.course?.title || ""}
-                </option>
-              ))}
-            </select>
-            {availableExams.length === 0 && (
-              <p className="text-xs text-muted-foreground dark:text-slate-500 mt-2">
-                Không có bài thi thật phù hợp cho khóa học này.
-              </p>
-            )}
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => {
-                setApproveModalOpen(false)
-                setApproveTarget(null)
-                setSelectedExamId("")
-              }}
-              className="flex-1 py-3 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              onClick={handleApprove}
-              disabled={!selectedExamId || isApproving}
-              className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <CheckCircle size={18} /> {isApproving ? "Đang duyệt..." : "Duyệt và lưu"}
-            </button>
+      {selectedCertificate && viewMode === null && viewDetailModalOpen && anchorStyle && (
+        <div className="fixed inset-0 z-[999]" style={{ pointerEvents: 'auto' }}>
+          <div className="absolute inset-0 bg-black/30" onClick={() => {
+            setViewDetailModalOpen(false)
+            setSelectedCertificate(null)
+            setAnchorStyle(null)
+          }} />
+          <div
+            className="absolute"
+            style={{
+              top: anchorStyle.top,
+              left: anchorStyle.left,
+              width: anchorStyle.width,
+            }}
+          >
+            {/* Detail content (reuse from card) */}
+            <div className="bg-card border rounded-2xl shadow-2xl p-5">
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-base font-semibold text-foreground dark:text-white">Chi tiết chứng chỉ</h4>
+                    <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">
+                      Xem nhanh thông tin của mẫu chứng chỉ này
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setViewDetailModalOpen(false)
+                      setSelectedCertificate(null)
+                      setAnchorStyle(null)
+                    }}
+                    className="p-2 rounded-lg hover:bg-secondary dark:hover:bg-slate-800"
+                  >
+                    <X size={16} className="text-muted-foreground" />
+                  </button>
+                </div>
+                {selectedCertificate.status === "rejected" && selectedCertificate.rejectionReason && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
+                    <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-1">
+                      <AlertCircle size={16} />
+                      <span className="font-semibold text-sm">Lý do từ chối</span>
+                    </div>
+                    <p className="text-red-600 dark:text-red-300 text-sm">{selectedCertificate.rejectionReason}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-card dark:bg-slate-900/60 rounded-xl p-3">
+                    <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
+                      <BookOpen size={14} />
+                      <span className="text-xs">Khóa học</span>
+                    </div>
+                    <p className="text-sm font-medium text-foreground dark:text-white">{selectedCertificate.course?.title || "—"}</p>
+                  </div>
+                  <div className="bg-card dark:bg-slate-900/60 rounded-xl p-3">
+                    <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
+                      <User size={14} />
+                      <span className="text-xs">Giảng viên</span>
+                    </div>
+                    <p className="text-sm font-medium text-foreground dark:text-white">{selectedCertificate.teacher?.name || "—"}</p>
+                    <p className="text-xs text-muted-foreground dark:text-slate-400">{selectedCertificate.teacher?.email || "—"}</p>
+                  </div>
+                  <div className="bg-card dark:bg-slate-900/60 rounded-xl p-3">
+                    <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
+                      <Calendar size={14} />
+                      <span className="text-xs">Thời hạn hiệu lực</span>
+                    </div>
+                    <p className="text-sm font-medium text-foreground dark:text-white">{selectedCertificate.validityPeriod}</p>
+                  </div>
+                  <div className="bg-card dark:bg-slate-900/60 rounded-xl p-3">
+                    <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
+                      <Download size={14} />
+                      <span className="text-xs">Số lượng đã cấp</span>
+                    </div>
+                    <p className="text-sm font-medium text-foreground dark:text-white">{selectedCertificate.issuedCount} chứng chỉ</p>
+                  </div>
+                </div>
+                {/* No approve/reject buttons in detail modal */}
+              </div>
+            </div>
           </div>
         </div>
-      </Modal>
+      )}
 
-      {/* Reject Certificate Modal */}
-      {viewMode === "reject" && selectedCertificate && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full">
-            <div className="p-6 border-b border-border dark:border-slate-800">
-              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <XCircle size={24} className="text-red-500" /> Từ chối chứng chỉ
-              </h2>
-              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">
-                Vui lòng nhập lý do từ chối để giảng viên biết cần cải thiện điều gì
-              </p>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Chứng chỉ</p>
-                <p className="text-foreground dark:text-white font-medium">{selectedCertificate.title}</p>
-                <p className="text-muted-foreground dark:text-slate-400 text-xs mt-1">Giảng viên: {selectedCertificate.teacher?.name || "—"}</p>
-              </div>
-
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                  Lý do từ chối <span className="text-red-500">*</span>
-                </label>
+      {selectedCertificate && viewMode === "reject" && anchorStyle && (
+        <div className="fixed inset-0 z-[999]" style={{ pointerEvents: 'auto' }}>
+          <div className="absolute inset-0 bg-black/30" onClick={() => {
+            setViewMode(null)
+            setSelectedCertificate(null)
+            setRejectionReason("")
+            setAnchorStyle(null)
+          }} />
+          <div
+            className="absolute"
+            style={{
+              top: anchorStyle.top,
+              left: anchorStyle.left,
+              width: anchorStyle.width,
+            }}
+          >
+            <div className="bg-card border border-red-200 dark:border-red-800 rounded-2xl shadow-2xl p-5">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-base font-semibold text-red-700 dark:text-red-400">Từ chối chứng chỉ</h4>
+                    <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">
+                      Nhập lý do để giảng viên nhận được phản hồi rõ ràng
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setViewMode(null)
+                      setSelectedCertificate(null)
+                      setRejectionReason("")
+                      setAnchorStyle(null)
+                    }}
+                    className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20"
+                  >
+                    <X size={16} className="text-muted-foreground" />
+                  </button>
+                </div>
                 <textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="Nhập lý do từ chối chứng chỉ này..."
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500 h-32 resize-none"
+                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500 h-28 resize-none"
                 />
-                <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
-                  Lý do này sẽ được gửi đến email của giảng viên
+                <p className="text-xs text-muted-foreground dark:text-slate-500">
+                  Lý do này sẽ được gửi đến email của giảng viên.
                 </p>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => { setViewMode("view"); setRejectionReason(""); }}
-                  className="flex-1 py-3 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
-                >
-                  Quay lại
-                </button>
-                <button
-                  onClick={handleReject}
-                  disabled={!rejectionReason.trim()}
-                  className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <XCircle size={18} /> Xác nhận từ chối
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      setViewMode(null)
+                      setSelectedCertificate(null)
+                      setRejectionReason("")
+                      setAnchorStyle(null)
+                    }}
+                    className="py-2 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
+                  >
+                    Quay lại
+                  </button>
+                  <button
+                    onClick={handleReject}
+                    disabled={!rejectionReason.trim()}
+                    className="py-2 rounded-lg font-medium flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <XCircle size={16} /> Xác nhận từ chối
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -800,5 +944,9 @@ const formatDate = (date?: string) => {
 
     </div>
   )
+}
+
+function setDetailPopoverStyle(arg0: { top: any; left: any; width: any } | null) {
+  throw new Error("Function not implemented.")
 }
 
