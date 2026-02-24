@@ -200,13 +200,13 @@ if (loading) {
         {/* Header with Background */}
         <div className="relative overflow-hidden rounded-3xl p-4 sm:p-6 lg:p-8" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
-          <div className="absolute inset-0 bg-black/10 dark:bg-black/10"></div>
+          <div className="absolute inset-0 bg-black/15 dark:bg-black/45"></div>
           
           <div className="relative z-10 space-y-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Bảng điều khiển quản trị</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Tổng quan hệ thống ICS Learning - Quản lý toàn diện</p>
+                <p className="text-black/80 dark:text-white/90 drop-shadow">Tổng quan hệ thống ICS Learning - Quản lý toàn diện</p>
               </div>
               <div className="flex gap-2 flex-wrap">
                 {[
@@ -221,7 +221,7 @@ if (loading) {
                     className={`min-h-10 px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
                       filterPeriod === period.value
                         ? "bg-white text-primary shadow-lg"
-                        : "bg-white/30 text-slate-900 dark:text-white hover:bg-white/45"
+                        : "bg-white/30 dark:bg-white/20 text-slate-900 dark:text-white hover:bg-white/45"
                     }`}
                   >
                     {period.label}

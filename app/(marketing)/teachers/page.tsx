@@ -282,7 +282,7 @@ const teachers = [
 
       {/* How It Works */}
       <section className="py-20 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto border-slate-500 dark:border-slate-600 rounded-3xl p-8 md:p-12" style={{ backgroundColor: '#d1e4f0' }}>
+        <div className="max-w-7xl mx-auto border border-slate-300 dark:border-slate-700 rounded-3xl p-8 md:p-12 bg-slate-100/90 dark:bg-slate-900/80 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -292,10 +292,10 @@ const teachers = [
             {/* Left Content */}
             <div className="space-y-8 ">
               <div>
-                <h2 className="text-xl md:text-7xl font-bold text-black/80 mb-4">
+                <h2 className="text-xl md:text-7xl font-bold text-slate-900 dark:text-white mb-4">
                   Cách bắt đầu
                 </h2>
-                <p className="text-2xl md:text-xl text-black/80">
+                <p className="text-2xl md:text-xl text-slate-700 dark:text-slate-300">
                   Chỉ 4 bước đơn giản để trở thành giảng viên
                 </p>
               </div>
@@ -321,8 +321,8 @@ const teachers = [
                         {item.step}
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-bold text-lg md:text-xl text-black mb-1">{item.title}</h3>
-                        <p className="text-base md:text-l text-black/80">{item.desc}</p>
+                        <h3 className="font-bold text-lg md:text-xl text-slate-900 dark:text-white mb-1">{item.title}</h3>
+                        <p className="text-base md:text-l text-slate-700 dark:text-slate-300">{item.desc}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -343,7 +343,7 @@ const teachers = [
                   <span>Tìm hiểu thêm</span>
                   <BookOpen size={18} />
                 </Link>
-                <p className="text-sm text-black/80 mt-3">
+                <p className="text-sm text-slate-700 dark:text-slate-300 mt-3">
                   Bắt đầu miễn phí • Không phí ẩn
                 </p>
               </motion.div>

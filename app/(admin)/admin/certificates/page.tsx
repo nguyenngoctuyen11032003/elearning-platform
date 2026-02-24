@@ -336,13 +336,13 @@ const formatDate = (date?: string) => {
         {/* Header with Stats */}
         <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/bg_certificate3.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
-          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
+          <div className="absolute inset-0 bg-black/15 dark:bg-black/45 rounded-3xl"></div>
           
           <div className="relative z-10 space-y-8">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Quản lý chứng chỉ</h1>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Quản lý chứng chỉ</h1>
                 <p className="text-black/70 dark:text-white/80 drop-shadow">Xem xét, duyệt và quản lý các mẫu chứng chỉ từ giảng viên</p>
               </div>
             </div>

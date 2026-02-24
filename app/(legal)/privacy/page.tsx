@@ -28,6 +28,7 @@ export default function PrivacyPolicyPage() {
         backgroundColor: "#f8fafc",
       }}
     >
+      <div className="absolute inset-0 bg-white/60 dark:bg-slate-950/75" />
 
       {/* Content wrapper */}
       <div className="relative z-10">
@@ -35,9 +36,9 @@ export default function PrivacyPolicyPage() {
         <Link
           href="/"
           className="absolute top-6 left-6 z-30 flex items-center gap-2 px-4 py-2
-                     bg-white/80 backdrop-blur-md border border-slate-200
-                     rounded-full text-slate-700 hover:bg-white
-                     hover:text-blue-600 transition-all shadow-lg group"
+                     bg-white/80 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200 dark:border-slate-700
+                     rounded-full text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-900
+                     hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-lg group"
         >
           <ArrowLeft
             size={18}
@@ -72,13 +73,13 @@ export default function PrivacyPolicyPage() {
         <div className="max-w-7xl mx-auto px-4 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Sidebar */}
           <aside className="lg:col-span-3">
-            <div className="sticky top-24 bg-white rounded-2xl border border-gray-200 p-5">
-              <h2 className="text-sm font-semibold mb-4">Nội dung</h2>
-              <ul className="space-y-3 text-sm text-gray-700">
-                <li><a href="#collection" className="hover:text-indigo-600">Thu thập thông tin</a></li>
-                <li><a href="#usage" className="hover:text-indigo-600">Mục đích sử dụng</a></li>
-                <li><a href="#storage" className="hover:text-indigo-600">Lưu trữ & bảo mật</a></li>
-                <li><a href="#rights" className="hover:text-indigo-600">Quyền người dùng</a></li>
+            <div className="sticky top-24 bg-white dark:bg-slate-900/95 rounded-2xl border border-gray-200 dark:border-slate-700 p-5">
+              <h2 className="text-sm font-semibold mb-4 text-slate-900 dark:text-white">Nội dung</h2>
+              <ul className="space-y-3 text-sm text-gray-700 dark:text-slate-300">
+                <li><a href="#collection" className="hover:text-indigo-600 dark:hover:text-indigo-400">Thu thập thông tin</a></li>
+                <li><a href="#usage" className="hover:text-indigo-600 dark:hover:text-indigo-400">Mục đích sử dụng</a></li>
+                <li><a href="#storage" className="hover:text-indigo-600 dark:hover:text-indigo-400">Lưu trữ & bảo mật</a></li>
+                <li><a href="#rights" className="hover:text-indigo-600 dark:hover:text-indigo-400">Quyền người dùng</a></li>
               </ul>
             </div>
           </aside>
@@ -140,24 +141,24 @@ function AnimatedSection({ id, title, icon, children }: any) {
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true }}
-      className="bg-white border border-gray-200 rounded-2xl p-6"
+      className="bg-white dark:bg-slate-900/95 border border-gray-200 dark:border-slate-700 rounded-2xl p-6"
     >
       <div className="flex items-center gap-3 mb-2">
         <span className="text-indigo-600">{icon}</span>
-        <h2 className="font-semibold text-lg">{title}</h2>
+        <h2 className="font-semibold text-lg text-slate-900 dark:text-white">{title}</h2>
       </div>
-      <div className="text-gray-600 leading-relaxed">{children}</div>
+      <div className="text-gray-600 dark:text-slate-300 leading-relaxed">{children}</div>
     </motion.div>
   );
 }
 
 function SupportBox() {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-8 flex gap-4">
+    <div className="bg-white dark:bg-slate-900/95 border border-gray-200 dark:border-slate-700 rounded-2xl p-8 flex gap-4">
       <HelpCircle className="text-indigo-600" size={28} />
       <div>
-        <h3 className="font-semibold text-xl">Cần hỗ trợ?</h3>
-        <p className="text-gray-600 mt-1">
+        <h3 className="font-semibold text-xl text-slate-900 dark:text-white">Cần hỗ trợ?</h3>
+        <p className="text-gray-600 dark:text-slate-300 mt-1">
           Liên hệ đội ngũ ICS Learning nếu bạn có thắc mắc về chính sách bảo mật.
         </p>
         <Link

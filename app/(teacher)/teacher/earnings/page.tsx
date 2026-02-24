@@ -213,12 +213,12 @@ export default function TeacherEarningsPage() {
         {/* Hero Section with Background */}
         <div className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn" style={{ backgroundImage: "url('/image/bg_payment.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
-          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
+          <div className="absolute inset-0 bg-black/15 dark:bg-black/45 rounded-3xl"></div>
           
           <div className="relative z-10 space-y-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Doanh thu</h1>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Doanh thu</h1>
                 <p className="text-black/70 dark:text-white/80 drop-shadow">Theo dõi thu nhập từ các khóa học của bạn</p>
               </div>
               <div className="flex gap-2 flex-wrap">
@@ -234,7 +234,7 @@ export default function TeacherEarningsPage() {
                     className={`px-4 py-2 rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
                       filterPeriod === period.value
                         ? "bg-white text-primary shadow-lg"
-                        : "bg-black/10 text-black dark:bg-white/20 dark:text-white hover:bg-black/30 dark:hover:bg-white/40"
+                        : "bg-white/30 dark:bg-white/20 text-slate-900 dark:text-white hover:bg-white/45"
                     }`}
                   >
                     {period.label}

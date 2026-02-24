@@ -30,14 +30,16 @@ export default function RefundPolicyPage() {
         backgroundColor: "#f8fafc",
       }}
     >
+      <div className="absolute inset-0 bg-white/60 dark:bg-slate-950/75" />
+
       {/* Back button */}
       <Link
         href="/"
         className="absolute top-6 left-6 z-30 flex items-center gap-2 px-4 py-2
-                   bg-white/80 backdrop-blur-md
-                   border border-slate-200
-                   rounded-full text-slate-700
-                   hover:bg-white hover:text-blue-600
+                   bg-white/80 dark:bg-slate-900/85 backdrop-blur-md
+                   border border-slate-200 dark:border-slate-700
+                   rounded-full text-slate-700 dark:text-slate-200
+                   hover:bg-white dark:hover:bg-slate-900 hover:text-blue-600 dark:hover:text-blue-400
                    transition-all shadow-lg hover:shadow-xl group"
       >
         <ArrowLeft
@@ -48,7 +50,7 @@ export default function RefundPolicyPage() {
       </Link>
 
       {/* Hero */}
-      <div className="max-w-7xl mx-auto px-4 pt-20 pb-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 pt-20 pb-12">
         <motion.div
           variants={fadeUp}
           initial="hidden"
@@ -79,41 +81,41 @@ export default function RefundPolicyPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Sidebar */}
         <aside className="lg:col-span-3">
-          <div className="sticky top-24 bg-white rounded-2xl border border-gray-200 p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">
+          <div className="sticky top-24 bg-white dark:bg-slate-900/95 rounded-2xl border border-gray-200 dark:border-slate-700 p-5">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
               Nội dung
             </h2>
-            <ul className="space-y-3 text-sm">
+            <ul className="space-y-3 text-sm text-gray-700 dark:text-slate-300">
               <li>
-                <a href="#summary" className="hover:text-primary">
+                <a href="#summary" className="hover:text-primary dark:hover:text-accent">
                   Tóm tắt nhanh
                 </a>
               </li>
               <li>
-                <a href="#conditions" className="hover:text-primary">
+                <a href="#conditions" className="hover:text-primary dark:hover:text-accent">
                   Điều kiện hoàn tiền
                 </a>
               </li>
               <li>
-                <a href="#process" className="hover:text-primary">
+                <a href="#process" className="hover:text-primary dark:hover:text-accent">
                   Quy trình hoàn tiền
                 </a>
               </li>
               <li>
-                <a href="#timeline" className="hover:text-primary">
+                <a href="#timeline" className="hover:text-primary dark:hover:text-accent">
                   Thời gian xử lý
                 </a>
               </li>
               <li>
-                <a href="#method" className="hover:text-primary">
+                <a href="#method" className="hover:text-primary dark:hover:text-accent">
                   Phương thức hoàn tiền
                 </a>
               </li>
               <li>
-                <a href="#exceptions" className="hover:text-primary">
+                <a href="#exceptions" className="hover:text-primary dark:hover:text-accent">
                   Không áp dụng
                 </a>
               </li>
@@ -165,12 +167,12 @@ export default function RefundPolicyPage() {
                 <motion.div
                   key={i}
                   whileHover={{ y: -4 }}
-                  className="rounded-xl border border-gray-200 bg-gray-50 p-5"
+                  className="rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/80 p-5"
                 >
                   <p className="text-sm font-semibold text-indigo-600">
                     {item.step}
                   </p>
-                  <p className="mt-1 text-gray-700">{item.text}</p>
+                  <p className="mt-1 text-gray-700 dark:text-slate-300">{item.text}</p>
                 </motion.div>
               ))}
             </div>
@@ -216,14 +218,14 @@ export default function RefundPolicyPage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="rounded-2xl border border-gray-200 bg-white p-8 flex items-start gap-4"
+            className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 p-8 flex items-start gap-4"
           >
             <HelpCircle className="text-indigo-600" size={28} />
             <div>
-              <h3 className="text-xl font-semibold text-gray-900">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                 Cần hỗ trợ thêm?
               </h3>
-              <p className="mt-1 text-gray-600">
+              <p className="mt-1 text-gray-600 dark:text-slate-300">
                 Đội ngũ ICS Learning luôn sẵn sàng giải đáp mọi thắc mắc.
               </p>
               <Link
@@ -269,13 +271,13 @@ function AnimatedSection({
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true }}
-      className="bg-white border border-gray-200 rounded-2xl p-6"
+      className="bg-white dark:bg-slate-900/95 border border-gray-200 dark:border-slate-700 rounded-2xl p-6"
     >
       <div className="flex items-center gap-3 mb-3">
         {icon && <span className="text-indigo-600">{icon}</span>}
-        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
       </div>
-      <div className="text-gray-600 leading-relaxed">{children}</div>
+      <div className="text-gray-600 dark:text-slate-300 leading-relaxed">{children}</div>
     </motion.div>
   );
 }

@@ -429,7 +429,7 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow"
+                className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md dark:hover:bg-slate-800/70 transition-shadow"
               >
                 <span className="text-3xl">{partner.logo}</span>
                 <span className="font-bold text-slate-900 dark:text-white">{partner.name}</span>
@@ -896,15 +896,15 @@ export default function Home() {
               Qua Học Tập?
             </h2>
 
-            <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed font-medium">
+            <p className="text-base sm:text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed font-medium">
               Tham gia cùng <span className="font-black">15,000+ học viên</span> đang chinh phục mục tiêu sự nghiệp của họ mỗi ngày
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-6 justify-center pt-6">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-6">
               <Link
                 href="/signup"
-                className="group inline-flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-blue-700 px-10 py-5 rounded-2xl font-black text-lg shadow-2xl hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)] transition-all transform hover:scale-105"
+                className="group inline-flex items-center justify-center gap-3 bg-white hover:bg-slate-100 dark:bg-white dark:hover:bg-slate-100 text-blue-700 px-6 sm:px-10 py-3.5 sm:py-5 rounded-2xl font-black text-base sm:text-lg shadow-2xl hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)] transition-all transform hover:scale-105"
               >
                 <Rocket size={24} />
                 Đăng Ký Miễn Phí Ngay
@@ -912,7 +912,7 @@ export default function Home() {
               </Link>
               <Link
                 href="/courses"
-                className="group inline-flex items-center justify-center gap-3 bg-white/10 backdrop-blur-md hover:bg-white/20 border-2 border-white/50 text-white px-10 py-5 rounded-2xl font-bold text-lg transition-all"
+                className="group inline-flex items-center justify-center gap-3 bg-white/10 backdrop-blur-md hover:bg-white/20 border-2 border-white/50 text-white px-6 sm:px-10 py-3.5 sm:py-5 rounded-2xl font-bold text-base sm:text-lg transition-all"
               >
                 <BookOpen size={24} />
                 Xem Khóa Học
@@ -925,7 +925,7 @@ export default function Home() {
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.6 }}
-              className="flex flex-wrap items-center justify-center gap-8 pt-12 text-white/80"
+              className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 pt-8 sm:pt-12 text-white/80 text-sm sm:text-base"
             >
               <div className="flex items-center gap-2">
                 <CheckCircle size={20} className="text-green-300" />

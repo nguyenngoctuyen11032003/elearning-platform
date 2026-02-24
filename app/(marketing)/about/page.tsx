@@ -220,7 +220,7 @@ const [loading, setLoading] = useState(true);
     </h1>
 
     {/* Text from backend */}
-    <p className="text-lg md:text-xl text-black dark:text-white max-w-3xl mx-auto leading-relaxed">
+    <p className="text-lg md:text-xl text-foreground dark:text-white max-w-3xl mx-auto leading-relaxed">
       {heroContents[bgIndex].getContent(systemData)}
     </p>
   </motion.div>

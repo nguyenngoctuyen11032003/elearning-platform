@@ -530,7 +530,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                       className={
                                         i < Math.floor(review.rating)
                                           ? "fill-yellow-400 text-yellow-400"
-                                          : "text-slate-600"
+                                          : "text-slate-600 dark:text-slate-500"
                                       }
                                     />
                                   ))}
@@ -567,7 +567,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: -20 }}
                                     transition={{ duration: 0.3, delay: replyIdx * 0.05, ease: "easeInOut" }}
-                                    className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 ml-4 border border-border dark:border-slate-700"
+                                    className="bg-slate-50 dark:bg-slate-800/60 rounded-lg p-3 ml-0 sm:ml-4 border border-border dark:border-slate-700"
                                   >
                                     <div className="flex items-center gap-2 mb-1">
                                       <p className="font-semibold text-sm text-foreground dark:text-white">{reply.author}</p>
@@ -578,7 +578,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                 ))}
 
                                 {/* Reply form */}
-                                <div className="ml-4 space-y-2">
+                                <div className="ml-0 sm:ml-4 space-y-2">
                                   <textarea
                                     placeholder="Viết trả lời của bạn..."
                                     value={replyContent[review.id] || ""}
@@ -644,14 +644,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                     className={`w-full min-h-11 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 transition-smooth ${
                       isWishlisted
                         ? "border-red-500 bg-red-500/10 text-red-500"
-                        : "border-border dark:border-slate-800 text-foreground dark:text-white hover:border-red-500"
+                        : "border-border dark:border-slate-800 text-foreground dark:text-white hover:border-red-500 dark:hover:bg-slate-800/40"
                     }`}
                   >
                     <Heart size={20} fill={isWishlisted ? "currentColor" : "none"} />
                     {isWishlisted ? "Đã thích" : "Thêm vào yêu thích"}
                   </button>
 
-                  <button className="w-full min-h-11 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 border-border dark:border-slate-800 text-foreground dark:text-white hover:border-primary dark:hover:border-accent transition-smooth">
+                  <button className="w-full min-h-11 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 border-border dark:border-slate-800 text-foreground dark:text-white hover:border-primary dark:hover:border-accent dark:hover:bg-slate-800/40 transition-smooth">
                     <Share2 size={20} />
                     Chia sẻ
                   </button>

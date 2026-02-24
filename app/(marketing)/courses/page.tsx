@@ -355,7 +355,7 @@ export default function CoursesPage() {
               placeholder="Tìm kiếm khóa học, giảng viên, chủ đề..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 sm:pl-14 pr-4 sm:pr-6 py-3 sm:py-4 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-all text-base sm:text-lg"
+              className="w-full pl-12 sm:pl-14 pr-4 sm:pr-6 py-3 sm:py-4 bg-white dark:bg-slate-900/95 border border-border dark:border-slate-800 rounded-2xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-all text-base sm:text-lg"
             />
           </motion.div>
 
@@ -367,7 +367,7 @@ export default function CoursesPage() {
               transition={{ delay: 0.2 }}
               className="lg:col-span-1"
             >
-              <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 lg:sticky lg:top-24 shadow-xl">
+              <div className="bg-white dark:bg-slate-900/95 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 lg:sticky lg:top-24 shadow-xl">
                 <h3 className="font-bold text-lg text-foreground dark:text-white mb-6 flex items-center gap-2">
                   <Filter size={20} className="text-primary dark:text-accent" />{" "}
                   Bộ lọc
@@ -485,7 +485,7 @@ export default function CoursesPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 shadow-lg border border-border dark:border-slate-800"
+                className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-900/95 rounded-2xl p-4 sm:p-6 shadow-lg border border-border dark:border-slate-800"
               >
                 <div>
                   <p className="text-xl sm:text-2xl font-bold text-foreground dark:text-white">
@@ -519,7 +519,7 @@ export default function CoursesPage() {
                   </div>
 
                   {/* View Mode Toggle */}
-                  <div className="flex items-center gap-1 p-1 bg-slate-50 dark:bg-slate-800 rounded-xl w-full sm:w-auto justify-center">
+                  <div className="flex items-center gap-1 p-1 bg-slate-50 dark:bg-slate-800/90 rounded-xl w-full sm:w-auto justify-center">
                     <button
                       onClick={() => setViewMode("grid")}
                       className={`p-2 rounded-lg transition-all ${

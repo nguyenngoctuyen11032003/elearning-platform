@@ -250,7 +250,7 @@ export default function AdminPaymentsPage() {
           style={{ backgroundImage: "url('/image/bg_payment1.png')", backgroundSize: "cover", backgroundPosition: "center" }}
         >
           {/* Overlay for better readability */}
-          <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
+          <div className="absolute inset-0 bg-black/15 dark:bg-black/45 rounded-3xl"></div>
 
           <div className="relative z-10 space-y-8">
             <div
@@ -258,7 +258,7 @@ export default function AdminPaymentsPage() {
               style={{ animationDelay: "0.15s" }}
             >
               <div>
-                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Quản lý thanh toán</h1>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Quản lý thanh toán</h1>
                 <p className="text-black/70 dark:text-white/80 drop-shadow">Theo dõi và quản lý các giao dịch thanh toán</p>
               </div>
               <button

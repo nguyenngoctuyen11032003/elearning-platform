@@ -1,0 +1,402 @@
+﻿[
+    {
+        "Flow":  "admin",
+        "Route":  "/admin/categories",
+        "Status":  200,
+        "FinalPath":  "/admin/categories",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "admin",
+        "Route":  "/admin/certificates",
+        "Status":  200,
+        "FinalPath":  "/admin/certificates",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "admin",
+        "Route":  "/admin/courses",
+        "Status":  200,
+        "FinalPath":  "/admin/courses",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "admin",
+        "Route":  "/admin/dashboard",
+        "Status":  200,
+        "FinalPath":  "/admin/dashboard",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "admin",
+        "Route":  "/admin/exams",
+        "Status":  200,
+        "FinalPath":  "/admin/exams",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "admin",
+        "Route":  "/admin/payments",
+        "Status":  200,
+        "FinalPath":  "/admin/payments",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "admin",
+        "Route":  "/admin/profile",
+        "Status":  200,
+        "FinalPath":  "/admin/profile",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "admin",
+        "Route":  "/admin/reports",
+        "Status":  200,
+        "FinalPath":  "/admin/reports",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "admin",
+        "Route":  "/admin/settings",
+        "Status":  200,
+        "FinalPath":  "/admin/settings",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "admin",
+        "Route":  "/admin/users",
+        "Status":  200,
+        "FinalPath":  "/admin/users",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "auth",
+        "Route":  "/forgot-password",
+        "Status":  200,
+        "FinalPath":  "/forgot-password",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "auth",
+        "Route":  "/login",
+        "Status":  200,
+        "FinalPath":  "/login",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "auth",
+        "Route":  "/reset-password",
+        "Status":  200,
+        "FinalPath":  "/reset-password",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "auth",
+        "Route":  "/signup",
+        "Status":  200,
+        "FinalPath":  "/signup",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "auth",
+        "Route":  "/verify-email",
+        "Status":  200,
+        "FinalPath":  "/verify-email",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/assignments",
+        "Status":  200,
+        "FinalPath":  "/assignments",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/cart",
+        "Status":  200,
+        "FinalPath":  "/cart",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/certificates",
+        "Status":  200,
+        "FinalPath":  "/certificates",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/checkout",
+        "Status":  200,
+        "FinalPath":  "/checkout",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/discussions",
+        "Status":  200,
+        "FinalPath":  "/discussions",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/exams",
+        "Status":  200,
+        "FinalPath":  "/exams",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/my-courses",
+        "Status":  200,
+        "FinalPath":  "/my-courses",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/notes",
+        "Status":  200,
+        "FinalPath":  "/notes",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/payment-history",
+        "Status":  200,
+        "FinalPath":  "/payment-history",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/profile",
+        "Status":  200,
+        "FinalPath":  "/profile",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/progress",
+        "Status":  200,
+        "FinalPath":  "/progress",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/schedule",
+        "Status":  200,
+        "FinalPath":  "/schedule",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/settings",
+        "Status":  200,
+        "FinalPath":  "/settings",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/top-up",
+        "Status":  200,
+        "FinalPath":  "/top-up",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "learning",
+        "Route":  "/wishlist",
+        "Status":  200,
+        "FinalPath":  "/wishlist",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "marketing",
+        "Route":  "/",
+        "Status":  200,
+        "FinalPath":  "/",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "marketing",
+        "Route":  "/about",
+        "Status":  200,
+        "FinalPath":  "/about",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "marketing",
+        "Route":  "/contact",
+        "Status":  200,
+        "FinalPath":  "/contact",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "marketing",
+        "Route":  "/courses",
+        "Status":  200,
+        "FinalPath":  "/courses",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "marketing",
+        "Route":  "/faq",
+        "Status":  200,
+        "FinalPath":  "/faq",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "marketing",
+        "Route":  "/privacy",
+        "Status":  200,
+        "FinalPath":  "/privacy",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "marketing",
+        "Route":  "/refund",
+        "Status":  200,
+        "FinalPath":  "/refund",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "marketing",
+        "Route":  "/teachers",
+        "Status":  200,
+        "FinalPath":  "/teachers",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "marketing",
+        "Route":  "/terms",
+        "Status":  200,
+        "FinalPath":  "/terms",
+        "Result":  "PASS",
+        "Note":  "OK public"
+    },
+    {
+        "Flow":  "teacher",
+        "Route":  "/teacher/analytics",
+        "Status":  200,
+        "FinalPath":  "/teacher/analytics",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "teacher",
+        "Route":  "/teacher/assignments",
+        "Status":  200,
+        "FinalPath":  "/teacher/assignments",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "teacher",
+        "Route":  "/teacher/certificates",
+        "Status":  200,
+        "FinalPath":  "/teacher/certificates",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "teacher",
+        "Route":  "/teacher/courses",
+        "Status":  200,
+        "FinalPath":  "/teacher/courses",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "teacher",
+        "Route":  "/teacher/dashboard",
+        "Status":  200,
+        "FinalPath":  "/teacher/dashboard",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "teacher",
+        "Route":  "/teacher/earnings",
+        "Status":  200,
+        "FinalPath":  "/teacher/earnings",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "teacher",
+        "Route":  "/teacher/exams",
+        "Status":  200,
+        "FinalPath":  "/teacher/exams",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "teacher",
+        "Route":  "/teacher/profile",
+        "Status":  200,
+        "FinalPath":  "/teacher/profile",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "teacher",
+        "Route":  "/teacher/reviews",
+        "Status":  200,
+        "FinalPath":  "/teacher/reviews",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "teacher",
+        "Route":  "/teacher/settings",
+        "Status":  200,
+        "FinalPath":  "/teacher/settings",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    },
+    {
+        "Flow":  "teacher",
+        "Route":  "/teacher/students",
+        "Status":  200,
+        "FinalPath":  "/teacher/students",
+        "Result":  "PASS",
+        "Note":  "OK protected (accessible)"
+    }
+]

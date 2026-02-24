@@ -62,7 +62,7 @@ return (
       {/* Back Button */}
       <Link
         href="/"
-        className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-900 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-lg hover:shadow-xl group"
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-full text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-900 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-lg hover:shadow-xl group"
       >
         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
         <span className="text-sm font-semibold">Trang chủ</span>
@@ -139,7 +139,7 @@ return (
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 + idx * 0.1 }}
-                    className="flex items-start gap-4 p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl hover:bg-white dark:hover:bg-slate-900 hover:shadow-lg transition-all group"
+                    className="flex items-start gap-4 p-4 bg-white/50 dark:bg-slate-900/60 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-2xl hover:bg-white dark:hover:bg-slate-900 hover:shadow-lg transition-all group"
                   >
                     <div className={`p-3 bg-gradient-to-br ${feature.color} rounded-xl shadow-lg group-hover:scale-110 transition-transform`}>
                       <feature.icon size={24} className="text-white" />
@@ -172,7 +172,7 @@ return (
                 {/* Glow Effect */}
                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity" />
                 
-                <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 shadow-2xl">
+                <div className="relative bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 shadow-2xl">
                   {/* Header */}
                   <div className="text-center mb-6 sm:mb-8">
                     <motion.div
@@ -197,7 +197,7 @@ return (
                       <div className="w-full border-t border-slate-200 dark:border-slate-800" />
                     </div>
                     <div className="relative flex justify-center">
-                      <span className="px-4 bg-white dark:bg-slate-900 text-sm text-slate-600 dark:text-slate-400 font-medium">Hoặc tiếp tục với</span>
+                      <span className="px-4 bg-white dark:bg-slate-900/95 text-sm text-slate-600 dark:text-slate-300 font-medium">Hoặc tiếp tục với</span>
                     </div>
                   </div>
 
@@ -219,7 +219,7 @@ return (
               </div>
 
               {/* Terms */}
-              <p className="text-center text-xs text-slate-500 dark:text-slate-500 mt-6 leading-relaxed">
+              <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-6 leading-relaxed">
                 Bằng cách đăng nhập, bạn đồng ý với{" "}
                 <Link href="/terms" className="font-semibold hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                   Điều khoản sử dụng

@@ -365,13 +365,13 @@ export default function StudentDashboardPage() {
         className="relative overflow-hidden rounded-3xl p-8"
         style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}
       >
-        <div className="absolute inset-0 bg-black/10 dark:bg-black/10" />
+        <div className="absolute inset-0 bg-black/15 dark:bg-black/45" />
 
         <div className="relative z-10 space-y-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <p className="text-black/70 dark:text-white/80 drop-shadow mb-1">{greeting}</p>
-              <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">
+              <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">
                 {user?.name || "Học viên"}! 👋
               </h1>
               <p className="text-black/70 dark:text-white/80 drop-shadow">
