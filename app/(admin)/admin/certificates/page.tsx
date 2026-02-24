@@ -220,12 +220,6 @@ export default function AdminCertificatesPage() {
       openAnchoredModal(certificateId)
       setApproveTarget(certificate || null)
       setApproveModalOpen(true)
-      const defaultExam = exams.find(
-        (exam) =>
-          exam.type === "official" &&
-          exam.courseId === (certificate?.courseId || ""),
-      )
-      setSelectedExamId(defaultExam?.id || "")
     }
     setOpenMenu(null)
   }
@@ -258,7 +252,7 @@ export default function AdminCertificatesPage() {
   }
 
   const handleApprove = async () => {
-    if (!approveTarget || !selectedExamId) return
+    if (!approveTarget) return
     setIsApproving(true)
     try {
       const response = await fetch(`/api/admin/certificate-templates/${approveTarget.id}/approve`, {
@@ -267,7 +261,7 @@ export default function AdminCertificatesPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getAuthToken()}`,
         },
-        body: JSON.stringify({ examId: selectedExamId }),
+        body: JSON.stringify({}),
       })
 
       if (!response.ok) {
@@ -277,7 +271,6 @@ export default function AdminCertificatesPage() {
       await fetchCertificates()
       setApproveModalOpen(false)
       setApproveTarget(null)
-      setSelectedExamId("")
       setStatusFilter("approved")
       setActiveCertId(null)
       setViewTab("templates")
@@ -714,73 +707,128 @@ const formatDate = (date?: string) => {
 
       {approveModalOpen && approveTarget && anchorStyle && (
         <div className="fixed inset-0 z-[999]" style={{ pointerEvents: 'auto' }}>
-          <div className="absolute inset-0 bg-black/30" onClick={() => {
+          <div className="absolute inset-0 bg-black/40" onClick={() => {
             setApproveModalOpen(false)
             setApproveTarget(null)
-            setSelectedExamId("")
             setAnchorStyle(null)
           }} />
           <div
-            className="absolute"
+            className="absolute flex flex-row items-center gap-8 bg-card border rounded-2xl shadow-2xl p-8 inline-block"
             style={{
               top: anchorStyle.top,
               left: anchorStyle.left,
-              width: anchorStyle.width,
+              // Remove width: anchorStyle.width for tight fit
             }}
           >
-            <div className="bg-card border rounded-2xl shadow-2xl p-5">
-              <div className="space-y-5">
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Chứng chỉ</p>
-                  <p className="text-foreground dark:text-white font-medium">{approveTarget?.title}</p>
-                  <p className="text-muted-foreground dark:text-slate-400 text-xs mt-1">
-                    Khóa học: {approveTarget?.course?.title || "—"}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    Chọn bài thi thật <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={selectedExamId}
-                    onChange={(e) => setSelectedExamId(e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="">Chọn bài thi</option>
-                    {availableExams.map((exam) => (
-                      <option key={exam.id} value={exam.id}>
-                        {exam.title} • {exam.course?.title || ""}
-                      </option>
-                    ))}
-                  </select>
-                  {availableExams.length === 0 && (
-                    <p className="text-xs text-muted-foreground dark:text-slate-500 mt-2">
-                      Không có bài thi thật phù hợp cho khóa học này.
-                    </p>
+            {/* Certificate Preview */}
+            <div className="flex-1 flex flex-col items-center justify-center min-w-[260px]">
+              <div
+                className="w-full max-w-xs aspect-[3/4] rounded-xl overflow-hidden shadow-lg border relative"
+                style={{
+                  backgroundColor: approveTarget.backgroundColor || "#243447",
+                  backgroundImage: approveTarget.templateImageUrl ? `url(${approveTarget.templateImageUrl})` : "none",
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  color: approveTarget.textColor || "#ffffff",
+                  border: `2px ${approveTarget.borderStyle || "double"} ${approveTarget.borderColor || "#d4af37"}`,
+                }}
+              >
+                {/* Logo */}
+                <div className="absolute top-3 left-3 z-10">
+                  {approveTarget.logoUrl ? (
+                    <img
+                      src={approveTarget.logoUrl}
+                      alt="Logo"
+                      className="w-10 h-10 object-contain rounded-md bg-white/90 p-1"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-md bg-white/80" />
                   )}
                 </div>
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setApproveModalOpen(false)
-                      setApproveTarget(null)
-                      setSelectedExamId("")
-                      setAnchorStyle(null)
+                <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
+                  <p
+                    className="text-xs font-semibold tracking-[0.25em] uppercase"
+                    style={{ color: approveTarget.borderColor || "#d4af37" }}
+                  >
+                    Chứng chỉ hoàn thành
+                  </p>
+                  <div
+                    className="w-10 h-px my-2"
+                    style={{ backgroundColor: approveTarget.borderColor || "#d4af37" }}
+                  />
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center mb-3"
+                    style={{
+                      backgroundColor: approveTarget.textColor || "#ffffff",
+                      color: approveTarget.borderColor || "#d4af37",
+                      border: `2px solid ${approveTarget.borderColor || "#d4af37"}`,
                     }}
-                    className="flex-1 py-3 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
                   >
-                    Hủy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleApprove}
-                    disabled={!selectedExamId || isApproving}
-                    className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    <Award size={28} />
+                  </div>
+                  <h4 className="text-lg font-semibold leading-snug">
+                    {approveTarget.title}
+                  </h4>
+                  <div
+                    className="w-10 h-px my-2"
+                    style={{ backgroundColor: approveTarget.borderColor || "#d4af37" }}
+                  />
+                  <p className="text-xs opacity-70">Chứng nhận rằng</p>
+                  <p className="text-base font-semibold italic mt-1">[Tên học viên]</p>
+                  <div
+                    className="w-24 h-px mt-2"
+                    style={{ backgroundColor: approveTarget.borderColor || "#d4af37" }}
+                  />
+                  <p className="text-xs mt-3 opacity-80 line-clamp-2">
+                    {approveTarget.description}
+                  </p>
+                  <p
+                    className="text-xs font-semibold mt-2"
+                    style={{ color: approveTarget.borderColor || "#d4af37" }}
                   >
-                    <CheckCircle size={18} /> {isApproving ? "Đang duyệt..." : "Duyệt và lưu"}
-                  </button>
+                    {approveTarget.course?.title || "[Tên khóa học]"}
+                  </p>
                 </div>
+                <div className="absolute bottom-3 left-3 text-xs">
+                  <span
+                    className="px-2 py-1 rounded-md"
+                    style={{
+                      color: approveTarget.borderColor || "#d4af37",
+                      border: `1px solid ${approveTarget.borderColor || "#d4af37"}`,
+                      backgroundColor: `${approveTarget.borderColor || "#d4af37"}20`,
+                    }}
+                  >
+                    {approveTarget.validityPeriod}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {/* Approve/Cancel Buttons */}
+            <div className="flex flex-col items-center gap-6 flex-1 min-w-[220px]">
+              <div className="w-full">
+                <h3 className="text-lg font-bold text-foreground dark:text-white mb-2">Duyệt chứng chỉ này?</h3>
+                <p className="text-muted-foreground dark:text-slate-400 mb-4">Bạn có chắc chắn muốn duyệt mẫu chứng chỉ này không?</p>
+              </div>
+              <div className="flex flex-col gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  disabled={isApproving}
+                  className="w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                >
+                  <CheckCircle size={22} /> {isApproving ? "Đang duyệt..." : "Duyệt chứng chỉ"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setApproveModalOpen(false)
+                    setApproveTarget(null)
+                    setAnchorStyle(null)
+                  }}
+                  className="w-full py-3 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 text-lg"
+                >
+                  Hủy
+                </button>
               </div>
             </div>
           </div>
