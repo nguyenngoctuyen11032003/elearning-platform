@@ -225,7 +225,7 @@ export default function Home() {
       <Navbar />
 
       {/* Hero Section - Premium Education Platform */}
-      <section className="relative pt-32 pb-24 px-6 md:px-8 overflow-hidden">
+      <section className="relative pt-24 sm:pt-28 md:pt-32 pb-16 sm:pb-20 md:pb-24 px-4 sm:px-6 md:px-8 overflow-hidden">
         {/* Animated Background */}
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,rgba(37,99,235,0.1),transparent_50%)]" />
@@ -245,7 +245,7 @@ export default function Home() {
           className="absolute bottom-20 right-[10%] w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"
         />
 
-        <div className="max-w-7xl mx-auto relative">
+        <div className="page-shell relative">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Left Content */}
             <motion.div
@@ -259,7 +259,7 @@ export default function Home() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
-                className="inline-flex items-center gap-3 px-5 py-3 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-full shadow-lg backdrop-blur-sm"
+                className="inline-flex max-w-full items-center gap-3 px-4 sm:px-5 py-2.5 sm:py-3 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-full shadow-lg backdrop-blur-sm"
               >
                 <div className="flex -space-x-2">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-white text-xs font-bold">1K</div>
@@ -277,7 +277,7 @@ export default function Home() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] tracking-tight"
+                  className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] tracking-tight"
                 >
                   <span className="bg-gradient-to-r from-slate-900 via-blue-700 to-purple-700 dark:from-white dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
                     Nền Tảng Học Trực Tuyến
@@ -300,7 +300,7 @@ export default function Home() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
-                  className="text-xl md:text-2xl text-slate-700 dark:text-slate-300 leading-relaxed font-medium"
+                  className="text-base sm:text-lg md:text-2xl text-slate-700 dark:text-slate-300 leading-relaxed font-medium"
                 >
                   Học <span className="font-bold text-blue-600 dark:text-blue-400">Lập Trình</span>, {" "}
                   <span className="font-bold text-purple-600 dark:text-purple-400">Thiết Kế</span>, {" "}
@@ -314,11 +314,11 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                className="flex flex-col sm:flex-row gap-4 pt-4"
+                className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4"
               >
                 <Link
                   href="/courses"
-                  className="group relative inline-flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 via-blue-700 to-purple-600 hover:from-blue-700 hover:via-blue-800 hover:to-purple-700 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-[0_8px_30px_rgba(37,99,235,0.3)] hover:shadow-[0_12px_40px_rgba(37,99,235,0.4)] transition-all transform hover:scale-105 hover:-translate-y-0.5"
+                  className="group relative inline-flex w-full sm:w-auto items-center justify-center gap-3 bg-gradient-to-r from-blue-600 via-blue-700 to-purple-600 hover:from-blue-700 hover:via-blue-800 hover:to-purple-700 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl font-bold text-base sm:text-lg shadow-[0_8px_30px_rgba(37,99,235,0.3)] hover:shadow-[0_12px_40px_rgba(37,99,235,0.4)] transition-all transform hover:scale-105 hover:-translate-y-0.5"
                 >
                   <GraduationCap size={24} />
                   Khám Phá Khóa Học
@@ -326,7 +326,7 @@ export default function Home() {
                 </Link>
                 <Link
                   href="/about"
-                  className="group inline-flex items-center justify-center gap-3 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 text-slate-900 dark:text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all"
+                  className="group inline-flex w-full sm:w-auto items-center justify-center gap-3 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 text-slate-900 dark:text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl font-bold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all"
                 >
                   Tìm Hiểu Thêm
                   <Play size={20} className="group-hover:scale-110 transition-transform" />
@@ -338,17 +338,17 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9 }}
-                className="grid grid-cols-3 gap-6 pt-8 border-t border-slate-200 dark:border-slate-800"
+                className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 pt-8 border-t border-slate-200 dark:border-slate-800"
               >
-                <div>
+                <div className="text-center sm:text-left">
                   <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">15K+</p>
                   <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">Học viên</p>
                 </div>
-                <div>
+                <div className="text-center sm:text-left">
                   <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">500+</p>
                   <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">Khóa học</p>
                 </div>
-                <div>
+                <div className="text-center sm:text-left">
                   <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">98%</p>
                   <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">Hài lòng</p>
                 </div>
@@ -411,8 +411,8 @@ export default function Home() {
       </section>
 
       {/* Trust Bar - Partner Logos */}
-      <section className="py-12 px-6 md:px-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-y border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-12 px-4 sm:px-6 md:px-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-y border-slate-200 dark:border-slate-800">
+        <div className="page-shell">
           <motion.p
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -440,8 +440,8 @@ export default function Home() {
       </section>
 
       {/* Value Propositions - Why Choose Us */}
-      <section className="py-24 px-6 md:px-8 relative">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-20 md:py-24 px-4 sm:px-6 md:px-8 relative">
+        <div className="page-shell">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -528,8 +528,8 @@ export default function Home() {
       </section>
 
       {/* Featured Courses */}
-      <section className="py-24 px-6 md:px-8 bg-gradient-to-b from-white to-slate-50 dark:from-slate-950 dark:to-slate-900">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-20 md:py-24 px-4 sm:px-6 md:px-8 bg-gradient-to-b from-white to-slate-50 dark:from-slate-950 dark:to-slate-900">
+        <div className="page-shell">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -616,11 +616,11 @@ export default function Home() {
         </div>
       </section>
       {/* Categories */}
-      <section className="relative py-24 px-6 md:px-8 bg-cover bg-center bg-no-repeat rounded-3xl mx-6 md:mx-8 my-12" style={{ backgroundImage: "url('/image/bg_homecate1.jpg')" }}>
+      <section className="relative py-20 md:py-24 px-4 sm:px-6 md:px-8 bg-cover bg-center bg-no-repeat rounded-3xl mx-4 sm:mx-6 md:mx-8 my-10 md:my-12" style={{ backgroundImage: "url('/image/bg_homecate1.jpg')" }}>
         <div className="absolute inset-0 bg-white/50 dark:bg-black/50 rounded-3xl" />
         <div className="absolute inset-0 bg-gradient-to-b via-transparent rounded-3xl dark:hidden" style={{ backgroundImage: 'linear-gradient(to bottom, #f7f9fc, transparent, #f7f9fc)', '--tw-gradient-stops': 'var(--tw-gradient-from), var(--tw-gradient-to)' } as any} />
         <div className="hidden dark:absolute dark:inset-0 dark:rounded-3xl dark:block" style={{ backgroundImage: 'linear-gradient(to bottom, #0d1529, transparent, #0d1529)', backgroundSize: 'cover' }} />
-        <div className="max-w-7xl mx-auto relative z-10">
+        <div className="page-shell relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -644,7 +644,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10"
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-10"
           >
             {categories.length > 0 ? (
               categories.slice(categoriesPage * CATEGORIES_PER_PAGE, (categoriesPage + 1) * CATEGORIES_PER_PAGE).map((category, idx) => {
@@ -671,7 +671,7 @@ export default function Home() {
                             className="w-20 h-20 rounded-lg object-cover"
                           />
                         ) : (
-                          <span className="text-6xl">{category.icon || "📚"}</span>
+                          <span className="text-5xl sm:text-6xl">{category.icon || "📚"}</span>
                         )}
                       </div>
 
@@ -743,8 +743,8 @@ export default function Home() {
           )}
         </div>
       </section>
-      <section className="py-24 px-6 md:px-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-20 md:py-24 px-4 sm:px-6 md:px-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="page-shell">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -838,7 +838,7 @@ export default function Home() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="relative isolate py-24 px-6 md:px-8 overflow-hidden rounded-3xl mx-6 md:mx-8 my-12">
+      <section className="relative isolate py-20 md:py-24 px-4 sm:px-6 md:px-8 overflow-hidden rounded-3xl mx-4 sm:mx-6 md:mx-8 my-10 md:my-12">
         {/* Background image */}
         <div
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat rounded-3xl"
@@ -891,7 +891,7 @@ export default function Home() {
             </motion.div>
 
             {/* Headline */}
-            <h2 className="text-4xl md:text-6xl font-black text-white leading-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight">
               Sẵn Sàng Thay Đổi Cuộc Đời<br />
               Qua Học Tập?
             </h2>

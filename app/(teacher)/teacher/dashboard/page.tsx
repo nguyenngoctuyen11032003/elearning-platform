@@ -105,16 +105,16 @@ export default function TeacherDashboard() {
 
   return (
     <div className="min-h-screen w-full">
-      <div className="w-full space-y-8">
+      <div className="w-full space-y-6 md:space-y-8">
         {/* Stats with Header */}
-        <div className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div className="relative overflow-hidden rounded-3xl p-4 sm:p-6 lg:p-8 animate-fadeIn" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
           <div className="absolute inset-0 bg-black/10 dark:bg-black/10 rounded-3xl"></div>
           
           <div className="relative z-10 space-y-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Chào mừng, {user?.name || "Giáo viên"}</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Chào mừng, {user?.name || "Giáo viên"}</h1>
                 <p className="text-black/70 dark:text-white/80 drop-shadow">Tổng quan hoạt động của bạn</p>
               </div>
               <div className="flex gap-2 flex-wrap">
@@ -127,7 +127,7 @@ export default function TeacherDashboard() {
                   <button
                     key={period.value}
                     onClick={() => setFilterPeriod(period.value)}
-                    className={`px-4 py-2 rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
+                    className={`px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
                       filterPeriod === period.value
                         ? "bg-white text-primary shadow-lg"
                         : "bg-black/10 text-black dark:bg-white/20 dark:text-white hover:bg-black/30 dark:hover:bg-white/40"
@@ -180,7 +180,7 @@ export default function TeacherDashboard() {
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Revenue Chart */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">Doanh thu</h3>
             {revenueChart.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">Chưa có dữ liệu doanh thu</p>
@@ -213,7 +213,7 @@ export default function TeacherDashboard() {
           </div>
 
           {/* Student Growth Chart */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">Học viên mới</h3>
             {studentChart.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">Chưa có dữ liệu học viên</p>
@@ -241,7 +241,7 @@ export default function TeacherDashboard() {
         {/* Additional Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Pie Chart - Course Distribution */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 animate-fadeIn">
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">Phân bố khóa học</h3>
             {pieData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">Chưa có dữ liệu khóa học</p>

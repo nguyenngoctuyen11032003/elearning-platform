@@ -128,9 +128,13 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    box-sizing: border-box;
   }
   body {
     @apply bg-background text-foreground leading-relaxed;
+    font-size: clamp(15px, 0.25vw + 14px, 17px);
+    line-height: 1.65;
+    text-wrap: pretty;
   }
   
   /* GPU Acceleration & Smooth Scrolling */
@@ -138,6 +142,62 @@
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body,
+  #__next {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  main,
+  section,
+  article,
+  aside,
+  div {
+    min-width: 0;
+  }
+
+  p,
+  li,
+  dd,
+  dt,
+  small,
+  label {
+    overflow-wrap: anywhere;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+
+  h1 {
+    font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.5rem);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-size: clamp(1.35rem, 1.05rem + 1vw, 2rem);
+    line-height: 1.25;
+    letter-spacing: -0.018em;
+  }
+
+  h3 {
+    font-size: clamp(1.15rem, 0.98rem + 0.7vw, 1.55rem);
+    line-height: 1.3;
+  }
+
+  h4,
+  h5,
+  h6 {
+    line-height: 1.35;
   }
   
   /* Hardware acceleration for transforms */
@@ -145,6 +205,19 @@
     transform: translateZ(0);
     backface-visibility: hidden;
     perspective: 1000px;
+  }
+
+  img,
+  video,
+  canvas,
+  svg,
+  iframe {
+    max-width: 100%;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
   }
 }
 
@@ -581,6 +654,21 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.01em;
 }
 
+.page-shell {
+  width: min(100%, 1200px);
+  margin-inline: auto;
+  padding-inline: clamp(0.75rem, 1.5vw, 1.75rem);
+}
+
+.dashboard-shell {
+  width: min(100%, 1440px);
+  margin-inline: auto;
+}
+
+.content-prose {
+  max-width: 78ch;
+}
+
 .card-title {
   font-size: 1.125rem; /* 18px */
   line-height: 1.75rem;
@@ -609,6 +697,18 @@ h1, h2, h3, h4, h5, h6 {
   .stat-value {
     font-size: 2.25rem; /* 36px */
     line-height: 2.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .page-shell {
+    padding-inline: 0.875rem;
   }
 }
 

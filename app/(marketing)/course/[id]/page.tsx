@@ -58,7 +58,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   return (
     <div className="min-h-screen bg-background transition-smooth">
       {/* Hero Section */}
-      <div className="relative h-96 bg-gradient-to-br from-primary/20 to-accent/10 dark:from-blue-900 dark:to-slate-900 overflow-hidden">
+      <div className="relative h-[300px] sm:h-[360px] md:h-96 bg-gradient-to-br from-primary/20 to-accent/10 dark:from-blue-900 dark:to-slate-900 overflow-hidden">
         <motion.div
           className="absolute inset-0"
           initial={{ opacity: 0 }}
@@ -74,9 +74,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
         <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
 
-        <div className="relative h-full flex items-end p-8">
+        <div className="relative h-full flex items-end p-4 sm:p-6 md:p-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl">
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">{course.title}</h1>
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4">{course.title}</h1>
             <div className="flex flex-wrap gap-6 text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Star size={20} className="text-yellow-400 fill-yellow-400" />
@@ -98,12 +98,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="page-shell py-8 md:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 bg-card dark:bg-slate-900/50 border border-border dark:border-slate-800">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-card dark:bg-slate-900/50 border border-border dark:border-slate-800 h-auto gap-1">
                 <TabsTrigger value="overview">Giới thiệu</TabsTrigger>
                 <TabsTrigger value="content">Nội dung</TabsTrigger>
                 <TabsTrigger value="requirements">Yêu cầu</TabsTrigger>
@@ -115,7 +115,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   <h2 className="text-2xl font-bold text-foreground mb-4">Về khóa học này</h2>
                   <p className="text-muted-foreground leading-relaxed mb-6">{course.description}</p>
 
-                  <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     <PremiumCard>
                       <div className="flex items-center gap-3">
                         <Award className="text-blue-400" size={24} />
@@ -138,7 +138,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
                   <div className="course-instructor-card rounded-lg p-6">
                     <h3 className="text-foreground font-semibold mb-4">Về giảng viên</h3>
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                       <img
                         src={course.instructorImage || "/placeholder.svg"}
                         alt={course.instructor}
@@ -381,7 +381,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
           {/* Right Column - Enrollment Card */}
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-            <PremiumCard className="sticky top-8">
+            <PremiumCard className="lg:sticky lg:top-8">
               <div className="space-y-6">
                 <div>
                   <p className="text-muted-foreground text-sm mb-2">Giá khóa học</p>

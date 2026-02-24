@@ -38,13 +38,13 @@ export default function ForgotPasswordPage() {
       {/* Back Button */}
       <Link
         href="/login"
-        className="absolute top-6 left-6 z-20 flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-900 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-lg hover:shadow-xl group"
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-900 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-lg hover:shadow-xl group"
       >
         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
         <span className="text-sm font-semibold">Quay lại</span>
       </Link>
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-3 sm:px-6 py-8 sm:py-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -60,7 +60,7 @@ export default function ForgotPasswordPage() {
               className="text-center mb-10"
             >
               <Link href="/" className="inline-flex justify-center">
-                <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-28 w-auto rounded-full shadow-lg" />
+                <img src="/image/logo-ics.jpg" alt="ICS Cyber Security" className="h-20 sm:h-28 w-auto rounded-full shadow-lg" />
               </Link>
             </motion.div>
 

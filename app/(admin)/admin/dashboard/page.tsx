@@ -196,16 +196,16 @@ if (loading) {
 }
   return (
     <div className="min-h-screen w-full">
-      <div className="w-full space-y-8">
+      <div className="w-full space-y-6 md:space-y-8">
         {/* Header with Background */}
-        <div className="relative overflow-hidden rounded-3xl p-8" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div className="relative overflow-hidden rounded-3xl p-4 sm:p-6 lg:p-8" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
           <div className="absolute inset-0 bg-black/10 dark:bg-black/10"></div>
           
           <div className="relative z-10 space-y-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Bảng điều khiển quản trị</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Bảng điều khiển quản trị</h1>
                 <p className="text-black/70 dark:text-white/80 drop-shadow">Tổng quan hệ thống ICS Learning - Quản lý toàn diện</p>
               </div>
               <div className="flex gap-2 flex-wrap">
@@ -218,10 +218,10 @@ if (loading) {
                   <button
                     key={period.value}
                     onClick={() => setFilterPeriod(period.value)}
-                    className={`px-4 py-2 rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
+                    className={`min-h-10 px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
                       filterPeriod === period.value
                         ? "bg-white text-primary shadow-lg"
-                        : "bg-white/20 text-white hover:bg-white/30"
+                        : "bg-white/30 text-slate-900 dark:text-white hover:bg-white/45"
                     }`}
                   >
                     {period.label}
@@ -266,7 +266,7 @@ if (loading) {
         {/* Main Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Revenue Chart */}
-          <div className="lg:col-span-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+          <div className="lg:col-span-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">Doanh thu theo tháng</h3>
             {revenueData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">
@@ -309,7 +309,7 @@ if (loading) {
           </div>
 
           {/* Category Distribution */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 animate-fadeIn">
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">Phân bố khóa học</h3>
             {categoryData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">Chưa có dữ liệu danh mục</p>
@@ -362,7 +362,7 @@ if (loading) {
         {/* Additional Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* User Activity Chart */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 animate-fadeIn">
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">Hoạt động người dùng tuần này</h3>
             {weeklyStats.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center">
@@ -415,7 +415,7 @@ if (loading) {
           </div>
 
           {/* Teacher & Student Growth */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">Tăng trưởng theo tháng</h3>
             {growthData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">

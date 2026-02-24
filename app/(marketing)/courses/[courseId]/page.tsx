@@ -286,14 +286,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     <div className="min-h-screen bg-background dark:bg-slate-950 flex flex-col">
       <Navbar />
 
-      <main className="flex-1 py-12 px-8">
-        <div className="max-w-6xl mx-auto">
+      <main className="flex-1 py-8 md:py-12 px-4 sm:px-6">
+        <div className="page-shell">
           {/* Hero Section */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Course Info */}
               <div className="lg:col-span-2">
-                <div className="relative w-full h-96 rounded-2xl overflow-hidden mb-6 mt-12">
+                <div className="relative w-full h-56 sm:h-72 md:h-96 rounded-2xl overflow-hidden mb-6 mt-6 md:mt-12">
                   <img
                     src={course.image || "/image/python.png"}
                     alt={course.title}
@@ -308,8 +308,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                     />
                   </div>
                 </div>
-                <h1 className="text-4xl font-bold text-foreground dark:text-white mb-4">{course.title}</h1>
-                <p className="text-lg text-muted-foreground dark:text-slate-400 mb-6">{course.description}</p>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground dark:text-white mb-4">{course.title}</h1>
+                <p className="text-base sm:text-lg text-muted-foreground dark:text-slate-400 mb-6">{course.description}</p>
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -347,7 +347,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
                 {/* Course Content */}
                 <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">Nội dung khóa học</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-6">Nội dung khóa học</h2>
                   <div className="space-y-3">
                     {course.sections.map((section: any) => (
                       <div key={section.id}>
@@ -410,7 +410,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                         animate={{ opacity: 1, height: "auto" }}
                                         exit={{ opacity: 0, height: 0 }}
                                         transition={{ duration: 0.3, ease: "easeInOut" }}
-                                        className="space-y-3 ml-10 pt-2"
+                                        className="space-y-3 ml-0 sm:ml-10 pt-2"
                                       >
                                         <div className="flex items-start gap-2 text-xs text-muted-foreground dark:text-slate-400">
                                           <div className="w-4 h-4 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -461,7 +461,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
                 {/* Reviews */}
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">Đánh giá từ học viên</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-6">Đánh giá từ học viên</h2>
                   
                   {/* Write Review Section */}
                   <div className="mb-8">
@@ -605,7 +605,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
               {/* Sidebar */}
               <div className="lg:col-span-1">
-                <PremiumCard className="sticky top-24 space-y-6">
+                <PremiumCard className="lg:sticky lg:top-24 space-y-6">
                   {/* Price */}
                   <div>
                     <p className="text-4xl font-bold text-foreground dark:text-white">
@@ -641,7 +641,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
                   <button
                     onClick={() => setIsWishlisted(!isWishlisted)}
-                    className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 transition-smooth ${
+                    className={`w-full min-h-11 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 transition-smooth ${
                       isWishlisted
                         ? "border-red-500 bg-red-500/10 text-red-500"
                         : "border-border dark:border-slate-800 text-foreground dark:text-white hover:border-red-500"
@@ -651,7 +651,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                     {isWishlisted ? "Đã thích" : "Thêm vào yêu thích"}
                   </button>
 
-                  <button className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 border-border dark:border-slate-800 text-foreground dark:text-white hover:border-primary dark:hover:border-accent transition-smooth">
+                  <button className="w-full min-h-11 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 border-border dark:border-slate-800 text-foreground dark:text-white hover:border-primary dark:hover:border-accent transition-smooth">
                     <Share2 size={20} />
                     Chia sẻ
                   </button>

@@ -316,8 +316,8 @@ export default function CoursesPage() {
     >
       <Navbar />
 
-      <div className="pt-24 pb-12 px-6 md:px-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="pt-20 sm:pt-24 pb-10 sm:pb-12 px-4 sm:px-6 md:px-8">
+        <div className="page-shell">
           {/* Hero Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -330,10 +330,10 @@ export default function CoursesPage() {
                 Khám phá kiến thức mới
               </span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
               Danh sách khóa học
             </h1>
-            <p className="text-lg text-muted-foreground dark:text-slate-400 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-muted-foreground dark:text-slate-400 max-w-2xl mx-auto">
               Tìm khóa học phù hợp với mục tiêu học tập của bạn từ hàng trăm
               khóa học chất lượng cao
             </p>
@@ -355,11 +355,11 @@ export default function CoursesPage() {
               placeholder="Tìm kiếm khóa học, giảng viên, chủ đề..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-14 pr-6 py-4 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-all text-lg"
+              className="w-full pl-12 sm:pl-14 pr-4 sm:pr-6 py-3 sm:py-4 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-all text-base sm:text-lg"
             />
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
             {/* Sidebar Filters */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -367,7 +367,7 @@ export default function CoursesPage() {
               transition={{ delay: 0.2 }}
               className="lg:col-span-1"
             >
-              <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-6 sticky top-24 shadow-xl">
+              <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 lg:sticky lg:top-24 shadow-xl">
                 <h3 className="font-bold text-lg text-foreground dark:text-white mb-6 flex items-center gap-2">
                   <Filter size={20} className="text-primary dark:text-accent" />{" "}
                   Bộ lọc
@@ -471,7 +471,7 @@ export default function CoursesPage() {
 
                 <button
                   onClick={handleReset}
-                  className="w-full py-3 text-sm font-medium text-white bg-gradient-to-r from-primary to-purple-600 hover:shadow-lg rounded-xl transition-all"
+                  className="w-full min-h-11 py-3 text-sm font-medium text-white bg-gradient-to-r from-primary to-purple-600 hover:shadow-lg rounded-xl transition-all"
                 >
                   Xóa bộ lọc
                 </button>
@@ -485,10 +485,10 @@ export default function CoursesPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-lg border border-border dark:border-slate-800"
+                className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 shadow-lg border border-border dark:border-slate-800"
               >
                 <div>
-                  <p className="text-2xl font-bold text-foreground dark:text-white">
+                  <p className="text-xl sm:text-2xl font-bold text-foreground dark:text-white">
                     <span className="text-primary dark:text-accent">
                       {filteredCourses.length}
                     </span>{" "}
@@ -499,13 +499,13 @@ export default function CoursesPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
                   {/* Sort Dropdown */}
-                  <div className="relative">
+                  <div className="relative w-full sm:w-auto">
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as any)}
-                      className="appearance-none pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                      className="w-full appearance-none pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                     >
                       <option value="popular">Phổ biến nhất</option>
                       <option value="newest">Mới nhất</option>
@@ -519,7 +519,7 @@ export default function CoursesPage() {
                   </div>
 
                   {/* View Mode Toggle */}
-                  <div className="flex items-center gap-1 p-1 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                  <div className="flex items-center gap-1 p-1 bg-slate-50 dark:bg-slate-800 rounded-xl w-full sm:w-auto justify-center">
                     <button
                       onClick={() => setViewMode("grid")}
                       className={`p-2 rounded-lg transition-all ${
@@ -637,12 +637,12 @@ export default function CoursesPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="mt-8 flex items-center justify-center gap-4"
+                  className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4"
                 >
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="min-h-11 px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     ← Trang trước
                   </button>
@@ -652,7 +652,7 @@ export default function CoursesPage() {
                   <button
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="min-h-11 px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     Trang tiếp →
                   </button>

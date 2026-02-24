@@ -289,9 +289,9 @@ export default function MyCoursesPage() {
   const suggestedCourses = courses.filter(c => c.progress === 0).slice(0, 3)
 
   return (
-    <div className="flex flex-col lg:flex-row h-auto lg:h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top Navigation Bar */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -320,7 +320,7 @@ export default function MyCoursesPage() {
 
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto scrollbar-hide">
-          <div className="flex flex-col lg:flex-row gap-4 p-4 md:p-6">
+          <div className="flex flex-col lg:flex-row gap-4 p-3 sm:p-4 md:p-6">
             {/* Courses Grid */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -386,7 +386,7 @@ export default function MyCoursesPage() {
 
                         {/* Card Content */}
                         <div className="p-4 md:p-6">
-                          <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-start justify-between mb-4 gap-2">
                             <div>
                               <h3 className="font-bold text-sm md:text-base text-foreground dark:text-white line-clamp-2 mb-1">
                                 {enrollment.course.title}
@@ -395,10 +395,10 @@ export default function MyCoursesPage() {
                                 {enrollment.progress === 100 ? "Hoàn thành" : "Đang học"}
                               </p>
                             </div>
-                            <div className="relative group">
+                            <div className="relative group flex-shrink-0">
                               <button 
                                 onClick={() => setOpenMenuId(openMenuId === enrollment.id ? null : enrollment.id)}
-                            className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
                               >
                                 <MoreVertical size={16} />
                               </button>
