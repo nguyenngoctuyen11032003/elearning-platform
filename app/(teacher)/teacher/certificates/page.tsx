@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -65,6 +65,8 @@ export default function TeacherCertificatesPage() {
   const router = useRouter()
   const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
+    const cardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
+    const [anchorStyle, setAnchorStyle] = useState<React.CSSProperties | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -259,6 +261,21 @@ export default function TeacherCertificatesPage() {
     setUseTemplate(template)
     setSelectedExamId("")
     setAssignError(null)
+    // Anchor modal above the 'Sử dụng' button (top of card)
+    const card = cardRefs.current[template.id]
+    if (card) {
+      const rect = card.getBoundingClientRect()
+      setAnchorStyle({
+        position: "absolute",
+        top: rect.top + window.scrollY - 8,
+        left: rect.left + window.scrollX,
+        zIndex: 100,
+        width: rect.width,
+        maxWidth: 400,
+      })
+    } else {
+      setAnchorStyle(null)
+    }
   }
 
   const handleAssignTemplate = async () => {
@@ -271,7 +288,7 @@ export default function TeacherCertificatesPage() {
       setIsAssigning(true)
       setAssignError(null)
       const response = await fetch(`/api/exams/${selectedExamId}`, {
-        method: "PATCH",
+        method: "PATCH", 
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getAuthToken()}`,
@@ -448,6 +465,7 @@ export default function TeacherCertificatesPage() {
                 <div
                   key={template.id}
                   className="bg-white/90 dark:bg-slate-900/70 border border-border dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-lg transition-shadow"
+                  ref={el => { cardRefs.current[template.id] = el }}
                 >
                   <div className="flex items-start justify-end gap-3">
                     <div>{getStatusBadge(template.status)}</div>
@@ -574,8 +592,14 @@ export default function TeacherCertificatesPage() {
 
         {/* Use Template Modal */}
         {useTemplate && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-lg p-6">
+          <>
+            {/* Overlay */}
+            <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setUseTemplate(null)} />
+            {/* Anchored modal */}
+            <div
+              className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-6 shadow-xl"
+              style={anchorStyle || { position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 50, width: "100%", maxWidth: 400 }}
+            >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-foreground dark:text-white">
                   Gán chứng chỉ cho bài thi
@@ -583,6 +607,7 @@ export default function TeacherCertificatesPage() {
                 <button
                   onClick={() => setUseTemplate(null)}
                   className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg"
+                  style={{ zIndex: 101 }}
                 >
                   <X size={18} />
                 </button>
@@ -592,7 +617,6 @@ export default function TeacherCertificatesPage() {
                 <div className="text-sm text-muted-foreground">
                   Chỉ hiển thị các bài thi thật (official).
                 </div>
-
                 <select
                   value={selectedExamId}
                   onChange={(e) => setSelectedExamId(e.target.value)}
@@ -606,13 +630,11 @@ export default function TeacherCertificatesPage() {
                     </option>
                   ))}
                 </select>
-
                 {!isLoadingExams && officialExams.length === 0 && (
                   <p className="text-sm text-muted-foreground">
                     Chưa có bài thi thật nào để gán chứng chỉ.
                   </p>
                 )}
-
                 {assignError && (
                   <p className="text-sm text-red-500">{assignError}</p>
                 )}
@@ -637,7 +659,7 @@ export default function TeacherCertificatesPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </>
         )}
         {/* View Modal */}
         {selectedTemplate && viewMode === "view" && (
