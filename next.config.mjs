@@ -1,5 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: '/:path*',
+        destination: 'http://localhost:5001/api/:path*',
+      },
+    ]
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -23,8 +31,6 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
-  // Enable compression
-  compress: true,
   // Remove powered by header for security
   poweredByHeader: false,
   // Enable strict mode for better performance

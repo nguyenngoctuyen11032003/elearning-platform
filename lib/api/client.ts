@@ -13,15 +13,15 @@ import {
 
 class ApiClient {
   async getSystemSettings(): Promise<Record<string, any>> {
-  return this.request('/api/system-settings')
-}
+    return this.request('/system-settings')
+  }
 
-async updateSystemSettings(data: { key: string; value: string }) {
-  return this.request('/api/system-settings', {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  })
-}
+  async updateSystemSettings(data: { key: string; value: string }) {
+    return this.request('/system-settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
   private baseURL: string;
 
   constructor() {
@@ -282,21 +282,21 @@ if (typeof window !== 'undefined' && token) {
       }
     );
   }
-async uploadFile(file: File): Promise<{ url: string }> {
-  const formData = new FormData()
-  formData.append('file', file)
+  async uploadFile(file: File): Promise<{ url: string }> {
+    const formData = new FormData()
+    formData.append('file', file)
 
-  const result = await this.request<{ url: string }>(
-    '/api/upload/image',
-    {
-      method: 'POST',
-      body: formData,
-      headers: {}, // ⚠️ để trống, KHÔNG set Content-Type
-    }
-  )
+    const result = await this.request<{ url: string }>(
+      '/upload/image',
+      {
+        method: 'POST',
+        body: formData,
+        headers: {}, // ⚠️ để trống, KHÔNG set Content-Type
+      }
+    )
 
-  return result
-}
+    return result
+  }
 
 
   // File Upload methods
@@ -960,28 +960,29 @@ async uploadFile(file: File): Promise<{ url: string }> {
   }
 
   // ================== Dashboard Stats API ==================
+
   async getAdminDashboardStats(): Promise<any> {
-    return this.request('/api/admin/dashboard/stats');
+    return this.request('/admin/dashboard/stats');
   }
 
   async getAdminGrowthStats(): Promise<any> {
-    return this.request('/api/admin/dashboard/growth');
+    return this.request('/admin/dashboard/growth');
   }
 
   async getAdminRevenueReport(): Promise<any> {
-    return this.request('/api/admin/reports/revenue');
+    return this.request('/admin/reports/revenue');
   }
 
   async getAdminUserReport(): Promise<any> {
-    return this.request('/api/admin/reports/users');
+    return this.request('/admin/reports/users');
   }
 
   async getAdminPerformanceReport(): Promise<any> {
-    return this.request('/api/admin/reports/performance');
+    return this.request('/admin/reports/performance');
   }
 
   async getTeacherDashboardStats(): Promise<any> {
-    return this.request('/api/teacher/dashboard/stats');
+    return this.request('/teacher/dashboard/stats');
   }
 
   async getStudentDashboardStats(): Promise<any> {

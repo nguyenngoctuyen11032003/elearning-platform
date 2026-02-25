@@ -349,7 +349,7 @@ export default function AdminCoursesPage() {
                     key={course.id}
                     className="border-b border-border dark:border-slate-800 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-300"
                   >
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-6" data-label="Khóa học">
                       <div className="flex items-center gap-3">
                         <img
                           src={course.thumbnail}
@@ -362,19 +362,19 @@ export default function AdminCoursesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{course.instructor}</td>
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400" data-label="Giảng viên">{course.instructor}</td>
+                    <td className="py-4 px-6" data-label="Danh mục">
                       <span className="px-2 py-1 bg-secondary dark:bg-slate-800 rounded text-foreground dark:text-white text-xs">
                         {course.category}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white font-medium">
+                    <td className="py-4 px-6 text-foreground dark:text-white font-medium" data-label="Giá">
                       ₫{formatPrice(course.price)}
                     </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white">{formatStudentCount(course.students)}</td>
-                    <td className="py-4 px-6">{getStatusBadge(course.status)}</td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{formatDate(course.createdAt)}</td>
-                    <td className="py-4 px-6 relative">
+                    <td className="py-4 px-6 text-foreground dark:text-white" data-label="Học viên">{formatStudentCount(course.students)}</td>
+                    <td className="py-4 px-6" data-label="Trạng thái">{getStatusBadge(course.status)}</td>
+                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400" data-label="Ngày tạo">{formatDate(course.createdAt)}</td>
+                    <td className="py-4 px-6 relative" data-label="Hành động">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleCourseAction("view", course.id, course)}

@@ -1,3 +1,37 @@
+/* Custom select for filter dropdowns */
+.filter-select {
+  background: var(--card, #fff);
+  color: var(--foreground, #0f172a);
+  border: 2px solid var(--border, #e2e8f0);
+  font-weight: 500;
+  outline: none;
+  box-shadow: none;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+.dark .filter-select {
+  background: #181f2a;
+  color: #f1f5f9;
+  border: 2px solid #334155;
+}
+.filter-select:focus {
+  border-color: var(--primary, #2563eb);
+  box-shadow: 0 0 0 2px var(--primary, #2563eb)22;
+}
+.filter-select option {
+  background: var(--card, #fff);
+  color: var(--foreground, #0f172a);
+}
+.dark .filter-select option {
+  background: #181f2a;
+  color: #f1f5f9;
+}
+/* Align filter dropdowns horizontally */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
 /* Modal overlay and content pointer-events fix */
 .modal-overlay {
   pointer-events: none;
@@ -15,6 +49,80 @@
 @media (max-width: 640px) {
   .modal-content-scroll {
     max-height: 80vh !important;
+  }
+  /* Table responsive for mobile */
+  table, thead, tbody, th, td, tr {
+    font-size: 13px !important;
+  }
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-spacing: 0;
+  }
+  thead {
+    display: none;
+  }
+  tbody tr {
+    display: block;
+    margin-bottom: 1.25rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
+    background: var(--card, #fff);
+    border: 1px solid var(--border, #e2e8f0);
+    padding: 0.5rem 0.75rem;
+  }
+  td {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    min-width: 0;
+    padding: 0.5rem 0.25rem !important;
+    border: none;
+    border-bottom: 1px solid var(--border, #e2e8f0);
+    position: relative;
+    min-height: 32px;
+    box-sizing: border-box;
+    gap: 0.5rem;
+  }
+  td:last-child {
+    border-bottom: none;
+  }
+  td:before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--muted-foreground, #64748b);
+    flex: 0 0 40%;
+    min-width: 40%;
+    max-width: 50%;
+    text-align: left;
+    font-size: 12px;
+    padding-right: 0.5rem;
+    word-break: break-word;
+  }
+  /* Hide label for action buttons */
+  td:last-child:before {
+    content: '';
+    display: none;
+  }
+
+  /* Ensure dropdown filter always overlays above table */
+  .dropdown-filter-portal {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    z-index: 9999 !important;
+    width: 100vw !important;
+    pointer-events: none;
+  }
+  .dropdown-filter-portal > div {
+    pointer-events: auto;
+  }
+  .dropdown-filter-menu {
+    z-index: 1050 !important;
   }
 }
 @import "tailwindcss";
