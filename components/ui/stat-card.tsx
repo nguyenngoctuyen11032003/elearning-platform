@@ -13,7 +13,7 @@ export function StatCard({ icon: Icon, label, title, value, change, color }: Sta
   const displayTitle = label || title
 
   return (
-    <div className="group flex items-start gap-4 p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer animate-soft-rise interactive-smooth">
+    <div className="group stagger-kind-stats flex items-start gap-4 p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer animate-soft-rise interactive-smooth">
       <div className="p-2.5 bg-primary/15 dark:bg-primary/25 rounded-lg group-hover:bg-primary/30 dark:group-hover:bg-primary/40 group-hover:scale-110 transition-all duration-300 flex-shrink-0">
         <Icon className="w-5 h-5 text-primary dark:text-accent group-hover:text-primary-600 transition-colors duration-300" />
       </div>

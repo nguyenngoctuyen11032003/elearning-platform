@@ -306,7 +306,7 @@ export default function CoursesPage() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
+      className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 stagger-items"
       style={{
         backgroundImage: "url('/image/bg_course.jpg')",
         backgroundSize: "cover",

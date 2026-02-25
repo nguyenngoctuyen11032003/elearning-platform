@@ -252,6 +252,58 @@
   }
 }
 
+@media (update: slow), (prefers-reduced-data: reduce) {
+  .stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > * {
+    --stagger-duration: 0.26s;
+    --stagger-base: 8ms;
+    --stagger-step: 16ms;
+    --rise-y: 3px;
+    --rise-scale: 0.995;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-1px);
+  }
+
+  .hover-glow:hover {
+    animation: none;
+  }
+}
+
+.motion-lite .stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > * {
+  --stagger-duration: 0.22s;
+  --stagger-base: 6ms;
+  --stagger-step: 12ms;
+  --rise-y: 2px;
+  --rise-scale: 0.997;
+}
+
+.motion-lite .animate-page-enter,
+.motion-lite .animate-soft-rise,
+.motion-lite .animate-slideUp,
+.motion-lite .animate-slideDown,
+.motion-lite .animate-slideInLeft,
+.motion-lite .animate-slideInRight,
+.motion-lite .animate-scaleIn {
+  animation-duration: 0.2s !important;
+}
+
+.motion-lite .hover-lift:hover {
+  transform: translateY(-1px) !important;
+}
+
+.motion-lite .hover-glow:hover,
+.motion-lite .animate-float,
+.motion-lite .animate-spin-slow,
+.motion-lite .animate-pulse-slow {
+  animation: none !important;
+}
+
+.motion-lite .interactive-smooth,
+.motion-lite .transition-smooth {
+  transition-duration: 0.16s !important;
+}
+
 /* Theme transition for interactive elements only */
 :where(button, [role="button"], a, input, select, textarea, .card-enhanced, [data-slot]) {
   transition: 
@@ -541,7 +593,7 @@ html[data-theme="dark"] {
 @keyframes soft-rise {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.98);
+    transform: translateY(var(--rise-y, 8px)) scale(var(--rise-scale, 0.98));
   }
   to {
     opacity: 1;
@@ -626,6 +678,75 @@ html[data-theme="dark"] {
   animation-duration: 0.48s;
 }
 
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > * {
+  --stagger-duration: 0.42s;
+  --stagger-base: 35ms;
+  --stagger-step: 45ms;
+  --rise-y: 8px;
+  --rise-scale: 0.98;
+  opacity: 0;
+  animation-name: soft-rise;
+  animation-duration: var(--stagger-duration);
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > *:nth-child(1) { animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 0); }
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > *:nth-child(2) { animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 1); }
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > *:nth-child(3) { animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 2); }
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > *:nth-child(4) { animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 3); }
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > *:nth-child(5) { animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 4); }
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > *:nth-child(6) { animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 5); }
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > *:nth-child(7) { animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 6); }
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > *:nth-child(8) { animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 7); }
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > *:nth-child(9) { animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 8); }
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > *:nth-child(10) { animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 9); }
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > *:nth-child(11) { animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 10); }
+.stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > *:nth-child(12) { animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 11); }
+
+.stagger-items .stagger-kind-stats {
+  --stagger-duration: 0.32s;
+  --stagger-base: 16ms;
+  --stagger-step: 24ms;
+}
+
+.stagger-items .stagger-kind-card {
+  --stagger-duration: 0.44s;
+  --stagger-base: 28ms;
+  --stagger-step: 42ms;
+}
+
+.stagger-items tbody > tr {
+  --stagger-duration: 0.6s;
+  --stagger-base: 70ms;
+  --stagger-step: 78ms;
+}
+
+@media (max-width: 768px) {
+  .stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > * {
+    --stagger-duration: 0.34s;
+    --stagger-base: 18ms;
+    --stagger-step: 30ms;
+    --rise-y: 6px;
+    --rise-scale: 0.99;
+  }
+
+  .stagger-items tbody > tr {
+    --stagger-duration: 0.46s;
+    --stagger-base: 30ms;
+    --stagger-step: 44ms;
+  }
+}
+
+.dark .stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > * {
+  --rise-y: 5px;
+  --rise-scale: 0.992;
+}
+
+.dark .hover-lift:hover {
+  transform: translateY(-3px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-page-enter,
   .animate-soft-rise,
@@ -639,6 +760,11 @@ html[data-theme="dark"] {
   }
 
   .stagger-scope > * > * {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  .stagger-items :is(.grid, [class*="grid-cols-"], [class*="space-y-"], ul, ol, [role="list"], tbody) > * {
     animation: none !important;
     opacity: 1 !important;
   }

@@ -221,7 +221,7 @@ export default function Home() {
 
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 stagger-items">
       <Navbar />
 
       {/* Hero Section - Premium Education Platform */}

@@ -45,7 +45,7 @@ export function CourseCard({ id, title, teacher, price, rating, image, students 
           <motion.div 
             whileHover={{ y: -8, scale: 1.01 }}
             transition={{ type: "spring", stiffness: 260, damping: 22 }}
-            className="rounded-3xl overflow-hidden border border-border dark:border-slate-800 hover:border-primary dark:hover:border-accent transition-smooth bg-card dark:bg-slate-900/60 hover:shadow-2xl cursor-pointer group flex flex-col h-full interactive-smooth"
+            className="rounded-3xl overflow-hidden border border-border dark:border-slate-800 hover:border-primary dark:hover:border-accent transition-smooth bg-card dark:bg-slate-900/60 hover:shadow-2xl cursor-pointer group flex flex-col h-full interactive-smooth stagger-kind-card"
           >
             <div className="relative h-56 w-full overflow-hidden bg-secondary dark:bg-slate-800 flex-shrink-0">
               <Image
