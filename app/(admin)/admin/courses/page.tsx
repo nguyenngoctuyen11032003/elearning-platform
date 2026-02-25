@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Edit, Trash2, Eye, Search, MoreVertical, CheckCircle, Clock, XCircle, BookOpen, Users, DollarSign, Star, X, AlertCircle, BarChart3 } from "lucide-react"
 import { ConfirmDialog } from "@/components/ui/admin-modals"
 import { formatStudentCount, formatPrice } from "@/lib/format"
@@ -126,6 +126,8 @@ export default function AdminCoursesPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [courses, setCourses] = useState(initialCourses)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "edit" | "reject" | null>(null)
   const [rejectionReason, setRejectionReason] = useState("")
@@ -383,51 +385,25 @@ export default function AdminCoursesPage() {
                           Xem trước
                         </button>
                         <button
-                          onClick={() => setOpenMenu(openMenu === course.id ? null : course.id)}
+                          onClick={e => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const menuWidth = 208; // min-w-52 = 13rem = 208px
+                            let left = rect.right - menuWidth;
+                            if (left < 8) left = 8;
+                            if (left + menuWidth > window.innerWidth - 8) {
+                              left = window.innerWidth - menuWidth - 8;
+                            }
+                            setMenuPos({
+                              x: left + window.scrollX,
+                              y: rect.bottom + window.scrollY,
+                            });
+                            setOpenMenu(course.id);
+                          }}
                           className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
                         >
                           <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
                         </button>
                       </div>
-                      {openMenu === course.id && (
-                        <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-10 min-w-52">
-                          <Link
-                            href={`/admin/courses/${course.id}`}
-                            className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
-                            onClick={() => setOpenMenu(null)}
-                          >
-                            <Eye size={16} /> <span className="font-medium">Chi tiết đầy đủ</span>
-                          </Link>
-                          <button
-                            onClick={() => handleCourseAction("edit", course.id, course)}
-                            className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white border-t border-border dark:border-slate-800"
-                          >
-                            <Edit size={16} /> <span className="font-medium">Chỉnh sửa</span>
-                          </button>
-                          {course.status === "pending" && (
-                            <>
-                              <button
-                                onClick={() => handleCourseAction("approve", course.id, course)}
-                                className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-green-600 dark:text-green-400 border-t border-border dark:border-slate-800"
-                              >
-                                <CheckCircle size={16} /> <span className="font-medium">Duyệt khóa học</span>
-                              </button>
-                              <button
-                                onClick={() => handleCourseAction("reject", course.id, course)}
-                                className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-yellow-600 dark:text-yellow-400 border-t border-border dark:border-slate-800"
-                              >
-                                <XCircle size={16} /> <span className="font-medium">Từ chối</span>
-                              </button>
-                            </>
-                          )}
-                          <button
-                            onClick={() => handleCourseAction("delete", course.id, course)}
-                            className="w-full text-left px-4 py-3 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive border-t border-border dark:border-slate-800 rounded-b-lg"
-                          >
-                            <Trash2 size={16} /> <span className="font-medium">Xóa khóa học</span>
-                          </button>
-                        </div>
-                      )}
                     </td>
                   </tr>
                 ))}
@@ -444,7 +420,71 @@ export default function AdminCoursesPage() {
         </div>
       </div>
 
-      {/* View Course Detail Modal */}
+      {/* Action Menu rendered OUTSIDE table for correct overlay */}
+      {openMenu && menuPos && (
+        <div
+          ref={menuRef}
+          className="fixed z-[9999] bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg min-w-52"
+          style={{ top: menuPos.y + 8, left: menuPos.x }}
+        >
+          <Link
+            href={`/admin/courses/${openMenu}`}
+            className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
+            onClick={() => { setOpenMenu(null); setMenuPos(null); }}
+          >
+            <Eye size={16} /> <span className="font-medium">Chi tiết đầy đủ</span>
+          </Link>
+          <button
+            onClick={() => {
+              const course = filteredCourses.find(c => c.id === openMenu);
+              if (course) handleCourseAction("edit", course.id, course);
+              setOpenMenu(null);
+              setMenuPos(null);
+            }}
+            className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white border-t border-border dark:border-slate-800"
+          >
+            <Edit size={16} /> <span className="font-medium">Chỉnh sửa</span>
+          </button>
+          {(() => {
+            const course = filteredCourses.find(c => c.id === openMenu);
+            if (course?.status === "pending") return <>
+              <button
+                onClick={() => {
+                  handleCourseAction("approve", course.id, course);
+                  setOpenMenu(null);
+                  setMenuPos(null);
+                }}
+                className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-green-600 dark:text-green-400 border-t border-border dark:border-slate-800"
+              >
+                <CheckCircle size={16} /> <span className="font-medium">Duyệt khóa học</span>
+              </button>
+              <button
+                onClick={() => {
+                  handleCourseAction("reject", course.id, course);
+                  setOpenMenu(null);
+                  setMenuPos(null);
+                }}
+                className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-yellow-600 dark:text-yellow-400 border-t border-border dark:border-slate-800"
+              >
+                <XCircle size={16} /> <span className="font-medium">Từ chối</span>
+              </button>
+            </>;
+            return null;
+          })()}
+          <button
+            onClick={() => {
+              const course = filteredCourses.find(c => c.id === openMenu);
+              if (course) handleCourseAction("delete", course.id, course);
+              setOpenMenu(null);
+              setMenuPos(null);
+            }}
+            className="w-full text-left px-4 py-3 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive border-t border-border dark:border-slate-800 rounded-b-lg"
+          >
+            <Trash2 size={16} /> <span className="font-medium">Xóa khóa học</span>
+          </button>
+        </div>
+      )}
+
       {viewMode === "view" && selectedCourse && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
