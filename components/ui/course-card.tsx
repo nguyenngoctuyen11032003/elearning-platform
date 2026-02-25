@@ -39,19 +39,20 @@ export function CourseCard({ id, title, teacher, price, rating, image, students 
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         whileInView={{ opacity: 1, y: 0, scale: 1 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         <Link href={`/courses/${id}`}>
           <motion.div 
-            whileHover={{ y: -8 }}
-            className="rounded-3xl overflow-hidden border border-border dark:border-slate-800 hover:border-primary dark:hover:border-accent transition-smooth bg-card dark:bg-slate-900/60 hover:shadow-2xl cursor-pointer group flex flex-col h-full"
+            whileHover={{ y: -8, scale: 1.01 }}
+            transition={{ type: "spring", stiffness: 260, damping: 22 }}
+            className="rounded-3xl overflow-hidden border border-border dark:border-slate-800 hover:border-primary dark:hover:border-accent transition-smooth bg-card dark:bg-slate-900/60 hover:shadow-2xl cursor-pointer group flex flex-col h-full interactive-smooth"
           >
             <div className="relative h-56 w-full overflow-hidden bg-secondary dark:bg-slate-800 flex-shrink-0">
               <Image
                 src={image || "/placeholder.svg"}
                 alt={title}
                 fill
-                className="object-cover group-hover:scale-110 transition-smooth duration-300"
+                className="object-cover group-hover:scale-110 transition-smooth duration-500"
               />
             </div>
             <div className="p-6 space-y-4 flex-1 flex flex-col">

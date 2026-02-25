@@ -45,11 +45,11 @@ export function AiTutorChat() {
   }
 
   return (
-    <>
+    <div className="fixed inset-0 pointer-events-none z-40">
       {/* Chat Button */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full shadow-lg flex items-center justify-center text-white z-40"
+        className="pointer-events-auto fixed bottom-5 right-4 sm:bottom-8 sm:right-8 w-14 h-14 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full shadow-lg flex items-center justify-center text-white"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
       >
@@ -63,7 +63,7 @@ export function AiTutorChat() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-8 w-96 h-96 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-2xl flex flex-col z-40"
+            className="pointer-events-auto fixed bottom-24 right-4 sm:right-8 w-[calc(100vw-2rem)] sm:w-96 h-[min(70vh,24rem)] bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-2xl flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-slate-800">
@@ -113,6 +113,6 @@ export function AiTutorChat() {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   )
 }

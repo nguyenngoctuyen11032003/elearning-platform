@@ -3,5 +3,5 @@
 import type React from "react"
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return <div className="animate-page-enter stagger-scope stagger-marketing">{children}</div>
 }

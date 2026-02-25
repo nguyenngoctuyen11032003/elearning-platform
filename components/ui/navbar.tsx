@@ -25,6 +25,21 @@ export function Navbar() {
   }, [])
 
   useEffect(() => {
+    setIsOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+    }
+  }, [isOpen])
+
+  useEffect(() => {
     if (pathname === "/") {
       document.body.dataset.chatbot = "header"
     } else {
@@ -280,12 +295,21 @@ export function Navbar() {
         )}
       </div>
 
-      <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}>
+      <button
+        className="md:hidden inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border dark:border-slate-800 bg-card/90 dark:bg-slate-900/80"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label={isOpen ? "Đóng menu" : "Mở menu"}
+      >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
       {isOpen && (
-        <div className="absolute top-16 left-0 right-0 bg-background dark:bg-slate-950 border-b border-border dark:border-slate-800 p-4 md:hidden">
+        <>
+          <div
+            className="fixed inset-0 top-16 bg-black/35 md:hidden z-40"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute top-16 left-0 right-0 bg-background dark:bg-slate-950 border-b border-border dark:border-slate-800 p-4 md:hidden z-50 shadow-xl">
           <nav className="flex flex-col gap-4">
             <Link href="/" className="text-sm hover:text-primary transition-smooth flex items-center gap-2">
               <Home size={16} /> Trang chủ
@@ -358,7 +382,8 @@ export function Navbar() {
               </>
             )}
           </nav>
-        </div>
+          </div>
+        </>
       )}
     </header>
   )
