@@ -1,6 +1,13 @@
 "use client"
 
-import type React from "react"
+import React from "react"
+
+// Extend the Window interface to include __modalOpenCount
+declare global {
+  interface Window {
+    __modalOpenCount?: number
+  }
+}
 
 import { X, AlertCircle } from "lucide-react"
 import { useState } from "react"
@@ -14,6 +21,26 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children, size = "md" }: ModalProps) {
+  // Modal open counter to handle multiple modals, only set overflow
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!window.__modalOpenCount) window.__modalOpenCount = 0;
+    if (isOpen) {
+      window.__modalOpenCount++;
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      if (isOpen) {
+        if (typeof window.__modalOpenCount === "number") {
+          window.__modalOpenCount--;
+          if (window.__modalOpenCount <= 0) {
+            document.body.style.overflow = '';
+            window.__modalOpenCount = 0;
+          }
+        }
+      }
+    };
+  }, [isOpen]);
   if (!isOpen) return null
 
   const sizeClasses = {
@@ -23,9 +50,13 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }: ModalPr
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
       <div
         className={`bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl ${sizeClasses[size]} w-full`}
+        onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border dark:border-slate-800">
@@ -39,7 +70,11 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }: ModalPr
         </div>
 
         {/* Content */}
-        <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">{children}</div>
+        <div
+          className="p-6 max-h-[80dvh] overflow-y-auto modal-content-scroll"
+        >
+          {children}
+        </div>
       </div>
     </div>
   )
