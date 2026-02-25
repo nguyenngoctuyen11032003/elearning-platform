@@ -531,7 +531,7 @@ export default function AdminPaymentsPage() {
               {/* Transaction Reference */}
               <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                 <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">Mã tham chiếu giao dịch</p>
-                <p className="text-foreground dark:text-white font-mono text-sm">{selectedPayment.transactionId}</p>
+                <p className="text-foreground dark:text-white text-sm font-medium">{selectedPayment.transactionId}</p>
               </div>
             </div>
           </div>

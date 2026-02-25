@@ -205,7 +205,7 @@ if (loading) {
           <div className="relative z-10 space-y-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white mb-2 drop-shadow-lg">Bảng điều khiển quản trị</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">Bảng điều khiển quản trị</h1>
                 <p className="text-black/80 dark:text-white/90 drop-shadow">Tổng quan hệ thống ICS Learning - Quản lý toàn diện</p>
               </div>
               <div className="flex gap-2 flex-wrap">

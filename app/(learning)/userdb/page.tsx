@@ -381,12 +381,12 @@ export default function StudentDashboardPage() {
             <div className="flex items-center gap-4">
               <div className="text-center px-6 py-3 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl">
                 <Flame className="w-8 h-8 text-orange-500 mx-auto mb-1 drop-shadow" />
-                <p className="text-2xl font-bold text-black dark:text-white drop-shadow">{stats.streakDays}</p>
+                <p className="text-2xl font-bold text-white drop-shadow">{stats.streakDays}</p>
                 <p className="text-xs text-black/70 dark:text-white/80 drop-shadow">Ngày gần đây</p>
               </div>
               <div className="text-center px-6 py-3 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl">
                 <Target className="w-8 h-8 text-green-500 mx-auto mb-1 drop-shadow" />
-                <p className="text-2xl font-bold text-black dark:text-white drop-shadow">{stats.weeklyGoal}%</p>
+                <p className="text-2xl font-bold text-white drop-shadow">{stats.weeklyGoal}%</p>
                 <p className="text-xs text-black/70 dark:text-white/80 drop-shadow">Mục tiêu tuần</p>
               </div>
             </div>
@@ -403,7 +403,7 @@ export default function StudentDashboardPage() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-black/70 dark:text-white/80 mb-1 drop-shadow">{stat.label}</p>
-                  <p className="text-2xl font-bold text-black dark:text-white drop-shadow">{stat.value}</p>
+                  <p className="text-2xl font-bold text-white drop-shadow">{stat.value}</p>
                   <p className="text-xs text-green-600 dark:text-green-400 mt-1 drop-shadow">{stat.sublabel}</p>
                 </div>
               </div>

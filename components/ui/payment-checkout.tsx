@@ -468,7 +468,7 @@ export function PaymentSuccess({
         <p className="text-sm text-muted-foreground dark:text-slate-400">
           Mã đơn hàng
         </p>
-        <p className="font-mono font-bold text-foreground dark:text-white">{orderId}</p>
+        <p className="font-bold text-foreground dark:text-white">{orderId}</p>
       </div>
       <Button onClick={onContinue} className="w-full">
         Bắt đầu học ngay

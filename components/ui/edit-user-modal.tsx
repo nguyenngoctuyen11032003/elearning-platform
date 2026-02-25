@@ -273,7 +273,7 @@ if (!user) return null
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground dark:text-slate-500">ID:</span>{" "}
-                <span className="text-foreground dark:text-white font-mono">{String(user.id).slice(0, 8)
+                <span className="text-foreground dark:text-white font-medium">{String(user.id).slice(0, 8)
 }...</span>
               </div>
               <div>

@@ -284,7 +284,7 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 p-3 bg-secondary dark:bg-slate-700 rounded-lg text-sm font-mono text-center">
+                    <code className="flex-1 p-3 bg-secondary dark:bg-slate-700 rounded-lg text-sm font-medium text-center">
                       {showSecret ? setupData.secret : "••••••••••••••••"}
                     </code>
                     <button
@@ -330,7 +330,7 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                     placeholder="000000"
                     value={verificationCode}
                     onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
-                    className="text-center text-2xl tracking-[0.5em] font-mono"
+                    className="text-center text-2xl tracking-[0.5em] font-medium"
                   />
                   {error && (
                     <p className="text-sm text-destructive flex items-center gap-1 justify-center">
@@ -394,7 +394,7 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                   {setupData.backupCodes.map((code, index) => (
                     <div
                       key={index}
-                      className="p-2 bg-secondary dark:bg-slate-700 rounded-lg text-center font-mono text-sm"
+                      className="p-2 bg-secondary dark:bg-slate-700 rounded-lg text-center font-medium text-sm"
                     >
                       {code}
                     </div>
@@ -529,7 +529,7 @@ export function TwoFactorVerify({
             placeholder="Nhập mã xác thực"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            className="text-center text-xl tracking-wider font-mono"
+            className="text-center text-xl tracking-wider font-medium"
           />
 
           {error && (

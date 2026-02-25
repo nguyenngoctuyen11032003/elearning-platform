@@ -131,6 +131,7 @@
     box-sizing: border-box;
   }
   body {
+    font-family: var(--font-sans);
     @apply bg-background text-foreground leading-relaxed;
     font-size: clamp(15px, 0.25vw + 14px, 17px);
     line-height: 1.65;
@@ -705,6 +706,13 @@ h1, h2, h3, h4, h5, h6 {
   select,
   textarea {
     font-size: 16px;
+  }
+
+  button,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    min-height: 44px;
   }
 
   .page-shell {

@@ -774,7 +774,7 @@ export default function Home() {
                 className="group relative p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
               >
                 {/* Quote Icon */}
-                <div className="absolute top-6 right-6 text-6xl text-blue-100 dark:text-blue-900/30 font-serif">"</div>
+                <div className="absolute top-6 right-6 text-6xl text-blue-100 dark:text-blue-900/30">"</div>
 
                 {/* Rating */}
                 <div className="flex gap-1 mb-4">
