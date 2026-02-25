@@ -26,7 +26,7 @@ export function TeacherSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
-  const [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { config } = useSystemConfig()
@@ -40,7 +40,8 @@ export function TeacherSidebar() {
       {/* Mobile Toggle */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-40 md:hidden p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg"
+        className="fixed top-4 left-4 z-50 md:hidden p-2.5 bg-card dark:bg-slate-900 rounded-xl border border-border dark:border-slate-800 shadow-lg hover:bg-secondary dark:hover:bg-slate-800"
+        aria-label={isOpen ? "Đóng menu" : "Mở menu"}
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>

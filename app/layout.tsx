@@ -73,6 +73,15 @@ window.__gim.licenseId = "604927107960698062";
     container.style.transform = "none";
     container.style.willChange = "transform";
     container.style.zIndex = "2147483647";
+    container.style.pointerEvents = "none";
+    container.style.width = "auto";
+    container.style.height = "auto";
+
+    var chatButton = document.getElementById("gim-bot-tool-button");
+    if (chatButton) {
+      chatButton.style.pointerEvents = "auto";
+      chatButton.style.touchAction = "manipulation";
+    }
     
     // Handle bot container (chat panel)
     var botContainer = document.getElementById("gim-bot-tool-bot-container");
@@ -85,6 +94,7 @@ window.__gim.licenseId = "604927107960698062";
       botContainer.style.bottom = "96px";
       botContainer.style.top = "auto";
       botContainer.style.zIndex = "10000";
+      botContainer.style.pointerEvents = "auto";
     }
   };
 

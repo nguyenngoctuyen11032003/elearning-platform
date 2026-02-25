@@ -51,16 +51,16 @@ useEffect(() => {
       { name: "DevOps", href: "/courses?category=devops" },
     ],
     support: [
-      { name: "Trung tâm hỗ trợ", href: "/support" },
+      { name: "Trung tâm hỗ trợ", href: "/faq" },
       { name: "Câu hỏi thường gặp", href: "/faq" },
       { name: "Liên hệ", href: "/contact" },
-      { name: "Phản hồi", href: "/feedback" },
+      { name: "Phản hồi", href: "/contact" },
     ],
     company: [
       { name: "Về chúng tôi", href: "/about" },
       { name: "Đội ngũ giảng viên", href: "/teachers" },
-      { name: "Tuyển dụng", href: "/careers" },
-      { name: "Blog", href: "/blog" },
+      { name: "Tuyển dụng", href: "/about" },
+      { name: "Blog", href: "/courses" },
     ],
     legal: [
       { name: "Điều khoản sử dụng", href: "/terms" },
@@ -260,7 +260,7 @@ const fixUrl = (url: string) => {
       <div className="border-t border-slate-200 dark:border-slate-800 bg-gray-200 dark:bg-gray-800">
         <div className="w-full border-b border-gray-400 dark:border-gray-500">
           {/* Contact Info */}
-          <div className="mt-8 mb-8 pb-8 border-b border-gray-400 dark:border-gray-500 px-10 md:px-12">
+          <div className="mt-8 mb-8 pb-8 border-b border-gray-400 dark:border-gray-500 px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8
                 items-center
                 divide-y md:divide-y-0 md:divide-x
@@ -297,10 +297,8 @@ const fixUrl = (url: string) => {
                 <h4 className="text-xs text-muted-foreground dark:text-slate-500 uppercase tracking-wide font-semibold mb-3">Theo dõi</h4>
                 <div className="flex gap-3">
                   {socialLinks.map((social) => {
-                    console.log("SOCIAL:", social.href)
                     const Icon = social.icon
                     const url = fixUrl(social.href)
-                    console.log("FIXED:", url)
                     return (
                       <a
                         key={social.label}
@@ -335,7 +333,7 @@ const fixUrl = (url: string) => {
           </div>
                   
           {/* Copyright and Legal */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center text-center md:text-left px-10 md:px-12 py-5 -mt-[30px]">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center text-center md:text-left px-4 sm:px-6 lg:px-8 py-5">
             <div className="flex items-center justify-center md:justify-start">
               <p className="text-sm text-muted-foreground dark:text-slate-400 font-medium">
                 © {currentYear}{' '}
@@ -346,7 +344,7 @@ const fixUrl = (url: string) => {
             </div>
 
             {/* Legal Links */}
-            <div className="flex flex-nowrap items-center justify-center gap-4 text-center">
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-center">
               {footerLinks.legal.map((link, idx) => (
                 <div key={link.name} className="flex items-center gap-4 whitespace-nowrap">
                   <Link
@@ -411,7 +409,7 @@ export function CompactFooter() {
               Bảo mật
             </Link>
             <div className="h-3 w-px bg-slate-300 dark:bg-slate-700" />
-            <Link href="/support" className="text-xs text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium">
+            <Link href="/faq" className="text-xs text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium">
               Hỗ trợ
             </Link>
           </div>
