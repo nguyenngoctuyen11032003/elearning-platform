@@ -246,7 +246,7 @@ export default function AdminCoursesPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
@@ -296,7 +296,7 @@ export default function AdminCoursesPage() {
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
             <input
@@ -329,20 +329,26 @@ export default function AdminCoursesPage() {
           </div>
         </div>
 
-        {/* Courses Table */}
-        <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp" style={{ animationDelay: "0.2s" }}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        {/* Courses Table (Desktop/Tablet) */}
+        <div className="hidden lg:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp w-full" style={{ animationDelay: "0.2s" }}>
+          <div className="relative w-full">
+            <table className="w-full min-w-[500px] text-sm table-fixed">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800 bg-white/50 dark:bg-slate-800/50">
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Khóa học</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Giảng viên</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Danh mục</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Giá</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Học viên</th>
+                  <th className="px-6 py-4 min-w-[120px]">Giá</th>
+                  <th className="px-6 py-4 min-w-[100px]">Học viên</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Trạng thái</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Ngày tạo</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Hành động</th>
+                  <th className="px-6 py-4 min-w-[100px]">Ngày tạo</th>
+                  <th
+  className=" right-0 top-auto z-20 min-w-[140px]
+             bg-white/90 dark:bg-slate-900/90 backdrop-blur
+             text-left py-4 px-6 font-semibold"
+>
+  Hành động
+</th>
                 </tr>
               </thead>
               <tbody>
@@ -359,7 +365,7 @@ export default function AdminCoursesPage() {
                           className="w-12 h-12 rounded-lg object-cover bg-secondary"
                         />
                         <div>
-                          <p className="text-foreground dark:text-white font-medium line-clamp-1">{course.title}</p>
+                          <p className="text-foreground dark:text-white font-medium line-clamp-2 break-words">{course.title}</p>
                           <p className="text-muted-foreground dark:text-slate-400 text-xs">{course.lessons} bài học • {course.duration}</p>
                         </div>
                       </div>
@@ -376,7 +382,7 @@ export default function AdminCoursesPage() {
                     <td className="py-4 px-6 text-foreground dark:text-white" data-label="Học viên">{formatStudentCount(course.students)}</td>
                     <td className="py-4 px-6" data-label="Trạng thái">{getStatusBadge(course.status)}</td>
                     <td className="py-4 px-6 text-muted-foreground dark:text-slate-400" data-label="Ngày tạo">{formatDate(course.createdAt)}</td>
-                    <td className="py-4 px-6 relative" data-label="Hành động">
+                    <td className="py-4 px-6 relative">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleCourseAction("view", course.id, course)}
@@ -416,6 +422,78 @@ export default function AdminCoursesPage() {
               <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy khóa học nào</p>
             </div>
+          )}
+        </div>
+
+        {/* Courses Card Layout (Mobile/Z Fold) */}
+        <div className="block lg:hidden space-y-4">
+          {filteredCourses.length === 0 ? (
+            <div className="py-12 text-center">
+              <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy khóa học nào</p>
+            </div>
+          ) : (
+            filteredCourses.map(course => (
+              <div
+                key={course.id}
+                className="bg-slate-800/80 rounded-xl p-4 space-y-3"
+              >
+                <div className="flex gap-3">
+                  <img className="w-12 h-12 rounded-lg object-cover" src={course.thumbnail} alt={course.title} />
+                  <div className="flex-1">
+                    <p className="font-semibold text-white line-clamp-2">{course.title}</p>
+                    <p className="text-xs text-slate-400">{course.instructor}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-slate-400">Giá</p>
+                    <p className="font-medium">₫{formatPrice(course.price)}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">Học viên</p>
+                    <p>{formatStudentCount(course.students)}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">Trạng thái</p>
+                    {getStatusBadge(course.status)}
+                  </div>
+                  <div>
+                    <p className="text-slate-400">Ngày tạo</p>
+                    <p>{formatDate(course.createdAt)}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    className="flex-1 bg-primary/20 text-primary py-2 rounded-lg"
+                    onClick={() => handleCourseAction("view", course.id, course)}
+                  >
+                    Xem trước
+                  </button>
+                  <button
+                    className="p-2 bg-slate-700 rounded-lg"
+                    onClick={e => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const menuWidth = 208;
+                      let left = rect.right - menuWidth;
+                      if (left < 8) left = 8;
+                      if (left + menuWidth > window.innerWidth - 8) {
+                        left = window.innerWidth - menuWidth - 8;
+                      }
+                      setMenuPos({
+                        x: left + window.scrollX,
+                        y: rect.bottom + window.scrollY,
+                      });
+                      setOpenMenu(course.id);
+                    }}
+                  >
+                    <MoreVertical size={18} className="text-white" />
+                  </button>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
@@ -488,7 +566,7 @@ export default function AdminCoursesPage() {
       {viewMode === "view" && selectedCourse && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
+            <div className="sticky top-0 bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 border-b border-border dark:border-slate-800 p-4 md:p-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                   <BookOpen className="text-white" size={20} />
@@ -503,31 +581,22 @@ export default function AdminCoursesPage() {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-4 md:p-6 space-y-4 md:space-y-6">
               {/* Course Header */}
-              <div className="bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 p-6 rounded-xl border border-border dark:border-slate-800">
-                <div className="flex gap-6">
+              <div className="bg-gradient-to-br from-primary/5 to-accent/5 p-4 md:p-6 rounded-xl">
+                <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                   <img
-                    src={selectedCourse.thumbnail}
+                    src={selectedCourse.thumbnail || "/image/course-placeholder.png"}
                     alt={selectedCourse.title}
-                    className="w-48 h-32 rounded-xl object-cover bg-secondary shadow-lg"
+                    className="w-full md:w-48 h-40 md:h-32 rounded-xl object-cover bg-secondary"
                   />
                   <div className="flex-1">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-2xl font-bold text-foreground dark:text-white mb-2">{selectedCourse.title}</h3>
-                        <p className="text-muted-foreground dark:text-slate-400 leading-relaxed">{selectedCourse.description}</p>
-                      </div>
-                      {getStatusBadge(selectedCourse.status)}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm pt-3 border-t border-border dark:border-slate-700">
-                      <span className="px-3 py-1 bg-secondary dark:bg-slate-800 rounded-lg font-medium text-foreground dark:text-white">
-                        {selectedCourse.category}
-                      </span>
-                      <span className="text-muted-foreground dark:text-slate-400">
-                        {selectedCourse.lessons} bài học • {selectedCourse.duration}
-                      </span>
-                    </div>
+                    <h3 className="text-xl md:text-2xl font-bold break-words mb-2 text-foreground dark:text-white">
+                      {selectedCourse.title}
+                    </h3>
+                    <p className="text-sm md:text-base text-muted-foreground dark:text-slate-400 leading-relaxed">
+                      {selectedCourse.description}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -551,7 +620,7 @@ export default function AdminCoursesPage() {
                   <BarChart3 size={20} className="text-primary dark:text-accent" />
                   Hiệu quả khóa học
                 </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
                   <div className="bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 p-5 rounded-xl">
                     <Users size={24} className="text-blue-500 mb-3" />
                     <p className="text-3xl font-bold text-foreground dark:text-white">{formatStudentCount(selectedCourse.students)}</p>

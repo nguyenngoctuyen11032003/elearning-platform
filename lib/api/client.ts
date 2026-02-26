@@ -12,6 +12,9 @@ import {
 } from './types';
 
 class ApiClient {
+  get(arg0: string): any {
+    throw new Error("Method not implemented.");
+  }
   async getSystemSettings(): Promise<Record<string, any>> {
     return this.request('/system-settings')
   }

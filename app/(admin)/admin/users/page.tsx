@@ -771,6 +771,17 @@ const formatDate = (dateString?: string) => {
                 </button>
                 <button
                   onClick={() => {
+                    const card = cardRefs.current[user.id]
+                    if (card && window.innerWidth < 1024) {
+                      const rect = card.getBoundingClientRect()
+                      setModalPos({
+                        top: rect.top + window.scrollY,
+                        left: rect.left + window.scrollX,
+                        width: rect.width
+                      })
+                    } else {
+                      setModalPos(null)
+                    }
                     setEditUser(user)
                     setIsEditUserOpen(true)
                   }}

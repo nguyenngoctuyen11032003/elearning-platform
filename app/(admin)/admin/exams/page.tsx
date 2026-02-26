@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Search,
   MoreVertical,
@@ -140,11 +140,36 @@ export default function AdminExamsPage() {
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "reject" | null>(null)
   const [rejectionReason, setRejectionReason] = useState("")
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean
-    action: string
-    examId?: string
-  }>({ isOpen: false, action: "" })
+  const menuRef = useRef<HTMLDivElement | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; action: string; examId?: string }>({ isOpen: false, action: "" })
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
+  const cardRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        openMenu &&
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        setOpenMenu(null)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [openMenu])
+
+  useEffect(() => {
+    const closeMenu = () => setOpenMenu(null)
+    window.addEventListener("scroll", closeMenu)
+    window.addEventListener("resize", closeMenu)
+    return () => {
+      window.removeEventListener("scroll", closeMenu)
+      window.removeEventListener("resize", closeMenu)
+    }
+  }, [])
 
   const filteredExams = exams.filter(
     (exam) =>
@@ -231,7 +256,6 @@ export default function AdminExamsPage() {
       </span>
     )
   }
-
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
@@ -354,8 +378,8 @@ export default function AdminExamsPage() {
           </select>
         </div>
 
-        {/* Exams Table */}
-        <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp" style={{ animationDelay: "0.2s" }}>
+        {/* Exams Table (Desktop/Tablet) */}
+        <div className="hidden lg:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp" style={{ animationDelay: "0.2s" }}>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-white/50 dark:bg-slate-800/50">
@@ -453,7 +477,10 @@ export default function AdminExamsPage() {
                             <MoreVertical size={18} className="text-muted-foreground" />
                           </button>
                           {openMenu === exam.id && (
-                            <div className="absolute right-0 mt-2 w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg z-10">
+                            <div
+                              ref={menuRef}
+                              className="absolute right-0 mt-2 w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg z-10"
+                            >
                               {exam.status === "pending" && (
                                 <>
                                   <button
@@ -508,18 +535,153 @@ export default function AdminExamsPage() {
           )}
         </div>
 
+        {/* Exams Card Layout (Mobile/Z Fold) */}
+        <div className="block lg:hidden space-y-4">
+          {filteredExams.length === 0 ? (
+            <div className="p-12 text-center">
+              <FileText size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
+              <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy bài thi nào</p>
+            </div>
+          ) : (
+            filteredExams.map(exam => (
+              <div
+                key={exam.id}
+                data-exam-card
+                ref={openMenu === exam.id || (selectedExam && viewMode === "view" && selectedExam.id === exam.id) ? cardRef : null}
+                className="bg-slate-800/80 rounded-xl p-4 space-y-3"
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="font-semibold text-white leading-snug line-clamp-2">{exam.title}</p>
+                    <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                      <BookOpen size={12} /> {exam.course}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-1 items-end shrink-0">
+                    {getTypeBadge(exam.type)}
+                    {getStatusBadge(exam.status)}
+                  </div>
+                </div>
+
+                {/* Meta nhanh */}
+                <div className="text-sm text-slate-300 flex items-center gap-2">
+                  <span className="font-medium">{exam.teacher}</span>
+                  <span className="text-slate-500 text-xs truncate">{exam.teacherEmail}</span>
+                </div>
+
+                {/* Cấu hình thi */}
+                <div className="grid grid-cols-2 gap-3 text-sm pt-2">
+                  <div className="flex items-center gap-2">
+                    <Timer size={14} className="text-blue-400" />
+                    <span>{exam.timeLimit} phút</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ClipboardList size={14} className="text-green-400" />
+                    <span>{exam.questionsCount} câu</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-yellow-400" />
+                    <span>{exam.passingScore}% đạt</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Award size={14} className="text-purple-400" />
+                    <span>{exam.maxAttempts} lần thi</span>
+                  </div>
+                </div>
+
+                {/* Footer action */}
+                <div className="flex items-center justify-between pt-3 border-t border-slate-700/50">
+                  <span className="text-sm text-slate-400">{exam.attemptCount} lượt thi</span>
+                  <div className="flex gap-2">
+                    <button
+                      className="px-3 py-1.5 rounded-lg bg-primary/20 text-primary text-sm"
+                      onClick={e => {
+                        const rect = (e.currentTarget.closest('[data-exam-card]') as HTMLElement)?.getBoundingClientRect();
+                        if (rect) setAnchorRect(rect);
+                        setSelectedExam(exam);
+                        setViewMode("view");
+                      }}
+                    >
+                      Xem trước
+                    </button>
+                    <button
+                      className="p-2 rounded-lg bg-slate-700"
+                      onClick={() => setOpenMenu(openMenu === exam.id ? null : exam.id)}
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Action menu for mobile */}
+                {openMenu === exam.id && (
+                  <>
+                    {/* Overlay for mobile UX */}
+                    {openMenu && (
+                      <div
+                        className="fixed inset-0 z-[9998] bg-black/10"
+                        onClick={() => setOpenMenu(null)}
+                      />
+                    )}
+                    <div
+                      ref={menuRef}
+                      className="relative right-0 bottom-0 z-20 w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg"
+                    >
+                      {exam.status === "pending" && (
+                        <>
+                          <button
+                            onClick={() => {
+                              handleApprove(exam.id)
+                              setOpenMenu(null)
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-green-500 rounded-t-xl"
+                          >
+                            <CheckCircle size={16} />
+                            <span className="font-medium">Duyệt bài thi</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedExam(exam)
+                              setViewMode("reject")
+                              setOpenMenu(null)
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-yellow-500 border-t border-border dark:border-slate-700"
+                          >
+                            <XCircle size={16} />
+                            <span className="font-medium">Từ chối</span>
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => {
+                          setConfirmDialog({ isOpen: true, action: "delete", examId: exam.id })
+                          setOpenMenu(null)
+                        }}
+                        className={`w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 ${exam.status === "pending" ? "border-t border-border dark:border-slate-700" : "rounded-xl"}`}
+                      >
+                        <XCircle size={16} />
+                        <span className="font-medium">Xóa bài thi</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+            ))
+          )}
+        </div>
+
         {/* View/Reject Modal */}
         {selectedExam && viewMode && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
-              <div className="sticky top-0 bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
+            <div className="w-full max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-2xl">
+              <div className="sticky top-0 z-10 px-4 py-3 sm:p-6 flex items-center justify-between border-b border-border dark:border-slate-800">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                     <FileText className="text-white" size={20} />
                   </div>
-                  <h2 className="text-xl font-bold text-foreground dark:text-white">
-                    {viewMode === "reject" ? "Từ chối bài thi" : "Xem trước bài thi"}
-                  </h2>
+                  <span className="text-xl font-bold text-foreground dark:text-white">{viewMode === "reject" ? "Từ chối bài thi" : "Xem trước bài thi"}</span>
                 </div>
                 <button
                   onClick={() => {
@@ -527,28 +689,26 @@ export default function AdminExamsPage() {
                     setSelectedExam(null)
                     setRejectionReason("")
                   }}
-                  className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="p-2 rounded-full hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
                 >
                   <X size={20} />
                 </button>
               </div>
-
-              <div className="p-6 space-y-6">
+              <div className="p-4 sm:p-6 space-y-6">
                 {viewMode === "view" && (
                   <>
                     {/* Exam Header */}
-                    <div className="bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 p-6 rounded-xl border border-border dark:border-slate-800">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-2xl font-bold text-foreground dark:text-white mb-2">{selectedExam.title}</h3>
-                          <p className="text-muted-foreground dark:text-slate-400 leading-relaxed">{selectedExam.description}</p>
-                        </div>
-                        <div className="flex gap-2 ml-4">
+                    <div className="bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 p-4 sm:p-6 rounded-xl border border-border dark:border-slate-800">
+                      <div className="space-y-3">
+                        <h3 className="text-xl sm:text-2xl font-bold leading-snug break-words line-clamp-2 text-foreground dark:text-white">
+                          {selectedExam.title}
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
                           {getTypeBadge(selectedExam.type)}
                           {getStatusBadge(selectedExam.status)}
                         </div>
+                        <p className="text-muted-foreground dark:text-slate-400 leading-relaxed">{selectedExam.description}</p>
                       </div>
-                      
                       {/* Course & Teacher Info */}
                       <div className="flex items-center gap-4 pt-4 border-t border-border dark:border-slate-700">
                         <div className="flex items-center gap-2 text-sm">
@@ -563,14 +723,13 @@ export default function AdminExamsPage() {
                         </div>
                       </div>
                     </div>
-
                     {/* Exam Configuration */}
                     <div>
                       <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4 flex items-center gap-2">
                         <Timer size={20} className="text-primary dark:text-accent" />
                         Cấu hình bài thi
                       </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl">
                           <div className="flex items-center gap-2 mb-2">
                             <Timer size={18} className="text-blue-500" />
@@ -605,7 +764,6 @@ export default function AdminExamsPage() {
                         </div>
                       </div>
                     </div>
-
                     {/* Certificate Info */}
                     {selectedExam.type === "official" && selectedExam.certificateTemplate && (
                       <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-2 border-purple-500/30 p-6 rounded-xl">
@@ -623,11 +781,10 @@ export default function AdminExamsPage() {
                         </div>
                       </div>
                     )}
-
                     {/* Attempt Statistics */}
                     <div className="bg-secondary/30 dark:bg-slate-800/30 p-6 rounded-xl border border-border dark:border-slate-800">
                       <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">Thống kê</h4>
-                      <div className="grid grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                         <div className="text-center">
                           <p className="text-3xl font-bold text-primary dark:text-accent">{selectedExam.attemptCount}</p>
                           <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Lượt thi</p>
@@ -644,7 +801,6 @@ export default function AdminExamsPage() {
                         </div>
                       </div>
                     </div>
-
                     {/* Rejection Reason */}
                     {selectedExam.status === "rejected" && selectedExam.rejectionReason && (
                       <div className="bg-red-500/10 border-2 border-red-500/30 p-6 rounded-xl">
@@ -657,7 +813,6 @@ export default function AdminExamsPage() {
                         </div>
                       </div>
                     )}
-
                     {/* Action Buttons */}
                     {selectedExam.status === "pending" && (
                       <div className="flex gap-3 pt-4 border-t border-border dark:border-slate-800">
@@ -683,7 +838,6 @@ export default function AdminExamsPage() {
                         </button>
                       </div>
                     )}
-
                     {/* View Full Details Link */}
                     <Link
                       href={`/admin/exams/${selectedExam.id}`}
@@ -693,7 +847,6 @@ export default function AdminExamsPage() {
                     </Link>
                   </>
                 )}
-
                 {viewMode === "reject" && (
                   <>
                     <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl">
@@ -748,7 +901,7 @@ export default function AdminExamsPage() {
         {/* Delete Confirm Dialog */}
         {confirmDialog.isOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-md p-6">
+            <div className="w-full max-w-md p-6 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl">
               <div className="flex items-center gap-3 text-red-500 mb-4">
                 <AlertCircle size={24} />
                 <h3 className="text-lg font-bold">Xác nhận xóa</h3>
@@ -777,4 +930,3 @@ export default function AdminExamsPage() {
     </div>
   )
 }
-

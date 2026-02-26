@@ -194,6 +194,30 @@ if (loading) {
     </div>
   )
 }
+  // TransactionInfoRow: reuse InfoRow for transaction cards
+  type TransactionInfoRowProps = {
+    label: string;
+    value: string;
+    highlight?: boolean;
+  };
+
+  function TransactionInfoRow({ label, value, highlight = false }: TransactionInfoRowProps) {
+    return (
+      <div className="flex justify-between items-center">
+        <span className="text-muted-foreground text-sm">{label}</span>
+        <span
+          className={
+            highlight
+              ? "font-semibold text-primary"
+              : "font-medium text-foreground"
+          }
+        >
+          {value}
+        </span>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-6 md:space-y-8">
@@ -292,7 +316,7 @@ if (loading) {
                     color: "#fff"
                   }}
                   itemStyle={{ color: "#fff" }}
-                  formatter={(value: number) => [formatCurrency(Math.round(value)), "Doanh thu"]}
+                  formatter={(value: number | undefined) => [formatCurrency(Math.round(value ?? 0)), "Doanh thu"]}
                 />
                 <Legend />
                 <Area
@@ -339,9 +363,9 @@ if (loading) {
                         color: "#fff"
                       }}
                       itemStyle={{ color: "#fff" }}
-                      formatter={(value: number, name: string, props) => [
-                        `${value} khóa (${categoryData[props?.payload?.index || 0]?.percentage ?? 0}%)`,
-                        name,
+                      formatter={(value: number | undefined, name: string | undefined, _props: any, index: number) => [
+                        `${value ?? 0} khóa (${categoryData[index]?.percentage ?? 0}%)`,
+                        name ?? "",
                       ]}
                     />
                   </PieChart>
@@ -459,22 +483,73 @@ if (loading) {
         </div>
 
         {/* Recent Transactions */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-          <h3 className="font-semibold text-foreground dark:text-white mb-4">Giao dịch gần đây</h3>
+
+        {/* ===== MOBILE TRANSACTION CARDS ===== */}
+        <div className="lg:hidden bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+          <h3 className="font-semibold text-foreground dark:text-white mb-4">
+            Giao dịch gần đây
+          </h3>
+          <div className="space-y-4">
+            {recentTransactions.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Chưa có giao dịch nào
+              </div>
+            ) : (
+              recentTransactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="bg-white/80 dark:bg-slate-900/70 border border-border dark:border-slate-800 rounded-2xl p-4 shadow-sm"
+                >
+                  {/* Header */}
+                  <div className="text-center mb-4">
+                    <p className="font-semibold text-foreground dark:text-white">
+                      {tx.user}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {tx.course}
+                    </p>
+                  </div>
+                  {/* Info rows */}
+                  <div className="space-y-2 text-sm">
+                    <TransactionInfoRow
+                      label="Số tiền"
+                      value={`₫${formatPrice(tx.amount)}`}
+                      highlight
+                    />
+                    <TransactionInfoRow
+                      label="Trạng thái"
+                      value={
+                        tx.status === "success"
+                          ? "Thành công"
+                          : tx.status === "pending"
+                          ? "Chờ xử lý"
+                          : "Thất bại"
+                      }
+                    />
+                    <TransactionInfoRow
+                      label="Ngày"
+                      value={tx.date}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* ===== DESKTOP TABLE ===== */}
+        <div className="hidden lg:block bg-card dark:bg-slate-900/60 rounded-2xl p-6">
+          <h3 className="font-semibold text-foreground dark:text-white mb-4">
+            Giao dịch gần đây
+          </h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">
-                    Người dùng
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">
-                    Khóa học
-                  </th>
+                  <th className="whitespace-nowrap py-3 px-4">Người dùng</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">Khóa học</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">Số tiền</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">
-                    Trạng thái
-                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">Trạng thái</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">Ngày</th>
                 </tr>
               </thead>
@@ -484,11 +559,9 @@ if (loading) {
                     key={transaction.id}
                     className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
                   >
-                    <td className="py-3 px-4 text-foreground dark:text-white">{transaction.user}</td>
+                    <td className="whitespace-nowrap py-3 px-4">{transaction.user}</td>
                     <td className="py-3 px-4 text-foreground dark:text-white">{transaction.course}</td>
-                    <td className="py-3 px-4 text-foreground dark:text-white">
-                      ₫{formatPrice(transaction.amount)}
-                    </td>
+                    <td className="py-3 px-4 text-foreground dark:text-white">₫{formatPrice(transaction.amount)}</td>
                     <td className="py-3 px-4">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -516,4 +589,4 @@ if (loading) {
       </div>
     </div>
   )
-}
+} 

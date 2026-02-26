@@ -57,8 +57,11 @@ export default function AdminPaymentsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "success" | "pending" | "failed">("all")
   const [isExportOpen, setIsExportOpen] = useState(false)
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
+  const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null)
+  const cardRefs = useRef<Record<string, HTMLDivElement | HTMLButtonElement | null>>({})
   const exportButtonRef = useRef<HTMLButtonElement | null>(null)
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null)
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [exportMenuPos, setExportMenuPos] = useState<{ top: number; left: number } | null>(null)
 
   // Export filters
@@ -250,7 +253,6 @@ export default function AdminPaymentsPage() {
           style={{ backgroundImage: "url('/image/bg_payment1.png')", backgroundSize: "cover", backgroundPosition: "center" }}
         >
           {/* Overlay for better readability */}
-          <div className="absolute inset-0 bg-black/15 dark:bg-black/45 rounded-3xl"></div>
 
           <div className="relative z-10 space-y-8">
             <div
@@ -272,58 +274,53 @@ export default function AdminPaymentsPage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {/* Stats Cards - Fixed height, centered content */}
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng doanh thu</p>
-                      <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">₫{formatNumber(totalRevenue)}</p>
-                    </div>
-                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                      <DollarSign size={20} className="text-green-600 dark:text-green-400" />
-                    </div>
+                <div className="bg-white/80 dark:bg-slate-900/80 border border-white/20 rounded-2xl p-4 sm:p-6 shadow-lg flex items-center justify-between h-36">
+                  <div className="min-w-0">
+                    <p className="text-sm text-muted-foreground">
+                      Tổng doanh thu
+                    </p>
+                    <p className="text-lg sm:text-xl font-bold text-green-600 whitespace-nowrap">
+                      ₫{formatNumber(totalRevenue)}
+                    </p>
+                  </div>
+
+                  <div className="w-10 h-10 flex-shrink-0 bg-green-100 rounded-lg flex items-center justify-center">
+                    <DollarSign size={20} className="text-green-600" />
                   </div>
                 </div>
               </div>
-              
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Đang chờ xử lý</p>
-                      <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">₫{formatNumber(pendingAmount)}</p>
-                    </div>
-                    <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                      <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
-                    </div>
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg h-36 flex flex-col justify-between items-center">
+                  <div className="flex flex-col items-center w-full">
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Đang chờ xử lý</p>
+                    <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">₫{formatNumber(pendingAmount)}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center mt-2">
+                    <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
                   </div>
                 </div>
               </div>
-              
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Giao dịch thành công</p>
-                      <p className="text-xl font-bold text-foreground dark:text-white mt-1">{successCount}</p>
-                    </div>
-                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                      <TrendingUp size={20} className="text-blue-600 dark:text-blue-400" />
-                    </div>
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg h-36 flex flex-col justify-between items-center">
+                  <div className="flex flex-col items-center w-full">
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Giao dịch thành công</p>
+                    <p className="text-xl font-bold text-foreground dark:text-white mt-1">{successCount}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mt-2">
+                    <TrendingUp size={20} className="text-blue-600 dark:text-blue-400" />
                   </div>
                 </div>
               </div>
-              
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng giao dịch</p>
-                      <p className="text-xl font-bold text-foreground dark:text-white mt-1">{totalTransactions}</p>
-                    </div>
-                    <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                      <CreditCard size={20} className="text-purple-600 dark:text-purple-400" />
-                    </div>
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg h-36 flex flex-col justify-between items-center">
+                  <div className="flex flex-col items-center w-full">
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">Tổng giao dịch</p>
+                    <p className="text-xl font-bold text-foreground dark:text-white mt-1">{totalTransactions}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mt-2">
+                    <CreditCard size={20} className="text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
               </div>
@@ -364,9 +361,189 @@ export default function AdminPaymentsPage() {
             ))}
           </div>
         </div>
+{/* Payments Card – Mobile & Small Tablet */}
+<div className="block lg:hidden space-y-4 mb-6">
+  {filteredPayments.map(payment => (
+    <div
+  key={payment.id}
+  ref={(el) => { cardRefs.current[payment.id] = el; }}
+  className="relative w-full bg-slate-800/80 rounded-xl p-4 space-y-3"
+>
+      {/* HEADER */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <p className="font-semibold text-white leading-snug line-clamp-2">
+            {payment.user}
+          </p>
+          <p className="text-xs text-slate-400 mt-1">
+            {payment.course}
+          </p>
+        </div>
+        {/* STATUS BADGE */}
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-medium border ${
+            payment.status === "success"
+              ? "bg-green-500/10 text-green-400 border-green-500/20"
+              : payment.status === "pending"
+              ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+              : "bg-red-500/10 text-red-400 border-red-500/20"
+          }`}
+        >
+          {payment.status === "success"
+            ? "Thành công"
+            : payment.status === "pending"
+            ? "Chờ xử lý"
+            : "Thất bại"}
+        </span>
+      </div>
+      {/* GIẢNG VIÊN */}
+      <div className="text-sm text-slate-300">
+        {payment.teacher}
+      </div>
+      {/* EMAIL / PHONE */}
+      <div className="text-xs text-slate-400 truncate">
+        {payment.userEmail || payment.userPhone}
+      </div>
+      {/* GRID INFO */}
+      <div className="grid grid-cols-2 gap-3 text-sm pt-2">
+        <div className="flex items-center gap-2">
+          <span className="text-green-400">₫</span>
+          <span>{formatPrice(payment.amount)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-blue-400">💳</span>
+          <span>{payment.method}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-yellow-400">🕒</span>
+          <span>{formatDate(payment.date)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-purple-400">#</span>
+          <span className="truncate">{payment.transactionId}</span>
+        </div>
+      </div>
+      {/* FOOTER */}
+      <div className="flex items-center justify-between pt-3 border-t border-slate-700/50">
+        <span className="text-xs text-slate-400">
+          ID: {payment.id}
+        </span>
+        <button
+          onClick={() => {
+            const el = cardRefs.current[payment.id]
+            if (!el) return
+            const rect = el.getBoundingClientRect()
+            setPopupPos({
+              top: rect.bottom + window.scrollY + 8,
+              left: rect.left + window.scrollX,
+            })
+            setExpandedPaymentId(payment.id)
+          }}
+          className="px-3 py-1.5 rounded-lg bg-primary/20 text-primary text-sm"
+        >
+          Xem chi tiết
+        </button>
+      </div>
+    </div>
+  ))}
+</div>
 
+      {/* Mobile popup detail – anchored under card */}
+      {expandedPaymentId && popupPos &&
+        (() => {
+          const payment = payments.find(p => p.id === expandedPaymentId)
+          if (!payment) return null
+
+          return createPortal(
+            <div
+              className="absolute z-[9999]"
+              style={{
+                top: popupPos.top,
+                left: popupPos.left,
+                width: "calc(100vw - 2rem)",
+                maxWidth: 420,
+              }}
+            >
+              <div className="bg-gradient-to-b from-[#0B1220] to-[#070B14] border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-white/10">
+                  <p className="text-white font-semibold text-base">Chi tiết giao dịch</p>
+                  <button
+                    onClick={() => setExpandedPaymentId(null)}
+                    className="p-1 rounded hover:bg-white/10"
+                  >
+                    <X size={18} className="text-slate-300" />
+                  </button>
+                </div>
+
+                {/* Mã giao dịch + trạng thái */}
+                <div className="p-4 pb-2 text-center border-b border-white/10">
+                  <p className="text-slate-400 text-xs mb-1">Mã giao dịch</p>
+                  <p className="text-white font-bold text-base break-all">{payment.id}</p>
+                  <div className="mt-2 flex justify-center">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      payment.status === "success"
+                        ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                        : payment.status === "pending"
+                          ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                          : "bg-red-500/10 text-red-400 border border-red-500/20"
+                    }`}>
+                      {payment.status === "success"
+                        ? "Thành công"
+                        : payment.status === "pending"
+                          ? "Chờ xử lý"
+                          : "Thất bại"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Số tiền thanh toán */}
+                <div className="p-4">
+                  <div className="bg-[#0E2236] rounded-xl p-4 text-center border border-cyan-400/20">
+                    <p className="text-slate-400 text-xs">Số tiền thanh toán</p>
+                    <p className="text-2xl font-extrabold text-cyan-400">₫{formatPrice(payment.amount)}</p>
+                  </div>
+                </div>
+
+                {/* Người mua */}
+                <div className="px-4 pb-2">
+                  <div className="bg-white/5 rounded-xl p-3">
+                    <p className="text-slate-400 text-xs mb-1">Người mua</p>
+                    <p className="text-white font-medium">{payment.user}</p>
+                    {payment.userEmail && <p className="text-slate-400 text-xs">{payment.userEmail}</p>}
+                  </div>
+                </div>
+
+                {/* Khóa học + Giảng viên */}
+                <div className="px-4 pb-2">
+                  <div className="bg-white/5 rounded-xl p-3">
+                    <p className="text-slate-400 text-xs mb-1">Khóa học</p>
+                    <p className="text-white font-medium">{payment.course}</p>
+                    {payment.teacher && <p className="text-slate-400 text-xs">Giảng viên: {payment.teacher}</p>}
+                  </div>
+                </div>
+
+                {/* Phương thức + Ngày thanh toán */}
+                <div className="px-4 pb-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-white/5 rounded-xl p-3">
+                      <p className="text-slate-400 text-xs mb-1">Phương thức</p>
+                      <p className="text-white text-xs font-medium break-all">{payment.method}</p>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-3">
+                      <p className="text-slate-400 text-xs mb-1">Ngày thanh toán</p>
+                      <p className="text-white text-xs font-medium">{formatDate(payment.date)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        })()
+      }
         {/* Payments Table */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden">
+        <div className="hidden lg:block bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -427,7 +604,36 @@ export default function AdminPaymentsPage() {
                     <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{formatDate(payment.date)}</td>
                     <td className="py-4 px-6">
                       <button
-                        onClick={() => setSelectedPayment(payment)}
+                        ref={el => {
+                          if (el) cardRefs.current[`${payment.id}-table-btn`] = el;
+                        }}
+                        onClick={() => {
+                          const el = cardRefs.current[`${payment.id}-table-btn`]
+                          if (!el) return
+                          const rect = el.getBoundingClientRect()
+                          const MODAL_WIDTH = 420
+const GAP = 12
+
+const viewportWidth = window.innerWidth
+
+let left = rect.right + GAP
+
+// Nếu tràn màn hình phải → đẩy sang trái card
+if (left + MODAL_WIDTH > viewportWidth) {
+  left = rect.left - MODAL_WIDTH - GAP
+}
+
+// Nếu vẫn tràn bên trái → clamp về trong viewport
+if (left < GAP) {
+  left = GAP
+}
+
+setPopupPos({
+  top: rect.bottom + window.scrollY + GAP,
+  left: left + window.scrollX,
+})
+                          setExpandedPaymentId(payment.id)
+                        }}
                         className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
                       >
                         <Eye size={18} className="text-primary dark:text-accent" />
@@ -448,211 +654,109 @@ export default function AdminPaymentsPage() {
         </div>
       </div>
 
-      {/* Payment Detail Modal */}
-      {selectedPayment && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
-            <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-foreground dark:text-white">Chi tiết giao dịch</h2>
-              <button
-                onClick={() => setSelectedPayment(null)}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-              >
-                <X size={20} className="text-muted-foreground" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Transaction ID */}
-              <div className="text-center pb-4 border-b border-border dark:border-slate-800">
-                <p className="text-muted-foreground dark:text-slate-400 text-sm">Mã giao dịch</p>
-                <p className="text-2xl font-bold text-foreground dark:text-white">{selectedPayment.id}</p>
-                <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs font-medium mt-2 ${
-                    selectedPayment.status === "success"
-                      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                      : selectedPayment.status === "pending"
-                        ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
-                        : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                  }`}
-                >
-                  {selectedPayment.status === "success"
-                    ? "Thành công"
-                    : selectedPayment.status === "pending"
-                      ? "Chờ xử lý"
-                      : "Thất bại"}
-                </span>
-              </div>
-
-              {/* Amount */}
-              <div className="bg-primary/10 dark:bg-accent/10 rounded-xl p-4 text-center">
-                <p className="text-muted-foreground dark:text-slate-400 text-sm">Số tiền thanh toán</p>
-                <p className="text-3xl font-bold text-primary dark:text-accent">₫{formatPrice(selectedPayment.amount)}</p>
-              </div>
-
-              {/* User Info */}
-              <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <User size={16} className="text-primary dark:text-accent" />
-                  <span className="font-semibold text-foreground dark:text-white">Thông tin người mua</span>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <p className="text-foreground dark:text-white font-medium">{selectedPayment.user}</p>
-                  <p className="text-muted-foreground dark:text-slate-400">{selectedPayment.userEmail}</p>
-                  <p className="text-muted-foreground dark:text-slate-400">{selectedPayment.userPhone}</p>
-                </div>
-              </div>
-
-              {/* Course Info */}
-              <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <BookOpen size={16} className="text-primary dark:text-accent" />
-                  <span className="font-semibold text-foreground dark:text-white">Thông tin khóa học</span>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <p className="text-foreground dark:text-white font-medium">{selectedPayment.course}</p>
-                  <p className="text-muted-foreground dark:text-slate-400">Mã khóa học: {selectedPayment.courseId}</p>
-                  <p className="text-muted-foreground dark:text-slate-400">Giảng viên: {selectedPayment.teacher}</p>
-                </div>
-              </div>
-
-              {/* Transaction Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">Phương thức</p>
-                  <p className="text-foreground dark:text-white font-medium">{selectedPayment.method}</p>
-                </div>
-                <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">Ngày thanh toán</p>
-                  <p className="text-foreground dark:text-white font-medium">{formatDate(selectedPayment.date)}</p>
-                </div>
-              </div>
-
-              {/* Transaction Reference */}
-              <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">Mã tham chiếu giao dịch</p>
-                <p className="text-foreground dark:text-white text-sm font-medium">{selectedPayment.transactionId}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Export Modal */}
-      {isExportOpen && exportMenuPos && typeof document !== "undefined"
-        ? createPortal(
+      {/* Payment Detail Modal for desktop/tablet - anchored under button */}
+      {expandedPaymentId && popupPos &&
+        (() => {
+          const payment = payments.find(p => p.id === expandedPaymentId)
+          if (!payment) return null
+          return createPortal(
             <div
-              className="fixed z-[9999]"
-              style={{ top: exportMenuPos.top, left: exportMenuPos.left, width: 420, maxWidth: "calc(100vw - 24px)" }}
+              className="absolute z-[9999]"
+              style={{
+                top: popupPos.top,
+                left: popupPos.left,
+                width: 420,
+                maxWidth: "calc(100vw - 2rem)",
+              }}
             >
-              <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
+              <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
                 <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-foreground dark:text-white">Xuất báo cáo thanh toán</h2>
+                  <h2 className="text-xl font-bold text-foreground dark:text-white">Chi tiết giao dịch</h2>
                   <button
-                    onClick={() => setIsExportOpen(false)}
+                    onClick={() => setExpandedPaymentId(null)}
                     className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
                   >
                     <X size={20} className="text-muted-foreground" />
                   </button>
                 </div>
 
-                <div className="p-6 space-y-4">
-                  {/* Status Filter */}
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Trạng thái</label>
-                    <select
-                      value={exportStatus}
-                      onChange={(e) => setExportStatus(e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                <div className="p-6 space-y-6">
+                  {/* Transaction ID */}
+                  <div className="text-center pb-4 border-b border-border dark:border-slate-800">
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm">Mã giao dịch</p>
+                    <p className="text-2xl font-bold text-foreground dark:text-white">{payment.id}</p>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium mt-2 ${
+                        payment.status === "success"
+                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                          : payment.status === "pending"
+                            ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
+                            : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                      }`}
                     >
-                      <option value="all">Tất cả trạng thái</option>
-                      <option value="success">Thành công</option>
-                      <option value="pending">Chờ xử lý</option>
-                      <option value="failed">Thất bại</option>
-                    </select>
+                      {payment.status === "success"
+                        ? "Thành công"
+                        : payment.status === "pending"
+                          ? "Chờ xử lý"
+                          : "Thất bại"}
+                    </span>
                   </div>
 
-                  {/* User Filter */}
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Người dùng</label>
-                    <select
-                      value={exportUser}
-                      onChange={(e) => setExportUser(e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="all">Tất cả người dùng</option>
-                      {uniqueUsers.map((user) => (
-                        <option key={user} value={user}>{user}</option>
-                      ))}
-                    </select>
+                  {/* Amount */}
+                  <div className="bg-primary/10 dark:bg-accent/10 rounded-xl p-4 text-center">
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm">Số tiền thanh toán</p>
+                    <p className="text-3xl font-bold text-primary dark:text-accent">₫{formatPrice(payment.amount)}</p>
                   </div>
 
-                  {/* Course Filter */}
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Khóa học</label>
-                    <select
-                      value={exportCourse}
-                      onChange={(e) => setExportCourse(e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="all">Tất cả khóa học</option>
-                      {uniqueCourses.map((course) => (
-                        <option key={course} value={course}>{course}</option>
-                      ))}
-                    </select>
+                  {/* User Info */}
+                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User size={16} className="text-primary dark:text-accent" />
+                      <span className="font-semibold text-foreground dark:text-white">Thông tin người mua</span>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <p className="text-foreground dark:text-white font-medium">{payment.user}</p>
+                      <p className="text-muted-foreground dark:text-slate-400">{payment.userEmail}</p>
+                      <p className="text-muted-foreground dark:text-slate-400">{payment.userPhone}</p>
+                    </div>
                   </div>
 
-                  {/* Teacher Filter */}
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Giảng viên</label>
-                    <select
-                      value={exportTeacher}
-                      onChange={(e) => setExportTeacher(e.target.value)}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="all">Tất cả giảng viên</option>
-                      {uniqueTeachers.map((teacher) => (
-                        <option key={teacher} value={teacher}>{teacher}</option>
-                      ))}
-                    </select>
+                  {/* Course Info */}
+                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <BookOpen size={16} className="text-primary dark:text-accent" />
+                      <span className="font-semibold text-foreground dark:text-white">Thông tin khóa học</span>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <p className="text-foreground dark:text-white font-medium">{payment.course}</p>
+                      <p className="text-muted-foreground dark:text-slate-400">Mã khóa học: {payment.courseId}</p>
+                      <p className="text-muted-foreground dark:text-slate-400">Giảng viên: {payment.teacher}</p>
+                    </div>
                   </div>
 
-                  {/* Date Range */}
+                  {/* Transaction Info */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Từ ngày</label>
-                      <input
-                        type="date"
-                        value={exportDateFrom}
-                        onChange={(e) => setExportDateFrom(e.target.value)}
-                        className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
+                    <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                      <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">Phương thức</p>
+                      <p className="text-foreground dark:text-white font-medium">{payment.method}</p>
                     </div>
-                    <div>
-                      <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Đến ngày</label>
-                      <input
-                        type="date"
-                        value={exportDateTo}
-                        onChange={(e) => setExportDateTo(e.target.value)}
-                        className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
+                    <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                      <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">Ngày thanh toán</p>
+                      <p className="text-foreground dark:text-white font-medium">{formatDate(payment.date)}</p>
                     </div>
                   </div>
 
-                  {/* Export Button */}
-                  <button
-                    onClick={handleExport}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
-                  >
-                    <Download size={20} /> Xuất báo cáo Excel
-                  </button>
+                  {/* Transaction Reference */}
+                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                    <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">Mã tham chiếu giao dịch</p>
+                    <p className="text-foreground dark:text-white text-sm font-medium">{payment.transactionId}</p>
+                  </div>
                 </div>
               </div>
             </div>,
             document.body
           )
-        : null}
-    </div>
-  )
-}
-
+        })()
+      }
+ </div>  
+  )}
