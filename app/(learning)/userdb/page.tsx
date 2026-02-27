@@ -392,7 +392,7 @@ export default function StudentDashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {statCards.map((stat, idx) => (
               <div
                 key={idx}
@@ -401,8 +401,8 @@ export default function StudentDashboardPage() {
                 <div className={`p-3 ${stat.color} rounded-lg group-hover:scale-110 transition-all duration-300`}>
                   <stat.icon className="w-6 h-6 text-white" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm text-black/70 dark:text-white/80 mb-1 drop-shadow">{stat.label}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm whitespace-normal break-words text-black/70 dark:text-white/80 mb-1 drop-shadow">{stat.label}</p>
                   <p className="text-2xl font-bold text-white drop-shadow">{stat.value}</p>
                   <p className="text-xs text-green-600 dark:text-green-400 mt-1 drop-shadow">{stat.sublabel}</p>
                 </div>
