@@ -196,7 +196,7 @@ export default function TeacherDashboard() {
                       border: "1px solid #334155",
                       borderRadius: "8px",
                     }}
-                    formatter={(value: number) => [`₫${formatPrice(value)}`, ""]}
+                    formatter={(value: number | undefined) => [`₫${formatPrice(value ?? 0)}`, ""]}
                   />
                   <Legend />
                   <Line
@@ -271,7 +271,7 @@ export default function TeacherDashboard() {
                         color: "#fff"
                       }}
                       itemStyle={{ color: "#fff" }}
-                      formatter={(value: number, name: string) => [`${value}`, name]}
+                      formatter={(value: number | undefined, name?: string) => [`${value ?? 0}`, name ?? ""]}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -315,7 +315,7 @@ export default function TeacherDashboard() {
                       borderRadius: "8px",
                       color: "#fff"
                     }}
-                    formatter={(value: number) => [`₫${formatPrice(value)}`, ""]}
+                    formatter={(value: number | undefined) => [`₫${formatPrice(value ?? 0)}`, ""]}
                   />
                   <Legend />
                   <Area
@@ -340,10 +340,52 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        {/* Recent Enrollments */}
+        {/* Recent Enrollments - Mobile: Cards, Desktop: Table */}
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
           <h3 className="font-semibold text-foreground dark:text-white mb-4">Đăng ký gần đây</h3>
-          <div className="overflow-x-auto">
+          {/* Mobile: Cards */}
+          <div className="block md:hidden">
+            {recentEnrollments.length === 0 ? (
+              <div className="py-4 text-center text-muted-foreground">Chưa có đăng ký nào</div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {recentEnrollments.map((enrollment) => (
+                  <div
+                    key={enrollment.id}
+                    className="border border-border dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-900 shadow-sm flex flex-col gap-2 animate-fadeIn"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+                        {enrollment.studentName?.charAt(0) || "?"}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-foreground dark:text-white text-base">{enrollment.studentName}</div>
+                        <div className="text-xs text-muted-foreground dark:text-slate-400">{enrollment.courseName}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground dark:text-slate-400">Ngày đăng ký:</span>
+                      <span className="text-sm text-foreground dark:text-white">{enrollment.createdAt}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground dark:text-slate-400">Trạng thái:</span>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          enrollment.status === "completed"
+                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                            : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                        }`}
+                      >
+                        {enrollment.status === "completed" ? "Hoàn thành" : "Đang học"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Desktop: Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800">

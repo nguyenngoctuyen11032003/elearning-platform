@@ -243,10 +243,55 @@ export default function TeacherAnalyticsPage() {
           </div>
         </div>
 
-        {/* Course Performance Table */}
+        {/* Course Performance: Cards for mobile, table for desktop */}
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
           <h2 className="text-lg font-bold text-foreground dark:text-white mb-6">Hiệu suất khóa học</h2>
-          <div className="overflow-x-auto">
+          {/* Cards for mobile */}
+          <div className="block lg:hidden">
+            <div className="space-y-4">
+              {coursePerformance.length > 0 ? (
+                coursePerformance.map((course) => (
+                  <div key={course.id} className="rounded-xl bg-background dark:bg-slate-950 border border-border dark:border-slate-800 p-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-medium text-lg text-foreground dark:text-white">{course.title}</p>
+                      <div className="flex items-center gap-1">
+                        <Star size={16} className="text-yellow-400 fill-yellow-400" />
+                        <span className="text-foreground dark:text-white font-semibold">{course.rating}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-4 items-center justify-between">
+                      <div className="flex flex-col items-center">
+                        <span className="text-xs text-muted-foreground dark:text-slate-400">Học viên</span>
+                        <span className="text-base font-bold text-foreground dark:text-white">{course.students.toLocaleString('en-US')}</span>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <span className="text-xs text-muted-foreground dark:text-slate-400">Doanh thu</span>
+                        <span className="text-base font-bold text-green-500">{formatCurrency(course.revenue)}</span>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <span className="text-xs text-muted-foreground dark:text-slate-400">Hoàn thành</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-2 bg-secondary dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary dark:bg-accent rounded-full"
+                              style={{ width: `${course.completionRate}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-foreground dark:text-white">{course.completionRate}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-6 text-center text-muted-foreground dark:text-slate-400">
+                  Chưa có dữ liệu hiệu suất khóa học
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Table for desktop */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800">
