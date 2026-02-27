@@ -258,7 +258,12 @@ export default function AdminExamsPage() {
   }
   return (
     <div className="min-h-screen w-full">
-      <div className="w-full space-y-8">
+      {/* Sidebar: hidden on md, only show on lg */}
+      <div className="hidden lg:block lg:w-[260px] lg:fixed lg:inset-y-0 lg:left-0 lg:bg-slate-900 lg:border-r lg:border-border dark:lg:border-slate-800">
+        {/* ...existing sidebar content... */}
+      </div>
+      {/* Main content: margin-left for sidebar on lg */}
+      <div className="w-full lg:ml-[260px] space-y-8">
         {/* Header with Stats */}
         <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/exam2.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
@@ -273,8 +278,8 @@ export default function AdminExamsPage() {
               </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            {/* Stats Cards: grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
@@ -539,15 +544,16 @@ export default function AdminExamsPage() {
           )}
         </div>
 
-        {/* Exams Card Layout (Mobile/Z Fold) */}
-        <div className="block lg:hidden space-y-4">
+        {/* Exams Card Layout (Tablet & Mobile) */}
+        <div className="block lg:hidden">
           {filteredExams.length === 0 ? (
             <div className="p-12 text-center">
               <FileText size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
               <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy bài thi nào</p>
             </div>
           ) : (
-            filteredExams.map(exam => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredExams.map(exam => (
               <div
                 key={exam.id}
                 data-exam-card
@@ -673,6 +679,8 @@ export default function AdminExamsPage() {
               </div>
 
             ))
+          }
+          </div>
           )}
         </div>
 
