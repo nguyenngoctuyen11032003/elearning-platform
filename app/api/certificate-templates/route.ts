@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
     
     // Fetch all certificate templates
-    const response = await fetch(`${API_URL}/api/certificates/templates`, {
+    const response = await fetch(`${API_URL}/certificates/templates`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
     const body = await req.json();
 
-    const response = await fetch(`${API_URL}/api/certificates/templates`, {
+    const response = await fetch(`${API_URL}/certificates/templates`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

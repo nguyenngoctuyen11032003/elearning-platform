@@ -97,7 +97,7 @@ export default function TeacherCoursesPage() {
     const fetchCourses = async () => {
       try {
         const token = localStorage.getItem("auth_token")
-        const response = await fetch("/api/courses/teacher/my-courses", {
+        const response = await fetch("/courses/teacher/my-courses", {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
         if (!response.ok) {
@@ -152,7 +152,7 @@ export default function TeacherCoursesPage() {
     if (!selectedCourse) return
     try {
       const token = localStorage.getItem("auth_token")
-      const res = await fetch(`/api/courses/${selectedCourse.id}`, {
+      const res = await fetch(`/courses/${selectedCourse.id}`, {
         method: "DELETE",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
@@ -169,7 +169,7 @@ export default function TeacherCoursesPage() {
   const handleSubmitForReview = async (courseId: string) => {
     try {
       const token = localStorage.getItem("auth_token")
-      const res = await fetch(`/api/courses/${courseId}/submit`, {
+      const res = await fetch(`/courses/${courseId}/submit`, {
         method: "PATCH",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })

@@ -60,7 +60,7 @@ export default function CreateCoursePage() {
   const [draggedDocumentZone, setDraggedDocumentZone] = useState(false)
 
   useEffect(() => {
-    fetch("/api/categories")
+    fetch("/categories")
       .then((r) => r.json())
       .then((data) => {
         const list = Array.isArray(data) ? data : data.data || []
@@ -89,7 +89,7 @@ export default function CreateCoursePage() {
         if (formData.thumbnail) {
           const fd = new FormData()
           fd.append("file", formData.thumbnail)
-          const upRes = await fetch("/api/upload/image", {
+          const upRes = await fetch("/upload/image", {
             method: "POST",
             headers: authHeaders,
             body: fd,
@@ -110,7 +110,7 @@ export default function CreateCoursePage() {
           ...(thumbnailUrl ? { thumbnail: thumbnailUrl } : {}),
         }
 
-        const courseRes = await fetch("/api/courses", {
+        const courseRes = await fetch("/courses", {
           method: "POST",
           headers: { ...authHeaders, "Content-Type": "application/json" },
           body: JSON.stringify(coursePayload),
@@ -136,7 +136,7 @@ export default function CreateCoursePage() {
               isFree: false,
               isPublished: false,
             }
-            await fetch("/api/lessons", {
+            await fetch("/lessons", {
               method: "POST",
               headers: { ...authHeaders, "Content-Type": "application/json" },
               body: JSON.stringify(lessonPayload),
@@ -146,7 +146,7 @@ export default function CreateCoursePage() {
 
         // 4. Submit for review if status is pending
         if (formData.status === "pending") {
-          await fetch(`/api/courses/${courseId}/submit`, {
+          await fetch(`/courses/${courseId}/submit`, {
             method: "PATCH",
             headers: { ...authHeaders, "Content-Type": "application/json" },
           })
@@ -463,7 +463,7 @@ export default function CreateCoursePage() {
                           {formData.title || "Tên khóa học"}
                         </h3>
                         <p className="text-sm text-muted-foreground dark:text-slate-400">
-                          {formData.category || "Danh mục"}
+                          {formData.categoryId || "Danh mục"}
                         </p>
                         <div className="flex justify-between items-center pt-2 border-t border-border dark:border-slate-800">
                           <span className="text-primary dark:text-accent font-bold">

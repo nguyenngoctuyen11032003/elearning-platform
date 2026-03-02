@@ -10,7 +10,7 @@ export async function GET(
     const { id } = await params
     const authHeader = request.headers.get("Authorization")
 
-    const response = await fetch(`${BACKEND_URL}/api/courses/${id}`, {
+    const response = await fetch(`${BACKEND_URL}/courses/${id}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -46,7 +46,7 @@ export async function PATCH(
 
     const body = await request.json()
 
-    const response = await fetch(`${BACKEND_URL}/api/courses/${id}`, {
+    const response = await fetch(`${BACKEND_URL}/courses/${id}`, {
       method: "PATCH",
       headers: { Authorization: authHeader, "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -79,7 +79,7 @@ export async function DELETE(
       return NextResponse.json({ error: "No authorization header" }, { status: 401 })
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/courses/${id}`, {
+    const response = await fetch(`${BACKEND_URL}/courses/${id}`, {
       method: "DELETE",
       headers: { Authorization: authHeader, "Content-Type": "application/json" },
     })

@@ -119,7 +119,7 @@ const [loading, setLoading] = useState(true);
   useEffect(() => {
   const fetchSystemSettings = async () => {
     try {
-      const res = await fetch("http://localhost:5001/api/system-settings");
+      const res = await fetch("http://localhost:5001/system-settings");
       const json = await res.json();
 
       if (json.success) {

@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
 
-    const response = await fetch(`${API_URL}/api/exams`, {
+    const response = await fetch(`${API_URL}/exams`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
     const body = await request.json()
 
-    const response = await fetch(`${API_URL}/api/exams`, {
+    const response = await fetch(`${API_URL}/exams`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

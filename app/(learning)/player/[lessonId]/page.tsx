@@ -22,7 +22,7 @@ interface PlayerLesson {
   completed: boolean
 }
 
-const getAuth = () => {
+const getAuth = (): Record<string, string> => {
   const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
@@ -52,13 +52,13 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        const lessonRes = await fetch(`/api/lessons/${resolvedParams.lessonId}`, { headers: getAuth() })
+        const lessonRes = await fetch(`/lessons/${resolvedParams.lessonId}`, { headers: getAuth() })
         if (!lessonRes.ok) return
         const lesson: ApiLesson = await lessonRes.json()
 
         const [courseLessonsRes, courseRes] = await Promise.all([
-          fetch(`/api/lessons/course/${lesson.courseId}`, { headers: getAuth() }),
-          fetch(`/api/courses/${lesson.courseId}`, { headers: getAuth() }),
+          fetch(`/lessons/course/${lesson.courseId}`, { headers: getAuth() }),
+          fetch(`/courses/${lesson.courseId}`, { headers: getAuth() }),
         ])
 
         if (courseRes.ok) {

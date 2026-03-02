@@ -28,7 +28,8 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = API_BASE_URL;
+    this.baseURL = API_BASE_URL || 'http://localhost:3001';
+    console.log('API Client initialized with base URL:', this.baseURL);
   }
 
   private async request<T>(

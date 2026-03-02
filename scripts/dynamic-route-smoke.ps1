@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $base = 'http://localhost:3001'
 
-# Real sample from /api/courses (public)
+# Real sample from /courses (public)
 $courseId = 'a6a1fcfa-77f1-4937-a50d-860a8004bacc'
 $examId = '11111111-1111-1111-1111-111111111111'
 $lessonId = '11111111-1111-1111-1111-111111111111'

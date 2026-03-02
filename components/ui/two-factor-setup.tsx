@@ -48,7 +48,7 @@ export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
     setError("")
     
     try {
-      const response = await fetch("/api/auth/2fa/setup/totp", {
+      const response = await fetch("/auth/2fa/setup/totp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -81,7 +81,7 @@ export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
     setError("")
 
     try {
-      const response = await fetch("/api/auth/2fa/verify/totp", {
+      const response = await fetch("/auth/2fa/verify/totp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

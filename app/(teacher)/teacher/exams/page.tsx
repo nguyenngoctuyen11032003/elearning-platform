@@ -82,7 +82,7 @@ export default function TeacherExamsPage() {
   const fetchExams = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch("/api/exams", {
+      const response = await fetch("/exams", {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
         },
@@ -113,7 +113,7 @@ export default function TeacherExamsPage() {
 
   const fetchTemplates = async () => {
     try {
-      const response = await fetch("/api/certificate-templates", {
+      const response = await fetch("/certificate-templates", {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
         },
@@ -164,7 +164,7 @@ export default function TeacherExamsPage() {
   const handleDeleteConfirm = async () => {
     if (!selectedExam) return
     try {
-      const response = await fetch(`/api/exams/${selectedExam.id}`, {
+      const response = await fetch(`/exams/${selectedExam.id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
@@ -183,7 +183,7 @@ export default function TeacherExamsPage() {
 
   const handleSubmitForReview = async (examId: string) => {
     try {
-      const response = await fetch(`/api/exams/${examId}/submit-for-approval`, {
+      const response = await fetch(`/exams/${examId}/submit-for-approval`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
@@ -203,7 +203,7 @@ export default function TeacherExamsPage() {
 
   const handleRemoveCertificate = async (examId: string) => {
     try {
-      const response = await fetch(`/api/exams/${examId}`, {
+      const response = await fetch(`/exams/${examId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

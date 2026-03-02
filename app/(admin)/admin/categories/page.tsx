@@ -77,7 +77,7 @@ const handleAddCategory = async () => {
       const formData = new FormData()
       formData.append("file", imageFile)
 
-      const uploadRes = await authFetch("/api/upload/image", {
+      const uploadRes = await authFetch("/upload/image", {
         method: "POST",
         body: formData,
       })
@@ -88,7 +88,7 @@ const handleAddCategory = async () => {
       }
     }
 
-    const res = await authFetch("/api/categories", {
+    const res = await authFetch("/categories", {
       method: "POST",
       body: JSON.stringify({
         name: newCategory.name,
@@ -142,7 +142,7 @@ const handleUpdateCategory = async (
       const formData = new FormData()
       formData.append("file", editImageFile)
 
-      const uploadRes = await authFetch("/api/upload/image", {
+      const uploadRes = await authFetch("/upload/image", {
         method: "POST",
         body: formData,
       })
@@ -153,7 +153,7 @@ const handleUpdateCategory = async (
       }
     }
 
-    const res = await authFetch(`/api/categories/${id}`, {
+    const res = await authFetch(`/categories/${id}`, {
       method: "PATCH",
       body: JSON.stringify({
         name: updatedName,
@@ -193,7 +193,7 @@ const handleUpdateCategory = async (
   }
 
 const confirmDelete = async () => {
-  const res = await authFetch(`/api/categories/${deleteModal.categoryId}`, {
+  const res = await authFetch(`/categories/${deleteModal.categoryId}`, {
     method: "DELETE",
   })
 
@@ -221,7 +221,7 @@ const confirmDelete = async () => {
 
   const iconOptions = ["📚", "💻", "🎨", "📈", "🤖", "🌍", "🚀", "🎯", "💡", "🔬", "📱", "🎮"]
 const fetchCategories = async () => {
-  const res = await authFetch("/api/categories")
+  const res = await authFetch("/categories")
   const json = await res.json()
 
   setCategories(

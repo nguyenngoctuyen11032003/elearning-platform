@@ -113,7 +113,7 @@ export default function AdminCertificatesPage() {
 
   const fetchCertificates = async () => {
     try {
-      const response = await fetch("/api/admin/certificate-templates", {
+      const response = await fetch("/admin/certificate-templates", {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
         },
@@ -129,7 +129,7 @@ export default function AdminCertificatesPage() {
 
   const fetchExams = async () => {
     try {
-      const response = await fetch("/api/admin/exams", {
+      const response = await fetch("/admin/exams", {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
         },
@@ -145,7 +145,7 @@ export default function AdminCertificatesPage() {
 
   const fetchIssuedCertificates = async () => {
     try {
-      const response = await fetch("/api/admin/certificates", {
+      const response = await fetch("/admin/certificates", {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
         },
@@ -227,7 +227,7 @@ export default function AdminCertificatesPage() {
   const handleReject = async () => {
     if (!selectedCertificate || !rejectionReason.trim()) return
     try {
-      const response = await fetch(`/api/admin/certificate-templates/${selectedCertificate.id}/reject`, {
+      const response = await fetch(`/admin/certificate-templates/${selectedCertificate.id}/reject`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -255,7 +255,7 @@ export default function AdminCertificatesPage() {
     if (!approveTarget) return
     setIsApproving(true)
     try {
-      const response = await fetch(`/api/admin/certificate-templates/${approveTarget.id}/approve`, {
+      const response = await fetch(`/admin/certificate-templates/${approveTarget.id}/approve`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

@@ -13,7 +13,7 @@ export async function PATCH(
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
     const body = await req.json();
 
-    const response = await fetch(`${API_URL}/api/certificates/templates/${params.id}/approve`, {
+    const response = await fetch(`${API_URL}/certificates/templates/${params.id}/approve`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

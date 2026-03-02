@@ -73,7 +73,7 @@ interface CourseDetail {
   rejectionReason?: string
 }
 
-const getAuth = () => {
+const getAuth = (): Record<string, string> => {
   const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
@@ -89,9 +89,10 @@ export default function AdminCourseDetailPage() {
     const fetchCourse = async () => {
       setIsLoading(true)
       try {
+        const auth = getAuth()
         const [courseRes, lessonsRes] = await Promise.all([
-          fetch(`/api/courses/${params.id}`, { headers: getAuth() }),
-          fetch(`/api/lessons/course/${params.id}`, { headers: getAuth() }),
+          fetch(`/courses/${params.id}`, { headers: auth }),
+          fetch(`/lessons/course/${params.id}`, { headers: auth }),
         ])
         if (!courseRes.ok) throw new Error()
         const c = await courseRes.json()

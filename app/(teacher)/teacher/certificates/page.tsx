@@ -89,7 +89,7 @@ export default function TeacherCertificatesPage() {
   const fetchTemplates = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/certificate-templates', {
+      const response = await fetch('/certificate-templates', {
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`
         }
@@ -134,7 +134,7 @@ export default function TeacherCertificatesPage() {
   const fetchExams = async () => {
     try {
       setIsLoadingExams(true)
-      const response = await fetch("/api/exams", {
+      const response = await fetch("/exams", {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
         },
@@ -218,7 +218,7 @@ export default function TeacherCertificatesPage() {
     if (!selectedTemplate) return
     
     try {
-      const response = await fetch(`/api/certificate-templates/${selectedTemplate.id}`, {
+      const response = await fetch(`/certificate-templates/${selectedTemplate.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -238,7 +238,7 @@ export default function TeacherCertificatesPage() {
 
   const handleSubmitForReview = async (templateId: string) => {
     try {
-      const response = await fetch(`/api/certificate-templates/${templateId}/submit`, {
+      const response = await fetch(`/certificate-templates/${templateId}/submit`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -287,7 +287,7 @@ export default function TeacherCertificatesPage() {
     try {
       setIsAssigning(true)
       setAssignError(null)
-      const response = await fetch(`/api/exams/${selectedExamId}`, {
+      const response = await fetch(`/exams/${selectedExamId}`, {
         method: "PATCH", 
         headers: {
           "Content-Type": "application/json",

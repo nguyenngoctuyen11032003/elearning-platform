@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
 
-    const response = await fetch(`${BACKEND_URL}/api/upload/video`, {
+    const response = await fetch(`${BACKEND_URL}/upload/video`, {
       method: "POST",
       headers: { Authorization: authHeader },
       body: formData,

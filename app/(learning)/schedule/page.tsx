@@ -442,9 +442,9 @@ useEffect(() => {
 // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [])
   return (
-    <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 lg:gap-5 xl:gap-8 min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 sm:p-5 lg:p-6 xl:p-8">
+    <div className="flex flex-col xl:flex-row gap-4 sm:gap-5 lg:gap-5 xl:gap-4 min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 sm:p-5 lg:p-6 xl:p-6">
       {/* Main Content - Kanban Board */}
-      <div className="flex-1 w-full lg:flex-1 min-w-0">
+      <div className="flex-1 w-full xl:flex-[3] min-w-0">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -480,139 +480,113 @@ useEffect(() => {
           </div>
         </motion.div>
 
-        {/* Kanban Columns */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 lg:gap-5 xl:gap-6">
-          {(['todo', 'in-progress', 'completed'] as const).map((status) => (
-            <motion.div
-              key={status}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="flex flex-col w-full sm:w-auto"
-            >
-              {/* Column Header */}
-              <div className="mb-3 sm:mb-4 flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${
-                  status === 'todo' ? 'bg-red-500' :
-                  status === 'in-progress' ? 'bg-yellow-500' :
-                  'bg-green-500'
-                }`} />
-                <h2 className="text-base sm:text-lg font-bold text-foreground dark:text-white">
-                  {getStatusLabel(status)}
-                </h2>
-                <span className="ml-auto text-xs sm:text-sm font-semibold text-muted-foreground dark:text-slate-400">
-                  {getFilteredItems(status).length}
-                </span>
-              </div>
+        {/* Items List - Horizontal Cards */}
+        <div className="space-y-3 sm:space-y-4">
+          {scheduleItems.length === 0 ? (
+            <div className="flex items-center justify-center h-64 text-muted-foreground dark:text-slate-500">
+              <p className="text-base">Chưa có công việc nào</p>
+            </div>
+          ) : (
+            scheduleItems.map((item, idx) => (
+              <motion.div
+                key={item.id ?? `schedule-${idx}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className={`p-3 sm:p-4 bg-card dark:bg-slate-900 border-2 rounded-xl cursor-pointer group hover:shadow-lg transition-all ${getStatusColor(item.status)} border-border dark:border-slate-700`}
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                  {/* Type Badge */}
+                  <div className={`px-3 py-1.5 rounded-full text-xs sm:text-xs font-semibold flex items-center gap-1.5 flex-shrink-0 ${getTypeColor(item.type)}`}>
+                    {getTypeIcon(item.type)}
+                    {item.type === 'lesson' ? 'Bài học' : item.type === 'exam' ? 'Bài thi' : 'Live session'}
+                  </div>
 
-              {/* Cards Container */}
-              <div className="flex flex-col gap-3 h-[350px] sm:h-[400px] lg:h-[480px] xl:h-[520px] bg-card/50 dark:bg-slate-800/30 rounded-2xl p-3 sm:p-4 lg:p-5 border border-border/50 dark:border-slate-700/50 overflow-y-auto">
-                {getFilteredItems(status).map((item, idx) => (
-                  <motion.div
-                    key={item.id ?? `schedule-${idx}`}  
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className={`p-2 sm:p-3 lg:p-4 bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-700 rounded-xl cursor-pointer group hover:shadow-lg transition-all ${getStatusColor(status)}`}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3 lg:mb-4">
-                      <div className={`px-2 py-1 rounded-full text-xs sm:text-xs font-semibold flex items-center gap-1 flex-shrink-0 ${getTypeColor(item.type)}`}>
-                        {getTypeIcon(item.type)}
-                        {item.type === 'lesson' ? 'Bài học' : item.type === 'exam' ? 'Bài thi' : 'Live session'}
-                      </div>
-                      <button 
-                        onClick={() => setEditingItem(item)}
-                        className="p-1 opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity flex-shrink-0"
-                        title="Chỉnh sửa"
-                      >
-                        <MoreVertical size={16} className="text-muted-foreground" />
-                      </button>
-                    </div>
-
-                    <h3 className="font-semibold text-foreground dark:text-white mb-1 sm:mb-2 line-clamp-2 text-xs sm:text-sm">
+                  {/* Title & Course */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-foreground dark:text-white text-sm sm:text-base line-clamp-1">
                       {item.title}
                     </h3>
-
-                    <p className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400 mb-2 sm:mb-3 line-clamp-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400 line-clamp-1">
                       {item.course}
                     </p>
+                  </div>
 
-                    {/* Deadline Status Warning Badge */}
-                    {isDateNotToday(item.dueDate) && item.status !== 'completed' && (
-                      <div className={`mb-1 sm:mb-2 px-2 py-1 rounded text-xs font-medium ${getDeadlineStatus(item.dueDate).color}`}>
-                        {getDeadlineStatus(item.dueDate).status === 'overdue' && 'Quá hạn'}
-                        {getDeadlineStatus(item.dueDate).status === 'tomorrow' && 'Ngày mai'}
-                        {getDeadlineStatus(item.dueDate).status === 'soon' && 'Sắp đến - ' + getDeadlineStatus(item.dueDate).label}
-                        {getDeadlineStatus(item.dueDate).status === 'future' && 'Chưa đến ngày làm'}
-                      </div>
-                    )}
-
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2 text-xs text-muted-foreground dark:text-slate-500 mb-1 sm:mb-2">
-                      <div className="flex items-center gap-1">
-                        <Calendar size={13} className="flex-shrink-0" />
-                        <span className="truncate">{item.dueDate ? new Date(item.dueDate + 'T00:00:00').toLocaleDateString('vi-VN') : 'Chưa đặt'}</span>
-                      </div>
-                      <span className="hidden sm:inline">•</span>
-                      <div className="flex items-center gap-1">
-                        <Clock size={13} className="flex-shrink-0" />
-                        <span>{item.time}</span>
-                      </div>
-                      <span className="hidden sm:inline">•</span>
-                      <span className="truncate">{item.duration}</span>
+                  {/* Date & Time */}
+                  <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground dark:text-slate-400 flex-shrink-0">
+                    <div className="flex items-center gap-1">
+                      <Calendar size={14} />
+                      <span className="whitespace-nowrap">{item.dueDate ? new Date(item.dueDate + 'T00:00:00').toLocaleDateString('vi-VN') : 'Chưa đặt'}</span>
                     </div>
+                    <div className="hidden sm:flex items-center gap-1">
+                      <Clock size={14} />
+                      <span className="whitespace-nowrap">{item.time}</span>
+                    </div>
+                  </div>
 
-                    {item.important && (
-                      <div className="mb-1 sm:mb-2 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded text-xs font-medium">
-                        🔔 Quan trọng
-                      </div>
-                    )}
+                  {/* Status Badge */}
+                  <div className={`px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                    item.status === 'todo' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' :
+                    item.status === 'in-progress' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' :
+                    'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                  }`}>
+                    {item.status === 'todo' ? 'Chưa làm' : item.status === 'in-progress' ? 'Đang làm' : 'Hoàn thành'}
+                  </div>
 
-                    <div className="flex gap-2 pt-1 sm:pt-2 border-t border-border dark:border-slate-700">
-                      {status !== 'completed' && (
-                    <button
-                      onClick={() => {
-                        const daysUntil = getDaysUntilDeadline(item.dueDate)
-                        if (status === 'todo' && daysUntil > 0) {
-                          toast.warning('Chưa đến giờ làm', {
-                            description: `Hãy quay lại vào ngày ${item.dueDate || 'đã quy định'}`,
-                            duration: 3000
-                          })
-                          return
-                        }
-                        handleQuickStatusChange(
-                          item,
-                          status === 'todo' ? 'in-progress' : 'completed'
-                        )
-                      }}
-                      disabled={status === 'todo' && getDaysUntilDeadline(item.dueDate) > 0}
-                      title={status === 'todo' && getDaysUntilDeadline(item.dueDate) > 0 ? 'Chưa đến giờ làm' : ''}
-                      className={`flex-1 px-2 py-1 text-xs rounded font-medium transition-colors ${
-                        status === 'todo' && getDaysUntilDeadline(item.dueDate) > 0
-                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
-                          : 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent hover:bg-primary/20 dark:hover:bg-primary/30'
-                      }`}
-                    >
-                      {status === 'todo' ? 'Bắt đầu' : 'Hoàn thành'}
-                    </button>
-                  )}
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {item.status !== 'completed' && (
                       <button
-                        onClick={() => handleDeleteItem(item.id)}
-                        className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors flex-shrink-0"
+                        onClick={() => {
+                          const daysUntil = getDaysUntilDeadline(item.dueDate)
+                          if (item.status === 'todo' && daysUntil > 0) {
+                            toast.warning('Chưa đến giờ làm', {
+                              description: `Hãy quay lại vào ngày ${item.dueDate || 'đã quy định'}`,
+                              duration: 3000
+                            })
+                            return
+                          }
+                          handleQuickStatusChange(
+                            item,
+                            item.status === 'todo' ? 'in-progress' : 'completed'
+                          )
+                        }}
+                        disabled={item.status === 'todo' && getDaysUntilDeadline(item.dueDate) > 0}
+                        className="p-1.5 text-primary dark:text-accent hover:bg-primary/10 dark:hover:bg-primary/20 rounded transition-colors"
+                        title="Chuyển trạng thái"
                       >
-                        <Trash2 size={14} />
+                        <CheckCircle size={16} />
                       </button>
-                    </div>
-                  </motion.div>
-                ))}
+                    )}
+                    <button
+                      onClick={() => setEditingItem(item)}
+                      className="p-1.5 text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 rounded transition-colors"
+                      title="Chỉnh sửa"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                      title="Xóa"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
 
-                {getFilteredItems(status).length === 0 && (
-                  <div className="flex items-center justify-center h-full text-muted-foreground dark:text-slate-500">
-                    <p className="text-sm">Chưa có công việc nào</p>
+                {/* Deadline Warning - if needed */}
+                {isDateNotToday(item.dueDate) && item.status !== 'completed' && (
+                  <div className={`mt-3 px-3 py-1.5 rounded text-xs font-medium w-fit ${getDeadlineStatus(item.dueDate).color}`}>
+                    {getDeadlineStatus(item.dueDate).status === 'overdue' && '🔴 Quá hạn'}
+                    {getDeadlineStatus(item.dueDate).status === 'tomorrow' && '⚠️ Ngày mai'}
+                    {getDeadlineStatus(item.dueDate).status === 'soon' && '🟡 Sắp đến - ' + getDeadlineStatus(item.dueDate).label}
+                    {getDeadlineStatus(item.dueDate).status === 'future' && '✓ Chưa đến ngày làm'}
                   </div>
                 )}
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))
+          )}
         </div>
       </div>
 
@@ -621,7 +595,7 @@ useEffect(() => {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.2 }}
-        className="w-full lg:w-80 xl:w-96 space-y-4 sm:space-y-5 lg:space-y-6"
+        className="w-full md:w-full lg:w-64 xl:w-80 space-y-4 sm:space-y-5 lg:space-y-5"
       >
         {/* Calendar */}
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-5 lg:p-6 shadow-lg max-h-[280px] overflow-y-auto">
@@ -886,11 +860,7 @@ useEffect(() => {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '-100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className={`fixed z-50 w-full md:w-full md:max-w-lg md:left-1/2 md:-translate-x-1/2 md:top-0 ${
-                editingItem.status === 'todo' ? 'top-0 left-1/2 -translate-x-1/2' :
-                editingItem.status === 'in-progress' ? 'top-1/3 left-1/2 -translate-x-1/2' :
-                'top-2/3 left-1/2 -translate-x-1/2'
-              }`}
+              className="fixed z-50 w-full md:w-full md:max-w-lg md:left-1/2 md:-translate-x-1/2 md:top-0 top-0 left-1/2 -translate-x-1/2 sm:top-0 lg:top-1/2 lg:-translate-y-1/2"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-800 rounded-t-3xl lg:rounded-2xl p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">

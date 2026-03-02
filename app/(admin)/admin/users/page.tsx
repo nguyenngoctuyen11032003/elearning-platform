@@ -232,7 +232,7 @@ const fetchUsers = async () => {
   }
 
   // Lấy tất cả users - set limit=1000 để không bị pagination
-  const res = await fetch("http://localhost:5001/api/users?limit=1000", {
+  const res = await fetch("http://localhost:5001/users?limit=1000", {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -272,7 +272,7 @@ const handleAddUser = async (newUser: any) => {
       return
     }
 
-    const res = await fetch("http://localhost:5001/api/users", {
+    const res = await fetch("http://localhost:5001/users", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -324,7 +324,7 @@ const executeAction = async () => {
   try {
     if (action === "delete") {
       const res = await fetch(
-        `http://localhost:5001/api/users/${userId}`,
+        `http://localhost:5001/users/${userId}`,
         {
           method: "DELETE",
           headers: {
@@ -347,7 +347,7 @@ const executeAction = async () => {
       const newStatus = action === "lock" ? "inactive" : "active"
       
       const res = await fetch(
-        `http://localhost:5001/api/users/${userId}`,
+        `http://localhost:5001/users/${userId}`,
         {
           method: "PATCH",
           headers: {
@@ -389,7 +389,7 @@ const handleUpdateUser = async (updatedData: any) => {
     console.log("Updating user:", editUser.id, "with data:", updatedData)
 
     const res = await fetch(
-      `http://localhost:5001/api/users/${editUser.id}`,
+      `http://localhost:5001/users/${editUser.id}`,
       {
         method: "PATCH",
         headers: {

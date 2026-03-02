@@ -13,7 +13,7 @@ export async function GET(
     const query = url.searchParams.toString()
 
     const response = await fetch(
-      `${BACKEND_URL}/api/lessons/course/${courseId}${query ? `?${query}` : ""}`,
+      `${BACKEND_URL}/lessons/course/${courseId}${query ? `?${query}` : ""}`,
       {
         method: "GET",
         headers: {

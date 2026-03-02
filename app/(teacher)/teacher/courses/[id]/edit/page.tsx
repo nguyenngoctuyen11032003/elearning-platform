@@ -80,9 +80,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           : {}
 
         const [courseRes, lessonsRes, catsRes] = await Promise.all([
-          fetch(`/api/courses/${resolvedParams.id}`, { headers }),
-          fetch(`/api/lessons/course/${resolvedParams.id}`, { headers }),
-          fetch("/api/categories"),
+          fetch(`/courses/${resolvedParams.id}`, { headers }),
+          fetch(`/lessons/course/${resolvedParams.id}`, { headers }),
+          fetch("/categories"),
         ])
 
         if (courseRes.ok) {
@@ -338,7 +338,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
         : { "Content-Type": "application/json" }
 
-      const res = await fetch(`/api/courses/${resolvedParams.id}`, {
+      const res = await fetch(`/courses/${resolvedParams.id}`, {
         method: "PATCH",
         headers: authHeaders,
         body: JSON.stringify({
@@ -359,7 +359,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       for (const lesson of allLessons) {
         const isNewLesson = !/^[0-9a-f-]{36}$/.test(lesson.id)
         if (isNewLesson) {
-          await fetch("/api/lessons", {
+          await fetch("/lessons", {
             method: "POST",
             headers: authHeaders,
             body: JSON.stringify({
@@ -373,7 +373,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           })
         } else {
           // Update existing lesson title/description
-          await fetch(`/api/lessons/${lesson.id}`, {
+          await fetch(`/lessons/${lesson.id}`, {
             method: "PATCH",
             headers: authHeaders,
             body: JSON.stringify({
@@ -397,7 +397,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     setIsSubmitting(true)
     try {
       const token = localStorage.getItem("auth_token")
-      const res = await fetch(`/api/courses/${resolvedParams.id}/submit`, {
+      const res = await fetch(`/courses/${resolvedParams.id}/submit`, {
         method: "PATCH",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
@@ -454,7 +454,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           <Loader2 className="animate-spin text-primary" size={40} />
         </div>
       ) : (
-      <div className="w-full space-y-8">
+        <div className="w-full space-y-8">
           {/* Header */}
           <div className="flex items-start justify-between">
             <div>
@@ -1165,7 +1165,6 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             </div>
           )}
         </div>
-      </div>
       )}
     </div>
   )

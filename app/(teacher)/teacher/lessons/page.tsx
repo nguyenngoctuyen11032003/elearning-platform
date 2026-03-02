@@ -28,7 +28,7 @@ const LESSON_TYPES = [
   { value: "resource", label: "Tài liệu", icon: BookOpen },
 ]
 
-const getAuth = () => {
+const getAuth = ( ): Record<string, string> => {
   const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
@@ -53,7 +53,7 @@ export default function TeacherLessonsPage() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await fetch("/api/courses/teacher/my-courses", { headers: getAuth() })
+        const res = await fetch("/courses/teacher/my-courses", { headers: getAuth() })
         if (!res.ok) return
         const data = await res.json()
         const list: Course[] = Array.isArray(data) ? data : data.data || []
@@ -73,7 +73,7 @@ export default function TeacherLessonsPage() {
     const fetchLessons = async () => {
       setIsLoadingLessons(true)
       try {
-        const res = await fetch(`/api/lessons/course/${selectedCourseId}`, { headers: getAuth() })
+        const res = await fetch(`/lessons/course/${selectedCourseId}`, { headers: getAuth() })
         if (!res.ok) return
         const data = await res.json()
         const list: Lesson[] = Array.isArray(data) ? data : data.data || []
@@ -91,7 +91,7 @@ export default function TeacherLessonsPage() {
     if (!newLesson.title.trim()) { toast.error("Vui lòng nhập tên bài học"); return }
     setIsSaving(true)
     try {
-      const res = await fetch("/api/lessons", {
+      const res = await fetch("/lessons", {
         method: "POST",
         headers: { ...getAuth(), "Content-Type": "application/json" },
         body: JSON.stringify({ title: newLesson.title, description: newLesson.description, type: newLesson.type, courseId: selectedCourseId, isFree: newLesson.isFree, isPublished: false }),
@@ -113,7 +113,7 @@ export default function TeacherLessonsPage() {
     if (!editingLesson) return
     setIsSaving(true)
     try {
-      const res = await fetch(`/api/lessons/${editingLesson.id}`, {
+      const res = await fetch(`/lessons/${editingLesson.id}`, {
         method: "PATCH",
         headers: { ...getAuth(), "Content-Type": "application/json" },
         body: JSON.stringify({ title: editingLesson.title, description: editingLesson.description, type: editingLesson.type, isFree: editingLesson.isFree }),
@@ -133,7 +133,7 @@ export default function TeacherLessonsPage() {
   const handleDeleteLesson = async (id: string) => {
     if (!confirm("Bạn có chắc muốn xóa bài học này?")) return
     try {
-      const res = await fetch(`/api/lessons/${id}`, { method: "DELETE", headers: getAuth() })
+      const res = await fetch(`/lessons/${id}`, { method: "DELETE", headers: getAuth() })
       if (!res.ok) throw new Error()
       setLessons((prev) => prev.filter((l) => l.id !== id))
       toast.success("Đã xóa bài học!")
@@ -142,7 +142,7 @@ export default function TeacherLessonsPage() {
 
   const handleTogglePublish = async (lesson: Lesson) => {
     try {
-      const res = await fetch(`/api/lessons/${lesson.id}/publish`, { method: "PATCH", headers: getAuth() })
+      const res = await fetch(`/lessons/${lesson.id}/publish`, { method: "PATCH", headers: getAuth() })
       if (!res.ok) throw new Error()
       const updated: Lesson = await res.json()
       setLessons((prev) => prev.map((l) => (l.id === updated.id ? updated : l)))
@@ -164,7 +164,7 @@ export default function TeacherLessonsPage() {
     setLessons(reordered)
     setDraggedId(null)
     try {
-      await fetch(`/api/lessons/course/${selectedCourseId}/reorder`, {
+      await fetch(`/lessons/course/${selectedCourseId}/reorder`, {
         method: "POST",
         headers: { ...getAuth(), "Content-Type": "application/json" },
         body: JSON.stringify({ lessonIds: reordered.map((l) => l.id) }),
@@ -352,96 +352,4 @@ export default function TeacherLessonsPage() {
 }
 
 
-  const [draggedItem, setDraggedItem] = useState<string | null>(null)
 
-  const handleDragStart = (id: string) => {
-    setDraggedItem(id)
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-  }
-
-  const handleDrop = (targetId: string) => {
-    if (!draggedItem || draggedItem === targetId) return
-
-    const draggedIndex = lessons.findIndex((l) => l.id === draggedItem)
-    const targetIndex = lessons.findIndex((l) => l.id === targetId)
-
-    const newLessons = [...lessons]
-    ;[newLessons[draggedIndex], newLessons[targetIndex]] = [newLessons[targetIndex], newLessons[draggedIndex]]
-
-    setLessons(newLessons)
-    setDraggedItem(null)
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Quản lý bài học</h1>
-            <p className="text-slate-400 mt-1">Kéo và thả để sắp xếp thứ tự bài học</p>
-          </div>
-          <AnimatedButton className="flex items-center gap-2">
-            <Plus size={20} />
-            Thêm bài học
-          </AnimatedButton>
-        </div>
-      </motion.div>
-
-      {/* Lessons List */}
-      <div className="space-y-3">
-        {lessons.map((lesson, idx) => (
-          <motion.div
-            key={lesson.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            draggable
-            onDragStart={() => handleDragStart(lesson.id)}
-            onDragOver={handleDragOver}
-            onDrop={() => handleDrop(lesson.id)}
-            className={`transition-all ${draggedItem === lesson.id ? "opacity-50" : ""}`}
-          >
-            <PremiumCard className="flex items-center gap-4 cursor-move hover:bg-slate-800/70">
-              <GripVertical size={20} className="text-slate-500 flex-shrink-0" />
-
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
-                  <span className="text-blue-400 font-semibold">Bài {lesson.order}</span>
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-semibold ${
-                      lesson.type === "video"
-                        ? "bg-blue-500/20 text-blue-400"
-                        : lesson.type === "pdf"
-                          ? "bg-red-500/20 text-red-400"
-                          : "bg-purple-500/20 text-purple-400"
-                    }`}
-                  >
-                    {lesson.type.toUpperCase()}
-                  </span>
-                </div>
-                <h3 className="text-white font-semibold">{lesson.title}</h3>
-                <p className="text-slate-400 text-sm">{lesson.duration}</p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-slate-700 rounded-lg transition text-slate-400 hover:text-blue-400">
-                  <Edit size={18} />
-                </button>
-                <button
-                  onClick={() => setLessons(lessons.filter((l) => l.id !== lesson.id))}
-                  className="p-2 hover:bg-slate-700 rounded-lg transition text-slate-400 hover:text-red-400"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </PremiumCard>
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  )
-}

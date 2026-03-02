@@ -268,7 +268,7 @@ export default function CreateCertificatePage() {
     const fetchCourses = async () => {
       try {
         let nextCourses: Course[] = []
-        const response = await fetch(`${getFrontendBaseUrl()}/api/courses?limit=200`)
+        const response = await fetch(`${getFrontendBaseUrl()}/courses?limit=200`)
 
         if (response.ok) {
           const data = await response.json()
@@ -282,7 +282,7 @@ export default function CreateCertificatePage() {
         }
 
         if (nextCourses.length === 0) {
-          const fallback = await fetch(`${getFrontendBaseUrl()}/api/courses/teacher/my-courses`, {
+          const fallback = await fetch(`${getFrontendBaseUrl()}/courses/teacher/my-courses`, {
             headers: {
               Authorization: `Bearer ${getAuthToken()}`,
             },
@@ -322,7 +322,7 @@ export default function CreateCertificatePage() {
           return
         }
 
-        const response = await fetch(`${getFrontendBaseUrl()}/api/certificate-templates`, {
+        const response = await fetch(`${getFrontendBaseUrl()}/certificate-templates`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -370,7 +370,7 @@ export default function CreateCertificatePage() {
       else if (type === 'background') setUploadingBackground(true)
       else if (type === 'signature') setUploadingSignature(true)
 
-      const response = await fetch('/api/upload/image', {
+      const response = await fetch('/upload/image', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`
@@ -497,7 +497,7 @@ export default function CreateCertificatePage() {
     setIsSubmitting(true)
     try {
       const targetId = editTemplateId
-      const response = await fetch(`${getFrontendBaseUrl()}/api/certificate-templates${targetId ? `/${targetId}` : ""}`, {
+      const response = await fetch(`${getFrontendBaseUrl()}/certificate-templates${targetId ? `/${targetId}` : ""}`, {
         method: targetId ? "PATCH" : "POST",
         headers: {
           'Content-Type': 'application/json',
@@ -512,7 +512,7 @@ export default function CreateCertificatePage() {
         
         // If not saving as draft, submit for review
         if (!asDraft && templateId) {
-          await fetch(`${getFrontendBaseUrl()}/api/certificate-templates/${templateId}/submit`, {
+          await fetch(`${getFrontendBaseUrl()}/certificate-templates/${templateId}/submit`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${getAuthToken()}`

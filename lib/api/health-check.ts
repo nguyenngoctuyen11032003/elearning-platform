@@ -29,7 +29,7 @@ export class ApiHealthCheck {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/health`, {
+      const response = await fetch(`${API_BASE_URL}/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(3000), // 3 second timeout
       });
@@ -82,7 +82,7 @@ export class ApiHealthCheck {
    * Get API base URL
    */
   getApiBaseUrl(): string {
-    return API_BASE_URL;
+    return API_BASE_URL || 'http://localhost:5001';
   }
 
   /**

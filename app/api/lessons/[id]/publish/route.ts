@@ -13,7 +13,7 @@ export async function PATCH(
       return NextResponse.json({ error: "No authorization header" }, { status: 401 })
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/lessons/${id}/publish`, {
+    const response = await fetch(`${BACKEND_URL}/lessons/${id}/publish`, {
       method: "PATCH",
       headers: { Authorization: authHeader, "Content-Type": "application/json" },
     })

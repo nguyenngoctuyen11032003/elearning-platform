@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const query = url.searchParams.toString()
 
     const response = await fetch(
-      `${BACKEND_URL}/api/courses/admin/all${query ? `?${query}` : ""}`,
+      `${BACKEND_URL}/courses/admin/all${query ? `?${query}` : ""}`,
       {
         method: "GET",
         headers: { Authorization: authHeader, "Content-Type": "application/json" },

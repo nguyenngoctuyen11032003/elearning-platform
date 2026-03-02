@@ -11,7 +11,7 @@ export async function PATCH(
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
     const body = await request.json()
 
-    const response = await fetch(`${API_URL}/api/exams/${id}`, {
+    const response = await fetch(`${API_URL}/exams/${id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -50,7 +50,7 @@ export async function GET(
     const { id } = await params
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
 
-    const response = await fetch(`${API_URL}/api/exams/${id}`, {
+    const response = await fetch(`${API_URL}/exams/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -79,7 +79,7 @@ export async function DELETE(
     const { id } = await params
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
 
-    const response = await fetch(`${API_URL}/api/exams/${id}`, {
+    const response = await fetch(`${API_URL}/exams/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,

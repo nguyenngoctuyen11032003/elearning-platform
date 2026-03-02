@@ -6,7 +6,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 export async function GET(request: Request) {
   try {
     const cookieStore = cookies()
-    const token = cookieStore.get("token")?.value
+    const token = (await cookieStore).get("token")?.value
 
     if (!token) {
       return NextResponse.json(
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       )
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/enrollments/my-courses`, {
+    const response = await fetch(`${BACKEND_URL}/enrollments/my-courses`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",

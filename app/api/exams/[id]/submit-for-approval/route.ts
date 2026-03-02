@@ -9,7 +9,7 @@ export async function POST(
   try {
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
 
-    const response = await fetch(`${API_URL}/api/exams/${params.id}/submit-for-approval`, {
+    const response = await fetch(`${API_URL}/exams/${params.id}/submit-for-approval`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

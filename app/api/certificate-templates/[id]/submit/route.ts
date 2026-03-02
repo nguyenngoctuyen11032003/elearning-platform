@@ -9,7 +9,7 @@ export async function PATCH(
   try {
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
 
-    const response = await fetch(`${API_URL}/api/certificates/templates/${params.id}/submit`, {
+    const response = await fetch(`${API_URL}/certificates/templates/${params.id}/submit`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

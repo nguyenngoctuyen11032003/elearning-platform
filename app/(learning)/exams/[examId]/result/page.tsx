@@ -167,7 +167,7 @@ const mockResult: ExamResult = {
       isCorrect: false,
       points: 10,
       earnedPoints: 0,
-      explanation: "Trong App Router, API routes được tạo bằng file route.ts trong app/api/."
+      explanation: "Trong App Router, API routes được tạo bằng file route.ts trong app/."
     },
     {
       id: "q10",

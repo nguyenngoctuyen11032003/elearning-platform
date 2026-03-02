@@ -161,7 +161,7 @@ export default function NotesPage() {
       setLoading(true)
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/my-notes`,
+        `${process.env.NEXT_PUBLIC_API_URL}/notes/my-notes`,
         {
           method: "GET",
           headers: {
@@ -238,7 +238,7 @@ export default function NotesPage() {
       payload.schedule = newNote.schedule;
     }
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notes`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -306,7 +306,7 @@ export default function NotesPage() {
       }
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/${editingNote.id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/notes/${editingNote.id}`,
         {
           method: 'PATCH',
           headers: {
@@ -330,7 +330,7 @@ export default function NotesPage() {
   const handleDeleteNote = async (id: string) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/${id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/notes/${id}`,
         {
           method: 'DELETE',
           headers: {
@@ -384,7 +384,7 @@ export default function NotesPage() {
   const handleExportToExcel = async () => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/export/excel`,
+        `${process.env.NEXT_PUBLIC_API_URL}/notes/export/excel`,
         {
           method: "GET",
           headers: {
@@ -414,7 +414,7 @@ export default function NotesPage() {
   const handleExportSingleNoteToExcel = async (noteId: string) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/${noteId}/export/excel`,
+        `${process.env.NEXT_PUBLIC_API_URL}/notes/${noteId}/export/excel`,
         {
           method: "GET",
           headers: {
@@ -446,7 +446,7 @@ export default function NotesPage() {
     try {
       setLoadingFavorites(true)
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/favorites`,
+        `${process.env.NEXT_PUBLIC_API_URL}/notes/favorites`,
         {
           method: "GET",
           headers: {
@@ -488,7 +488,7 @@ export default function NotesPage() {
   const handleToggleFavorite = async (noteId: string) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/notes/${noteId}/toggle-favorite`,
+        `${process.env.NEXT_PUBLIC_API_URL}/notes/${noteId}/toggle-favorite`,
         {
           method: "POST",
           headers: {

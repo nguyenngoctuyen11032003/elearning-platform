@@ -28,7 +28,7 @@ interface Course {
   rejectionReason?: string
 }
 
-const getAuth = () => {
+const getAuth = (): Record<string, string> => {
   const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
@@ -54,7 +54,7 @@ export default function AdminCoursesPage() {
     const fetchCourses = async () => {
       setIsLoading(true)
       try {
-        const res = await fetch("/api/admin/courses", { headers: getAuth() })
+        const res = await fetch("/admin/courses", { headers: getAuth() })
         if (!res.ok) throw new Error()
         const data = await res.json()
         const list = Array.isArray(data) ? data : data.data || []
@@ -121,12 +121,12 @@ export default function AdminCoursesPage() {
     const { action, courseId } = confirmDialog
     try {
       if (action === "approve") {
-        const res = await fetch(`/api/courses/${courseId}/approve`, { method: "PATCH", headers: getAuth() })
+        const res = await fetch(`/courses/${courseId}/approve`, { method: "PATCH", headers: getAuth() })
         if (!res.ok) throw new Error()
         setCourses(courses.map((c) => (c.id === courseId ? { ...c, status: "published" as const } : c)))
         toast.success("Đã duyệt khóa học!")
       } else if (action === "delete") {
-        const res = await fetch(`/api/courses/${courseId}`, { method: "DELETE", headers: getAuth() })
+        const res = await fetch(`/courses/${courseId}`, { method: "DELETE", headers: getAuth() })
         if (!res.ok) throw new Error()
         setCourses(courses.filter((c) => c.id !== courseId))
         toast.success("Đã xóa khóa học!")
@@ -140,7 +140,7 @@ export default function AdminCoursesPage() {
   const handleReject = async () => {
     if (!selectedCourse || !rejectionReason.trim()) return
     try {
-      const res = await fetch(`/api/courses/${selectedCourse.id}/reject`, {
+      const res = await fetch(`/courses/${selectedCourse.id}/reject`, {
         method: "PATCH",
         headers: { ...getAuth(), "Content-Type": "application/json" },
         body: JSON.stringify({ reason: rejectionReason }),

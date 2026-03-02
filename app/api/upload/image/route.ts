@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
 
     // Forward the request to the backend
-    const response = await fetch(`${BACKEND_URL}/api/upload/image`, {
+    const response = await fetch(`${BACKEND_URL}/upload/image`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,

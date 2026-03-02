@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    const response = await fetch(`${BACKEND_URL}/api/lessons`, {
+    const response = await fetch(`${BACKEND_URL}/lessons`, {
       method: "POST",
       headers: { Authorization: authHeader, "Content-Type": "application/json" },
       body: JSON.stringify(body),

@@ -3,9 +3,9 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        // Exclude /api/* paths (handled by Next.js route handlers) to avoid double /api/api/ prefix
+        // Exclude /* paths (handled by Next.js route handlers) to avoid double / prefix
         source: '/:path((?!api/).*)*',
-        destination: 'http://localhost:5001/api/:path*',
+        destination: 'http://localhost:5001/:path*',
       },
     ]
   },

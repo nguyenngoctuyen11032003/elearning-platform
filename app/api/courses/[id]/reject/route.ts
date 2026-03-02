@@ -15,7 +15,7 @@ export async function PATCH(
 
     const body = await request.json().catch(() => ({}))
 
-    const response = await fetch(`${BACKEND_URL}/api/courses/${id}/reject`, {
+    const response = await fetch(`${BACKEND_URL}/courses/${id}/reject`, {
       method: "PATCH",
       headers: { Authorization: authHeader, "Content-Type": "application/json" },
       body: JSON.stringify(body),

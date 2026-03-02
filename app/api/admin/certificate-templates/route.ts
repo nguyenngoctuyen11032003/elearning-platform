@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   try {
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
 
-    const response = await fetch(`${API_URL}/api/certificates/templates/admin/all`, {
+    const response = await fetch(`${API_URL}/certificates/templates/admin/all`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

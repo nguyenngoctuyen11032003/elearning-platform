@@ -96,14 +96,14 @@ export default function EditExamPage() {
   const fetchCourses = async () => {
     try {
       let nextCourses: Course[] = []
-      const response = await fetch("/api/courses?limit=200")
+      const response = await fetch("/courses?limit=200")
       if (response.ok) {
         const data = await response.json()
         nextCourses = normalizeList<Course>(data)
       }
 
       if (nextCourses.length === 0) {
-        const fallback = await fetch("/api/courses/teacher/my-courses", {
+        const fallback = await fetch("/courses/teacher/my-courses", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
           },
@@ -124,7 +124,7 @@ export default function EditExamPage() {
   const fetchTemplates = async () => {
     try {
       setIsLoadingTemplates(true)
-      const response = await fetch("/api/certificate-templates", {
+      const response = await fetch("/certificate-templates", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
@@ -150,7 +150,7 @@ export default function EditExamPage() {
   const loadExam = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/exams/${examId}`, {
+      const response = await fetch(`/exams/${examId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
@@ -270,7 +270,7 @@ export default function EditExamPage() {
         delete examData.certificateTemplateId
       }
 
-      const response = await fetch(`/api/exams/${examId}`, {
+      const response = await fetch(`/exams/${examId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -809,7 +809,7 @@ export default function EditExamPage() {
                 <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
                   <span className="text-muted-foreground dark:text-slate-400">Khóa học</span>
                   <span className="text-foreground dark:text-white font-medium">
-                    {mockCourses.find(c => c.id === formData.courseId)?.title || "Chưa chọn"}
+                    {courses.find(c => c.id === formData.courseId)?.title || "Chưa chọn"}
                   </span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
@@ -824,7 +824,7 @@ export default function EditExamPage() {
                   <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
                     <span className="text-muted-foreground dark:text-slate-400">Chứng chỉ</span>
                     <span className="text-purple-500 font-medium">
-                      {mockCertificates.find(c => c.id === formData.certificateTemplateId)?.title || "Chưa chọn"}
+                      {templates.find(c => c.id === formData.certificateTemplateId)?.title || "Chưa chọn"}
                     </span>
                   </div>
                 )}

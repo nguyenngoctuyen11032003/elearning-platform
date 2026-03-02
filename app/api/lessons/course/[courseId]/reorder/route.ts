@@ -16,7 +16,7 @@ export async function POST(
     const body = await request.json()
 
     const response = await fetch(
-      `${BACKEND_URL}/api/lessons/course/${courseId}/reorder`,
+      `${BACKEND_URL}/lessons/course/${courseId}/reorder`,
       {
         method: "POST",
         headers: { Authorization: authHeader, "Content-Type": "application/json" },

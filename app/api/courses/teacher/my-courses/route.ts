@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Forward the request to the backend
-    const response = await fetch(`${BACKEND_URL}/api/courses/my-courses`, {
+    const response = await fetch(`${BACKEND_URL}/courses/my-courses`, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
