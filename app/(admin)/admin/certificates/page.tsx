@@ -550,16 +550,16 @@ const formatDate = (date?: string) => {
                               <img
                                 src={cert.logoUrl}
                                 alt="Logo"
-                                className="w-8 h-8 object-contain rounded-md bg-white/90 p-1"
+                                className="w-7 h-7 sm:w-8 sm:h-8 object-contain rounded-md bg-white/90 p-1"
                               />
                             ) : (
-                              <div className="w-8 h-8 rounded-md bg-white/80" />
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-white/80" />
                             )}
                           </div>
 
-                          <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-3 sm:px-4 pt-10 pb-9 sm:pt-10 sm:pb-10 text-center">
                             <p
-                              className="text-[10px] font-semibold tracking-[0.25em] uppercase"
+                              className="text-[9px] sm:text-[10px] font-semibold tracking-[0.25em] uppercase"
                               style={{ color: cert.borderColor || "#d4af37" }}
                             >
                               Chứng chỉ hoàn thành
@@ -570,39 +570,39 @@ const formatDate = (date?: string) => {
                             />
 
                             <div
-                              className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center mb-2"
                               style={{
                                 backgroundColor: cert.textColor || "#ffffff",
                                 color: cert.borderColor || "#d4af37",
                                 border: `2px solid ${cert.borderColor || "#d4af37"}`,
                               }}
                             >
-                              <Award size={20} />
+                              <Award size={18} />
                             </div>
 
-                            <h4 className="text-sm font-semibold leading-snug">{cert.title}</h4>
+                            <h4 className="text-xs sm:text-sm font-semibold leading-snug line-clamp-2 max-w-[90%]">{cert.title}</h4>
                             <div
                               className="w-10 h-px my-2"
                               style={{ backgroundColor: cert.borderColor || "#d4af37" }}
                             />
-                            <p className="text-[11px] opacity-70">Chứng nhận rằng</p>
-                            <p className="text-sm font-semibold italic mt-1">[Tên học viên]</p>
+                            <p className="text-[9px] sm:text-[11px] opacity-70">Chứng nhận rằng</p>
+                            <p className="text-xs sm:text-sm font-semibold italic mt-1 line-clamp-1 max-w-[90%]">[Tên học viên]</p>
                             <div
                               className="w-24 h-px mt-2"
                               style={{ backgroundColor: cert.borderColor || "#d4af37" }}
                             />
-                            <p className="text-[11px] mt-3 opacity-80 line-clamp-2">
+                            <p className="text-[9px] sm:text-[11px] mt-2 sm:mt-3 opacity-80 line-clamp-3 max-w-[90%]">
                               {cert.description}
                             </p>
                             <p
-                              className="text-[11px] font-semibold mt-2"
+                              className="text-[9px] sm:text-[11px] font-semibold mt-2 line-clamp-2 max-w-[90%]"
                               style={{ color: cert.borderColor || "#d4af37" }}
                             >
                               {cert.course?.title || "[Tên khóa học]"}
                             </p>
                           </div>
 
-                          <div className="absolute bottom-3 left-3 text-[10px]">
+                          <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 text-[9px] sm:text-[10px]">
                             <span
                               className="px-2 py-1 rounded-md"
                               style={{

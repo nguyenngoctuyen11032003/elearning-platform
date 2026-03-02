@@ -256,14 +256,12 @@ export default function PaymentHistoryPage() {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white' : 'bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 text-gray-900'}`}>
-      <div className="flex flex-col lg:flex-row h-auto lg:h-screen">
-        {/* Main Content */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [&::-moz-scrollbar]:hidden [-ms-overflow-style:none]"
-        >
-          <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full overflow-y-auto [&::-webkit-scrollbar]:hidden [&::-moz-scrollbar]:hidden [-ms-overflow-style:none]"
+      >
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
             {/* Header with Logo */}
             <div className="flex items-center justify-between">
               <div className={`text-lg sm:text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>ICS-Learning</div>
@@ -429,45 +427,79 @@ export default function PaymentHistoryPage() {
                 </div>
               )}
             </div>
+
+            {/* Your Courses Section */}
+            <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm`}>
+              <div className="flex items-center justify-between mb-6 sm:mb-8">
+                <h2 className={`text-lg sm:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Khóa học của bạn</h2>
+                <button className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm whitespace-nowrap">
+                  <span>+</span>
+                  Thêm khóa học
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {payments.slice(0, 6).map((payment, idx) => (
+                  <motion.div
+                    key={payment.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    whileHover={{ scale: 1.02, translateY: -4 }}
+                    onClick={() => handleViewDetails(payment)}
+                    className={`${isDarkMode ? 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600 hover:from-gray-600 hover:to-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border-gray-200 hover:from-blue-50 to-cyan-50'} rounded-xl border cursor-pointer transition-all overflow-hidden`}
+                  >
+                    {/* Header with Logo */}
+                    <div className={`${isDarkMode ? 'bg-gray-800/50' : 'bg-gradient-to-r from-orange-400 to-orange-500'} p-4 flex items-center gap-3`}>
+                      <div className={`w-12 h-12 rounded-lg flex-shrink-0 flex items-center justify-center font-bold text-white text-lg ${isDarkMode ? 'bg-gradient-to-br from-orange-500 to-orange-600' : 'bg-gradient-to-br from-orange-300 to-orange-400'}`}>
+                        {payment.courseTitle.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className={`text-sm sm:text-base font-semibold line-clamp-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{payment.courseTitle.substring(0, 30)}</h4>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>{formatCurrency(payment.finalAmount)}</p>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4 space-y-3 sm:space-y-4">
+                      {/* Progress */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Tiến độ</p>
+                          <p className={`text-xs font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>75%</p>
+                        </div>
+                        <div className={`w-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-2 overflow-hidden`}>
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: '75%' }}
+                            transition={{ duration: 1, delay: 0.2 }}
+                            className="bg-gradient-to-r from-emerald-400 to-teal-500 h-full rounded-full"
+                          ></motion.div>
+                        </div>
+                      </div>
+
+                      {/* Stats */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-lg p-3 text-center`}>
+                          <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Bài học</p>
+                          <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>12</p>
+                        </div>
+                        <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-lg p-3 text-center`}>
+                          <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hoàn thành</p>
+                          <p className={`text-lg font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>9</p>
+                        </div>
+                      </div>
+
+                      {/* Button */}
+                      <button className={`w-full py-2.5 rounded-lg font-medium transition-all text-sm ${isDarkMode ? 'bg-blue-600/20 text-blue-300 hover:bg-blue-600/30' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}>
+                        Tiếp tục học
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
           </div>
         </motion.div>
-
-        {/* Right Sidebar - Your Courses */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className={`w-full lg:w-64 ${isDarkMode ? 'bg-gray-800/70 border-gray-700' : 'bg-white/70 border-gray-200'} backdrop-blur-md border-t lg:border-l p-4 sm:p-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [&::-moz-scrollbar]:hidden [-ms-overflow-style:none] space-y-4 sm:space-y-6`}
-        >
-          <h3 className={`text-base sm:text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Khóa học của bạn</h3>
-          <div className="space-y-2 sm:space-y-4">
-            {payments.slice(0, 3).map((payment) => (
-              <motion.div
-                key={payment.id}
-                whileHover={{ scale: 1.02 }}
-                onClick={() => handleViewDetails(payment)}
-                className={`${isDarkMode ? 'bg-gray-700 border-gray-600 hover:bg-gray-600' : 'bg-white border-gray-200 hover:shadow-md'} rounded-xl p-3 sm:p-4 cursor-pointer transition-all border`}
-              >
-                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex-shrink-0"></div>
-                  <div className="min-w-0">
-                    <h4 className={`text-xs sm:text-sm font-semibold line-clamp-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} title={payment.courseTitle}>{payment.courseTitle}</h4>
-                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{formatCurrency(payment.finalAmount)}</p>
-                  </div>
-                </div>
-                <div className={`w-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-1.5 sm:h-2`}>
-                  <div className="bg-emerald-500 h-full rounded-full" style={{ width: '75%' }}></div>
-                </div>
-                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1 sm:mt-2`}>75% hoàn thành</p>
-              </motion.div>
-            ))}
-          </div>
-
-          <button className="w-full py-2 sm:py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm">
-            <span>+</span>
-            Thêm khóa học
-          </button>
-        </motion.div>
-      </div>
 
       {/* Payment Details Modal */}
       {viewingDetails && selectedPayment && (
