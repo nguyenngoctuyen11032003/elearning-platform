@@ -28,101 +28,6 @@ interface EnrolledCourse {
   enrolledAt: string
 }
 
-const MOCK_COURSES: EnrolledCourse[] = [
-  {
-    id: "enroll-1",
-    courseId: "course-1",
-    course: {
-      id: "course-1",
-      title: "JavaScript Nâng Cao: Mastering Async & Await",
-      description: "Học JavaScript advanced concepts",
-      thumbnail: "/image/logo-ics.jpg",
-      teacher: { name: "Nguyễn Văn A" },
-      lessons: Array(15).fill(null)
-    },
-    progress: 75,
-    status: "in-progress",
-    enrolledAt: "2025-12-01"
-  },
-  {
-    id: "enroll-2",
-    courseId: "course-2",
-    course: {
-      id: "course-2",
-      title: "React 18: Build Production Apps",
-      description: "Xây dựng ứng dụng React chuyên nghiệp",
-      thumbnail: "/image/python.png",
-      teacher: { name: "Trần Thị B" },
-      lessons: Array(20).fill(null)
-    },
-    progress: 100,
-    status: "completed",
-    enrolledAt: "2025-10-15"
-  },
-  {
-    id: "enroll-3",
-    courseId: "course-3",
-    course: {
-      id: "course-3",
-      title: "TypeScript Từ Zero to Hero",
-      description: "Học TypeScript từ cơ bản đến nâng cao",
-      thumbnail: "/image/course-3.jpg",
-      teacher: { name: "Phạm Văn C" },
-      lessons: Array(18).fill(null)
-    },
-    progress: 45,
-    status: "in-progress",
-    enrolledAt: "2025-12-10"
-  },
-  {
-    id: "enroll-4",
-    courseId: "course-4",
-    course: {
-      id: "course-4",
-      title: "Next.js 14: Full Stack Development",
-      description: "Phát triển ứng dụng full stack với Next.js",
-      thumbnail: "/image/course-4.jpg",
-      teacher: { name: "Lê Minh D" },
-      lessons: Array(25).fill(null)
-    },
-    progress: 0,
-    status: "not-started",
-    enrolledAt: "2026-01-15"
-  },
-  {
-    id: "enroll-5",
-    courseId: "course-5",
-    course: {
-      id: "course-5",
-      title: "Tailwind CSS: Modern Styling",
-      description: "Thiết kế giao diện với Tailwind CSS",
-      thumbnail: "/image/course-5.jpg",
-      teacher: { name: "Đỗ Hồng E" },
-      lessons: Array(12).fill(null)
-    },
-    progress: 90,
-    status: "in-progress",
-    enrolledAt: "2025-11-20"
-  },
-  {
-    id: "enroll-6",
-    courseId: "course-6",
-    course: {
-      id: "course-6",
-      title: "Node.js & Express: Backend API",
-      description: "Xây dựng backend API với Node.js",
-      thumbnail: "/image/course-6.jpg",
-      teacher: { name: "Bùi Văn F" },
-      lessons: Array(22).fill(null)
-    },
-    progress: 60,
-    status: "in-progress",
-    enrolledAt: "2025-11-05"
-  },
-  
-  
-]
-
 const ITEMS_PER_PAGE = 4
 
 export default function MyCoursesPage() {
@@ -139,13 +44,6 @@ export default function MyCoursesPage() {
 
   useEffect(() => {
     const fetchEnrollments = async () => {
-      // Use mock data in development
-      if (process.env.NODE_ENV === "development") {
-        setCourses(MOCK_COURSES)
-        setLoading(false)
-        return
-      }
-
       if (!user?.id) {
         setLoading(false)
         return

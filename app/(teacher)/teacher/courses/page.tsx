@@ -96,7 +96,10 @@ export default function TeacherCoursesPage() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await fetch("/api/courses?limit=200")
+        const token = localStorage.getItem("auth_token")
+        const response = await fetch("/api/courses/teacher/my-courses", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
         if (!response.ok) {
           throw new Error("Failed to fetch courses")
         }
@@ -145,18 +148,40 @@ export default function TeacherCoursesPage() {
     setMenuOpenId(null)
   }
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!selectedCourse) return
-    setCourses(courses.filter(course => course.id !== selectedCourse.id))
-    setViewMode(null)
-    setSelectedCourse(null)
+    try {
+      const token = localStorage.getItem("auth_token")
+      const res = await fetch(`/api/courses/${selectedCourse.id}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error("Delete failed")
+      setCourses(courses.filter(course => course.id !== selectedCourse.id))
+    } catch (error) {
+      console.error("Error deleting course:", error)
+    } finally {
+      setViewMode(null)
+      setSelectedCourse(null)
+    }
   }
 
-  const handleSubmitForReview = (courseId: string) => {
-    setCourses(courses.map(c =>
-      c.id === courseId ? { ...c, status: "pending" as const } : c
-    ))
-    setMenuOpenId(null)
+  const handleSubmitForReview = async (courseId: string) => {
+    try {
+      const token = localStorage.getItem("auth_token")
+      const res = await fetch(`/api/courses/${courseId}/submit`, {
+        method: "PATCH",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error("Submit failed")
+      setCourses(courses.map(c =>
+        c.id === courseId ? { ...c, status: "pending" as const } : c
+      ))
+    } catch (error) {
+      console.error("Error submitting course:", error)
+    } finally {
+      setMenuOpenId(null)
+    }
   }
 
 // Close dropdown when clicking outside
