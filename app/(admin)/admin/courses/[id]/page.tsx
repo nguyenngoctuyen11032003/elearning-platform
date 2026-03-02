@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
@@ -21,7 +21,8 @@ import {
   Calendar,
   Clipboard
 } from "lucide-react"
-import Link from "next/link"
+import { Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 interface Lesson {
   id: string
@@ -72,145 +73,94 @@ interface CourseDetail {
   rejectionReason?: string
 }
 
-// Mock data - sẽ thay thế bằng API call thực tế
-const mockCourseDetail: CourseDetail = {
-  id: "1",
-  title: "Lập trình Next.js từ cơ bản đến nâng cao",
-  description: "Khóa học toàn diện về Next.js 14 với App Router, Server Components, Server Actions và deployment. Bạn sẽ học cách xây dựng ứng dụng web hiện đại, tối ưu hiệu suất và SEO.",
-  instructor: "Nguyễn Ngọc Tuyền",
-  instructorEmail: "tuyen@example.com",
-  instructorId: "INST001",
-  students: 1250,
-  revenue: 624500000,
-  price: 499000,
-  status: "published",
-  createdAt: "2024-01-15T10:30:00",
-  updatedAt: "2024-03-20T15:45:00",
-  category: "Lập trình Web",
-  thumbnail: "/placeholder.jpg",
-  duration: "40 giờ",
-  rating: 4.8,
-  reviewCount: 320,
-  level: "intermediate",
-  language: "vi",
-  requirements: [
-    "Kiến thức cơ bản về HTML, CSS, JavaScript",
-    "Hiểu biết về React cơ bản",
-    "Có máy tính cài đặt Node.js và VS Code"
-  ],
-  learningOutcomes: [
-    "Xây dựng ứng dụng web với Next.js 14",
-    "Sử dụng App Router và Server Components",
-    "Tối ưu hiệu suất và SEO",
-    "Deploy ứng dụng lên Vercel",
-    "Tích hợp database và authentication"
-  ],
-  sections: [
-    {
-      id: "sec1",
-      title: "Giới thiệu và cài đặt",
-      order: 1,
-      lessons: [
-        {
-          id: "les1",
-          title: "Giới thiệu về Next.js",
-          type: "video",
-          duration: "15:30",
-          order: 1,
-          isPublished: true,
-          videoUrl: "https://example.com/video1"
-        },
-        {
-          id: "les2",
-          title: "Cài đặt môi trường",
-          type: "video",
-          duration: "20:45",
-          order: 2,
-          isPublished: true,
-          videoUrl: "https://example.com/video2"
-        },
-        {
-          id: "les3",
-          title: "Cấu trúc dự án Next.js",
-          type: "reading",
-          duration: "10:00",
-          order: 3,
-          isPublished: true,
-          content: "Nội dung bài học..."
-        }
-      ]
-    },
-    {
-      id: "sec2",
-      title: "App Router cơ bản",
-      order: 2,
-      lessons: [
-        {
-          id: "les4",
-          title: "Routing trong Next.js",
-          type: "video",
-          duration: "25:15",
-          order: 1,
-          isPublished: true,
-          videoUrl: "https://example.com/video3"
-        },
-        {
-          id: "les5",
-          title: "Dynamic Routes",
-          type: "video",
-          duration: "18:30",
-          order: 2,
-          isPublished: true,
-          videoUrl: "https://example.com/video4"
-        },
-        {
-          id: "les6",
-          title: "Quiz: Kiểm tra kiến thức Routing",
-          type: "quiz",
-          duration: "15:00",
-          order: 3,
-          isPublished: true
-        }
-      ]
-    },
-    {
-      id: "sec3",
-      title: "Server Components & Actions",
-      order: 3,
-      lessons: [
-        {
-          id: "les7",
-          title: "Server Components là gì?",
-          type: "video",
-          duration: "22:00",
-          order: 1,
-          isPublished: true,
-          videoUrl: "https://example.com/video5"
-        },
-        {
-          id: "les8",
-          title: "Server Actions",
-          type: "video",
-          duration: "28:45",
-          order: 2,
-          isPublished: true,
-          videoUrl: "https://example.com/video6"
-        }
-      ]
-    }
-  ],
-  totalLessons: 45,
-  totalVideoDuration: "40h 15m",
-  enrollmentCount: 1250,
-  completionRate: 68,
-  averageProgress: 72
+const getAuth = () => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 export default function AdminCourseDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const [course] = useState<CourseDetail>(mockCourseDetail)
+  const [course, setCourse] = useState<CourseDetail | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"overview" | "content" | "students" | "analytics">("overview")
+
+  useEffect(() => {
+    const fetchCourse = async () => {
+      setIsLoading(true)
+      try {
+        const [courseRes, lessonsRes] = await Promise.all([
+          fetch(`/api/courses/${params.id}`, { headers: getAuth() }),
+          fetch(`/api/lessons/course/${params.id}`, { headers: getAuth() }),
+        ])
+        if (!courseRes.ok) throw new Error()
+        const c = await courseRes.json()
+        const lessonsData = lessonsRes.ok ? await lessonsRes.json() : []
+        const lessonList: Lesson[] = (Array.isArray(lessonsData) ? lessonsData : lessonsData.data || []).map((l: Record<string, unknown>) => ({
+          id: l.id as string,
+          title: l.title as string,
+          type: (l.type === "article" ? "reading" : l.type) as Lesson["type"],
+          duration: l.duration ? String(l.duration) : "",
+          order: (l.order as number) || 0,
+          isPublished: (l.isPublished as boolean) || false,
+          videoUrl: l.videoUrl as string | undefined,
+          content: l.content as string | undefined,
+        }))
+        const teacher = (c.teacher as Record<string, unknown>) || {}
+        setCourse({
+          id: c.id,
+          title: c.title,
+          description: c.description || "",
+          instructor: `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim(),
+          instructorEmail: (teacher.email as string) || "",
+          instructorId: (teacher.id as string) || "",
+          students: c.enrollmentCount || 0,
+          revenue: c.revenue || 0,
+          price: c.price || 0,
+          status: c.status,
+          createdAt: c.createdAt || "",
+          updatedAt: c.updatedAt || "",
+          category: (c.category as Record<string, unknown>)?.name as string || "",
+          thumbnail: c.thumbnail || "",
+          duration: "",
+          rating: c.averageRating || 0,
+          reviewCount: c.reviewCount || 0,
+          level: c.level || "beginner",
+          language: c.language || "vi",
+          requirements: c.requirements || [],
+          learningOutcomes: c.learningOutcomes || [],
+          sections: [{ id: "main", title: "Nội dung khóa học", order: 1, lessons: lessonList }],
+          totalLessons: lessonList.length,
+          totalVideoDuration: "",
+          enrollmentCount: c.enrollmentCount || 0,
+          completionRate: 0,
+          averageProgress: 0,
+          rejectionReason: c.rejectionReason,
+        })
+      } catch {
+        toast.error("Không thể tải thông tin khóa học")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    if (params.id) fetchCourse()
+  }, [params.id])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 size={40} className="animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!course) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">Không tìm thấy khóa học</p>
+      </div>
+    )
+  }
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {

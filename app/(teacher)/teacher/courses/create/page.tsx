@@ -1,8 +1,9 @@
 "use client"
 
-import { ChevronRight, Check, Plus, Trash2, FileText, Video, X } from "lucide-react"
-import { useState, useRef } from "react"
+import { ChevronRight, Check, Plus, Trash2, FileText, Video, X, Loader2 } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 interface Section {
   id: string
@@ -28,14 +29,23 @@ interface Quiz {
 
 const steps = ["Thông tin", "Nội dung", "Giá & Trạng thái", "Hoàn thành"]
 
+interface Category {
+  id: string
+  name: string
+  slug: string
+}
+
 export default function CreateCoursePage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [createdCourseId, setCreatedCourseId] = useState<string | null>(null)
+  const [categories, setCategories] = useState<Category[]>([])
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    category: "",
+    categoryId: "",
     price: 0,
     status: "draft",
     thumbnail: null as File | null,
@@ -49,13 +59,112 @@ export default function CreateCoursePage() {
   const [draggedVideoZone, setDraggedVideoZone] = useState(false)
   const [draggedDocumentZone, setDraggedDocumentZone] = useState(false)
 
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((data) => {
+        const list = Array.isArray(data) ? data : data.data || []
+        setCategories(list)
+      })
+      .catch(() => {})
+  }, [])
+
+  const handleNext = async () => {
+    if (currentStep < steps.length - 2) {
       setCurrentStep(currentStep + 1)
-    } else {
-      // Hoàn thành tạo khóa học, điều hướng về trang courses
-      router.push('/teacher/courses')
+      return
     }
+
+    if (currentStep === steps.length - 2) {
+      // Final submission step
+      setIsSubmitting(true)
+      try {
+        const token = localStorage.getItem("auth_token")
+        const authHeaders: Record<string, string> = token
+          ? { Authorization: `Bearer ${token}` }
+          : {}
+
+        // 1. Upload thumbnail if exists
+        let thumbnailUrl: string | undefined
+        if (formData.thumbnail) {
+          const fd = new FormData()
+          fd.append("file", formData.thumbnail)
+          const upRes = await fetch("/api/upload/image", {
+            method: "POST",
+            headers: authHeaders,
+            body: fd,
+          })
+          if (upRes.ok) {
+            const upData = await upRes.json()
+            thumbnailUrl = upData.url
+          }
+        }
+
+        // 2. Create course
+        const coursePayload: Record<string, unknown> = {
+          title: formData.title,
+          description: formData.description,
+          price: formData.price,
+          status: "draft",
+          ...(formData.categoryId ? { categoryId: formData.categoryId } : {}),
+          ...(thumbnailUrl ? { thumbnail: thumbnailUrl } : {}),
+        }
+
+        const courseRes = await fetch("/api/courses", {
+          method: "POST",
+          headers: { ...authHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify(coursePayload),
+        })
+
+        if (!courseRes.ok) {
+          const err = await courseRes.json().catch(() => ({}))
+          throw new Error(err.message || err.error || "Tạo khóa học thất bại")
+        }
+
+        const course = await courseRes.json()
+        const courseId = course.id
+        setCreatedCourseId(courseId)
+
+        // 3. Create lessons for each section
+        for (const section of sections) {
+          for (const lesson of section.lessons) {
+            const lessonPayload = {
+              title: lesson.title,
+              description: lesson.description,
+              courseId,
+              type: "video",
+              isFree: false,
+              isPublished: false,
+            }
+            await fetch("/api/lessons", {
+              method: "POST",
+              headers: { ...authHeaders, "Content-Type": "application/json" },
+              body: JSON.stringify(lessonPayload),
+            })
+          }
+        }
+
+        // 4. Submit for review if status is pending
+        if (formData.status === "pending") {
+          await fetch(`/api/courses/${courseId}/submit`, {
+            method: "PATCH",
+            headers: { ...authHeaders, "Content-Type": "application/json" },
+          })
+        }
+
+        toast.success("Đã tạo khóa học thành công!")
+        setCurrentStep(currentStep + 1)
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Đã xảy ra lỗi"
+        toast.error(message)
+      } finally {
+        setIsSubmitting(false)
+      }
+      return
+    }
+
+    // Step 3 (final success) -> redirect
+    router.push("/teacher/courses")
   }
 
   const handlePrev = () => {
@@ -293,15 +402,14 @@ export default function CreateCoursePage() {
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Danh mục</label>
                 <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                   className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
                 >
                   <option value="">Chọn danh mục</option>
-                  <option value="programming">Lập trình</option>
-                  <option value="design">Thiết kế</option>
-                  <option value="business">Kinh doanh</option>
-                  <option value="ai">AI & Data</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -833,10 +941,18 @@ export default function CreateCoursePage() {
           </button>
           <button
             onClick={handleNext}
-            className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth"
+            disabled={isSubmitting}
+            className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {currentStep === steps.length - 1 ? "Hoàn thành" : "Tiếp tục"}
-            {currentStep < steps.length - 1 && <ChevronRight size={20} />}
+            {isSubmitting ? (
+              <><Loader2 size={18} className="animate-spin" /> Đang tạo...</>
+            ) : currentStep === steps.length - 1 ? (
+              "Về danh sách"
+            ) : currentStep === steps.length - 2 ? (
+              "Tạo khóa học"
+            ) : (
+              <>{"Tiếp tục"}<ChevronRight size={20} /></>
+            )}
           </button>
         </div>
       </div>

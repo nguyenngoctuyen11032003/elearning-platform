@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, use, useRef, useEffect } from "react"
-import { Save, Plus, Trash2, Eye, FileText, Video, X, ChevronDown } from "lucide-react"
+import { Save, Plus, Trash2, Eye, FileText, Video, X, ChevronDown, Loader2, Send } from "lucide-react"
 import { FileUploadZone } from "@/components/ui/file-upload-zone"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 interface Section {
   id: string
@@ -27,35 +28,29 @@ interface Quiz {
   correctAnswer: number
 }
 
+interface Category {
+  id: string
+  name: string
+}
+
 export default function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const resolvedParams = use(params)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [courseStatus, setCourseStatus] = useState("draft")
   const [course, setCourse] = useState({
-    title: "Lập trình Next.js từ cơ bản đến nâng cao",
-    description: "Khóa học toàn diện về Next.js từ cơ bản đến nâng cao, bao gồm các tính năng mới nhất và best practices trong phát triển ứng dụng web hiện đại.",
-    category: "Lập trình",
-    price: 499000,
+    title: "",
+    description: "",
+    categoryId: "",
+    category: "",
+    price: 0,
     thumbnail: "/placeholder.jpg",
   })
 
-  const [sections, setSections] = useState<Section[]>([
-    {
-      id: "1",
-      title: "Giới thiệu và Cài đặt",
-      lessons: [
-        { id: "1", title: "Giới thiệu Next.js", description: "Tổng quan về Next.js và ưu điểm", quizzes: [] },
-        { id: "2", title: "Setup Project", description: "Cài đặt dự án mới với Next.js", quizzes: [] }
-      ]
-    },
-    {
-      id: "2", 
-      title: "Routing và Pages",
-      lessons: [
-        { id: "3", title: "Routing & Pages", description: "Hệ thống routing trong Next.js", quizzes: [] },
-        { id: "4", title: "Dynamic Routes", description: "Tạo dynamic routes", quizzes: [] }
-      ]
-    }
-  ])
+  const [sections, setSections] = useState<Section[]>([])
   
   const [currentSectionId, setCurrentSectionId] = useState<string | null>(null)
   const [currentLessonId, setCurrentLessonId] = useState<string | null>(null)
@@ -75,32 +70,75 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   const [draggedAddVideoZone, setDraggedAddVideoZone] = useState(false)
   const [draggedAddDocumentZone, setDraggedAddDocumentZone] = useState(false)
 
-  // Load data from localStorage on mount
+  // Load course data from API on mount
   useEffect(() => {
-    const savedCourseData = localStorage.getItem(`course-${resolvedParams.id}`)
-    if (savedCourseData) {
+    const fetchData = async () => {
       try {
-        const data = JSON.parse(savedCourseData)
-        setCourse(data.course || course)
-        setSections(data.sections || sections)
-        // Note: Files cannot be stored in localStorage (they are File objects)
-        // So we initialize uploadedFiles as empty
+        const token = localStorage.getItem("auth_token")
+        const headers: Record<string, string> = token
+          ? { Authorization: `Bearer ${token}` }
+          : {}
+
+        const [courseRes, lessonsRes, catsRes] = await Promise.all([
+          fetch(`/api/courses/${resolvedParams.id}`, { headers }),
+          fetch(`/api/lessons/course/${resolvedParams.id}`, { headers }),
+          fetch("/api/categories"),
+        ])
+
+        if (courseRes.ok) {
+          const data = await courseRes.json()
+          setCourse({
+            title: data.title || "",
+            description: data.description || "",
+            categoryId: data.categoryId || "",
+            category: data.category?.name || "",
+            price: data.price || 0,
+            thumbnail: data.thumbnail || "/placeholder.jpg",
+          })
+          setCourseStatus(data.status || "draft")
+        }
+
+        if (lessonsRes.ok) {
+          const lessonsData = await lessonsRes.json()
+          const lessonList = Array.isArray(lessonsData)
+            ? lessonsData
+            : lessonsData.data || []
+          if (lessonList.length > 0) {
+            setSections([
+              {
+                id: "main",
+                title: "Nội dung khóa học",
+                lessons: lessonList.map((l: { id: string; title: string; description: string }) => ({
+                  id: l.id,
+                  title: l.title,
+                  description: l.description || "",
+                  quizzes: [],
+                })),
+              },
+            ])
+          }
+        }
+
+        if (catsRes.ok) {
+          const catsData = await catsRes.json()
+          setCategories(Array.isArray(catsData) ? catsData : catsData.data || [])
+        }
       } catch (error) {
-        console.error('Error loading course data:', error)
+        console.error("Error loading course:", error)
+        toast.error("Không thể tải thông tin khóa học")
+      } finally {
+        setIsLoading(false)
       }
     }
+
+    fetchData()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedParams.id])
 
-  // Auto-save to localStorage whenever course or sections change
+  // Auto-save state: keep for reference but noop
   useEffect(() => {
-    const autoSaveData = {
-      course,
-      sections,
-    }
-    localStorage.setItem(`course-${resolvedParams.id}`, JSON.stringify(autoSaveData))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [course, sections, resolvedParams.id])
+    // No-op: replaced by handleSaveCourse
+  }, [])
 
   // Get all lessons from all sections for display
   const lessons = sections.flatMap(section => 
@@ -293,31 +331,83 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   const currentLessonFiles = uploadedFiles[currentLessonId || ''] || []
 
   const handleSaveCourse = async () => {
+    setIsSaving(true)
     try {
-      const courseData = {
-        id: resolvedParams.id,
-        ...course,
-        sections: sections.map(section => ({
-          ...section,
-          lessons: section.lessons.map(lesson => ({
-            ...lesson,
-            // Files are stored separately in uploadedFiles state
-          }))
-        })),
-        uploadedFiles: uploadedFiles
+      const token = localStorage.getItem("auth_token")
+      const authHeaders: Record<string, string> = token
+        ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+        : { "Content-Type": "application/json" }
+
+      const res = await fetch(`/api/courses/${resolvedParams.id}`, {
+        method: "PATCH",
+        headers: authHeaders,
+        body: JSON.stringify({
+          title: course.title,
+          description: course.description,
+          price: course.price,
+          ...(course.categoryId ? { categoryId: course.categoryId } : {}),
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message || "Lưu thất bại")
       }
 
-      // Save to localStorage for now
-      localStorage.setItem(`course-${resolvedParams.id}`, JSON.stringify(courseData))
-      
-      // Show success message
-      alert('Khóa học đã được lưu thành công!')
-      
-      // Optional: Navigate back to courses list
-      // router.push('/teacher/courses')
-    } catch (error) {
-      console.error('Error saving course:', error)
-      alert('Có lỗi xảy ra khi lưu khóa học!')
+      // Save new lessons (those without real UUIDs) to API
+      const allLessons = sections.flatMap((s) => s.lessons)
+      for (const lesson of allLessons) {
+        const isNewLesson = !/^[0-9a-f-]{36}$/.test(lesson.id)
+        if (isNewLesson) {
+          await fetch("/api/lessons", {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({
+              title: lesson.title,
+              description: lesson.description,
+              courseId: resolvedParams.id,
+              type: "video",
+              isFree: false,
+              isPublished: false,
+            }),
+          })
+        } else {
+          // Update existing lesson title/description
+          await fetch(`/api/lessons/${lesson.id}`, {
+            method: "PATCH",
+            headers: authHeaders,
+            body: JSON.stringify({
+              title: lesson.title,
+              description: lesson.description,
+            }),
+          })
+        }
+      }
+
+      toast.success("Đã lưu khóa học thành công!")
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Đã xảy ra lỗi"
+      toast.error(message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleSubmitForReview = async () => {
+    setIsSubmitting(true)
+    try {
+      const token = localStorage.getItem("auth_token")
+      const res = await fetch(`/api/courses/${resolvedParams.id}/submit`, {
+        method: "PATCH",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error("Đã xảy ra lỗi")
+      setCourseStatus("pending")
+      toast.success("Đã gửi khóa học để xét duyệt!")
+    } catch {
+      toast.error("Gửi duyệt thất bại")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -359,11 +449,34 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="p-6 md:p-8 overflow-y-auto">
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="animate-spin text-primary" size={40} />
+        </div>
+      ) : (
       <div className="w-full space-y-8">
           {/* Header */}
-          <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Chỉnh sửa khóa học</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Cập nhật thông tin và nội dung khóa học</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground dark:text-white">Chỉnh sửa khóa học</h1>
+              <p className="text-muted-foreground dark:text-slate-400">Cập nhật thông tin và nội dung khóa học</p>
+            </div>
+            {courseStatus === "draft" && (
+              <button
+                onClick={handleSubmitForReview}
+                disabled={isSubmitting}
+                className="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-smooth disabled:opacity-60"
+              >
+                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                Gửi duyệt
+              </button>
+            )}
+            {courseStatus === "pending" && (
+              <span className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-lg text-sm font-medium">Chờ duyệt</span>
+            )}
+            {courseStatus === "published" && (
+              <span className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-medium">Đã xuất bản</span>
+            )}
           </div>
 
           {/* Course Info */}
@@ -392,11 +505,15 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Danh mục</label>
-                <select className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent">
-                  <option>Lập trình</option>
-                  <option>Thiết kế</option>
-                  <option>Kinh doanh</option>
-                  <option>AI & Data</option>
+                <select
+                  value={course.categoryId}
+                  onChange={(e) => setCourse({ ...course, categoryId: e.target.value })}
+                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                >
+                  <option value="">Chọn danh mục</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -790,8 +907,10 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           {/* Save Button */}
           <button 
             onClick={handleSaveCourse}
-            className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2">
-            <Save size={20} /> Lưu thay đổi
+            disabled={isSaving}
+            className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-60">
+            {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+            {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
 
           {/* Add Lesson Modal */}
@@ -1047,5 +1166,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           )}
         </div>
       </div>
-    )
+      )}
+    </div>
+  )
 }

@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Edit, Trash2, Eye, Search, MoreVertical, CheckCircle, Clock, XCircle, BookOpen, Users, DollarSign, Star, X, AlertCircle, BarChart3 } from "lucide-react"
+import { Edit, Trash2, Eye, Search, MoreVertical, CheckCircle, Clock, XCircle, BookOpen, Users, DollarSign, Star, X, AlertCircle, BarChart3, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/admin-modals"
 import { formatStudentCount, formatPrice } from "@/lib/format"
 import { useRouter } from "next/navigation"
@@ -27,104 +28,16 @@ interface Course {
   rejectionReason?: string
 }
 
-const initialCourses: Course[] = [
-  {
-    id: "1",
-    title: "Lập trình Next.js từ cơ bản đến nâng cao",
-    description: "Khóa học toàn diện về Next.js, App Router, Server Components và deployment",
-    instructor: "Nguyễn Ngọc Tuyền",
-    instructorEmail: "tuyen@example.com",
-    students: 1250,
-    revenue: 624500000,
-    price: 499000,
-    status: "published",
-    createdAt: "2024-01-15",
-    category: "Lập trình",
-    thumbnail: "/placeholder.jpg",
-    lessons: 45,
-    duration: "40 giờ",
-    rating: 4.8,
-    reviewCount: 320
-  },
-  {
-    id: "2",
-    title: "React Hooks Advanced & State Management",
-    description: "Học sâu về React Hooks, Context API, Redux và các patterns nâng cao",
-    instructor: "Trần Minh Tuấn",
-    instructorEmail: "tuan@example.com",
-    students: 890,
-    revenue: 445000000,
-    price: 399000,
-    status: "published",
-    createdAt: "2024-02-20",
-    category: "Lập trình",
-    thumbnail: "/placeholder.jpg",
-    lessons: 35,
-    duration: "30 giờ",
-    rating: 4.7,
-    reviewCount: 245
-  },
-  {
-    id: "3",
-    title: "AI & Machine Learning cho người mới bắt đầu",
-    description: "Nhập môn trí tuệ nhân tạo với Python, TensorFlow và các dự án thực tế",
-    instructor: "Phạm Thị Hương",
-    instructorEmail: "huong@example.com",
-    students: 0,
-    revenue: 0,
-    price: 599000,
-    status: "pending",
-    createdAt: "2024-03-10",
-    category: "AI & Data",
-    thumbnail: "/placeholder.jpg",
-    lessons: 50,
-    duration: "45 giờ",
-    rating: 0,
-    reviewCount: 0
-  },
-  {
-    id: "4",
-    title: "UI/UX Design Masterclass với Figma",
-    description: "Từ wireframe đến prototype chuyên nghiệp với Figma và design systems",
-    instructor: "Lê Thị Hương",
-    instructorEmail: "huongle@example.com",
-    students: 1567,
-    revenue: 783500000,
-    price: 449000,
-    status: "published",
-    createdAt: "2024-01-05",
-    category: "Thiết kế",
-    thumbnail: "/placeholder.jpg",
-    lessons: 60,
-    duration: "50 giờ",
-    rating: 4.9,
-    reviewCount: 456
-  },
-  {
-    id: "5",
-    title: "Python cho Data Science",
-    description: "Phân tích dữ liệu với Python, Pandas, NumPy và visualization",
-    instructor: "Trần Văn Đức",
-    instructorEmail: "duc@example.com",
-    students: 0,
-    revenue: 0,
-    price: 549000,
-    status: "rejected",
-    createdAt: "2024-03-15",
-    category: "AI & Data",
-    thumbnail: "/placeholder.jpg",
-    lessons: 40,
-    duration: "35 giờ",
-    rating: 0,
-    reviewCount: 0,
-    rejectionReason: "Nội dung khóa học chưa đầy đủ, cần bổ sung thêm các bài tập thực hành và dự án cuối khóa."
-  },
-]
+const getAuth = () => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 export default function AdminCoursesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [courses, setCourses] = useState(initialCourses)
+  const [courses, setCourses] = useState<Course[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -136,6 +49,45 @@ export default function AdminCoursesPage() {
     action: string
     courseId?: string
   }>({ isOpen: false, action: "" })
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setIsLoading(true)
+      try {
+        const res = await fetch("/api/admin/courses", { headers: getAuth() })
+        if (!res.ok) throw new Error()
+        const data = await res.json()
+        const list = Array.isArray(data) ? data : data.data || []
+        const mapped: Course[] = list.map((c: Record<string, unknown>) => ({
+          id: c.id as string,
+          title: c.title as string,
+          description: (c.description as string) || "",
+          instructor: (c.teacher as Record<string, unknown>)
+            ? `${(c.teacher as Record<string, unknown>).firstName || ""} ${(c.teacher as Record<string, unknown>).lastName || ""}`.trim()
+            : "—",
+          instructorEmail: ((c.teacher as Record<string, unknown>)?.email as string) || "",
+          students: (c.enrollmentCount as number) || 0,
+          revenue: (c.revenue as number) || 0,
+          price: (c.price as number) || 0,
+          status: c.status as Course["status"],
+          createdAt: (c.createdAt as string) || "",
+          category: ((c.category as Record<string, unknown>)?.name as string) || "",
+          thumbnail: (c.thumbnail as string) || "",
+          lessons: (c.lessonCount as number) || 0,
+          duration: "",
+          rating: (c.averageRating as number) || 0,
+          reviewCount: (c.reviewCount as number) || 0,
+          rejectionReason: (c.rejectionReason as string) || undefined,
+        }))
+        setCourses(mapped)
+      } catch {
+        toast.error("Không thể tải danh sách khóa học")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchCourses()
+  }, [])
 
   const filteredCourses = courses.filter(
     (course) =>
@@ -165,23 +117,44 @@ export default function AdminCoursesPage() {
     setOpenMenu(null)
   }
 
-  const executeCourseAction = () => {
+  const executeCourseAction = async () => {
     const { action, courseId } = confirmDialog
-    if (action === "approve") {
-      setCourses(courses.map((c) => (c.id === courseId ? { ...c, status: "published" as const } : c)))
-    } else if (action === "delete") {
-      setCourses(courses.filter((c) => c.id !== courseId))
+    try {
+      if (action === "approve") {
+        const res = await fetch(`/api/courses/${courseId}/approve`, { method: "PATCH", headers: getAuth() })
+        if (!res.ok) throw new Error()
+        setCourses(courses.map((c) => (c.id === courseId ? { ...c, status: "published" as const } : c)))
+        toast.success("Đã duyệt khóa học!")
+      } else if (action === "delete") {
+        const res = await fetch(`/api/courses/${courseId}`, { method: "DELETE", headers: getAuth() })
+        if (!res.ok) throw new Error()
+        setCourses(courses.filter((c) => c.id !== courseId))
+        toast.success("Đã xóa khóa học!")
+      }
+    } catch {
+      toast.error("Thao tác thất bại")
     }
     setConfirmDialog({ isOpen: false, action: "" })
   }
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!selectedCourse || !rejectionReason.trim()) return
-    setCourses(courses.map(c =>
-      c.id === selectedCourse.id
-        ? { ...c, status: "rejected" as const, rejectionReason: rejectionReason }
-        : c
-    ))
+    try {
+      const res = await fetch(`/api/courses/${selectedCourse.id}/reject`, {
+        method: "PATCH",
+        headers: { ...getAuth(), "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: rejectionReason }),
+      })
+      if (!res.ok) throw new Error()
+      setCourses(courses.map(c =>
+        c.id === selectedCourse.id
+          ? { ...c, status: "rejected" as const, rejectionReason }
+          : c
+      ))
+      toast.success("Đã từ chối khóa học")
+    } catch {
+      toast.error("Thao tác thất bại")
+    }
     setViewMode(null)
     setSelectedCourse(null)
     setRejectionReason("")
@@ -226,6 +199,14 @@ export default function AdminCoursesPage() {
       default:
         return null
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 size={40} className="animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (
