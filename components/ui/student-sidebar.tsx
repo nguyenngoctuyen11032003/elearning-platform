@@ -10,8 +10,6 @@ import {
   Heart,
   FileText,
   LogOut,
-  Menu,
-  X,
   User,
   GraduationCap,
   ChevronRight,
@@ -25,6 +23,10 @@ import { useAuth } from "@/lib/auth/auth-context"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { LogoDisplay } from "@/components/ui/logo-display"
 import { UserAvatar } from "@/components/ui/user-avatar"
+import { useSidebarContext } from "@/components/ui/mobile-sidebar-toggle"
+
+// Re-export for layout usage
+export { SidebarProvider, MobileMenuToggle } from "@/components/ui/mobile-sidebar-toggle"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Tổng quan", href: "/userdb" },
@@ -43,7 +45,7 @@ export function StudentSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
-  const [isOpen, setIsOpen] = useState(false)
+  const { isOpen, setIsOpen } = useSidebarContext()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { config } = useSystemConfig()
@@ -55,34 +57,26 @@ export function StudentSidebar() {
 
   return (
     <>
-      {/* Mobile Toggle */}
-      <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-card dark:bg-slate-900 rounded-xl border border-border dark:border-slate-800 shadow-lg"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen ? <X size={20} className="text-foreground dark:text-white" /> : <Menu size={20} className="text-foreground dark:text-white" />}
-      </button>
-
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          className="xl:hidden fixed inset-0 bg-black/50 z-30"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-screen z-40 bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-300 lg:sticky lg:top-0 flex flex-col ${
+        className={`fixed top-0 left-0 h-screen z-40 bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-300 xl:sticky xl:top-0 flex flex-col ${
           isCollapsed ? "w-20" : "w-64"
         } ${
-          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          isOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"
         }`}
       >
         {/* Toggle Collapse Button - Desktop Only */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hidden lg:flex absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
+          className="hidden xl:flex absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
           title={isCollapsed ? "Mở rộng" : "Thu gọn"}
         >
           <ChevronRight size={14} className={`text-white transition-transform duration-300 ${

@@ -41,8 +41,7 @@ export async function PATCH(
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
     const body = await req.json();
 
-    const response = await fetch(`${API_URL}/api/certificates/templates/${params.id}`, {
-      method: 'PATCH',
+    const response = await fetch(`${API_URL}/certificates/templates/${params.id}`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
@@ -75,8 +74,7 @@ export async function DELETE(
   try {
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
 
-    const response = await fetch(`${API_URL}/api/certificates/templates/${params.id}`, {
-      method: 'DELETE',
+    const response = await fetch(`${API_URL}/certificates/templates/${params.id}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },

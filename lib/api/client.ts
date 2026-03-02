@@ -1022,7 +1022,7 @@ if (typeof window !== 'undefined' && token) {
   // ================== Cart API ==================
   async getCart(): Promise<any[]> {
     try {
-      const result = await this.request<any>('/api/cart');
+      const result = await this.request<any>(API_ENDPOINTS.CART.GET);
       return Array.isArray(result) ? result : [] as any;
     } catch (error) {
       console.error('Error fetching cart:', error);
@@ -1031,40 +1031,40 @@ if (typeof window !== 'undefined' && token) {
   }
 
   async addToCart(courseId: string): Promise<any> {
-    return this.request('/api/cart', {
+    return this.request(API_ENDPOINTS.CART.ADD, {
       method: 'POST',
       body: JSON.stringify({ courseId }),
     });
   }
 
   async removeFromCart(id: string): Promise<any> {
-    return this.request(`/api/cart/${id}`, {
+    return this.request(API_ENDPOINTS.CART.REMOVE(id), {
       method: 'DELETE',
     });
   }
 
   async clearCart(): Promise<any> {
-    return this.request('/api/cart/clear', {
+    return this.request(API_ENDPOINTS.CART.CLEAR, {
       method: 'DELETE',
     });
   }
 
   async getCartCount(): Promise<any> {
-    return this.request('/api/cart/count');
+    return this.request(API_ENDPOINTS.CART.COUNT);
   }
 
   async getCartTotal(): Promise<any> {
-    return this.request('/api/cart/total');
+    return this.request(API_ENDPOINTS.CART.TOTAL);
   }
 
   // ================== Discussions API ==================
   async getDiscussions(courseId?: string, lessonId?: string): Promise<any[]> {
     try {
-      let endpoint = '/api/discussions';
+      let endpoint: string = API_ENDPOINTS.DISCUSSIONS.LIST;
       if (courseId) {
-        endpoint = `/api/discussions/course/${courseId}`;
+        endpoint = API_ENDPOINTS.DISCUSSIONS.BY_COURSE(courseId);
       } else if (lessonId) {
-        endpoint = `/api/discussions/lesson/${lessonId}`;
+        endpoint = API_ENDPOINTS.DISCUSSIONS.BY_LESSON(lessonId);
       }
       const result = await this.request(endpoint);
       return Array.isArray(result) ? result : [];
@@ -1075,7 +1075,7 @@ if (typeof window !== 'undefined' && token) {
   }
 
   async getDiscussionById(id: string): Promise<any> {
-    return this.request(`/api/discussions/${id}`);
+    return this.request(API_ENDPOINTS.DISCUSSIONS.BY_ID(id));
   }
 
   async createDiscussion(data: {
@@ -1084,40 +1084,40 @@ if (typeof window !== 'undefined' && token) {
     courseId: string;
     lessonId?: string;
   }): Promise<any> {
-    return this.request('/api/discussions', {
+    return this.request(API_ENDPOINTS.DISCUSSIONS.CREATE, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateDiscussion(id: string, data: { title?: string; content?: string }): Promise<any> {
-    return this.request(`/api/discussions/${id}`, {
+    return this.request(API_ENDPOINTS.DISCUSSIONS.UPDATE(id), {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
 
   async deleteDiscussion(id: string): Promise<any> {
-    return this.request(`/api/discussions/${id}`, {
+    return this.request(API_ENDPOINTS.DISCUSSIONS.DELETE(id), {
       method: 'DELETE',
     });
   }
 
   async replyToDiscussion(id: string, data: { content: string }): Promise<any> {
-    return this.request(`/api/discussions/${id}/reply`, {
+    return this.request(API_ENDPOINTS.DISCUSSIONS.REPLY(id), {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async toggleDiscussionResolved(id: string): Promise<any> {
-    return this.request(`/api/discussions/${id}/resolve`, {
+    return this.request(API_ENDPOINTS.DISCUSSIONS.RESOLVE(id), {
       method: 'PATCH',
     });
   }
 
   async toggleDiscussionPinned(id: string): Promise<any> {
-    return this.request(`/api/discussions/${id}/pin`, {
+    return this.request(API_ENDPOINTS.DISCUSSIONS.PIN(id), {
       method: 'PATCH',
     });
   }
@@ -1125,11 +1125,11 @@ if (typeof window !== 'undefined' && token) {
   // ================== Assignments API ==================
   async getAssignments(courseId?: string, lessonId?: string): Promise<any[]> {
     try {
-      let endpoint = '/api/assignments';
+      let endpoint: string = API_ENDPOINTS.ASSIGNMENTS.LIST;
       if (courseId) {
-        endpoint = `/api/assignments/course/${courseId}`;
+        endpoint = API_ENDPOINTS.ASSIGNMENTS.BY_COURSE(courseId);
       } else if (lessonId) {
-        endpoint = `/api/assignments/lesson/${lessonId}`;
+        endpoint = API_ENDPOINTS.ASSIGNMENTS.BY_LESSON(lessonId);
       }
       const result = await this.request(endpoint);
       return Array.isArray(result) ? result : [];
@@ -1140,31 +1140,31 @@ if (typeof window !== 'undefined' && token) {
   }
 
   async getAssignmentById(id: string): Promise<any> {
-    return this.request(`/api/assignments/${id}`);
+    return this.request(API_ENDPOINTS.ASSIGNMENTS.BY_ID(id));
   }
 
   async createAssignment(data: any): Promise<any> {
-    return this.request('/api/assignments', {
+    return this.request(API_ENDPOINTS.ASSIGNMENTS.CREATE, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateAssignment(id: string, data: any): Promise<any> {
-    return this.request(`/api/assignments/${id}`, {
+    return this.request(API_ENDPOINTS.ASSIGNMENTS.UPDATE(id), {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
 
   async deleteAssignment(id: string): Promise<any> {
-    return this.request(`/api/assignments/${id}`, {
+    return this.request(API_ENDPOINTS.ASSIGNMENTS.DELETE(id), {
       method: 'DELETE',
     });
   }
 
   async submitAssignment(id: string, data: { content: string; attachments?: string[] }): Promise<any> {
-    return this.request(`/api/assignments/${id}/submit`, {
+    return this.request(API_ENDPOINTS.ASSIGNMENTS.SUBMIT(id), {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -1172,7 +1172,7 @@ if (typeof window !== 'undefined' && token) {
 
   async getAssignmentSubmissions(id: string): Promise<any[]> {
     try {
-      const result = await this.request(`/api/assignments/${id}/submissions`);
+      const result = await this.request(API_ENDPOINTS.ASSIGNMENTS.SUBMISSIONS(id));
       return Array.isArray(result) ? result : [];
     } catch (error) {
       console.error('Error fetching submissions:', error);
@@ -1181,11 +1181,11 @@ if (typeof window !== 'undefined' && token) {
   }
 
   async getMySubmission(assignmentId: string): Promise<any> {
-    return this.request(`/api/assignments/${assignmentId}/my-submission`);
+    return this.request(API_ENDPOINTS.ASSIGNMENTS.MY_SUBMISSION(assignmentId));
   }
 
   async gradeSubmission(submissionId: string, data: { score: number; feedback?: string }): Promise<any> {
-    return this.request(`/api/assignments/submissions/${submissionId}/grade`, {
+    return this.request(API_ENDPOINTS.ASSIGNMENTS.GRADE(submissionId), {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -1194,7 +1194,7 @@ if (typeof window !== 'undefined' && token) {
   // ================== Quizzes API ==================
   async getQuizzes(courseId?: string): Promise<any[]> {
     try {
-      const endpoint = courseId ? `/api/quizzes/course/${courseId}` : '/api/quizzes';
+      const endpoint = courseId ? API_ENDPOINTS.QUIZZES.BY_COURSE(courseId) : API_ENDPOINTS.QUIZZES.LIST;
       const result = await this.request(endpoint);
       return Array.isArray(result) ? result : [];
     } catch (error) {
@@ -1204,17 +1204,17 @@ if (typeof window !== 'undefined' && token) {
   }
 
   async getQuizById(id: string): Promise<any> {
-    return this.request(`/api/quizzes/${id}`);
+    return this.request(API_ENDPOINTS.QUIZZES.BY_ID(id));
   }
 
   async startQuiz(id: string): Promise<any> {
-    return this.request(`/api/quizzes/${id}/start`, {
+    return this.request(API_ENDPOINTS.QUIZZES.START(id), {
       method: 'POST',
     });
   }
 
   async submitQuiz(id: string, answers: any[]): Promise<any> {
-    return this.request(`/api/quizzes/${id}/submit`, {
+    return this.request(API_ENDPOINTS.QUIZZES.SUBMIT(id), {
       method: 'POST',
       body: JSON.stringify({ answers }),
     });
@@ -1222,7 +1222,7 @@ if (typeof window !== 'undefined' && token) {
 
   async getQuizAttempts(id: string): Promise<any[]> {
     try {
-      const result = await this.request(`/api/quizzes/${id}/attempts`);
+      const result = await this.request(API_ENDPOINTS.QUIZZES.ATTEMPTS(id));
       return Array.isArray(result) ? result : [];
     } catch (error) {
       console.error('Error fetching quiz attempts:', error);
@@ -1231,14 +1231,15 @@ if (typeof window !== 'undefined' && token) {
   }
 
   async getQuizAttemptDetail(attemptId: string): Promise<any> {
-    return this.request(`/api/quizzes/attempts/${attemptId}`);
+    return this.request(API_ENDPOINTS.QUIZZES.ATTEMPT_DETAIL(attemptId));
   }
 
   // ================== Announcements API ==================
   async getAnnouncements(courseId?: string): Promise<any[]> {
     try {
       const params = courseId ? `?courseId=${courseId}` : '';
-      const result = await this.request(`/api/announcements${params}`);
+      const endpoint = `${API_ENDPOINTS.ANNOUNCEMENTS.LIST}${params}`;
+      const result = await this.request(endpoint);
       return Array.isArray(result) ? result : [];
     } catch (error) {
       console.error('Error fetching announcements:', error);
@@ -1247,7 +1248,7 @@ if (typeof window !== 'undefined' && token) {
   }
 
   async getAnnouncementById(id: string): Promise<any> {
-    return this.request(`/api/announcements/${id}`);
+    return this.request(API_ENDPOINTS.ANNOUNCEMENTS.BY_ID(id));
   }
 
   async createAnnouncement(data: {
@@ -1256,26 +1257,26 @@ if (typeof window !== 'undefined' && token) {
     courseId?: string;
     priority?: string;
   }): Promise<any> {
-    return this.request('/api/announcements', {
+    return this.request(API_ENDPOINTS.ANNOUNCEMENTS.CREATE, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateAnnouncement(id: string, data: any): Promise<any> {
-    return this.request(`/api/announcements/${id}`, {
+    return this.request(API_ENDPOINTS.ANNOUNCEMENTS.UPDATE(id), {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
 
   async deleteAnnouncement(id: string): Promise<any> {
-    return this.request(`/api/announcements/${id}`, {
+    return this.request(API_ENDPOINTS.ANNOUNCEMENTS.DELETE(id), {
       method: 'DELETE',
     });
   }
   async updateManySystemSettings(data: Record<string, any>) {
-  return this.request('/api/system-settings', {
+  return this.request(API_ENDPOINTS.SYSTEM_SETTINGS.UPDATE, {
     method: 'PUT',
     body: JSON.stringify(data),
   })

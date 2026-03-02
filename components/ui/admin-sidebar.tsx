@@ -2,13 +2,17 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Users, BookOpen, CreditCard, BarChart3, Settings, LogOut, Menu, X, User, FolderOpen, Award, FileText, ChevronRight } from "lucide-react"
+import { LayoutDashboard, Users, BookOpen, CreditCard, BarChart3, Settings, LogOut, User, FolderOpen, Award, FileText, ChevronRight } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { LogoDisplay } from "@/components/ui/logo-display"
+import { useSidebarContext } from "@/components/ui/mobile-sidebar-toggle"
+
+// Re-export for backward compatibility
+export { SidebarProvider, MobileMenuToggle, useSidebarContext } from "@/components/ui/mobile-sidebar-toggle"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
@@ -27,7 +31,7 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
-  const [isOpen, setIsOpen] = useState(false)
+  const { isOpen, setIsOpen } = useSidebarContext()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { config, loading } = useSystemConfig()
@@ -42,26 +46,17 @@ export function AdminSidebar() {
   }
   return (
     <>
-      {/* Mobile Toggle */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-50 md:hidden p-2.5 bg-card dark:bg-slate-900 rounded-xl border border-border dark:border-slate-800 shadow-lg hover:bg-secondary dark:hover:bg-slate-800"
-        aria-label={isOpen ? "Đóng menu" : "Mở menu"}
-      >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
       <aside
-        className={`fixed left-0 top-0 h-screen bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-300 z-30 md:sticky md:top-0 flex flex-col ${
+        className={`fixed left-0 top-0 h-screen bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-300 z-30 xl:sticky xl:top-0 flex flex-col ${
           isCollapsed ? "w-20" : "w-64"
         } ${
           isOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0`}
+        } xl:translate-x-0`}
       >
         {/* Toggle Collapse Button - Desktop Only */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hidden md:flex absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
+          className="hidden xl:flex absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
           title={isCollapsed ? "Mở rộng" : "Thu gọn"}
         >
           <ChevronRight size={14} className={`text-white transition-transform duration-300 ${
@@ -70,7 +65,7 @@ export function AdminSidebar() {
         </button>
 
         {/* Logo Section - Fixed Header */}
-        <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50 mt-12 md:mt-0">
+        <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50 mt-12 xl:mt-0">
           <Link href="/" className="flex items-center justify-center">
             <LogoDisplay 
               src={config?.site_logo}
@@ -199,7 +194,7 @@ export function AdminSidebar() {
       </aside>
 
       {/* Mobile Overlay */}
-      {isOpen && <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setIsOpen(false)} />}
+      {isOpen && <div className="fixed inset-0 bg-black/50 z-20 xl:hidden" onClick={() => setIsOpen(false)} />}
     </>
   )
 }
