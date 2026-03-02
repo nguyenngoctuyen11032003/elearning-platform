@@ -31,7 +31,8 @@ export function AdminSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { config, loading } = useSystemConfig()
-    if (loading) {
+
+  if (loading) {
     return null
   }
   const logoSrc = config?.site_logo || "/image/logo-ics.jpg"
@@ -152,44 +153,50 @@ export function AdminSidebar() {
             </Link>
           )}
 
-          <button
-            onClick={() => setShowLogoutConfirm(true)}
-            className={`w-full flex items-center gap-3 py-2.5 text-muted-foreground dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all group border border-transparent hover:border-red-200 dark:hover:border-red-900/50 ${
-              isCollapsed ? "justify-center px-2" : "px-3"
-            }`}
-            title={isCollapsed ? "Đăng xuất" : ""}
-          >
-            <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
-            {!isCollapsed && <span className="font-medium text-sm">Đăng xuất</span>}
-          </button>
-        </div>
-      </aside>
+          <div className="relative">
+            <button
+              onClick={() => setShowLogoutConfirm(true)}
+              className={`w-full flex items-center gap-3 py-2.5 text-muted-foreground dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all group border border-transparent hover:border-red-200 dark:hover:border-red-900/50 ${
+                isCollapsed ? "justify-center px-2" : "px-3"
+              }`}
+              title={isCollapsed ? "Đăng xuất" : ""}
+            >
+              <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
+              {!isCollapsed && <span className="font-medium text-sm">Đăng xuất</span>}
+            </button>
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 relative z-[10000]">
-            <h2 className="text-xl font-bold text-foreground dark:text-white mb-2">Xác nhận đăng xuất</h2>
-            <p className="text-muted-foreground dark:text-slate-400 mb-6">
-              Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className="flex-1 px-4 py-2 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium"
-              >
-                Đăng xuất
-              </button>
-            </div>
+            {/* Logout Confirmation Modal - anchored to button */}
+            {showLogoutConfirm && (
+              <>
+                <div 
+                  className="fixed inset-0 bg-black/40 z-[9998]" 
+                  onClick={() => setShowLogoutConfirm(false)}
+                />
+                <div className="absolute bottom-full left-0 mb-2 z-[9999] bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl shadow-2xl w-72 p-4">
+                  <h3 className="text-base font-bold text-foreground dark:text-white mb-2">Đăng xuất?</h3>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400 mb-4">
+                    Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowLogoutConfirm(false)}
+                      className="flex-1 px-3 py-2 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium text-sm"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="flex-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-smooth font-medium text-sm"
+                    >
+                      Đăng xuất
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
-      )}
+      </aside>
 
       {/* Mobile Overlay */}
       {isOpen && <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setIsOpen(false)} />}

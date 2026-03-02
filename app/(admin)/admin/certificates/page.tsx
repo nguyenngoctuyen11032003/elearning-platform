@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Search, MoreVertical, CheckCircle, Clock, XCircle, Award, Eye, X, AlertCircle, User, BookOpen, Calendar, Download } from "lucide-react"
 import { Modal } from "@/components/ui/admin-modals"
+import { authFetch } from "@/lib/authfetch"
 
 interface CertificateTemplate {
   id: string
@@ -102,8 +103,6 @@ export default function AdminCertificatesPage() {
   // Add cardRefs for certificate card element references
   const cardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
 
-  const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
-
   const normalizeList = (data: any): any[] => {
     if (Array.isArray(data)) return data
     if (data && Array.isArray(data.data)) return data.data
@@ -113,11 +112,7 @@ export default function AdminCertificatesPage() {
 
   const fetchCertificates = async () => {
     try {
-      const response = await fetch("/admin/certificate-templates", {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      })
+      const response = await authFetch("/admin/certificate-templates")
 
       if (!response.ok) return
       const data = await response.json()
@@ -129,11 +124,7 @@ export default function AdminCertificatesPage() {
 
   const fetchExams = async () => {
     try {
-      const response = await fetch("/admin/exams", {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      })
+      const response = await authFetch("/admin/exams")
 
       if (!response.ok) return
       const data = await response.json()
@@ -145,11 +136,7 @@ export default function AdminCertificatesPage() {
 
   const fetchIssuedCertificates = async () => {
     try {
-      const response = await fetch("/admin/certificates", {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      })
+      const response = await authFetch("/admin/certificates")
 
       if (!response.ok) return
       const data = await response.json()
@@ -227,12 +214,8 @@ export default function AdminCertificatesPage() {
   const handleReject = async () => {
     if (!selectedCertificate || !rejectionReason.trim()) return
     try {
-      const response = await fetch(`/admin/certificate-templates/${selectedCertificate.id}/reject`, {
+      const response = await authFetch(`/admin/certificate-templates/${selectedCertificate.id}/reject`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
         body: JSON.stringify({ reason: rejectionReason }),
       })
 
@@ -255,12 +238,8 @@ export default function AdminCertificatesPage() {
     if (!approveTarget) return
     setIsApproving(true)
     try {
-      const response = await fetch(`/admin/certificate-templates/${approveTarget.id}/approve`, {
+      const response = await authFetch(`/admin/certificate-templates/${approveTarget.id}/approve`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
         body: JSON.stringify({}),
       })
 

@@ -47,6 +47,7 @@ export function StudentSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { config } = useSystemConfig()
+
   const handleLogout = async () => {
     await logout()
     router.push("/login")
@@ -172,47 +173,55 @@ export function StudentSidebar() {
             </Link>
           )}
 
-          <button
-            onClick={() => setShowLogoutConfirm(true)}
-            className={`w-full flex items-center gap-3 py-2.5 text-muted-foreground dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all group border border-transparent hover:border-red-200 dark:hover:border-red-900/50 ${
-              isCollapsed ? "justify-center px-2" : "px-3"
-            }`}
-            title={isCollapsed ? "Đăng xuất" : ""}
-          >
-            <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
-            {!isCollapsed && <span className="font-medium text-sm">Đăng xuất</span>}
-          </button>
-        </div>
-      </aside>
+          <div className="relative">
+            <button
+              onClick={() => setShowLogoutConfirm(true)}
+              className={`w-full flex items-center gap-3 py-2.5 text-muted-foreground dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all group border border-transparent hover:border-red-200 dark:hover:border-red-900/50 ${
+                isCollapsed ? "justify-center px-2" : "px-3"
+              }`}
+              title={isCollapsed ? "Đăng xuất" : ""}
+            >
+              <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
+              {!isCollapsed && <span className="font-medium text-sm">Đăng xuất</span>}
+            </button>
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <LogOut size={28} className="text-red-500" />
-              </div>
-              <h3 className="text-lg font-bold text-foreground dark:text-white">Xác nhận đăng xuất</h3>
-              <p className="text-sm text-muted-foreground mt-2">Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?</p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className="flex-1 px-4 py-2.5 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary/80 transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors"
-              >
-                Đăng xuất
-              </button>
-            </div>
+            {/* Logout Confirmation Modal - anchored to button */}
+            {showLogoutConfirm && (
+              <>
+                <div 
+                  className="fixed inset-0 bg-black/40 z-[9998]" 
+                  onClick={() => setShowLogoutConfirm(false)}
+                />
+                <div className="absolute bottom-full left-0 mb-2 z-[9999] bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl shadow-2xl w-72 p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+                      <LogOut size={20} className="text-red-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-foreground dark:text-white">Đăng xuất?</h3>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400">Xác nhận đăng xuất tài khoản</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowLogoutConfirm(false)}
+                      className="flex-1 px-3 py-2 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg font-medium hover:bg-secondary/80 transition-colors text-sm"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="flex-1 px-3 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors text-sm"
+                    >
+                      Đăng xuất
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
-      )}
+      </aside>
     </>
   )
 }

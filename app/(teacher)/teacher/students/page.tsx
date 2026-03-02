@@ -13,6 +13,7 @@ import {
   TrendingUp,
   UserX,
   Users,
+  X,
 } from "lucide-react"
 import * as XLSX from "xlsx"
 import { toast } from "sonner"
@@ -398,7 +399,232 @@ export default function TeacherStudentsPage() {
           </select>
         </div>
 
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-visible">
+        {/* Mobile & Tablet: Cards */}
+        <div className="block xl:hidden space-y-4">
+          {filteredStudents.length === 0 ? (
+            <div className="py-12 text-center">
+              <Users size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground dark:text-slate-400">Chưa có học viên nào</p>
+            </div>
+          ) : (
+            filteredStudents.map((student) => (
+              <div
+                key={student.id}
+                className={`bg-card dark:bg-slate-800/80 border border-border dark:border-slate-700 rounded-xl p-4 space-y-3 relative ${openMenu === student.id || (selectedStudent?.id === student.id && viewMode) ? "z-50" : "z-0"}`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <img src={student.avatar} alt={student.name} className="w-12 h-12 rounded-full object-cover bg-secondary" />
+                    <div>
+                      <p className="font-semibold text-foreground dark:text-white">{student.name}</p>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400">{student.email}</p>
+                    </div>
+                  </div>
+                  <div className="relative" data-dropdown>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setOpenMenu(openMenu === student.id ? null : student.id)
+                      }}
+                      className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-smooth"
+                    >
+                      <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
+                    </button>
+                    {openMenu === student.id && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-[9998]" 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpenMenu(null)
+                          }}
+                        />
+                        <div className="absolute right-0 bottom-full mb-1 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg shadow-2xl z-[9999] min-w-44" data-dropdown>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleViewDetails(student)
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
+                          >
+                            <Eye size={16} /> Xem chi tiết
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveClick(student)
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg"
+                          >
+                            <UserX size={16} /> Xóa học viên
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">Khóa học</span>
+                    <p className="text-foreground dark:text-white font-medium truncate">{student.course}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">Ngày tham gia</span>
+                    <p className="text-foreground dark:text-white">{formatDate(student.joinDate)}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-xs text-muted-foreground dark:text-slate-400">Tiến độ</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          student.progress === 100 ? "bg-green-500" : student.progress >= 50 ? "bg-blue-500" : "bg-yellow-500"
+                        }`}
+                        style={{ width: `${student.progress}%` }}
+                      />
+                    </div>
+                    <span className="text-foreground dark:text-white text-xs font-medium w-10">{student.progress}%</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">Điểm Quiz</span>
+                    <p className={`font-medium ${
+                      student.quizScore >= 80
+                        ? "text-green-600 dark:text-green-400"
+                        : student.quizScore >= 60
+                          ? "text-yellow-600 dark:text-yellow-400"
+                          : "text-red-600 dark:text-red-400"
+                    }`}>
+                      {student.quizScore}%
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">Trạng thái</span>
+                    <div className="mt-0.5">{getStatusBadge(student.status)}</div>
+                  </div>
+                </div>
+
+                {/* Floating View Details - anchored below card */}
+                {viewMode === "view" && selectedStudent?.id === student.id && (
+                  <>
+                    <div 
+                      className="fixed inset-0 bg-black/40 z-[9998]" 
+                      onClick={() => { setViewMode(null); setSelectedStudent(null) }}
+                    />
+                    <div className="absolute left-0 right-0 top-full mt-2 z-[9999] bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-xl shadow-2xl p-4 animate-slideDown space-y-4 mx-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-foreground dark:text-white">Thông tin học viên</h4>
+                        <button 
+                          onClick={() => { setViewMode(null); setSelectedStudent(null) }}
+                          className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
+                        >
+                          <X size={16} className="text-muted-foreground" />
+                        </button>
+                      </div>
+
+                      {/* Avatar + Name + Course + Status */}
+                      <div className="flex items-center gap-3">
+                        <img src={selectedStudent.avatar} alt={selectedStudent.name} className="w-16 h-16 rounded-full object-cover bg-slate-300" />
+                        <div>
+                          <h5 className="font-bold text-foreground dark:text-white">{selectedStudent.name}</h5>
+                          <p className="text-sm text-muted-foreground dark:text-slate-400">{selectedStudent.course}</p>
+                          <div className="mt-1">{getStatusBadge(selectedStudent.status)}</div>
+                        </div>
+                      </div>
+
+                      {/* Email + Join Date */}
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
+                          <div className="flex items-center gap-1.5 text-muted-foreground dark:text-slate-400 mb-1">
+                            <Mail size={14} />
+                            <span className="text-xs">Email</span>
+                          </div>
+                          <p className="text-foreground dark:text-white text-xs break-all">{selectedStudent.email}</p>
+                        </div>
+                        <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
+                          <div className="flex items-center gap-1.5 text-muted-foreground dark:text-slate-400 mb-1">
+                            <Calendar size={14} />
+                            <span className="text-xs">Ngày tham gia</span>
+                          </div>
+                          <p className="text-foreground dark:text-white text-xs">{formatDate(selectedStudent.joinDate)}</p>
+                        </div>
+                      </div>
+
+                      {/* Progress Details */}
+                      <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
+                        <h5 className="text-sm font-semibold text-foreground dark:text-white mb-3">Tiến độ học tập</h5>
+                        <div className="space-y-3 text-sm">
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground dark:text-slate-400">Hoàn thành khóa học</span>
+                            <span className="font-medium text-foreground dark:text-white">{selectedStudent.progress}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary rounded-full" style={{ width: `${selectedStudent.progress}%` }} />
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground dark:text-slate-400">Bài học đã hoàn thành</span>
+                            <span className="font-medium text-foreground dark:text-white">{selectedStudent.lessonsCompleted}/{selectedStudent.totalLessons}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground dark:text-slate-400">Điểm Quiz trung bình</span>
+                            <span className={`font-medium ${selectedStudent.quizScore >= 80 ? "text-green-600 dark:text-green-400" : selectedStudent.quizScore >= 60 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400"}`}>{selectedStudent.quizScore}%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground dark:text-slate-400">Hoạt động gần nhất</span>
+                            <span className="font-medium text-foreground dark:text-white">{formatDate(selectedStudent.lastActive)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Floating Remove Confirmation - anchored below card */}
+                {viewMode === "remove" && selectedStudent?.id === student.id && (
+                  <>
+                    <div 
+                      className="fixed inset-0 bg-black/40 z-[9998]" 
+                      onClick={() => { setViewMode(null); setSelectedStudent(null) }}
+                    />
+                    <div className="absolute left-0 right-0 top-full mt-2 z-[9999] bg-card dark:bg-slate-900 border border-red-200 dark:border-red-900/50 rounded-xl shadow-2xl p-4 animate-slideDown mx-2">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                          <UserX size={20} className="text-red-600 dark:text-red-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-foreground dark:text-white">Xóa học viên?</h4>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">Hành động này không thể hoàn tác</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setViewMode(null); setSelectedStudent(null) }}
+                          className="flex-1 py-2 rounded-lg text-sm font-medium border border-border dark:border-slate-700 text-foreground dark:text-white hover:bg-white dark:hover:bg-slate-800"
+                        >
+                          Hủy
+                        </button>
+                        <button 
+                          onClick={handleRemoveConfirm} 
+                          className="flex-1 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop: Table */}
+        <div className="hidden xl:block bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-visible">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -489,7 +715,7 @@ export default function TeacherStudentsPage() {
                             <UserX size={16} /> Xóa học viên
                           </button>
                         </div>
-                      )}
+                      )}hidden xl:flex fixed inset-0 bg-black/60 z-[9999]
                     </td>
                   </tr>
                 ))}
@@ -506,7 +732,7 @@ export default function TeacherStudentsPage() {
         </div>
 
         {viewMode === "view" && selectedStudent && (
-          <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+          <div className="hidden xl:flex fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4">
             <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-foreground dark:text-white">Thông tin học viên</h2>
@@ -578,7 +804,7 @@ export default function TeacherStudentsPage() {
         )}
 
         {viewMode === "remove" && selectedStudent && (
-          <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+          <div className="hidden xl:flex fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4">
             <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full">
               <div className="p-6 text-center">
                 <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">

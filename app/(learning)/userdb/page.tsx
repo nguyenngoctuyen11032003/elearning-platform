@@ -344,13 +344,13 @@ export default function StudentDashboardPage() {
     return (
       <div className="space-y-8">
         <div className="relative overflow-hidden rounded-3xl p-8 bg-gradient-to-r from-slate-200 to-slate-100 dark:from-slate-900 dark:to-slate-800 animate-pulse h-64" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-6">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
           ))}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2 h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
           <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
         </div>
       </div>
@@ -378,33 +378,33 @@ export default function StudentDashboardPage() {
                 Tiếp tục hành trình học tập của bạn. Dữ liệu đang lấy trực tiếp từ khóa học của bạn.
               </p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-center px-6 py-3 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl">
-                <Flame className="w-8 h-8 text-orange-500 mx-auto mb-1 drop-shadow" />
-                <p className="text-2xl font-bold text-white drop-shadow">{stats.streakDays}</p>
-                <p className="text-xs text-black/70 dark:text-white/80 drop-shadow">Ngày gần đây</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="text-center px-4 py-2 sm:px-6 sm:py-3 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl">
+                <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500 mx-auto mb-1 drop-shadow" />
+                <p className="text-xl sm:text-2xl font-bold text-white drop-shadow">{stats.streakDays}</p>
+                <p className="text-[10px] sm:text-xs text-black/70 dark:text-white/80 drop-shadow whitespace-nowrap">Ngày gần đây</p>
               </div>
-              <div className="text-center px-6 py-3 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl">
-                <Target className="w-8 h-8 text-green-500 mx-auto mb-1 drop-shadow" />
-                <p className="text-2xl font-bold text-white drop-shadow">{stats.weeklyGoal}%</p>
-                <p className="text-xs text-black/70 dark:text-white/80 drop-shadow">Mục tiêu tuần</p>
+              <div className="text-center px-4 py-2 sm:px-6 sm:py-3 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl">
+                <Target className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 mx-auto mb-1 drop-shadow" />
+                <p className="text-xl sm:text-2xl font-bold text-white drop-shadow">{stats.weeklyGoal}%</p>
+                <p className="text-[10px] sm:text-xs text-black/70 dark:text-white/80 drop-shadow whitespace-nowrap">Mục tiêu tuần</p>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 xl:gap-6">
             {statCards.map((stat, idx) => (
               <div
                 key={idx}
-                className="group flex items-start gap-4 p-6 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl hover:bg-white/50 dark:hover:bg-slate-900/40 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer"
+                className="group flex flex-col xl:flex-row items-center xl:items-start gap-2 xl:gap-4 p-3 sm:p-4 xl:p-6 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl hover:bg-white/50 dark:hover:bg-slate-900/40 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer text-center xl:text-left"
               >
-                <div className={`p-3 ${stat.color} rounded-lg group-hover:scale-110 transition-all duration-300`}>
-                  <stat.icon className="w-6 h-6 text-white" />
+                <div className={`p-2 sm:p-3 ${stat.color} rounded-lg group-hover:scale-110 transition-all duration-300`}>
+                  <stat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm whitespace-normal break-words text-black/70 dark:text-white/80 mb-1 drop-shadow">{stat.label}</p>
-                  <p className="text-2xl font-bold text-white drop-shadow">{stat.value}</p>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1 drop-shadow">{stat.sublabel}</p>
+                  <p className="text-[10px] sm:text-xs xl:text-sm text-black/70 dark:text-white/80 mb-0.5 sm:mb-1 drop-shadow">{stat.label}</p>
+                  <p className="text-lg sm:text-xl xl:text-2xl font-bold text-white drop-shadow">{stat.value}</p>
+                  <p className="text-[9px] sm:text-[10px] xl:text-xs text-green-600 dark:text-green-400 mt-0.5 sm:mt-1 drop-shadow">{stat.sublabel}</p>
                 </div>
               </div>
             ))}
@@ -412,12 +412,12 @@ export default function StudentDashboardPage() {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="lg:col-span-2 group bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl p-6 hover:bg-white/50 dark:hover:bg-slate-900/40 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.01] transition-all duration-300 ease-out"
+          className="xl:col-span-2 group bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl p-6 hover:bg-white/50 dark:hover:bg-slate-900/40 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.01] transition-all duration-300 ease-out"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-foreground dark:text-white drop-shadow">Tiếp tục học</h2>

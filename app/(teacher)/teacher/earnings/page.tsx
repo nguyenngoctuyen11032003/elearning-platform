@@ -319,13 +319,173 @@ export default function TeacherEarningsPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Payment History Table */}
+        {/* Payment History */}
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden">
           <div className="p-6 border-b border-border dark:border-slate-800">
             <h2 className="text-xl font-bold text-foreground dark:text-white">Lịch sử thanh toán</h2>
             <p className="text-muted-foreground dark:text-slate-400 text-sm">Các giao dịch từ học viên mua khóa học của bạn</p>
           </div>
-          <div className="overflow-x-auto">
+
+          {/* Mobile & Tablet: Cards */}
+          <div className="block xl:hidden p-4 space-y-4">
+            {payments.length === 0 ? (
+              <div className="py-12 text-center">
+                <CreditCard size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground dark:text-slate-400">Chưa có giao dịch nào</p>
+              </div>
+            ) : (
+              payments.map((payment) => (
+                <div
+                  key={payment.id}
+                  className={`bg-secondary dark:bg-slate-800/50 border border-border dark:border-slate-700 rounded-xl p-4 space-y-3 relative ${selectedPayment?.id === payment.id ? "z-50" : "z-0"}`}
+                >
+                  {/* Transaction ID + Status */}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400">Mã giao dịch</p>
+                      <p className="text-sm font-semibold text-foreground dark:text-white break-all">{payment.id}</p>
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        payment.status === "success"
+                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                          : payment.status === "pending"
+                            ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
+                            : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                      }`}
+                    >
+                      {payment.status === "success" ? "Thành công" : payment.status === "pending" ? "Chờ xử lý" : "Thất bại"}
+                    </span>
+                  </div>
+
+                  {/* Student Info */}
+                  <div>
+                    <p className="text-xs text-muted-foreground dark:text-slate-400">Học viên</p>
+                    <p className="text-foreground dark:text-white font-medium">{payment.student}</p>
+                    <p className="text-xs text-muted-foreground dark:text-slate-400">{payment.studentEmail}</p>
+                  </div>
+
+                  {/* Course */}
+                  <div>
+                    <p className="text-xs text-muted-foreground dark:text-slate-400">Khóa học</p>
+                    <p className="text-foreground dark:text-white font-medium truncate">{payment.course}</p>
+                  </div>
+
+                  {/* Amount + Method */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400">Số tiền</p>
+                      <p className="text-primary dark:text-accent font-bold">₫{formatPrice(payment.amount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400">Phương thức</p>
+                      <span className="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded text-foreground dark:text-white text-xs font-medium">
+                        {payment.method}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Date + View Button */}
+                  <div className="flex items-center justify-between pt-2 border-t border-border dark:border-slate-700">
+                    <div>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400">Ngày thanh toán</p>
+                      <p className="text-foreground dark:text-white text-sm">{formatDate(payment.date)}</p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedPayment(selectedPayment?.id === payment.id ? null : payment)}
+                      className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-smooth"
+                    >
+                      <Eye size={18} className="text-primary dark:text-accent" />
+                    </button>
+                  </div>
+
+                  {/* Floating Detail Modal - anchored below card */}
+                  {selectedPayment?.id === payment.id && (
+                    <>
+                      <div 
+                        className="fixed inset-0 bg-black/40 z-[9998]" 
+                        onClick={() => setSelectedPayment(null)}
+                      />
+                      <div className="absolute left-0 right-0 top-full mt-2 z-[9999] bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-xl shadow-2xl p-4 animate-slideDown space-y-4 mx-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-foreground dark:text-white">Chi tiết giao dịch</h4>
+                          <button 
+                            onClick={() => setSelectedPayment(null)}
+                            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
+                          >
+                            <X size={16} className="text-muted-foreground" />
+                          </button>
+                        </div>
+
+                        {/* Transaction ID + Status */}
+                        <div className="text-center pb-3 border-b border-border dark:border-slate-700">
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">Mã giao dịch</p>
+                          <p className="text-lg font-bold text-foreground dark:text-white break-all">{selectedPayment.id}</p>
+                          <span
+                            className={`inline-block px-3 py-1 rounded-full text-xs font-medium mt-2 ${
+                              selectedPayment.status === "success"
+                                ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                : selectedPayment.status === "pending"
+                                  ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
+                                  : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                            }`}
+                          >
+                            {selectedPayment.status === "success" ? "Thành công" : selectedPayment.status === "pending" ? "Chờ xử lý" : "Thất bại"}
+                          </span>
+                        </div>
+
+                        {/* Amount */}
+                        <div className="bg-primary/10 dark:bg-accent/10 rounded-lg p-3 text-center">
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">Số tiền</p>
+                          <p className="text-2xl font-bold text-primary dark:text-accent">₫{formatPrice(selectedPayment.amount)}</p>
+                        </div>
+
+                        {/* Student Info */}
+                        <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Users size={14} className="text-primary dark:text-accent" />
+                            <span className="text-xs font-semibold text-foreground dark:text-white">Học viên</span>
+                          </div>
+                          <p className="text-foreground dark:text-white font-medium text-sm">{selectedPayment.student}</p>
+                          <p className="text-muted-foreground dark:text-slate-400 text-xs">{selectedPayment.studentEmail}</p>
+                        </div>
+
+                        {/* Course Info */}
+                        <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <BookOpen size={14} className="text-primary dark:text-accent" />
+                            <span className="text-xs font-semibold text-foreground dark:text-white">Khóa học</span>
+                          </div>
+                          <p className="text-foreground dark:text-white font-medium text-sm">{selectedPayment.course}</p>
+                        </div>
+
+                        {/* Method + Date */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
+                            <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">Phương thức</p>
+                            <p className="text-foreground dark:text-white font-medium text-sm">{selectedPayment.method}</p>
+                          </div>
+                          <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
+                            <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">Ngày thanh toán</p>
+                            <p className="text-foreground dark:text-white font-medium text-sm">{formatDate(selectedPayment.date)}</p>
+                          </div>
+                        </div>
+
+                        {/* Transaction Reference */}
+                        <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
+                          <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">Mã tham chiếu</p>
+                          <p className="text-foreground dark:text-white text-xs font-medium break-all">{selectedPayment.transactionId}</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop: Table */}
+          <div className="hidden xl:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
@@ -391,20 +551,19 @@ export default function TeacherEarningsPage() {
                 ))}
               </tbody>
             </table>
+            {payments.length === 0 && (
+              <div className="py-12 text-center">
+                <CreditCard size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground dark:text-slate-400">Chưa có giao dịch nào</p>
+              </div>
+            )}
           </div>
-
-          {payments.length === 0 && (
-            <div className="py-12 text-center">
-              <CreditCard size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground dark:text-slate-400">Chưa có giao dịch nào</p>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Payment Detail Modal */}
+      {/* Payment Detail Modal - Desktop only */}
       {selectedPayment && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+        <div className="hidden xl:flex fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4">
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
               <h2 className="text-xl font-bold text-foreground dark:text-white">Chi tiết giao dịch</h2>

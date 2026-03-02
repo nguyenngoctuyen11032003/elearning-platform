@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { authFetch } from "@/lib/authfetch"
 import {
   Plus,
   Search,
@@ -89,11 +90,7 @@ export default function TeacherCertificatesPage() {
   const fetchTemplates = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/certificate-templates', {
-        headers: {
-          'Authorization': `Bearer ${getAuthToken()}`
-        }
-      })
+      const response = await authFetch('/certificates/templates/my')
       
       if (response.ok) {
         const data = await response.json()
@@ -134,11 +131,7 @@ export default function TeacherCertificatesPage() {
   const fetchExams = async () => {
     try {
       setIsLoadingExams(true)
-      const response = await fetch("/exams", {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      })
+      const response = await authFetch("/exams/my-exams")
 
       if (response.ok) {
         const data = await response.json()
@@ -218,11 +211,8 @@ export default function TeacherCertificatesPage() {
     if (!selectedTemplate) return
     
     try {
-      const response = await fetch(`/certificate-templates/${selectedTemplate.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
+      const response = await authFetch(`/certificates/templates/${selectedTemplate.id}`, {
+        method: 'DELETE'
       })
       
       if (response.ok) {
@@ -238,11 +228,8 @@ export default function TeacherCertificatesPage() {
 
   const handleSubmitForReview = async (templateId: string) => {
     try {
-      const response = await fetch(`/certificate-templates/${templateId}/submit`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
+      const response = await authFetch(`/certificates/templates/${templateId}/submit`, {
+        method: 'POST'
       })
       
       if (response.ok) {
@@ -287,11 +274,10 @@ export default function TeacherCertificatesPage() {
     try {
       setIsAssigning(true)
       setAssignError(null)
-      const response = await fetch(`/exams/${selectedExamId}`, {
+      const response = await authFetch(`/exams/${selectedExamId}`, {
         method: "PATCH", 
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getAuthToken()}`,
         },
         body: JSON.stringify({ certificateTemplateId: useTemplate.id }),
       })

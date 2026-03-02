@@ -494,7 +494,9 @@ export default function AdminReportsPage() {
               <Download size={16} /> Xuất báo cáo
             </button>
           </div>
-          <div className="overflow-x-auto">
+          
+          {/* Desktop Table */}
+          <div className="overflow-x-auto hidden lg:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800">
@@ -528,6 +530,47 @@ export default function AdminReportsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile/Tablet Card View */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
+            {coursePerformance.length === 0 ? (
+              <div className="col-span-full py-8 text-center text-muted-foreground">Chưa có dữ liệu</div>
+            ) : (
+              coursePerformance.map((course) => (
+                <div
+                  key={course.courseId}
+                  className="bg-white dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl p-4 space-y-3 hover:shadow-md transition-shadow"
+                >
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground dark:text-slate-400 mb-1">Khóa học</p>
+                    <p className="text-sm font-semibold text-foreground dark:text-white line-clamp-2">{course.courseTitle}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground dark:text-slate-400 mb-1">Giảng viên</p>
+                    <p className="text-sm text-foreground dark:text-white">{course.teacherName}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">Học viên</p>
+                      <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatStudentCount(course.enrollments)}</p>
+                    </div>
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3">
+                      <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400 mb-1">Đánh giá</p>
+                      <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300">{course.averageRating?.toFixed(1) || "-"}</p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">Hoàn thành</p>
+                      <p className="text-lg font-bold text-green-700 dark:text-green-300">{course.completionRate?.toFixed(1) || 0}%</p>
+                    </div>
+                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
+                      <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-1">Doanh thu</p>
+                      <p className="text-lg font-bold text-purple-700 dark:text-purple-300">{formatCurrency(course.revenue)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
@@ -537,7 +580,9 @@ export default function AdminReportsPage() {
               <p className="text-sm text-muted-foreground dark:text-slate-400">Theo dõi mức độ hoàn thành của học viên</p>
             </div>
           </div>
-          <div className="overflow-x-auto">
+          
+          {/* Desktop Table */}
+          <div className="overflow-x-auto hidden lg:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800">
@@ -563,6 +608,47 @@ export default function AdminReportsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile/Tablet Card View */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
+            {completionRates.length === 0 ? (
+              <div className="col-span-full py-8 text-center text-muted-foreground">Chưa có dữ liệu</div>
+            ) : (
+              completionRates.map((item) => (
+                <div
+                  key={item.categoryName}
+                  className="bg-white dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl p-4 space-y-3 hover:shadow-md transition-shadow"
+                >
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground dark:text-slate-400 mb-1">Danh mục</p>
+                    <p className="text-sm font-semibold text-foreground dark:text-white">{item.categoryName}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">Tổng ghi danh</p>
+                      <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatStudentCount(item.totalEnrollments)}</p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">Hoàn thành</p>
+                      <p className="text-lg font-bold text-green-700 dark:text-green-300">{formatStudentCount(item.completedEnrollments)}</p>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3">
+                    <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-2">Tỷ lệ hoàn thành</p>
+                    <div className="flex items-end gap-2">
+                      <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{item.completionRate?.toFixed(1) || 0}%</p>
+                      <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
+                          style={{ width: `${item.completionRate || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

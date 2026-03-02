@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { formatPrice } from "@/lib/format"
+import { authFetch } from "@/lib/authfetch"
 import { createPortal } from "react-dom"
 import React from "react"
 interface Course {
@@ -96,10 +97,7 @@ export default function TeacherCoursesPage() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const token = localStorage.getItem("auth_token")
-        const response = await fetch("/courses/teacher/my-courses", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        })
+        const response = await authFetch("/courses/my-courses")
         if (!response.ok) {
           throw new Error("Failed to fetch courses")
         }
@@ -151,10 +149,8 @@ export default function TeacherCoursesPage() {
   const handleDeleteConfirm = async () => {
     if (!selectedCourse) return
     try {
-      const token = localStorage.getItem("auth_token")
-      const res = await fetch(`/courses/${selectedCourse.id}`, {
+      const res = await authFetch(`/courses/${selectedCourse.id}`, {
         method: "DELETE",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
       if (!res.ok) throw new Error("Delete failed")
       setCourses(courses.filter(course => course.id !== selectedCourse.id))
@@ -168,10 +164,8 @@ export default function TeacherCoursesPage() {
 
   const handleSubmitForReview = async (courseId: string) => {
     try {
-      const token = localStorage.getItem("auth_token")
-      const res = await fetch(`/courses/${courseId}/submit`, {
+      const res = await authFetch(`/courses/${courseId}/submit`, {
         method: "PATCH",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
       if (!res.ok) throw new Error("Submit failed")
       setCourses(courses.map(c =>
@@ -367,9 +361,9 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Courses List - Mobile: Cards, Desktop: Table */}
-        {/* Mobile: Cards */}
-        <div className="block md:hidden">
+        {/* Courses List - Mobile/Tablet: Cards, Desktop: Table */}
+        {/* Mobile & Tablet: Cards */}
+        <div className="block xl:hidden">
           {isLoading ? (
             <div className="py-8 text-center text-muted-foreground dark:text-slate-400">
               Đang tải khóa học...
@@ -547,7 +541,7 @@ useEffect(() => {
           )}
         </div>
         {/* Desktop: Table */}
-        <div className="hidden md:block bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-visible">
+        <div className="hidden xl:block bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-visible">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -693,7 +687,7 @@ useEffect(() => {
 
       {/* View Course Detail Modal */}
       {viewMode === "view" && selectedCourse && (
-        <div className="hidden md:flex fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4">
+        <div className="hidden xl:flex fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4 p-4 border-b border-border dark:border-slate-800">
@@ -787,8 +781,8 @@ useEffect(() => {
 
       {/* Delete Confirmation Modal */}
       {viewMode === "delete" && selectedCourse && (
-        <div className="hidden md:flex fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4">
-        <div className="md:flex inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+        <div className="hidden xl:flex fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4">
+        <div className="xl:flex inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full">
             <div className="p-6 text-center">
               <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">

@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/ui/admin-modals"
 import { formatStudentCount, formatPrice } from "@/lib/format"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { authFetch } from "@/lib/authfetch"
 
 interface Course {
   id: string
@@ -26,11 +27,6 @@ interface Course {
   rating: number
   reviewCount: number
   rejectionReason?: string
-}
-
-const getAuth = (): Record<string, string> => {
-  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
-  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 export default function AdminCoursesPage() {
@@ -54,7 +50,7 @@ export default function AdminCoursesPage() {
     const fetchCourses = async () => {
       setIsLoading(true)
       try {
-        const res = await fetch("/admin/courses", { headers: getAuth() })
+        const res = await authFetch("/admin/courses")
         if (!res.ok) throw new Error()
         const data = await res.json()
         const list = Array.isArray(data) ? data : data.data || []
@@ -121,12 +117,12 @@ export default function AdminCoursesPage() {
     const { action, courseId } = confirmDialog
     try {
       if (action === "approve") {
-        const res = await fetch(`/courses/${courseId}/approve`, { method: "PATCH", headers: getAuth() })
+        const res = await authFetch(`/courses/${courseId}/approve`, { method: "PATCH" })
         if (!res.ok) throw new Error()
         setCourses(courses.map((c) => (c.id === courseId ? { ...c, status: "published" as const } : c)))
         toast.success("Đã duyệt khóa học!")
       } else if (action === "delete") {
-        const res = await fetch(`/courses/${courseId}`, { method: "DELETE", headers: getAuth() })
+        const res = await authFetch(`/courses/${courseId}`, { method: "DELETE" })
         if (!res.ok) throw new Error()
         setCourses(courses.filter((c) => c.id !== courseId))
         toast.success("Đã xóa khóa học!")
@@ -140,9 +136,8 @@ export default function AdminCoursesPage() {
   const handleReject = async () => {
     if (!selectedCourse || !rejectionReason.trim()) return
     try {
-      const res = await fetch(`/courses/${selectedCourse.id}/reject`, {
+      const res = await authFetch(`/courses/${selectedCourse.id}/reject`, {
         method: "PATCH",
-        headers: { ...getAuth(), "Content-Type": "application/json" },
         body: JSON.stringify({ reason: rejectionReason }),
       })
       if (!res.ok) throw new Error()
@@ -277,7 +272,7 @@ export default function AdminCoursesPage() {
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-col xl:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
             <input
@@ -310,8 +305,8 @@ export default function AdminCoursesPage() {
           </div>
         </div>
 
-        {/* Courses Table (Desktop/Tablet) */}
-        <div className="hidden lg:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp w-full" style={{ animationDelay: "0.2s" }}>
+        {/* Courses Table (Desktop) */}
+        <div className="hidden xl:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp w-full" style={{ animationDelay: "0.2s" }}>
           <div className="relative w-full">
             <table className="w-full min-w-[500px] text-sm table-fixed">
               <thead>
@@ -341,7 +336,7 @@ export default function AdminCoursesPage() {
                     <td className="py-4 px-6" data-label="Khóa học">
                       <div className="flex items-center gap-3">
                         <img
-                          src={course.thumbnail}
+                          src={course.thumbnail || "/image/course-placeholder.png"}
                           alt={course.title}
                           className="w-12 h-12 rounded-lg object-cover bg-secondary"
                         />
@@ -406,8 +401,8 @@ export default function AdminCoursesPage() {
           )}
         </div>
 
-        {/* Courses Card Layout (Mobile/Z Fold) */}
-        <div className="block lg:hidden space-y-4">
+        {/* Courses Card Layout (Mobile/Tablet) */}
+        <div className="block xl:hidden space-y-4">
           {filteredCourses.length === 0 ? (
             <div className="py-12 text-center">
               <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -420,7 +415,7 @@ export default function AdminCoursesPage() {
                 className="bg-slate-800/80 rounded-xl p-4 space-y-3"
               >
                 <div className="flex gap-3">
-                  <img className="w-12 h-12 rounded-lg object-cover" src={course.thumbnail} alt={course.title} />
+                  <img className="w-12 h-12 rounded-lg object-cover" src={course.thumbnail || "/image/course-placeholder.png"} alt={course.title} />
                   <div className="flex-1">
                     <p className="font-semibold text-white line-clamp-2">{course.title}</p>
                     <p className="text-xs text-slate-400">{course.instructor}</p>

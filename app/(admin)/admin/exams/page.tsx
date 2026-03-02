@@ -257,14 +257,8 @@ export default function AdminExamsPage() {
     )
   }
   return (
-    <div className="min-h-screen w-full">
-      {/* Sidebar: hidden on md, only show on lg */}
-      <div className="hidden lg:block lg:w-[260px] lg:fixed lg:inset-y-0 lg:left-0 lg:bg-slate-900 lg:border-r lg:border-border dark:lg:border-slate-800">
-        {/* ...existing sidebar content... */}
-      </div>
-      {/* Main content: margin-left for sidebar on lg */}
-      <div className="w-full lg:ml-[260px] space-y-8">
-        {/* Header with Stats */}
+    <div className="w-full space-y-8">
+      {/* Header with Stats */}
         <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/exam2.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
           <div className="absolute inset-0 bg-black/15 dark:bg-black/45 rounded-3xl"></div>
@@ -383,60 +377,60 @@ export default function AdminExamsPage() {
           </select>
         </div>
 
-        {/* Exams Table (Desktop/Tablet) */}
-        <div className="hidden lg:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp" style={{ animationDelay: "0.2s" }}>
+        {/* Exams Table (Desktop only - xl+) */}
+        <div className="hidden xl:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp" style={{ animationDelay: "0.2s" }}>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-white/50 dark:bg-slate-800/50">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-foreground dark:text-white">Bài thi</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-foreground dark:text-white">Loại</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-foreground dark:text-white">Giáo viên</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-foreground dark:text-white">Cài đặt</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-foreground dark:text-white">Trạng thái</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-foreground dark:text-white">Lượt thi</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-foreground dark:text-white">Thao tác</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-foreground dark:text-white">Bài thi</th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-foreground dark:text-white">Loại</th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-foreground dark:text-white">Giáo viên</th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-foreground dark:text-white">Cài đặt</th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-foreground dark:text-white">Trạng thái</th>
+                  <th className="px-3 py-3 text-center text-sm font-semibold text-foreground dark:text-white">Lượt thi</th>
+                  <th className="px-3 py-3 text-right text-sm font-semibold text-foreground dark:text-white">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border dark:divide-slate-800">
                 {filteredExams.map((exam) => (
                   <tr key={exam.id} className="hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-300">
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 max-w-[280px]">
                       <div>
-                        <p className="font-medium text-foreground dark:text-white">{exam.title}</p>
-                        <p className="text-sm text-muted-foreground dark:text-slate-400 flex items-center gap-1 mt-1">
-                          <BookOpen size={14} /> {exam.course}
+                        <p className="font-medium text-foreground dark:text-white truncate">{exam.title}</p>
+                        <p className="text-sm text-muted-foreground dark:text-slate-400 flex items-center gap-1 mt-1 truncate">
+                          <BookOpen size={14} className="shrink-0" /> <span className="truncate">{exam.course}</span>
                         </p>
                         {exam.type === "official" && exam.certificateTemplate && (
-                          <p className="text-xs text-purple-500 flex items-center gap-1 mt-1">
-                            <Award size={12} /> {exam.certificateTemplate}
+                          <p className="text-xs text-purple-500 flex items-center gap-1 mt-1 truncate">
+                            <Award size={12} className="shrink-0" /> <span className="truncate">{exam.certificateTemplate}</span>
                           </p>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3">
                       {getTypeBadge(exam.type)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3">
                       <div>
-                        <p className="font-medium text-foreground dark:text-white">{exam.teacher}</p>
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">{exam.teacherEmail}</p>
+                        <p className="font-medium text-foreground dark:text-white text-sm">{exam.teacher}</p>
+                        <p className="text-xs text-muted-foreground dark:text-slate-400 truncate max-w-[120px]">{exam.teacherEmail}</p>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1 text-sm">
+                    <td className="px-3 py-3">
+                      <div className="space-y-0.5 text-xs">
                         <p className="text-muted-foreground dark:text-slate-400">
-                          <Timer size={14} className="inline mr-1" /> {exam.timeLimit} phút
+                          <Timer size={12} className="inline mr-1" /> {exam.timeLimit} phút
                         </p>
                         <p className="text-muted-foreground dark:text-slate-400">
-                          {exam.questionsCount} câu hỏi • {exam.passingScore}% đạt
+                          {exam.questionsCount} câu • {exam.passingScore}%
                         </p>
                         <p className="text-muted-foreground dark:text-slate-400">
-                          Tối đa {exam.maxAttempts} lần thi
+                          Tối đa {exam.maxAttempts} lần
                         </p>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3">
                       {getStatusBadge(exam.status)}
                       {exam.status === "rejected" && exam.rejectionReason && (
                         <button
@@ -450,12 +444,12 @@ export default function AdminExamsPage() {
                         </button>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3 text-center">
                       <span className="text-foreground dark:text-white font-medium">
                         {exam.attemptCount}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={(e) => {
@@ -544,8 +538,8 @@ export default function AdminExamsPage() {
           )}
         </div>
 
-        {/* Exams Card Layout (Tablet & Mobile) */}
-        <div className="block lg:hidden">
+        {/* Exams Card Layout (Tablet & Mobile - below xl) */}
+        <div className="block xl:hidden">
           {filteredExams.length === 0 ? (
             <div className="p-12 text-center">
               <FileText size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
@@ -938,7 +932,6 @@ export default function AdminExamsPage() {
             </div>
           </div>
         )}
-      </div>
     </div>
   )
 }

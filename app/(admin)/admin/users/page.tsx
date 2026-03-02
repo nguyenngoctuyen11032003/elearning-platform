@@ -550,19 +550,19 @@ const formatDate = (dateString?: string) => {
         </div>
 
         {/* ===== DESKTOP TABLE ===== */}
-        <div className="relative z-10 hidden lg:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp" style={{ animationDelay: "0.2s" }}>
+        <div className="relative z-10 hidden xl:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp" style={{ animationDelay: "0.2s" }}>
           <div className="overflow-x-auto overflow-y-visible">
             <table className="w-full text-sm">
               {/* TOÀN BỘ TABLE CŨ GIỮ NGUYÊN */}
               <thead>
                 <tr className="border-b border-border dark:border-slate-800 bg-white/50 dark:bg-slate-800/50">
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Người dùng</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Liên hệ</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Vai trò</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Khóa học</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Ngày tham gia</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Trạng thái</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Hành động</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Người dùng</th>
+                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">Liên hệ</th>
+                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">Vai trò</th>
+                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">Khóa học</th>
+                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">Tham gia</th>
+                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">Trạng thái</th>
+                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">Hành động</th>
                 </tr>
               </thead>
               <tbody>
@@ -571,7 +571,7 @@ const formatDate = (dateString?: string) => {
                     key={user.id}
                     className="border-b border-border dark:border-slate-800 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-300"
                   >
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="relative w-10 h-10 flex-shrink-0">
                           {user.avatar && !user.avatar.includes('ui-avatars.com') ? (
@@ -599,15 +599,15 @@ const formatDate = (dateString?: string) => {
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400">
+                    <td className="py-3 px-3">
+                      <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 text-sm">
                         <Phone size={14} />
-                        <span>{user.phone || "Chưa cập nhật"}</span>
+                        <span className="truncate max-w-[100px]">{user.phone || "Chưa cập nhật"}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-3">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
                           user.role === "admin"
                             ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
                             : user.role === "teacher"
@@ -615,15 +615,15 @@ const formatDate = (dateString?: string) => {
                             : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                         }`}
                       >
-                        {user.role === "admin" ? "Quản trị viên" : user.role === "teacher" ? "Giảng viên" : "Học viên"}
+                        {user.role === "admin" ? "Quản trị" : user.role === "teacher" ? "Giảng viên" : "Học viên"}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white">{user.courses || "Chưa cập nhật"}</td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{user.createdAt ? formatDate(user.createdAt) : "Chưa cập nhật"}
+                    <td className="py-3 px-3 text-foreground dark:text-white text-sm">{user.courses || "-"}</td>
+                    <td className="py-3 px-3 text-muted-foreground dark:text-slate-400 text-sm whitespace-nowrap">{user.createdAt ? formatDate(user.createdAt) : "-"}
 </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-3">
                       <span
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 ${
+                        className={`px-2 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1 ${
                           user.status === "active"
                             ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
                             : user.status === "pending"
@@ -634,10 +634,10 @@ const formatDate = (dateString?: string) => {
                         <span className={`w-1.5 h-1.5 rounded-full ${
                           user.status === "active" ? "bg-emerald-500" : user.status === "pending" ? "bg-amber-500" : "bg-red-500"
                         }`} />
-                        {user.status === "active" ? "Hoạt động" : user.status === "pending" ? "Chờ xác thực" : "Vô hiệu hóa"}
+                        {user.status === "active" ? "Hoạt động" : user.status === "pending" ? "Chờ" : "Khóa"}
                       </span>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-3">
                       <button
                        onClick={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
@@ -675,7 +675,7 @@ const formatDate = (dateString?: string) => {
         </div>
 
         {/* ===== MOBILE / TABLET CARD VIEW ===== */}
-        <div className="lg:hidden space-y-4">
+        <div className="xl:hidden space-y-4">
           {filteredUsers.map((user) => (
             <div
               key={user.id}

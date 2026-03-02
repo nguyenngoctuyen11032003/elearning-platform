@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth/auth-context"
+import { authFetch } from "@/lib/authfetch"
+import { toast } from "sonner"
 import {
   ArrowLeft,
   Save,
@@ -242,10 +244,6 @@ export default function CreateCertificatePage() {
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingBackground, setUploadingBackground] = useState(false)
   const [uploadingSignature, setUploadingSignature] = useState(false)
-  const getFrontendBaseUrl = () => {
-    if (typeof window === "undefined") return ""
-    return process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin
-  }
   const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -268,7 +266,7 @@ export default function CreateCertificatePage() {
     const fetchCourses = async () => {
       try {
         let nextCourses: Course[] = []
-        const response = await fetch(`${getFrontendBaseUrl()}/courses?limit=200`)
+        const response = await authFetch('/courses/my-courses')
 
         if (response.ok) {
           const data = await response.json()
@@ -278,25 +276,6 @@ export default function CreateCertificatePage() {
             nextCourses = data.data
           } else if (data?.data?.data && Array.isArray(data.data.data)) {
             nextCourses = data.data.data
-          }
-        }
-
-        if (nextCourses.length === 0) {
-          const fallback = await fetch(`${getFrontendBaseUrl()}/courses/teacher/my-courses`, {
-            headers: {
-              Authorization: `Bearer ${getAuthToken()}`,
-            },
-          })
-
-          if (fallback.ok) {
-            const fallbackData = await fallback.json()
-            if (Array.isArray(fallbackData)) {
-              nextCourses = fallbackData
-            } else if (fallbackData && Array.isArray(fallbackData.data)) {
-              nextCourses = fallbackData.data
-            } else if (fallbackData?.data?.data && Array.isArray(fallbackData.data.data)) {
-              nextCourses = fallbackData.data.data
-            }
           }
         }
 
@@ -322,11 +301,7 @@ export default function CreateCertificatePage() {
           return
         }
 
-        const response = await fetch(`${getFrontendBaseUrl()}/certificate-templates`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
+        const response = await authFetch('/certificates/templates/my')
 
         if (!response.ok) {
           throw new Error("Failed to fetch templates")
@@ -370,11 +345,8 @@ export default function CreateCertificatePage() {
       else if (type === 'background') setUploadingBackground(true)
       else if (type === 'signature') setUploadingSignature(true)
 
-      const response = await fetch('/upload/image', {
+      const response = await authFetch('/upload/image', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${getAuthToken()}`
-        },
         body: formDataToSend
       })
 
@@ -497,35 +469,38 @@ export default function CreateCertificatePage() {
     setIsSubmitting(true)
     try {
       const targetId = editTemplateId
-      const response = await fetch(`${getFrontendBaseUrl()}/certificate-templates${targetId ? `/${targetId}` : ""}`, {
+      const response = await authFetch(`/certificates/templates${targetId ? `/${targetId}` : ""}`, {
         method: targetId ? "PATCH" : "POST",
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAuthToken()}`
-        },
         body: JSON.stringify(formData)
       })
 
+      console.log("📋 Submit response status:", response.status)
+      const responseData = await response.json()
+      console.log("📋 Submit response data:", responseData)
+
       if (response.ok) {
-        const template = await response.json()
+        const template = responseData
         const templateId = targetId || template?.id || template?.data?.id
         
         // If not saving as draft, submit for review
         if (!asDraft && templateId) {
-          await fetch(`${getFrontendBaseUrl()}/certificate-templates/${templateId}/submit`, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${getAuthToken()}`
-            }
+          await authFetch(`/certificates/templates/${templateId}/submit`, {
+            method: 'POST'
           })
         }
         
         localStorage.removeItem("certificate_template_draft")
         localStorage.removeItem("certificate_template_edit_id")
+        toast.success(asDraft ? "Đã lưu nháp thành công!" : "Đã gửi duyệt thành công!")
         router.push("/teacher/certificates")
+      } else {
+        const errorMsg = responseData?.error?.message || responseData?.message || "Không thể lưu mẫu chứng chỉ"
+        console.error("❌ Submit failed:", responseData)
+        toast.error(errorMsg)
       }
     } catch (error) {
       console.error("Error:", error)
+      toast.error("Đã xảy ra lỗi khi lưu mẫu chứng chỉ")
     } finally {
       setIsSubmitting(false)
     }

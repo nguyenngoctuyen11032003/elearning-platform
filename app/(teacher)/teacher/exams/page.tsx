@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { authFetch } from "@/lib/authfetch"
 import {
   Plus,
   Search,
@@ -82,11 +83,7 @@ export default function TeacherExamsPage() {
   const fetchExams = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch("/exams", {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      })
+      const response = await authFetch("/exams/my-exams")
 
       if (response.ok) {
         const data = await response.json()
@@ -113,11 +110,7 @@ export default function TeacherExamsPage() {
 
   const fetchTemplates = async () => {
     try {
-      const response = await fetch("/certificate-templates", {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      })
+      const response = await authFetch("/certificate-templates")
 
       if (response.ok) {
         const data = await response.json()
@@ -164,11 +157,8 @@ export default function TeacherExamsPage() {
   const handleDeleteConfirm = async () => {
     if (!selectedExam) return
     try {
-      const response = await fetch(`/exams/${selectedExam.id}`, {
+      const response = await authFetch(`/exams/${selectedExam.id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
       })
 
       if (response.ok) {
@@ -183,11 +173,8 @@ export default function TeacherExamsPage() {
 
   const handleSubmitForReview = async (examId: string) => {
     try {
-      const response = await fetch(`/exams/${examId}/submit-for-approval`, {
+      const response = await authFetch(`/exams/${examId}/submit-for-approval`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
       })
 
       if (response.ok) {
@@ -203,12 +190,8 @@ export default function TeacherExamsPage() {
 
   const handleRemoveCertificate = async (examId: string) => {
     try {
-      const response = await fetch(`/exams/${examId}`, {
+      const response = await authFetch(`/exams/${examId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
         body: JSON.stringify({ certificateTemplateId: null }),
       })
 
