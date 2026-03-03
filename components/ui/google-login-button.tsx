@@ -13,7 +13,7 @@ export function GoogleLoginButton({ className = '', size = 'md' }: GoogleLoginBu
   const handleGoogleLogin = () => {
     setLoading(true)
     // Redirect to backend Google OAuth endpoint
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/google`
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/google`
   }
 
   const sizeClasses = {
