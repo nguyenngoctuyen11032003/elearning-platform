@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, use } from "react"
+import { useState, use, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Footer } from "@/components/ui/footer"
 import { AnimatedButton } from "@/components/ui/animated-button"
@@ -47,6 +47,39 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   const [expandedReplies, setExpandedReplies] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({})
 
+  // ---- Real data ----
+  const [courseData, setCourseData] = useState<any>(null)
+  const [lessons, setLessons] = useState<any[]>([])
+  const [pageLoading, setPageLoading] = useState(true)
+
+  useEffect(() => {
+    const id = resolvedParams.courseId
+    const fetchData = async () => {
+      try {
+        setPageLoading(true)
+        const [courseRes, lessonsRes] = await Promise.all([
+          fetch(`/api/courses/${id}`, { cache: "no-store" }),
+          fetch(`/api/lessons/course/${id}`, { cache: "no-store" }),
+        ])
+        if (courseRes.ok) {
+          const j = await courseRes.json()
+          setCourseData(j?.data ?? j)
+        }
+        if (lessonsRes.ok) {
+          const j = await lessonsRes.json()
+          let d = j?.data ?? j
+          if (d && !Array.isArray(d) && Array.isArray(d.data)) d = d.data
+          setLessons(Array.isArray(d) ? [...d].sort((a: any, b: any) => a.order - b.order) : [])
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setPageLoading(false)
+      }
+    }
+    fetchData()
+  }, [resolvedParams.courseId])
+
   const handleSubmitReview = () => {
     if (newReview.author.trim() && newReview.content.trim()) {
       const review = {
@@ -85,200 +118,20 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     }
   }
 
-  // Mock course data
+  const levelLabel: Record<string, string> = { beginner: "Cơ bản", intermediate: "Trung cấp", advanced: "Nâng cao" }
   const course = {
-    id: resolvedParams.courseId,
-    title: "Lập trình Next.js từ cơ bản đến nâng cao",
-    teacher: "Nguyễn Ngọc Tuyền",
-    price: 499000,
-    rating: 4.9,
-    reviews: 1250,
-    students: 1250,
-    duration: "40 giờ",
-    level: "Trung cấp",
-    image: "/image/python.png",
-    description:
-      "Khóa học toàn diện về Next.js, từ những khái niệm cơ bản đến các kỹ thuật nâng cao. Bạn sẽ học cách xây dựng các ứng dụng web hiệu suất cao với React và Next.js.",
-    sections: [
-      {
-        id: "1",
-        title: "Giới thiệu Next.js",
-        lessons: 5,
-        duration: "2 giờ",
-        lessonList: [
-          {
-            id: "1-1",
-            title: "Giới thiệu về Next.js",
-            video: "nextjs-intro-01.mp4",
-            documents: ["Introduction.pdf", "Setup-Guide.md"],
-            questions: ["Next.js là gì?", "Next.js dùng để làm gì?", "Ưu điểm của Next.js là gì?", "Khi nào nên sử dụng Next.js?", "Next.js có thể làm những gì?"]
-          },
-          {
-            id: "1-2",
-            title: "So sánh Next.js với React",
-            video: "nextjs-vs-react.mp4",
-            documents: ["Comparison-Table.pdf", "Differences.docx"],
-            questions: ["Sự khác nhau giữa Next.js và React là gì?", "Next.js có lợi thế gì so với React?", "Khi nào dùng React thay vì Next.js?", "Next.js được xây dựng dựa trên cái gì?"]
-          },
-          {
-            id: "1-3",
-            title: "Cấu trúc dự án Next.js",
-            video: "nextjs-structure.mp4",
-            documents: ["Project-Structure.pdf"],
-            questions: ["Cấu trúc thư mục của Next.js như thế nào?", "app/ folder dùng để làm gì?", "pages/ folder và app/ folder khác nhau ra sao?", "public/ folder chứa những gì?"]
-          },
-        ]
-      },
-      {
-        id: "2",
-        title: "App Router & Routing",
-        lessons: 8,
-        duration: "4 giờ",
-        lessonList: [
-          {
-            id: "2-1",
-            title: "Giới thiệu App Router",
-            video: "app-router-intro.mp4",
-            documents: ["App-Router-Basics.pdf"],
-            questions: ["App Router là gì?", "App Router khác Pages Router ra sao?", "Lợi thế của App Router là gì?"]
-          },
-          {
-            id: "2-2",
-            title: "Routing cơ bản",
-            video: "basic-routing.mp4",
-            documents: ["Basic-Routing.md", "Examples.zip"],
-            questions: ["Cách tạo route mới?", "File layout.tsx dùng để làm gì?", "page.tsx file có chức năng gì?"]
-          },
-          {
-            id: "2-3",
-            title: "Dynamic routes",
-            video: "dynamic-routes.mp4",
-            documents: ["Dynamic-Routes.pdf"],
-            questions: ["Dynamic routes là gì?", "Cách tạo dynamic route?", "[id] parameter làm gì?"]
-          },
-          {
-            id: "2-4",
-            title: "Route groups",
-            video: "route-groups.mp4",
-            documents: ["Route-Groups.md"],
-            questions: ["Route groups dùng để làm gì?", "(group) naming convention có ý nghĩa gì?"]
-          },
-          
-          
-        ]
-      },
-      {
-        id: "3",
-        title: "Server Components & Actions",
-        lessons: 6,
-        duration: "3 giờ",
-        lessonList: [
-          {
-            id: "3-1",
-            title: "Server Components là gì",
-            video: "server-components-intro.mp4",
-            documents: ["Server-Components.pdf"],
-            questions: ["Server Components là gì?", "Server Components khác gì với Client Components?", "Lợi thế của Server Components?"]
-          },
-          {
-            id: "3-2",
-            title: "Client Components vs Server Components",
-            video: "client-vs-server.mp4",
-            documents: ["Comparison.md", "Use-Cases.pdf"],
-            questions: ["Khi nào dùng Server Components?", "Khi nào dùng Client Components?", "Cách chọn giữa hai?"]
-          },
-          {
-            id: "3-3",
-            title: "Server Actions cơ bản",
-            video: "server-actions-basics.mp4",
-            documents: ["Server-Actions.md"],
-            questions: ["Server Actions là gì?", "Cách tạo Server Action?", "use server directive có ý nghĩa gì?"]
-          },
-          {
-            id: "3-4",
-            title: "Form handling với Server Actions",
-            video: "form-handling.mp4",
-            documents: ["Form-Examples.zip", "Validation.pdf"],
-            questions: ["Cách handle form với Server Actions?", "Cách validate form data?", "Cách submit form an toàn?"]
-          },
-          
-        ]
-      },
-      {
-        id: "4",
-        title: "Database & ORM",
-        lessons: 7,
-        duration: "5 giờ",
-        lessonList: [
-          {
-            id: "4-1",
-            title: "Kết nối Database",
-            video: "database-connection.mp4",
-            documents: ["Connection-Setup.md", "Config.env.example"],
-            questions: ["Cách kết nối database?", "Connection string là gì?", "Cách bảo vệ thông tin kết nối?"]
-          },
-          {
-            id: "4-2",
-            title: "Giới thiệu Prisma",
-            video: "prisma-intro.mp4",
-            documents: ["Prisma-Basics.pdf"],
-            questions: ["Prisma là gì?", "Lợi thế của Prisma?", "Cách cài đặt Prisma?"]
-          },
-          {
-            id: "4-3",
-            title: "Schema design",
-            video: "schema-design.mp4",
-            documents: ["Schema-Examples.prisma", "Best-Practices.md"],
-            questions: ["Cách thiết kế schema?", "Data types trong Prisma?", "Relationships khác nhau ra sao?"]
-          },
-          {
-            id: "4-4",
-            title: "CRUD operations",
-            video: "crud-operations.mp4",
-            documents: ["CRUD-Guide.md", "Code-Examples.ts"],
-            questions: ["CRUD là gì?", "Cách thực hiện CREATE?", "Cách thực hiện READ?", "Cách UPDATE và DELETE?"]
-          },
-          
-        ]
-      },
-      {
-        id: "5",
-        title: "Deployment & Optimization",
-        lessons: 4,
-        duration: "3 giờ",
-        lessonList: [
-          {
-            id: "5-1",
-            title: "Optimization techniques",
-            video: "optimization-techniques.mp4",
-            documents: ["Optimization-Guide.pdf"],
-            questions: ["Performance optimization là gì?", "Cách check performance?", "Common bottlenecks?"]
-          },
-          {
-            id: "5-2",
-            title: "Image optimization",
-            video: "image-optimization.mp4",
-            documents: ["Image-Best-Practices.md"],
-            questions: ["Làm sao optimize images?", "Image component của Next.js?", "Lazy loading là gì?"]
-          },
-          {
-            id: "5-3",
-            title: "Deployment to Vercel",
-            video: "vercel-deployment.mp4",
-            documents: ["Vercel-Guide.md", "Config-Examples.json"],
-            questions: ["Cách deploy lên Vercel?", "Environment variables?", "CI/CD pipeline?"]
-          },
-          {
-            id: "5-4",
-            title: "Production best practices",
-            video: "production-practices.mp4",
-            documents: ["Production-Checklist.md"],
-            questions: ["Best practices cho production?", "Security considerations?", "Monitoring và logging?"]
-          }
-        ]
-      },
-    ],
-    reviews_list: [],
+    id: courseData?.id ?? resolvedParams.courseId,
+    title: courseData?.title ?? "Đang tải...",
+    teacher: courseData?.teacher?.name ?? "",
+    teacherAvatar: courseData?.teacher?.avatar ?? "/placeholder-user.jpg",
+    price: parseFloat(courseData?.price ?? "0") || 0,
+    discountPrice: parseFloat(courseData?.discountPrice ?? "0") || 0,
+    rating: parseFloat(courseData?.rating ?? "0") || 0,
+    students: courseData?.enrollmentCount ?? 0,
+    duration: courseData?.duration ? `${Math.floor(courseData.duration / 60)} phút` : "—",
+    level: levelLabel[courseData?.level] ?? "—",
+    image: courseData?.thumbnail ?? "/image/python.png",
+    description: courseData?.description ?? "",
   }
 
   return (
@@ -333,7 +186,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                 <PremiumCard className="mb-8">
                   <div className="flex items-center gap-4">
                     <img
-                      src="/placeholder-user.jpg"
+                      src={course.teacherAvatar}
                       alt={course.teacher}
                       className="w-16 h-16 rounded-full object-cover"
                     />
@@ -348,113 +201,93 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                 <div className="mb-8">
                   <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-6">Nội dung khóa học</h2>
                   <div className="space-y-3">
-                    {course.sections.map((section: any) => (
-                      <div key={section.id}>
-                        <div
-                          onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
-                          className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-lg p-4 hover:border-primary dark:hover:border-accent transition-smooth cursor-pointer"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-semibold text-foreground dark:text-white">{section.title}</p>
-                              <p className="text-sm text-muted-foreground dark:text-slate-400">
-                                {section.lessons} bài học • {section.duration}
-                              </p>
-                            </div>
-                            <ChevronDown 
-                              size={20} 
-                              className={`text-muted-foreground dark:text-slate-400 transition-transform ${expandedSection === section.id ? 'rotate-180' : ''}`}
-                            />
-                          </div>
-                        </div>
-                        <AnimatePresence>
-                          {expandedSection === section.id && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.4, ease: "easeInOut" }}
-                              className="bg-slate-50 dark:bg-slate-800/30 border border-t-0 border-border dark:border-slate-800 rounded-b-lg p-4 space-y-3"
+                    {pageLoading ? (
+                      [...Array(5)].map((_, i) => (
+                        <div key={i} className="animate-pulse bg-card dark:bg-slate-900/60 rounded-lg h-16 border border-border dark:border-slate-800" />
+                      ))
+                    ) : lessons.length === 0 ? (
+                      <p className="text-muted-foreground dark:text-slate-400 text-sm py-4">Khóa học chưa có bài học nào.</p>
+                    ) : (
+                      lessons.map((lesson: any, idx: number) => {
+                        const typeConfig: Record<string, { icon: string; color: string; label: string }> = {
+                          video:      { icon: "▶",  color: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",     label: "Video" },
+                          article:    { icon: "📄",  color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",   label: "Bài đọc" },
+                          quiz:       { icon: "❓",  color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400", label: "Quiz" },
+                          assignment: { icon: "📝",  color: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", label: "Bài tập" },
+                          resource:   { icon: "📦",  color: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",       label: "Tài nguyên" },
+                        }
+                        const tc = typeConfig[lesson.type] ?? typeConfig.video
+                        const durationMin = lesson.duration > 0 ? `${Math.floor(lesson.duration / 60)} phút` : null
+                        return (
+                          <div key={lesson.id}>
+                            <div
+                              onClick={() => setExpandedLesson(expandedLesson === lesson.id ? null : lesson.id)}
+                              className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-lg p-4 hover:border-primary dark:hover:border-accent transition-smooth cursor-pointer"
                             >
-                              {section.lessonList?.map((lesson: any, idx: number) => (
-                                <motion.div
-                                  initial={{ opacity: 0, y: -10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: -10 }}
-                                  transition={{ duration: 0.3, delay: idx * 0.05, ease: "easeInOut" }}
-                                  key={lesson.id}
-                                  className="bg-white dark:bg-slate-900/50 rounded-lg p-4 border border-border dark:border-slate-700"
-                                >
-                                  <div 
-                                    onClick={() => setExpandedLesson(expandedLesson === lesson.id ? null : lesson.id)}
-                                    className={`flex items-start gap-3 mb-3 px-3 py-2 rounded-lg cursor-pointer transition-all ${
-                                      expandedLesson === lesson.id 
-                                        ? 'bg-primary/10 dark:bg-accent/10 border-2 border-primary dark:border-accent' 
-                                        : 'hover:opacity-80 border-2 border-transparent'
-                                    }`}
-                                  >
-                                    <span className="text-xs font-semibold text-primary dark:text-accent pt-1 px-2.5 py-1 bg-primary/10 dark:bg-accent/10 rounded-full">
-                                      {idx + 1}
-                                    </span>
-                                    <p className="text-sm font-medium text-foreground dark:text-white flex-1">{lesson.title}</p>
-                                    <ChevronDown 
-                                      size={16} 
-                                      className={`text-muted-foreground dark:text-slate-400 transition-transform flex-shrink-0 ${expandedLesson === lesson.id ? 'rotate-180' : ''}`}
-                                    />
-                                  </div>
-                                  <AnimatePresence>
-                                    {expandedLesson === lesson.id && (
-                                      <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                                        className="space-y-3 ml-0 sm:ml-10 pt-2"
-                                      >
-                                        <div className="flex items-start gap-2 text-xs text-muted-foreground dark:text-slate-400">
-                                          <div className="w-4 h-4 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                            <span className="text-blue-600 dark:text-blue-400">▶</span>
-                                          </div>
-                                          <div>
-                                            <p className="font-medium text-xs text-foreground dark:text-white">Video: {lesson.video}</p>
-                                          </div>
-                                        </div>
-                                        <div className="flex items-start gap-2 text-xs text-muted-foreground dark:text-slate-400">
-                                          <div className="w-4 h-4 rounded bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                            <span className="text-green-600 dark:text-green-400">📄</span>
-                                          </div>
-                                          <div>
-                                            <p className="font-medium text-xs text-foreground dark:text-white mb-1">{lesson.documents?.length || 0} tài liệu:</p>
-                                            <div className="space-y-1">
-                                              {lesson.documents?.map((doc: any, didx: number) => (
-                                                <p key={didx} className="text-xs text-slate-600 dark:text-slate-400">• {doc}</p>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        </div>
-                                        <div className="flex items-start gap-2 text-xs text-muted-foreground dark:text-slate-400">
-                                          <div className="w-4 h-4 rounded bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                            <span className="text-purple-600 dark:text-purple-400">?</span>
-                                          </div>
-                                          <div>
-                                            <p className="font-medium text-xs text-foreground dark:text-white mb-1">{lesson.questions?.length || 0} câu hỏi:</p>
-                                            <div className="space-y-1">
-                                              {lesson.questions?.map((q: any, qidx: number) => (
-                                                <p key={qidx} className="text-xs text-slate-600 dark:text-slate-400">• {q}</p>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </motion.div>
+                              <div className="flex items-center gap-3">
+                                <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm ${tc.color}`}>
+                                  {tc.icon}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs text-muted-foreground dark:text-slate-500 font-medium">#{idx + 1}</span>
+                                    <p className="font-medium text-foreground dark:text-white text-sm">{lesson.title}</p>
+                                    {lesson.isFree && (
+                                      <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-medium">
+                                        Xem thử miễn phí
+                                      </span>
                                     )}
-                                  </AnimatePresence>
+                                  </div>
+                                  <div className="flex items-center gap-3 mt-1">
+                                    <span className="text-xs text-muted-foreground dark:text-slate-500">{tc.label}</span>
+                                    {durationMin && <span className="text-xs text-muted-foreground dark:text-slate-500">• {durationMin}</span>}
+                                  </div>
+                                </div>
+                                <ChevronDown
+                                  size={16}
+                                  className={`text-muted-foreground dark:text-slate-400 transition-transform flex-shrink-0 ${expandedLesson === lesson.id ? "rotate-180" : ""}`}
+                                />
+                              </div>
+                            </div>
+                            <AnimatePresence>
+                              {expandedLesson === lesson.id && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                                  className="bg-slate-50 dark:bg-slate-800/30 border border-t-0 border-border dark:border-slate-800 rounded-b-lg p-4 space-y-3"
+                                >
+                                  {lesson.description && (
+                                    <p className="text-sm text-muted-foreground dark:text-slate-400">{lesson.description}</p>
+                                  )}
+                                  {lesson.content && (
+                                    <div className="text-sm text-foreground dark:text-white whitespace-pre-wrap bg-white dark:bg-slate-900/50 rounded-lg p-3 border border-border dark:border-slate-700">
+                                      {lesson.content}
+                                    </div>
+                                  )}
+                                  {lesson.resources && Array.isArray(lesson.resources) && lesson.resources.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-medium text-foreground dark:text-white mb-2">📦 {lesson.resources.length} tài nguyên:</p>
+                                      <div className="space-y-1">
+                                        {lesson.resources.map((r: any, ri: number) => (
+                                          <p key={ri} className="text-xs text-slate-600 dark:text-slate-400">
+                                            • {typeof r === "string" ? r : r.name ?? r.url ?? JSON.stringify(r)}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {!lesson.description && !lesson.content && (!lesson.resources || lesson.resources.length === 0) && (
+                                    <p className="text-xs text-muted-foreground dark:text-slate-500 italic">Chưa có mô tả cho bài học này.</p>
+                                  )}
                                 </motion.div>
-                              ))}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    ))}
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
                 </div>
 
@@ -617,11 +450,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                   <AnimatedButton
                     className="w-full"
                     onClick={() => {
-                      const courseData = {
+                      const checkoutData = {
                         id: course.id,
                         title: course.title,
                         teacher: course.teacher,
-                        teacherId: course.id,
+                        teacherId: courseData?.teacherId ?? course.id,
                         price: course.price,
                         rating: course.rating,
                         students: course.students,
@@ -629,9 +462,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                         description: course.description,
                         duration: course.duration,
                         level: course.level,
-                        sections: course.sections,
                       }
-                      localStorage.setItem("checkoutCourse", JSON.stringify(courseData))
+                      localStorage.setItem("checkoutCourse", JSON.stringify(checkoutData))
                       window.location.href = "/checkout"
                     }}
                   >

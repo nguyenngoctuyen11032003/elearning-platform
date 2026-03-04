@@ -1,16 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   async rewrites() {
     return [
       {
-        // Exclude /* paths (handled by Next.js route handlers) to avoid double / prefix
-        source: '/:path((?!api/).*)*',
-        destination: 'http://localhost:5001/:path*',
+        source: '/uploads/:path*',
+        destination: 'http://localhost:5001/uploads/:path*',
       },
     ]
-  },
-  typescript: {
-    ignoreBuildErrors: true,
   },
   images: {
     domains: [
@@ -18,6 +17,10 @@ const nextConfig = {
       'lh3.googleusercontent.com',
       'res.cloudinary.com',
       'storage.googleapis.com',
+    ],
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost', port: '5001', pathname: '/uploads/**' },
+      { protocol: 'http', hostname: 'localhost', port: '3000', pathname: '/uploads/**' },
     ],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 86400, // 24 hours

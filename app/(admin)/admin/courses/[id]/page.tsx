@@ -91,13 +91,22 @@ export default function AdminCourseDetailPage() {
       try {
         const auth = getAuth()
         const [courseRes, lessonsRes] = await Promise.all([
-          fetch(`/courses/${params.id}`, { headers: auth }),
-          fetch(`/lessons/course/${params.id}`, { headers: auth }),
+          fetch(`/api/courses/${params.id}`, { headers: auth }),
+          fetch(`/api/lessons/course/${params.id}`, { headers: auth }),
         ])
         if (!courseRes.ok) throw new Error()
-        const c = await courseRes.json()
-        const lessonsData = lessonsRes.ok ? await lessonsRes.json() : []
-        const lessonList: Lesson[] = (Array.isArray(lessonsData) ? lessonsData : lessonsData.data || []).map((l: Record<string, unknown>) => ({
+        const courseJson = await courseRes.json()
+        // Unwrap {success, data} envelope
+        const c = courseJson?.data ?? courseJson
+        const lessonsJson = lessonsRes.ok ? await lessonsRes.json() : []
+        // Unwrap lessons: {success, data: {data: [...]} } or {success, data: [...]}
+        const lessonsUnwrapped = lessonsJson?.data ?? lessonsJson
+        const lessonArr = Array.isArray(lessonsUnwrapped)
+          ? lessonsUnwrapped
+          : Array.isArray(lessonsUnwrapped?.data)
+          ? lessonsUnwrapped.data
+          : []
+        const lessonList: Lesson[] = lessonArr.map((l: Record<string, unknown>) => ({
           id: l.id as string,
           title: l.title as string,
           type: (l.type === "article" ? "reading" : l.type) as Lesson["type"],
@@ -112,7 +121,7 @@ export default function AdminCourseDetailPage() {
           id: c.id,
           title: c.title,
           description: c.description || "",
-          instructor: `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim(),
+          instructor: (teacher.name as string) || `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim() || "",
           instructorEmail: (teacher.email as string) || "",
           instructorId: (teacher.id as string) || "",
           students: c.enrollmentCount || 0,
@@ -169,8 +178,9 @@ export default function AdminCourseDetailPage() {
       approved: { label: "Đã duyệt", icon: CheckCircle, color: "text-blue-600 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800" },
       pending: { label: "Chờ duyệt", icon: Clock, color: "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800" },
       rejected: { label: "Từ chối", icon: XCircle, color: "text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800" },
+      draft: { label: "Nháp", icon: Clock, color: "text-gray-600 bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800" },
     }
-    const config = statusConfig[status as keyof typeof statusConfig]
+    const config = statusConfig[status as keyof typeof statusConfig] ?? { label: status, icon: Clock, color: "text-gray-600 bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800" }
     const Icon = config.icon
 
     return (

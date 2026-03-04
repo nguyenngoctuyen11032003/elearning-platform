@@ -16,7 +16,9 @@ interface Lesson {
   title: string
   description: string
   videoFile?: File
+  videoUrl?: string
   documentFile?: File
+  documentUrl?: string
   quizzes: Quiz[]
 }
 
@@ -58,12 +60,14 @@ export default function CreateCoursePage() {
   const documentInputRef = useRef<HTMLInputElement>(null)
   const [draggedVideoZone, setDraggedVideoZone] = useState(false)
   const [draggedDocumentZone, setDraggedDocumentZone] = useState(false)
+  const [uploadingLessonId, setUploadingLessonId] = useState<string | null>(null)
+  const [uploadingDocLessonId, setUploadingDocLessonId] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch("/categories")
+    fetch("/api/categories")
       .then((r) => r.json())
       .then((data) => {
-        const list = Array.isArray(data) ? data : data.data || []
+        const list = Array.isArray(data) ? data : data.data?.data || data.data || []
         setCategories(list)
       })
       .catch(() => {})
@@ -71,11 +75,32 @@ export default function CreateCoursePage() {
 
   const handleNext = async () => {
     if (currentStep < steps.length - 2) {
+      // Validate step 0 fields before moving to next step
+      if (currentStep === 0) {
+        if (!formData.title.trim()) {
+          toast.error("Vui lòng nhập tên khóa học")
+          return
+        }
+        if (!formData.description.trim()) {
+          toast.error("Vui lòng nhập mô tả khóa học")
+          return
+        }
+      }
       setCurrentStep(currentStep + 1)
       return
     }
 
     if (currentStep === steps.length - 2) {
+      // Validate before submitting
+      if (!formData.title.trim()) {
+        toast.error("Vui lòng nhập tên khóa học")
+        return
+      }
+      if (!formData.description.trim()) {
+        toast.error("Vui lòng nhập mô tả khóa học")
+        return
+      }
+
       // Final submission step
       setIsSubmitting(true)
       try {
@@ -89,14 +114,14 @@ export default function CreateCoursePage() {
         if (formData.thumbnail) {
           const fd = new FormData()
           fd.append("file", formData.thumbnail)
-          const upRes = await fetch("/upload/image", {
+          const upRes = await fetch("/api/upload/image", {
             method: "POST",
             headers: authHeaders,
             body: fd,
           })
           if (upRes.ok) {
             const upData = await upRes.json()
-            thumbnailUrl = upData.url
+            thumbnailUrl = upData.url || upData.data?.url
           }
         }
 
@@ -110,7 +135,7 @@ export default function CreateCoursePage() {
           ...(thumbnailUrl ? { thumbnail: thumbnailUrl } : {}),
         }
 
-        const courseRes = await fetch("/courses", {
+        const courseRes = await fetch("/api/courses", {
           method: "POST",
           headers: { ...authHeaders, "Content-Type": "application/json" },
           body: JSON.stringify(coursePayload),
@@ -122,21 +147,28 @@ export default function CreateCoursePage() {
         }
 
         const course = await courseRes.json()
-        const courseId = course.id
+        // Unwrap {success, data} envelope if present
+        const courseData = course?.data ?? course
+        const courseId = courseData.id
         setCreatedCourseId(courseId)
 
         // 3. Create lessons for each section
         for (const section of sections) {
-          for (const lesson of section.lessons) {
+          for (let i = 0; i < section.lessons.length; i++) {
+            const lesson = section.lessons[i]
             const lessonPayload = {
               title: lesson.title,
-              description: lesson.description,
+              description: lesson.description || lesson.title,
               courseId,
               type: "video",
               isFree: false,
               isPublished: false,
+              sectionTitle: section.title,
+              order: i,
+              ...(lesson.videoUrl ? { videoUrl: lesson.videoUrl } : {}),
+              ...(lesson.documentUrl ? { resources: [{ name: lesson.documentFile?.name || "T\u00e0i li\u1ec7u", url: lesson.documentUrl, type: lesson.documentFile?.type || "document" }] } : {}),
             }
-            await fetch("/lessons", {
+            await fetch("/api/lessons", {
               method: "POST",
               headers: { ...authHeaders, "Content-Type": "application/json" },
               body: JSON.stringify(lessonPayload),
@@ -146,7 +178,7 @@ export default function CreateCoursePage() {
 
         // 4. Submit for review if status is pending
         if (formData.status === "pending") {
-          await fetch(`/courses/${courseId}/submit`, {
+          await fetch(`/api/courses/${courseId}/submit`, {
             method: "PATCH",
             headers: { ...authHeaders, "Content-Type": "application/json" },
           })
@@ -193,11 +225,12 @@ export default function CreateCoursePage() {
   }
 
   const addLesson = (sectionId: string) => {
+    const newLessonId = Date.now().toString()
     setSections(
       sections.map((s) => {
         if (s.id === sectionId) {
           const newLesson: Lesson = {
-            id: Date.now().toString(),
+            id: newLessonId,
             title: `Bài học ${s.lessons.length + 1}`,
             description: "",
             quizzes: [],
@@ -207,6 +240,10 @@ export default function CreateCoursePage() {
         return s
       }),
     )
+    // Open modal immediately for the new lesson
+    setCurrentSectionId(sectionId)
+    setCurrentLessonId(newLessonId)
+    setShowLessonModal(true)
   }
 
   const updateLesson = (sectionId: string, lessonId: string, updates: Partial<Lesson>) => {
@@ -300,15 +337,63 @@ export default function CreateCoursePage() {
     )
   }
 
-  const handleVideoUpload = (file: File) => {
-    if (currentSectionId && currentLessonId) {
-      updateLesson(currentSectionId, currentLessonId, { videoFile: file })
+  const handleVideoUpload = async (file: File) => {
+    if (!currentSectionId || !currentLessonId) return
+    const sectionId = currentSectionId
+    const lessonId = currentLessonId
+    updateLesson(sectionId, lessonId, { videoFile: file })
+    setUploadingLessonId(lessonId)
+    try {
+      const token = localStorage.getItem("auth_token")
+      const formData = new FormData()
+      formData.append("file", file)
+      const res = await fetch("/api/upload/video", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      })
+      if (res.ok) {
+        const result = await res.json()
+        const url = result?.data?.url || result?.url
+        if (url) updateLesson(sectionId, lessonId, { videoUrl: url })
+        else toast.error("Upload video thất bại: không nhận được URL")
+      } else {
+        toast.error("Upload video thất bại")
+      }
+    } catch {
+      toast.error("Không thể upload video")
+    } finally {
+      setUploadingLessonId(null)
     }
   }
 
-  const handleDocumentUpload = (file: File) => {
-    if (currentSectionId && currentLessonId) {
-      updateLesson(currentSectionId, currentLessonId, { documentFile: file })
+  const handleDocumentUpload = async (file: File) => {
+    if (!currentSectionId || !currentLessonId) return
+    const sectionId = currentSectionId
+    const lessonId = currentLessonId
+    updateLesson(sectionId, lessonId, { documentFile: file })
+    setUploadingDocLessonId(lessonId)
+    try {
+      const token = localStorage.getItem("auth_token")
+      const formData = new FormData()
+      formData.append("file", file)
+      const res = await fetch("/api/upload/document", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      })
+      if (res.ok) {
+        const result = await res.json()
+        const url = result?.data?.url || result?.url
+        if (url) updateLesson(sectionId, lessonId, { documentUrl: url })
+        else toast.error("Upload tài liệu thất bại: không nhận được URL")
+      } else {
+        toast.error("Upload tài liệu thất bại")
+      }
+    } catch {
+      toast.error("Không thể upload tài liệu")
+    } finally {
+      setUploadingDocLessonId(null)
     }
   }
 
@@ -642,10 +727,31 @@ export default function CreateCoursePage() {
                           }`}
                         >
                           <Video size={32} className="mx-auto text-muted-foreground dark:text-slate-400 mb-2" />
-                          {currentLesson?.videoFile ? (
+                          {uploadingLessonId === currentLessonId ? (
+                            <>
+                              <Loader2 size={20} className="animate-spin mx-auto text-primary dark:text-accent" />
+                              <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">Đang tải lên...</p>
+                            </>
+                          ) : currentLesson?.videoUrl ? (
                             <>
                               <p className="text-foreground dark:text-white font-medium text-green-600 dark:text-green-400">
-                                ✓ {currentLesson.videoFile.name}
+                                ✓ {currentLesson.videoFile?.name || "Video đã tải lên"}
+                              </p>
+                              <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">Đã lưu trên server</p>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateLesson(currentSectionId!, currentLessonId!, { videoFile: undefined, videoUrl: undefined })
+                                }}
+                                className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
+                              >
+                                Xóa tệp
+                              </button>
+                            </>
+                          ) : currentLesson?.videoFile ? (
+                            <>
+                              <p className="text-foreground dark:text-white font-medium">
+                                {currentLesson.videoFile.name}
                               </p>
                               <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
                                 {(currentLesson.videoFile.size / (1024 * 1024)).toFixed(2)} MB
@@ -653,7 +759,7 @@ export default function CreateCoursePage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  updateLesson(currentSectionId!, currentLessonId!, { videoFile: undefined })
+                                  updateLesson(currentSectionId!, currentLessonId!, { videoFile: undefined, videoUrl: undefined })
                                 }}
                                 className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
                               >
@@ -697,10 +803,31 @@ export default function CreateCoursePage() {
                           }`}
                         >
                           <FileText size={32} className="mx-auto text-muted-foreground dark:text-slate-400 mb-2" />
-                          {currentLesson?.documentFile ? (
+                          {uploadingDocLessonId === currentLessonId ? (
+                            <>
+                              <Loader2 size={20} className="animate-spin mx-auto text-primary dark:text-accent" />
+                              <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">Đang tải lên...</p>
+                            </>
+                          ) : currentLesson?.documentUrl ? (
                             <>
                               <p className="text-foreground dark:text-white font-medium text-green-600 dark:text-green-400">
-                                ✓ {currentLesson.documentFile.name}
+                                ✓ {currentLesson.documentFile?.name || "Tài liệu đã tải lên"}
+                              </p>
+                              <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">Đã lưu trên server</p>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateLesson(currentSectionId!, currentLessonId!, { documentFile: undefined, documentUrl: undefined })
+                                }}
+                                className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
+                              >
+                                Xóa tệp
+                              </button>
+                            </>
+                          ) : currentLesson?.documentFile ? (
+                            <>
+                              <p className="text-foreground dark:text-white font-medium">
+                                {currentLesson.documentFile.name}
                               </p>
                               <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
                                 {(currentLesson.documentFile.size / (1024 * 1024)).toFixed(2)} MB
@@ -708,7 +835,7 @@ export default function CreateCoursePage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  updateLesson(currentSectionId!, currentLessonId!, { documentFile: undefined })
+                                  updateLesson(currentSectionId!, currentLessonId!, { documentFile: undefined, documentUrl: undefined })
                                 }}
                                 className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
                               >
@@ -815,7 +942,10 @@ export default function CreateCoursePage() {
                         Đóng
                       </button>
                       <button
-                        onClick={() => setShowLessonModal(false)}
+                        onClick={() => {
+                          toast.success("Đã lưu thay đổi bài học!")
+                          setShowLessonModal(false)
+                        }}
                         className="px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth"
                       >
                         Lưu thay đổi
