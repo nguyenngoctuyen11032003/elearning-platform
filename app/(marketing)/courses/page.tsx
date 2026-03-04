@@ -13,165 +13,25 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { apiClient } from "@/lib/api/client";
 import { Footer } from "@/components/ui/footer";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
-const exampleCourses = [
-  {
-    id: 1,
-    title: "Lập trình Next.js từ cơ bản đến nâng cao",
-    description: "Khóa học toàn diện về Next.js, App Router, Server Components và deployment",
-    teacher: { name: "Nguyễn Văn A" },
-    price: 499000,
-    rating: 4.9,
-    image: "/image/logo-ics.jpg",
-    enrollmentCount: 1250,
-    createdAt: new Date().toISOString(),
-    category: { id: "1", name: "Lập trình" }
-  },
-  {
-    id: 2,
-    title: "React Hooks & State Management",
-    description: "Học sâu về React Hooks, Context API, Redux và các patterns nâng cao",
-    teacher: { name: "Trần Thị B" },
-    price: 399000,
-    rating: 4.8,
-    image: "/placeholder.svg",
-    enrollmentCount: 890,
-    createdAt: new Date().toISOString(),
-    category: { id: "1", name: "Lập trình" }
-  },
-  {
-    id: 3,
-    title: "Advanced TypeScript Patterns",
-    description: "Các pattern nâng cao trong TypeScript cho dự án lớn",
-    teacher: { name: "Lê Văn C" },
-    price: 349000,
-    rating: 4.7,
-    image: "/placeholder.svg",
-    enrollmentCount: 650,
-    createdAt: new Date().toISOString(),
-    category: { id: "1", name: "Lập trình" }
-  },
-  {
-    id: 4,
-    title: "Node.js Backend Development",
-    description: "Xây dựng backend với Node.js, Express và MongoDB",
-    teacher: { name: "Phạm Minh D" },
-    price: 449000,
-    rating: 4.6,
-    image: "/placeholder.svg",
-    enrollmentCount: 780,
-    createdAt: new Date().toISOString(),
-    category: { id: "2", name: "Backend" }
-  },
-  {
-    id: 5,
-    title: "GraphQL API Design",
-    description: "Thiết kế API với GraphQL và Apollo Server",
-    teacher: { name: "Hoàng Anh E" },
-    price: 299000,
-    rating: 4.5,
-    image: "/placeholder.svg",
-    enrollmentCount: 520,
-    createdAt: new Date().toISOString(),
-    category: { id: "2", name: "Backend" }
-  },
-  {
-    id: 6,
-    title: "Tailwind CSS Masterclass",
-    description: "Học cách sử dụng Tailwind CSS để tạo giao diện đẹp và responsive",
-    teacher: { name: "Vũ Thanh F" },
-    price: 199000,
-    rating: 4.8,
-    image: "/placeholder.svg",
-    enrollmentCount: 1450,
-    createdAt: new Date().toISOString(),
-    category: { id: "3", name: "Design" }
-  },
-  {
-    id: 7,
-    title: "Docker & Kubernetes Deep Dive",
-    description: "Làm chủ containerization và orchestration với Docker và Kubernetes",
-    teacher: { name: "Trần Minh G" },
-    price: 549000,
-    rating: 4.7,
-    image: "/placeholder.svg",
-    enrollmentCount: 420,
-    createdAt: new Date().toISOString(),
-    category: { id: "4", name: "DevOps" }
-  },
-  {
-    id: 8,
-    title: "Vue.js 3 & Composition API",
-    description: "Xây dựng ứng dụng web hiện đại với Vue.js 3 và Composition API",
-    teacher: { name: "Nguyễn Thị H" },
-    price: 379000,
-    rating: 4.6,
-    image: "/placeholder.svg",
-    enrollmentCount: 680,
-    createdAt: new Date().toISOString(),
-    category: { id: "1", name: "Lập trình" }
-  },
-  {
-    id: 9,
-    title: "Python Data Science",
-    description: "Khóa học toàn diện về Data Science với Python, Pandas, NumPy, Scikit-learn",
-    teacher: { name: "Lê Hoàng I" },
-    price: 429000,
-    rating: 4.9,
-    image: "/placeholder.svg",
-    enrollmentCount: 950,
-    createdAt: new Date().toISOString(),
-    category: { id: "1", name: "Lập trình" }
-  },
-  {
-    id: 10,
-    title: "AWS Cloud Architecture",
-    description: "Thiết kế và triển khai kiến trúc ứng dụng trên AWS",
-    teacher: { name: "Phạm Văn J" },
-    price: 599000,
-    rating: 4.8,
-    image: "/placeholder.svg",
-    enrollmentCount: 520,
-    createdAt: new Date().toISOString(),
-    category: { id: "4", name: "DevOps" }
-  },
-  {
-    id: 11,
-    title: "UI/UX Design with Figma",
-    description: "Thiết kế giao diện người dùng chuyên nghiệp với Figma",
-    teacher: { name: "Hoàng Anh K" },
-    price: 249000,
-    rating: 4.7,
-    image: "/placeholder.svg",
-    enrollmentCount: 820,
-    createdAt: new Date().toISOString(),
-    category: { id: "3", name: "Design" }
-  },
-  {
-    id: 12,
-    title: "PostgreSQL Advanced",
-    description: "Tối ưu hóa và quản lý cơ sở dữ liệu PostgreSQL",
-    teacher: { name: "Vũ Tuấn L" },
-    price: 349000,
-    rating: 4.6,
-    image: "/placeholder.svg",
-    enrollmentCount: 380,
-    createdAt: new Date().toISOString(),
-    category: { id: "2", name: "Backend" }
+// --- real data fetch helper ---
+async function fetchJson(url: string) {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) return null;
+  const json = await res.json();
+  // Backend wraps: { success, data: { data: [...], total, page } } (paginated)
+  //            or: { success, data: [...] } (plain list)
+  const unwrapped = json && typeof json === "object" && "data" in json ? json.data : json;
+  // Handle pagination wrapper: { data: [...], total, page, ... }
+  if (unwrapped && typeof unwrapped === "object" && "data" in unwrapped && Array.isArray(unwrapped.data)) {
+    return unwrapped.data;
   }
-];
-
-const exampleCategories = [
-  { id: "1", name: "Lập trình" },
-  { id: "2", name: "Backend" },
-  { id: "3", name: "Design" },
-  { id: "4", name: "DevOps" }
-];
+  return unwrapped;
+}
 
 export default function CoursesPage() {
   const router = useRouter();
@@ -185,7 +45,7 @@ export default function CoursesPage() {
   const [selectedCategory, setSelectedCategory] = useState(
     categoryParam || "all",
   );
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, Number.POSITIVE_INFINITY]);
   const [categories, setCategories] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<
@@ -198,18 +58,27 @@ export default function CoursesPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const courses = await apiClient.getCourses();
-        // Use example courses if API returns empty
-        setAllCourses(courses && courses.length > 0 ? courses : exampleCourses);
+        const [coursesRaw, catsRaw] = await Promise.all([
+          fetchJson("/api/courses"),
+          fetchJson("/api/categories"),
+        ]);
 
-        const cats = await apiClient.getCategories();
-        // Use example categories if API returns empty
-        setCategories(cats && cats.length > 0 ? cats : exampleCategories);
+        const courses = Array.isArray(coursesRaw) ? coursesRaw : [];
+        // Normalise price to number (backend returns string e.g. "1289000.00")
+        const normalised = courses.map((c: any) => ({
+          ...c,
+          price: parseFloat(c.price) || 0,
+          discountPrice: parseFloat(c.discountPrice) || 0,
+          image: c.thumbnail || "/placeholder.svg",
+        }));
+        setAllCourses(normalised);
+
+        const cats = Array.isArray(catsRaw) ? catsRaw : [];
+        setCategories(cats);
       } catch (error) {
         console.error("Error fetching courses:", error);
-        // Use example data on error
-        setAllCourses(exampleCourses);
-        setCategories(exampleCategories);
+        setAllCourses([]);
+        setCategories([]);
       } finally {
         setLoading(false);
       }
@@ -293,14 +162,15 @@ export default function CoursesPage() {
   const handleReset = () => {
     setSearch("");
     setSelectedCategory("all");
-    setPriceRange([0, 1000000]);
+    setPriceRange([0, Number.POSITIVE_INFINITY]);
   };
 
   const priceRanges = [
+    { label: "Tất cả mức giá", min: 0, max: Number.POSITIVE_INFINITY },
     { label: "Miễn phí", min: 0, max: 0 },
-    { label: "Dưới 300K", min: 0, max: 300000 },
-    { label: "300K - 500K", min: 300000, max: 500000 },
-    { label: "Trên 500K", min: 500000, max: Number.POSITIVE_INFINITY },
+    { label: "Dưới 1 triệu", min: 0, max: 1000000 },
+    { label: "1 - 2 triệu", min: 1000000, max: 2000000 },
+    { label: "Trên 2 triệu", min: 2000000, max: Number.POSITIVE_INFINITY },
   ];
 
   return (

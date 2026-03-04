@@ -17,7 +17,10 @@ interface Lesson {
   title: string
   description: string
   videoFile?: File
+  videoUrl?: string
   documentFile?: File
+  documentUrl?: string
+  documentName?: string
   quizzes: Quiz[]
 }
 
@@ -31,6 +34,16 @@ interface Quiz {
 interface Category {
   id: string
   name: string
+}
+
+// Safely extract the first valid resource object from a potentially malformed resources array
+// Handles cases like: null, [], [[]], [{name, url}]
+function parseFirstResource(resources: unknown): { url: string; name?: string } | null {
+  if (!Array.isArray(resources)) return null
+  const valid = resources.find(
+    (r) => r !== null && typeof r === 'object' && !Array.isArray(r) && typeof (r as Record<string, unknown>).url === 'string' && (r as Record<string, unknown>).url
+  )
+  return (valid as { url: string; name?: string }) ?? null
 }
 
 export default function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
@@ -63,6 +76,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({})
   const [draggedVideoZone, setDraggedVideoZone] = useState(false)
   const [draggedDocumentZone, setDraggedDocumentZone] = useState(false)
+  const [uploadingVideoIds, setUploadingVideoIds] = useState<Set<string>>(new Set())
+  const [uploadingDocIds, setUploadingDocIds] = useState<Set<string>>(new Set())
   const videoInputRef = useRef<HTMLInputElement>(null)
   const documentInputRef = useRef<HTMLInputElement>(null)
   const addLessonVideoInputRef = useRef<HTMLInputElement>(null)
@@ -80,13 +95,14 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           : {}
 
         const [courseRes, lessonsRes, catsRes] = await Promise.all([
-          fetch(`/courses/${resolvedParams.id}`, { headers }),
-          fetch(`/lessons/course/${resolvedParams.id}`, { headers }),
-          fetch("/categories"),
+          fetch(`/api/courses/${resolvedParams.id}`, { headers }),
+          fetch(`/api/lessons/course/${resolvedParams.id}`, { headers }),
+          fetch("/api/categories"),
         ])
 
         if (courseRes.ok) {
-          const data = await courseRes.json()
+          const json = await courseRes.json()
+          const data = json?.data ?? json
           setCourse({
             title: data.title || "",
             description: data.description || "",
@@ -99,29 +115,47 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         }
 
         if (lessonsRes.ok) {
-          const lessonsData = await lessonsRes.json()
-          const lessonList = Array.isArray(lessonsData)
-            ? lessonsData
-            : lessonsData.data || []
+          const lessonsJson = await lessonsRes.json()
+          const lessonsUnwrapped = lessonsJson?.data ?? lessonsJson
+          const lessonList = Array.isArray(lessonsUnwrapped)
+            ? lessonsUnwrapped
+            : Array.isArray(lessonsUnwrapped?.data)
+            ? lessonsUnwrapped.data
+            : []
           if (lessonList.length > 0) {
-            setSections([
-              {
-                id: "main",
-                title: "Nội dung khóa học",
-                lessons: lessonList.map((l: { id: string; title: string; description: string }) => ({
+          // Group lessons by sectionTitle
+          const sectionMap = new Map<string, typeof lessonList>()
+          for (const l of lessonList) {
+            const key = (l as { sectionTitle?: string }).sectionTitle || "Nội dung khóa học"
+            if (!sectionMap.has(key)) sectionMap.set(key, [])
+            sectionMap.get(key)!.push(l)
+          }
+          const reconstructedSections = Array.from(sectionMap.entries()).map(([title, lsns], idx) => ({
+            id: `section-${idx}-${Date.now()}`,
+            title,
+            lessons: lsns
+              .sort((a: { order?: number }, b: { order?: number }) => (a.order || 0) - (b.order || 0))
+              .map((l: { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[] }) => {
+                const firstRes = parseFirstResource(l.resources)
+                return {
                   id: l.id,
                   title: l.title,
                   description: l.description || "",
                   quizzes: [],
-                })),
-              },
-            ])
+                  videoUrl: l.videoUrl,
+                  documentUrl: firstRes?.url,
+                  documentName: firstRes?.name,
+                }
+              }),
+          }))
+          setSections(reconstructedSections.length > 0 ? reconstructedSections : [])
           }
         }
 
         if (catsRes.ok) {
-          const catsData = await catsRes.json()
-          setCategories(Array.isArray(catsData) ? catsData : catsData.data || [])
+          const catsJson = await catsRes.json()
+          const catsUnwrapped = catsJson?.data ?? catsJson
+          setCategories(Array.isArray(catsUnwrapped) ? catsUnwrapped : catsUnwrapped?.data || [])
         }
       } catch (error) {
         console.error("Error loading course:", error)
@@ -172,6 +206,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     setAddLessonSectionId(sectionId)
     setNewLessonData({ title: "", description: "" })
     setNewLessonFiles([])
+    setNewLessonQuizzes([])
     setShowAddLessonModal(true)
   }
 
@@ -338,7 +373,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
         : { "Content-Type": "application/json" }
 
-      const res = await fetch(`/courses/${resolvedParams.id}`, {
+      const res = await fetch(`/api/courses/${resolvedParams.id}`, {
         method: "PATCH",
         headers: authHeaders,
         body: JSON.stringify({
@@ -354,33 +389,84 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         throw new Error(err.message || "Lưu thất bại")
       }
 
-      // Save new lessons (those without real UUIDs) to API
-      const allLessons = sections.flatMap((s) => s.lessons)
-      for (const lesson of allLessons) {
-        const isNewLesson = !/^[0-9a-f-]{36}$/.test(lesson.id)
-        if (isNewLesson) {
-          await fetch("/lessons", {
-            method: "POST",
-            headers: authHeaders,
-            body: JSON.stringify({
-              title: lesson.title,
-              description: lesson.description,
-              courseId: resolvedParams.id,
-              type: "video",
-              isFree: false,
-              isPublished: false,
-            }),
-          })
-        } else {
-          // Update existing lesson title/description
-          await fetch(`/lessons/${lesson.id}`, {
-            method: "PATCH",
-            headers: authHeaders,
-            body: JSON.stringify({
-              title: lesson.title,
-              description: lesson.description,
-            }),
-          })
+      // Save lessons (new and existing) with sectionTitle and order
+      for (const [, section] of sections.entries()) {
+        for (const [lIdx, lesson] of section.lessons.entries()) {
+          const isNewLesson = !/^[0-9a-f-]{36}$/.test(lesson.id)
+          if (isNewLesson) {
+            await fetch("/api/lessons", {
+              method: "POST",
+              headers: authHeaders,
+              body: JSON.stringify({
+                title: lesson.title,
+                description: lesson.description,
+                courseId: resolvedParams.id,
+                type: "video",
+                isFree: false,
+                isPublished: false,
+                sectionTitle: section.title,
+                order: lIdx,
+              }),
+            })
+          } else {
+            const patchRes = await fetch(`/api/lessons/${lesson.id}`, {
+              method: "PATCH",
+              headers: authHeaders,
+              body: JSON.stringify({
+                title: lesson.title,
+                description: lesson.description,
+                sectionTitle: section.title,
+                order: lIdx,
+                ...(lesson.videoUrl ? { videoUrl: lesson.videoUrl } : {}),
+                // Always send resources to overwrite stale/malformed data in DB
+                resources: lesson.documentUrl
+                  ? [{ name: lesson.documentName || lesson.documentFile?.name || "Tài liệu", url: lesson.documentUrl }]
+                  : [],
+              }),
+            })
+            if (!patchRes.ok) {
+              const err = await patchRes.json().catch(() => ({}))
+              console.error(`[SaveCourse] PATCH lesson ${lesson.id} thất bại:`, err)
+              throw new Error(`Lưu bài học "${lesson.title}" thất bại: ${err?.error?.message || err?.message || patchRes.status}`)
+            }
+          }
+        }
+      }
+
+      // Re-fetch lessons từ API để đồng bộ state với DB
+      const token2 = localStorage.getItem("auth_token")
+      const headers2: Record<string, string> = token2 ? { Authorization: `Bearer ${token2}` } : {}
+      const freshLessonsRes = await fetch(`/api/lessons/course/${resolvedParams.id}`, { headers: headers2 })
+      if (freshLessonsRes.ok) {
+        const lessonsJson = await freshLessonsRes.json()
+        const lessonsUnwrapped = lessonsJson?.data ?? lessonsJson
+        const lessonList = Array.isArray(lessonsUnwrapped) ? lessonsUnwrapped : Array.isArray(lessonsUnwrapped?.data) ? lessonsUnwrapped.data : []
+        if (lessonList.length > 0) {
+          const sectionMap = new Map<string, typeof lessonList>()
+          for (const l of lessonList) {
+            const key = (l as { sectionTitle?: string }).sectionTitle || "Nội dung khóa học"
+            if (!sectionMap.has(key)) sectionMap.set(key, [])
+            sectionMap.get(key)!.push(l)
+          }
+          const reconstructed = Array.from(sectionMap.entries()).map(([title, lsns], idx) => ({
+            id: `section-${idx}-${Date.now()}`,
+            title,
+            lessons: (lsns as { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[]; order?: number }[])
+              .sort((a, b) => (a.order || 0) - (b.order || 0))
+              .map(l => {
+                const firstRes = parseFirstResource(l.resources)
+                return {
+                  id: l.id,
+                  title: l.title,
+                  description: l.description || "",
+                  quizzes: [] as { id: string; question: string; options: string[]; correctAnswer: number }[],
+                  videoUrl: l.videoUrl,
+                  documentUrl: firstRes?.url,
+                  documentName: firstRes?.name,
+                }
+              }),
+          }))
+          setSections(reconstructed)
         }
       }
 
@@ -397,7 +483,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     setIsSubmitting(true)
     try {
       const token = localStorage.getItem("auth_token")
-      const res = await fetch(`/courses/${resolvedParams.id}/submit`, {
+      const res = await fetch(`/api/courses/${resolvedParams.id}/submit`, {
         method: "PATCH",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
@@ -411,24 +497,118 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     }
   }
 
-  const handleVideoUpload = (file: File) => {
-    if (currentLessonId) {
-      setUploadedFiles(prev => ({
-        ...prev,
-        [currentLessonId]: [...(prev[currentLessonId] || []), file]
-      }))
+  const handleVideoUpload = async (lessonId: string, file: File) => {
+    setUploadingVideoIds(prev => new Set(prev).add(lessonId))
+    setSections(prev => prev.map(s => ({
+      ...s,
+      lessons: s.lessons.map(l => l.id === lessonId ? { ...l, videoFile: file } : l)
+    })))
+    try {
+      const token = localStorage.getItem("auth_token")
+      const formData = new FormData()
+      formData.append("file", file)
+      const res = await fetch("/api/upload/video", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      })
+      if (res.ok) {
+        const result = await res.json()
+        const url = result?.data?.url ?? result?.url ?? null
+        if (url) {
+          setSections(prev => prev.map(s => ({
+            ...s,
+            lessons: s.lessons.map(l => l.id === lessonId ? { ...l, videoUrl: url } : l)
+          })))
+          // Auto-save to DB immediately for existing lessons (UUID)
+          const isExistingLesson = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lessonId)
+          if (isExistingLesson && token) {
+            const patchRes = await fetch(`/api/lessons/${lessonId}`, {
+              method: "PATCH",
+              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ videoUrl: url }),
+            })
+            if (!patchRes.ok) {
+              console.error("[VideoUpload] auto-save thất bại:", await patchRes.json().catch(() => ({})))
+              toast.warning("Video đã upload nhưng lưu vào DB thất bại, hãy nhấn Lưu khóa học")
+            } else {
+              toast.success("Upload video thành công!")
+            }
+          } else {
+            toast.success("Upload video thành công!")
+          }
+        } else {
+          console.error("[VideoUpload] res.ok nhưng không tìm thấy url trong response:", result)
+          toast.error("Upload thành công nhưng không nhận được URL video")
+        }
+      } else {
+        const err = await res.json().catch(() => ({}))
+        toast.error(`Upload video thất bại: ${err?.error?.message || err?.message || res.status}`)
+      }
+    } catch (e) {
+      console.error("[VideoUpload] exception:", e)
+      toast.error("Không thể upload video")
+    } finally {
+      setUploadingVideoIds(prev => { const s = new Set(prev); s.delete(lessonId); return s })
     }
   }
 
-  const handleDocumentUpload = (file: File) => {
-    if (currentLessonId) {
-      setUploadedFiles(prev => ({
-        ...prev,
-        [currentLessonId]: [...(prev[currentLessonId] || []), file]
-      }))
+  const handleDocumentUpload = async (lessonId: string, file: File) => {
+    setUploadingDocIds(prev => new Set(prev).add(lessonId))
+    setSections(prev => prev.map(s => ({
+      ...s,
+      lessons: s.lessons.map(l => l.id === lessonId ? { ...l, documentFile: file } : l)
+    })))
+    try {
+      const token = localStorage.getItem("auth_token")
+      const formData = new FormData()
+      formData.append("file", file)
+      const res = await fetch("/api/upload/document", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      })
+      if (res.ok) {
+        const result = await res.json()
+        const url = result?.data?.url ?? result?.url ?? null
+        if (url) {
+          setSections(prev => prev.map(s => ({
+            ...s,
+            lessons: s.lessons.map(l => l.id === lessonId ? { ...l, documentUrl: url, documentName: file.name } : l)
+          })))
+          // Auto-save to DB immediately for existing lessons (UUID)
+          const isExistingLesson = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lessonId)
+          if (isExistingLesson && token) {
+            const patchRes = await fetch(`/api/lessons/${lessonId}`, {
+              method: "PATCH",
+              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ resources: [{ name: file.name, url }] }),
+            })
+            if (!patchRes.ok) {
+              console.error("[DocumentUpload] auto-save thất bại:", await patchRes.json().catch(() => ({})))
+              toast.warning(`Tài liệu đã upload nhưng lưu vào DB thất bại, hãy nhấn Lưu khóa học`)
+            } else {
+              toast.success(`Tài liệu "${file.name}" đã được lưu!`)
+            }
+          } else {
+            toast.success(`Tài liệu "${file.name}" đã tải lên!`)
+          }
+        } else {
+          console.error("[DocumentUpload] res.ok nhưng không tìm thấy url trong response:", result)
+          toast.error("Upload thành công nhưng không nhận được URL tài liệu")
+        }
+      } else {
+        const err = await res.json().catch(() => ({}))
+        console.error("[DocumentUpload] upload thất bại:", err)
+        toast.error(`Upload tài liệu thất bại: ${err?.error?.message || err?.message || res.status}`)
+      }
+    } catch (e) {
+      console.error("[DocumentUpload] exception:", e)
+      toast.error("Không thể upload tài liệu")
+    } finally {
+      setUploadingDocIds(prev => { const s = new Set(prev); s.delete(lessonId); return s })
     }
   }
-
   const handleVideoDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDraggedVideoZone(false)
@@ -551,18 +731,38 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-foreground dark:text-white">Bài giảng</h2>
-              <button 
-                onClick={() => setShowAddLessonModal(true)}
+              <button
+                onClick={addSection}
                 className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-smooth flex items-center gap-2">
-                <Plus size={18} /> Thêm bài giảng
+                <Plus size={18} /> Thêm phần mới
               </button>
             </div>
 
-            <div className="space-y-3">
-              {lessons.map((lesson) => {
-                const sectionId = sections.find(s => s.title === lesson.sectionTitle)?.id || ''
-                const isExpanded = expandedLessonId === lesson.id
-                const lessonFiles = uploadedFiles[lesson.id] || []
+            <div className="space-y-4">
+              {sections.map((section) => (
+                <div key={section.id} className="border border-border dark:border-slate-800 rounded-xl overflow-hidden">
+                  {/* Section header */}
+                  <div className="flex items-center gap-3 bg-secondary dark:bg-slate-800 px-4 py-3">
+                    <input
+                      value={section.title}
+                      onChange={(e) => updateSection(section.id, e.target.value)}
+                      className="flex-1 bg-transparent font-semibold text-foreground dark:text-white focus:outline-none"
+                      placeholder="Tên phần..."
+                    />
+                    <button
+                      onClick={() => addLesson(section.id)}
+                      className="px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-sm font-medium hover:bg-primary/20 transition-smooth flex items-center gap-1">
+                      <Plus size={14} /> Thêm bài học
+                    </button>
+                    <button
+                      onClick={() => deleteSection(section.id)}
+                      className="p-1.5 hover:bg-destructive/10 rounded-lg transition-smooth">
+                      <Trash2 size={16} className="text-destructive" />
+                    </button>
+                  </div>
+                  <div className="space-y-3 p-4">
+                  {section.lessons.map((lesson) => {
+                    const isExpanded = expandedLessonId === lesson.id
                 
                 return (
                   <div
@@ -590,19 +790,14 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                           </p>
                           {/* Content Preview Badges */}
                           <div className="flex flex-wrap gap-2 mt-2">
-                            {lessonFiles.some(f => f.type.startsWith('video/')) && (
+                            {lesson.videoUrl && (
                               <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded text-xs font-medium">
                                 <Video size={12} /> Video
                               </span>
                             )}
-                            {lessonFiles.some(f => f.type.startsWith('image/')) && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded text-xs font-medium">
-                                🖼️ Hình ảnh
-                              </span>
-                            )}
-                            {lessonFiles.some(f => f.type === 'application/pdf' || f.name.endsWith('.pdf')) && (
+                            {lesson.documentUrl && (
                               <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded text-xs font-medium">
-                                📄 PDF
+                                📄 {lesson.documentName || 'Tài liệu'}
                               </span>
                             )}
                             {lesson.quizzes.length > 0 && (
@@ -624,7 +819,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                         <button 
                           onClick={(e) => {
                             e.stopPropagation()
-                            deleteLesson(sectionId, lesson.id)
+                            deleteLesson(section.id, lesson.id)
                           }}
                           className="p-2 hover:bg-destructive/10 rounded-lg transition-smooth">
                           <Trash2 size={18} className="text-destructive" />
@@ -642,96 +837,44 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                         {/* Video Upload */}
                         <div>
                           <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                            Tải video
+                            Video bài học
                           </label>
+                          {lesson.videoUrl && (
+                            <div className="mb-3 rounded-lg overflow-hidden bg-black aspect-video">
+                              <video src={lesson.videoUrl} controls className="w-full h-full" />
+                            </div>
+                          )}
                           <div
-                            onDragOver={(e) => {
-                              e.preventDefault()
-                              setDraggedVideoZone(true)
-                            }}
+                            onDragOver={(e) => { e.preventDefault(); setDraggedVideoZone(true) }}
                             onDragLeave={() => setDraggedVideoZone(false)}
                             onDrop={(e) => {
-                              e.preventDefault()
-                              setDraggedVideoZone(false)
+                              e.preventDefault(); setDraggedVideoZone(false)
                               const file = e.dataTransfer.files?.[0]
-                              if (file && file.type.startsWith('video/')) {
-                                setUploadedFiles(prev => ({
-                                  ...prev,
-                                  [lesson.id]: [...(prev[lesson.id] || []), file]
-                                }))
-                              }
+                              if (file && file.type.startsWith('video/')) handleVideoUpload(lesson.id, file)
                             }}
-                            onClick={() => videoInputRef.current?.click()}
-                            className={`border-2 border-dashed rounded-lg p-6 text-center transition-smooth cursor-pointer ${
-                              draggedVideoZone
-                                ? 'border-primary dark:border-accent bg-primary/5 dark:bg-primary/10'
-                                : 'border-border dark:border-slate-700 hover:border-primary dark:hover:border-accent'
-                            }`}
+                            onClick={() => { const inp = document.getElementById(`vid-inp-${lesson.id}`) as HTMLInputElement; inp?.click() }}
+                            className={`border-2 border-dashed rounded-lg p-5 text-center transition-smooth cursor-pointer ${draggedVideoZone ? 'border-primary bg-primary/5' : 'border-border dark:border-slate-700 hover:border-primary'}`}
                           >
-                            <Video size={32} className="mx-auto text-muted-foreground dark:text-slate-400 mb-2" />
-                            {lessonFiles.some(f => f.type.startsWith('video/')) ? (
-                              <>
-                                <p className="text-foreground dark:text-white font-medium text-green-600 dark:text-green-400">
-                                  ✓ {lessonFiles.find(f => f.type.startsWith('video/'))?.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
-                                  {((lessonFiles.find(f => f.type.startsWith('video/'))?.size || 0) / (1024 * 1024)).toFixed(2)} MB
-                                </p>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setUploadedFiles(prev => ({
-                                      ...prev,
-                                      [lesson.id]: (prev[lesson.id] || []).filter(f => !f.type.startsWith('video/'))
-                                    }))
-                                  }}
-                                  className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
-                                >
-                                  Xóa tệp
-                                </button>
-                              </>
+                            {uploadingVideoIds.has(lesson.id) ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <Loader2 size={24} className="animate-spin text-primary dark:text-accent" />
+                                <p className="text-sm text-muted-foreground">Đang tải lên...</p>
+                              </div>
+                            ) : lesson.videoUrl ? (
+                              <p className="text-sm text-green-600 dark:text-green-400 font-medium">✓ Video đã tải lên — nhấn để thay thế</p>
                             ) : (
                               <>
-                                <p className="text-foreground dark:text-white font-medium">Kéo thả video vào đây</p>
-                                <p className="text-sm text-muted-foreground dark:text-slate-400">Hoặc nhấn để chọn tệp</p>
+                                <Video size={28} className="mx-auto text-muted-foreground mb-1" />
+                                <p className="text-sm text-foreground dark:text-white">{lesson.videoFile ? lesson.videoFile.name : 'Kéo thả hoặc nhấn để chọn video'}</p>
                               </>
                             )}
                           </div>
-                          <input
-                            ref={videoInputRef}
-                            type="file"
-                            accept="video/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) {
-                                setUploadedFiles(prev => ({
-                                  ...prev,
-                                  [lesson.id]: [...(prev[lesson.id] || []), file]
-                                }))
-                              }
-                            }}
-                            className="hidden"
+                          <input id={`vid-inp-${lesson.id}`} type="file" accept="video/*" className="hidden"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleVideoUpload(lesson.id, f); e.target.value = '' }}
                           />
-                          
-                          {/* Video Files List */}
-                          {lessonFiles.filter(f => f.type.startsWith('video/')).length > 0 && (
-                            <div className="mt-3 space-y-2">
-                              <p className="text-xs font-semibold text-foreground dark:text-white">Video đã tải lên:</p>
-                              {lessonFiles.filter(f => f.type.startsWith('video/')).map((file, i) => (
-                                <div key={`video-${lesson.id}-${i}`} className="flex items-center justify-between p-2 bg-background dark:bg-slate-950 rounded border border-border dark:border-slate-800">
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <Video size={14} className="text-primary dark:text-accent flex-shrink-0" />
-                                    <span className="text-xs text-foreground dark:text-white truncate">{file.name}</span>
-                                  </div>
-                                  <button onClick={() => setUploadedFiles(prev => ({
-                                    ...prev,
-                                    [lesson.id]: (prev[lesson.id] || []).filter(f => f !== file)
-                                  }))} className="text-destructive hover:text-destructive/80 flex-shrink-0 ml-2">
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
+                          {lesson.videoUrl && (
+                            <button onClick={() => updateLesson(section.id, lesson.id, { videoUrl: undefined, videoFile: undefined })}
+                              className="mt-2 text-xs text-destructive hover:underline">Xóa video</button>
                           )}
                         </div>
 
@@ -740,98 +883,47 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                           <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
                             Tài liệu bổ sung
                           </label>
+                          {lesson.documentUrl && (
+                            <div className="mb-3 flex items-center gap-3 p-3 bg-secondary dark:bg-slate-800 rounded-lg border border-border dark:border-slate-700">
+                              <FileText size={20} className="text-primary dark:text-accent flex-shrink-0" />
+                              <a href={lesson.documentUrl} target="_blank" rel="noreferrer"
+                                className="text-sm text-primary dark:text-accent hover:underline truncate flex-1"
+                                onClick={(e) => e.stopPropagation()}>
+                                {lesson.documentName || 'Xem tài liệu'}
+                              </a>
+                            </div>
+                          )}
                           <div
-                            onDragOver={(e) => {
-                              e.preventDefault()
-                              setDraggedDocumentZone(true)
-                            }}
+                            onDragOver={(e) => { e.preventDefault(); setDraggedDocumentZone(true) }}
                             onDragLeave={() => setDraggedDocumentZone(false)}
                             onDrop={(e) => {
-                              e.preventDefault()
-                              setDraggedDocumentZone(false)
+                              e.preventDefault(); setDraggedDocumentZone(false)
                               const file = e.dataTransfer.files?.[0]
-                              if (file && isDocumentOrImage(file)) {
-                                setUploadedFiles(prev => ({
-                                  ...prev,
-                                  [lesson.id]: [...(prev[lesson.id] || []), file]
-                                }))
-                              }
+                              if (file) handleDocumentUpload(lesson.id, file)
                             }}
-                            onClick={() => documentInputRef.current?.click()}
-                            className={`border-2 border-dashed rounded-lg p-6 text-center transition-smooth cursor-pointer ${
-                              draggedDocumentZone
-                                ? 'border-primary dark:border-accent bg-primary/5 dark:bg-primary/10'
-                                : 'border-border dark:border-slate-700 hover:border-primary dark:hover:border-accent'
-                            }`}
+                            onClick={() => { const inp = document.getElementById(`doc-inp-${lesson.id}`) as HTMLInputElement; inp?.click() }}
+                            className={`border-2 border-dashed rounded-lg p-5 text-center transition-smooth cursor-pointer ${draggedDocumentZone ? 'border-primary bg-primary/5' : 'border-border dark:border-slate-700 hover:border-primary'}`}
                           >
-                            <FileText size={32} className="mx-auto text-muted-foreground dark:text-slate-400 mb-2" />
-                            {lessonFiles.some(f => isDocumentOrImage(f)) ? (
-                              <>
-                                <p className="text-foreground dark:text-white font-medium text-green-600 dark:text-green-400">
-                                  ✓ {lessonFiles.find(f => isDocumentOrImage(f))?.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
-                                  {((lessonFiles.find(f => isDocumentOrImage(f))?.size || 0) / 1024).toFixed(2)} KB
-                                </p>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setUploadedFiles(prev => ({
-                                      ...prev,
-                                      [lesson.id]: (prev[lesson.id] || []).filter(f => !isDocumentOrImage(f))
-                                    }))
-                                  }}
-                                  className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
-                                >
-                                  Xóa tệp
-                                </button>
-                              </>
+                            {uploadingDocIds.has(lesson.id) ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <Loader2 size={24} className="animate-spin text-primary dark:text-accent" />
+                                <p className="text-sm text-muted-foreground">Đang tải lên...</p>
+                              </div>
+                            ) : lesson.documentUrl ? (
+                              <p className="text-sm text-green-600 dark:text-green-400 font-medium">✓ Tài liệu đã tải lên — nhấn để thay thế</p>
                             ) : (
                               <>
-                                <p className="text-foreground dark:text-white font-medium">Kéo thả tài liệu vào đây</p>
-                                <p className="text-sm text-muted-foreground dark:text-slate-400">Hoặc nhấn để chọn tệp</p>
+                                <FileText size={28} className="mx-auto text-muted-foreground mb-1" />
+                                <p className="text-sm text-foreground dark:text-white">{lesson.documentFile ? lesson.documentFile.name : 'Kéo thả hoặc nhấn để chọn tài liệu (PDF, Word...)'}</p>
                               </>
                             )}
                           </div>
-                          <input
-                            ref={documentInputRef}
-                            type="file"
-                            accept=".pdf,application/pdf,image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file && isDocumentOrImage(file)) {
-                                setUploadedFiles(prev => ({
-                                  ...prev,
-                                  [lesson.id]: [...(prev[lesson.id] || []), file]
-                                }))
-                              }
-                            }}
-                            className="hidden"
+                          <input id={`doc-inp-${lesson.id}`} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" className="hidden"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleDocumentUpload(lesson.id, f); e.target.value = '' }}
                           />
-                          
-                          {/* Document Files List */}
-                          {lessonFiles.filter(f => isDocumentOrImage(f)).length > 0 && (
-                            <div className="mt-3 space-y-2">
-                              <p className="text-xs font-semibold text-foreground dark:text-white">Tài liệu đã tải lên:</p>
-                              {lessonFiles.filter(f => isDocumentOrImage(f)).map((file, i) => (
-                                <div key={`doc-${lesson.id}-${i}`} className="flex items-center justify-between p-2 bg-background dark:bg-slate-950 rounded border border-border dark:border-slate-800">
-                                  <div className="flex items-center gap-2 flex-1">
-                                    {file.type.startsWith('image/') ? (
-                                      <img src={URL.createObjectURL(file)} alt={file.name} className="w-6 h-6 rounded object-cover flex-shrink-0" />
-                                    ) : (
-                                      <FileText size={14} className="text-primary dark:text-accent flex-shrink-0" />
-                                    )}
-                                    <span className="text-xs text-foreground dark:text-white truncate">{file.name}</span>
-                                  </div>
-                                  <button onClick={() => setUploadedFiles(prev => ({
-                                    ...prev,
-                                    [lesson.id]: (prev[lesson.id] || []).filter(f => f !== file)
-                                  }))} className="text-destructive hover:text-destructive/80 flex-shrink-0 ml-2">
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
+                          {lesson.documentUrl && (
+                            <button onClick={() => updateLesson(section.id, lesson.id, { documentUrl: undefined, documentFile: undefined, documentName: undefined })}
+                              className="mt-2 text-xs text-destructive hover:underline">Xóa tài liệu</button>
                           )}
                         </div>
 
@@ -900,7 +992,20 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                     )}
                   </div>
                 )
-              })}
+                  })}
+                  {section.lessons.length === 0 && (
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 text-center py-4">
+                      Chưa có bài học nào trong phần này
+                    </p>
+                  )}
+                  </div>
+                </div>
+              ))}
+              {sections.length === 0 && (
+                <p className="text-sm text-muted-foreground dark:text-slate-400 text-center py-8">
+                  Chưa có phần nào. Nhấn &quot;Thêm phần mới&quot; để bắt đầu.
+                </p>
+              )}
             </div>
           </div>
 

@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
 
-    const response = await fetch(`${BACKEND_URL}/upload/video`, {
+    const response = await fetch(`${BACKEND_URL}/upload/document`, {
       method: "POST",
       headers: { Authorization: authHeader },
       body: formData,
@@ -20,14 +20,13 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: "Upload failed" }))
       return NextResponse.json(
-        { error: errorData.message || errorData.error || "Failed to upload video" },
+        { error: errorData.message || errorData.error || "Failed to upload document" },
         { status: response.status },
       )
     }
 
     const result = await response.json()
-    // Backend wraps in {success, data: {url: ...}} via TransformInterceptor
-    // Rewrite absolute backend URL to relative so browser loads via Next.js /uploads rewrite
+    // Rewrite absolute backend URL to relative
     if (result?.data?.url && typeof result.data.url === "string") {
       result.data.url = result.data.url.replace(/^https?:\/\/[^/]+/, "")
     } else if (result?.url && typeof result.url === "string") {
@@ -35,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json(result)
   } catch (error) {
-    console.error("Error uploading video:", error)
-    return NextResponse.json({ error: "Failed to upload video" }, { status: 500 })
+    console.error("Error uploading document:", error)
+    return NextResponse.json({ error: "Failed to upload document" }, { status: 500 })
   }
 }

@@ -31,6 +31,13 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await response.json()
+    // Backend wraps in {success, data: {url: ...}} via TransformInterceptor
+    // Rewrite absolute backend URL to relative so browser loads via Next.js /uploads rewrite
+    if (result?.data?.url && typeof result.data.url === "string") {
+      result.data.url = result.data.url.replace(/^https?:\/\/[^/]+/, "")
+    } else if (result?.url && typeof result.url === "string") {
+      result.url = result.url.replace(/^https?:\/\/[^/]+/, "")
+    }
     return NextResponse.json(result)
   } catch (error) {
     console.error("Error uploading image:", error)

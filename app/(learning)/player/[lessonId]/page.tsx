@@ -12,6 +12,9 @@ interface ApiLesson {
   courseId: string
   isPublished: boolean
   order: number
+  videoUrl?: string
+  resources?: { name: string; url: string; type?: string }[]
+  sectionTitle?: string
 }
 
 interface PlayerLesson {
@@ -20,6 +23,9 @@ interface PlayerLesson {
   type: "video" | "pdf" | "ppt" | "quiz"
   duration?: string
   completed: boolean
+  videoUrl?: string
+  resources?: { name: string; url: string }[]
+  sectionTitle?: string
 }
 
 const getAuth = (): Record<string, string> => {
@@ -52,29 +58,72 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        const lessonRes = await fetch(`/lessons/${resolvedParams.lessonId}`, { headers: getAuth() })
-        if (!lessonRes.ok) return
-        const lesson: ApiLesson = await lessonRes.json()
-
-        const [courseLessonsRes, courseRes] = await Promise.all([
-          fetch(`/lessons/course/${lesson.courseId}`, { headers: getAuth() }),
-          fetch(`/courses/${lesson.courseId}`, { headers: getAuth() }),
-        ])
-
-        if (courseRes.ok) {
-          const course = await courseRes.json()
-          setCourseTitle(course.title || "Khóa học")
-        }
-
+        const startId = resolvedParams.lessonId
+        // Check if startId is a courseId (try fetching lessons for a course directly)
+        const courseLessonsRes = await fetch(`/api/lessons/course/${startId}`, { headers: getAuth() })
         if (courseLessonsRes.ok) {
-          const allLessons: ApiLesson[] = await courseLessonsRes.json()
-          const sorted = (Array.isArray(allLessons) ? allLessons : []).sort((a, b) => a.order - b.order)
+          // startId is a courseId
+          const rawData = await courseLessonsRes.json()
+          const unwrapped = rawData?.data ?? rawData
+          const allLessons: ApiLesson[] = Array.isArray(unwrapped) ? unwrapped
+            : Array.isArray(unwrapped?.data) ? unwrapped.data : []
+          const sorted = allLessons.sort((a, b) => a.order - b.order)
+          if (sorted.length > 0) {
+            setCurrentLessonId(sorted[0].id)
+          }
+          const [courseRes] = await Promise.all([
+            fetch(`/api/courses/${startId}`, { headers: getAuth() }),
+          ])
+          if (courseRes.ok) {
+            const courseData = await courseRes.json()
+            const courseUnwrapped = courseData?.data ?? courseData
+            setCourseTitle(courseUnwrapped.title || "Khóa học")
+          }
           setLessons(sorted.map((l) => ({
             id: l.id,
             title: l.title,
             type: mapType(l.type),
             duration: formatDuration(l.duration),
             completed: false,
+            videoUrl: l.videoUrl,
+            resources: l.resources || [],
+            sectionTitle: l.sectionTitle,
+          })))
+          return
+        }
+
+        // startId is a lessonId - original flow
+        const lessonRes = await fetch(`/api/lessons/${startId}`, { headers: getAuth() })
+        if (!lessonRes.ok) return
+        const lessonData = await lessonRes.json()
+        const lesson: ApiLesson = lessonData?.data ?? lessonData
+
+        const [courseLessonsRes2, courseRes] = await Promise.all([
+          fetch(`/api/lessons/course/${lesson.courseId}`, { headers: getAuth() }),
+          fetch(`/api/courses/${lesson.courseId}`, { headers: getAuth() }),
+        ])
+
+        if (courseRes.ok) {
+          const courseData = await courseRes.json()
+          const courseUnwrapped = courseData?.data ?? courseData
+          setCourseTitle(courseUnwrapped.title || "Khóa học")
+        }
+
+        if (courseLessonsRes2.ok) {
+          const rawData = await courseLessonsRes2.json()
+          const unwrapped = rawData?.data ?? rawData
+          const allLessons: ApiLesson[] = Array.isArray(unwrapped) ? unwrapped
+            : Array.isArray(unwrapped?.data) ? unwrapped.data : []
+          const sorted = allLessons.sort((a, b) => a.order - b.order)
+          setLessons(sorted.map((l) => ({
+            id: l.id,
+            title: l.title,
+            type: mapType(l.type),
+            duration: formatDuration(l.duration),
+            completed: false,
+            videoUrl: l.videoUrl,
+            resources: l.resources || [],
+            sectionTitle: l.sectionTitle,
           })))
         }
       } finally {
