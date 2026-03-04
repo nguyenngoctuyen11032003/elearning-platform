@@ -136,8 +136,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
   return (
     <div className="min-h-screen bg-background dark:bg-slate-950 flex flex-col">
-      <Navbar />
-
       <main className="flex-1 py-8 md:py-12 px-4 sm:px-6">
         <div className="page-shell">
           {/* Hero Section */}
