@@ -1,6 +1,5 @@
 "use client";
 
-import { Navbar } from "@/components/ui/navbar";
 import { CourseCard } from "@/components/ui/course-card";
 import { SectionTitle } from "@/components/ui/section-title";
 import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button";
@@ -314,7 +313,6 @@ export default function CoursesPage() {
         backgroundRepeat: "no-repeat",
       }}
     >
-      <Navbar />
 
       <div className="pt-20 sm:pt-24 pb-10 sm:pb-12 px-4 sm:px-6 md:px-8">
         <div className="page-shell">

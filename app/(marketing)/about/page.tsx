@@ -1,6 +1,5 @@
 "use client";
 
-import { Navbar } from "@/components/ui/navbar";
 import { Footer } from "@/components/ui/footer";
 import {
   Users,
@@ -136,7 +135,6 @@ const [loading, setLoading] = useState(true);
 }, [])
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-background dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <Navbar />
 
       {/* ================= HERO SECTION ================= */}
       <section className="pt-32 pb-20 px-4 md:px-8 relative overflow-hidden min-h-[350px]">
