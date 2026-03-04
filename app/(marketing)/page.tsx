@@ -1,6 +1,5 @@
 "use client"
 
-import { Navbar } from "@/components/ui/navbar"
 import { CourseCard } from "@/components/ui/course-card"
 import { SectionTitle } from "@/components/ui/section-title"
 import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button"
@@ -222,8 +221,6 @@ export default function Home() {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 stagger-items">
-      <Navbar />
-
       {/* Hero Section - Premium Education Platform */}
       <section className="relative pt-24 sm:pt-28 md:pt-32 pb-16 sm:pb-20 md:pb-24 px-4 sm:px-6 md:px-8 overflow-hidden">
         {/* Animated Background */}

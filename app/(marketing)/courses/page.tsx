@@ -330,7 +330,7 @@ export default function CoursesPage() {
                 Khám phá kiến thức mới
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground dark:text-black mb-4">
               Danh sách khóa học
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground dark:text-slate-400 max-w-2xl mx-auto">

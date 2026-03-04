@@ -1,7 +1,13 @@
 "use client"
 
 import type React from "react"
+import { Navbar } from "@/components/ui/navbar"
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
-  return <div className="animate-page-enter stagger-scope stagger-marketing stagger-items">{children}</div>
+  return (
+    <>
+      <Navbar />
+      <div className="stagger-items">{children}</div>
+    </>
+  )
 }
