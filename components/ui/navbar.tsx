@@ -173,7 +173,7 @@ export function Navbar() {
                         <span className="text-sm font-medium">Trang chủ của tôi</span>
                       </Link>
                       <Link
-                        href="/profile"
+                        href={user.role === 'student' ? '/profile' : user.role === 'teacher' ? '/teacher/profile' : '/admin/profile'}
                         onClick={() => setShowProfileMenu(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
                       >
@@ -181,7 +181,7 @@ export function Navbar() {
                         <span className="text-sm font-medium">Hồ sơ cá nhân</span>
                       </Link>
                       <Link
-                        href="/settings"
+                        href={user.role === 'student' ? '/settings' : user.role === 'teacher' ? '/teacher/settings' : '/admin/settings'}
                         onClick={() => setShowProfileMenu(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
                       >
