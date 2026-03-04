@@ -1,6 +1,5 @@
 "use client"
 
-import { Navbar } from "@/components/ui/navbar"
 import { Footer } from "@/components/ui/footer"
 import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button"
 import { BarChart3, Users, TrendingUp, Award, Zap, DollarSign, Sparkles, BookOpen, Video, Globe } from "lucide-react"
@@ -156,7 +155,6 @@ const teachers = [
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-accent/5 to-background dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 stagger-items">
-      <Navbar />
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 md:px-8 relative overflow-hidden">

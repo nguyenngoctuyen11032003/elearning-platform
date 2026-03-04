@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { Mail, Phone, MapPin, Clock, Send, Facebook, Instagram, Youtube, Linkedin, MessageCircle } from "lucide-react"
-import { Navbar } from "@/components/ui/navbar"
 import { Footer } from "@/components/ui/footer"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 export default function ContactPage() {
@@ -99,7 +98,6 @@ if (!settings) return null
 console.log(settings.facebook)
   return (
     <>
-      <Navbar />
       <main className="min-h-screen">
       {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-br from-primary/10 via-background to-accent/10">

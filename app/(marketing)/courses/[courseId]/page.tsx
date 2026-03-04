@@ -2,7 +2,6 @@
 
 import { useState, use } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Navbar } from "@/components/ui/navbar"
 import { Footer } from "@/components/ui/footer"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
