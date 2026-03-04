@@ -86,7 +86,7 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
             duration: formatDuration(l.duration),
             completed: false,
             videoUrl: l.videoUrl,
-            resources: l.resources || [],
+            resources: (typeof l.resources === 'string' ? JSON.parse(l.resources) : l.resources) || [],
             sectionTitle: l.sectionTitle,
           })))
           return
@@ -122,7 +122,7 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
             duration: formatDuration(l.duration),
             completed: false,
             videoUrl: l.videoUrl,
-            resources: l.resources || [],
+            resources: (typeof l.resources === 'string' ? JSON.parse(l.resources) : l.resources) || [],
             sectionTitle: l.sectionTitle,
           })))
         }

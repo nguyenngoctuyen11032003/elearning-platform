@@ -19,6 +19,7 @@ interface Lesson {
   videoUrl?: string
   documentFile?: File
   documentUrl?: string
+  documentFileName?: string
   quizzes: Quiz[]
 }
 
@@ -166,13 +167,18 @@ export default function CreateCoursePage() {
               sectionTitle: section.title,
               order: i,
               ...(lesson.videoUrl ? { videoUrl: lesson.videoUrl } : {}),
-              ...(lesson.documentUrl ? { resources: [{ name: lesson.documentFile?.name || "T\u00e0i li\u1ec7u", url: lesson.documentUrl, type: lesson.documentFile?.type || "document" }] } : {}),
+              ...(lesson.documentUrl ? { resources: [{ name: lesson.documentFileName || "Tài liệu", url: lesson.documentUrl, type: lesson.documentFile?.type || "document" }] } : {}),
             }
-            await fetch("/api/lessons", {
+            console.log(`Creating lesson: ${lesson.title}, resources:`, lesson.documentUrl ? [{ name: lesson.documentFileName || "Tài liệu", url: lesson.documentUrl, type: lesson.documentFile?.type || "document" }] : "none")
+            const lessonRes = await fetch("/api/lessons", {
               method: "POST",
               headers: { ...authHeaders, "Content-Type": "application/json" },
               body: JSON.stringify(lessonPayload),
             })
+            if (!lessonRes.ok) {
+              const err = await lessonRes.json().catch(() => ({}))
+              console.warn(`Failed to create lesson ${lesson.title}:`, err)
+            }
           }
         }
 
@@ -385,7 +391,15 @@ export default function CreateCoursePage() {
       if (res.ok) {
         const result = await res.json()
         const url = result?.data?.url || result?.url
-        if (url) updateLesson(sectionId, lessonId, { documentUrl: url })
+        console.log('Document upload response:', result)
+        console.log('Document URL extracted:', url)
+        if (url) {
+          updateLesson(sectionId, lessonId, { 
+            documentUrl: url,
+            documentFileName: file.name
+          })
+          toast.success("Tài liệu đã tải lên thành công!")
+        }
         else toast.error("Upload tài liệu thất bại: không nhận được URL")
       } else {
         toast.error("Upload tài liệu thất bại")
@@ -461,7 +475,7 @@ export default function CreateCoursePage() {
         </div>
 
         {/* Form Content */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-8">
+        <div className={`bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-8 ${showLessonModal && currentStep === 1 ? 'pb-[600px]' : ''}`}>
           {currentStep === 0 && (
             <div className="space-y-6">
               <div>
@@ -629,16 +643,16 @@ export default function CreateCoursePage() {
                             </div>
                             
                             {/* Lesson Details */}
-                            {(lesson.videoFile || lesson.documentFile || lesson.quizzes.length > 0) && (
+                            {(lesson.videoFile || lesson.documentFile || lesson.documentUrl || lesson.quizzes.length > 0) && (
                               <div className="mt-2 ml-2 p-3 bg-secondary/30 dark:bg-slate-900/30 rounded-lg border border-border/50 dark:border-slate-800/50">
                                 {lesson.videoFile && (
                                   <div className="text-sm text-muted-foreground dark:text-slate-400 mb-2">
                                     <span className="font-medium">Video:</span> {lesson.videoFile.name}
                                   </div>
                                 )}
-                                {lesson.documentFile && (
+                                {(lesson.documentFile || lesson.documentUrl) && (
                                   <div className="text-sm text-muted-foreground dark:text-slate-400 mb-2">
-                                    <span className="font-medium">Tài liệu:</span> {lesson.documentFile.name}
+                                    <span className="font-medium">Tài liệu:</span> {lesson.documentFileName || lesson.documentFile?.name || "Tài liệu đã tải"}
                                   </div>
                                 )}
                                 {lesson.quizzes.length > 0 && (
@@ -811,13 +825,13 @@ export default function CreateCoursePage() {
                           ) : currentLesson?.documentUrl ? (
                             <>
                               <p className="text-foreground dark:text-white font-medium text-green-600 dark:text-green-400">
-                                ✓ {currentLesson.documentFile?.name || "Tài liệu đã tải lên"}
+                                ✓ {currentLesson.documentFileName || "Tài liệu đã tải lên"}
                               </p>
                               <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">Đã lưu trên server</p>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  updateLesson(currentSectionId!, currentLessonId!, { documentFile: undefined, documentUrl: undefined })
+                                  updateLesson(currentSectionId!, currentLessonId!, { documentFile: undefined, documentUrl: undefined, documentFileName: undefined })
                                 }}
                                 className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
                               >
@@ -835,7 +849,7 @@ export default function CreateCoursePage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  updateLesson(currentSectionId!, currentLessonId!, { documentFile: undefined, documentUrl: undefined })
+                                  updateLesson(currentSectionId!, currentLessonId!, { documentFile: undefined, documentUrl: undefined, documentFileName: undefined })
                                 }}
                                 className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
                               >

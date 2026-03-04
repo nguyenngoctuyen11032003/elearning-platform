@@ -1,6 +1,6 @@
 "use client"
 
-import { Plus, Edit2, Trash2, Eye, MoreVertical, Search, BookOpen, Users, DollarSign, Clock, CheckCircle, XCircle, Send, AlertCircle } from "lucide-react"
+import { Plus, Edit2, Trash2, Eye, MoreVertical, Search, BookOpen, Users, DollarSign, Clock, CheckCircle, XCircle, Send, AlertCircle, Video, FileText } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -41,6 +41,62 @@ interface BackendCourse {
   } | null
   lessons?: Array<{ id: string }>
 }
+
+interface BackendLesson {
+  id: string
+  title: string
+  videoUrl?: string
+  resources?: unknown
+}
+
+interface LessonPreview {
+  id: string
+  title: string
+  videoUrl?: string
+  documentUrl?: string
+  documentName?: string
+}
+
+function parseFirstResource(resources: unknown): { url: string; name?: string } | null {
+  let normalized: unknown = resources
+  let attempts = 0
+
+  while (typeof normalized === "string" && attempts < 2) {
+    try {
+      normalized = JSON.parse(normalized)
+    } catch {
+      return null
+    }
+    attempts += 1
+  }
+
+  const list = Array.isArray(normalized)
+    ? normalized
+    : normalized && typeof normalized === "object"
+    ? [normalized]
+    : []
+
+  for (const item of list) {
+    if (item && typeof item === "object" && !Array.isArray(item)) {
+      const url = (item as Record<string, unknown>).url
+      if (typeof url === "string" && url) {
+        return item as { url: string; name?: string }
+      }
+    }
+    if (Array.isArray(item)) {
+      for (const nested of item) {
+        if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+          const url = (nested as Record<string, unknown>).url
+          if (typeof url === "string" && url) {
+            return nested as { url: string; name?: string }
+          }
+        }
+      }
+    }
+  }
+
+  return null
+}
 const InfoItem = ({ icon, label, value }: any) => (
   <div className="bg-secondary rounded-xl p-3 text-center">
     <div className="flex justify-center mb-1">{icon}</div>
@@ -60,6 +116,8 @@ export default function TeacherCoursesPage() {
   const [menuCourse, setMenuCourse] = useState<Course | null>(null)
   const [menuRect, setMenuRect] = useState<DOMRect | null>(null)
   const [menuAnchorId, setMenuAnchorId] = useState<string | null>(null)
+  const [selectedCourseLessons, setSelectedCourseLessons] = useState<LessonPreview[]>([])
+  const [isLessonsLoading, setIsLessonsLoading] = useState(false)
   const menuButtonRefs = React.useRef<Map<string, React.RefObject<HTMLButtonElement>>>(new Map());
 
   const normalizeList = (data: any): BackendCourse[] => {
@@ -94,6 +152,13 @@ export default function TeacherCoursesPage() {
     }
   }
 
+  const normalizeLessonList = (data: any): BackendLesson[] => {
+    if (Array.isArray(data)) return data
+    if (data?.data && Array.isArray(data.data)) return data.data
+    if (data?.data?.data && Array.isArray(data.data.data)) return data.data.data
+    return []
+  }
+
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -115,6 +180,43 @@ export default function TeacherCoursesPage() {
 
     fetchCourses()
   }, [])
+
+  useEffect(() => {
+    if (viewMode !== "view" || !selectedCourse?.id) {
+      setSelectedCourseLessons([])
+      return
+    }
+
+    const fetchLessons = async () => {
+      setIsLessonsLoading(true)
+      try {
+        const res = await authFetch(`/lessons/course/${selectedCourse.id}`)
+        if (!res.ok) {
+          throw new Error("Failed to fetch lessons")
+        }
+        const json = await res.json()
+        const list = normalizeLessonList(json)
+        const mapped = list.map((lesson) => {
+          const firstRes = parseFirstResource(lesson.resources)
+          return {
+            id: lesson.id,
+            title: lesson.title,
+            videoUrl: lesson.videoUrl,
+            documentUrl: firstRes?.url,
+            documentName: firstRes?.name,
+          }
+        })
+        setSelectedCourseLessons(mapped)
+      } catch (error) {
+        console.error("Error fetching lessons:", error)
+        setSelectedCourseLessons([])
+      } finally {
+        setIsLessonsLoading(false)
+      }
+    }
+
+    fetchLessons()
+  }, [viewMode, selectedCourse?.id])
 
   // Stats
   const totalCourses = courses.length
@@ -480,6 +582,47 @@ useEffect(() => {
       />
     </div>
 
+    <div className="border-t border-border pt-3 mb-3">
+      <p className="text-xs font-semibold text-foreground">Nội dung khóa học</p>
+      {isLessonsLoading ? (
+        <p className="text-xs text-muted-foreground mt-2">Đang tải bài học...</p>
+      ) : selectedCourseLessons.length === 0 ? (
+        <p className="text-xs text-muted-foreground mt-2">Chưa có bài học nào</p>
+      ) : (
+        <div className="mt-2 space-y-2">
+          {selectedCourseLessons.map((lesson, idx) => (
+            <div key={lesson.id} className="rounded-lg border border-border bg-background px-3 py-2">
+              <p className="text-xs font-medium text-foreground">
+                {idx + 1}. {lesson.title}
+              </p>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {lesson.videoUrl && (
+                  <a
+                    href={lesson.videoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-1 text-[11px] text-blue-600"
+                  >
+                    <Video size={12} /> Video
+                  </a>
+                )}
+                {lesson.documentUrl && (
+                  <a
+                    href={lesson.documentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-red-500/10 px-2 py-1 text-[11px] text-red-600"
+                  >
+                    <FileText size={12} /> {lesson.documentName || "Tài liệu"}
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
     {/* Actions */}
     <div className="flex gap-2">
       <button
@@ -689,7 +832,7 @@ useEffect(() => {
       {viewMode === "view" && selectedCourse && (
         <div className="hidden xl:flex fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4 p-4 border-b border-border dark:border-slate-800">
               <h2 className="text-xl font-bold text-foreground dark:text-white">Chi tiết khóa học</h2>
               <button
@@ -752,6 +895,47 @@ useEffect(() => {
                   <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Ngày tạo</p>
                   <p className="text-foreground dark:text-white font-medium">{formatDate(selectedCourse.createdAt)}</p>
                 </div>
+              </div>
+
+              <div className="border-t border-border dark:border-slate-800 pt-4 mb-4">
+                <h3 className="text-base font-semibold text-foreground dark:text-white">Nội dung khóa học</h3>
+                {isLessonsLoading ? (
+                  <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">Đang tải bài học...</p>
+                ) : selectedCourseLessons.length === 0 ? (
+                  <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">Chưa có bài học nào</p>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    {selectedCourseLessons.map((lesson, idx) => (
+                      <div key={lesson.id} className="rounded-xl border border-border dark:border-slate-800 bg-secondary/40 dark:bg-slate-900/40 p-3">
+                        <p className="text-sm font-medium text-foreground dark:text-white">
+                          {idx + 1}. {lesson.title}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {lesson.videoUrl && (
+                            <a
+                              href={lesson.videoUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 dark:bg-blue-500/20 px-2 py-1 text-xs text-blue-600 dark:text-blue-400"
+                            >
+                              <Video size={14} /> Video
+                            </a>
+                          )}
+                          {lesson.documentUrl && (
+                            <a
+                              href={lesson.documentUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 rounded-md bg-red-500/10 dark:bg-red-500/20 px-2 py-1 text-xs text-red-600 dark:text-red-400"
+                            >
+                              <FileText size={14} /> {lesson.documentName || "Tài liệu"}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex gap-3 pt-4 border-t border-border dark:border-slate-800">
                 <button

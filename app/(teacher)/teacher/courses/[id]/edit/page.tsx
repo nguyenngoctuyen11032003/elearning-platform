@@ -36,14 +36,44 @@ interface Category {
   name: string
 }
 
-// Safely extract the first valid resource object from a potentially malformed resources array
-// Handles cases like: null, [], [[]], [{name, url}]
+// Safely extract the first valid resource object from varied shapes (stringified JSON, object, array)
 function parseFirstResource(resources: unknown): { url: string; name?: string } | null {
-  if (!Array.isArray(resources)) return null
-  const valid = resources.find(
-    (r) => r !== null && typeof r === 'object' && !Array.isArray(r) && typeof (r as Record<string, unknown>).url === 'string' && (r as Record<string, unknown>).url
-  )
-  return (valid as { url: string; name?: string }) ?? null
+  let normalized: unknown = resources
+
+  if (typeof normalized === "string") {
+    try {
+      normalized = JSON.parse(normalized)
+    } catch {
+      return null
+    }
+  }
+
+  const list = Array.isArray(normalized)
+    ? normalized
+    : normalized && typeof normalized === "object"
+    ? [normalized]
+    : []
+
+  for (const item of list) {
+    if (item && typeof item === "object" && !Array.isArray(item)) {
+      const url = (item as Record<string, unknown>).url
+      if (typeof url === "string" && url) {
+        return item as { url: string; name?: string }
+      }
+    }
+    if (Array.isArray(item)) {
+      for (const nested of item) {
+        if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+          const url = (nested as Record<string, unknown>).url
+          if (typeof url === "string" && url) {
+            return nested as { url: string; name?: string }
+          }
+        }
+      }
+    }
+  }
+
+  return null
 }
 
 export default function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
