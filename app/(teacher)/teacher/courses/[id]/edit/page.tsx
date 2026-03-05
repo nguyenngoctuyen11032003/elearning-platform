@@ -211,102 +211,112 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           }
         }
         
-        let currentQuestion = ""
-        let currentOptions: string[] = []
-        let correctIndex = -1
-        let correctIndexes: number[] = []
-        let answerLine = ""
-        let currentImage: string | undefined
+        // Pass 1: group lines into per-question blocks
+        interface WordBlock {
+          questionText: string
+          bodyLines: string[]
+          answerLine: string
+          imageKey: string | undefined
+        }
+        const blocks: WordBlock[] = []
+        let curBlock: WordBlock | null = null
 
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i]
-          
-          // Check if this is a question line (contains "Câu/Question" followed by number)
+        for (const line of lines) {
           const isCauLine = /^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/.test(line)
-          
+
           if (isCauLine) {
-            // Save previous question if exists
-            if (currentQuestion && currentOptions.length >= 2) {
-              questions.push({
-                question: currentQuestion,
-                options: currentOptions,
-                correctAnswerIndex: correctIndex >= 0 ? correctIndex : undefined,
-                correctAnswerIndexes: correctIndexes.length > 1 ? correctIndexes : undefined,
-                image: currentImage
-              })
-              console.log(`Saved question: "${currentQuestion}" with ${currentOptions.length} options`)
-            } else if (currentQuestion) {
-              console.log(`Skipped question: "${currentQuestion}" - only ${currentOptions.length} option(s)`)
+            if (curBlock) blocks.push(curBlock)
+            curBlock = {
+              questionText: line.replace(/^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/, "").trim(),
+              bodyLines: [],
+              answerLine: "",
+              imageKey: undefined,
             }
-            
-            // Start new question - remove "Câu X:" part
-            currentQuestion = line.replace(/^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/, "").trim()
-            currentOptions = []
-            correctIndex = -1
-            correctIndexes = []
-            answerLine = ""
-            currentImage = undefined
-            console.log(`Found question: "${currentQuestion}"`)
             continue
           }
+          if (!curBlock) continue
 
-          // Check if this is an image placeholder line (from Word HTML extraction)
           if (line.startsWith("[[IMAGE:")) {
-            const imageMatch = line.match(/^\[\[IMAGE:(img_\d+)\]\]$/)
-            if (imageMatch && currentQuestion) {
-              // Look up the actual data URL from the images map returned by the API
-              currentImage = imageDataMap[imageMatch[1]] || undefined
-              console.log("Attached image key:", imageMatch[1], "→ has data:", !!currentImage)
-            }
+            const m = line.match(/^\[\[IMAGE:(img_\d+)\]\]$/)
+            if (m) curBlock.imageKey = m[1]
             continue
           }
 
-          // Check if this is an answer key line (Đáp án: X or Đáp án = X)
           if (line.match(/^Đáp\s*án[\s\:\=]+/i)) {
-            answerLine = line
-            const answerLetters = line.match(/[A-D]/gi) || []
-            const answerNumbers = line.match(/[1-4]/g) || []
-            const answerIndexes = new Set<number>()
+            curBlock.answerLine = line
+            continue
+          }
 
-            answerLetters.forEach((letter: string) => {
-              const idx = letter.toUpperCase().charCodeAt(0) - 65
-              if (idx >= 0) answerIndexes.add(idx)
-            })
+          curBlock.bodyLines.push(line)
+        }
+        if (curBlock) blocks.push(curBlock)
 
-            answerNumbers.forEach((num: string) => {
-              const idx = parseInt(num, 10) - 1
-              if (idx >= 0) answerIndexes.add(idx)
-            })
+        // Pass 2: for each block decide how to split body into question content vs options
+        for (const block of blocks) {
+          // Detect if options use A./B./C./D. prefix
+          const hasPrefixedOptions = block.bodyLines.some(l => /^[A-Da-d][\.\)]\s+\S/.test(l))
 
-            const sortedIndexes = Array.from(answerIndexes).filter((idx) => idx < currentOptions.length).sort((a, b) => a - b)
-            if (sortedIndexes.length > 0 && currentQuestion && currentOptions.length > 0) {
-              correctIndexes = sortedIndexes
-              correctIndex = sortedIndexes[0]
-              console.log(`Answer marked: ${sortedIndexes.join(", ")}`)
+          let questionText = block.questionText
+          const opts: string[] = []
+
+          if (hasPrefixedOptions) {
+            // Prefixed format: A./B./C./D. lines are options, others append to question
+            for (const line of block.bodyLines) {
+              const m = line.match(/^\s*[A-Da-d][\.\)]\s*(.+)/)
+              if (m) {
+                opts.push(m[1].trim())
+              } else {
+                questionText += "\n" + line
+              }
             }
-            continue
+          } else {
+            // Plain format: Word auto-numbered list (A/B/C/D not in text).
+            // Determine option count: check answer letter for max letter used, default 4.
+            const answerLetters = block.answerLine.match(/[A-D]/gi) || []
+            const maxLetterIdx = answerLetters.reduce((max, l) => {
+              const idx = l.toUpperCase().charCodeAt(0) - 65
+              return idx > max ? idx : max
+            }, 3) // default to D (index 3) = 4 options
+            const optCount = maxLetterIdx + 1 // A=1, B=2, C=3, D=4
+
+            // Take last optCount lines as options, everything before is question context
+            const splitAt = Math.max(0, block.bodyLines.length - optCount)
+            const contextLines = block.bodyLines.slice(0, splitAt)
+            const optionLines = block.bodyLines.slice(splitAt)
+
+            if (contextLines.length > 0) questionText += "\n" + contextLines.join("\n")
+            for (const line of optionLines) opts.push(line)
           }
 
-          // If we have a current question, any non-empty line that's not a special marker is an option
-          if (currentQuestion && line.length > 0 && !line.match(/^(Câu|Question|câu|question)/)) {
-            currentOptions.push(line)
-            console.log(`Added option [${currentOptions.length}]: "${line}"`)
-            continue
+          // Parse answer key
+          let correctIndex = -1
+          let correctIndexes: number[] = []
+          if (block.answerLine) {
+            const letters = block.answerLine.match(/[A-D]/gi) || []
+            const nums = block.answerLine.match(/[1-4]/g) || []
+            const idxSet = new Set<number>()
+            letters.forEach((l: string) => idxSet.add(l.toUpperCase().charCodeAt(0) - 65))
+            nums.forEach((n: string) => idxSet.add(parseInt(n, 10) - 1))
+            const sorted = [...idxSet].filter(i => i >= 0 && i < opts.length).sort((a, b) => a - b)
+            if (sorted.length > 0) { correctIndexes = sorted; correctIndex = sorted[0] }
+          }
+
+          const image = block.imageKey ? imageDataMap[block.imageKey] : undefined
+
+          if (questionText && opts.length >= 2) {
+            questions.push({
+              question: questionText,
+              options: opts,
+              correctAnswerIndex: correctIndex >= 0 ? correctIndex : undefined,
+              correctAnswerIndexes: correctIndexes.length > 1 ? correctIndexes : undefined,
+              image,
+            })
+            console.log(`Saved question: "${questionText.substring(0, 50)}" with ${opts.length} options`)
+          } else if (questionText) {
+            console.log(`Skipped question: "${questionText.substring(0, 50)}" - only ${opts.length} option(s)`)
           }
         }
 
-        // Save last question
-        if (currentQuestion && currentOptions.length >= 2) {
-          questions.push({
-            question: currentQuestion,
-            options: currentOptions,
-            correctAnswerIndex: correctIndex >= 0 ? correctIndex : undefined,
-            correctAnswerIndexes: correctIndexes.length > 1 ? correctIndexes : undefined,
-            image: currentImage
-          })
-          console.log(`Saved last question: "${currentQuestion}" with ${currentOptions.length} options`)
-        }
-        
         console.log("Total questions parsed from Word:", questions.length)
       } else if (isExcel) {
         // Parse Excel file
@@ -1581,11 +1591,13 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                         {qIndex + 1}
                                       </span>
                                       <div className="flex-1 min-w-0">
-                                        <input
-                                          type="text"
+                                        <textarea
                                           value={quiz.question}
-                                          onChange={(e) => updateQuiz(lesson.id, quiz.id, { question: e.target.value })}
-                                          className="w-full px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-xs sm:text-sm"
+                                          onChange={(e) => { updateQuiz(lesson.id, quiz.id, { question: e.target.value }); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px" }}
+                                          onInput={(e) => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = t.scrollHeight + "px" }}
+                                          ref={(el) => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px" } }}
+                                          rows={1}
+                                          className="w-full px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-xs sm:text-sm resize-none overflow-hidden leading-snug"
                                           placeholder="Nhập câu hỏi..."
                                         />
                                         
@@ -1982,11 +1994,13 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                   {qIndex + 1}
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                  <input
-                                    type="text"
+                                  <textarea
                                     value={quiz.question}
-                                    onChange={(e) => updateNewLessonQuiz(quiz.id, { question: e.target.value })}
-                                    className="w-full px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-xs sm:text-sm"
+                                    onChange={(e) => { updateNewLessonQuiz(quiz.id, { question: e.target.value }); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px" }}
+                                    onInput={(e) => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = t.scrollHeight + "px" }}
+                                    ref={(el) => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px" } }}
+                                    rows={1}
+                                    className="w-full px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-xs sm:text-sm resize-none overflow-hidden leading-snug"
                                     placeholder="Nhập câu hỏi..."
                                   />
 
