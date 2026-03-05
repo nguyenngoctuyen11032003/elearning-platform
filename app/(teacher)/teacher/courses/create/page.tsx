@@ -26,8 +26,10 @@ interface Lesson {
 interface Quiz {
   id: string
   question: string
+  type: "multiple-choice" | "multiple-select" | "true-false"
   options: string[]
-  correctAnswer: number
+  correctAnswer?: number
+  correctAnswers?: number[]
 }
 
 const steps = ["Thông tin", "Nội dung", "Giá & Trạng thái", "Hoàn thành"]
@@ -178,6 +180,38 @@ export default function CreateCoursePage() {
             if (!lessonRes.ok) {
               const err = await lessonRes.json().catch(() => ({}))
               console.warn(`Failed to create lesson ${lesson.title}:`, err)
+              continue
+            }
+
+            const lessonJson = await lessonRes.json().catch(() => ({}))
+            const lessonData = lessonJson?.data ?? lessonJson
+            const createdLessonId = lessonData?.id
+
+            if (createdLessonId && lesson.quizzes.length > 0) {
+              const quizPayload = {
+                title: `Quiz - ${lesson.title}`,
+                description: "",
+                questions: lesson.quizzes.map((q) => ({
+                  question: q.question,
+                  options: q.options,
+                  type: q.type,
+                  correctAnswer: q.type === "multiple-select" ? undefined : q.correctAnswer ?? 0,
+                  correctAnswers: q.type === "multiple-select" ? q.correctAnswers || [] : undefined,
+                })),
+                courseId,
+                lessonId: createdLessonId,
+              }
+
+              const quizRes = await fetch("/api/quizzes", {
+                method: "POST",
+                headers: { ...authHeaders, "Content-Type": "application/json" },
+                body: JSON.stringify(quizPayload),
+              })
+
+              if (!quizRes.ok) {
+                const err = await quizRes.json().catch(() => ({}))
+                console.warn(`Failed to create quiz for ${lesson.title}:`, err)
+              }
             }
           }
         }
@@ -277,6 +311,14 @@ export default function CreateCoursePage() {
     )
   }
 
+  const buildOptions = (count: number) => Array.from({ length: count }, (_, i) => `Tùy chọn ${i + 1}`)
+
+  const normalizeOptionCount = (options: string[], count: number) => {
+    if (options.length === count) return options
+    if (options.length > count) return options.slice(0, count)
+    return [...options, ...buildOptions(count - options.length)]
+  }
+
   const addQuiz = (sectionId: string, lessonId: string) => {
     setSections(
       sections.map((s) => {
@@ -288,8 +330,10 @@ export default function CreateCoursePage() {
                 const newQuiz: Quiz = {
                   id: Date.now().toString(),
                   question: "Câu hỏi mới",
-                  options: ["Tùy chọn 1", "Tùy chọn 2", "Tùy chọn 3", "Tùy chọn 4"],
+                  type: "multiple-choice",
+                  options: buildOptions(4),
                   correctAnswer: 0,
+                  correctAnswers: [],
                 }
                 return { ...l, quizzes: [...l.quizzes, newQuiz] }
               }
@@ -310,9 +354,28 @@ export default function CreateCoursePage() {
             ...s,
             lessons: s.lessons.map((l) => {
               if (l.id === lessonId) {
+                const currentQuiz = l.quizzes.find((q) => q.id === quizId)
+                const nextQuiz = { ...currentQuiz, ...updates } as Quiz
+
+                if (updates.type && updates.type !== currentQuiz?.type) {
+                  if (updates.type === "true-false") {
+                    nextQuiz.options = ["Đúng", "Sai"]
+                    nextQuiz.correctAnswer = 0
+                    nextQuiz.correctAnswers = []
+                  } else if (updates.type === "multiple-select") {
+                    nextQuiz.options = normalizeOptionCount(nextQuiz.options || buildOptions(4), 4)
+                    nextQuiz.correctAnswers = nextQuiz.correctAnswers?.length ? nextQuiz.correctAnswers : [0]
+                    nextQuiz.correctAnswer = undefined
+                  } else {
+                    nextQuiz.options = normalizeOptionCount(nextQuiz.options || buildOptions(4), 4)
+                    nextQuiz.correctAnswer = nextQuiz.correctAnswer ?? 0
+                    nextQuiz.correctAnswers = []
+                  }
+                }
+
                 return {
                   ...l,
-                  quizzes: l.quizzes.map((q) => (q.id === quizId ? { ...q, ...updates } : q)),
+                  quizzes: l.quizzes.map((q) => (q.id === quizId ? nextQuiz : q)),
                 }
               }
               return l
@@ -912,20 +975,77 @@ export default function CreateCoursePage() {
                                     <Trash2 size={14} />
                                   </button>
                                 </div>
+                                <div className="mb-2 flex items-center gap-3">
+                                  <select
+                                    value={quiz.type}
+                                    onChange={(e) =>
+                                      updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
+                                        type: e.target.value as Quiz["type"],
+                                      })
+                                    }
+                                    className="px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
+                                  >
+                                    <option value="multiple-choice">1 đáp án</option>
+                                    <option value="multiple-select">Nhiều đáp án</option>
+                                    <option value="true-false">Đúng/Sai</option>
+                                  </select>
+                                  {quiz.type !== "true-false" && (
+                                    <select
+                                      value={quiz.options.length}
+                                      onChange={(e) => {
+                                        const count = Number(e.target.value)
+                                        const resized = normalizeOptionCount(quiz.options, count)
+                                        const safeCorrect = quiz.correctAnswer !== undefined && quiz.correctAnswer < count
+                                          ? quiz.correctAnswer
+                                          : 0
+                                        const safeCorrects = (quiz.correctAnswers || []).filter((idx) => idx < count)
+                                        updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
+                                          options: resized,
+                                          correctAnswer: quiz.type === "multiple-select" ? undefined : safeCorrect,
+                                          correctAnswers: quiz.type === "multiple-select" ? safeCorrects : [],
+                                        })
+                                      }}
+                                      className="px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
+                                    >
+                                      {[2, 3, 4, 5, 6].map((count) => (
+                                        <option key={count} value={count}>{count} đáp án</option>
+                                      ))}
+                                    </select>
+                                  )}
+                                </div>
                                 <div className="space-y-1">
                                   {quiz.options.map((option, idx) => (
                                     <div key={idx} className="flex items-center gap-2">
-                                      <input
-                                        type="radio"
-                                        name={`correct-${quiz.id}`}
-                                        checked={quiz.correctAnswer === idx}
-                                        onChange={() =>
-                                          updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
-                                            correctAnswer: idx,
-                                          })
-                                        }
-                                        className="w-4 h-4"
-                                      />
+                                      {quiz.type === "multiple-select" ? (
+                                        <input
+                                          type="checkbox"
+                                          checked={(quiz.correctAnswers || []).includes(idx)}
+                                          onChange={() => {
+                                            const current = new Set(quiz.correctAnswers || [])
+                                            if (current.has(idx)) {
+                                              current.delete(idx)
+                                            } else {
+                                              current.add(idx)
+                                            }
+                                            updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
+                                              correctAnswers: Array.from(current).sort((a, b) => a - b),
+                                            })
+                                          }}
+                                          className="w-4 h-4"
+                                        />
+                                      ) : (
+                                        <input
+                                          type="radio"
+                                          name={`correct-${quiz.id}`}
+                                          checked={quiz.correctAnswer === idx}
+                                          onChange={() =>
+                                            updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
+                                              correctAnswer: idx,
+                                            })
+                                          }
+                                          className="w-4 h-4"
+                                        />
+                                      )}
                                       <input
                                         type="text"
                                         value={option}
@@ -937,6 +1057,7 @@ export default function CreateCoursePage() {
                                           })
                                         }}
                                         className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm"
+                                        disabled={quiz.type === "true-false"}
                                       />
                                     </div>
                                   ))}

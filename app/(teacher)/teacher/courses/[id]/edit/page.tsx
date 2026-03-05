@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, use, useRef, useEffect } from "react"
-import { Save, Plus, Trash2, Eye, FileText, Video, X, ChevronDown, Loader2, Send } from "lucide-react"
+import { Save, Plus, Trash2, Eye, FileText, Video, X, ChevronDown, Loader2, Send, Upload, ImageIcon } from "lucide-react"
 import { FileUploadZone } from "@/components/ui/file-upload-zone"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import * as XLSX from "xlsx"
 
 interface Section {
   id: string
@@ -21,14 +22,18 @@ interface Lesson {
   documentFile?: File
   documentUrl?: string
   documentName?: string
+  quizId?: string
   quizzes: Quiz[]
 }
 
 interface Quiz {
   id: string
   question: string
+  image?: string // Base64 or URL
+  type: "multiple-choice" | "multiple-select" | "true-false"
   options: string[]
-  correctAnswer: number
+  correctAnswer?: number
+  correctAnswers?: number[]
 }
 
 interface Category {
@@ -114,6 +119,396 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   const addLessonDocumentInputRef = useRef<HTMLInputElement>(null)
   const [draggedAddVideoZone, setDraggedAddVideoZone] = useState(false)
   const [draggedAddDocumentZone, setDraggedAddDocumentZone] = useState(false)
+  const [modalTop, setModalTop] = useState<number | null>(null)
+
+  const buildOptions = (count: number) => Array.from({ length: count }, (_, i) => `Tùy chọn ${i + 1}`)
+
+  const normalizeOptionCount = (options: string[], count: number) => {
+    if (options.length === count) return options
+    if (options.length > count) return options.slice(0, count)
+    return [...options, ...buildOptions(count - options.length)]
+  }
+
+  const uploadQuizImageFromDataUrl = async (dataUrl: string): Promise<string> => {
+    if (!dataUrl.startsWith("data:image/")) {
+      return dataUrl
+    }
+
+    const token = localStorage.getItem("auth_token")
+    if (!token) {
+      return dataUrl
+    }
+
+    const blob = await (await fetch(dataUrl)).blob()
+    const extension = blob.type.split("/")[1] || "jpg"
+    const file = new File([blob], `quiz-import-${Date.now()}.${extension}`, {
+      type: blob.type || "image/jpeg",
+    })
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const response = await fetch("/api/upload/image", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      throw new Error("Không thể tải ảnh câu hỏi lên server")
+    }
+
+    const result = await response.json()
+    return result?.data?.url || result?.url || dataUrl
+  }
+
+  // Handle importing quizzes from Excel/CSV/Word
+  const handleImportQuizzes = async (file: File, addToNew: boolean = true, lessonId?: string) => {
+    try {
+      const data = await file.arrayBuffer()
+      let questions: Array<{ question: string; options: string[]; correctAnswerIndex?: number; correctAnswerIndexes?: number[]; image?: string }> = []
+
+      // Check file type
+      const isWord = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || 
+                     file.name.endsWith(".docx")
+      const isExcel = file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+                      file.type === "application/vnd.ms-excel" ||
+                      file.name.endsWith(".xlsx") ||
+                      file.name.endsWith(".xls")
+
+      if (isWord) {
+        // Parse Word document via API
+        const formData = new FormData()
+        formData.append("file", file)
+        
+        const response = await fetch("/api/import/parse-word", {
+          method: "POST",
+          body: formData,
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Failed to parse Word document")
+        }
+
+        const result = await response.json()
+        const text = result.text
+        const imageDataMap: Record<string, string> = result.images || {}
+        console.log("[import] API returned images:", Object.keys(imageDataMap).length, "keys:", Object.keys(imageDataMap))
+        const lines = text.split(/\r?\n/).map((l: string) => l.trim()).filter((l: string) => l)
+        const imageMarkerLines = lines.filter((l: string) => l.startsWith("[[IMAGE:"))
+        console.log("[import] Image marker lines in text:", imageMarkerLines)
+        
+        console.log("Word document lines:", lines.length)
+        
+        // Only log first 20 lines
+        if (lines.length > 0) {
+          console.log("===== FIRST 3 LINES =====")
+          for (let j = 0; j < Math.min(3, lines.length); j++) {
+            console.log(`Line ${j}: "${lines[j]}"`)
+          }
+        }
+        
+        let currentQuestion = ""
+        let currentOptions: string[] = []
+        let correctIndex = -1
+        let correctIndexes: number[] = []
+        let answerLine = ""
+        let currentImage: string | undefined
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i]
+          
+          // Check if this is a question line (contains "Câu/Question" followed by number)
+          const isCauLine = /^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/.test(line)
+          
+          if (isCauLine) {
+            // Save previous question if exists
+            if (currentQuestion && currentOptions.length >= 2) {
+              questions.push({
+                question: currentQuestion,
+                options: currentOptions,
+                correctAnswerIndex: correctIndex >= 0 ? correctIndex : undefined,
+                correctAnswerIndexes: correctIndexes.length > 1 ? correctIndexes : undefined,
+                image: currentImage
+              })
+              console.log(`Saved question: "${currentQuestion}" with ${currentOptions.length} options`)
+            } else if (currentQuestion) {
+              console.log(`Skipped question: "${currentQuestion}" - only ${currentOptions.length} option(s)`)
+            }
+            
+            // Start new question - remove "Câu X:" part
+            currentQuestion = line.replace(/^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/, "").trim()
+            currentOptions = []
+            correctIndex = -1
+            correctIndexes = []
+            answerLine = ""
+            currentImage = undefined
+            console.log(`Found question: "${currentQuestion}"`)
+            continue
+          }
+
+          // Check if this is an image placeholder line (from Word HTML extraction)
+          if (line.startsWith("[[IMAGE:")) {
+            const imageMatch = line.match(/^\[\[IMAGE:(img_\d+)\]\]$/)
+            if (imageMatch && currentQuestion) {
+              // Look up the actual data URL from the images map returned by the API
+              currentImage = imageDataMap[imageMatch[1]] || undefined
+              console.log("Attached image key:", imageMatch[1], "→ has data:", !!currentImage)
+            }
+            continue
+          }
+
+          // Check if this is an answer key line (Đáp án: X or Đáp án = X)
+          if (line.match(/^Đáp\s*án[\s\:\=]+/i)) {
+            answerLine = line
+            const answerLetters = line.match(/[A-D]/gi) || []
+            const answerNumbers = line.match(/[1-4]/g) || []
+            const answerIndexes = new Set<number>()
+
+            answerLetters.forEach((letter: string) => {
+              const idx = letter.toUpperCase().charCodeAt(0) - 65
+              if (idx >= 0) answerIndexes.add(idx)
+            })
+
+            answerNumbers.forEach((num: string) => {
+              const idx = parseInt(num, 10) - 1
+              if (idx >= 0) answerIndexes.add(idx)
+            })
+
+            const sortedIndexes = Array.from(answerIndexes).filter((idx) => idx < currentOptions.length).sort((a, b) => a - b)
+            if (sortedIndexes.length > 0 && currentQuestion && currentOptions.length > 0) {
+              correctIndexes = sortedIndexes
+              correctIndex = sortedIndexes[0]
+              console.log(`Answer marked: ${sortedIndexes.join(", ")}`)
+            }
+            continue
+          }
+
+          // If we have a current question, any non-empty line that's not a special marker is an option
+          if (currentQuestion && line.length > 0 && !line.match(/^(Câu|Question|câu|question)/)) {
+            currentOptions.push(line)
+            console.log(`Added option [${currentOptions.length}]: "${line}"`)
+            continue
+          }
+        }
+
+        // Save last question
+        if (currentQuestion && currentOptions.length >= 2) {
+          questions.push({
+            question: currentQuestion,
+            options: currentOptions,
+            correctAnswerIndex: correctIndex >= 0 ? correctIndex : undefined,
+            correctAnswerIndexes: correctIndexes.length > 1 ? correctIndexes : undefined,
+            image: currentImage
+          })
+          console.log(`Saved last question: "${currentQuestion}" with ${currentOptions.length} options`)
+        }
+        
+        console.log("Total questions parsed from Word:", questions.length)
+      } else if (isExcel) {
+        // Parse Excel file
+        const workbook = XLSX.read(data, { type: "array" })
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as string[][]
+
+        console.log("Excel rows:", rows.length)
+
+        for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+          const row = rows[rowIdx]
+          if (!row || row.length === 0) continue
+
+          const question = row[0]?.toString().trim()
+          if (!question) continue
+
+          // Extract options and detect correct answer
+          const rawOptions: Array<{ text: string; isCorrect: boolean }> = []
+          let correctIndex = -1
+          let correctIndexes: number[] = []
+          let image: string | undefined
+
+          for (let i = 1; i < row.length; i++) {
+            const cell = row[i]?.toString().trim() || ""
+            if (!cell) continue
+
+            let optionText = cell
+            let isMarked = false
+
+            // Detect image cell (URL or base64)
+            if (/^data:image\//i.test(optionText) || /^https?:\/\//i.test(optionText)) {
+              image = optionText
+              continue
+            }
+
+            if (/^image\s*:\s*/i.test(optionText)) {
+              image = optionText.replace(/^image\s*:\s*/i, "").trim()
+              continue
+            }
+
+            // Check for explicit markers first
+            if (optionText.startsWith("*") || optionText.includes("*") && optionText.indexOf("*") === 0) {
+              isMarked = true
+              optionText = optionText.replace(/^\*\s*/, "").trim()
+            } else if (optionText.startsWith("✓") || optionText.startsWith("√")) {
+              isMarked = true
+              optionText = optionText.replace(/^(✓|√)\s*/, "").trim()
+            } else if (optionText.startsWith("+")) {
+              isMarked = true
+              optionText = optionText.replace(/^\+\s*/, "").trim()
+            } else if (optionText.startsWith("【") && optionText.includes("】")) {
+              isMarked = true
+              optionText = optionText.replace(/^【/, "").replace(/】.*$/, "").trim()
+            } else if (optionText.startsWith("[") && optionText.includes("]")) {
+              isMarked = true
+              optionText = optionText.replace(/^\[/, "").replace(/\].*$/, "").trim()
+            }
+
+            if (optionText) {
+              rawOptions.push({ text: optionText, isCorrect: isMarked })
+              if (isMarked && correctIndex === -1) {
+                correctIndex = rawOptions.length - 1
+              }
+              if (isMarked) {
+                correctIndexes.push(rawOptions.length - 1)
+              }
+            }
+          }
+
+          // Check if there's an answer row following this question
+          if (rowIdx + 1 < rows.length) {
+            const nextRow = rows[rowIdx + 1]
+            if (nextRow && nextRow[0]) {
+              const nextCell = nextRow[0].toString().trim()
+              if (nextCell.match(/^Đáp\s*án[\s\:\=]*/i)) {
+                const answerLetters = nextCell.match(/[A-D]/gi) || []
+                const answerNumbers = nextCell.match(/[1-6]/g) || []
+                const indexes = new Set<number>()
+
+                answerLetters.forEach((letter) => {
+                  const idx = letter.toUpperCase().charCodeAt(0) - 65
+                  if (idx >= 0) indexes.add(idx)
+                })
+
+                answerNumbers.forEach((num) => {
+                  const idx = parseInt(num, 10) - 1
+                  if (idx >= 0) indexes.add(idx)
+                })
+
+                const sortedIndexes = Array.from(indexes).filter((idx) => idx < rawOptions.length).sort((a, b) => a - b)
+                if (sortedIndexes.length > 0) {
+                  correctIndexes = sortedIndexes
+                  correctIndex = sortedIndexes[0]
+                }
+              }
+            }
+          }
+
+          const options = rawOptions.map(o => o.text)
+          if (options.length >= 2) {
+            questions.push({
+              question,
+              options: normalizeOptionCount(options, Math.min(options.length, 6)),
+              correctAnswerIndex: correctIndex >= 0 ? correctIndex : undefined,
+              correctAnswerIndexes: correctIndexes.length > 1 ? correctIndexes : undefined,
+              image
+            })
+            console.log(`Excel: Added question "${question}" with ${options.length} options`)
+          }
+        }
+        
+        console.log("Total questions parsed from Excel:", questions.length)
+      }
+
+      // Convert parsed questions to Quiz objects
+      const importedQuizzes: Quiz[] = questions.map((q, idx) => {
+        // Auto-detect type
+        let type: "multiple-choice" | "multiple-select" | "true-false" = "multiple-choice"
+        
+        const lowerOptions = q.options.map(o => o.toLowerCase().trim())
+        const isTrueFalse = q.options.length === 2 && 
+          ((lowerOptions.includes("đúng") && lowerOptions.includes("sai")) || 
+           (lowerOptions.includes("true") && lowerOptions.includes("false")) ||
+           (lowerOptions.includes("yes") && lowerOptions.includes("no")))
+
+        if (isTrueFalse) {
+          type = "true-false"
+        } else if (q.correctAnswerIndexes && q.correctAnswerIndexes.length > 1) {
+          type = "multiple-select"
+        }
+
+        const newQuiz: Quiz = {
+          id: `${Date.now()}-${Math.random()}`,
+          question: q.question,
+          type: type,
+          options: q.options,
+          correctAnswer: type === "multiple-select" ? undefined : (q.correctAnswerIndex ?? 0),
+          correctAnswers: type === "multiple-select" ? (q.correctAnswerIndexes || []) : [],
+          image: q.image,
+        }
+        if (idx < 3) {
+          // Log first 3 quizzes in detail
+          console.log(`Quiz ${idx + 1}: "${newQuiz.question}" | ${newQuiz.options.length} options:`, newQuiz.options)
+        }
+        return newQuiz
+      })
+
+      const quizzesWithUploadedImages = await Promise.all(
+        importedQuizzes.map(async (quiz) => {
+          if (!quiz.image) return quiz
+          try {
+            const uploadedImageUrl = await uploadQuizImageFromDataUrl(quiz.image)
+            return { ...quiz, image: uploadedImageUrl }
+          } catch (uploadError) {
+            console.warn("Upload image thất bại, giữ nguyên ảnh gốc:", uploadError)
+            return quiz
+          }
+        }),
+      )
+
+      console.log("Total imported quizzes created:", quizzesWithUploadedImages.length)
+
+      if (quizzesWithUploadedImages.length === 0) {
+        toast.error("Không có câu hỏi hợp lệ để import. Vui lòng kiểm tra định dạng file.")
+        return
+      }
+
+      console.log("Before state update - addToNew:", addToNew, "lessonId:", lessonId)
+
+      // Add to new lesson quizzes or existing lesson quizzes
+      if (addToNew) {
+        console.log("BRANCH: addToNew=true, updating newLessonQuizzes")
+        const newQuizzes = [...newLessonQuizzes, ...quizzesWithUploadedImages]
+        console.log("State before update:", newLessonQuizzes.length)
+        setNewLessonQuizzes(newQuizzes)
+        console.log("State after setNewLessonQuizzes, new length:", newQuizzes.length)
+      } else if (lessonId) {
+        console.log("BRANCH: addToNew=false, lessonId provided, updating lesson quizzes for lesson:", lessonId)
+        setSections(
+          sections.map((s) => ({
+            ...s,
+            lessons: s.lessons.map((l) => {
+              if (l.id === lessonId) {
+                console.log("Found lesson, updating with", quizzesWithUploadedImages.length, "quizzes")
+                return { ...l, quizzes: [...l.quizzes, ...quizzesWithUploadedImages] }
+              }
+              return l
+            }),
+          }))
+        )
+      } else {
+        console.log("BRANCH: No state update - addToNew=false and no lessonId")
+      }
+
+      toast.success(`Đã import ${quizzesWithUploadedImages.length} câu hỏi. Đáp án đã được tự động chọn.`)
+    } catch (error) {
+      console.error("Error importing quizzes:", error)
+      const errorMessage = error instanceof Error ? error.message : "Không biết"
+      console.error("Full error:", error)
+      toast.error("Lỗi khi import file: " + errorMessage)
+    }
+  }
 
   // Load course data from API on mount
   useEffect(() => {
@@ -124,10 +519,11 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           ? { Authorization: `Bearer ${token}` }
           : {}
 
-        const [courseRes, lessonsRes, catsRes] = await Promise.all([
+        const [courseRes, lessonsRes, catsRes, quizzesRes] = await Promise.all([
           fetch(`/api/courses/${resolvedParams.id}`, { headers }),
           fetch(`/api/lessons/course/${resolvedParams.id}`, { headers }),
           fetch("/api/categories"),
+          fetch(`/api/quizzes/course/${resolvedParams.id}`, { headers }),
         ])
 
         if (courseRes.ok) {
@@ -143,6 +539,20 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           })
           setCourseStatus(data.status || "draft")
         }
+
+        const quizzesJson = quizzesRes.ok ? await quizzesRes.json() : []
+        const quizzesUnwrapped = quizzesJson?.data ?? quizzesJson
+        const quizList = Array.isArray(quizzesUnwrapped)
+          ? quizzesUnwrapped
+          : Array.isArray(quizzesUnwrapped?.data)
+          ? quizzesUnwrapped.data
+          : []
+        const quizByLesson = quizList.reduce((acc: Record<string, any>, quiz: any) => {
+          if (quiz?.lessonId && !acc[quiz.lessonId]) {
+            acc[quiz.lessonId] = quiz
+          }
+          return acc
+        }, {} as Record<string, any>)
 
         if (lessonsRes.ok) {
           const lessonsJson = await lessonsRes.json()
@@ -167,11 +577,22 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               .sort((a: { order?: number }, b: { order?: number }) => (a.order || 0) - (b.order || 0))
               .map((l: { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[] }) => {
                 const firstRes = parseFirstResource(l.resources)
+                const linkedQuiz = quizByLesson[l.id]
+                const questions = Array.isArray(linkedQuiz?.questions) ? linkedQuiz.questions : []
                 return {
                   id: l.id,
                   title: l.title,
                   description: l.description || "",
-                  quizzes: [],
+                  quizId: linkedQuiz?.id,
+                  quizzes: questions.map((q: any) => ({
+                    id: q.id || `${Date.now()}-${Math.random()}`,
+                    question: q.question || "",
+                    image: q.image || undefined,
+                    type: q.type || "multiple-choice",
+                    options: Array.isArray(q.options) ? q.options : buildOptions(4),
+                    correctAnswer: q.correctAnswer,
+                    correctAnswers: q.correctAnswers || [],
+                  })),
                   videoUrl: l.videoUrl,
                   documentUrl: firstRes?.url,
                   documentName: firstRes?.name,
@@ -232,7 +653,12 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   }
 
   const addLesson = (sectionId: string) => {
-    // Open modal instead of directly adding
+    // Tính vị trí top cho modal
+    const viewportHeight = window.innerHeight
+    const scrollY = window.scrollY
+    const modalHeight = 600 // hoặc 500 tuỳ UI
+    const top = scrollY + viewportHeight / 2 - modalHeight / 2
+    setModalTop(top)
     setAddLessonSectionId(sectionId)
     setNewLessonData({ title: "", description: "" })
     setNewLessonFiles([])
@@ -283,15 +709,36 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     const newQuiz: Quiz = {
       id: Date.now().toString(),
       question: "Câu hỏi mới",
-      options: ["Tùy chọn 1", "Tùy chọn 2", "Tùy chọn 3", "Tùy chọn 4"],
+      type: "multiple-choice",
+      options: buildOptions(4),
       correctAnswer: 0,
+      correctAnswers: [],
     }
     setNewLessonQuizzes([...newLessonQuizzes, newQuiz])
   }
 
   const updateNewLessonQuiz = (quizId: string, updates: Partial<Quiz>) => {
     setNewLessonQuizzes(
-      newLessonQuizzes.map((q) => (q.id === quizId ? { ...q, ...updates } : q))
+      newLessonQuizzes.map((q) => {
+        if (q.id !== quizId) return q
+        const nextQuiz = { ...q, ...updates }
+        if (updates.type && updates.type !== q.type) {
+          if (updates.type === "true-false") {
+            nextQuiz.options = ["Đúng", "Sai"]
+            nextQuiz.correctAnswer = 0
+            nextQuiz.correctAnswers = []
+          } else if (updates.type === "multiple-select") {
+            nextQuiz.options = normalizeOptionCount(nextQuiz.options || buildOptions(4), 4)
+            nextQuiz.correctAnswers = nextQuiz.correctAnswers?.length ? nextQuiz.correctAnswers : [0]
+            nextQuiz.correctAnswer = undefined
+          } else {
+            nextQuiz.options = normalizeOptionCount(nextQuiz.options || buildOptions(4), 4)
+            nextQuiz.correctAnswer = nextQuiz.correctAnswer ?? 0
+            nextQuiz.correctAnswers = []
+          }
+        }
+        return nextQuiz
+      })
     )
   }
 
@@ -349,8 +796,10 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             const newQuiz: Quiz = {
               id: Date.now().toString(),
               question: "Câu hỏi mới",
-              options: ["Tùy chọn 1", "Tùy chọn 2", "Tùy chọn 3", "Tùy chọn 4"],
+              type: "multiple-choice",
+              options: buildOptions(4),
               correctAnswer: 0,
+              correctAnswers: [],
             }
             return { ...l, quizzes: [...l.quizzes, newQuiz] }
           }
@@ -366,9 +815,28 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         ...s,
         lessons: s.lessons.map((l) => {
           if (l.id === lessonId) {
+            const currentQuiz = l.quizzes.find((q) => q.id === quizId)
+            const nextQuiz = { ...currentQuiz, ...updates } as Quiz
+
+            if (updates.type && updates.type !== currentQuiz?.type) {
+              if (updates.type === "true-false") {
+                nextQuiz.options = ["Đúng", "Sai"]
+                nextQuiz.correctAnswer = 0
+                nextQuiz.correctAnswers = []
+              } else if (updates.type === "multiple-select") {
+                nextQuiz.options = normalizeOptionCount(nextQuiz.options || buildOptions(4), 4)
+                nextQuiz.correctAnswers = nextQuiz.correctAnswers?.length ? nextQuiz.correctAnswers : [0]
+                nextQuiz.correctAnswer = undefined
+              } else {
+                nextQuiz.options = normalizeOptionCount(nextQuiz.options || buildOptions(4), 4)
+                nextQuiz.correctAnswer = nextQuiz.correctAnswer ?? 0
+                nextQuiz.correctAnswers = []
+              }
+            }
+
             return {
               ...l,
-              quizzes: l.quizzes.map((q) => (q.id === quizId ? { ...q, ...updates } : q)),
+              quizzes: l.quizzes.map((q) => (q.id === quizId ? nextQuiz : q)),
             }
           }
           return l
@@ -424,7 +892,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         for (const [lIdx, lesson] of section.lessons.entries()) {
           const isNewLesson = !/^[0-9a-f-]{36}$/.test(lesson.id)
           if (isNewLesson) {
-            await fetch("/api/lessons", {
+            const createRes = await fetch("/api/lessons", {
               method: "POST",
               headers: authHeaders,
               body: JSON.stringify({
@@ -438,6 +906,33 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                 order: lIdx,
               }),
             })
+            if (createRes.ok) {
+              const lessonJson = await createRes.json().catch(() => ({}))
+              const lessonData = lessonJson?.data ?? lessonJson
+              const createdLessonId = lessonData?.id
+
+              if (createdLessonId && lesson.quizzes.length > 0) {
+                const quizPayload = {
+                  title: `Quiz - ${lesson.title}`,
+                  description: "",
+                  questions: lesson.quizzes.map((q) => ({
+                    question: q.question,
+                    image: q.image,
+                    options: q.options,
+                    type: q.type,
+                    correctAnswer: q.type === "multiple-select" ? undefined : q.correctAnswer ?? 0,
+                    correctAnswers: q.type === "multiple-select" ? q.correctAnswers || [] : undefined,
+                  })),
+                  courseId: resolvedParams.id,
+                  lessonId: createdLessonId,
+                }
+                await fetch("/api/quizzes", {
+                  method: "POST",
+                  headers: authHeaders,
+                  body: JSON.stringify(quizPayload),
+                })
+              }
+            }
           } else {
             const patchRes = await fetch(`/api/lessons/${lesson.id}`, {
               method: "PATCH",
@@ -459,6 +954,37 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               console.error(`[SaveCourse] PATCH lesson ${lesson.id} thất bại:`, err)
               throw new Error(`Lưu bài học "${lesson.title}" thất bại: ${err?.error?.message || err?.message || patchRes.status}`)
             }
+
+            if (lesson.quizzes.length > 0) {
+              const quizPayload = {
+                title: `Quiz - ${lesson.title}`,
+                description: "",
+                questions: lesson.quizzes.map((q) => ({
+                  question: q.question,
+                  image: q.image,
+                  options: q.options,
+                  type: q.type,
+                  correctAnswer: q.type === "multiple-select" ? undefined : q.correctAnswer ?? 0,
+                  correctAnswers: q.type === "multiple-select" ? q.correctAnswers || [] : undefined,
+                })),
+                courseId: resolvedParams.id,
+                lessonId: lesson.id,
+              }
+
+              if (lesson.quizId) {
+                await fetch(`/api/quizzes/${lesson.quizId}`, {
+                  method: "PATCH",
+                  headers: authHeaders,
+                  body: JSON.stringify(quizPayload),
+                })
+              } else {
+                await fetch("/api/quizzes", {
+                  method: "POST",
+                  headers: authHeaders,
+                  body: JSON.stringify(quizPayload),
+                })
+              }
+            }
           }
         }
       }
@@ -466,11 +992,29 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       // Re-fetch lessons từ API để đồng bộ state với DB
       const token2 = localStorage.getItem("auth_token")
       const headers2: Record<string, string> = token2 ? { Authorization: `Bearer ${token2}` } : {}
-      const freshLessonsRes = await fetch(`/api/lessons/course/${resolvedParams.id}`, { headers: headers2 })
+      const [freshLessonsRes, freshQuizzesRes] = await Promise.all([
+        fetch(`/api/lessons/course/${resolvedParams.id}`, { headers: headers2 }),
+        fetch(`/api/quizzes/course/${resolvedParams.id}`, { headers: headers2 }),
+      ])
       if (freshLessonsRes.ok) {
         const lessonsJson = await freshLessonsRes.json()
         const lessonsUnwrapped = lessonsJson?.data ?? lessonsJson
         const lessonList = Array.isArray(lessonsUnwrapped) ? lessonsUnwrapped : Array.isArray(lessonsUnwrapped?.data) ? lessonsUnwrapped.data : []
+
+        const quizzesJson = freshQuizzesRes.ok ? await freshQuizzesRes.json() : []
+        const quizzesUnwrapped = quizzesJson?.data ?? quizzesJson
+        const quizList = Array.isArray(quizzesUnwrapped)
+          ? quizzesUnwrapped
+          : Array.isArray(quizzesUnwrapped?.data)
+          ? quizzesUnwrapped.data
+          : []
+        const quizByLesson = quizList.reduce((acc: Record<string, any>, quiz: { lessonId: string | number }) => {
+          if (quiz?.lessonId && !acc[quiz.lessonId]) {
+            acc[quiz.lessonId] = quiz
+          }
+          return acc
+        }, {} as Record<string, any>)
+
         if (lessonList.length > 0) {
           const sectionMap = new Map<string, typeof lessonList>()
           for (const l of lessonList) {
@@ -485,11 +1029,22 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               .sort((a, b) => (a.order || 0) - (b.order || 0))
               .map(l => {
                 const firstRes = parseFirstResource(l.resources)
+                const linkedQuiz = quizByLesson[l.id]
+                const questions = Array.isArray(linkedQuiz?.questions) ? linkedQuiz.questions : []
                 return {
                   id: l.id,
                   title: l.title,
                   description: l.description || "",
-                  quizzes: [] as { id: string; question: string; options: string[]; correctAnswer: number }[],
+                  quizId: linkedQuiz?.id,
+                  quizzes: questions.map((q: any) => ({
+                    id: q.id || `${Date.now()}-${Math.random()}`,
+                    question: q.question || "",
+                    image: q.image || undefined,
+                    type: q.type || "multiple-choice",
+                    options: Array.isArray(q.options) ? q.options : buildOptions(4),
+                    correctAnswer: q.correctAnswer,
+                    correctAnswers: q.correctAnswers || [],
+                  })),
                   videoUrl: l.videoUrl,
                   documentUrl: firstRes?.url,
                   documentName: firstRes?.name,
@@ -643,8 +1198,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     e.preventDefault()
     setDraggedVideoZone(false)
     const file = e.dataTransfer.files?.[0]
-    if (file && file.type.startsWith('video/')) {
-      handleVideoUpload(file)
+    if (file && file.type.startsWith('video/') && currentLessonId) {
+      handleVideoUpload(currentLessonId, file)
     }
   }
 
@@ -652,8 +1207,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     e.preventDefault()
     setDraggedDocumentZone(false)
     const file = e.dataTransfer.files?.[0]
-    if (file && (file.type === 'application/pdf' || file.name.endsWith('.pdf'))) {
-      handleDocumentUpload(file)
+    if (file && (file.type === 'application/pdf' || file.name.endsWith('.pdf')) && currentLessonId) {
+      handleDocumentUpload(currentLessonId, file)
     }
   }
 
@@ -758,13 +1313,13 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           {/* Upload Content - Removed, now integrated in lesson items */}
 
           {/* Lessons */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-foreground dark:text-white">Bài giảng</h2>
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-3 sm:p-6 space-y-4 sm:space-y-6">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg sm:text-xl font-bold text-foreground dark:text-white">Bài giảng</h2>
               <button
                 onClick={addSection}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-smooth flex items-center gap-2">
-                <Plus size={18} /> Thêm phần mới
+                className="px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-smooth flex items-center gap-1 text-sm sm:text-base whitespace-nowrap">
+                <Plus size={16} /> <span>Thêm phần mới</span>
               </button>
             </div>
 
@@ -772,23 +1327,25 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               {sections.map((section) => (
                 <div key={section.id} className="border border-border dark:border-slate-800 rounded-xl overflow-hidden">
                   {/* Section header */}
-                  <div className="flex items-center gap-3 bg-secondary dark:bg-slate-800 px-4 py-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-secondary dark:bg-slate-800 px-3 py-2">
                     <input
                       value={section.title}
                       onChange={(e) => updateSection(section.id, e.target.value)}
-                      className="flex-1 bg-transparent font-semibold text-foreground dark:text-white focus:outline-none"
+                      className="flex-1 bg-transparent font-semibold text-foreground dark:text-white focus:outline-none text-sm sm:text-base"
                       placeholder="Tên phần..."
                     />
-                    <button
-                      onClick={() => addLesson(section.id)}
-                      className="px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-sm font-medium hover:bg-primary/20 transition-smooth flex items-center gap-1">
-                      <Plus size={14} /> Thêm bài học
-                    </button>
-                    <button
-                      onClick={() => deleteSection(section.id)}
-                      className="p-1.5 hover:bg-destructive/10 rounded-lg transition-smooth">
-                      <Trash2 size={16} className="text-destructive" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => addLesson(section.id)}
+                        className="flex-1 sm:flex-none px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-xs sm:text-sm font-medium hover:bg-primary/20 transition-smooth flex items-center justify-center gap-1 whitespace-nowrap">
+                        <Plus size={13} /> Thêm bài học
+                      </button>
+                      <button
+                        onClick={() => deleteSection(section.id)}
+                        className="p-1.5 hover:bg-destructive/10 rounded-lg transition-smooth flex-shrink-0">
+                        <Trash2 size={16} className="text-destructive" />
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-3 p-4">
                   {section.lessons.map((lesson) => {
@@ -805,61 +1362,54 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   >
                     {/* Header */}
                     <div
-                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary dark:hover:bg-slate-900 transition-smooth"
+                      className="flex items-start justify-between p-3 sm:p-4 cursor-pointer hover:bg-secondary dark:hover:bg-slate-900 transition-smooth"
                       onClick={() => setExpandedLessonId(isExpanded ? null : lesson.id)}
                     >
-                      <div className="flex-1 flex items-center gap-3">
+                      <div className="flex-1 flex items-start gap-2">
                         <ChevronDown 
-                          size={20} 
-                          className={`text-muted-foreground dark:text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                          size={18} 
+                          className={`mt-0.5 flex-shrink-0 text-muted-foreground dark:text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                         />
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground dark:text-white">{lesson.title}</p>
-                          <p className="text-sm text-muted-foreground dark:text-slate-400">
-                            {lesson.description}
-                          </p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground dark:text-white text-sm sm:text-base leading-snug">{lesson.title}</p>
+                          {lesson.description && (
+                            <p className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400 mt-0.5 line-clamp-2">
+                              {lesson.description}
+                            </p>
+                          )}
                           {/* Content Preview Badges */}
-                          <div className="flex flex-wrap gap-2 mt-2">
+                          <div className="flex flex-wrap gap-1 mt-1.5">
                             {lesson.videoUrl && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded text-xs font-medium">
-                                <Video size={12} /> Video
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded text-xs font-medium">
+                                <Video size={10} /> Video
                               </span>
                             )}
                             {lesson.documentUrl && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded text-xs font-medium">
-                                📄 {lesson.documentName || 'Tài liệu'}
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded text-xs font-medium max-w-[130px]">
+                                <span className="truncate">📄 {lesson.documentName || 'Tài liệu'}</span>
                               </span>
                             )}
                             {lesson.quizzes.length > 0 && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded text-xs font-medium">
-                                ❓ {lesson.quizzes.length} câu
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded text-xs font-medium">
+                               {lesson.quizzes.length} câu hỏi
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation()
-                          }}
-                          className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
-                          
-                        </button>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            deleteLesson(section.id, lesson.id)
-                          }}
-                          className="p-2 hover:bg-destructive/10 rounded-lg transition-smooth">
-                          <Trash2 size={18} className="text-destructive" />
-                        </button>
-                      </div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteLesson(section.id, lesson.id)
+                        }}
+                        className="flex-shrink-0 ml-2 p-1.5 hover:bg-destructive/10 rounded-lg transition-smooth">
+                        <Trash2 size={16} className="text-destructive" />
+                      </button>
                     </div>
 
                     {/* Expandable Content */}
                     {isExpanded && (
-                      <div className="border-t border-border dark:border-slate-800 bg-card dark:bg-slate-900/60 p-6 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300"
+                      <div className="border-t border-border dark:border-slate-800 bg-card dark:bg-slate-900/60 p-3 sm:p-6 space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-top-2 duration-300"
                         style={{
                           animation: 'slideDown 0.3s ease-out'
                         }}
@@ -958,48 +1508,182 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                         </div>
 
                         {/* Quiz Section */}
-                        <div className="border-t border-border dark:border-slate-800 pt-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <h5 className="font-semibold text-foreground dark:text-white">Câu hỏi cho bài học này</h5>
-                            <button
-                              onClick={() => addQuiz(lesson.id)}
-                              className="flex items-center gap-2 px-3 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-sm font-medium hover:bg-primary/20 dark:hover:bg-primary/30 transition-smooth"
-                            >
-                              <Plus size={16} />
-                              Thêm câu hỏi
-                            </button>
+                        <div className="border-t border-border dark:border-slate-800 pt-4">
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className="flex items-center gap-2">
+                              <h5 className="font-semibold text-foreground dark:text-white text-sm sm:text-base">Câu hỏi cho bài học này</h5>
+                              {lesson.quizzes.length > 0 && (
+                                <span className="text-xs bg-primary/20 text-primary dark:bg-primary/30 dark:text-accent px-2 py-1 rounded-full">
+                                  {lesson.quizzes.length} câu
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-1 flex-wrap">
+                              <button
+                                onClick={() => addQuiz(lesson.id)}
+                                className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-xs sm:text-sm font-medium hover:bg-primary/20 dark:hover:bg-primary/30 transition-smooth whitespace-nowrap"
+                              >
+                                <Plus size={13} />
+                                Thêm câu hỏi
+                              </button>
+                              <label className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-500/20 dark:hover:bg-blue-500/30 transition-smooth whitespace-nowrap cursor-pointer">
+                                <Upload size={13} />
+                                <span>Nhập từ file</span>
+                                <input
+                                  type="file"
+                                  accept=".xlsx,.xls,.csv,.docx"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0]
+                                    if (file) {
+                                      console.log("Importing for lesson:", lesson.id)
+                                      await handleImportQuizzes(file, false, lesson.id)
+                                      // Clear input to allow re-selection
+                                      ;(e.target as HTMLInputElement).value = ""
+                                    }
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
                           </div>
 
                           {lesson.quizzes.length === 0 ? (
                             <p className="text-sm text-muted-foreground dark:text-slate-400">Chưa có câu hỏi nào</p>
                           ) : (
                             <div className="space-y-3">
-                              {lesson.quizzes.map((quiz) => (
-                                <div key={quiz.id} className="p-3 bg-background dark:bg-slate-950 rounded-lg border border-border dark:border-slate-800">
-                                  <div className="flex items-start justify-between mb-2">
-                                    <input
-                                      type="text"
-                                      value={quiz.question}
-                                      onChange={(e) => updateQuiz(lesson.id, quiz.id, { question: e.target.value })}
-                                      className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm"
-                                    />
+                              {lesson.quizzes.map((quiz, qIndex) => (
+                                <div key={quiz.id} className="p-4 bg-background dark:bg-slate-950 rounded-lg border border-border dark:border-slate-800 group/quiz">
+                                  <div className="flex items-start justify-between gap-2 mb-2">
+                                    <div className="flex gap-2 items-start flex-1 mr-1">
+                                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-bold mt-1">
+                                        {qIndex + 1}
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <input
+                                          type="text"
+                                          value={quiz.question}
+                                          onChange={(e) => updateQuiz(lesson.id, quiz.id, { question: e.target.value })}
+                                          className="w-full px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-xs sm:text-sm"
+                                          placeholder="Nhập câu hỏi..."
+                                        />
+                                        
+                                        {/* Image Upload for Quiz */}
+                                        <div className="mt-2 space-y-2">
+                                          {quiz.image && (
+                                            <div className="relative w-full max-w-xl group/img">
+                                              <img src={quiz.image} alt="Quiz" className="w-full max-h-64 object-contain rounded-lg border border-border dark:border-slate-700 shadow-sm" />
+                                              <button 
+                                                onClick={() => updateQuiz(lesson.id, quiz.id, { image: undefined })}
+                                                className="absolute -top-1.5 -right-1.5 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover/img:opacity-100 transition-opacity shadow-sm"
+                                              >
+                                                <X size={10} />
+                                              </button>
+                                            </div>
+                                          )}
+                                          {!quiz.image && (
+                                            <label className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-secondary dark:bg-slate-800 text-muted-foreground dark:text-slate-400 rounded cursor-pointer hover:bg-border dark:hover:bg-slate-700 transition-colors border border-border dark:border-slate-700">
+                                              <ImageIcon size={10} />
+                                              <span>Thêm ảnh</span>
+                                              <input 
+                                                type="file" 
+                                                accept="image/*" 
+                                                className="hidden" 
+                                                onChange={(e) => {
+                                                  const file = e.target.files?.[0]
+                                                  if (file) {
+                                                    const reader = new FileReader()
+                                                    reader.onloadend = () => {
+                                                      updateQuiz(lesson.id, quiz.id, { image: reader.result as string })
+                                                    }
+                                                    reader.readAsDataURL(file)
+                                                  }
+                                                }}
+                                              />
+                                            </label>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
                                     <button
                                       onClick={() => deleteQuiz(lesson.id, quiz.id)}
-                                      className="ml-2 p-1 text-destructive hover:bg-destructive/10 rounded transition-smooth"
+                                      className="hidden sm:flex flex-shrink-0 p-1.5 bg-red-500 text-white hover:bg-red-600 rounded transition-colors"
+                                      title="Xóa câu hỏi"
                                     >
-                                      <Trash2 size={14} />
+                                      <Trash2 size={16} />
                                     </button>
                                   </div>
-                                  <div className="space-y-1">
+                                  <div className="sm:hidden mb-1.5">
+                                    <button
+                                      onClick={() => deleteQuiz(lesson.id, quiz.id)}
+                                      className="w-full p-1.5 bg-red-500 text-white hover:bg-red-600 rounded transition-colors text-xs font-medium"
+                                      title="Xóa câu hỏi"
+                                    >
+                                      Xóa câu hỏi
+                                    </button>
+                                  </div>
+                                  <div className="mb-1.5 flex flex-wrap items-center gap-1">
+                                    <select
+                                      value={quiz.type}
+                                      onChange={(e) => updateQuiz(lesson.id, quiz.id, { type: e.target.value as Quiz["type"] })}
+                                      className="flex-1 min-w-[90px] px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
+                                    >
+                                      <option value="multiple-choice">1 đáp án</option>
+                                      <option value="multiple-select">Nhiều đáp án</option>
+                                      <option value="true-false">Đúng/Sai</option>
+                                    </select>
+                                    {quiz.type !== "true-false" && (
+                                      <select
+                                        value={quiz.options.length}
+                                        onChange={(e) => {
+                                          const count = Number(e.target.value)
+                                          const resized = normalizeOptionCount(quiz.options, count)
+                                          const safeCorrect = quiz.correctAnswer !== undefined && quiz.correctAnswer < count
+                                            ? quiz.correctAnswer
+                                            : 0
+                                          const safeCorrects = (quiz.correctAnswers || []).filter((idx) => idx < count)
+                                          updateQuiz(lesson.id, quiz.id, {
+                                            options: resized,
+                                            correctAnswer: quiz.type === "multiple-select" ? undefined : safeCorrect,
+                                            correctAnswers: quiz.type === "multiple-select" ? safeCorrects : [],
+                                          })
+                                        }}
+                                        className="flex-1 min-w-[75px] px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
+                                      >
+                                        {[2, 3, 4, 5, 6].map((count) => (
+                                          <option key={count} value={count}>{count} đáp án</option>
+                                        ))}
+                                      </select>
+                                    )}
+                                  </div>
+                                  <div className="space-y-0.5">
                                     {quiz.options.map((option, idx) => (
-                                      <div key={idx} className="flex items-center gap-2">
-                                        <input
-                                          type="radio"
-                                          name={`correct-${quiz.id}`}
-                                          checked={quiz.correctAnswer === idx}
-                                          onChange={() => updateQuiz(lesson.id, quiz.id, { correctAnswer: idx })}
-                                          className="w-4 h-4"
-                                        />
+                                      <div key={idx} className="flex items-center gap-1">
+                                        {quiz.type === "multiple-select" ? (
+                                          <input
+                                            type="checkbox"
+                                            checked={(quiz.correctAnswers || []).includes(idx)}
+                                            onChange={() => {
+                                              const current = new Set(quiz.correctAnswers || [])
+                                              if (current.has(idx)) {
+                                                current.delete(idx)
+                                              } else {
+                                                current.add(idx)
+                                              }
+                                              updateQuiz(lesson.id, quiz.id, {
+                                                correctAnswers: Array.from(current).sort((a, b) => a - b),
+                                              })
+                                            }}
+                                            className="w-3 h-3"
+                                          />
+                                        ) : (
+                                          <input
+                                            type="radio"
+                                            name={`correct-${quiz.id}`}
+                                            checked={quiz.correctAnswer === idx}
+                                            onChange={() => updateQuiz(lesson.id, quiz.id, { correctAnswer: idx })}
+                                            className="w-3 h-3"
+                                          />
+                                        )}
                                         <input
                                           type="text"
                                           value={option}
@@ -1008,7 +1692,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                             newOptions[idx] = e.target.value
                                             updateQuiz(lesson.id, quiz.id, { options: newOptions })
                                           }}
-                                          className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm"
+                                          className="flex-1 px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-xs sm:text-sm"
+                                          disabled={quiz.type === "true-false"}
                                         />
                                       </div>
                                     ))}
@@ -1050,8 +1735,12 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
           {/* Add Lesson Modal */}
           {showAddLessonModal && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-              <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowAddLessonModal(false)}>
+              <div
+                className="absolute left-1/2 w-full max-w-2xl max-h-[90vh] bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-2xl overflow-y-auto"
+                style={{ top: modalTop ?? '50%', transform: 'translateX(-50%)' }}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="flex items-center justify-between p-6 border-b border-border dark:border-slate-700 sticky top-0 bg-card dark:bg-slate-900">
                   <h4 className="text-lg font-semibold text-foreground dark:text-white">Thêm bài giảng mới</h4>
                   <button
@@ -1221,47 +1910,181 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
                   {/* Quiz Section */}
                   <div className="border-t border-border dark:border-slate-800 pt-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h5 className="font-semibold text-foreground dark:text-white">Câu hỏi cho bài học này</h5>
-                      <button
-                        onClick={addNewLessonQuiz}
-                        className="flex items-center gap-2 px-3 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-sm font-medium hover:bg-primary/20 dark:hover:bg-primary/30 transition-smooth"
-                      >
-                        <Plus size={16} />
-                        Thêm câu hỏi
-                      </button>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <h5 className="font-semibold text-foreground dark:text-white text-sm sm:text-base">Câu hỏi cho bài học này</h5>
+                        {newLessonQuizzes.length > 0 && (
+                          <span className="text-xs bg-primary/20 text-primary dark:bg-primary/30 dark:text-accent px-2 py-1 rounded-full">
+                            {newLessonQuizzes.length} câu
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-1 flex-wrap">
+                        <button
+                          onClick={addNewLessonQuiz}
+                          className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-xs sm:text-sm font-medium hover:bg-primary/20 dark:hover:bg-primary/30 transition-smooth whitespace-nowrap"
+                        >
+                          <Plus size={13} />
+                          Thêm câu hỏi
+                        </button>
+                        <label className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-500/20 dark:hover:bg-blue-500/30 transition-smooth whitespace-nowrap cursor-pointer">
+                          <Upload size={13} />
+                          <span>Nhập từ file</span>
+                          <input
+                            type="file"
+                            accept=".xlsx,.xls,.csv,.docx"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                const fileName = file.name
+                                await handleImportQuizzes(file, true)
+                                // Clear input to allow re-selection
+                                ;(e.target as HTMLInputElement).value = ""
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                     </div>
 
                     {newLessonQuizzes.length === 0 ? (
                       <p className="text-sm text-muted-foreground dark:text-slate-400">Chưa có câu hỏi nào</p>
                     ) : (
                       <div className="space-y-3">
-                        {newLessonQuizzes.map((quiz) => (
-                          <div key={quiz.id} className="p-3 bg-background dark:bg-slate-950 rounded-lg border border-border dark:border-slate-800">
-                            <div className="flex items-start justify-between mb-2">
-                              <input
-                                type="text"
-                                value={quiz.question}
-                                onChange={(e) => updateNewLessonQuiz(quiz.id, { question: e.target.value })}
-                                className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm"
-                              />
+                        {newLessonQuizzes.map((quiz, qIndex) => (
+                          <div key={quiz.id} className="p-4 bg-background dark:bg-slate-950 rounded-lg border border-border dark:border-slate-800 group/quiz">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex gap-2 items-start flex-1 mr-1">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-bold mt-1">
+                                  {qIndex + 1}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <input
+                                    type="text"
+                                    value={quiz.question}
+                                    onChange={(e) => updateNewLessonQuiz(quiz.id, { question: e.target.value })}
+                                    className="w-full px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-xs sm:text-sm"
+                                    placeholder="Nhập câu hỏi..."
+                                  />
+
+                                  {/* Image Upload for New Lesson Quiz */}
+                                  <div className="mt-2 space-y-2">
+                                    {quiz.image && (
+                                      <div className="relative w-full max-w-xl group/img">
+                                        <img src={quiz.image} alt="Quiz" className="w-full max-h-64 object-contain rounded-lg border border-border dark:border-slate-700 shadow-sm" />
+                                        <button 
+                                          onClick={() => updateNewLessonQuiz(quiz.id, { image: undefined })}
+                                          className="absolute -top-1.5 -right-1.5 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover/img:opacity-100 transition-opacity shadow-sm"
+                                        >
+                                          <X size={10} />
+                                        </button>
+                                      </div>
+                                    )}
+                                    {!quiz.image && (
+                                      <label className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-secondary dark:bg-slate-800 text-muted-foreground dark:text-slate-400 rounded cursor-pointer hover:bg-border dark:hover:bg-slate-700 transition-colors border border-border dark:border-slate-700">
+                                        <ImageIcon size={10} />
+                                        <span>Thêm ảnh</span>
+                                        <input 
+                                          type="file" 
+                                          accept="image/*" 
+                                          className="hidden" 
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0]
+                                            if (file) {
+                                              const reader = new FileReader()
+                                              reader.onloadend = () => {
+                                                updateNewLessonQuiz(quiz.id, { image: reader.result as string })
+                                              }
+                                              reader.readAsDataURL(file)
+                                            }
+                                          }}
+                                        />
+                                      </label>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
                               <button
                                 onClick={() => deleteNewLessonQuiz(quiz.id)}
-                                className="ml-2 p-1 text-destructive hover:bg-destructive/10 rounded transition-smooth"
+                                className="hidden sm:flex flex-shrink-0 p-1.5 bg-red-500 text-white hover:bg-red-600 rounded transition-colors"
+                                title="Xóa câu hỏi"
                               >
-                                <Trash2 size={14} />
+                                <Trash2 size={16} />
                               </button>
                             </div>
-                            <div className="space-y-1">
+                            <div className="sm:hidden mb-1.5">
+                              <button
+                                onClick={() => deleteNewLessonQuiz(quiz.id)}
+                                className="w-full p-1.5 bg-red-500 text-white hover:bg-red-600 rounded transition-colors text-xs font-medium"
+                                title="Xóa câu hỏi"
+                              >
+                                Xóa câu hỏi
+                              </button>
+                            </div>
+                            <div className="mb-1 flex flex-col sm:flex-row sm:items-center gap-0.5">
+                              <select
+                                value={quiz.type}
+                                onChange={(e) => updateNewLessonQuiz(quiz.id, { type: e.target.value as Quiz["type"] })}
+                                className="w-full sm:flex-1 sm:min-w-[60px] px-1 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
+                              >
+                                <option value="multiple-choice">1 đáp án</option>
+                                <option value="multiple-select">Nhiều đáp án</option>
+                                <option value="true-false">Đúng/Sai</option>
+                              </select>
+                              {quiz.type !== "true-false" && (
+                                <select
+                                  value={quiz.options.length}
+                                  onChange={(e) => {
+                                    const count = Number(e.target.value)
+                                    const resized = normalizeOptionCount(quiz.options, count)
+                                    const safeCorrect = quiz.correctAnswer !== undefined && quiz.correctAnswer < count
+                                      ? quiz.correctAnswer
+                                      : 0
+                                    const safeCorrects = (quiz.correctAnswers || []).filter((idx) => idx < count)
+                                    updateNewLessonQuiz(quiz.id, {
+                                      options: resized,
+                                      correctAnswer: quiz.type === "multiple-select" ? undefined : safeCorrect,
+                                      correctAnswers: quiz.type === "multiple-select" ? safeCorrects : [],
+                                    })
+                                  }}
+                                  className="w-full sm:flex-1 sm:min-w-[50px] px-1 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
+                                >
+                                  {[2, 3, 4, 5, 6].map((count) => (
+                                    <option key={count} value={count}>{count} đáp án</option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                            <div className="space-y-0.5">
                               {quiz.options.map((option, idx) => (
-                                <div key={idx} className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    name={`correct-new-${quiz.id}`}
-                                    checked={quiz.correctAnswer === idx}
-                                    onChange={() => updateNewLessonQuiz(quiz.id, { correctAnswer: idx })}
-                                    className="w-4 h-4"
-                                  />
+                                <div key={idx} className="flex items-center gap-1">
+                                  {quiz.type === "multiple-select" ? (
+                                    <input
+                                      type="checkbox"
+                                      checked={(quiz.correctAnswers || []).includes(idx)}
+                                      onChange={() => {
+                                        const current = new Set(quiz.correctAnswers || [])
+                                        if (current.has(idx)) {
+                                          current.delete(idx)
+                                        } else {
+                                          current.add(idx)
+                                        }
+                                        updateNewLessonQuiz(quiz.id, {
+                                          correctAnswers: Array.from(current).sort((a, b) => a - b),
+                                        })
+                                      }}
+                                      className="w-3 h-3"
+                                    />
+                                  ) : (
+                                    <input
+                                      type="radio"
+                                      name={`correct-new-${quiz.id}`}
+                                      checked={quiz.correctAnswer === idx}
+                                      onChange={() => updateNewLessonQuiz(quiz.id, { correctAnswer: idx })}
+                                      className="w-3 h-3"
+                                    />
+                                  )}
                                   <input
                                     type="text"
                                     value={option}
@@ -1271,6 +2094,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                       updateNewLessonQuiz(quiz.id, { options: newOptions })
                                     }}
                                     className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm"
+                                    disabled={quiz.type === "true-false"}
                                   />
                                 </div>
                               ))}

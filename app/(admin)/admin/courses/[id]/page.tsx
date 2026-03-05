@@ -34,6 +34,14 @@ interface Lesson {
   videoUrl?: string
   content?: string
   resources?: { name: string; url: string; type?: string }[]
+  quizCount?: number
+  quizQuestions?: {
+    question: string
+    options?: string[]
+    type?: string
+    correctAnswer?: number
+    correctAnswers?: number[]
+  }[]
 }
 
 interface Section {
@@ -85,15 +93,17 @@ export default function AdminCourseDetailPage() {
   const [course, setCourse] = useState<CourseDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"overview" | "content" | "students" | "analytics">("overview")
+  const [expandedQuizLessonId, setExpandedQuizLessonId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchCourse = async () => {
       setIsLoading(true)
       try {
         const auth = getAuth()
-        const [courseRes, lessonsRes] = await Promise.all([
+        const [courseRes, lessonsRes, quizzesRes] = await Promise.all([
           fetch(`/api/courses/${params.id}`, { headers: auth }),
           fetch(`/api/lessons/course/${params.id}`, { headers: auth }),
+          fetch(`/api/quizzes/course/${params.id}`, { headers: auth }),
         ])
         if (!courseRes.ok) throw new Error()
         const courseJson = await courseRes.json()
@@ -107,7 +117,24 @@ export default function AdminCourseDetailPage() {
           : Array.isArray(lessonsUnwrapped?.data)
           ? lessonsUnwrapped.data
           : []
-        const lessonList: Lesson[] = lessonArr.map((l: Record<string, unknown>) => ({
+        const quizzesJson = quizzesRes.ok ? await quizzesRes.json() : []
+        const quizzesUnwrapped = quizzesJson?.data ?? quizzesJson
+        const quizList = Array.isArray(quizzesUnwrapped)
+          ? quizzesUnwrapped
+          : Array.isArray(quizzesUnwrapped?.data)
+          ? quizzesUnwrapped.data
+          : []
+        const quizByLesson: Record<string, any> = quizList.reduce((acc: Record<string, any>, quiz: any) => {
+          if (quiz?.lessonId) {
+            acc[quiz.lessonId] = quiz
+          }
+          return acc
+        }, {})
+
+        const lessonList: Lesson[] = lessonArr.map((l: Record<string, unknown>) => {
+          const linkedQuiz = quizByLesson[l.id as string]
+          const questions = Array.isArray(linkedQuiz?.questions) ? linkedQuiz.questions : []
+          return {
           id: l.id as string,
           title: l.title as string,
           type: (l.type === "article" ? "reading" : l.type) as Lesson["type"],
@@ -117,7 +144,16 @@ export default function AdminCourseDetailPage() {
           videoUrl: l.videoUrl as string | undefined,
           content: l.content as string | undefined,
           resources: (l.resources as Lesson["resources"]) || [],
-        }))
+            quizCount: questions.length,
+            quizQuestions: questions.map((q: Record<string, unknown>) => ({
+              question: (q.question as string) || "",
+              options: Array.isArray(q.options) ? (q.options as string[]) : undefined,
+              type: (q.type as string) || undefined,
+              correctAnswer: typeof q.correctAnswer === "number" ? (q.correctAnswer as number) : undefined,
+              correctAnswers: Array.isArray(q.correctAnswers) ? (q.correctAnswers as number[]) : undefined,
+            })),
+          }
+        })
         const teacher = (c.teacher as Record<string, unknown>) || {}
         setCourse({
           id: c.id,
@@ -459,6 +495,68 @@ export default function AdminCourseDetailPage() {
                                   ))}
                                 </div>
                               )}
+                              {lesson.quizCount && lesson.quizCount > 0 && (
+                                <div className="mt-2">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setExpandedQuizLessonId(
+                                        expandedQuizLessonId === lesson.id ? null : lesson.id,
+                                      )
+                                    }
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
+                                  >
+                                    <Clipboard size={12} />
+                                    {lesson.quizCount} câu hỏi
+                                  </button>
+                                </div>
+                              )}
+                              {expandedQuizLessonId === lesson.id &&
+                                lesson.quizQuestions &&
+                                lesson.quizQuestions.length > 0 && (
+                                  <div className="mt-3 space-y-2 rounded-lg border border-amber-100 bg-amber-50/60 p-3">
+                                    {lesson.quizQuestions.map((quiz, idx) => (
+                                      <div key={`${lesson.id}-q-${idx}`}>
+                                        <p className="text-xs font-semibold text-foreground">
+                                          {idx + 1}. {quiz.question || "(Chưa có nội dung)"}
+                                        </p>
+                                        <p className="text-[11px] text-muted-foreground">
+                                          {quiz.type === "true-false"
+                                            ? "Đúng/Sai"
+                                            : quiz.type === "multiple-select"
+                                            ? "Nhiều đáp án"
+                                            : "1 đáp án"}
+                                        </p>
+                                        {quiz.options && quiz.options.length > 0 && (
+                                          <div className="mt-2 grid gap-1 text-xs">
+                                            {quiz.options.map((opt, optIdx) => {
+                                              const isMulti = quiz.type === "multiple-select"
+                                              const isCorrect = isMulti
+                                                ? (quiz.correctAnswers || []).includes(optIdx)
+                                                : quiz.correctAnswer === optIdx
+                                              return (
+                                                <label
+                                                  key={`${lesson.id}-q-${idx}-o-${optIdx}`}
+                                                  className="flex items-center gap-2 text-muted-foreground"
+                                                >
+                                                  <input
+                                                    type={isMulti ? "checkbox" : "radio"}
+                                                    checked={isCorrect}
+                                                    readOnly
+                                                    className="h-3.5 w-3.5"
+                                                  />
+                                                  <span className={isCorrect ? "font-semibold text-foreground" : undefined}>
+                                                    {opt}
+                                                  </span>
+                                                </label>
+                                              )
+                                            })}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                             </div>
                           </div>
                           <div className="flex items-center gap-3">

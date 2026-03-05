@@ -8,8 +8,10 @@ import { AnimatedButton } from "./animated-button"
 interface QuizQuestion {
   id: string
   question: string
+  type?: "multiple-choice" | "multiple-select" | "true-false"
   options: string[]
-  correctAnswer: number
+  correctAnswer?: number
+  correctAnswers?: number[]
 }
 
 interface QuizComponentProps {
@@ -19,18 +21,35 @@ interface QuizComponentProps {
 
 export function QuizComponent({ questions, onComplete }: QuizComponentProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({})
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number | number[]>>({})
   const [showResults, setShowResults] = useState(false)
   const [score, setScore] = useState(0)
 
   const question = questions[currentQuestion]
-  const isAnswered = selectedAnswers[question.id] !== undefined
+  const isMultipleSelect = question.type === "multiple-select"
+  const isAnswered = isMultipleSelect
+    ? Array.isArray(selectedAnswers[question.id]) && (selectedAnswers[question.id] as number[]).length > 0
+    : selectedAnswers[question.id] !== undefined
+
+  const displayOptions = question.options?.length
+    ? question.options
+    : question.type === "true-false"
+    ? ["Đúng", "Sai"]
+    : []
 
   const handleSelectAnswer = (optionIndex: number) => {
-    setSelectedAnswers((prev) => ({
-      ...prev,
-      [question.id]: optionIndex,
-    }))
+    setSelectedAnswers((prev) => {
+      if (isMultipleSelect) {
+        const current = new Set(Array.isArray(prev[question.id]) ? (prev[question.id] as number[]) : [])
+        if (current.has(optionIndex)) {
+          current.delete(optionIndex)
+        } else {
+          current.add(optionIndex)
+        }
+        return { ...prev, [question.id]: Array.from(current).sort((a, b) => a - b) }
+      }
+      return { ...prev, [question.id]: optionIndex }
+    })
   }
 
   const handleNext = () => {
@@ -44,8 +63,16 @@ export function QuizComponent({ questions, onComplete }: QuizComponentProps) {
   const calculateScore = () => {
     let correctCount = 0
     questions.forEach((q) => {
-      if (selectedAnswers[q.id] === q.correctAnswer) {
-        correctCount++
+      if (q.type === "multiple-select") {
+        const correct = q.correctAnswers || []
+        const selected = Array.isArray(selectedAnswers[q.id]) ? (selectedAnswers[q.id] as number[]) : []
+        if (correct.length === selected.length && correct.every((idx) => selected.includes(idx))) {
+          correctCount++
+        }
+      } else {
+        if (selectedAnswers[q.id] === q.correctAnswer) {
+          correctCount++
+        }
       }
     })
     const finalScore = Math.round((correctCount / questions.length) * 100)
@@ -106,7 +133,7 @@ export function QuizComponent({ questions, onComplete }: QuizComponentProps) {
 
         {/* Options */}
         <div className="space-y-3">
-          {question.options.map((option, index) => (
+          {displayOptions.map((option, index) => (
             <motion.button
               key={index}
               onClick={() => handleSelectAnswer(index)}
@@ -115,7 +142,9 @@ export function QuizComponent({ questions, onComplete }: QuizComponentProps) {
               className={cn(
                 "w-full p-4 rounded-lg text-left transition-all duration-300",
                 "border-2 border-slate-700",
-                selectedAnswers[question.id] === index
+                isMultipleSelect
+                  ? Array.isArray(selectedAnswers[question.id]) && (selectedAnswers[question.id] as number[]).includes(index)
+                  : selectedAnswers[question.id] === index
                   ? "border-blue-500 bg-blue-500/10"
                   : "hover:border-slate-600 hover:bg-slate-800/50",
               )}

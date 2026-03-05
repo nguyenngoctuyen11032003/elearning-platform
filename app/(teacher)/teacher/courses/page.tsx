@@ -55,6 +55,7 @@ interface LessonPreview {
   videoUrl?: string
   documentUrl?: string
   documentName?: string
+  quizQuestions?: { question: string; options?: string[]; type?: string; correctAnswer?: number; correctAnswers?: number[] }[]
 }
 
 function parseFirstResource(resources: unknown): { url: string; name?: string } | null {
@@ -190,20 +191,45 @@ export default function TeacherCoursesPage() {
     const fetchLessons = async () => {
       setIsLessonsLoading(true)
       try {
-        const res = await authFetch(`/lessons/course/${selectedCourse.id}`)
+        const [res, quizRes] = await Promise.all([
+          authFetch(`/lessons/course/${selectedCourse.id}`),
+          authFetch(`/quizzes/course/${selectedCourse.id}`),
+        ])
         if (!res.ok) {
           throw new Error("Failed to fetch lessons")
         }
         const json = await res.json()
         const list = normalizeLessonList(json)
+        const quizJson = quizRes.ok ? await quizRes.json() : []
+        const quizUnwrapped = quizJson?.data ?? quizJson
+        const quizList = Array.isArray(quizUnwrapped)
+          ? quizUnwrapped
+          : Array.isArray(quizUnwrapped?.data)
+          ? quizUnwrapped.data
+          : []
+        const quizByLesson: Record<string, any> = quizList.reduce((acc: Record<string, any>, quiz: any) => {
+          if (quiz?.lessonId) {
+            acc[quiz.lessonId] = quiz
+          }
+          return acc
+        }, {})
         const mapped = list.map((lesson) => {
           const firstRes = parseFirstResource(lesson.resources)
+          const linkedQuiz = quizByLesson[lesson.id]
+          const questions = Array.isArray(linkedQuiz?.questions) ? linkedQuiz.questions : []
           return {
             id: lesson.id,
             title: lesson.title,
             videoUrl: lesson.videoUrl,
             documentUrl: firstRes?.url,
             documentName: firstRes?.name,
+            quizQuestions: questions.map((q: Record<string, unknown>) => ({
+              question: (q.question as string) || "",
+              options: Array.isArray(q.options) ? (q.options as string[]) : undefined,
+              type: (q.type as string) || undefined,
+              correctAnswer: typeof q.correctAnswer === "number" ? (q.correctAnswer as number) : undefined,
+              correctAnswers: Array.isArray(q.correctAnswers) ? (q.correctAnswers as number[]) : undefined,
+            })),
           }
         })
         setSelectedCourseLessons(mapped)
@@ -616,7 +642,51 @@ useEffect(() => {
                     <FileText size={12} /> {lesson.documentName || "Tài liệu"}
                   </a>
                 )}
+                {lesson.quizQuestions && lesson.quizQuestions.length > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600">
+                     {lesson.quizQuestions.length} câu hỏi
+                  </span>
+                )}
               </div>
+              {lesson.quizQuestions && lesson.quizQuestions.length > 0 && (
+                <div className="mt-2 space-y-2 rounded-lg border border-amber-100 bg-amber-50/60 p-2">
+                  {lesson.quizQuestions.map((quiz, qIdx) => (
+                    <div key={`${lesson.id}-quiz-${qIdx}`}>
+                      <p className="text-[11px] font-semibold text-foreground">
+                        {qIdx + 1}. {quiz.question || "(Chưa có nội dung)"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {quiz.type === "true-false"
+                          ? "Đúng/Sai"
+                          : quiz.type === "multiple-select"
+                          ? "Nhiều đáp án"
+                          : "1 đáp án"}
+                      </p>
+                      {quiz.options && quiz.options.length > 0 && (
+                        <div className="mt-1 grid gap-1 text-[11px]">
+                          {quiz.options.map((opt, optIdx) => {
+                            const isMulti = quiz.type === "multiple-select"
+                            const isCorrect = isMulti
+                              ? (quiz.correctAnswers || []).includes(optIdx)
+                              : quiz.correctAnswer === optIdx
+                            return (
+                              <label key={`${lesson.id}-quiz-${qIdx}-opt-${optIdx}`} className="flex items-center gap-2 text-muted-foreground">
+                                <input
+                                  type={isMulti ? "checkbox" : "radio"}
+                                  checked={isCorrect}
+                                  readOnly
+                                  className="h-3 w-3"
+                                />
+                                <span className={isCorrect ? "font-semibold text-foreground" : undefined}>{opt}</span>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -646,7 +716,7 @@ useEffect(() => {
   </div>
 )}
                   {viewMode === "delete" && selectedCourse && selectedCourse.id === course.id && (
-                    <div className="fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm" style={{pointerEvents: 'auto'}}>
+                    <div className="fixed inset-0 z-[9999] bg-black/0 backdrop-blur-sm" style={{pointerEvents: 'auto'}}>
                       <div
                         className="absolute max-w-xs w-full bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl p-6 animate-fadeIn"
                         style={menuRect ? {
@@ -965,8 +1035,8 @@ useEffect(() => {
 
       {/* Delete Confirmation Modal */}
       {viewMode === "delete" && selectedCourse && (
-        <div className="hidden xl:flex fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4">
-        <div className="xl:flex inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+        <div className="hidden xl:flex fixed inset-0 bg-black/0 z-[9999] items-center justify-center p-4">
+        <div className="xl:flex inset-0 bg-black/0 z-[9999] flex items-center justify-center p-4">
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full">
             <div className="p-6 text-center">
               <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
