@@ -33,6 +33,7 @@ interface Lesson {
   isPublished: boolean
   videoUrl?: string
   content?: string
+  resources?: { name: string; url: string; type?: string }[]
 }
 
 interface Section {
@@ -115,6 +116,7 @@ export default function AdminCourseDetailPage() {
           isPublished: (l.isPublished as boolean) || false,
           videoUrl: l.videoUrl as string | undefined,
           content: l.content as string | undefined,
+          resources: (l.resources as Lesson["resources"]) || [],
         }))
         const teacher = (c.teacher as Record<string, unknown>) || {}
         setCourse({
@@ -441,6 +443,22 @@ export default function AdminCourseDetailPage() {
                                 <span className="text-xs text-muted-foreground dark:text-slate-400">•</span>
                                 <span className="text-xs text-muted-foreground dark:text-slate-400">{lesson.duration}</span>
                               </div>
+                              {lesson.resources && lesson.resources.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {lesson.resources.map((resource, index) => (
+                                    <a
+                                      key={`${lesson.id}-resource-${index}`}
+                                      href={resource.url}
+                                      className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100"
+                                      target="_blank"
+                                      rel="noreferrer"
+                                    >
+                                      <FileText size={12} />
+                                      {resource.name}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
@@ -455,9 +473,25 @@ export default function AdminCourseDetailPage() {
                                 Bản nháp
                               </span>
                             )}
-                            <button className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors">
-                              <PlayCircle size={18} className="text-primary dark:text-accent" />
-                            </button>
+                            {lesson.videoUrl ? (
+                              <a
+                                href={lesson.videoUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                aria-label={`Mở video bài học ${lesson.title}`}
+                              >
+                                <PlayCircle size={18} className="text-primary dark:text-accent" />
+                              </a>
+                            ) : (
+                              <button
+                                className="p-2 rounded-lg text-muted-foreground cursor-not-allowed"
+                                aria-label={`Bài học ${lesson.title} chưa có video`}
+                                disabled
+                              >
+                                <PlayCircle size={18} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
