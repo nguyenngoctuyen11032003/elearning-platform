@@ -926,11 +926,18 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   courseId: resolvedParams.id,
                   lessonId: createdLessonId,
                 }
-                await fetch("/api/quizzes", {
+                console.log(`[SaveCourse] POST quiz for new lesson ${createdLessonId}, questions:`, quizPayload.questions.length)
+                const quizCreateRes = await fetch("/api/quizzes", {
                   method: "POST",
                   headers: authHeaders,
                   body: JSON.stringify(quizPayload),
                 })
+                if (!quizCreateRes.ok) {
+                  const err = await quizCreateRes.json().catch(() => ({}))
+                  console.error(`[SaveCourse] POST quiz failed (${quizCreateRes.status}):`, err)
+                  throw new Error(`Lưu câu hỏi cho bài "${lesson.title}" thất bại: ${err?.message || err?.error || quizCreateRes.status}`)
+                }
+                console.log(`[SaveCourse] POST quiz OK for new lesson ${createdLessonId}`)
               }
             }
           } else {
@@ -955,6 +962,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               throw new Error(`Lưu bài học "${lesson.title}" thất bại: ${err?.error?.message || err?.message || patchRes.status}`)
             }
 
+            console.log(`[SaveCourse] lesson ${lesson.id}: quizzes=${lesson.quizzes.length}, quizId=${lesson.quizId}`)
             if (lesson.quizzes.length > 0) {
               const quizPayload = {
                 title: `Quiz - ${lesson.title}`,
@@ -972,17 +980,31 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               }
 
               if (lesson.quizId) {
-                await fetch(`/api/quizzes/${lesson.quizId}`, {
+                console.log(`[SaveCourse] PATCH quiz ${lesson.quizId}, questions:`, quizPayload.questions.length)
+                const quizPatchRes = await fetch(`/api/quizzes/${lesson.quizId}`, {
                   method: "PATCH",
                   headers: authHeaders,
                   body: JSON.stringify(quizPayload),
                 })
+                if (!quizPatchRes.ok) {
+                  const err = await quizPatchRes.json().catch(() => ({}))
+                  console.error(`[SaveCourse] PATCH quiz failed (${quizPatchRes.status}):`, err)
+                  throw new Error(`Cập nhật câu hỏi cho bài "${lesson.title}" thất bại: ${err?.message || err?.error || quizPatchRes.status}`)
+                }
+                console.log(`[SaveCourse] PATCH quiz OK`)
               } else {
-                await fetch("/api/quizzes", {
+                console.log(`[SaveCourse] POST quiz for existing lesson ${lesson.id}, questions:`, quizPayload.questions.length)
+                const quizPostRes = await fetch("/api/quizzes", {
                   method: "POST",
                   headers: authHeaders,
                   body: JSON.stringify(quizPayload),
                 })
+                if (!quizPostRes.ok) {
+                  const err = await quizPostRes.json().catch(() => ({}))
+                  console.error(`[SaveCourse] POST quiz failed (${quizPostRes.status}):`, err)
+                  throw new Error(`Lưu câu hỏi cho bài "${lesson.title}" thất bại: ${err?.message || err?.error || quizPostRes.status}`)
+                }
+                console.log(`[SaveCourse] POST quiz OK for existing lesson ${lesson.id}`)
               }
             }
           }
