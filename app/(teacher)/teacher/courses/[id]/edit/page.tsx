@@ -97,6 +97,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     price: 0,
     thumbnail: "/placeholder.jpg",
   })
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
+  const [thumbnailDirty, setThumbnailDirty] = useState(false)
 
   const [sections, setSections] = useState<Section[]>([])
   
@@ -547,6 +550,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             price: data.price || 0,
             thumbnail: data.thumbnail || "/placeholder.jpg",
           })
+          setThumbnailFile(null)
+          setThumbnailPreview(null)
+          setThumbnailDirty(false)
           setCourseStatus(data.status || "draft")
         }
 
@@ -881,20 +887,53 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
         : { "Content-Type": "application/json" }
 
+      let nextThumbnail = course.thumbnail
+      if (thumbnailDirty) {
+        if (thumbnailFile) {
+          const formData = new FormData()
+          formData.append("file", thumbnailFile)
+          const uploadRes = await fetch("/api/upload/image", {
+            method: "POST",
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: formData,
+          })
+          if (!uploadRes.ok) {
+            const err = await uploadRes.json().catch(() => ({}))
+            throw new Error(err?.message || err?.error || "Không thể tải ảnh lên")
+          }
+          const uploadJson = await uploadRes.json().catch(() => ({}))
+          const uploadedUrl = uploadJson?.data?.url ?? uploadJson?.url
+          if (!uploadedUrl) {
+            throw new Error("Upload ảnh thành công nhưng không nhận được URL")
+          }
+          nextThumbnail = uploadedUrl
+        }
+      }
+
+      const payload = {
+        title: course.title,
+        description: course.description,
+        price: typeof course.price === "string" ? Number(course.price) : course.price,
+        ...(course.categoryId ? { categoryId: course.categoryId } : {}),
+        ...(thumbnailDirty ? { thumbnail: nextThumbnail } : {}),
+      }
+      console.log("[PATCH] Payload gửi lên backend:", payload)
       const res = await fetch(`/api/courses/${resolvedParams.id}`, {
         method: "PATCH",
         headers: authHeaders,
-        body: JSON.stringify({
-          title: course.title,
-          description: course.description,
-          price: course.price,
-          ...(course.categoryId ? { categoryId: course.categoryId } : {}),
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.message || "Lưu thất bại")
+      }
+
+      if (thumbnailDirty) {
+        setCourse((prev) => ({ ...prev, thumbnail: nextThumbnail }))
+        setThumbnailFile(null)
+        setThumbnailPreview(null)
+        setThumbnailDirty(false)
       }
 
       // Save lessons (new and existing) with sectionTitle and order
@@ -1313,6 +1352,56 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Ảnh khóa học</label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setThumbnailFile(file)
+                    setThumbnailDirty(true)
+                    const reader = new FileReader()
+                    reader.onloadend = () => {
+                      setThumbnailPreview(reader.result as string)
+                    }
+                    reader.readAsDataURL(file)
+                  }}
+                  className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                />
+                {(thumbnailPreview || course.thumbnail !== "/placeholder.jpg") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setThumbnailFile(null)
+                      setThumbnailPreview(null)
+                      setThumbnailDirty(true)
+                      setCourse((prev) => ({ ...prev, thumbnail: "/placeholder.jpg" }))
+                    }}
+                    className="px-3 py-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-smooth"
+                    title="Xóa ảnh"
+                  >
+                    <X size={18} />
+                  </button>
+                )}
+              </div>
+              {(thumbnailPreview || course.thumbnail !== "/placeholder.jpg") && (
+                <div className="mt-3 max-w-sm">
+                  <div className="rounded-xl overflow-hidden border border-border dark:border-slate-800 bg-card dark:bg-slate-900/60">
+                    <div className="relative h-40 w-full overflow-hidden bg-secondary dark:bg-slate-800">
+                      <img
+                        src={thumbnailPreview || course.thumbnail}
+                        alt="Ảnh khóa học"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
