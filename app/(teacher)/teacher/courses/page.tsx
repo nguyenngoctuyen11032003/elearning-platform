@@ -637,6 +637,7 @@ useEffect(() => {
                     href={lesson.documentUrl}
                     target="_blank"
                     rel="noreferrer"
+                    download={lesson.documentName || true}
                     className="inline-flex items-center gap-1 rounded-md bg-red-500/10 px-2 py-1 text-[11px] text-red-600"
                   >
                     <FileText size={12} /> {lesson.documentName || "Tài liệu"}
@@ -996,6 +997,7 @@ useEffect(() => {
                               href={lesson.documentUrl}
                               target="_blank"
                               rel="noreferrer"
+                              download={lesson.documentName || true}
                               className="inline-flex items-center gap-1 rounded-md bg-red-500/10 dark:bg-red-500/20 px-2 py-1 text-xs text-red-600 dark:text-red-400"
                             >
                               <FileText size={14} /> {lesson.documentName || "Tài liệu"}

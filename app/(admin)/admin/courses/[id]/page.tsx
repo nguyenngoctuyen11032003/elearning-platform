@@ -37,6 +37,7 @@ interface Lesson {
   quizCount?: number
   quizQuestions?: {
     question: string
+    image?: string
     options?: string[]
     type?: string
     correctAnswer?: number
@@ -147,6 +148,7 @@ export default function AdminCourseDetailPage() {
             quizCount: questions.length,
             quizQuestions: questions.map((q: Record<string, unknown>) => ({
               question: (q.question as string) || "",
+              image: (q.image as string) || undefined,
               options: Array.isArray(q.options) ? (q.options as string[]) : undefined,
               type: (q.type as string) || undefined,
               correctAnswer: typeof q.correctAnswer === "number" ? (q.correctAnswer as number) : undefined,
@@ -236,6 +238,22 @@ export default function AdminCourseDetailPage() {
       case "quiz": return <Clipboard size={18} className="text-purple-500" />
       default: return <BookOpen size={18} />
     }
+  }
+
+  const normalizeUploadedText = (value?: string) => {
+    if (!value) return ""
+    let text = value
+      .replace(/\\r\\n/g, "\n")
+      .replace(/\\n/g, "\n")
+      .replace(/\\r/g, "\n")
+
+    if (typeof window !== "undefined") {
+      const textarea = document.createElement("textarea")
+      textarea.innerHTML = text
+      text = textarea.value
+    }
+
+    return text
   }
 
   return (
@@ -488,6 +506,7 @@ export default function AdminCourseDetailPage() {
                                       className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100"
                                       target="_blank"
                                       rel="noreferrer"
+                                      download={resource.name || true}
                                     >
                                       <FileText size={12} />
                                       {resource.name}
@@ -517,9 +536,16 @@ export default function AdminCourseDetailPage() {
                                   <div className="mt-3 space-y-2 rounded-lg border border-amber-100 bg-amber-50/60 p-3">
                                     {lesson.quizQuestions.map((quiz, idx) => (
                                       <div key={`${lesson.id}-q-${idx}`}>
-                                        <p className="text-xs font-semibold text-foreground">
-                                          {idx + 1}. {quiz.question || "(Chưa có nội dung)"}
+                                        <p className="text-xs font-semibold text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                                          {idx + 1}. {normalizeUploadedText(quiz.question) || "(Chưa có nội dung)"}
                                         </p>
+                                        {quiz.image && (
+                                          <img
+                                            src={quiz.image}
+                                            alt={`Ảnh câu hỏi ${idx + 1}`}
+                                            className="mt-2 max-w-xs rounded border border-amber-200"
+                                          />
+                                        )}
                                         <p className="text-[11px] text-muted-foreground">
                                           {quiz.type === "true-false"
                                             ? "Đúng/Sai"
@@ -545,8 +571,10 @@ export default function AdminCourseDetailPage() {
                                                     readOnly
                                                     className="h-3.5 w-3.5"
                                                   />
-                                                  <span className={isCorrect ? "font-semibold text-foreground" : undefined}>
-                                                    {opt}
+                                                  <span
+                                                    className={`${isCorrect ? "font-semibold text-foreground" : ""} whitespace-pre-wrap break-words leading-relaxed`}
+                                                  >
+                                                    {normalizeUploadedText(opt)}
                                                   </span>
                                                 </label>
                                               )

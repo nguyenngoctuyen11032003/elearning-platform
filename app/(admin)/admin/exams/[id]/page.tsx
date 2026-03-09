@@ -26,6 +26,7 @@ import Link from "next/link"
 interface Question {
   id: string
   question: string
+  image?: string // Thêm trường image giống trang teacher
   type: "multiple-choice" | "true-false" | "essay"
   options?: string[]
   correctAnswer: string | number
@@ -215,6 +216,8 @@ export default function AdminExamDetailPage() {
   const router = useRouter()
   const [exam] = useState<ExamDetail>(mockExamDetail)
   const [activeTab, setActiveTab] = useState<"overview" | "questions" | "attempts" | "analytics">("overview")
+  // Chỉ cho phép xem, không cho phép chỉnh sửa/xóa
+  const isReadonly = true;
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -243,6 +246,22 @@ export default function AdminExamDetailPage() {
     }
   }
 
+  const normalizeUploadedText = (value?: string) => {
+    if (!value) return ""
+    let text = value
+      .replace(/\\r\\n/g, "\n")
+      .replace(/\\n/g, "\n")
+      .replace(/\\r/g, "\n")
+
+    if (typeof window !== "undefined") {
+      const textarea = document.createElement("textarea")
+      textarea.innerHTML = text
+      text = textarea.value
+    }
+
+    return text
+  }
+
   return (
     <div className="p-6 md:p-8">
       <div className="w-full space-y-6">
@@ -255,16 +274,19 @@ export default function AdminExamDetailPage() {
             <ArrowLeft size={20} />
             <span>Quay lại</span>
           </button>
-          <div className="flex items-center gap-3">
-            <button className="px-4 py-2 bg-secondary dark:bg-slate-800 hover:bg-secondary/80 dark:hover:bg-slate-700 text-foreground dark:text-white rounded-lg transition-smooth flex items-center gap-2">
-              <Edit size={18} />
-              Chỉnh sửa
-            </button>
-            <button className="px-4 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-smooth flex items-center gap-2">
-              <Trash2 size={18} />
-              Xóa
-            </button>
-          </div>
+          {/* Ẩn nút chỉnh sửa/xóa nếu chỉ xem */}
+          {!isReadonly && (
+            <div className="flex items-center gap-3">
+              <button className="px-4 py-2 bg-secondary dark:bg-slate-800 hover:bg-secondary/80 dark:hover:bg-slate-700 text-foreground dark:text-white rounded-lg transition-smooth flex items-center gap-2">
+                <Edit size={18} />
+                Chỉnh sửa
+              </button>
+              <button className="px-4 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-smooth flex items-center gap-2">
+                <Trash2 size={18} />
+                Xóa
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Exam Header */}
@@ -465,7 +487,15 @@ export default function AdminExamDetailPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-4 mb-3">
-                        <h3 className="text-lg font-semibold text-foreground dark:text-white">{question.question}</h3>
+                        <div className="flex flex-col gap-2">
+                          <h3 className="text-lg font-semibold text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed">
+                            {normalizeUploadedText(question.question)}
+                          </h3>
+                          {/* Render ảnh nếu có */}
+                          {question.image && (
+                            <img src={question.image} alt="Minh họa câu hỏi" className="max-w-full rounded border border-border dark:border-slate-800 mt-2" />
+                          )}  
+                        </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium rounded-full">
                             {getQuestionTypeLabel(question.type)}
@@ -479,30 +509,37 @@ export default function AdminExamDetailPage() {
                       {question.options && (
                         <div className="space-y-2 mb-4">
                           {question.options.map((option, optionIndex) => (
-                            <div
+                            <label
                               key={optionIndex}
-                              className={`p-3 rounded-lg border ${
+                              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer select-none ${
                                 question.correctAnswer === optionIndex
                                   ? "bg-green-50 dark:bg-green-900/20 border-green-500 dark:border-green-700"
                                   : "bg-secondary/30 dark:bg-slate-800/30 border-border dark:border-slate-800"
                               }`}
                             >
-                              <div className="flex items-center gap-3">
-                                <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-semibold ${
-                                  question.correctAnswer === optionIndex
-                                    ? "bg-green-500 text-white"
-                                    : "bg-secondary dark:bg-slate-700 text-muted-foreground dark:text-slate-400"
-                                }`}>
-                                  {String.fromCharCode(65 + optionIndex)}
-                                </span>
-                                <span className={question.correctAnswer === optionIndex ? "text-foreground dark:text-white font-medium" : "text-muted-foreground dark:text-slate-400"}>
-                                  {option}
-                                </span>
-                                {question.correctAnswer === optionIndex && (
-                                  <CheckCircle size={18} className="ml-auto text-green-500" />
-                                )}
-                              </div>
-                            </div>
+                              <input
+                                type="radio"
+                                name={`question_${index}`}
+                                checked={question.correctAnswer === optionIndex}
+                                readOnly
+                                className="form-radio h-5 w-5 text-green-600 focus:ring-green-500"
+                              />
+                              <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-semibold ${
+                                question.correctAnswer === optionIndex
+                                  ? "bg-green-500 text-white"
+                                  : "bg-secondary dark:bg-slate-700 text-muted-foreground dark:text-slate-400"
+                              }`}>
+                                {String.fromCharCode(65 + optionIndex)}
+                              </span>
+                                <span
+                                  className={`${question.correctAnswer === optionIndex ? "text-foreground dark:text-white font-medium" : "text-muted-foreground dark:text-slate-400"} whitespace-pre-wrap break-words leading-relaxed`}
+                                >
+                                  {normalizeUploadedText(option)}
+                              </span>
+                              {question.correctAnswer === optionIndex && (
+                                <CheckCircle size={18} className="ml-auto text-green-500" />
+                              )}
+                            </label>
                           ))}
                         </div>
                       )}
@@ -513,7 +550,9 @@ export default function AdminExamDetailPage() {
                             <Brain size={18} className="text-blue-500 flex-shrink-0 mt-0.5" />
                             <div>
                               <p className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-1">Giải thích</p>
-                              <p className="text-sm text-blue-600 dark:text-blue-300">{question.explanation}</p>
+                              <p className="text-sm text-blue-600 dark:text-blue-300 whitespace-pre-wrap break-words leading-relaxed">
+                                {normalizeUploadedText(question.explanation)}
+                              </p>
                             </div>
                           </div>
                         </div>

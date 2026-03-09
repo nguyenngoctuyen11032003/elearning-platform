@@ -1,9 +1,10 @@
 "use client"
 
-import { ChevronRight, Check, Plus, Trash2, FileText, Video, X, Loader2 } from "lucide-react"
+import { ChevronRight, Check, Plus, Trash2, FileText, Video, X, Loader2, Upload } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import * as XLSX from "xlsx"
 
 interface Section {
   id: string
@@ -26,6 +27,7 @@ interface Lesson {
 interface Quiz {
   id: string
   question: string
+  image?: string
   type: "multiple-choice" | "multiple-select" | "true-false"
   options: string[]
   correctAnswer?: number
@@ -193,6 +195,7 @@ export default function CreateCoursePage() {
                 description: "",
                 questions: lesson.quizzes.map((q) => ({
                   question: q.question,
+                  image: q.image,
                   options: q.options,
                   type: q.type,
                   correctAnswer: q.type === "multiple-select" ? undefined : q.correctAnswer ?? 0,
@@ -317,6 +320,242 @@ export default function CreateCoursePage() {
     if (options.length === count) return options
     if (options.length > count) return options.slice(0, count)
     return [...options, ...buildOptions(count - options.length)]
+  }
+
+  const uploadQuizImageFromDataUrl = async (dataUrl: string): Promise<string> => {
+    if (!dataUrl.startsWith("data:image/")) return dataUrl
+
+    const token = localStorage.getItem("auth_token")
+    if (!token) return dataUrl
+
+    const blob = await (await fetch(dataUrl)).blob()
+    const extension = blob.type.split("/")[1] || "jpg"
+    const file = new File([blob], `quiz-import-${Date.now()}.${extension}`, {
+      type: blob.type || "image/jpeg",
+    })
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const response = await fetch("/api/upload/image", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      throw new Error("Không thể tải ảnh câu hỏi lên server")
+    }
+
+    const result = await response.json().catch(() => ({}))
+    return result?.data?.url || result?.url || dataUrl
+  }
+
+  const handleImportQuizzes = async (file: File, sectionId: string, lessonId: string) => {
+    try {
+      const data = await file.arrayBuffer()
+      let questions: Array<{ question: string; options: string[]; correctAnswerIndex?: number; correctAnswerIndexes?: number[]; image?: string }> = []
+
+      const isWord =
+        file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        file.name.endsWith(".docx")
+      const isExcel =
+        file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        file.type === "application/vnd.ms-excel" ||
+        file.name.endsWith(".xlsx") ||
+        file.name.endsWith(".xls") ||
+        file.name.endsWith(".csv")
+
+      if (isWord) {
+        const formData = new FormData()
+        formData.append("file", file)
+
+        const response = await fetch("/api/import/parse-word", {
+          method: "POST",
+          body: formData,
+        })
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}))
+          throw new Error(err?.error || "Không đọc được file Word")
+        }
+
+        const result = await response.json()
+        const text = result.text || ""
+        const imageDataMap: Record<string, string> = result.images || {}
+        const lines = text.split(/\r?\n/).map((l: string) => l.trim()).filter((l: string) => l)
+
+        interface WordBlock {
+          questionText: string
+          bodyLines: string[]
+          answerLine: string
+          imageKey?: string
+        }
+        const blocks: WordBlock[] = []
+        let curBlock: WordBlock | null = null
+
+        for (const line of lines) {
+          const isQuestionLine = /^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/.test(line)
+          if (isQuestionLine) {
+            if (curBlock) blocks.push(curBlock)
+            curBlock = {
+              questionText: line.replace(/^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/, "").trim(),
+              bodyLines: [],
+              answerLine: "",
+            }
+            continue
+          }
+          if (!curBlock) continue
+
+          if (line.startsWith("[[IMAGE:")) {
+            const m = line.match(/^\[\[IMAGE:(img_\d+)\]\]$/)
+            if (m) curBlock.imageKey = m[1]
+            continue
+          }
+          if (line.match(/^Đáp\s*án[\s\:\=]+/i)) {
+            curBlock.answerLine = line
+            continue
+          }
+          curBlock.bodyLines.push(line)
+        }
+        if (curBlock) blocks.push(curBlock)
+
+        for (const block of blocks) {
+          const hasPrefixedOptions = block.bodyLines.some((l) => /^[A-Da-d][\.\)]\s+\S/.test(l))
+          let questionText = block.questionText
+          const opts: string[] = []
+
+          if (hasPrefixedOptions) {
+            for (const line of block.bodyLines) {
+              const m = line.match(/^\s*[A-Da-d][\.\)]\s*(.+)/)
+              if (m) opts.push(m[1].trim())
+              else questionText += "\n" + line
+            }
+          } else {
+            const answerLetters = block.answerLine.match(/[A-D]/gi) || []
+            const maxLetterIdx = answerLetters.reduce((max, l) => {
+              const idx = l.toUpperCase().charCodeAt(0) - 65
+              return idx > max ? idx : max
+            }, 3)
+            const optCount = maxLetterIdx + 1
+            const splitAt = Math.max(0, block.bodyLines.length - optCount)
+            const contextLines = block.bodyLines.slice(0, splitAt)
+            const optionLines = block.bodyLines.slice(splitAt)
+
+            if (contextLines.length > 0) questionText += "\n" + contextLines.join("\n")
+            for (const line of optionLines) opts.push(line)
+          }
+
+          let correctIndex = -1
+          let correctIndexes: number[] = []
+          if (block.answerLine) {
+            const letters = block.answerLine.match(/[A-D]/gi) || []
+            const nums = block.answerLine.match(/[1-6]/g) || []
+            const idxSet = new Set<number>()
+            letters.forEach((l: string) => idxSet.add(l.toUpperCase().charCodeAt(0) - 65))
+            nums.forEach((n: string) => idxSet.add(parseInt(n, 10) - 1))
+            const sorted = [...idxSet].filter((i) => i >= 0 && i < opts.length).sort((a, b) => a - b)
+            if (sorted.length > 0) {
+              correctIndexes = sorted
+              correctIndex = sorted[0]
+            }
+          }
+
+          if (questionText && opts.length >= 2) {
+            questions.push({
+              question: questionText,
+              options: opts,
+              correctAnswerIndex: correctIndex >= 0 ? correctIndex : undefined,
+              correctAnswerIndexes: correctIndexes.length > 1 ? correctIndexes : undefined,
+              image: block.imageKey ? imageDataMap[block.imageKey] : undefined,
+            })
+          }
+        }
+      } else if (isExcel) {
+        const workbook = XLSX.read(data, { type: "array" })
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as string[][]
+
+        for (const row of rows) {
+          if (!row || row.length < 3) continue
+          const question = row[0]?.toString().trim()
+          if (!question) continue
+
+          const options: string[] = []
+          let correctIndex = -1
+          for (let i = 1; i < row.length; i++) {
+            let opt = row[i]?.toString().trim() || ""
+            if (!opt) continue
+            const marked = opt.startsWith("*") || opt.startsWith("+") || opt.startsWith("✓")
+            opt = opt.replace(/^(\*|\+|✓|√)\s*/, "").trim()
+            if (!opt) continue
+            options.push(opt)
+            if (marked && correctIndex === -1) correctIndex = options.length - 1
+          }
+          if (options.length >= 2) {
+            questions.push({
+              question,
+              options: normalizeOptionCount(options, Math.min(options.length, 6)),
+              correctAnswerIndex: correctIndex >= 0 ? correctIndex : 0,
+            })
+          }
+        }
+      }
+
+      const importedQuizzes: Quiz[] = questions.map((q) => {
+        const lower = q.options.map((o) => o.toLowerCase().trim())
+        const isTrueFalse = q.options.length === 2 &&
+          ((lower.includes("đúng") && lower.includes("sai")) || (lower.includes("true") && lower.includes("false")))
+        const type: Quiz["type"] = isTrueFalse
+          ? "true-false"
+          : q.correctAnswerIndexes && q.correctAnswerIndexes.length > 1
+          ? "multiple-select"
+          : "multiple-choice"
+
+        return {
+          id: `${Date.now()}-${Math.random()}`,
+          question: q.question,
+          image: q.image,
+          type,
+          options: q.options,
+          correctAnswer: type === "multiple-select" ? undefined : (q.correctAnswerIndex ?? 0),
+          correctAnswers: type === "multiple-select" ? (q.correctAnswerIndexes || []) : [],
+        }
+      })
+
+      const quizzesWithUploadedImages = await Promise.all(
+        importedQuizzes.map(async (quiz) => {
+          if (!quiz.image) return quiz
+          try {
+            const uploadedUrl = await uploadQuizImageFromDataUrl(quiz.image)
+            return { ...quiz, image: uploadedUrl }
+          } catch {
+            return quiz
+          }
+        }),
+      )
+
+      if (quizzesWithUploadedImages.length === 0) {
+        toast.error("Không có câu hỏi hợp lệ để import")
+        return
+      }
+
+      setSections((prev) =>
+        prev.map((s) => {
+          if (s.id !== sectionId) return s
+          return {
+            ...s,
+            lessons: s.lessons.map((l) =>
+              l.id === lessonId ? { ...l, quizzes: [...l.quizzes, ...quizzesWithUploadedImages] } : l,
+            ),
+          }
+        }),
+      )
+
+      toast.success(`Đã import ${quizzesWithUploadedImages.length} câu hỏi`)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Import câu hỏi thất bại"
+      toast.error(message)
+    }
   }
 
   const addQuiz = (sectionId: string, lessonId: string) => {
@@ -942,13 +1181,31 @@ export default function CreateCoursePage() {
                       <div className="mt-6 pt-6 border-t border-border dark:border-slate-700">
                         <div className="flex items-center justify-between mb-4">
                           <h5 className="font-semibold text-foreground dark:text-white">Quiz cho bài học này</h5>
-                          <button
-                            onClick={() => addQuiz(currentSectionId!, currentLessonId!)}
-                            className="flex items-center gap-2 px-3 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-sm font-medium hover:bg-primary/20 dark:hover:bg-primary/30 transition-smooth"
-                          >
-                            <Plus size={16} />
-                            Thêm câu hỏi
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <label className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-500/20 dark:hover:bg-blue-500/30 transition-smooth cursor-pointer">
+                              <Upload size={16} />
+                              Nhập từ file
+                              <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv,.docx"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file && currentSectionId && currentLessonId) {
+                                    await handleImportQuizzes(file, currentSectionId, currentLessonId)
+                                  }
+                                  ;(e.target as HTMLInputElement).value = ""
+                                }}
+                                className="hidden"
+                              />
+                            </label>
+                            <button
+                              onClick={() => addQuiz(currentSectionId!, currentLessonId!)}
+                              className="flex items-center gap-2 px-3 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-sm font-medium hover:bg-primary/20 dark:hover:bg-primary/30 transition-smooth"
+                            >
+                              <Plus size={16} />
+                              Thêm câu hỏi
+                            </button>
+                          </div>
                         </div>
 
                         {currentLesson.quizzes.length === 0 ? (
@@ -958,15 +1215,20 @@ export default function CreateCoursePage() {
                             {currentLesson.quizzes.map((quiz) => (
                               <div key={quiz.id} className="p-3 bg-background dark:bg-slate-950 rounded-lg">
                                 <div className="flex items-start justify-between mb-2">
-                                  <input
-                                    type="text"
+                                  <textarea
                                     value={quiz.question}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
                                       updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
                                         question: e.target.value,
                                       })
-                                    }
-                                    className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm"
+                                      e.target.style.height = "auto"
+                                      e.target.style.height = e.target.scrollHeight + "px"
+                                    }}
+                                    onInput={(e) => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = t.scrollHeight + "px" }}
+                                    ref={(el) => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px" } }}
+                                    rows={1}
+                                    className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm resize-none overflow-hidden leading-snug"
+                                    placeholder="Nhập câu hỏi..."
                                   />
                                   <button
                                     onClick={() => deleteQuiz(currentSectionId!, currentLessonId!, quiz.id)}
@@ -1046,8 +1308,7 @@ export default function CreateCoursePage() {
                                           className="w-4 h-4"
                                         />
                                       )}
-                                      <input
-                                        type="text"
+                                      <textarea
                                         value={option}
                                         onChange={(e) => {
                                           const newOptions = [...quiz.options]
@@ -1055,8 +1316,13 @@ export default function CreateCoursePage() {
                                           updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
                                             options: newOptions,
                                           })
+                                          e.target.style.height = "auto"
+                                          e.target.style.height = e.target.scrollHeight + "px"
                                         }}
-                                        className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm"
+                                        onInput={(e) => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = t.scrollHeight + "px" }}
+                                        ref={(el) => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px" } }}
+                                        rows={1}
+                                        className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm resize-none overflow-hidden leading-snug"
                                         disabled={quiz.type === "true-false"}
                                       />
                                     </div>

@@ -81,6 +81,161 @@ function parseFirstResource(resources: unknown): { url: string; name?: string } 
   return null
 }
 
+function parseQuizQuestions(rawQuestions: unknown): Array<{
+  id?: string
+  question: string
+  image?: string
+  type: "multiple-choice" | "multiple-select" | "true-false"
+  options: string[]
+  correctAnswer?: number
+  correctAnswers: number[]
+}> {
+  let normalized: unknown = rawQuestions
+
+  if (typeof normalized === "string") {
+    try {
+      normalized = JSON.parse(normalized)
+    } catch {
+      return []
+    }
+  }
+
+  if (!Array.isArray(normalized)) return []
+
+  const result: Array<{
+    id?: string
+    question: string
+    image?: string
+    type: "multiple-choice" | "multiple-select" | "true-false"
+    options: string[]
+    correctAnswer?: number
+    correctAnswers: number[]
+  }> = []
+
+  for (const item of normalized) {
+    let q: unknown = item
+    if (Array.isArray(q) && q.length > 0) {
+      // Handle malformed nested shape like [[{...}], [{...}]] or [[...]]
+      q = q[0]
+    }
+    if (typeof q === "string") {
+      try {
+        q = JSON.parse(q)
+      } catch {
+        q = { question: item }
+      }
+    }
+
+    if (!q || typeof q !== "object") continue
+
+    const rec = q as Record<string, unknown>
+    const question =
+      (typeof rec.question === "string" && rec.question) ||
+      (typeof rec.text === "string" && rec.text) ||
+      (typeof rec.content === "string" && rec.content) ||
+      ""
+
+    let options: string[] = []
+    if (Array.isArray(rec.options)) {
+      options = rec.options.map((opt) => String(opt ?? ""))
+    } else if (typeof rec.options === "string") {
+      try {
+        const parsedOptions = JSON.parse(rec.options)
+        if (Array.isArray(parsedOptions)) {
+          options = parsedOptions.map((opt) => String(opt ?? ""))
+        }
+      } catch {
+        options = []
+      }
+    }
+
+    const typeRaw = rec.type
+    const type: "multiple-choice" | "multiple-select" | "true-false" =
+      typeRaw === "multiple-select" || typeRaw === "true-false" || typeRaw === "multiple-choice"
+        ? typeRaw
+        : "multiple-choice"
+
+    const correctAnswers = Array.isArray(rec.correctAnswers)
+      ? rec.correctAnswers.map((idx) => Number(idx)).filter((idx) => Number.isInteger(idx) && idx >= 0)
+      : []
+
+    const correctAnswer = typeof rec.correctAnswer === "number" ? rec.correctAnswer : undefined
+
+    result.push({
+      id: typeof rec.id === "string" ? rec.id : undefined,
+      question,
+      image: typeof rec.image === "string" ? rec.image : undefined,
+      type,
+      options: options.length > 0 ? options : ["Tùy chọn 1", "Tùy chọn 2", "Tùy chọn 3", "Tùy chọn 4"],
+      correctAnswer,
+      correctAnswers,
+    })
+  }
+
+  return result
+}
+
+function buildQuizQuestionsPayload(
+  source: Array<Partial<Quiz>>,
+): Array<{
+  question: string
+  image?: string
+  options: string[]
+  type: "multiple-choice" | "multiple-select" | "true-false"
+  correctAnswer?: number
+  correctAnswers?: number[]
+}> {
+  const normalized: Array<{
+    question: string
+    image?: string
+    options: string[]
+    type: "multiple-choice" | "multiple-select" | "true-false"
+    correctAnswer?: number
+    correctAnswers?: number[]
+  }> = []
+
+  for (const raw of source) {
+    if (!raw || typeof raw !== "object") continue
+
+    const question = typeof raw.question === "string" ? raw.question.trim() : ""
+    if (!question) continue
+
+    const options = Array.isArray(raw.options)
+      ? raw.options.map((opt) => String(opt ?? "").trim()).filter(Boolean)
+      : []
+
+    if (options.length < 2) continue
+
+    const rawType = raw.type
+    const type: "multiple-choice" | "multiple-select" | "true-false" =
+      rawType === "multiple-select" || rawType === "true-false" || rawType === "multiple-choice"
+        ? rawType
+        : "multiple-choice"
+
+    const correctAnswer =
+      typeof raw.correctAnswer === "number" && raw.correctAnswer >= 0 && raw.correctAnswer < options.length
+        ? raw.correctAnswer
+        : 0
+
+    const correctAnswers = Array.isArray(raw.correctAnswers)
+      ? raw.correctAnswers
+          .map((idx) => Number(idx))
+          .filter((idx) => Number.isInteger(idx) && idx >= 0 && idx < options.length)
+      : []
+
+    normalized.push({
+      question,
+      image: typeof raw.image === "string" ? raw.image : undefined,
+      options,
+      type,
+      correctAnswer: type === "multiple-select" ? undefined : correctAnswer,
+      correctAnswers: type === "multiple-select" ? correctAnswers : undefined,
+    })
+  }
+
+  return normalized
+}
+
 export default function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const resolvedParams = use(params)
@@ -492,10 +647,12 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       // Add to new lesson quizzes or existing lesson quizzes
       if (addToNew) {
         console.log("BRANCH: addToNew=true, updating newLessonQuizzes")
-        const newQuizzes = [...newLessonQuizzes, ...quizzesWithUploadedImages]
-        console.log("State before update:", newLessonQuizzes.length)
-        setNewLessonQuizzes(newQuizzes)
-        console.log("State after setNewLessonQuizzes, new length:", newQuizzes.length)
+        setNewLessonQuizzes((prev) => {
+          const next = [...prev, ...quizzesWithUploadedImages]
+          console.log("State before update:", prev.length)
+          console.log("State after setNewLessonQuizzes, new length:", next.length)
+          return next
+        })
       } else if (lessonId) {
         console.log("BRANCH: addToNew=false, lessonId provided, updating lesson quizzes for lesson:", lessonId)
         setSections(
@@ -690,14 +847,22 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
     if (addLessonSectionId) {
       const newLessonId = Date.now().toString()
-      setSections(
-        sections.map((s) => {
+      // Snapshot quizzes/files to avoid losing data when modal state is reset.
+      const quizSnapshot = newLessonQuizzes.map((q) => ({
+        ...q,
+        options: [...q.options],
+        correctAnswers: [...(q.correctAnswers || [])],
+      }))
+      const fileSnapshot = [...newLessonFiles]
+
+      setSections((prev) =>
+        prev.map((s) => {
           if (s.id === addLessonSectionId) {
             const newLesson: Lesson = {
               id: newLessonId,
               title: newLessonData.title,
               description: newLessonData.description,
-              quizzes: newLessonQuizzes,
+              quizzes: quizSnapshot,
             }
             return { ...s, lessons: [...s.lessons, newLesson] }
           }
@@ -706,10 +871,10 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       )
 
       // Store files for the new lesson
-      if (newLessonFiles.length > 0) {
+      if (fileSnapshot.length > 0) {
         setUploadedFiles(prev => ({
           ...prev,
-          [newLessonId]: newLessonFiles
+          [newLessonId]: fileSnapshot
         }))
       }
 
@@ -730,12 +895,12 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       correctAnswer: 0,
       correctAnswers: [],
     }
-    setNewLessonQuizzes([...newLessonQuizzes, newQuiz])
+    setNewLessonQuizzes((prev) => [...prev, newQuiz])
   }
 
   const updateNewLessonQuiz = (quizId: string, updates: Partial<Quiz>) => {
-    setNewLessonQuizzes(
-      newLessonQuizzes.map((q) => {
+    setNewLessonQuizzes((prev) =>
+      prev.map((q) => {
         if (q.id !== quizId) return q
         const nextQuiz = { ...q, ...updates }
         if (updates.type && updates.type !== q.type) {
@@ -759,7 +924,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   }
 
   const deleteNewLessonQuiz = (quizId: string) => {
-    setNewLessonQuizzes(newLessonQuizzes.filter((q) => q.id !== quizId))
+    setNewLessonQuizzes((prev) => prev.filter((q) => q.id !== quizId))
   }
 
   // Helper functions for file type checking
@@ -887,6 +1052,82 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
         : { "Content-Type": "application/json" }
 
+      const persistedIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      const isPersistedId = (value: unknown) => persistedIdPattern.test(String(value || ""))
+
+      // Reconcile deletions first: anything removed in UI must be removed in DB.
+      const [existingLessonsRes, existingQuizzesRes] = await Promise.all([
+        fetch(`/api/lessons/course/${resolvedParams.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+        fetch(`/api/quizzes/course/${resolvedParams.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+      ])
+
+      const existingLessonsJson = existingLessonsRes.ok ? await existingLessonsRes.json().catch(() => ([])) : []
+      const existingLessonsUnwrapped = existingLessonsJson?.data ?? existingLessonsJson
+      const existingLessonList = Array.isArray(existingLessonsUnwrapped)
+        ? existingLessonsUnwrapped
+        : Array.isArray(existingLessonsUnwrapped?.data)
+        ? existingLessonsUnwrapped.data
+        : []
+
+      const existingQuizzesJson = existingQuizzesRes.ok ? await existingQuizzesRes.json().catch(() => ([])) : []
+      const existingQuizzesUnwrapped = existingQuizzesJson?.data ?? existingQuizzesJson
+      const existingQuizList = Array.isArray(existingQuizzesUnwrapped)
+        ? existingQuizzesUnwrapped
+        : Array.isArray(existingQuizzesUnwrapped?.data)
+        ? existingQuizzesUnwrapped.data
+        : []
+
+      const localPersistedLessonIds = new Set(
+        sections
+          .flatMap((section) => section.lessons.map((lesson) => String(lesson.id)))
+          .filter((id) => isPersistedId(id)),
+      )
+
+      const removedLessonIds = (existingLessonList as Array<{ id?: string }>)
+        .map((lesson) => String(lesson?.id || ""))
+        .filter((id) => id && !localPersistedLessonIds.has(id))
+
+      if (removedLessonIds.length > 0) {
+        console.log("[SaveCourse] Lessons removed in UI, deleting from DB:", removedLessonIds)
+        for (const removedLessonId of removedLessonIds) {
+          const deleteLessonRes = await fetch(`/api/lessons/${removedLessonId}`, {
+            method: "DELETE",
+            headers: authHeaders,
+          })
+          if (!deleteLessonRes.ok) {
+            const err = await deleteLessonRes.json().catch(() => ({}))
+            throw new Error(`Xóa bài học đã bỏ khỏi giao diện thất bại (${removedLessonId}): ${err?.error || deleteLessonRes.status}`)
+          }
+        }
+      }
+
+      // Build a lessonId -> quizId lookup to avoid creating duplicate quizzes
+      // when local state temporarily misses quizId (e.g. after import flows).
+      const existingQuizByLessonId: Record<string, string> = {}
+      for (const quiz of existingQuizList) {
+        const lessonKey = String(quiz?.lessonId || "")
+        const quizId = String(quiz?.id || "")
+        if (!lessonKey || !quizId) continue
+
+        const prevQuizId = existingQuizByLessonId[lessonKey]
+        if (!prevQuizId) {
+          existingQuizByLessonId[lessonKey] = quizId
+          continue
+        }
+
+        // Prefer the quiz that currently has more questions.
+        const prevQuiz = existingQuizList.find((item: any) => String(item?.id) === prevQuizId)
+        const prevQuestionCount = Array.isArray(prevQuiz?.questions) ? prevQuiz.questions.length : 0
+        const nextQuestionCount = Array.isArray(quiz?.questions) ? quiz.questions.length : 0
+        if (nextQuestionCount >= prevQuestionCount) {
+          existingQuizByLessonId[lessonKey] = quizId
+        }
+      }
+
       let nextThumbnail = course.thumbnail
       if (thumbnailDirty) {
         if (thumbnailFile) {
@@ -961,17 +1202,14 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               const createdLessonId = lessonData?.id
 
               if (createdLessonId && lesson.quizzes.length > 0) {
+                const sanitizedQuestions = buildQuizQuestionsPayload(lesson.quizzes)
+                if (sanitizedQuestions.length === 0) {
+                  throw new Error(`Bài "${lesson.title}" chưa có câu hỏi hợp lệ để lưu.`)
+                }
                 const quizPayload = {
                   title: `Quiz - ${lesson.title}`,
                   description: "",
-                  questions: lesson.quizzes.map((q) => ({
-                    question: q.question,
-                    image: q.image,
-                    options: q.options,
-                    type: q.type,
-                    correctAnswer: q.type === "multiple-select" ? undefined : q.correctAnswer ?? 0,
-                    correctAnswers: q.type === "multiple-select" ? q.correctAnswers || [] : undefined,
-                  })),
+                  questions: sanitizedQuestions,
                   courseId: resolvedParams.id,
                   lessonId: createdLessonId,
                 }
@@ -1011,26 +1249,24 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               throw new Error(`Lưu bài học "${lesson.title}" thất bại: ${err?.error?.message || err?.message || patchRes.status}`)
             }
 
-            console.log(`[SaveCourse] lesson ${lesson.id}: quizzes=${lesson.quizzes.length}, quizId=${lesson.quizId}`)
+            const resolvedQuizId = lesson.quizId || existingQuizByLessonId[String(lesson.id)]
+            console.log(`[SaveCourse] lesson ${lesson.id}: quizzes=${lesson.quizzes.length}, quizId=${lesson.quizId}, resolvedQuizId=${resolvedQuizId}`)
             if (lesson.quizzes.length > 0) {
+              const sanitizedQuestions = buildQuizQuestionsPayload(lesson.quizzes)
+              if (sanitizedQuestions.length === 0) {
+                throw new Error(`Bài "${lesson.title}" chưa có câu hỏi hợp lệ để lưu.`)
+              }
               const quizPayload = {
                 title: `Quiz - ${lesson.title}`,
                 description: "",
-                questions: lesson.quizzes.map((q) => ({
-                  question: q.question,
-                  image: q.image,
-                  options: q.options,
-                  type: q.type,
-                  correctAnswer: q.type === "multiple-select" ? undefined : q.correctAnswer ?? 0,
-                  correctAnswers: q.type === "multiple-select" ? q.correctAnswers || [] : undefined,
-                })),
+                questions: sanitizedQuestions,
                 courseId: resolvedParams.id,
                 lessonId: lesson.id,
               }
 
-              if (lesson.quizId) {
-                console.log(`[SaveCourse] PATCH quiz ${lesson.quizId}, questions:`, quizPayload.questions.length)
-                const quizPatchRes = await fetch(`/api/quizzes/${lesson.quizId}`, {
+              if (resolvedQuizId) {
+                console.log(`[SaveCourse] PATCH quiz ${resolvedQuizId}, questions:`, quizPayload.questions.length)
+                const quizPatchRes = await fetch(`/api/quizzes/${resolvedQuizId}`, {
                   method: "PATCH",
                   headers: authHeaders,
                   body: JSON.stringify(quizPayload),
@@ -1053,7 +1289,24 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   console.error(`[SaveCourse] POST quiz failed (${quizPostRes.status}):`, err)
                   throw new Error(`Lưu câu hỏi cho bài "${lesson.title}" thất bại: ${err?.message || err?.error || quizPostRes.status}`)
                 }
+
+                const createdQuizJson = await quizPostRes.json().catch(() => ({}))
+                const createdQuizData = createdQuizJson?.data ?? createdQuizJson
+                const createdQuizId = createdQuizData?.id
+                if (createdQuizId) {
+                  existingQuizByLessonId[String(lesson.id)] = String(createdQuizId)
+                }
                 console.log(`[SaveCourse] POST quiz OK for existing lesson ${lesson.id}`)
+              }
+            } else if (resolvedQuizId) {
+              console.log(`[SaveCourse] DELETE quiz ${resolvedQuizId} because lesson ${lesson.id} has no questions`)
+              const quizDeleteRes = await fetch(`/api/quizzes/${resolvedQuizId}`, {
+                method: "DELETE",
+                headers: authHeaders,
+              })
+              if (!quizDeleteRes.ok) {
+                const err = await quizDeleteRes.json().catch(() => ({}))
+                throw new Error(`Xóa bộ câu hỏi cũ của bài "${lesson.title}" thất bại: ${err?.error || quizDeleteRes.status}`)
               }
             }
           }
@@ -1079,9 +1332,16 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           : Array.isArray(quizzesUnwrapped?.data)
           ? quizzesUnwrapped.data
           : []
-        const quizByLesson = quizList.reduce((acc: Record<string, any>, quiz: { lessonId: string | number }) => {
-          if (quiz?.lessonId && !acc[quiz.lessonId]) {
-            acc[quiz.lessonId] = quiz
+        const quizByLesson = quizList.reduce((acc: Record<string, any>, quiz: { lessonId: string | number; questions?: unknown[] }) => {
+          const key = String(quiz?.lessonId || "")
+          if (!key) return acc
+
+          const current = acc[key]
+          const currentQuestionCount = Array.isArray(current?.questions) ? current.questions.length : 0
+          const nextQuestionCount = Array.isArray(quiz?.questions) ? quiz.questions.length : 0
+
+          if (!current || nextQuestionCount >= currentQuestionCount) {
+            acc[key] = quiz
           }
           return acc
         }, {} as Record<string, any>)
@@ -1101,13 +1361,13 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               .map(l => {
                 const firstRes = parseFirstResource(l.resources)
                 const linkedQuiz = quizByLesson[l.id]
-                const questions = Array.isArray(linkedQuiz?.questions) ? linkedQuiz.questions : []
+                const questions = parseQuizQuestions(linkedQuiz?.questions)
                 return {
                   id: l.id,
                   title: l.title,
                   description: l.description || "",
                   quizId: linkedQuiz?.id,
-                  quizzes: questions.map((q: any) => ({
+                  quizzes: questions.map((q) => ({
                     id: q.id || `${Date.now()}-${Math.random()}`,
                     question: q.question || "",
                     image: q.image || undefined,
@@ -1807,15 +2067,19 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                             className="w-3 h-3"
                                           />
                                         )}
-                                        <input
-                                          type="text"
+                                        <textarea
                                           value={option}
                                           onChange={(e) => {
                                             const newOptions = [...quiz.options]
                                             newOptions[idx] = e.target.value
                                             updateQuiz(lesson.id, quiz.id, { options: newOptions })
+                                            e.target.style.height = "auto"
+                                            e.target.style.height = e.target.scrollHeight + "px"
                                           }}
-                                          className="flex-1 px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-xs sm:text-sm"
+                                          onInput={(e) => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = t.scrollHeight + "px" }}
+                                          ref={(el) => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px" } }}
+                                          rows={1}
+                                          className="flex-1 px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-xs sm:text-sm resize-none overflow-hidden leading-snug"
                                           disabled={quiz.type === "true-false"}
                                         />
                                       </div>
@@ -1919,7 +2183,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                         setDraggedAddVideoZone(false)
                         const file = e.dataTransfer.files?.[0]
                         if (file && file.type.startsWith('video/')) {
-                          setNewLessonFiles([...newLessonFiles, file])
+                          setNewLessonFiles((prev) => [...prev, file])
                         }
                       }}
                       onClick={() => addLessonVideoInputRef.current?.click()}
@@ -1940,7 +2204,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                       onChange={(e) => {
                         const file = e.target.files?.[0]
                         if (file) {
-                          setNewLessonFiles([...newLessonFiles, file])
+                          setNewLessonFiles((prev) => [...prev, file])
                         }
                       }}
                       className="hidden"
@@ -1956,7 +2220,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                               <Video size={14} className="text-primary dark:text-accent flex-shrink-0" />
                               <span className="text-xs text-foreground dark:text-white truncate">{file.name}</span>
                             </div>
-                            <button onClick={() => setNewLessonFiles(newLessonFiles.filter(f => f !== file))} className="text-destructive hover:text-destructive/80 flex-shrink-0 ml-2">
+                            <button onClick={() => setNewLessonFiles((prev) => prev.filter(f => f !== file))} className="text-destructive hover:text-destructive/80 flex-shrink-0 ml-2">
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -1981,7 +2245,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                         setDraggedAddDocumentZone(false)
                         const file = e.dataTransfer.files?.[0]
                         if (file && isDocumentOrImage(file)) {
-                          setNewLessonFiles([...newLessonFiles, file])
+                          setNewLessonFiles((prev) => [...prev, file])
                         }
                       }}
                       onClick={() => addLessonDocumentInputRef.current?.click()}
@@ -2002,7 +2266,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                       onChange={(e) => {
                         const file = e.target.files?.[0]
                         if (file && isDocumentOrImage(file)) {
-                          setNewLessonFiles([...newLessonFiles, file])
+                          setNewLessonFiles((prev) => [...prev, file])
                         }
                       }}
                       className="hidden"
@@ -2022,7 +2286,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                               )}
                               <span className="text-xs text-foreground dark:text-white truncate">{file.name}</span>
                             </div>
-                            <button onClick={() => setNewLessonFiles(newLessonFiles.filter(f => f !== file))} className="text-destructive hover:text-destructive/80 flex-shrink-0 ml-2">
+                            <button onClick={() => setNewLessonFiles((prev) => prev.filter(f => f !== file))} className="text-destructive hover:text-destructive/80 flex-shrink-0 ml-2">
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -2210,15 +2474,19 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                       className="w-3 h-3"
                                     />
                                   )}
-                                  <input
-                                    type="text"
+                                  <textarea
                                     value={option}
                                     onChange={(e) => {
                                       const newOptions = [...quiz.options]
                                       newOptions[idx] = e.target.value
                                       updateNewLessonQuiz(quiz.id, { options: newOptions })
+                                      e.target.style.height = "auto"
+                                      e.target.style.height = e.target.scrollHeight + "px"
                                     }}
-                                    className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm"
+                                    onInput={(e) => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = t.scrollHeight + "px" }}
+                                    ref={(el) => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px" } }}
+                                    rows={1}
+                                    className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm resize-none overflow-hidden leading-snug"
                                     disabled={quiz.type === "true-false"}
                                   />
                                 </div>

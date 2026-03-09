@@ -221,7 +221,7 @@ export function LessonPlayer({ courseTitle, lessons, currentLessonId, onLessonCh
                           href={material.url}
                           target="_blank"
                           rel="noreferrer"
-                          download
+                          download={material.name || true}
                           className="p-2 hover:bg-primary/10 dark:hover:bg-primary/20 rounded-lg transition-smooth"
                           title="Tải xuống"
                         >

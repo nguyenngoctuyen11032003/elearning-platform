@@ -149,7 +149,7 @@ export function QuizComponent({ questions, onComplete }: QuizComponentProps) {
                   : "hover:border-slate-600 hover:bg-slate-800/50",
               )}
             >
-              <span className="text-white">{option}</span>
+              <p className="text-white whitespace-pre-wrap break-words">{option}</p>
             </motion.button>
           ))}
         </div>

@@ -36,3 +36,34 @@ export async function PATCH(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params
+    const authHeader = request.headers.get("Authorization")
+    if (!authHeader) {
+      return NextResponse.json({ error: "No authorization header" }, { status: 401 })
+    }
+
+    const response = await fetch(`${BACKEND_URL}/quizzes/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: authHeader, "Content-Type": "application/json" },
+    })
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      return NextResponse.json(
+        { error: err.message || err.error || "Failed to delete quiz" },
+        { status: response.status },
+      )
+    }
+
+    return NextResponse.json({ message: "Đã xóa bài kiểm tra thành công" })
+  } catch (error) {
+    console.error("Error deleting quiz:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
