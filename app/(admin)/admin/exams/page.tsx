@@ -17,7 +17,6 @@ import {
   BookOpen
 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 
 interface Exam {
   id: string
@@ -39,104 +38,14 @@ interface Exam {
   attemptCount: number
 }
 
-const initialExams: Exam[] = [
-  {
-    id: "1",
-    title: "Bài thi cuối khóa Next.js",
-    description: "Bài thi đánh giá kiến thức toàn diện về Next.js, App Router và Server Components",
-    course: "Lập trình Next.js từ cơ bản đến nâng cao",
-    courseId: "COURSE001",
-    teacher: "Nguyễn Ngọc Tuyền",
-    teacherEmail: "tuyen@example.com",
-    type: "official",
-    status: "approved",
-    createdAt: "2024-01-20",
-    timeLimit: 90,
-    passingScore: 70,
-    maxAttempts: 2,
-    questionsCount: 50,
-    certificateTemplate: "Chứng chỉ Next.js Master",
-    attemptCount: 245
-  },
-  {
-    id: "2",
-    title: "Bài thi thử React Hooks",
-    description: "Bài thi luyện tập về React Hooks và State Management",
-    course: "React Hooks Advanced & State Management",
-    courseId: "COURSE002",
-    teacher: "Trần Minh Tuấn",
-    teacherEmail: "tuan@example.com",
-    type: "practice",
-    status: "approved",
-    createdAt: "2024-02-25",
-    timeLimit: 60,
-    passingScore: 60,
-    maxAttempts: 5,
-    questionsCount: 30,
-    attemptCount: 189
-  },
-  {
-    id: "3",
-    title: "Bài thi AI & Machine Learning",
-    description: "Đánh giá kiến thức nền tảng về AI và Machine Learning",
-    course: "AI & Machine Learning cho người mới bắt đầu",
-    courseId: "COURSE003",
-    teacher: "Phạm Thị Hương",
-    teacherEmail: "huong@example.com",
-    type: "official",
-    status: "pending",
-    createdAt: "2024-03-12",
-    timeLimit: 120,
-    passingScore: 75,
-    maxAttempts: 1,
-    questionsCount: 60,
-    certificateTemplate: "Chứng chỉ AI Cơ bản",
-    attemptCount: 0
-  },
-  {
-    id: "4",
-    title: "Bài thi thử UI/UX Design",
-    description: "Luyện tập các kiến thức về thiết kế UI/UX với Figma",
-    course: "UI/UX Design Masterclass với Figma",
-    courseId: "COURSE004",
-    teacher: "Lê Thị Hương",
-    teacherEmail: "huongle@example.com",
-    type: "practice",
-    status: "approved",
-    createdAt: "2024-01-10",
-    timeLimit: 45,
-    passingScore: 50,
-    maxAttempts: 10,
-    questionsCount: 25,
-    attemptCount: 312
-  },
-  {
-    id: "5",
-    title: "Bài thi Python Data Science",
-    description: "Đánh giá kỹ năng phân tích dữ liệu với Python",
-    course: "Python cho Data Science",
-    courseId: "COURSE005",
-    teacher: "Trần Văn Đức",
-    teacherEmail: "duc@example.com",
-    type: "official",
-    status: "rejected",
-    createdAt: "2024-03-18",
-    timeLimit: 100,
-    passingScore: 70,
-    maxAttempts: 2,
-    questionsCount: 45,
-    certificateTemplate: "Chứng chỉ Data Analyst",
-    attemptCount: 0,
-    rejectionReason: "Câu hỏi chưa đủ chất lượng, cần bổ sung thêm câu hỏi về pandas và visualization."
-  },
-]
-
 export default function AdminExamsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
-  const [exams, setExams] = useState(initialExams)
+  const [exams, setExams] = useState<Exam[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [menuButtonRect, setMenuButtonRect] = useState<{ top: number; right: number } | null>(null)
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "reject" | null>(null)
   const [rejectionReason, setRejectionReason] = useState("")
@@ -144,6 +53,82 @@ export default function AdminExamsPage() {
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; action: string; examId?: string }>({ isOpen: false, action: "" })
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
   const cardRef = useRef<HTMLDivElement | null>(null)
+
+  const getAuthHeaders = () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+    return headers
+  }
+
+  const mapExam = (item: any): Exam => {
+    const parseQuestions = (value: any): any[] => {
+      let data = value
+      while (typeof data === "string") {
+        try { data = JSON.parse(data) } catch { break }
+      }
+      if (Array.isArray(data)) return data
+      return []
+    }
+
+    const questions = parseQuestions(item?.questions)
+    const course = item?.course || {}
+    const teacher = item?.teacher || {}
+    const teacherName =
+      teacher?.name ||
+      [teacher?.firstName, teacher?.lastName].filter(Boolean).join(" ") ||
+      ""
+
+    return {
+      id: item?.id,
+      title: item?.title || "",
+      description: item?.description || "",
+      course: course?.title || "",
+      courseId: item?.courseId || course?.id || "",
+      teacher: teacherName,
+      teacherEmail: teacher?.email || "",
+      type: item?.type,
+      status: item?.status,
+      createdAt: item?.createdAt || "",
+      timeLimit: item?.timeLimit || 0,
+      passingScore: item?.passingScore || 0,
+      maxAttempts: item?.maxAttempts || 0,
+      questionsCount: questions.length,
+      certificateTemplate: item?.certificateTemplate?.name || item?.certificateTemplateId || undefined,
+      rejectionReason: item?.rejectionReason || undefined,
+      attemptCount: Array.isArray(item?.attempts) ? item.attempts.length : 0,
+    }
+  }
+
+  const fetchExams = async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch("/api/admin/exams", {
+        headers: getAuthHeaders(),
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch exams")
+      }
+
+      const payload = await res.json()
+      const unwrapped = payload?.data ?? payload
+      const examList = Array.isArray(unwrapped)
+        ? unwrapped
+        : Array.isArray(unwrapped?.data)
+        ? unwrapped.data
+        : []
+
+      setExams(examList.map(mapExam))
+    } catch (error) {
+      console.error("Failed to fetch admin exams", error)
+      setExams([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -153,6 +138,7 @@ export default function AdminExamsPage() {
         !menuRef.current.contains(event.target as Node)
       ) {
         setOpenMenu(null)
+        setMenuButtonRect(null)
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
@@ -162,7 +148,11 @@ export default function AdminExamsPage() {
   }, [openMenu])
 
   useEffect(() => {
-    const closeMenu = () => setOpenMenu(null)
+    fetchExams()
+  }, [])
+
+  useEffect(() => {
+    const closeMenu = () => { setOpenMenu(null); setMenuButtonRect(null) }
     window.addEventListener("scroll", closeMenu)
     window.addEventListener("resize", closeMenu)
     return () => {
@@ -188,28 +178,71 @@ export default function AdminExamsPage() {
   const practiceExams = exams.filter(e => e.type === "practice").length
   const officialExams = exams.filter(e => e.type === "official").length
 
-  const handleApprove = (examId: string) => {
-    setExams(exams.map(exam =>
-      exam.id === examId ? { ...exam, status: "approved" as const, rejectionReason: undefined } : exam
-    ))
-    setOpenMenu(null)
+  const handleApprove = async (examId: string) => {
+    try {
+      const res = await fetch(`/api/exams/${examId}/approve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to approve exam")
+      }
+
+      await fetchExams()
+      setOpenMenu(null)
+    } catch (error) {
+      console.error("Approve failed", error)
+      window.alert("Không thể duyệt bài thi")
+    }
   }
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!selectedExam || !rejectionReason.trim()) return
-    setExams(exams.map(exam =>
-      exam.id === selectedExam.id
-        ? { ...exam, status: "rejected" as const, rejectionReason }
-        : exam
-    ))
-    setViewMode(null)
-    setSelectedExam(null)
-    setRejectionReason("")
+    try {
+      const res = await fetch(`/api/exams/${selectedExam.id}/reject`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ reason: rejectionReason.trim() }),
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to reject exam")
+      }
+
+      await fetchExams()
+      setViewMode(null)
+      setSelectedExam(null)
+      setRejectionReason("")
+    } catch (error) {
+      console.error("Reject failed", error)
+      window.alert("Không thể từ chối bài thi")
+    }
   }
 
-  const handleDelete = (examId: string) => {
-    setExams(exams.filter(exam => exam.id !== examId))
-    setConfirmDialog({ isOpen: false, action: "" })
+  const handleDelete = async (examId: string) => {
+    try {
+      const res = await fetch(`/api/admin/exams/${examId}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to delete exam")
+      }
+
+      await fetchExams()
+      setConfirmDialog({ isOpen: false, action: "" })
+    } catch (error) {
+      console.error("Delete failed", error)
+      window.alert("Không thể xóa bài thi")
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -378,8 +411,8 @@ export default function AdminExamsPage() {
         </div>
 
         {/* Exams Table (Desktop only - xl+) */}
-        <div className="hidden xl:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp" style={{ animationDelay: "0.2s" }}>
-          <div className="overflow-x-auto">
+        <div className="hidden xl:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl animate-slideUp" style={{ animationDelay: "0.2s" }}>
+          <div className="overflow-x-auto rounded-2xl">
             <table className="w-full">
               <thead className="bg-white/50 dark:bg-slate-800/50">
                 <tr>
@@ -393,7 +426,14 @@ export default function AdminExamsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border dark:divide-slate-800">
-                {filteredExams.map((exam) => (
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground dark:text-slate-400">
+                      Đang tải dữ liệu bài thi...
+                    </td>
+                  </tr>
+                ) : (
+                  filteredExams.map((exam) => (
                   <tr key={exam.id} className="hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-300">
                     <td className="px-4 py-3 max-w-[280px]">
                       <div>
@@ -474,63 +514,30 @@ export default function AdminExamsPage() {
                         </Link>
                         <div className="relative">
                           <button
-                            onClick={() => setOpenMenu(openMenu === exam.id ? null : exam.id)}
+                            onClick={(e) => {
+                              if (openMenu === exam.id) {
+                                setOpenMenu(null)
+                                setMenuButtonRect(null)
+                              } else {
+                                const rect = e.currentTarget.getBoundingClientRect()
+                                setMenuButtonRect({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+                                setOpenMenu(exam.id)
+                              }
+                            }}
                             className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
                           >
                             <MoreVertical size={18} className="text-muted-foreground" />
                           </button>
-                          {openMenu === exam.id && (
-                            <div
-                              ref={menuRef}
-                              className="absolute right-0 mt-2 w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg z-10"
-                            >
-                              {exam.status === "pending" && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      handleApprove(exam.id)
-                                      setOpenMenu(null)
-                                    }}
-                                    className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-green-500 rounded-t-xl"
-                                  >
-                                    <CheckCircle size={16} />
-                                    <span className="font-medium">Duyệt bài thi</span>
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedExam(exam)
-                                      setViewMode("reject")
-                                      setOpenMenu(null)
-                                    }}
-                                    className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-yellow-500 border-t border-border dark:border-slate-700"
-                                  >
-                                    <XCircle size={16} />
-                                    <span className="font-medium">Từ chối</span>
-                                  </button>
-                                </>
-                              )}
-                              <button
-                                onClick={() => {
-                                  setConfirmDialog({ isOpen: true, action: "delete", examId: exam.id })
-                                  setOpenMenu(null)
-                                }}
-                                className={`w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 ${exam.status === "pending" ? "border-t border-border dark:border-slate-700" : "rounded-xl"}`}
-                              >
-                                <XCircle size={16} />
-                                <span className="font-medium">Xóa bài thi</span>
-                              </button>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>
 
-          {filteredExams.length === 0 && (
+          {!isLoading && filteredExams.length === 0 && (
             <div className="p-12 text-center">
               <FileText size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
               <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy bài thi nào</p>
@@ -540,7 +547,11 @@ export default function AdminExamsPage() {
 
         {/* Exams Card Layout (Tablet & Mobile - below xl) */}
         <div className="block xl:hidden">
-          {filteredExams.length === 0 ? (
+          {isLoading ? (
+            <div className="p-12 text-center">
+              <p className="text-muted-foreground dark:text-slate-400">Đang tải dữ liệu bài thi...</p>
+            </div>
+          ) : filteredExams.length === 0 ? (
             <div className="p-12 text-center">
               <FileText size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
               <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy bài thi nào</p>
@@ -630,7 +641,7 @@ export default function AdminExamsPage() {
                     )}
                     <div
                       ref={menuRef}
-                      className="relative right-0 bottom-0 z-20 w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg"
+                      className="relative right-0 bottom-0 z-[9999] w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg"
                     >
                       {exam.status === "pending" && (
                         <>
@@ -932,6 +943,45 @@ export default function AdminExamsPage() {
             </div>
           </div>
         )}
+
+        {/* Fixed dropdown for desktop table — rendered outside overflow-x-auto to avoid clip */}
+        {openMenu && menuButtonRect && (() => {
+          const activeExam = filteredExams.find(e => e.id === openMenu)
+          if (!activeExam) return null
+          return (
+            <div
+              ref={menuRef}
+              style={{ top: menuButtonRect.top, right: menuButtonRect.right }}
+              className="hidden xl:block fixed w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg z-[9999]"
+            >
+              {activeExam.status === "pending" && (
+                <>
+                  <button
+                    onClick={() => { handleApprove(activeExam.id); setOpenMenu(null); setMenuButtonRect(null) }}
+                    className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-green-500 rounded-t-xl"
+                  >
+                    <CheckCircle size={16} />
+                    <span className="font-medium">Duyệt bài thi</span>
+                  </button>
+                  <button
+                    onClick={() => { setSelectedExam(activeExam); setViewMode("reject"); setOpenMenu(null); setMenuButtonRect(null) }}
+                    className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-yellow-500 border-t border-border dark:border-slate-700"
+                  >
+                    <XCircle size={16} />
+                    <span className="font-medium">Từ chối</span>
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => { setConfirmDialog({ isOpen: true, action: "delete", examId: activeExam.id }); setOpenMenu(null); setMenuButtonRect(null) }}
+                className={`w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 ${activeExam.status === "pending" ? "border-t border-border dark:border-slate-700" : "rounded-t-xl rounded-b-xl"}`}
+              >
+                <XCircle size={16} />
+                <span className="font-medium">Xóa bài thi</span>
+              </button>
+            </div>
+          )
+        })()}
     </div>
   )
 }

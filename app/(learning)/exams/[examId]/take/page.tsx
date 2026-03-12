@@ -11,7 +11,9 @@ import {
   Flag,
   CheckCircle,
   Circle,
-  Send
+  Send,
+  Volume2,
+  VolumeX
 } from "lucide-react"
 
 interface Question {
@@ -135,6 +137,18 @@ export default function TakeExamPage() {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false)
   const [showTimeWarning, setShowTimeWarning] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isReadingQuestion, setIsReadingQuestion] = useState(false)
+  const [speechSupported, setSpeechSupported] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    setSpeechSupported("speechSynthesis" in window)
+    return () => {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
 
   // Timer
   useEffect(() => {
@@ -203,6 +217,30 @@ export default function TakeExamPage() {
       console.error("Error submitting exam:", error)
       setIsSubmitting(false)
     }
+  }
+
+  const readFillInQuestion = () => {
+    if (!speechSupported || question.type !== "fill_in") return
+
+    const synth = window.speechSynthesis
+    if (synth.speaking) {
+      synth.cancel()
+      setIsReadingQuestion(false)
+      return
+    }
+
+    const readableText = question.question
+      .replace(/_+/g, " chỗ trống ")
+      .replace(/\s+/g, " ")
+      .trim()
+
+    const utterance = new SpeechSynthesisUtterance(readableText)
+    utterance.lang = "vi-VN"
+    utterance.rate = 0.95
+    utterance.onstart = () => setIsReadingQuestion(true)
+    utterance.onend = () => setIsReadingQuestion(false)
+    utterance.onerror = () => setIsReadingQuestion(false)
+    synth.speak(utterance)
   }
 
   const answeredCount = Object.keys(answers).length
@@ -313,6 +351,18 @@ export default function TakeExamPage() {
             <h2 className="text-lg font-medium text-foreground dark:text-white mb-6">
               {question.question}
             </h2>
+
+            {question.type === "fill_in" && (
+              <button
+                type="button"
+                onClick={readFillInQuestion}
+                disabled={!speechSupported}
+                className="mb-6 inline-flex items-center gap-2 rounded-lg border border-border dark:border-slate-700 px-3 py-2 text-sm text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isReadingQuestion ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                {isReadingQuestion ? "Dừng đọc câu" : "Đọc câu điền khuyết"}
+              </button>
+            )}
 
             {/* Answer Options */}
             <div className="space-y-3">

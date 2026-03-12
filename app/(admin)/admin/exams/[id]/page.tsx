@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
-  Edit,
   Trash2,
   CheckCircle,
   XCircle,
@@ -26,10 +25,10 @@ import Link from "next/link"
 interface Question {
   id: string
   question: string
-  image?: string // Thêm trường image giống trang teacher
-  type: "multiple-choice" | "true-false" | "essay"
+  image?: string
+  type: "multiple_choice" | "true_false" | "fill_in" | "multiple-choice" | "true-false"
   options?: string[]
-  correctAnswer: string | number
+  correctAnswer: string | string[] | number
   explanation?: string
   points: number
   order: number
@@ -214,10 +213,347 @@ const mockExamDetail: ExamDetail = {
 export default function AdminExamDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const [exam] = useState<ExamDetail>(mockExamDetail)
+  const examId = Array.isArray(params.id) ? params.id[0] : (params.id as string)
+  const [exam, setExam] = useState<ExamDetail>(mockExamDetail)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
   const [activeTab, setActiveTab] = useState<"overview" | "questions" | "attempts" | "analytics">("overview")
-  // Chỉ cho phép xem, không cho phép chỉnh sửa/xóa
-  const isReadonly = true;
+  const [actionLoading, setActionLoading] = useState(false)
+  const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [rejectDialog, setRejectDialog] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState("")
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const getAuthHeaders = () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+    return headers
+  }
+
+  const mapExam = (item: any): ExamDetail => {
+    const coerceString = (value: any): string => {
+      if (value === undefined || value === null) return ""
+      if (typeof value === "string") return value.trim()
+      if (typeof value === "number" || typeof value === "boolean") return String(value)
+      return ""
+    }
+
+    const extractOptionText = (option: any): string => {
+      if (typeof option === "string") return option
+      if (typeof option === "number" || typeof option === "boolean") return String(option)
+      if (!option || typeof option !== "object") return ""
+      return (
+        coerceString(option.text) ||
+        coerceString(option.label) ||
+        coerceString(option.content) ||
+        coerceString(option.value) ||
+        ""
+      )
+    }
+
+    const findFirstMeaningfulText = (source: any): string => {
+      if (!source || typeof source !== "object") return ""
+
+      const preferredKeys = [
+        "question",
+        "questionText",
+        "text",
+        "content",
+        "prompt",
+        "stem",
+        "title",
+        "name",
+      ]
+
+      for (const key of preferredKeys) {
+        const candidate = source[key]
+        if (typeof candidate === "string" && candidate.trim()) {
+          return candidate.trim()
+        }
+      }
+
+      const ignoredKeys = new Set([
+        "id",
+        "type",
+        "questionType",
+        "correctAnswer",
+        "answer",
+        "correct",
+        "options",
+        "points",
+        "score",
+        "mark",
+        "weight",
+        "image",
+        "imageUrl",
+      ])
+
+      for (const [key, value] of Object.entries(source)) {
+        if (ignoredKeys.has(key)) continue
+        if (typeof value === "string" && value.trim()) {
+          return value.trim()
+        }
+      }
+
+      for (const value of Object.values(source)) {
+        if (value && typeof value === "object") {
+          const nested = findFirstMeaningfulText(value)
+          if (nested) return nested
+        }
+      }
+
+      return ""
+    }
+
+    const normalizeQuestionType = (value: any): Question["type"] => {
+      const normalized = String(value || "multiple_choice").toLowerCase().trim()
+      if (["multiple-choice", "multiple_choice", "mcq", "choice"].includes(normalized)) return "multiple_choice"
+      if (["true-false", "true_false", "boolean"].includes(normalized)) return "true_false"
+      if (["fill_in", "fill-in", "fillblank", "fill_blank"].includes(normalized)) return "fill_in"
+      return "multiple_choice"
+    }
+
+    const parseRawQuestions = (value: any): any[] => {
+      if (Array.isArray(value)) return value
+      if (typeof value === "string") {
+        try {
+          const parsed = JSON.parse(value)
+          return Array.isArray(parsed) ? parsed : []
+        } catch {
+          return []
+        }
+      }
+      return []
+    }
+
+    const parseQuestionFromArray = (raw: any[], index: number): Question => {
+      const cells = raw.map((cell) => coerceString(cell))
+      const options = cells.slice(1, 7).filter(Boolean)
+      const questionText = cells[0] || ""
+      const answerValue = cells[7] || cells[cells.length - 1] || ""
+      const pointsValue = Number(cells[8])
+      const explanation = cells[9] || ""
+      const isTrueFalse =
+        options.length === 2 &&
+        options.map((o) => o.toLowerCase()).includes("đúng") &&
+        options.map((o) => o.toLowerCase()).includes("sai")
+
+      return {
+        id: `${index + 1}`,
+        question: questionText,
+        image: undefined,
+        type: options.length >= 2 ? (isTrueFalse ? "true_false" : "multiple_choice") : "fill_in",
+        options: options.length >= 2 ? options : [],
+        correctAnswer: answerValue,
+        explanation,
+        points: Number.isFinite(pointsValue) && pointsValue > 0 ? pointsValue : 1,
+        order: index + 1,
+      }
+    }
+
+    const rawQuestions = parseRawQuestions(item?.questions)
+    const normalizedQuestions: Question[] = rawQuestions.map((rawQuestion: any, index: number) => {
+      let q = rawQuestion
+
+      if (typeof q === "string") {
+        try {
+          q = JSON.parse(q)
+        } catch {
+          q = {
+            question: rawQuestion,
+            type: "fill_in",
+            options: [],
+            correctAnswer: "",
+            points: 1,
+          }
+        }
+      }
+
+      if (Array.isArray(q)) {
+        return parseQuestionFromArray(q, index)
+      }
+
+      const questionText = findFirstMeaningfulText(q)
+      const questionType = normalizeQuestionType(q?.type || q?.questionType)
+      const answerValue = q?.correctAnswer ?? q?.answer ?? q?.correct ?? ""
+      const options = Array.isArray(q?.options)
+        ? q.options.map((option: any) => extractOptionText(option)).filter(Boolean)
+        : Array.isArray(q?.answers)
+        ? q.answers.map((option: any) => extractOptionText(option)).filter(Boolean)
+        : Array.isArray(q?.choices)
+        ? q.choices.map((option: any) => extractOptionText(option)).filter(Boolean)
+        : []
+      const points = Number(q?.points ?? q?.score ?? q?.mark ?? q?.weight)
+      const image =
+        q?.image || q?.imageUrl || q?.imageURL || q?.img || q?.media?.url || undefined
+
+      return {
+        id: q?.id || `${index + 1}`,
+        question: String(questionText),
+        image,
+        type: questionType,
+        options,
+        correctAnswer: answerValue,
+        explanation: q?.explanation || q?.explain || "",
+        points: Number.isFinite(points) && points > 0 ? points : 1,
+        order: index + 1,
+      }
+    })
+
+    const totalPoints = normalizedQuestions.reduce((sum: number, q: Question) => sum + (Number(q?.points) || 0), 0)
+    const teacherName =
+      item?.teacher?.name ||
+      [item?.teacher?.firstName, item?.teacher?.lastName].filter(Boolean).join(" ") ||
+      "Chưa có giảng viên"
+
+    return {
+      id: item?.id || "",
+      title: item?.title || "",
+      description: item?.description || "",
+      course: item?.course?.title || "",
+      courseId: item?.courseId || item?.course?.id || "",
+      teacher: teacherName,
+      teacherEmail: item?.teacher?.email || "",
+      teacherId: item?.teacherId || item?.teacher?.id || "",
+      type: item?.type || "practice",
+      status: item?.status || "draft",
+      createdAt: item?.createdAt || new Date().toISOString(),
+      updatedAt: item?.updatedAt || item?.createdAt || new Date().toISOString(),
+      timeLimit: Number(item?.timeLimit) || 60,
+      passingScore: Number(item?.passingScore) || 70,
+      maxAttempts: Number(item?.maxAttempts) || 3,
+      questionsCount: normalizedQuestions.length,
+      totalPoints,
+      certificateTemplate: item?.certificateTemplate?.name || item?.certificateTemplateId || undefined,
+      rejectionReason: item?.rejectionReason || undefined,
+      attemptCount: Array.isArray(item?.attempts) ? item.attempts.length : Number(item?.attemptCount) || 0,
+      questions: normalizedQuestions,
+      instructions: [
+        "Đọc kỹ từng câu hỏi trước khi trả lời",
+        `Bạn có ${Number(item?.timeLimit) || 60} phút để hoàn thành bài thi`,
+        `Bạn phải đạt ít nhất ${Number(item?.passingScore) || 70}% để vượt qua bài thi`,
+        `Bạn có thể làm lại bài thi tối đa ${Number(item?.maxAttempts) || 3} lần`,
+      ],
+      passRate: Number(item?.passRate) || 0,
+      averageScore: Number(item?.averageScore) || 0,
+    }
+  }
+
+  const showToast = (type: "success" | "error", text: string) => {
+    setToastMsg({ type, text })
+    setTimeout(() => setToastMsg(null), 3000)
+  }
+
+  const handleApprove = async () => {
+    if (actionLoading) return
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/exams/${examId}/approve`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+      })
+      if (!res.ok) throw new Error("Failed")
+      showToast("success", "Đã duyệt bài thi thành công")
+      await fetchExamDetail()
+    } catch {
+      showToast("error", "Không thể duyệt bài thi")
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim() || actionLoading) return
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/exams/${examId}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({ reason: rejectionReason.trim() }),
+      })
+      if (!res.ok) throw new Error("Failed")
+      showToast("success", "Đã từ chối bài thi")
+      setRejectDialog(false)
+      setRejectionReason("")
+      await fetchExamDetail()
+    } catch {
+      showToast("error", "Không thể từ chối bài thi")
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (actionLoading) return
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/admin/exams/${examId}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      })
+      if (!res.ok) throw new Error("Failed")
+      showToast("success", "Đã xóa bài thi")
+      setTimeout(() => router.push("/admin/exams"), 1000)
+    } catch {
+      showToast("error", "Không thể xóa bài thi")
+      setActionLoading(false)
+    }
+  }
+
+  const fetchExamDetail = async () => {
+    if (!examId) return
+    setIsLoading(true)
+    setLoadError("")
+
+    try {
+      const res = await fetch(`/api/exams/${examId}`, {
+        headers: getAuthHeaders(),
+      })
+
+      if (!res.ok) {
+        throw new Error("Không thể tải chi tiết bài thi")
+      }
+
+      const payload = await res.json()
+      // Log payload để kiểm tra dữ liệu câu hỏi
+      console.log("[ExamDetail] Payload from backend:", payload)
+      const item = payload?.data ?? payload
+      // Log trường questions
+      console.log("[ExamDetail] item.questions:", item?.questions)
+      setExam(mapExam(item))
+    } catch (error) {
+      console.error("Failed to fetch exam detail", error)
+      setLoadError("Không thể tải chi tiết bài thi")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchExamDetail()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examId])
+
+  const isOptionCorrect = (question: Question, option: string, optionIndex: number) => {
+    const answer = question.correctAnswer
+
+    if (typeof answer === "number") {
+      return answer === optionIndex
+    }
+
+    if (Array.isArray(answer)) {
+      const normalized = answer.map((item) => String(item).trim().toLowerCase())
+      const letter = String.fromCharCode(65 + optionIndex).toLowerCase()
+      return normalized.includes(option.trim().toLowerCase()) || normalized.includes(letter) || normalized.includes(String(optionIndex + 1))
+    }
+
+    const normalized = String(answer || "").trim().toLowerCase()
+    const letter = String.fromCharCode(65 + optionIndex).toLowerCase()
+    return normalized === option.trim().toLowerCase() || normalized === letter || normalized === String(optionIndex + 1)
+  }
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -239,9 +575,11 @@ export default function AdminExamDetailPage() {
 
   const getQuestionTypeLabel = (type: string) => {
     switch (type) {
+      case "multiple_choice": return "Trắc nghiệm"
       case "multiple-choice": return "Trắc nghiệm"
+      case "true_false": return "Đúng/Sai"
       case "true-false": return "Đúng/Sai"
-      case "essay": return "Tự luận"
+      case "fill_in": return "Điền khuyết"
       default: return type
     }
   }
@@ -262,6 +600,38 @@ export default function AdminExamDetailPage() {
     return text
   }
 
+  const getVisibleQuestionText = (question: Question) => {
+    const normalized = normalizeUploadedText(question.question)
+    if (normalized.trim()) return normalized
+    return `Câu hỏi #${question.order}: chưa có nội dung hiển thị từ dữ liệu nguồn.`
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-6 md:p-8">
+        <div className="w-full rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground dark:border-slate-800 dark:bg-slate-900/60">
+          Đang tải chi tiết bài thi...
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="p-6 md:p-8">
+        <div className="w-full rounded-2xl border border-red-200 bg-red-50 p-8 text-center dark:border-red-800 dark:bg-red-900/20">
+          <p className="mb-4 text-red-600 dark:text-red-300">{loadError}</p>
+          <button
+            onClick={fetchExamDetail}
+            className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primary/90"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 md:p-8">
       <div className="w-full space-y-6">
@@ -274,19 +644,36 @@ export default function AdminExamDetailPage() {
             <ArrowLeft size={20} />
             <span>Quay lại</span>
           </button>
-          {/* Ẩn nút chỉnh sửa/xóa nếu chỉ xem */}
-          {!isReadonly && (
-            <div className="flex items-center gap-3">
-              <button className="px-4 py-2 bg-secondary dark:bg-slate-800 hover:bg-secondary/80 dark:hover:bg-slate-700 text-foreground dark:text-white rounded-lg transition-smooth flex items-center gap-2">
-                <Edit size={18} />
-                Chỉnh sửa
-              </button>
-              <button className="px-4 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-smooth flex items-center gap-2">
-                <Trash2 size={18} />
-                Xóa
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {exam.status === "pending" && (
+              <>
+                <button
+                  onClick={handleApprove}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-2 font-medium"
+                >
+                  <CheckCircle size={18} />
+                  Duyệt bài thi
+                </button>
+                <button
+                  onClick={() => setRejectDialog(true)}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-2 font-medium"
+                >
+                  <XCircle size={18} />
+                  Từ chối
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => setConfirmDelete(true)}
+              disabled={actionLoading}
+              className="px-4 py-2 bg-destructive/10 hover:bg-destructive/20 disabled:opacity-50 text-destructive rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Trash2 size={18} />
+              Xóa
+            </button>
+          </div>
         </div>
 
         {/* Exam Header */}
@@ -379,7 +766,7 @@ export default function AdminExamDetailPage() {
                 <h2 className="text-xl font-bold text-foreground dark:text-white mb-4">Giảng viên</h2>
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-xl font-bold">
-                    {exam.teacher.split(" ").map(n => n[0]).join("")}
+                    {exam.teacher.split(" ").filter(Boolean).map(n => n[0]).join("") || "GV"}
                   </div>
                   <div>
                     <p className="font-semibold text-foreground dark:text-white">{exam.teacher}</p>
@@ -489,7 +876,7 @@ export default function AdminExamDetailPage() {
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex flex-col gap-2">
                           <h3 className="text-lg font-semibold text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed">
-                            {normalizeUploadedText(question.question)}
+                            {getVisibleQuestionText(question)}
                           </h3>
                           {/* Render ảnh nếu có */}
                           {question.image && (
@@ -506,13 +893,13 @@ export default function AdminExamDetailPage() {
                         </div>
                       </div>
 
-                      {question.options && (
+                      {question.options && question.options.length > 0 && (
                         <div className="space-y-2 mb-4">
                           {question.options.map((option, optionIndex) => (
                             <label
                               key={optionIndex}
                               className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer select-none ${
-                                question.correctAnswer === optionIndex
+                                isOptionCorrect(question, option, optionIndex)
                                   ? "bg-green-50 dark:bg-green-900/20 border-green-500 dark:border-green-700"
                                   : "bg-secondary/30 dark:bg-slate-800/30 border-border dark:border-slate-800"
                               }`}
@@ -520,27 +907,49 @@ export default function AdminExamDetailPage() {
                               <input
                                 type="radio"
                                 name={`question_${index}`}
-                                checked={question.correctAnswer === optionIndex}
+                                checked={isOptionCorrect(question, option, optionIndex)}
                                 readOnly
                                 className="form-radio h-5 w-5 text-green-600 focus:ring-green-500"
                               />
                               <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-semibold ${
-                                question.correctAnswer === optionIndex
+                                isOptionCorrect(question, option, optionIndex)
                                   ? "bg-green-500 text-white"
                                   : "bg-secondary dark:bg-slate-700 text-muted-foreground dark:text-slate-400"
                               }`}>
                                 {String.fromCharCode(65 + optionIndex)}
                               </span>
                                 <span
-                                  className={`${question.correctAnswer === optionIndex ? "text-foreground dark:text-white font-medium" : "text-muted-foreground dark:text-slate-400"} whitespace-pre-wrap break-words leading-relaxed`}
+                                  className={`${isOptionCorrect(question, option, optionIndex) ? "text-foreground dark:text-white font-medium" : "text-muted-foreground dark:text-slate-400"} whitespace-pre-wrap break-words leading-relaxed`}
                                 >
                                   {normalizeUploadedText(option)}
                               </span>
-                              {question.correctAnswer === optionIndex && (
+                              {isOptionCorrect(question, option, optionIndex) && (
                                 <CheckCircle size={18} className="ml-auto text-green-500" />
                               )}
                             </label>
                           ))}
+                        </div>
+                      )}
+
+                      {question.type === "fill_in" && (
+                        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+                          <p className="mb-1 text-sm font-semibold text-green-700 dark:text-green-300">Đáp án điền khuyết</p>
+                          <p className="text-sm text-green-700 dark:text-green-200">
+                            {Array.isArray(question.correctAnswer)
+                              ? question.correctAnswer.map((item) => normalizeUploadedText(String(item))).join(", ")
+                              : normalizeUploadedText(String(question.correctAnswer || ""))}
+                          </p>
+                        </div>
+                      )}
+
+                      {question.type !== "fill_in" && (!question.options || question.options.length === 0) && (
+                        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+                          <p className="mb-1 text-sm font-semibold text-amber-700 dark:text-amber-300">Đáp án đúng</p>
+                          <p className="text-sm text-amber-700 dark:text-amber-200 whitespace-pre-wrap break-words leading-relaxed">
+                            {Array.isArray(question.correctAnswer)
+                              ? question.correctAnswer.map((item) => normalizeUploadedText(String(item))).join(", ")
+                              : normalizeUploadedText(String(question.correctAnswer || ""))}
+                          </p>
                         </div>
                       )}
 
@@ -569,70 +978,8 @@ export default function AdminExamDetailPage() {
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">Lịch sử làm bài</h2>
             <p className="text-muted-foreground dark:text-slate-400 mb-6">Có {exam.attemptCount} lượt làm bài thi này.</p>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border dark:border-slate-800">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Học viên</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Email</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Điểm</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Kết quả</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Thời gian</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Ngày làm</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { id: 1, student: 'Nguyễn Văn A', email: 'nguyenvana@email.com', score: 85, passed: true, duration: 75, date: '2024-03-20 14:30' },
-                    { id: 2, student: 'Trần Thị B', email: 'tranthib@email.com', score: 92, passed: true, duration: 68, date: '2024-03-20 10:15' },
-                    { id: 3, student: 'Lê Văn C', email: 'levanc@email.com', score: 65, passed: false, duration: 88, date: '2024-03-19 16:45' },
-                    { id: 4, student: 'Phạm Thị D', email: 'phamthid@email.com', score: 78, passed: true, duration: 70, date: '2024-03-19 09:20' },
-                    { id: 5, student: 'Hoàng Văn E', email: 'hoangvane@email.com', score: 88, passed: true, duration: 65, date: '2024-03-18 15:30' },
-                    { id: 6, student: 'Vũ Thị F', email: 'vuthif@email.com', score: 55, passed: false, duration: 90, date: '2024-03-18 11:00' },
-                    { id: 7, student: 'Đặng Văn G', email: 'dangvang@email.com', score: 94, passed: true, duration: 62, date: '2024-03-17 14:15' },
-                    { id: 8, student: 'Bùi Thị H', email: 'buithih@email.com', score: 72, passed: true, duration: 82, date: '2024-03-17 10:30' },
-                  ].map((attempt) => (
-                    <tr key={attempt.id} className="border-b border-border dark:border-slate-800 hover:bg-muted/50 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="py-3 px-4 text-sm text-foreground dark:text-white">{attempt.student}</td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{attempt.email}</td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                          {attempt.score}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        {attempt.passed ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Đạt
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                            <XCircle className="w-3 h-3 mr-1" />
-                            Không đạt
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-center text-sm text-muted-foreground dark:text-slate-400">
-                        {attempt.duration} phút
-                      </td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{attempt.date}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            <div className="mt-6 flex justify-between items-center">
-              <p className="text-sm text-muted-foreground dark:text-slate-400">Hiển thị 8 / {exam.attemptCount} kết quả</p>
-              <div className="flex gap-2">
-                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">Trước</button>
-                <button className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg">1</button>
-                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">2</button>
-                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">3</button>
-                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">Sau</button>
-              </div>
+            <div className="rounded-xl border border-border bg-secondary/30 p-6 text-sm text-muted-foreground dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
+              Dữ liệu chi tiết từng lượt thi chưa được backend trả về ở endpoint chi tiết bài thi. Hiện trang đang hiển thị đúng tổng số lượt thi thực tế.
             </div>
           </div>
         )}
@@ -661,91 +1008,91 @@ export default function AdminExamDetailPage() {
                 <p className="text-sm text-muted-foreground dark:text-slate-400">Điểm chuẩn</p>
               </div>
             </div>
-            
-            {/* Score Distribution Chart */}
+
             <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">Phân bố điểm số</h3>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground dark:text-slate-400">90-100 điểm</span>
-                    <span className="text-foreground dark:text-white font-semibold">32 học viên (13%)</span>
-                  </div>
-                  <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
-                    <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-full rounded-full" style={{ width: '13%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground dark:text-slate-400">80-89 điểm</span>
-                    <span className="text-foreground dark:text-white font-semibold">78 học viên (32%)</span>
-                  </div>
-                  <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
-                    <div className="bg-gradient-to-r from-blue-500 to-cyan-500 h-full rounded-full" style={{ width: '32%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground dark:text-slate-400">70-79 điểm</span>
-                    <span className="text-foreground dark:text-white font-semibold">81 học viên (33%)</span>
-                  </div>
-                  <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
-                    <div className="bg-gradient-to-r from-yellow-500 to-orange-500 h-full rounded-full" style={{ width: '33%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground dark:text-slate-400">60-69 điểm</span>
-                    <span className="text-foreground dark:text-white font-semibold">39 học viên (16%)</span>
-                  </div>
-                  <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
-                    <div className="bg-gradient-to-r from-orange-500 to-red-500 h-full rounded-full" style={{ width: '16%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground dark:text-slate-400">Dưới 60 điểm</span>
-                    <span className="text-foreground dark:text-white font-semibold">15 học viên (6%)</span>
-                  </div>
-                  <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
-                    <div className="bg-gradient-to-r from-red-500 to-red-700 h-full rounded-full" style={{ width: '6%' }}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Performance Over Time */}
-            <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">Xu hướng làm bài theo thời gian</h3>
-              <div className="h-64 flex items-end justify-between gap-2">
-                {[
-                  { month: 'T1', attempts: 25, avgScore: 68 },
-                  { month: 'T2', attempts: 32, avgScore: 72 },
-                  { month: 'T3', attempts: 45, avgScore: 75 },
-                  { month: 'T4', attempts: 38, avgScore: 74 },
-                  { month: 'T5', attempts: 52, avgScore: 76 },
-                  { month: 'T6', attempts: 53, avgScore: 75.5 },
-                ].map((data, index) => (
-                  <div key={index} className="flex-1 flex flex-col items-center gap-2">
-                    <div className="text-xs text-muted-foreground dark:text-slate-400 mb-1">{data.avgScore}%</div>
-                    <div 
-                      className="w-full bg-gradient-to-t from-primary to-blue-400 dark:from-blue-600 dark:to-blue-400 rounded-t-lg transition-all hover:opacity-80 cursor-pointer"
-                      style={{ height: `${(data.attempts / 53) * 100}%` }}
-                      title={`${data.attempts} lượt thi, điểm TB: ${data.avgScore}%`}
-                    ></div>
-                    <div className="text-xs font-medium text-foreground dark:text-white">{data.month}</div>
-                    <div className="text-xs text-muted-foreground dark:text-slate-400">{data.attempts}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-4 border-t border-border dark:border-slate-800 flex justify-between text-sm">
-                <span className="text-muted-foreground dark:text-slate-400">Số lượng lượt thi</span>
-                <span className="text-muted-foreground dark:text-slate-400">Điểm trung bình</span>
-              </div>
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">Biểu đồ phân tích</h3>
+              <p className="text-sm text-muted-foreground dark:text-slate-400">
+                Endpoint hiện tại chưa trả về dữ liệu phân bố điểm và xu hướng theo thời gian, nên trang chỉ hiển thị các chỉ số tổng quan thực tế ở phía trên.
+              </p>
             </div>
           </div>
         )}
       </div>
+
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div className={`fixed bottom-6 right-6 z-[9999] px-6 py-3 rounded-xl shadow-xl text-white font-medium flex items-center gap-2 ${toastMsg.type === "success" ? "bg-green-500" : "bg-red-500"}`}>
+          {toastMsg.type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          {toastMsg.text}
+        </div>
+      )}
+
+      {/* Reject Dialog */}
+      {rejectDialog && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-md bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center gap-2 text-yellow-500 mb-4">
+              <XCircle size={24} />
+              <h3 className="text-lg font-bold">Từ chối bài thi</h3>
+            </div>
+            <p className="text-sm text-muted-foreground dark:text-slate-400 mb-4">
+              Nhập lý do từ chối bài thi <span className="font-medium text-foreground dark:text-white">&ldquo;{exam.title}&rdquo;</span>
+            </p>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              rows={4}
+              className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary mb-4"
+              placeholder="Nhập lý do từ chối bài thi..."
+            />
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => { setRejectDialog(false); setRejectionReason("") }}
+                className="px-4 py-2 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={!rejectionReason.trim() || actionLoading}
+                className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {actionLoading ? "Đang xử lý..." : "Xác nhận từ chối"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm Dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-md p-6 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl">
+            <div className="flex items-center gap-3 text-red-500 mb-4">
+              <AlertCircle size={24} />
+              <h3 className="text-lg font-bold">Xác nhận xóa</h3>
+            </div>
+            <p className="text-muted-foreground dark:text-slate-400 mb-6">
+              Bạn có chắc chắn muốn xóa bài thi <span className="font-medium text-foreground dark:text-white">&ldquo;{exam.title}&rdquo;</span>? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="px-4 py-2 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={actionLoading}
+                className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {actionLoading ? "Đang xóa..." : "Xóa bài thi"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -21,6 +21,8 @@ import {
   Sheet,
   FileText
 } from "lucide-react"
+import { toast } from "sonner"
+import { parseExamQuestionsFile } from "@/lib/utils/exam-import"
 
 // Generate unique ID without uuid dependency
 const generateId = () => {
@@ -31,6 +33,7 @@ interface Question {
   id: string
   type: "multiple_choice" | "true_false" | "fill_in"
   question: string
+  image?: string
   options: string[]
   correctAnswer: string | string[]
   points: number
@@ -71,11 +74,72 @@ export default function CreateExamPage() {
     passingScore: 70,
     maxAttempts: 3,
     shuffleQuestions: true,
+    shuffleAnswers: false,
     showCorrectAnswers: true,
   })
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const sanitizeQuestions = (rawQuestions: Question[]): Question[] => {
+    if (!Array.isArray(rawQuestions)) return []
+
+    const ensureFourOptions = (options: string[]) => {
+      const normalized = options.map((option) => String(option || "").trim()).filter(Boolean)
+      if (normalized.length >= 4) return normalized.slice(0, 4)
+      return [...normalized, ...Array.from({ length: 4 - normalized.length }, () => "")]
+    }
+
+    const mapAnswerToOption = (answer: any, options: string[]) => {
+      const token = String(answer || "").trim()
+      if (!token) return ""
+
+      const letterMatch = token.match(/^[A-F]$/i)
+      if (letterMatch) {
+        const idx = letterMatch[0].toUpperCase().charCodeAt(0) - 65
+        return options[idx] || ""
+      }
+
+      const numeric = Number.parseInt(token, 10)
+      if (!Number.isNaN(numeric)) {
+        if (numeric >= 1 && numeric <= options.length) return options[numeric - 1]
+        if (numeric >= 0 && numeric < options.length) return options[numeric]
+      }
+
+      const same = options.find((option) => option.toLowerCase() === token.toLowerCase())
+      return same || token
+    }
+
+    return rawQuestions
+      .map((q, index) => {
+        const type = q?.type || "multiple_choice"
+        const question = String(q?.question || "").trim()
+        const rawOptions = Array.isArray(q?.options)
+          ? q.options.map((option) => String(option || "").trim()).filter(Boolean)
+          : []
+
+        const options = type === "multiple_choice"
+          ? ensureFourOptions(rawOptions)
+          : type === "true_false"
+          ? ["Đúng", "Sai"]
+          : []
+
+        const correctAnswer = type === "fill_in"
+          ? String(q?.correctAnswer || "").trim()
+          : mapAnswerToOption(q?.correctAnswer ?? "", options)
+
+        return {
+          id: q?.id || `${Date.now()}-${index}`,
+          type,
+          question,
+          image: typeof q?.image === "string" && q.image.trim() ? q.image.trim() : undefined,
+          options,
+          correctAnswer,
+          points: Number(q?.points) > 0 ? Number(q.points) : 1,
+          explanation: String(q?.explanation || "").trim(),
+        }
+      })
+  }
 
   useEffect(() => {
     fetchCourses()
@@ -92,21 +156,27 @@ export default function CreateExamPage() {
   const fetchCourses = async () => {
     try {
       let nextCourses: Course[] = []
-      const response = await fetch("/courses?limit=200")
+      const response = await fetch("/api/courses?limit=200")
       if (response.ok) {
-        const data = await response.json()
-        nextCourses = normalizeList<Course>(data)
+        const contentType = response.headers.get("content-type") || ""
+        if (contentType.includes("application/json")) {
+          const data = await response.json()
+          nextCourses = normalizeList<Course>(data)
+        }
       }
 
       if (nextCourses.length === 0) {
-        const fallback = await fetch("/courses/teacher/my-courses", {
+        const fallback = await fetch("/api/courses/teacher/my-courses", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
           },
         })
         if (fallback.ok) {
-          const fallbackData = await fallback.json()
-          nextCourses = normalizeList<Course>(fallbackData)
+          const contentType = fallback.headers.get("content-type") || ""
+          if (contentType.includes("application/json")) {
+            const fallbackData = await fallback.json()
+            nextCourses = normalizeList<Course>(fallbackData)
+          }
         }
       }
 
@@ -120,18 +190,23 @@ export default function CreateExamPage() {
   const fetchTemplates = async () => {
     try {
       setIsLoadingTemplates(true)
-      const response = await fetch("/certificate-templates", {
+      const response = await fetch("/api/certificate-templates", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
       })
       if (response.ok) {
-        const data = await response.json()
-        const list = normalizeList<CertificateTemplate>(data).map((t: any) => ({
-          ...t,
-          courseName: t.course?.title || t.courseName,
-        }))
-        setTemplates(list)
+        const contentType = response.headers.get("content-type") || ""
+        if (contentType.includes("application/json")) {
+          const data = await response.json()
+          const list = normalizeList<CertificateTemplate>(data).map((t: any) => ({
+            ...t,
+            courseName: t.course?.title || t.courseName,
+          }))
+          setTemplates(list)
+        } else {
+          setTemplates([])
+        }
       } else {
         setTemplates([])
       }
@@ -227,19 +302,22 @@ export default function CreateExamPage() {
 
     setIsSubmitting(true)
     try {
-      // API call here
+      const normalizedQuestions = sanitizeQuestions(questions)
+      if (normalizedQuestions.length === 0) {
+        throw new Error("Không có câu hỏi hợp lệ để lưu bài thi")
+      }
+
       const examData: any = {
         ...formData,
         type: formData.type,
-        questions,
-        status: asDraft ? "draft" : "pending",
+        questions: normalizedQuestions,
       }
 
       if (formData.type !== "official") {
         delete examData.certificateTemplateId
       }
 
-      const response = await fetch("/exams", {
+      const response = await fetch("/api/exams", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -248,11 +326,40 @@ export default function CreateExamPage() {
         body: JSON.stringify(examData),
       })
 
-      if (response.ok) {
-        router.push("/teacher/exams")
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}))
+        throw new Error(errorPayload?.details?.message || errorPayload?.error || "Tạo bài thi thất bại")
       }
+
+      const createdExam = await response.json()
+      const examId = createdExam?.id || createdExam?.data?.id
+
+      if (!asDraft && examId) {
+        const submitResponse = await fetch(`/api/exams/${examId}/submit-for-approval`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        })
+
+        if (!submitResponse.ok) {
+          const submitError = await submitResponse.json().catch(() => ({}))
+          const submitMsg =
+            submitError?.details?.error?.message ||
+            submitError?.details?.message ||
+            (Array.isArray(submitError?.message) ? submitError.message[0] : submitError?.message) ||
+            submitError?.error ||
+            "Không thể gửi duyệt bài thi"
+          throw new Error(typeof submitMsg === 'string' ? submitMsg : JSON.stringify(submitMsg))
+        }
+      }
+
+      toast.success(asDraft ? "Đã lưu bài thi nháp" : "Đã tạo và gửi duyệt bài thi")
+      router.push("/teacher/exams")
     } catch (error) {
       console.error("Error creating exam:", error)
+      const message = error instanceof Error ? error.message : "Tạo bài thi thất bại"
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }
@@ -487,7 +594,7 @@ export default function CreateExamPage() {
                     className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
                   />
                 </div>
-                <div className="flex flex-col justify-end">
+                <div className="flex flex-col justify-end gap-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -495,7 +602,16 @@ export default function CreateExamPage() {
                       onChange={(e) => setFormData({ ...formData, shuffleQuestions: e.target.checked })}
                       className="w-5 h-5 rounded border-border dark:border-slate-700"
                     />
-                    <span className="text-sm text-foreground dark:text-white">Trộn câu hỏi</span>
+                    <span className="text-sm text-foreground dark:text-white">Tráo câu hỏi</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.shuffleAnswers}
+                      onChange={(e) => setFormData({ ...formData, shuffleAnswers: e.target.checked })}
+                      className="w-5 h-5 rounded border-border dark:border-slate-700"
+                    />
+                    <span className="text-sm text-foreground dark:text-white">Tráo đáp án</span>
                   </label>
                 </div>
               </div>
@@ -908,40 +1024,30 @@ function ImportQuestionsModal({
 
   const processFile = async (file: File) => {
     setIsProcessing(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      const parsed = await parseExamQuestionsFile(file, importType)
+      const mapped: Question[] = parsed.map((item) => ({
+        id: generateId(),
+        type: item.type,
+        question: item.question,
+        image: item.image,
+        options: item.options,
+        correctAnswer: item.correctAnswer,
+        points: item.points,
+        explanation: item.explanation,
+      }))
 
-    const mockParsedQuestions: Question[] = [
-      {
-        id: generateId(),
-        type: "multiple_choice",
-        question: "Câu hỏi được nhập từ file 1?",
-        options: ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"],
-        correctAnswer: "Đáp án A",
-        points: 10,
-        explanation: ""
-      },
-      {
-        id: generateId(),
-        type: "multiple_choice",
-        question: "Câu hỏi được nhập từ file 2?",
-        options: ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"],
-        correctAnswer: "Đáp án B",
-        points: 10,
-        explanation: ""
-      },
-      {
-        id: generateId(),
-        type: "true_false",
-        question: "Câu hỏi đúng/sai được nhập từ file?",
-        options: ["Đúng", "Sai"],
-        correctAnswer: "Đúng",
-        points: 5,
-        explanation: ""
+      setPreviewQuestions(mapped)
+      if (mapped.length === 0) {
+        toast.error("Không tìm thấy câu hỏi hợp lệ trong file")
       }
-    ]
-
-    setPreviewQuestions(mockParsedQuestions)
-    setIsProcessing(false)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể đọc file đề thi"
+      toast.error(message)
+      setPreviewQuestions([])
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   return (

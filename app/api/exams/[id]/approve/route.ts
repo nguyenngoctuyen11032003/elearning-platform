@@ -7,10 +7,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = await params
+    const { id } = await params
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
 
-    const response = await fetch(`${API_URL}/exams/${resolvedParams.id}/submit-for-approval`, {
+    const response = await fetch(`${API_URL}/exams/${id}/approve`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -26,7 +26,7 @@ export async function POST(
         errorPayload = text ? { message: text } : null
       }
       return NextResponse.json(
-        { error: "Failed to submit exam", details: errorPayload },
+        { error: "Failed to approve exam", details: errorPayload },
         { status: response.status }
       )
     }
@@ -34,7 +34,7 @@ export async function POST(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error in API route:", error)
+    console.error("Error in approve API route:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

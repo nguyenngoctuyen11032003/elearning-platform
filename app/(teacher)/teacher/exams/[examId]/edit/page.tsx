@@ -21,6 +21,8 @@ import {
   FileSpreadsheet,
   FileText
 } from "lucide-react"
+import { toast } from "sonner"
+import { parseExamQuestionsFile } from "@/lib/utils/exam-import"
 
 // Generate unique ID
 const generateId = () => {
@@ -31,6 +33,7 @@ interface Question {
   id: string
   type: "multiple_choice" | "true_false" | "fill_in"
   question: string
+  image?: string
   options: string[]
   correctAnswer: string | string[]
   points: number
@@ -59,6 +62,8 @@ export default function EditExamPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showActionModal, setShowActionModal] = useState(false)
+  const [pendingAction, setPendingAction] = useState<{ type: "import" | "multiple_choice" | "true_false" | "fill_in" } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [courses, setCourses] = useState<Course[]>([])
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
@@ -74,11 +79,160 @@ export default function EditExamPage() {
     passingScore: 70,
     maxAttempts: 3,
     shuffleQuestions: true,
+    shuffleAnswers: false,
     showCorrectAnswers: true,
   })
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [hasLegacyQuestionPayload, setHasLegacyQuestionPayload] = useState(false)
+
+  const normalizeQuestionType = (value: any): Question["type"] => {
+    const normalized = String(value || "multiple_choice").toLowerCase().trim()
+    if (["multiple-choice", "multiple_choice", "mcq"].includes(normalized)) return "multiple_choice"
+    if (["true-false", "true_false", "boolean"].includes(normalized)) return "true_false"
+    if (["fill_in", "fill-in", "fillblank", "fill_blank"].includes(normalized)) return "fill_in"
+    return "multiple_choice"
+  }
+
+  const normalizeOptionText = (value: any) => {
+    return String(value || "")
+      .trim()
+      .replace(/^[-*+•]\s*/, "")
+      .replace(/^\"+|\"+$/g, "")
+      .replace(/^\“+|\”+$/g, "")
+      .trim()
+  }
+
+  const ensureFourOptions = (options: string[]) => {
+    const normalized = options.map((option) => normalizeOptionText(option)).filter(Boolean)
+    if (normalized.length >= 4) return normalized.slice(0, 4)
+    return [...normalized, ...Array.from({ length: 4 - normalized.length }, () => "")]
+  }
+
+  const mapAnswerToOption = (answer: any, options: string[]) => {
+    if (!options.length) return toText(answer)
+
+    const mapSingle = (value: any): string => {
+      const token = String(value || "").trim()
+      if (!token) return ""
+
+      const letterMatch = token.match(/^[A-F]$/i)
+      if (letterMatch) {
+        const idx = letterMatch[0].toUpperCase().charCodeAt(0) - 65
+        return options[idx] || ""
+      }
+
+      const numberValue = Number.parseInt(token, 10)
+      if (!Number.isNaN(numberValue)) {
+        if (numberValue >= 1 && numberValue <= options.length) return options[numberValue - 1]
+        if (numberValue >= 0 && numberValue < options.length) return options[numberValue]
+      }
+
+      const same = options.find((option) => option.toLowerCase() === token.toLowerCase())
+      return same || token
+    }
+
+    if (Array.isArray(answer)) {
+      return answer.map((item) => mapSingle(item)).filter(Boolean)
+    }
+
+    return mapSingle(answer)
+  }
+
+  const toText = (value: any) => {
+    if (value === undefined || value === null) return ""
+    if (typeof value === "string") return value.trim()
+    if (typeof value === "number" || typeof value === "boolean") return String(value)
+    return ""
+  }
+
+  const normalizeQuestions = (rawQuestions: any[]): Question[] => {
+    if (!Array.isArray(rawQuestions)) return []
+
+    return rawQuestions.map((raw, index) => {
+      let q = raw
+      if (typeof q === "string") {
+        try {
+          q = JSON.parse(q)
+        } catch {
+          q = { question: raw }
+        }
+      }
+
+      if (Array.isArray(q)) {
+        const cells = q.map((cell) => toText(cell))
+        const questionText = cells[0] || ""
+        const options = cells.slice(1, 7).filter(Boolean)
+        const answer = cells[7] || cells[cells.length - 1] || ""
+        const points = Number(cells[8]) || 1
+        return {
+          id: `${Date.now()}-${index}`,
+          type: options.length >= 2 ? "multiple_choice" : "fill_in",
+          question: questionText,
+          image: undefined,
+          options: options.length >= 2 ? options : [],
+          correctAnswer: answer,
+          points,
+          explanation: cells[9] || "",
+        }
+      }
+
+      const questionText =
+        toText(q?.question) ||
+        toText(q?.questionText) ||
+        toText(q?.text) ||
+        toText(q?.content) ||
+        toText(q?.prompt) ||
+        toText(q?.stem)
+
+      const options = Array.isArray(q?.options)
+        ? q.options.map((option: any) => (typeof option === "object" ? toText(option?.text || option?.label || option?.content || option?.value) : toText(option))).filter(Boolean)
+        : Array.isArray(q?.answers)
+        ? q.answers.map((option: any) => (typeof option === "object" ? toText(option?.text || option?.label || option?.content || option?.value) : toText(option))).filter(Boolean)
+        : Array.isArray(q?.choices)
+        ? q.choices.map((option: any) => (typeof option === "object" ? toText(option?.text || option?.label || option?.content || option?.value) : toText(option))).filter(Boolean)
+        : []
+
+      let effectiveQuestion = questionText
+      let effectiveOptions = options
+
+      if (effectiveOptions.length < 2 && effectiveQuestion.includes("\n")) {
+        const lines = effectiveQuestion.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+        if (lines.length >= 3) {
+          const stem = lines[0]
+          const guessedOptions = lines
+            .slice(1)
+            .map((line) => normalizeOptionText(line.replace(/^[A-F][\.)]\s*/i, "")))
+            .filter(Boolean)
+
+          if (guessedOptions.length >= 2) {
+            effectiveQuestion = stem
+            effectiveOptions = guessedOptions
+          }
+        }
+      }
+
+      const normalizedType = effectiveOptions.length >= 2 ? normalizeQuestionType(q?.type || q?.questionType) : "fill_in"
+      const finalOptions = normalizedType === "multiple_choice"
+        ? ensureFourOptions(effectiveOptions)
+        : normalizedType === "true_false"
+        ? ["Đúng", "Sai"]
+        : []
+      const mappedAnswer = mapAnswerToOption(q?.correctAnswer ?? q?.answer ?? q?.correct ?? "", finalOptions)
+
+      return {
+        id: toText(q?.id) || `${Date.now()}-${index}`,
+        type: normalizedType,
+        question: effectiveQuestion,
+        image: toText(q?.image || q?.imageUrl || q?.imageURL || q?.img) || undefined,
+        options: finalOptions,
+        correctAnswer: mappedAnswer,
+        points: Number(q?.points ?? q?.score ?? q?.mark) || 1,
+        explanation: toText(q?.explanation || q?.explain),
+      }
+    })
+  }
 
   useEffect(() => {
     fetchCourses()
@@ -96,14 +250,14 @@ export default function EditExamPage() {
   const fetchCourses = async () => {
     try {
       let nextCourses: Course[] = []
-      const response = await fetch("/courses?limit=200")
+      const response = await fetch("/api/courses?limit=200")
       if (response.ok) {
         const data = await response.json()
         nextCourses = normalizeList<Course>(data)
       }
 
       if (nextCourses.length === 0) {
-        const fallback = await fetch("/courses/teacher/my-courses", {
+        const fallback = await fetch("/api/courses/teacher/my-courses", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
           },
@@ -124,7 +278,7 @@ export default function EditExamPage() {
   const fetchTemplates = async () => {
     try {
       setIsLoadingTemplates(true)
-      const response = await fetch("/certificate-templates", {
+      const response = await fetch("/api/certificate-templates", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
@@ -150,7 +304,7 @@ export default function EditExamPage() {
   const loadExam = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`/exams/${examId}`, {
+      const response = await fetch(`/api/exams/${examId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
@@ -159,7 +313,24 @@ export default function EditExamPage() {
         throw new Error("Failed to fetch exam")
       }
 
-      const data = await response.json()
+      const payload = await response.json()
+      const data = payload?.data ?? payload
+
+      let rawQuestions: any[] = []
+      let questionsData = data.questions
+      // Handle double-stringified JSON from database
+      while (typeof questionsData === "string") {
+        try {
+          questionsData = JSON.parse(questionsData)
+        } catch {
+          break
+        }
+      }
+      if (Array.isArray(questionsData)) {
+        rawQuestions = questionsData
+      }
+      const normalizedQuestions = normalizeQuestions(rawQuestions)
+
       setFormData({
         title: data.title || "",
         description: data.description || "",
@@ -170,9 +341,11 @@ export default function EditExamPage() {
         passingScore: data.passingScore || 70,
         maxAttempts: data.maxAttempts || 3,
         shuffleQuestions: data.shuffleQuestions ?? true,
+        shuffleAnswers: data.shuffleAnswers ?? false,
         showCorrectAnswers: data.showCorrectAnswers ?? true,
       })
-      setQuestions(Array.isArray(data.questions) ? data.questions : [])
+      setQuestions(normalizedQuestions)
+      setHasLegacyQuestionPayload(rawQuestions.length > 0 && normalizedQuestions.length === 0)
     } catch (error) {
       console.error("Error loading exam:", error)
     } finally {
@@ -221,6 +394,48 @@ export default function EditExamPage() {
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
+  const handleQuestionAction = (type: "import" | "multiple_choice" | "true_false" | "fill_in") => {
+    if (questions.length > 0) {
+      setPendingAction({ type })
+      setShowActionModal(true)
+    } else {
+      if (type === "import") {
+        setShowImportModal(true)
+      } else {
+        addQuestion(type)
+      }
+    }
+  }
+
+  const handleActionModalChoice = (choice: "new" | "append") => {
+    setShowActionModal(false)
+    if (!pendingAction) return
+
+    if (pendingAction.type === "import") {
+      if (choice === "new") setQuestions([])
+      setShowImportModal(true)
+    } else {
+      const type = pendingAction.type
+      if (choice === "new") {
+        // Use functional updater to avoid stale closure from React batching
+        const newQuestion: Question = {
+          id: generateId(),
+          type,
+          question: "",
+          options: type === "multiple_choice" ? ["", "", "", ""] : type === "true_false" ? ["Đúng", "Sai"] : [],
+          correctAnswer: type === "true_false" ? "Đúng" : "",
+          points: 1,
+          explanation: "",
+        }
+        setQuestions([newQuestion])
+        setExpandedQuestion(newQuestion.id)
+      } else {
+        addQuestion(type)
+      }
+    }
+    setPendingAction(null)
+  }
+
   const addQuestion = (type: "multiple_choice" | "true_false" | "fill_in") => {
     const newQuestion: Question = {
       id: generateId(),
@@ -243,8 +458,12 @@ export default function EditExamPage() {
     setQuestions(questions.filter(q => q.id !== id))
   }
 
-  const handleImportQuestions = (importedQuestions: Question[]) => {
-    setQuestions([...questions, ...importedQuestions])
+  const handleImportQuestions = (importedQuestions: Question[], mode: "append" | "replace") => {
+    if (mode === "replace") {
+      setQuestions(importedQuestions)
+    } else {
+      setQuestions([...questions, ...importedQuestions])
+    }
     setShowImportModal(false)
   }
 
@@ -260,17 +479,30 @@ export default function EditExamPage() {
 
     setIsSubmitting(true)
     try {
+      const normalizedQuestions = normalizeQuestions(questions)
+      console.log('[handleSubmit] questions.length:', questions.length)
+      console.log('[handleSubmit] questions sample (first 2):', questions.slice(0, 2))
+      console.log('[handleSubmit] normalizedQuestions.length:', normalizedQuestions.length)
+      console.log('[handleSubmit] normalizedQuestions sample (first 2):', normalizedQuestions.slice(0, 2))
+      
       const examData: any = {
         ...formData,
-        questions,
-        status: asDraft ? "draft" : "pending",
+        questions: normalizedQuestions,
+      }
+
+      console.log('[handleSubmit] examData.questions will be sent, count:', normalizedQuestions.length)
+
+      if (!asDraft && normalizedQuestions.length === 0) {
+        throw new Error("Bài thi chưa có câu hỏi hợp lệ. Vui lòng nhập lại đề trước khi gửi duyệt")
       }
 
       if (formData.type !== "official") {
         delete examData.certificateTemplateId
       }
 
-      const response = await fetch(`/exams/${examId}`, {
+      console.log('[handleSubmit] Final examData to send:', examData)
+
+      const response = await fetch(`/api/exams/${examId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -279,11 +511,47 @@ export default function EditExamPage() {
         body: JSON.stringify(examData),
       })
 
-      if (response.ok) {
-        router.push("/teacher/exams")
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}))
+        const msg =
+          errorPayload?.details?.error?.message ||
+          errorPayload?.details?.message ||
+          (Array.isArray(errorPayload?.message) ? errorPayload.message[0] : errorPayload?.message) ||
+          errorPayload?.error ||
+          "Cập nhật bài thi thất bại"
+        throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg))
       }
+
+      if (!asDraft) {
+        const submitResponse = await fetch(`/api/exams/${examId}/submit-for-approval`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        })
+
+        if (!submitResponse.ok) {
+          const submitError = await submitResponse.json().catch(() => ({}))
+          const submitMsg =
+            submitError?.details?.error?.message ||
+            submitError?.details?.message ||
+            (Array.isArray(submitError?.message) ? submitError.message[0] : submitError?.message) ||
+            submitError?.error ||
+            "Không thể gửi duyệt bài thi"
+          throw new Error(typeof submitMsg === 'string' ? submitMsg : JSON.stringify(submitMsg))
+        }
+      }
+
+      if (hasLegacyQuestionPayload && normalizedQuestions.length === 0) {
+        toast.warning("Đã lưu cập nhật thông tin. Dữ liệu câu hỏi cũ bị lỗi, vui lòng nhập lại đề để có thể gửi duyệt")
+      }
+
+      toast.success(asDraft ? "Đã lưu cập nhật bài thi" : "Đã cập nhật và gửi duyệt bài thi")
+      router.push("/teacher/exams")
     } catch (error) {
       console.error("Error updating exam:", error)
+      const message = error instanceof Error ? error.message : "Cập nhật bài thi thất bại"
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }
@@ -515,7 +783,7 @@ export default function EditExamPage() {
                     className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
                   />
                 </div>
-                <div className="flex flex-col justify-end">
+                <div className="flex flex-col justify-end gap-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -523,7 +791,16 @@ export default function EditExamPage() {
                       onChange={(e) => setFormData({ ...formData, shuffleQuestions: e.target.checked })}
                       className="w-5 h-5 rounded border-border dark:border-slate-700"
                     />
-                    <span className="text-sm text-foreground dark:text-white">Trộn câu hỏi</span>
+                    <span className="text-sm text-foreground dark:text-white">Tráo câu hỏi</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.shuffleAnswers}
+                      onChange={(e) => setFormData({ ...formData, shuffleAnswers: e.target.checked })}
+                      className="w-5 h-5 rounded border-border dark:border-slate-700"
+                    />
+                    <span className="text-sm text-foreground dark:text-white">Tráo đáp án</span>
                   </label>
                 </div>
               </div>
@@ -545,28 +822,28 @@ export default function EditExamPage() {
                 <div className="flex flex-wrap gap-2">
                   {/* Import Button */}
                   <button
-                    onClick={() => setShowImportModal(true)}
+                    onClick={() => handleQuestionAction("import")}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
                   >
                     <Upload size={16} />
                     Nhập đề thi
                   </button>
                   <button
-                    onClick={() => addQuestion("multiple_choice")}
+                    onClick={() => handleQuestionAction("multiple_choice")}
                     className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
                   >
                     <Plus size={16} />
                     Trắc nghiệm
                   </button>
                   <button
-                    onClick={() => addQuestion("true_false")}
+                    onClick={() => handleQuestionAction("true_false")}
                     className="px-4 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg font-medium hover:bg-secondary/80 transition-colors flex items-center gap-2"
                   >
                     <Plus size={16} />
                     Đúng/Sai
                   </button>
                   <button
-                    onClick={() => addQuestion("fill_in")}
+                    onClick={() => handleQuestionAction("fill_in")}
                     className="px-4 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg font-medium hover:bg-secondary/80 transition-colors flex items-center gap-2"
                   >
                     <Plus size={16} />
@@ -828,6 +1105,14 @@ export default function EditExamPage() {
                     </span>
                   </div>
                 )}
+                <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
+                  <span className="text-muted-foreground dark:text-slate-400">Tráo câu hỏi</span>
+                  <span className="text-foreground dark:text-white font-medium">{formData.shuffleQuestions ? "Có" : "Không"}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
+                  <span className="text-muted-foreground dark:text-slate-400">Tráo đáp án</span>
+                  <span className="text-foreground dark:text-white font-medium">{formData.shuffleAnswers ? "Có" : "Không"}</span>
+                </div>
               </div>
             </div>
 
@@ -887,11 +1172,51 @@ export default function EditExamPage() {
         </div>
       </div>
 
+      {/* Action Confirmation Modal */}
+      {showActionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-6">
+            <div className="text-center">
+              <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={28} className="text-primary" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground dark:text-white">Bạn muốn tạo bài thi mới?</h3>
+              <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">
+                Bài thi hiện đang có {questions.length} câu hỏi. Bạn muốn xử lý thế nào?
+              </p>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleActionModalChoice("new")}
+                className="w-full px-4 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Trash2 size={18} />
+                Tạo bài thi mới (xóa câu hỏi cũ)
+              </button>
+              <button
+                onClick={() => handleActionModalChoice("append")}
+                className="w-full px-4 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+              >
+                <Plus size={18} />
+                Thêm câu hỏi vào bài thi
+              </button>
+              <button
+                onClick={() => { setShowActionModal(false); setPendingAction(null) }}
+                className="w-full px-4 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Import Modal */}
       {showImportModal && (
         <ImportQuestionsModal
           onClose={() => setShowImportModal(false)}
           onImport={handleImportQuestions}
+          hasExistingQuestions={questions.length > 0}
         />
       )}
     </div>
@@ -901,10 +1226,12 @@ export default function EditExamPage() {
 // Import Questions Modal Component
 function ImportQuestionsModal({
   onClose,
-  onImport
+  onImport,
+  hasExistingQuestions
 }: {
   onClose: () => void
-  onImport: (questions: Question[]) => void
+  onImport: (questions: Question[], mode: "append" | "replace") => void
+  hasExistingQuestions: boolean
 }) {
   const [importType, setImportType] = useState<"excel" | "word">("excel")
   const [file, setFile] = useState<File | null>(null)
@@ -922,42 +1249,30 @@ function ImportQuestionsModal({
 
   const processFile = async (_file: File) => {
     setIsProcessing(true)
-    // Simulate file processing
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      const parsed = await parseExamQuestionsFile(_file, importType)
+      const mapped: Question[] = parsed.map((item) => ({
+        id: generateId(),
+        type: item.type,
+        question: item.question,
+        image: item.image,
+        options: item.options,
+        correctAnswer: item.correctAnswer,
+        points: item.points,
+        explanation: item.explanation,
+      }))
 
-    // Mock parsed questions
-    const mockParsedQuestions: Question[] = [
-      {
-        id: generateId(),
-        type: "multiple_choice",
-        question: "Câu hỏi được nhập từ file 1?",
-        options: ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"],
-        correctAnswer: "Đáp án A",
-        points: 10,
-        explanation: ""
-      },
-      {
-        id: generateId(),
-        type: "multiple_choice",
-        question: "Câu hỏi được nhập từ file 2?",
-        options: ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"],
-        correctAnswer: "Đáp án B",
-        points: 10,
-        explanation: ""
-      },
-      {
-        id: generateId(),
-        type: "true_false",
-        question: "Câu hỏi đúng/sai được nhập từ file?",
-        options: ["Đúng", "Sai"],
-        correctAnswer: "Đúng",
-        points: 5,
-        explanation: ""
+      setPreviewQuestions(mapped)
+      if (mapped.length === 0) {
+        toast.error("Không tìm thấy câu hỏi hợp lệ trong file")
       }
-    ]
-
-    setPreviewQuestions(mockParsedQuestions)
-    setIsProcessing(false)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể đọc file đề thi"
+      toast.error(message)
+      setPreviewQuestions([])
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   return (
@@ -1108,20 +1423,30 @@ function ImportQuestionsModal({
           )}
         </div>
 
-        <div className="p-6 border-t border-border dark:border-slate-800 flex gap-3 justify-end">
+        <div className="p-6 border-t border-border dark:border-slate-800 flex gap-3 justify-end flex-wrap">
           <button
             onClick={onClose}
             className="px-6 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
           >
             Hủy
           </button>
+          {hasExistingQuestions && (
+            <button
+              onClick={() => onImport(previewQuestions, "replace")}
+              disabled={previewQuestions.length === 0 || isProcessing}
+              className="px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <Trash2 size={18} />
+              Thay thế toàn bộ ({previewQuestions.length} câu)
+            </button>
+          )}
           <button
-            onClick={() => onImport(previewQuestions)}
+            onClick={() => onImport(previewQuestions, "append")}
             disabled={previewQuestions.length === 0 || isProcessing}
             className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <CheckCircle size={18} />
-            Nhập {previewQuestions.length} câu hỏi
+            Thêm {previewQuestions.length} câu hỏi
           </button>
         </div>
       </div>

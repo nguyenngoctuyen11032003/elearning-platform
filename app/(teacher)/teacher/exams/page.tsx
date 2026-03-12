@@ -87,15 +87,26 @@ export default function TeacherExamsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        const list = normalizeList<Exam>(data).map((exam) => ({
-          ...exam,
-          type: String(exam.type || "practice").toLowerCase() as Exam["type"],
-          courseName: exam.course?.title || exam.courseName,
-          questionsCount: Array.isArray((exam as any).questions)
-            ? (exam as any).questions.length
-            : exam.questionsCount || 0,
-          attemptCount: (exam as any).attemptCount || exam.attemptCount || 0,
-        }))
+        const parseQuestions = (value: any): any[] => {
+          let data = value
+          while (typeof data === "string") {
+            try { data = JSON.parse(data) } catch { break }
+          }
+          if (Array.isArray(data)) return data
+          return []
+        }
+
+        const list = normalizeList<Exam>(data).map((exam) => {
+          const parsedQuestions = parseQuestions((exam as any).questions)
+
+          return {
+            ...exam,
+            type: String(exam.type || "practice").toLowerCase() as Exam["type"],
+            courseName: exam.course?.title || exam.courseName,
+            questionsCount: parsedQuestions.length || exam.questionsCount || 0,
+            attemptCount: (exam as any).attemptCount || exam.attemptCount || 0,
+          }
+        })
         setExams(list)
       } else {
         setExams([])
@@ -585,8 +596,17 @@ export default function TeacherExamsPage() {
         {/* View Modal */}
         <div className="hidden md:flex">
   {selectedExam && viewMode === "view" && (
-    <div className="fixed inset-0 bg-black/50 z-90 flex items-center justify-center">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl animate-scaleIn">
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+      onClick={() => {
+        setViewMode(null)
+        setSelectedExam(null)
+      }}
+    >
+      <div
+        className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl animate-scaleIn"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header */}
         <div className="p-6 border-b border-border flex items-center justify-between">
@@ -594,17 +614,9 @@ export default function TeacherExamsPage() {
           <button
           ref={el => { detailBtnRefs.current[selectedExam.id] = el }}
             onClick={() => {
-              const btn = detailBtnRefs.current[ selectedExam.id];
-    if (btn) {
-      const rect = btn.getBoundingClientRect();
-      setModalPos({
-        top: rect.bottom + 8,
-        left: rect.left,
-      });
-    }
-    setSelectedExam(selectedExam);
-    setViewMode("view");
-  }}
+              setViewMode(null)
+              setSelectedExam(null)
+            }}
             className="p-2 hover:bg-secondary rounded-lg"
           >
             <X size={20} />

@@ -22,6 +22,13 @@ import Link from "next/link";
 async function fetchJson(url: string) {
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return null;
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    const raw = await res.text();
+    console.error(`Expected JSON but received ${contentType || "unknown content-type"} from ${url}`, raw.slice(0, 180));
+    return null;
+  }
+
   const json = await res.json();
   // Backend wraps: { success, data: { data: [...], total, page } } (paginated)
   //            or: { success, data: [...] } (plain list)
