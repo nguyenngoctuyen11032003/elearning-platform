@@ -77,7 +77,11 @@ export async function POST(request: NextRequest) {
     const text = lines.join("\n").replace(/\n\n+/g, "\n").trim()
     console.log(`[parse-word] Extracted ${lines.length} lines, ${Object.keys(finalImageMap).length} images`)
     const imageMarkerLines = lines.filter(l => l.startsWith("[[IMAGE:"))
-    console.log("[parse-word] Image marker lines:", imageMarkerLines)
+    const preview = imageMarkerLines.slice(0, 20)
+    console.log(
+      `[parse-word] Image marker lines: ${imageMarkerLines.length} total, preview:`,
+      preview,
+    )
 
     if (!text) {
       return NextResponse.json({ error: "No text extracted from document" }, { status: 400 })

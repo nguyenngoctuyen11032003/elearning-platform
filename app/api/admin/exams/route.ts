@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
+/**
+ * GET /api/admin/exams
+ * 
+ * Fetch all exams from the exam bank for admin management.
+ * Returns only regular exams (exam bank) created by teachers.
+ * DOES NOT include extracted exams for students - those are managed separately
+ * through the ExtractedExams service and are visible only to their owners.
+ */
 export async function GET(req: NextRequest) {
   try {
     const token = req.headers.get('authorization')?.replace('Bearer ', '');

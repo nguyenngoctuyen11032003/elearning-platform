@@ -1,5 +1,28 @@
 // Base API configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const DEFAULT_API_PORT = "5001";
+const FALLBACK_API_BASE_URL = `http://localhost:${DEFAULT_API_PORT}`;
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  FALLBACK_API_BASE_URL;
+
+export function getApiBaseUrl(): string {
+  const configuredUrl =
+    process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  if (typeof window === "undefined") {
+    return FALLBACK_API_BASE_URL;
+  }
+
+  const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+  const host = window.location.hostname;
+  return `${protocol}//${host}:${DEFAULT_API_PORT}`;
+}
 
 export const API_ENDPOINTS = {
   AUTH: {

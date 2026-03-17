@@ -1,430 +1,241 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
-import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  Award,
-  ArrowLeft,
-  Target,
-  FileText,
-  Trophy,
-  ChevronDown,
-  ChevronUp
-} from "lucide-react"
-import { PremiumCard } from "@/components/ui/premium-card"
+import { useSearchParams } from "next/navigation"
+import { toast } from "sonner"
+import { apiClient } from "@/lib/api/client"
 
-interface QuestionResult {
+interface AttemptResult {
   id: string
-  question: string
-  type: string
-  yourAnswer: string
-  correctAnswer: string
-  isCorrect: boolean
-  points: number
-  earnedPoints: number
-  explanation?: string
-}
-
-interface ExamResult {
-  examId: string
-  examTitle: string
-  courseName: string
-  teacherName: string
-  type: "practice" | "official"
   score: number
-  passingScore: number
   passed: boolean
   earnedPoints: number
   totalPoints: number
-  timeSpent: number // seconds
-  questionsCount: number
-  correctAnswers: number
-  attemptNumber: number
-  maxAttempts: number
-  completedAt: string
   certificateId?: string
-  certificateName?: string
-  questions: QuestionResult[]
+  exam?: {
+    id: string
+    title: string
+    passingScore: number
+    type: "practice" | "official"
+  }
+  questionResults?: AttemptQuestionResult[]
+  review?: {
+    questions?: AttemptQuestionResult[]
+  }
 }
 
-// Mock result data
-const mockResult: ExamResult = {
-  examId: "1",
-  examTitle: "Bài thi cuối khóa Next.js",
-  courseName: "Lập trình Next.js từ cơ bản đến nâng cao",
-  teacherName: "Nguyễn Ngọc Tuyền",
-  type: "official",
-  score: 85,
-  passingScore: 70,
-  passed: true,
-  earnedPoints: 85,
-  totalPoints: 100,
-  timeSpent: 4520, // 75 minutes 20 seconds
-  questionsCount: 10,
-  correctAnswers: 8,
-  attemptNumber: 1,
-  maxAttempts: 2,
-  completedAt: "2025-01-15T10:30:00",
-  certificateId: "cert-001",
-  certificateName: "Chứng chỉ Next.js Master",
-  questions: [
-    {
-      id: "q1",
-      question: "Next.js 13+ sử dụng hệ thống routing nào mặc định?",
-      type: "multiple_choice",
-      yourAnswer: "App Router",
-      correctAnswer: "App Router",
-      isCorrect: true,
-      points: 10,
-      earnedPoints: 10,
-      explanation: "App Router là hệ thống routing mới trong Next.js 13+, thay thế Pages Router cũ."
-    },
-    {
-      id: "q2",
-      question: "Server Components trong Next.js giúp làm gì?",
-      type: "multiple_choice",
-      yourAnswer: "Giảm bundle size và cải thiện performance",
-      correctAnswer: "Giảm bundle size và cải thiện performance",
-      isCorrect: true,
-      points: 10,
-      earnedPoints: 10,
-      explanation: "Server Components render trên server, không gửi JavaScript xuống client."
-    },
-    {
-      id: "q3",
-      question: "'use client' directive bắt buộc phải có ở mọi component trong Next.js App Router",
-      type: "true_false",
-      yourAnswer: "Sai",
-      correctAnswer: "Sai",
-      isCorrect: true,
-      points: 10,
-      earnedPoints: 10,
-      explanation: "Chỉ Client Components mới cần 'use client', Server Components là mặc định."
-    },
-    {
-      id: "q4",
-      question: "File nào dùng để định nghĩa layout trong App Router?",
-      type: "multiple_choice",
-      yourAnswer: "layout.tsx",
-      correctAnswer: "layout.tsx",
-      isCorrect: true,
-      points: 10,
-      earnedPoints: 10
-    },
-    {
-      id: "q5",
-      question: "Cách fetch data phổ biến trong Server Components là gì?",
-      type: "multiple_choice",
-      yourAnswer: "useEffect",
-      correctAnswer: "async/await trực tiếp",
-      isCorrect: false,
-      points: 10,
-      earnedPoints: 0,
-      explanation: "Trong Server Components, bạn có thể dùng async/await trực tiếp để fetch data."
-    },
-    {
-      id: "q6",
-      question: "Next.js hỗ trợ Static Site Generation (SSG)",
-      type: "true_false",
-      yourAnswer: "Đúng",
-      correctAnswer: "Đúng",
-      isCorrect: true,
-      points: 10,
-      earnedPoints: 10
-    },
-    {
-      id: "q7",
-      question: "Middleware trong Next.js chạy ở đâu?",
-      type: "multiple_choice",
-      yourAnswer: "Edge Runtime",
-      correctAnswer: "Edge Runtime",
-      isCorrect: true,
-      points: 10,
-      earnedPoints: 10
-    },
-    {
-      id: "q8",
-      question: "Hook để lấy search params trong Client Component là: use______Params()",
-      type: "fill_in",
-      yourAnswer: "Search",
-      correctAnswer: "Search",
-      isCorrect: true,
-      points: 10,
-      earnedPoints: 10,
-      explanation: "useSearchParams() hook được dùng để đọc query string trong URL."
-    },
-    {
-      id: "q9",
-      question: "Cách tạo API route trong App Router là gì?",
-      type: "multiple_choice",
-      yourAnswer: "Tạo file api.ts trong app/",
-      correctAnswer: "Tạo file route.ts trong thư mục api/",
-      isCorrect: false,
-      points: 10,
-      earnedPoints: 0,
-      explanation: "Trong App Router, API routes được tạo bằng file route.ts trong app/."
-    },
-    {
-      id: "q10",
-      question: "Image component của Next.js tự động tối ưu hóa hình ảnh",
-      type: "true_false",
-      yourAnswer: "Đúng",
-      correctAnswer: "Đúng",
-      isCorrect: true,
-      points: 10,
-      earnedPoints: 10
-    },
-  ]
+interface AttemptQuestionResult {
+  id: string
+  type: "multiple_choice" | "true_false" | "fill_in" | "multiple_select"
+  question: string
+  image?: string
+  options?: string[]
+  userAnswer?: string | string[]
+  correctAnswer?: string | string[]
+  explanation?: string
+  isCorrect?: boolean
+}
+
+const normalizeQuestionType = (value: unknown): AttemptQuestionResult["type"] => {
+  const normalized = String(value || "multiple_choice").toLowerCase().trim()
+  if (normalized === "true-false" || normalized === "true_false") return "true_false"
+  if (normalized === "fill-in" || normalized === "fill_in") return "fill_in"
+  if (normalized === "multiple-select" || normalized === "multiple_select") return "multiple_select"
+  return "multiple_choice"
+}
+
+const toText = (value: unknown): string => {
+  if (value === null || value === undefined) return ""
+  if (typeof value === "string") return value.trim()
+  if (typeof value === "number" || typeof value === "boolean") return String(value)
+  return ""
+}
+
+const toTextArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => toText(item)).filter(Boolean)
+}
+
+const normalizeAnswer = (value: unknown): string | string[] | undefined => {
+  if (Array.isArray(value)) {
+    const arr = toTextArray(value)
+    return arr.length > 0 ? arr : undefined
+  }
+  const text = toText(value)
+  return text || undefined
+}
+
+const normalizeQuestionReview = (raw: unknown, index: number): AttemptQuestionResult | null => {
+  if (!raw || typeof raw !== "object") return null
+  const item = raw as Record<string, unknown>
+
+  const question =
+    toText(item.question) ||
+    toText(item.questionText) ||
+    toText(item.text) ||
+    toText(item.prompt)
+
+  if (!question) return null
+
+  const options =
+    Array.isArray(item.options) ? toTextArray(item.options) :
+    Array.isArray(item.choices) ? toTextArray(item.choices) :
+    Array.isArray(item.answers) ? toTextArray(item.answers) : []
+
+  return {
+    id: toText(item.id) || `q-${index + 1}`,
+    type: normalizeQuestionType(item.type),
+    question,
+    image: toText(item.image) || toText(item.imageUrl) || undefined,
+    options,
+    userAnswer: normalizeAnswer(item.userAnswer ?? item.submittedAnswer ?? item.answer),
+    correctAnswer: normalizeAnswer(item.correctAnswer ?? item.correct ?? item.expectedAnswer),
+    explanation: toText(item.explanation) || toText(item.reason) || undefined,
+    isCorrect: typeof item.isCorrect === "boolean" ? item.isCorrect : undefined,
+  }
+}
+
+const getQuestionReviews = (result: AttemptResult | null): AttemptQuestionResult[] => {
+  if (!result) return []
+
+  const candidates: unknown[] = []
+  if (Array.isArray(result.questionResults)) candidates.push(...result.questionResults)
+  if (Array.isArray(result.review?.questions)) candidates.push(...result.review.questions)
+
+  const dedup = new Map<string, AttemptQuestionResult>()
+  candidates.forEach((raw, index) => {
+    const normalized = normalizeQuestionReview(raw, index)
+    if (!normalized) return
+    dedup.set(normalized.id, normalized)
+  })
+
+  return [...dedup.values()]
+}
+
+const formatAnswer = (value: string | string[] | undefined): string => {
+  if (Array.isArray(value)) return value.join(", ")
+  return value || "(chưa có)"
 }
 
 export default function ExamResultPage() {
-  const params = useParams()
-  const examId = params.examId as string
-  const [result] = useState<ExamResult>(mockResult)
-  const [showAnswers, setShowAnswers] = useState(false)
-  const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const attemptId = searchParams.get("attemptId") || ""
 
-  // Log examId for debugging
+  const [result, setResult] = useState<AttemptResult | null>(null)
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-  }, [examId])
+    const load = async () => {
+      if (!attemptId) {
+        setLoading(false)
+        return
+      }
 
-  const formatTime = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
-    if (hrs > 0) {
-      return `${hrs} giờ ${mins} phút ${secs} giây`
+      setLoading(true)
+      try {
+        const data = await apiClient.getAttemptResult(attemptId)
+        setResult(data)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Không thể tải kết quả"
+        toast.error(message)
+      } finally {
+        setLoading(false)
+      }
     }
-    return `${mins} phút ${secs} giây`
+
+    load()
+  }, [attemptId])
+
+  if (loading) {
+    return <div className="p-6">Đang tải kết quả...</div>
   }
 
+  if (!result) {
+    return (
+      <div className="p-6">
+        <p className="mb-3">Không tìm thấy kết quả bài thi.</p>
+        <Link href="/exams" className="text-primary hover:underline">Quay lại danh sách bài thi</Link>
+      </div>
+    )
+  }
+
+  const reviewQuestions = getQuestionReviews(result)
+
   return (
-    <div className="space-y-8 pb-12">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4"
-      >
-        <Link
-          href="/exams"
-          className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-foreground dark:text-white">Kết quả bài thi</h1>
-          <p className="text-muted-foreground dark:text-slate-400">{result.examTitle}</p>
+    <div className="mx-auto max-w-3xl space-y-6 p-6">
+      <div className={`rounded-2xl border p-6 ${result.passed ? "border-green-500/40" : "border-red-500/40"}`}>
+        <h1 className="text-2xl font-bold">Kết quả bài thi</h1>
+        <p className="mt-1 text-muted-foreground">{result.exam?.title}</p>
+
+        <div className="mt-4 space-y-2 text-sm">
+          <p>Điểm: <b>{Number(result.score || 0).toFixed(2)}%</b></p>
+          <p>Số điểm: <b>{result.earnedPoints}/{result.totalPoints}</b></p>
+          <p>Điểm đạt yêu cầu: <b>{result.exam?.passingScore || 0}%</b></p>
+          <p className={result.passed ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
+            {result.passed ? "Đạt" : "Chưa đạt"}
+          </p>
         </div>
-      </motion.div>
 
-      {/* Result Card */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.1 }}
-      >
-        <PremiumCard className={`p-8 text-center ${result.passed ? "border-green-500/30" : "border-red-500/30"}`}>
-          <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center mb-6 ${
-            result.passed ? "bg-green-500/20" : "bg-red-500/20"
-          }`}>
-            {result.passed ? (
-              <Trophy size={48} className="text-green-500" />
-            ) : (
-              <XCircle size={48} className="text-red-500" />
-            )}
-          </div>
-
-          <h2 className={`text-4xl font-bold mb-2 ${result.passed ? "text-green-500" : "text-red-500"}`}>
-            {result.score}%
-          </h2>
-          <p className={`text-lg font-medium mb-4 ${result.passed ? "text-green-500" : "text-red-500"}`}>
-            {result.passed ? "Chúc mừng! Bạn đã đạt" : "Rất tiếc! Bạn chưa đạt"}
-          </p>
-          <p className="text-muted-foreground dark:text-slate-400 mb-6">
-            Điểm cần đạt: {result.passingScore}% • Điểm của bạn: {result.earnedPoints}/{result.totalPoints}
-          </p>
-
-          {result.passed && result.type === "official" && result.certificateName && (
-            <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 mb-6">
-              <div className="flex items-center justify-center gap-2 text-purple-500 mb-2">
-                <Award size={24} />
-                <span className="font-semibold">{result.certificateName}</span>
-              </div>
-              <p className="text-purple-400 text-sm">Chứng chỉ đã được cấp vào tài khoản của bạn</p>
-            </div>
-          )}
-
-          <div className="flex flex-wrap justify-center gap-3">
-            {result.passed && result.certificateId && (
-              <Link
-                href={`/certificates/${result.certificateId}`}
-                className="px-6 py-3 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors flex items-center gap-2"
-              >
-                <Award size={18} />
+        {result.passed && result.exam?.type === "official" && result.certificateId && (
+          <div className="mt-5 rounded-lg bg-green-50 p-4 text-green-700">
+            Bạn đã vượt qua bài thi thật và được cấp chứng chỉ ngay.
+            <div className="mt-2">
+              <Link href="/certificates" className="font-semibold underline">
                 Xem chứng chỉ
               </Link>
-            )}
-            <Link
-              href="/exams"
-              className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
-            >
-              Quay lại danh sách
-            </Link>
-            {!result.passed && result.attemptNumber < result.maxAttempts && (
-              <Link
-                href={`/exams/${result.examId}/take`}
-                className="px-6 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
-              >
-                Thi lại
-              </Link>
-            )}
+            </div>
           </div>
-        </PremiumCard>
-      </motion.div>
+        )}
+      </div>
 
-      {/* Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-4"
-      >
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <FileText size={20} className="text-blue-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">{result.questionsCount}</p>
-              <p className="text-xs text-muted-foreground">Tổng câu hỏi</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-500/10 rounded-lg">
-              <CheckCircle size={20} className="text-green-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">{result.correctAnswers}</p>
-              <p className="text-xs text-muted-foreground">Trả lời đúng</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-red-500/10 rounded-lg">
-              <XCircle size={20} className="text-red-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">{result.questionsCount - result.correctAnswers}</p>
-              <p className="text-xs text-muted-foreground">Trả lời sai</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-500/10 rounded-lg">
-              <Clock size={20} className="text-yellow-500" />
-            </div>
-            <div>
-              <p className="text-lg font-bold text-foreground dark:text-white">{formatTime(result.timeSpent)}</p>
-              <p className="text-xs text-muted-foreground">Thời gian làm bài</p>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      <div className="flex gap-3">
+        <Link href="/exams" className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primary/90">Danh sách bài thi</Link>
+      </div>
 
-      {/* Review Answers */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl">
-          <button
-            onClick={() => setShowAnswers(!showAnswers)}
-            className="w-full p-6 flex items-center justify-between hover:bg-secondary/50 dark:hover:bg-slate-800/50 transition-colors rounded-2xl"
-          >
-            <div className="flex items-center gap-3">
-              <Target size={24} className="text-primary" />
-              <span className="font-semibold text-foreground dark:text-white">Xem lại đáp án</span>
-            </div>
-            {showAnswers ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </button>
+      {reviewQuestions.length > 0 && (
+        <div className="rounded-2xl border p-6 space-y-4">
+          <h2 className="text-xl font-bold">Chi tiết đáp án</h2>
+          <div className="space-y-4">
+            {reviewQuestions.map((question, index) => (
+              <div key={question.id} className="rounded-xl border p-4 space-y-3">
+                <p className="font-medium whitespace-pre-wrap break-words leading-relaxed">
+                  Câu {index + 1}: {question.question}
+                </p>
 
-          {showAnswers && (
-            <div className="px-6 pb-6 space-y-4">
-              {result.questions.map((q, idx) => (
-                <div
-                  key={q.id}
-                  className={`border rounded-xl overflow-hidden ${
-                    q.isCorrect ? "border-green-500/30" : "border-red-500/30"
-                  }`}
-                >
-                  <button
-                    onClick={() => setExpandedQuestion(expandedQuestion === q.id ? null : q.id)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-secondary/50 dark:hover:bg-slate-800/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                        q.isCorrect ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
-                      }`}>
-                        {idx + 1}
-                      </span>
-                      <span className="text-foreground dark:text-white text-left">{q.question}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-medium ${q.isCorrect ? "text-green-500" : "text-red-500"}`}>
-                        {q.earnedPoints}/{q.points}
-                      </span>
-                      {q.isCorrect ? (
-                        <CheckCircle size={18} className="text-green-500" />
-                      ) : (
-                        <XCircle size={18} className="text-red-500" />
-                      )}
-                    </div>
-                  </button>
+                {question.image && (
+                  <img
+                    src={question.image}
+                    alt={`Minh họa câu ${index + 1}`}
+                    className="max-w-full rounded-lg border border-border"
+                  />
+                )}
 
-                  {expandedQuestion === q.id && (
-                    <div className="px-4 pb-4 pt-0 space-y-3">
-                      <div className="grid md:grid-cols-2 gap-3">
-                        <div className={`p-3 rounded-lg ${
-                          q.isCorrect ? "bg-green-500/10" : "bg-red-500/10"
-                        }`}>
-                          <p className="text-xs text-muted-foreground mb-1">Câu trả lời của bạn</p>
-                          <p className={`font-medium ${q.isCorrect ? "text-green-500" : "text-red-500"}`}>
-                            {q.yourAnswer}
-                          </p>
-                        </div>
-                        {!q.isCorrect && (
-                          <div className="p-3 rounded-lg bg-green-500/10">
-                            <p className="text-xs text-muted-foreground mb-1">Đáp án đúng</p>
-                            <p className="font-medium text-green-500">{q.correctAnswer}</p>
-                          </div>
-                        )}
-                      </div>
-                      {q.explanation && (
-                        <div className="p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
-                          <p className="text-xs text-muted-foreground mb-1">Giải thích</p>
-                          <p className="text-sm text-foreground dark:text-white">{q.explanation}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                {question.options && question.options.length > 0 && (
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    {question.options.map((option, optionIndex) => (
+                      <p key={`${question.id}-${optionIndex}`} className="whitespace-pre-wrap break-words">
+                        {String.fromCharCode(65 + optionIndex)}. {option}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                <div className="text-sm space-y-1">
+                  <p>Câu trả lời của bạn: <b>{formatAnswer(question.userAnswer)}</b></p>
+                  <p>Đáp án đúng: <b>{formatAnswer(question.correctAnswer)}</b></p>
                 </div>
-              ))}
-            </div>
-          )}
+
+                {question.explanation && (
+                  <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-700 whitespace-pre-wrap break-words leading-relaxed">
+                    Giải thích: {question.explanation}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      </motion.div>
+      )}
     </div>
   )
 }
-

@@ -3,6 +3,7 @@
 import { useState, use, useRef, useEffect } from "react"
 import { Save, Plus, Trash2, Eye, FileText, Video, X, ChevronDown, Loader2, Send, Upload, ImageIcon } from "lucide-react"
 import { FileUploadZone } from "@/components/ui/file-upload-zone"
+import { apiClient } from "@/lib/api/client"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
@@ -24,6 +25,21 @@ interface Lesson {
   documentName?: string
   quizId?: string
   quizzes: Quiz[]
+  assignmentId?: string
+  writingDueDate?: string
+  writingPrompt?: string
+  writingCriteria?: WritingCriterion[]
+  writingMaxScore?: number
+}
+
+interface WritingLevel {
+  description: string
+  points: number
+}
+
+interface WritingCriterion {
+  title: string
+  levels: WritingLevel[]
 }
 
 interface Quiz {
@@ -175,6 +191,175 @@ function parseQuizQuestions(rawQuestions: unknown): Array<{
   return result
 }
 
+const RUBRIC_LEVEL_COUNT = 5
+
+function defaultRubricPoints(maxScore: number = 100): number[] {
+  const ratios = [1, 0.8, 0.5, 0.3, 0]
+  return ratios.map((ratio) => Math.round(maxScore * ratio))
+}
+
+function createDefaultWritingCriteria(maxScore: number = 100): WritingCriterion[] {
+  const points = defaultRubricPoints(maxScore)
+  const levelTemplate = [
+    "Mức xuất sắc",
+    "Mức tốt",
+    "Mức khá",
+    "Mức đạt",
+    "Chưa đạt",
+  ]
+  const criterionTemplate = ["Nội dung", "Lập luận", "Ngôn ngữ"]
+
+  return criterionTemplate.map((title) => ({
+    title,
+    levels: levelTemplate.map((description, index) => ({
+      description,
+      points: points[index] ?? 0,
+    })),
+  }))
+}
+
+function normalizeCriterion(raw: unknown, maxScore: number): WritingCriterion | null {
+  if (!raw || typeof raw !== "object") return null
+  const item = raw as Record<string, unknown>
+  const title = String(item.title || item.name || "").trim()
+  if (!title) return null
+
+  const fallbackPoints = defaultRubricPoints(maxScore)
+  const levelsRaw = Array.isArray(item.levels) ? item.levels : []
+  const levels: WritingLevel[] = levelsRaw.slice(0, RUBRIC_LEVEL_COUNT).map((level, index) => {
+    if (!level || typeof level !== "object") {
+      return {
+        description: "",
+        points: fallbackPoints[index] ?? 0,
+      }
+    }
+    const typedLevel = level as Record<string, unknown>
+    const parsedPoints = Number(typedLevel.points)
+    return {
+      description: String(typedLevel.description || "").trim(),
+      points: Number.isFinite(parsedPoints) ? parsedPoints : fallbackPoints[index] ?? 0,
+    }
+  })
+
+  while (levels.length < RUBRIC_LEVEL_COUNT) {
+    levels.push({
+      description: "",
+      points: fallbackPoints[levels.length] ?? 0,
+    })
+  }
+
+  return { title, levels }
+}
+
+function parseWritingCriteria(rawInstructions: unknown, maxScore: number = 100): WritingCriterion[] {
+  if (!rawInstructions) return []
+
+  if (typeof rawInstructions === "string") {
+    try {
+      const parsed = JSON.parse(rawInstructions)
+      if (Array.isArray(parsed?.gradingRubric)) {
+        return parsed.gradingRubric
+          .map((item: unknown) => normalizeCriterion(item, maxScore))
+          .filter((item: WritingCriterion | null): item is WritingCriterion => Boolean(item))
+      }
+      if (Array.isArray(parsed?.gradingCriteria)) {
+        return parsed.gradingCriteria
+          .map((item: unknown) => {
+            const title = String(item || "").trim()
+            if (!title) return null
+            return {
+              title,
+              levels: defaultRubricPoints(maxScore).map((points) => ({ description: "", points })),
+            }
+          })
+          .filter((item: WritingCriterion | null): item is WritingCriterion => Boolean(item))
+      }
+      if (Array.isArray(parsed?.criteria)) {
+        return parsed.criteria
+          .map((item: unknown) => {
+            const title = String(item || "").trim()
+            if (!title) return null
+            return {
+              title,
+              levels: defaultRubricPoints(maxScore).map((points) => ({ description: "", points })),
+            }
+          })
+          .filter((item: WritingCriterion | null): item is WritingCriterion => Boolean(item))
+      }
+      return []
+    } catch {
+      return []
+    }
+  }
+
+  if (typeof rawInstructions === "object") {
+    const typed = rawInstructions as any
+    if (Array.isArray(typed?.gradingRubric)) {
+      return typed.gradingRubric
+        .map((item: unknown) => normalizeCriterion(item, maxScore))
+        .filter((item: WritingCriterion | null): item is WritingCriterion => Boolean(item))
+    }
+    if (Array.isArray(typed?.gradingCriteria)) {
+      return typed.gradingCriteria
+        .map((item: unknown) => {
+          const title = String(item || "").trim()
+          if (!title) return null
+          return {
+            title,
+            levels: defaultRubricPoints(maxScore).map((points) => ({ description: "", points })),
+          }
+        })
+        .filter((item: WritingCriterion | null): item is WritingCriterion => Boolean(item))
+    }
+    if (Array.isArray(typed?.criteria)) {
+      return typed.criteria
+        .map((item: unknown) => {
+          const title = String(item || "").trim()
+          if (!title) return null
+          return {
+            title,
+            levels: defaultRubricPoints(maxScore).map((points) => ({ description: "", points })),
+          }
+        })
+        .filter((item: WritingCriterion | null): item is WritingCriterion => Boolean(item))
+    }
+  }
+
+  return []
+}
+
+function buildWritingInstructions(criteria: WritingCriterion[]): string {
+  const cleanedRubric = criteria
+    .map((criterion) => ({
+      title: String(criterion.title || "").trim(),
+      levels: Array.isArray(criterion.levels)
+        ? criterion.levels.slice(0, RUBRIC_LEVEL_COUNT).map((level) => ({
+            description: String(level?.description || "").trim(),
+            points: Number.isFinite(Number(level?.points)) ? Number(level?.points) : 0,
+          }))
+        : [],
+    }))
+    .filter((criterion) => criterion.title)
+
+  return JSON.stringify({
+    gradingCriteria: cleanedRubric.map((item) => item.title),
+    gradingRubric: cleanedRubric,
+  })
+}
+
+function toDateTimeLocal(value?: string): string {
+  if (!value) return ""
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const yyyy = date.getFullYear()
+  const mm = pad(date.getMonth() + 1)
+  const dd = pad(date.getDate())
+  const hh = pad(date.getHours())
+  const mi = pad(date.getMinutes())
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`
+}
+
 function buildQuizQuestionsPayload(
   source: Array<Partial<Quiz>>,
 ): Array<{
@@ -278,6 +463,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   const [draggedAddVideoZone, setDraggedAddVideoZone] = useState(false)
   const [draggedAddDocumentZone, setDraggedAddDocumentZone] = useState(false)
   const [modalTop, setModalTop] = useState<number | null>(null)
+  const [deletingCriteriaByLesson, setDeletingCriteriaByLesson] = useState<Record<string, boolean>>({})
+  const [selectedCriteriaToDelete, setSelectedCriteriaToDelete] = useState<Record<string, Set<number>>>({})
 
   const buildOptions = (count: number) => Array.from({ length: count }, (_, i) => `Tùy chọn ${i + 1}`)
 
@@ -376,16 +563,19 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           answerLine: string
           imageKey: string | undefined
         }
+        const questionStartRegex = /^(?:.*?(?:Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*|\d+[\)\.\:\-]\s*)/
+        const answerStartRegex = /^(?:Đáp\s*án|Answer)\s*[\:\=]+/i
+        const metadataLineRegex = /^(?:Diff|Var|Topic|Learning\s*Obj|Global\s*Obj)\s*[\:\=]/i
         const blocks: WordBlock[] = []
         let curBlock: WordBlock | null = null
 
         for (const line of lines) {
-          const isCauLine = /^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/.test(line)
+          const isCauLine = questionStartRegex.test(line)
 
           if (isCauLine) {
             if (curBlock) blocks.push(curBlock)
             curBlock = {
-              questionText: line.replace(/^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/, "").trim(),
+              questionText: line.replace(questionStartRegex, "").trim(),
               bodyLines: [],
               answerLine: "",
               imageKey: undefined,
@@ -400,8 +590,13 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             continue
           }
 
-          if (line.match(/^Đáp\s*án[\s\:\=]+/i)) {
+          if (line.match(answerStartRegex)) {
             curBlock.answerLine = line
+            continue
+          }
+
+          // Keep import robust for chemistry-style metadata lines.
+          if (line.match(metadataLineRegex)) {
             continue
           }
 
@@ -689,11 +884,12 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           ? { Authorization: `Bearer ${token}` }
           : {}
 
-        const [courseRes, lessonsRes, catsRes, quizzesRes] = await Promise.all([
+        const [courseRes, lessonsRes, catsRes, quizzesRes, assignmentsList] = await Promise.all([
           fetch(`/api/courses/${resolvedParams.id}`, { headers }),
           fetch(`/api/lessons/course/${resolvedParams.id}`, { headers }),
           fetch("/api/categories"),
           fetch(`/api/quizzes/course/${resolvedParams.id}`, { headers }),
+          apiClient.getAssignments(resolvedParams.id),
         ])
 
         if (courseRes.ok) {
@@ -727,6 +923,17 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           return acc
         }, {} as Record<string, any>)
 
+        const assignmentByLesson = (Array.isArray(assignmentsList) ? assignmentsList : []).reduce(
+          (acc: Record<string, any>, assignment: any) => {
+            const lessonKey = String(assignment?.lessonId || "")
+            if (lessonKey && !acc[lessonKey]) {
+              acc[lessonKey] = assignment
+            }
+            return acc
+          },
+          {} as Record<string, any>,
+        )
+
         if (lessonsRes.ok) {
           const lessonsJson = await lessonsRes.json()
           const lessonsUnwrapped = lessonsJson?.data ?? lessonsJson
@@ -748,9 +955,10 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             title,
             lessons: lsns
               .sort((a: { order?: number }, b: { order?: number }) => (a.order || 0) - (b.order || 0))
-              .map((l: { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[] }) => {
+              .map((l: { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[]; type?: string }) => {
                 const firstRes = parseFirstResource(l.resources)
                 const linkedQuiz = quizByLesson[l.id]
+                const linkedAssignment = assignmentByLesson[l.id]
                 const questions = Array.isArray(linkedQuiz?.questions) ? linkedQuiz.questions : []
                 return {
                   id: l.id,
@@ -769,6 +977,11 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   videoUrl: l.videoUrl,
                   documentUrl: firstRes?.url,
                   documentName: firstRes?.name,
+                  assignmentId: linkedAssignment?.id,
+                  writingDueDate: toDateTimeLocal(linkedAssignment?.dueDate),
+                  writingPrompt: linkedAssignment?.description || "",
+                  writingCriteria: parseWritingCriteria(linkedAssignment?.instructions, linkedAssignment?.maxScore || 100),
+                  writingMaxScore: typeof linkedAssignment?.maxScore === "number" ? linkedAssignment.maxScore : 100,
                 }
               }),
           }))
@@ -1080,6 +1293,17 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         : Array.isArray(existingQuizzesUnwrapped?.data)
         ? existingQuizzesUnwrapped.data
         : []
+      const existingAssignments = await apiClient.getAssignments(resolvedParams.id)
+      const existingAssignmentByLessonId = (Array.isArray(existingAssignments) ? existingAssignments : []).reduce(
+        (acc: Record<string, any>, assignment: any) => {
+          const lessonKey = String(assignment?.lessonId || "")
+          if (lessonKey) {
+            acc[lessonKey] = assignment
+          }
+          return acc
+        },
+        {} as Record<string, any>,
+      )
 
       const localPersistedLessonIds = new Set(
         sections
@@ -1201,6 +1425,26 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               const lessonData = lessonJson?.data ?? lessonJson
               const createdLessonId = lessonData?.id
 
+              const writingEnabled = Boolean(
+                String(lesson.writingPrompt || "").trim() ||
+                  String(lesson.writingDueDate || "").trim() ||
+                  (lesson.writingCriteria || []).length > 0,
+              )
+
+              if (createdLessonId && writingEnabled) {
+                const assignmentPayload = {
+                  title: lesson.title,
+                  description: lesson.writingPrompt || lesson.description || "",
+                  courseId: resolvedParams.id,
+                  lessonId: createdLessonId,
+                  dueDate: lesson.writingDueDate ? new Date(lesson.writingDueDate).toISOString() : undefined,
+                  maxScore: lesson.writingMaxScore || 100,
+                  status: "published",
+                  instructions: buildWritingInstructions(lesson.writingCriteria || []),
+                }
+                await apiClient.createAssignment(assignmentPayload)
+              }
+
               if (createdLessonId && lesson.quizzes.length > 0) {
                 const sanitizedQuestions = buildQuizQuestionsPayload(lesson.quizzes)
                 if (sanitizedQuestions.length === 0) {
@@ -1234,6 +1478,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               body: JSON.stringify({
                 title: lesson.title,
                 description: lesson.description,
+                type: "video",
                 sectionTitle: section.title,
                 order: lIdx,
                 ...(lesson.videoUrl ? { videoUrl: lesson.videoUrl } : {}),
@@ -1247,6 +1492,33 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               const err = await patchRes.json().catch(() => ({}))
               console.error(`[SaveCourse] PATCH lesson ${lesson.id} thất bại:`, err)
               throw new Error(`Lưu bài học "${lesson.title}" thất bại: ${err?.error?.message || err?.message || patchRes.status}`)
+            }
+
+            const writingEnabled = Boolean(
+              String(lesson.writingPrompt || "").trim() ||
+                String(lesson.writingDueDate || "").trim() ||
+                (lesson.writingCriteria || []).length > 0,
+            )
+            const existingAssignment = existingAssignmentByLessonId[String(lesson.id)]
+
+            if (writingEnabled) {
+              const assignmentPayload = {
+                title: lesson.title,
+                description: lesson.writingPrompt || lesson.description || "",
+                courseId: resolvedParams.id,
+                lessonId: lesson.id,
+                dueDate: lesson.writingDueDate ? new Date(lesson.writingDueDate).toISOString() : undefined,
+                maxScore: lesson.writingMaxScore || 100,
+                status: "published",
+                instructions: buildWritingInstructions(lesson.writingCriteria || []),
+              }
+              if (existingAssignment?.id) {
+                await apiClient.updateAssignment(String(existingAssignment.id), assignmentPayload)
+              } else {
+                await apiClient.createAssignment(assignmentPayload)
+              }
+            } else if (existingAssignment?.id) {
+              await apiClient.deleteAssignment(String(existingAssignment.id))
             }
 
             const resolvedQuizId = lesson.quizId || existingQuizByLessonId[String(lesson.id)]
@@ -1316,9 +1588,10 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       // Re-fetch lessons từ API để đồng bộ state với DB
       const token2 = localStorage.getItem("auth_token")
       const headers2: Record<string, string> = token2 ? { Authorization: `Bearer ${token2}` } : {}
-      const [freshLessonsRes, freshQuizzesRes] = await Promise.all([
+      const [freshLessonsRes, freshQuizzesRes, freshAssignments] = await Promise.all([
         fetch(`/api/lessons/course/${resolvedParams.id}`, { headers: headers2 }),
         fetch(`/api/quizzes/course/${resolvedParams.id}`, { headers: headers2 }),
+        apiClient.getAssignments(resolvedParams.id),
       ])
       if (freshLessonsRes.ok) {
         const lessonsJson = await freshLessonsRes.json()
@@ -1346,6 +1619,17 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           return acc
         }, {} as Record<string, any>)
 
+        const assignmentByLesson = (Array.isArray(freshAssignments) ? freshAssignments : []).reduce(
+          (acc: Record<string, any>, assignment: any) => {
+            const lessonKey = String(assignment?.lessonId || "")
+            if (lessonKey && !acc[lessonKey]) {
+              acc[lessonKey] = assignment
+            }
+            return acc
+          },
+          {} as Record<string, any>,
+        )
+
         if (lessonList.length > 0) {
           const sectionMap = new Map<string, typeof lessonList>()
           for (const l of lessonList) {
@@ -1356,11 +1640,12 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           const reconstructed = Array.from(sectionMap.entries()).map(([title, lsns], idx) => ({
             id: `section-${idx}-${Date.now()}`,
             title,
-            lessons: (lsns as { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[]; order?: number }[])
+            lessons: (lsns as { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[]; order?: number; type?: string }[])
               .sort((a, b) => (a.order || 0) - (b.order || 0))
               .map(l => {
                 const firstRes = parseFirstResource(l.resources)
                 const linkedQuiz = quizByLesson[l.id]
+                const linkedAssignment = assignmentByLesson[l.id]
                 const questions = parseQuizQuestions(linkedQuiz?.questions)
                 return {
                   id: l.id,
@@ -1379,6 +1664,11 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   videoUrl: l.videoUrl,
                   documentUrl: firstRes?.url,
                   documentName: firstRes?.name,
+                  assignmentId: linkedAssignment?.id,
+                  writingDueDate: toDateTimeLocal(linkedAssignment?.dueDate),
+                  writingPrompt: linkedAssignment?.description || "",
+                  writingCriteria: parseWritingCriteria(linkedAssignment?.instructions, linkedAssignment?.maxScore || 100),
+                  writingMaxScore: typeof linkedAssignment?.maxScore === "number" ? linkedAssignment.maxScore : 100,
                 }
               }),
           }))
@@ -1775,6 +2065,11 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                {lesson.quizzes.length} câu hỏi
                               </span>
                             )}
+                            {(lesson.assignmentId || lesson.writingPrompt || (lesson.writingCriteria || []).length > 0 || lesson.writingDueDate) && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-fuchsia-500/10 dark:bg-fuchsia-500/20 text-fuchsia-600 dark:text-fuchsia-400 rounded text-xs font-medium">
+                                Writing
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1795,6 +2090,297 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                           animation: 'slideDown 0.3s ease-out'
                         }}
                       >
+                        <div className="rounded-lg border border-fuchsia-400/30 bg-fuchsia-500/5 p-4 space-y-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <h5 className="font-semibold text-foreground dark:text-white">Cấu hình Writing cho bài học này</h5>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const writingEnabled = Boolean(
+                                  lesson.assignmentId ||
+                                    String(lesson.writingPrompt || "").trim() ||
+                                    String(lesson.writingDueDate || "").trim() ||
+                                    (lesson.writingCriteria || []).length > 0,
+                                )
+
+                                if (writingEnabled) {
+                                  updateLesson(section.id, lesson.id, {
+                                    assignmentId: undefined,
+                                    writingDueDate: "",
+                                    writingPrompt: "",
+                                    writingCriteria: [],
+                                    writingMaxScore: 100,
+                                  })
+                                } else {
+                                  const maxScore = lesson.writingMaxScore || 100
+                                  updateLesson(section.id, lesson.id, {
+                                    writingCriteria: createDefaultWritingCriteria(maxScore),
+                                    writingMaxScore: maxScore,
+                                  })
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 hover:bg-fuchsia-500/20 transition-smooth"
+                            >
+                              {lesson.assignmentId || lesson.writingPrompt || (lesson.writingCriteria || []).length > 0 || lesson.writingDueDate
+                                ? "Tắt Writing"
+                                : "Bật Writing"}
+                            </button>
+                          </div>
+
+                          {(lesson.assignmentId || lesson.writingPrompt || (lesson.writingCriteria || []).length > 0 || lesson.writingDueDate) && (
+                            <>
+                              <div>
+                                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Đề bài</label>
+                                <textarea
+                                  value={lesson.writingPrompt || ""}
+                                  onChange={(e) =>
+                                    updateLesson(section.id, lesson.id, {
+                                      writingPrompt: e.target.value,
+                                    })
+                                  }
+                                  rows={5}
+                                  className="w-full px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-sm text-foreground dark:text-white"
+                                  placeholder="Nhập nội dung đề bài writing cho học sinh"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Hạn nộp</label>
+                                  <input
+                                    type="datetime-local"
+                                    value={lesson.writingDueDate || ""}
+                                    onChange={(e) => updateLesson(section.id, lesson.id, { writingDueDate: e.target.value })}
+                                    className="w-full px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-sm text-foreground dark:text-white"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Điểm tối đa</label>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={lesson.writingMaxScore || 100}
+                                    onChange={(e) => {
+                                      const nextMaxScore = Math.max(1, Number(e.target.value || 100))
+                                      const points = defaultRubricPoints(nextMaxScore)
+                                      updateLesson(section.id, lesson.id, {
+                                        writingMaxScore: nextMaxScore,
+                                        writingCriteria: (lesson.writingCriteria || []).map((criterion) => ({
+                                          ...criterion,
+                                          levels: (criterion.levels || []).map((level, levelIndex) => ({
+                                            ...level,
+                                            points: points[levelIndex] ?? 0,
+                                          })),
+                                        })),
+                                      })
+                                    }}
+                                    className="w-full px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-sm text-foreground dark:text-white"
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                                  Grading criteria dạng rubric
+                                </label>
+                                <div className="space-y-3">
+                                  <p className="text-xs text-muted-foreground dark:text-slate-400">
+                                    Mỗi dòng là 1 tiêu chí, mỗi cột là 1 mức đánh giá (kèm điểm). Bạn có thể sửa tên tiêu chí, mô tả từng mức và điểm.
+                                  </p>
+                                  <div className="overflow-x-auto rounded-lg border border-border dark:border-slate-800">
+                                    <table className="w-full min-w-[980px] text-sm">
+                                      <thead className="bg-secondary dark:bg-slate-900/80">
+                                        <tr>
+                                          {deletingCriteriaByLesson[lesson.id] && (
+                                            <th className="px-2 py-2 text-center font-semibold text-foreground dark:text-white w-8"></th>
+                                          )}
+                                          <th className="px-3 py-2 text-left font-semibold text-foreground dark:text-white w-[220px]">Tiêu chí</th>
+                                          {[1, 2, 3, 4, 5].map((level) => (
+                                            <th key={`${lesson.id}-header-${level}`} className="px-3 py-2 text-left font-semibold text-foreground dark:text-white">
+                                              Mức {level}
+                                            </th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {(lesson.writingCriteria || []).map((criterion, criterionIndex) => (
+                                          <tr key={`${lesson.id}-criterion-${criterionIndex}`} className="border-t border-border dark:border-slate-800 align-top">
+                                            {deletingCriteriaByLesson[lesson.id] && (
+                                              <td className="px-2 py-2 text-center">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={selectedCriteriaToDelete[lesson.id]?.has(criterionIndex) ?? false}
+                                                  onChange={(e) => {
+                                                    setSelectedCriteriaToDelete((prev) => {
+                                                      const current = new Set(prev[lesson.id] || [])
+                                                      if (e.target.checked) {
+                                                        current.add(criterionIndex)
+                                                      } else {
+                                                        current.delete(criterionIndex)
+                                                      }
+                                                      return {
+                                                        ...prev,
+                                                        [lesson.id]: current,
+                                                      }
+                                                    })
+                                                  }}
+                                                  className="w-4 h-4"
+                                                />
+                                              </td>
+                                            )}
+                                            <td className="px-2 py-2">
+                                              <input
+                                                value={criterion.title}
+                                                onChange={(e) =>
+                                                  updateLesson(section.id, lesson.id, {
+                                                    writingCriteria: (lesson.writingCriteria || []).map((item, itemIndex) =>
+                                                      itemIndex === criterionIndex ? { ...item, title: e.target.value } : item,
+                                                    ),
+                                                  })
+                                                }
+                                                disabled={deletingCriteriaByLesson[lesson.id]}
+                                                className="w-full px-2 py-1.5 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-sm text-foreground dark:text-white disabled:opacity-60"
+                                                placeholder="Tên tiêu chí"
+                                              />
+                                            </td>
+                                            {criterion.levels.map((level, levelIndex) => (
+                                              <td key={`${lesson.id}-${criterionIndex}-${levelIndex}`} className="px-2 py-2">
+                                                <div className="space-y-2">
+                                                  <textarea
+                                                    value={level.description}
+                                                    onChange={(e) =>
+                                                      updateLesson(section.id, lesson.id, {
+                                                        writingCriteria: (lesson.writingCriteria || []).map((item, itemIndex) =>
+                                                          itemIndex === criterionIndex
+                                                            ? {
+                                                                ...item,
+                                                                levels: item.levels.map((l, lIndex) =>
+                                                                  lIndex === levelIndex ? { ...l, description: e.target.value } : l,
+                                                                ),
+                                                              }
+                                                            : item,
+                                                        ),
+                                                      })
+                                                    }
+                                                    disabled={deletingCriteriaByLesson[lesson.id]}
+                                                    rows={4}
+                                                    className="w-full px-2 py-1.5 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-xs text-foreground dark:text-white disabled:opacity-60"
+                                                    placeholder={`Mô tả mức ${levelIndex + 1}`}
+                                                  />
+                                                  <div className="flex items-center gap-2">
+                                                    <input
+                                                      type="number"
+                                                      min={0}
+                                                      value={level.points}
+                                                      onChange={(e) =>
+                                                        updateLesson(section.id, lesson.id, {
+                                                          writingCriteria: (lesson.writingCriteria || []).map((item, itemIndex) =>
+                                                            itemIndex === criterionIndex
+                                                              ? {
+                                                                  ...item,
+                                                                  levels: item.levels.map((l, lIndex) =>
+                                                                    lIndex === levelIndex
+                                                                      ? { ...l, points: Math.max(0, Number(e.target.value || 0)) }
+                                                                      : l,
+                                                                  ),
+                                                                }
+                                                              : item,
+                                                          ),
+                                                        })
+                                                      }
+                                                      disabled={deletingCriteriaByLesson[lesson.id]}
+                                                      className="w-24 px-2 py-1 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-xs text-foreground dark:text-white disabled:opacity-60"
+                                                    />
+                                                    <span className="text-xs text-muted-foreground dark:text-slate-400">điểm</span>
+                                                  </div>
+                                                </div>
+                                              </td>
+                                            ))}
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (deletingCriteriaByLesson[lesson.id]) {
+                                          const selected = selectedCriteriaToDelete[lesson.id] || new Set()
+                                          if (selected.size > 0) {
+                                            updateLesson(section.id, lesson.id, {
+                                              writingCriteria: (lesson.writingCriteria || []).filter(
+                                                (_, index) => !selected.has(index),
+                                              ),
+                                            })
+                                            setSelectedCriteriaToDelete((prev) => {
+                                              const next = { ...prev }
+                                              delete next[lesson.id]
+                                              return next
+                                            })
+                                          }
+                                          setDeletingCriteriaByLesson((prev) => ({
+                                            ...prev,
+                                            [lesson.id]: false,
+                                          }))
+                                        } else {
+                                          setDeletingCriteriaByLesson((prev) => ({
+                                            ...prev,
+                                            [lesson.id]: true,
+                                          }))
+                                        }
+                                      }}
+                                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-smooth"
+                                    >
+                                      {deletingCriteriaByLesson[lesson.id] 
+                                        ? `Xóa ${selectedCriteriaToDelete[lesson.id]?.size || 0} tiêu chí` 
+                                        : "Xóa tiêu chí"}
+                                    </button>
+                                    {deletingCriteriaByLesson[lesson.id] && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setDeletingCriteriaByLesson((prev) => ({
+                                            ...prev,
+                                            [lesson.id]: false,
+                                          }))
+                                          setSelectedCriteriaToDelete((prev) => {
+                                            const next = { ...prev }
+                                            delete next[lesson.id]
+                                            return next
+                                          })
+                                        }}
+                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary dark:bg-slate-800 text-foreground dark:text-white hover:bg-secondary/80 transition-smooth"
+                                      >
+                                        Hủy
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const points = defaultRubricPoints(lesson.writingMaxScore || 100)
+                                        updateLesson(section.id, lesson.id, {
+                                          writingCriteria: [
+                                            ...(lesson.writingCriteria || []),
+                                            {
+                                              title: `Tiêu chí ${(lesson.writingCriteria || []).length + 1}`,
+                                              levels: points.map((point) => ({ description: "", points: point })),
+                                            },
+                                          ],
+                                        })
+                                      }}
+                                      disabled={deletingCriteriaByLesson[lesson.id]}
+                                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary dark:text-accent hover:bg-primary/20 transition-smooth disabled:opacity-60"
+                                    >
+                                      + Thêm tiêu chí
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
                         {/* Video Upload */}
                         <div>
                           <label className="block text-sm font-medium text-foreground dark:text-white mb-2">

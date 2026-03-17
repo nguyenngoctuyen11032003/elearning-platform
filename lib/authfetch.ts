@@ -1,9 +1,10 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001"
+import { getApiBaseUrl } from "@/lib/api/config"
 
 export const authFetch = (
   path: string,
   options: RequestInit = {}
 ) => {
+  const API_URL = getApiBaseUrl()
   const token = localStorage.getItem("auth_token")
 
   // Không thêm Content-Type nếu body là FormData (để browser tự set với boundary)

@@ -33,4 +33,10 @@ export interface SystemSettings {
   newCourseNotifications?: boolean
   certificateNotifications?: boolean
   promotionNotifications?: boolean
+
+  // Payment
+  bankName?: string
+  bankAccount?: string
+  accountHolder?: string
+  paymentQrCode?: string
 }

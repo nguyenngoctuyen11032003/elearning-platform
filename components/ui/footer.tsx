@@ -19,6 +19,7 @@ import {
   Users,
   BookOpen
 } from "lucide-react"
+import { getApiBaseUrl } from "@/lib/api/config"
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
@@ -29,7 +30,7 @@ export function Footer() {
 useEffect(() => {
   const fetchSettings = async () => {
     try {
-      const res = await fetch("http://localhost:5001/system-settings");
+      const res = await fetch(`${getApiBaseUrl()}/system-settings`);
       const data = await res.json();
 
       if (data.success) {

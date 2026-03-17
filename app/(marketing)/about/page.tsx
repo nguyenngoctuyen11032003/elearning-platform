@@ -16,6 +16,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { getApiBaseUrl } from "@/lib/api/config";
 
 
 const containerVariants = {
@@ -118,7 +119,7 @@ const [loading, setLoading] = useState(true);
   useEffect(() => {
   const fetchSystemSettings = async () => {
     try {
-      const res = await fetch("http://localhost:5001/system-settings");
+        const res = await fetch(`${getApiBaseUrl()}/system-settings`);
       const json = await res.json();
 
       if (json.success) {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import { getApiBaseUrl } from '@/lib/api/config'
 
 interface GoogleLoginButtonProps {
   className?: string
@@ -13,7 +14,7 @@ export function GoogleLoginButton({ className = '', size = 'md' }: GoogleLoginBu
   const handleGoogleLogin = () => {
     setLoading(true)
     // Redirect to backend Google OAuth endpoint
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/google`
+    window.location.href = `${getApiBaseUrl()}/auth/google`
   }
 
   const sizeClasses = {

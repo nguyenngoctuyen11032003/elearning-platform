@@ -10,6 +10,19 @@ export interface ImportedExamQuestion {
   points: number
   explanation: string
   image?: string
+  chapter?: string
+  difficulty?: "easy" | "medium" | "hard"
+}
+
+export interface ExamImportReport {
+  extractedImageCount: number
+  importedImageCount: number
+  questionsWithExtraImages: number[]
+}
+
+export interface ExamImportWithReport {
+  questions: ImportedExamQuestion[]
+  report: ExamImportReport
 }
 
 interface WordQuestionBlock {
@@ -17,15 +30,148 @@ interface WordQuestionBlock {
   bodyLines: string[]
   answerLine: string
   explanationLine: string
+  sectionTitle?: string
+  metadata: {
+    diff?: string
+    var?: string
+    topic?: string
+    learningObj?: string
+    globalObj?: string
+    reason?: string
+  }
   imageKey?: string
+  extraImageKeys: string[]
   points: number
 }
 
-const QUESTION_LINE_REGEX = /^\s*(?:Cau|Câu|Question)\s*\d+[\.:\-\)]*\s*/i
+const QUESTION_LINE_REGEX = /^\s*(?:Cau|Câu|Question|Q)\s*\d+[\.:\-\)]*\s*/i
+const NUMBERED_QUESTION_LINE_REGEX = /^\s*\(?\d{1,4}\)?[\.:\-\)]\s*(.+?)\s*$/i
 const OPTION_LINE_REGEX = /^\s*([A-F])[\.)]\s*(.+)$/i
-const ANSWER_LINE_REGEX = /^\s*(?:Dap an|Đáp án|Answer)\s*[:=-]\s*(.+)$/i
-const EXPLANATION_LINE_REGEX = /^\s*(?:Giai thich|Giải thích|Explanation)\s*[:=-]\s*(.+)$/i
+const ANSWER_LINE_REGEX = /^\s*(?:Dap an|Đáp án|Answer|Ans(?:wer)?)\s*(?:[:=.\-])?\s*(.+)$/i
+const EXPLANATION_LINE_REGEX = /^\s*(?:Giai thich|Giải thích|Explanation|Solution|Loi giai|Lời giải)\s*(?:[:=.\-])?\s*(.+)$/i
 const POINTS_LINE_REGEX = /^\s*(?:Diem|Điểm|Points?)\s*[:=-]\s*(\d+(?:\.\d+)?)\s*$/i
+const INLINE_ANSWER_REGEX = /^(.*?)\s*(?:Dap an|Đáp án|Answer|Ans(?:wer)?)\s*[:=.\-]?\s*(.+)$/i
+const INLINE_METADATA_SPLIT_REGEX = /\s+(?:Diff|Var|Topic|Learning\s*Obj|Global\s*Obj|Rationale|Reason|Loi\s*giai|Lời\s*giải)\s*[:=.\-]/i
+const SECTION_LINE_REGEX = /^\s*(\d+(?:\.\d+)*)\s+([A-Za-z][^\n]{3,})$/
+const METADATA_LINE_REGEX = /^\s*(Diff|Var|Topic|Learning\s*Obj|Global\s*Obj|Rationale|Reason|Loi\s*giai|Lời\s*giải)\s*[:=.\-]\s*(.+)$/i
+const FILL_IN_QUESTION_HINT_REGEX = /(?:_{2,}|\.{3,}|\(\s*\)|\[\s*\]|\bfill\s*(?:in|the\s*blank)\b|\bđiền\s*(?:vào\s*)?chỗ\s*trống\b)/i
+
+const extractQuestionText = (line: string): string | null => {
+  if (!line.trim()) return null
+
+  if (QUESTION_LINE_REGEX.test(line)) {
+    return line.replace(QUESTION_LINE_REGEX, "").trim()
+  }
+
+  if (OPTION_LINE_REGEX.test(line)) return null
+  if (ANSWER_LINE_REGEX.test(line)) return null
+  if (EXPLANATION_LINE_REGEX.test(line)) return null
+
+  const numberedMatch = line.match(NUMBERED_QUESTION_LINE_REGEX)
+  if (!numberedMatch) return null
+
+  const content = (numberedMatch[1] || "").trim()
+  if (content.length < 4) return null
+  if (/^(?:chapter|unit|part|section)\b/i.test(content)) return null
+
+  return content
+}
+
+const looksLikeFillInQuestion = (value: string): boolean => {
+  const text = value.trim()
+  if (!text) return false
+  return FILL_IN_QUESTION_HINT_REGEX.test(text)
+}
+
+const extractSectionTitle = (line: string): string | null => {
+  const text = line.trim()
+  if (!text) return null
+  if (QUESTION_LINE_REGEX.test(text)) return null
+  if (NUMBERED_QUESTION_LINE_REGEX.test(text)) return null
+  if (OPTION_LINE_REGEX.test(text)) return null
+  if (ANSWER_LINE_REGEX.test(text)) return null
+  if (EXPLANATION_LINE_REGEX.test(text)) return null
+
+  const match = text.match(SECTION_LINE_REGEX)
+  if (!match) return null
+
+  const title = `${match[1]} ${match[2]}`.trim()
+  if (!/question|questions|trac nghiem|trắc nghiệm|true false|fill/i.test(title)) {
+    return null
+  }
+
+  return title
+}
+
+const looksLikeStandaloneQuestionStart = (line: string): boolean => {
+  const text = line.trim()
+  if (!text) return false
+  if (OPTION_LINE_REGEX.test(text)) return false
+  if (ANSWER_LINE_REGEX.test(text)) return false
+  if (EXPLANATION_LINE_REGEX.test(text)) return false
+  if (POINTS_LINE_REGEX.test(text)) return false
+  if (/^\[\[IMAGE:img_\d+\]\]$/i.test(text)) return false
+  if (extractSectionTitle(text)) return false
+
+  if (/[?]$/.test(text)) return true
+
+  return /^(?:what|which|how|why|when|where|who|if|the\s+number|the\s+temperature|one\s+liter|the\s+diameter|the\s+thickness|the\s+freezing|the\s+nighttime|a\s+consistent)\b/i.test(text)
+}
+
+const sanitizeAnswerToken = (raw: string): string => {
+  const compact = raw.replace(/\s+/g, " ").trim()
+  if (!compact) return ""
+
+  const splitIndex = compact.search(INLINE_METADATA_SPLIT_REGEX)
+  const token = splitIndex >= 0 ? compact.slice(0, splitIndex).trim() : compact
+  return token.replace(/[;,]+$/g, "").trim()
+}
+
+const parseMetadataLine = (line: string): { key: string; value: string } | null => {
+  const match = line.match(METADATA_LINE_REGEX)
+  if (!match) return null
+
+  const rawKey = match[1].toLowerCase().replace(/\s+/g, "")
+  const value = match[2].trim()
+  if (!value) return null
+
+  if (rawKey === "diff") return { key: "diff", value }
+  if (rawKey === "var") return { key: "var", value }
+  if (rawKey === "topic") return { key: "topic", value }
+  if (rawKey === "learningobj") return { key: "learningObj", value }
+  if (rawKey === "globalobj") return { key: "globalObj", value }
+  if (rawKey === "rationale" || rawKey === "reason" || rawKey.includes("loigiai") || rawKey.includes("lờigiải")) {
+    return { key: "reason", value }
+  }
+
+  return null
+}
+
+const buildExplanation = (block: WordQuestionBlock): string => {
+  const parts: string[] = []
+
+  if (block.explanationLine.trim()) {
+    parts.push(block.explanationLine.trim())
+  }
+
+  if (block.metadata.reason) parts.push(`Lý do: ${block.metadata.reason}`)
+  if (block.metadata.diff) parts.push(`Độ khó: ${block.metadata.diff}`)
+  if (block.metadata.var) parts.push(`Biến thể: ${block.metadata.var}`)
+  if (block.metadata.topic) parts.push(`Chủ đề: ${block.metadata.topic}`)
+  if (block.metadata.learningObj) parts.push(`Mục tiêu học tập: ${block.metadata.learningObj}`)
+  if (block.metadata.globalObj) parts.push(`Mục tiêu tổng quát: ${block.metadata.globalObj}`)
+
+  return parts.join("\n")
+}
+
+const toDifficultyLevel = (value?: string): "easy" | "medium" | "hard" | undefined => {
+  if (!value) return undefined
+  const normalized = value.toLowerCase().trim()
+  if (/(?:^|\b)(1|easy|de|dễ)(?:\b|$)/i.test(normalized)) return "easy"
+  if (/(?:^|\b)(2|medium|trung\s*binh|trung\s*bình)(?:\b|$)/i.test(normalized)) return "medium"
+  if (/(?:^|\b)(3|4|5|hard|kho|khó)(?:\b|$)/i.test(normalized)) return "hard"
+  return undefined
+}
 
 const normalizeType = (value?: string): ImportedExamQuestion["type"] | undefined => {
   if (!value) return undefined
@@ -75,11 +221,10 @@ const parseCorrectAnswerFromLine = (raw: string, options: string[]): string | st
   return optionIndexes.map((index) => options[index]).filter(Boolean)
 }
 
-const looksLikeAnswerToken = (value: string): boolean => {
+const looksLikeOptionReferenceToken = (value: string): boolean => {
   const token = value.trim()
   if (!token) return false
   if (/^[A-F]$/i.test(token)) return true
-  if (/^\d+$/.test(token)) return true
   return false
 }
 
@@ -91,6 +236,24 @@ const cleanOptionText = (value: string): string => {
     .replace(/^\“+|\”+$/g, "")
     .replace(/^\'+|\'+$/g, "")
     .trim()
+}
+
+const SUPERSCRIPT_EXPONENT_REGEX = /^[⁺⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+$/
+const PLAIN_EXPONENT_FRAGMENT_REGEX = /^\(?\^?\s*[+\-−]?\d{1,4}\)?$/
+
+const normalizeExponentFragment = (value: string): string => {
+  return value
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/^\^/, "")
+    .replace(/−/g, "-")
+}
+
+const looksLikeExponentContinuation = (line: string): boolean => {
+  const text = line.trim()
+  if (!text) return false
+  if (SUPERSCRIPT_EXPONENT_REGEX.test(text)) return true
+  return PLAIN_EXPONENT_FRAGMENT_REGEX.test(text)
 }
 
 const normalizeTrueFalseAnswer = (raw: string, options: string[]): string => {
@@ -107,6 +270,26 @@ const normalizeTrueFalseAnswer = (raw: string, options: string[]): string => {
   return options[0] ?? "Đúng"
 }
 
+/**
+ * Normalize scientific notation produced by pdf-parse where superscripts appear
+ * inline immediately after the base number, e.g.:
+ *   "1 × 104"  → "1 × 10^4"
+ *   "1 × 10-6" → "1 × 10^-6"
+ *   "1 × 1024" → "1 × 10^24"
+ */
+const normalizeScientificNotation = (text: string): string => {
+  return text
+    .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, (c) => String("⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(c)))
+    .replace(/⁺/g, "+")
+    .replace(/⁻/g, "-")
+    .replace(/(×\s*10)(-\d+)/g, "$1^$2")
+    .replace(/(×\s*10)([1-9]\d?)(?!\d)/g, "$1^$2")
+    .replace(/\b(10)(-\d+)/g, "$1^$2")
+}
+
+const cleanAndNormalizeOption = (value: string): string =>
+  normalizeScientificNotation(cleanOptionText(value))
+
 const finalizeWordBlock = (
   block: WordQuestionBlock,
   imageMap: Record<string, string>,
@@ -121,12 +304,18 @@ const finalizeWordBlock = (
   const hasPrefixedOptions = block.bodyLines.some((line) => OPTION_LINE_REGEX.test(line))
 
   if (hasPrefixedOptions) {
+    let lastOptionIndex = -1
     for (const line of block.bodyLines) {
       const optionMatch = line.match(OPTION_LINE_REGEX)
       if (optionMatch) {
-        options.push(cleanOptionText(optionMatch[2]))
+        options.push(cleanAndNormalizeOption(optionMatch[2]))
+        lastOptionIndex = options.length - 1
+      } else if (lastOptionIndex >= 0 && looksLikeExponentContinuation(line)) {
+        const exponent = normalizeExponentFragment(line)
+        const current = options[lastOptionIndex] || ""
+        options[lastOptionIndex] = normalizeScientificNotation(`${current}^${exponent}`)
       } else if (line.trim()) {
-        questionText += "\n" + line.trim()
+        questionText += "\n" + normalizeScientificNotation(line.trim())
       }
     }
   } else {
@@ -137,7 +326,7 @@ const finalizeWordBlock = (
     }
   }
 
-  const answerToken = block.answerLine.trim()
+  const answerToken = sanitizeAnswerToken(block.answerLine)
 
   if (options.length < 2 && plainLines.length >= 2) {
     // Use the answer line to determine how many options from the end of plainLines
@@ -146,14 +335,14 @@ const finalizeWordBlock = (
       const idx = l.toUpperCase().charCodeAt(0) - 65
       return idx > max ? idx : max
     }, 3) // default D (index 3) = 4 options
-    const optCount = maxLetterIdx + 1
+    const optCount = Math.min(6, Math.max(2, maxLetterIdx + 1))
 
     const splitAt = Math.max(0, plainLines.length - optCount)
     const contextLines = plainLines.slice(0, splitAt)
     const optionLines = plainLines.slice(splitAt)
 
     if (optionLines.length >= 2) {
-      options = optionLines.map((line) => cleanOptionText(line)).filter(Boolean)
+      options = optionLines.map((line) => cleanAndNormalizeOption(line)).filter(Boolean)
       if (contextLines.length > 0) {
         questionText += "\n" + contextLines.join("\n")
       }
@@ -163,9 +352,14 @@ const finalizeWordBlock = (
   const question = options.length >= 2 ? questionText : [questionText, ...plainLines].join("\n").trim()
   if (!question) return null
 
-  const explanation = block.explanationLine.trim()
+  const normalizedQuestion = normalizeScientificNotation(question)
+
+  const explanation = buildExplanation(block)
   const points = block.points > 0 ? block.points : 1
   const image = block.imageKey ? imageMap[block.imageKey] : undefined
+  const chapter = block.sectionTitle?.trim() || undefined
+  const difficulty = toDifficultyLevel(block.metadata.diff)
+  const questionWithSection = block.sectionTitle ? `[${block.sectionTitle}]\n${normalizedQuestion}` : normalizedQuestion
 
   if (options.length >= 2) {
     const normalizedLower = options.map((option) => option.toLowerCase().trim())
@@ -175,64 +369,95 @@ const finalizeWordBlock = (
         (normalizedLower.includes("true") && normalizedLower.includes("false")))
 
     if (isTrueFalse) {
-      const answerValue = block.answerLine || options[0]
+      const answerValue = answerToken || options[0]
       return {
         type: "true_false",
-        question,
+        question: questionWithSection,
         options,
         correctAnswer: normalizeTrueFalseAnswer(answerValue, options),
         points,
         explanation,
         image,
+        chapter,
+        difficulty,
       }
     }
 
     const answerRaw = answerToken || options[0]
     return {
       type: "multiple_choice",
-      question,
-      options: options.length > 4 ? options.slice(0, 4) : options,
+      question: questionWithSection,
+      options: options.length > 6 ? options.slice(0, 6) : options,
       correctAnswer: parseCorrectAnswerFromLine(answerRaw, options),
       points,
       explanation,
       image,
+      chapter,
+      difficulty,
     }
   }
 
   const fillAnswer = answerToken.trim()
-  if (looksLikeAnswerToken(fillAnswer)) {
+  if (!looksLikeFillInQuestion(questionWithSection) && looksLikeOptionReferenceToken(fillAnswer)) {
     return null
   }
   if (!fillAnswer) return null
 
   return {
     type: "fill_in",
-    question,
+    question: questionWithSection,
     options: [],
     correctAnswer: fillAnswer,
     points,
     explanation,
     image,
+    chapter,
+    difficulty,
   }
 }
 
-const parseWordQuestions = async (file: File): Promise<ImportedExamQuestion[]> => {
+const parseDocumentQuestions = async (
+  file: File,
+  options?: { extractImages?: boolean; ocrMode?: "none" | "extract" | "full" },
+): Promise<ExamImportWithReport> => {
+  const lowerName = file.name.toLowerCase()
+  const parserEndpoint = lowerName.endsWith(".pdf")
+    ? "/api/import/parse-pdf"
+    : "/api/import/parse-word"
+
   const formData = new FormData()
   formData.append("file", file)
 
-  const response = await fetch("/api/import/parse-word", {
+  // Send image extraction options for PDF parsing
+  if (options?.extractImages) {
+    formData.append("withImages", "true")
+    if (options?.ocrMode) {
+      formData.append("ocr", options.ocrMode)
+    }
+  }
+
+  const response = await fetch(parserEndpoint, {
     method: "POST",
     body: formData,
   })
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}))
-    throw new Error(err?.error || "Không đọc được file Word")
+    throw new Error(err?.error || "Không đọc được file tài liệu")
   }
 
   const result = await response.json()
   const text = (result?.text as string) || ""
   const imageMap = (result?.images as Record<string, string>) || {}
+  
+  // Log metadata if available
+  if (result?.metadata) {
+    console.log("[exam-import] PDF processing metadata:", {
+      imageCount: result.metadata.imageCount,
+      processingTimeMs: result.metadata.processingTimeMs,
+      hasImages: result.metadata.hasImages,
+    })
+  }
 
   const lines = text
     .split(/\r?\n/)
@@ -241,25 +466,77 @@ const parseWordQuestions = async (file: File): Promise<ImportedExamQuestion[]> =
 
   const blocks: WordQuestionBlock[] = []
   let current: WordQuestionBlock | null = null
+  let currentSectionTitle: string | undefined
+  let pendingImageKey: string | undefined
+  let pendingExtraImageKeys: string[] = []
 
   for (const line of lines) {
-    if (QUESTION_LINE_REGEX.test(line)) {
+    const sectionTitle = extractSectionTitle(line)
+    if (sectionTitle) {
+      if (current) {
+        blocks.push(current)
+        current = null
+      }
+      currentSectionTitle = sectionTitle
+      continue
+    }
+
+    const questionText = extractQuestionText(line)
+    if (questionText) {
       if (current) blocks.push(current)
       current = {
-        questionText: line.replace(QUESTION_LINE_REGEX, "").trim(),
+        questionText,
         bodyLines: [],
         answerLine: "",
         explanationLine: "",
+        sectionTitle: currentSectionTitle,
+        metadata: {},
+        imageKey: pendingImageKey,
+        extraImageKeys: pendingExtraImageKeys,
         points: 1,
+      }
+      pendingImageKey = undefined
+      pendingExtraImageKeys = []
+      continue
+    }
+
+    if (!current) {
+      const leadingImageMatch = line.match(/^\[\[IMAGE:(img_\d+)\]\]$/)
+      if (leadingImageMatch) {
+        if (!pendingImageKey) {
+          pendingImageKey = leadingImageMatch[1]
+        } else {
+          pendingExtraImageKeys.push(leadingImageMatch[1])
+        }
       }
       continue
     }
 
-    if (!current) continue
+    if (current.answerLine && looksLikeStandaloneQuestionStart(line)) {
+      blocks.push(current)
+      current = {
+        questionText: line.trim(),
+        bodyLines: [],
+        answerLine: "",
+        explanationLine: "",
+        sectionTitle: currentSectionTitle,
+        metadata: {},
+        imageKey: pendingImageKey,
+        extraImageKeys: pendingExtraImageKeys,
+        points: 1,
+      }
+      pendingImageKey = undefined
+      pendingExtraImageKeys = []
+      continue
+    }
 
     const imageMatch = line.match(/^\[\[IMAGE:(img_\d+)\]\]$/)
     if (imageMatch) {
-      current.imageKey = imageMatch[1]
+      if (!current.imageKey) {
+        current.imageKey = imageMatch[1]
+      } else {
+        current.extraImageKeys.push(imageMatch[1])
+      }
       continue
     }
 
@@ -278,9 +555,26 @@ const parseWordQuestions = async (file: File): Promise<ImportedExamQuestion[]> =
       continue
     }
 
+    const inlineAnswerMatch = line.match(INLINE_ANSWER_REGEX)
+    if (inlineAnswerMatch) {
+      const leading = inlineAnswerMatch[1].trim()
+      const answerValue = inlineAnswerMatch[2].trim()
+      if (leading) {
+        current.bodyLines.push(leading)
+      }
+      current.answerLine = answerValue
+      continue
+    }
+
     const explanationMatch = line.match(EXPLANATION_LINE_REGEX)
     if (explanationMatch) {
       current.explanationLine = explanationMatch[1].trim()
+      continue
+    }
+
+    const metadata = parseMetadataLine(line)
+    if (metadata) {
+      ;(current.metadata as Record<string, string | undefined>)[metadata.key] = metadata.value
       continue
     }
 
@@ -289,9 +583,29 @@ const parseWordQuestions = async (file: File): Promise<ImportedExamQuestion[]> =
 
   if (current) blocks.push(current)
 
-  return blocks
-    .map((block) => finalizeWordBlock(block, imageMap))
-    .filter((item): item is ImportedExamQuestion => item !== null)
+  const questions: ImportedExamQuestion[] = []
+  const questionsWithExtraImages: number[] = []
+
+  for (const block of blocks) {
+    const finalized = finalizeWordBlock(block, imageMap)
+    if (!finalized) continue
+    questions.push(finalized)
+    if (block.extraImageKeys.length > 0) {
+      questionsWithExtraImages.push(questions.length)
+    }
+  }
+
+  const importedImageCount = questions.reduce((sum, q) => sum + (q.image ? 1 : 0), 0)
+  const extractedImageCount = Object.keys(imageMap).length
+
+  return {
+    questions,
+    report: {
+      extractedImageCount,
+      importedImageCount,
+      questionsWithExtraImages,
+    },
+  }
 }
 
 const pickValue = (row: Record<string, unknown>, keys: string[]): string => {
@@ -508,10 +822,32 @@ const parseExcelQuestions = async (file: File): Promise<ImportedExamQuestion[]> 
 export const parseExamQuestionsFile = async (
   file: File,
   importType: ExamImportType,
+  options?: { extractImages?: boolean; ocrMode?: "none" | "extract" | "full" },
 ): Promise<ImportedExamQuestion[]> => {
   if (importType === "word") {
-    return parseWordQuestions(file)
+    const parsed = await parseDocumentQuestions(file, options)
+    return parsed.questions
   }
 
   return parseExcelQuestions(file)
+}
+
+export const parseExamQuestionsFileWithReport = async (
+  file: File,
+  importType: ExamImportType,
+  options?: { extractImages?: boolean; ocrMode?: "none" | "extract" | "full" },
+): Promise<ExamImportWithReport> => {
+  if (importType === "word") {
+    return parseDocumentQuestions(file, options)
+  }
+
+  const questions = await parseExcelQuestions(file)
+  return {
+    questions,
+    report: {
+      extractedImageCount: 0,
+      importedImageCount: questions.reduce((sum, q) => sum + (q.image ? 1 : 0), 0),
+      questionsWithExtraImages: [],
+    },
+  }
 }

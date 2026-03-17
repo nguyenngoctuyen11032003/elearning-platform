@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -66,6 +67,7 @@ interface Assignment {
   lessonTitle?: string;
   submissionsCount?: number;
   gradedCount?: number;
+  attachments?: string[];
   createdAt: string;
 }
 
@@ -82,6 +84,7 @@ interface Submission {
 }
 
 export default function TeacherAssignmentsPage() {
+  const router = useRouter();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [lessons, setLessons] = useState<any[]>([]);
@@ -102,9 +105,11 @@ export default function TeacherAssignmentsPage() {
     maxScore: 100,
     courseId: '',
     lessonId: '',
+    attachments: [] as string[],
   });
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
 
   // Grading form
   const [gradeData, setGradeData] = useState({
@@ -190,6 +195,7 @@ export default function TeacherAssignmentsPage() {
       maxScore: assignment.maxScore,
       courseId: assignment.courseId,
       lessonId: assignment.lessonId || '',
+      attachments: Array.isArray(assignment.attachments) ? assignment.attachments : [],
     });
     setSelectedAssignment(assignment);
     setIsEditing(true);
@@ -296,6 +302,7 @@ export default function TeacherAssignmentsPage() {
       maxScore: 100,
       courseId: '',
       lessonId: '',
+      attachments: [],
     });
     setSelectedAssignment(null);
     setIsEditing(false);
@@ -309,6 +316,34 @@ export default function TeacherAssignmentsPage() {
     } else {
       setLessons([]);
     }
+  };
+
+  const handleUploadAssignmentAttachment = async (file: File) => {
+    try {
+      setUploadingAttachment(true);
+      const result = await apiClient.uploadDocument(file);
+      setFormData((prev) => ({
+        ...prev,
+        attachments: [...prev.attachments, result.url],
+      }));
+      toast({ title: 'Tải file lên thành công' });
+    } catch (error) {
+      console.error('Error uploading assignment attachment:', error);
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể tải file lên',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
+  const removeAttachment = (url: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      attachments: prev.attachments.filter((item) => item !== url),
+    }));
   };
 
   return (
@@ -360,9 +395,7 @@ export default function TeacherAssignmentsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="course">Khóa học *</Label>
                   <Select value={formData.courseId?? ""}
-                   onValueChange={(v) =>
-                     setFormData({ ...formData, courseId: v })
-                    }>
+                   onValueChange={handleCourseChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn khóa học" />
                     </SelectTrigger>
@@ -415,6 +448,44 @@ export default function TeacherAssignmentsPage() {
                     onChange={(e) => setFormData({ ...formData, maxScore: parseInt(e.target.value) || 0 })}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tài liệu đính kèm (Word, PDF, Excel...)</Label>
+                <Input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
+                  disabled={uploadingAttachment}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleUploadAssignmentAttachment(file);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                {uploadingAttachment && (
+                  <p className="text-xs text-muted-foreground">Đang tải file lên...</p>
+                )}
+                {formData.attachments.length > 0 && (
+                  <div className="space-y-2">
+                    {formData.attachments.map((url) => (
+                      <div key={url} className="flex items-center justify-between rounded-md border px-3 py-2">
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="truncate text-sm text-blue-600 hover:underline"
+                        >
+                          {url.split('/').pop() || url}
+                        </a>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeAttachment(url)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -521,6 +592,10 @@ export default function TeacherAssignmentsPage() {
                           <DropdownMenuItem onClick={() => handleViewSubmissions(assignment)}>
                             <Eye className="mr-2 h-4 w-4" />
                             Xem bài nộp
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/teacher/assignments/${assignment.id}/grade`)}>
+                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                            Xem chi tiết chấm
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEdit(assignment)}>
                             <Edit className="mr-2 h-4 w-4" />

@@ -539,20 +539,38 @@ export default function AdminExamDetailPage() {
 
   const isOptionCorrect = (question: Question, option: string, optionIndex: number) => {
     const answer = question.correctAnswer
+    const optionText = option.trim().toLowerCase()
+    const normalizedOptions = (question.options || []).map((item) => String(item || "").trim().toLowerCase())
+    const isSelectorToken = (token: string) => {
+      const normalizedToken = token.trim().toLowerCase()
+
+      if (/^[a-f]$/.test(normalizedToken)) {
+        const letter = String.fromCharCode(65 + optionIndex).toLowerCase()
+        return normalizedToken === letter
+      }
+
+      if (/^\d+$/.test(normalizedToken) && !normalizedOptions.includes(normalizedToken)) {
+        const numeric = Number.parseInt(normalizedToken, 10)
+        return numeric === optionIndex + 1 || numeric === optionIndex
+      }
+
+      return false
+    }
 
     if (typeof answer === "number") {
       return answer === optionIndex
     }
 
     if (Array.isArray(answer)) {
-      const normalized = answer.map((item) => String(item).trim().toLowerCase())
-      const letter = String.fromCharCode(65 + optionIndex).toLowerCase()
-      return normalized.includes(option.trim().toLowerCase()) || normalized.includes(letter) || normalized.includes(String(optionIndex + 1))
+      const normalizedAnswers = answer.map((item) => String(item || "").trim().toLowerCase()).filter(Boolean)
+      if (normalizedAnswers.includes(optionText)) return true
+      return normalizedAnswers.some((token) => isSelectorToken(token))
     }
 
     const normalized = String(answer || "").trim().toLowerCase()
-    const letter = String.fromCharCode(65 + optionIndex).toLowerCase()
-    return normalized === option.trim().toLowerCase() || normalized === letter || normalized === String(optionIndex + 1)
+    if (!normalized) return false
+    if (normalized === optionText) return true
+    return isSelectorToken(normalized)
   }
 
   const getStatusBadge = (status: string) => {
@@ -645,26 +663,6 @@ export default function AdminExamDetailPage() {
             <span>Quay lại</span>
           </button>
           <div className="flex items-center gap-2">
-            {exam.status === "pending" && (
-              <>
-                <button
-                  onClick={handleApprove}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-2 font-medium"
-                >
-                  <CheckCircle size={18} />
-                  Duyệt bài thi
-                </button>
-                <button
-                  onClick={() => setRejectDialog(true)}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-2 font-medium"
-                >
-                  <XCircle size={18} />
-                  Từ chối
-                </button>
-              </>
-            )}
             <button
               onClick={() => setConfirmDelete(true)}
               disabled={actionLoading}

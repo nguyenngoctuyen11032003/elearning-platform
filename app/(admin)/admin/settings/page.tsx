@@ -27,6 +27,8 @@ import {
   Clock,
   Target,
   Heart,
+  CreditCard,
+  QrCode,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DEFAULT_SYSTEM_SETTINGS } from "../../../../lib/system-config/default-system-settings"
@@ -36,6 +38,8 @@ export default function AdminSettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [qrPreview, setQrPreview] = useState<string | null>(null)
+  const [qrFile, setQrFile] = useState<File | null>(null)
   const { refresh } = useSystemConfig()
   const { config } = useSystemConfig()
   const { setConfig } = useSystemConfig()
@@ -62,7 +66,7 @@ useEffect(() => {
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0]
   if (file) {
-    setLogoFile(file) // 👈 THÊM DÒNG NÀY
+    setLogoFile(file)
 
     const reader = new FileReader()
     reader.onloadend = () => {
@@ -71,6 +75,23 @@ useEffect(() => {
     reader.readAsDataURL(file)
   }
 }
+
+  const handleQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Kích thước file không được vượt quá 2MB")
+        return
+      }
+      setQrFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setQrPreview(reader.result as string)
+        toast.success("Đã tải lên mã QR thành công")
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
 const handleSave = async () => {
   try {
@@ -84,12 +105,11 @@ const handleSave = async () => {
       updatedSettings.site_logo = uploadRes.url
     }
 
-    // ✅ GỬI 1 REQUEST DUY NHẤT
-    await apiClient.updateManySystemSettings(updatedSettings)
-
-    setConfig(updatedSettings) // ⭐ update global ngay
-
-    toast.success("Lưu cài đặt thành công!")
+    // upload QR nếu có
+    if (qrFile) {
+      const uploadRes = await apiClient.uploadFile(qrFile)
+      updatedSettings.paymentQrCode = uploadRes.url
+    }
   } catch (err) {
     console.error(err)
     toast.error("Lưu thất bại")
@@ -107,8 +127,11 @@ if (!settings) return null
           <p className="text-muted-foreground dark:text-slate-400">Quản lý cấu hình toàn bộ nền tảng</p>
         </div>
 
-        <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
+        <Tabs defaultValue="payment" className="w-full">
+          <TabsList className="grid w-full grid-cols-5 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
+            <TabsTrigger value="payment" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
+              Thanh toán
+            </TabsTrigger>
             <TabsTrigger value="general" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
               Chung
             </TabsTrigger>
@@ -122,6 +145,91 @@ if (!settings) return null
               Bảo mật
             </TabsTrigger>
           </TabsList>
+
+          {/* Payment Settings */}
+          <TabsContent value="payment" className="space-y-6 mt-6">
+            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
+              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
+                <CreditCard size={24} className="text-primary dark:text-accent" /> Thông tin thanh toán
+              </h2>
+              <p className="text-muted-foreground dark:text-slate-400 text-sm">
+                Thông tin ngân hàng để nhận thanh toán từ học viên
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Tên ngân hàng</label>
+                  <input
+                    type="text"
+                    value={settings.bankName ?? ""}
+                    onChange={(e) => handleSettingChange("bankName", e.target.value)}
+                    placeholder="VD: Vietcombank"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Số tài khoản</label>
+                  <input
+                    type="text"
+                    value={settings.bankAccount ?? ""}
+                    onChange={(e) => handleSettingChange("bankAccount", e.target.value)}
+                    placeholder="VD: 1234567890"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Chủ tài khoản</label>
+                  <input
+                    type="text"
+                    value={settings.accountHolder ?? ""}
+                    onChange={(e) => handleSettingChange("accountHolder", e.target.value)}
+                    placeholder="VD: NGUYEN VAN A"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                    <QrCode size={16} /> Mã QR thanh toán
+                  </label>
+                  <div className="flex items-start gap-4">
+                    <div className="w-32 h-32 bg-secondary dark:bg-slate-800 rounded-lg flex items-center justify-center border-2 border-dashed border-border dark:border-slate-700 overflow-hidden">
+                      {qrPreview || settings.paymentQrCode ? (
+                        <img
+                          src={qrPreview || settings.paymentQrCode}
+                          alt="QR Code"
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <QrCode size={40} className="text-muted-foreground dark:text-slate-400" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <label className="block">
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/jpg"
+                          onChange={handleQrUpload}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            const input = e.currentTarget.parentElement?.querySelector('input[type="file"]') as HTMLInputElement
+                            input?.click()
+                          }}
+                          className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth font-medium flex items-center gap-2"
+                        >
+                          <Upload size={16} /> Tải lên mã QR
+                        </button>
+                      </label>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
+                        PNG, JPG (Tối đa 2MB). Mã QR sẽ được hiển thị cho học viên khi thanh toán.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
 
           {/* General Settings */}
           <TabsContent value="general" className="space-y-6 mt-6">

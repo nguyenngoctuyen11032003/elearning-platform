@@ -7,6 +7,7 @@ import { createPortal } from "react-dom"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { formatPrice, formatNumber } from "@/lib/format"
+import Link from "next/link"
 
 interface Payment {
   id: string
@@ -22,6 +23,7 @@ interface Payment {
   status: "success" | "pending" | "failed"
   date: string
   transactionId: string
+  source?: "course" | "subscription"
 }
 
 interface PaymentStats {
@@ -75,14 +77,15 @@ export default function AdminPaymentsPage() {
   const loadPayments = async () => {
     setLoading(true)
     try {
-      const [listRes, statsRes] = await Promise.all([
+      const [listRes, statsRes, subscriptionPaymentRes] = await Promise.all([
         apiClient.getAdminPayments({ limit: 200 }),
         apiClient.getAdminPaymentStats(),
+        apiClient.getAdminInstructorPayments(),
       ])
 
       const rawList = (listRes as any)?.data ?? listRes ?? []
 
-      const mapped: Payment[] = Array.isArray(rawList)
+      const coursePayments: Payment[] = Array.isArray(rawList)
         ? rawList.map((p: any) => {
             const student = p.student || {}
             const course = p.course || {}
@@ -103,9 +106,33 @@ export default function AdminPaymentsPage() {
               method: normalizeMethod(p.paymentMethod),
               status: normalizeStatus(p.status),
               date: new Date(paidAt).toISOString(),
+              source: "course",
             }
           })
         : []
+
+      const subscriptionPayments: Payment[] = Array.isArray(subscriptionPaymentRes)
+        ? subscriptionPaymentRes.map((p: any) => ({
+            id: p.id || p.transactionId,
+            transactionId: p.transactionId || p.id || "",
+            user: p.teacher?.name || "Giảng viên",
+            userEmail: p.teacher?.email || "",
+            userPhone: p.teacher?.phone || "",
+            course: `Gói ${p.plan?.name || "Subscription"}`,
+            courseId: p.plan?.id || "",
+            teacher: p.teacher?.name || "",
+            teacherEmail: p.teacher?.email || "",
+            amount: Number(p.amount ?? 0),
+            method: normalizeMethod(p.paymentMethod),
+            status: normalizeStatus(p.status),
+            date: new Date(p.paidAt || p.createdAt || new Date()).toISOString(),
+            source: "subscription",
+          }))
+        : []
+
+      const mapped = [...coursePayments, ...subscriptionPayments].sort(
+        (a, b) => +new Date(b.date) - +new Date(a.date),
+      )
 
       setPayments(mapped)
 
@@ -263,13 +290,21 @@ export default function AdminPaymentsPage() {
                 <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Quản lý thanh toán</h1>
                 <p className="text-black/70 dark:text-white/80 drop-shadow">Theo dõi và quản lý các giao dịch thanh toán</p>
               </div>
-              <button
-                ref={exportButtonRef}
-                onClick={() => setIsExportOpen(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-lg font-medium transition-all duration-300 hover:shadow-lg w-fit backdrop-blur-sm"
-              >
-                <Download size={20} /> Xuất báo cáo
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href="/admin/payments/codes"
+                  className="flex items-center gap-2 px-4 py-3 bg-white text-primary rounded-lg font-medium transition-all duration-300 hover:shadow-lg"
+                >
+                  Mã thanh toán
+                </Link>
+                <button
+                  ref={exportButtonRef}
+                  onClick={() => setIsExportOpen(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-lg font-medium transition-all duration-300 hover:shadow-lg w-fit backdrop-blur-sm"
+                >
+                  <Download size={20} /> Xuất báo cáo
+                </button>
+              </div>
             </div>
 
             {/* Stats Cards */}

@@ -1,5 +1,4 @@
 "use client"
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
 import { useState, useEffect } from "react"
 import { Plus, Edit, Trash2, Save, X, Search, BookOpen, TrendingUp, FolderOpen, MoreVertical, ImagePlus } from "lucide-react"
 import { authFetch } from "@/lib/authfetch"

@@ -25,4 +25,9 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   emailNotifications: false,
   aiAssistantEnabled: false,
   language: "vi",
+
+  bankName: "",
+  bankAccount: "",
+  accountHolder: "",
+  paymentQrCode: "",
 }

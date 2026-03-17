@@ -4,6 +4,7 @@ import { AddUserModal, ConfirmDialog } from "@/components/ui/admin-modals"
 import { EditUserModal } from "@/components/ui/edit-user-modal"
 import type { UserData, UpdateUserData } from "@/app/types/user"
 import { toast } from "sonner"
+import { getApiBaseUrl } from "@/lib/api/config"
 // DropdownFilter: custom dropdown with slide-down effect
 type DropdownOption = { value: string; label: string }
 type DropdownFilterProps = {
@@ -232,7 +233,8 @@ const fetchUsers = async () => {
   }
 
   // Lấy tất cả users - set limit=1000 để không bị pagination
-  const res = await fetch("http://localhost:5001/users?limit=1000", {
+  const apiUrl = getApiBaseUrl()
+  const res = await fetch(`${apiUrl}/users?limit=1000`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -272,7 +274,8 @@ const handleAddUser = async (newUser: any) => {
       return
     }
 
-    const res = await fetch("http://localhost:5001/users", {
+    const apiUrl = getApiBaseUrl()
+    const res = await fetch(`${apiUrl}/users`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -323,8 +326,9 @@ const executeAction = async () => {
 
   try {
     if (action === "delete") {
+      const apiUrl = getApiBaseUrl()
       const res = await fetch(
-        `http://localhost:5001/users/${userId}`,
+        `${apiUrl}/users/${userId}`,
         {
           method: "DELETE",
           headers: {
@@ -346,8 +350,9 @@ const executeAction = async () => {
       // Khóa hoặc mở khóa tài khoản
       const newStatus = action === "lock" ? "inactive" : "active"
       
+      const apiUrl = getApiBaseUrl()
       const res = await fetch(
-        `http://localhost:5001/users/${userId}`,
+        `${apiUrl}/users/${userId}`,
         {
           method: "PATCH",
           headers: {
@@ -388,8 +393,9 @@ const handleUpdateUser = async (updatedData: any) => {
 
     console.log("Updating user:", editUser.id, "with data:", updatedData)
 
+    const apiUrl = getApiBaseUrl()
     const res = await fetch(
-      `http://localhost:5001/users/${editUser.id}`,
+      `${apiUrl}/users/${editUser.id}`,
       {
         method: "PATCH",
         headers: {

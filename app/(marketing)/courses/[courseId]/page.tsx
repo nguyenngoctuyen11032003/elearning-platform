@@ -15,37 +15,13 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   const [expandedReview, setExpandedReview] = useState<string | null>(null)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null)
-  const [newReview, setNewReview] = useState({ author: "", rating: 5, content: "" })
-  const [reviews, setReviews] = useState([
-    {
-      id: "1",
-      author: "Trần Minh",
-      rating: 5,
-      date: "2024-03-10",
-      content: "Khóa học rất tuyệt vời! Giảng viên giải thích rất rõ ràng và dễ hiểu.",
-      replies: [
-        { id: "1-1", author: "Nguyễn Ngọc Tuyền", content: "Cảm ơn bạn! Chúng tôi sẽ tiếp tục cải thiện khóa học.", date: "2024-03-11" }
-      ]
-    },
-    {
-      id: "2",
-      author: "Lê Hương",
-      rating: 4.5,
-      date: "2024-03-08",
-      content: "Nội dung hay nhưng mong có thêm bài tập thực hành.",
-      replies: []
-    },
-    {
-      id: "3",
-      author: "Phạm Anh",
-      rating: 5,
-      date: "2024-03-05",
-      content: "Tuyệt vời! Đã giúp tôi nâng cao kỹ năng Next.js rất nhiều.",
-      replies: []
-    },
-  ])
+  const [newReview, setNewReview] = useState({ rating: 5, comment: "" })
+  const [reviews, setReviews] = useState<any[]>([])
+  const [reviewsLoading, setReviewsLoading] = useState(true)
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
+  const [myReview, setMyReview] = useState<any>(null)
   const [expandedReplies, setExpandedReplies] = useState<string | null>(null)
-  const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({})
 
   // ---- Real data ----
   const [courseData, setCourseData] = useState<any>(null)
@@ -80,41 +56,113 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     fetchData()
   }, [resolvedParams.courseId])
 
-  const handleSubmitReview = () => {
-    if (newReview.author.trim() && newReview.content.trim()) {
-      const review = {
-        id: Date.now().toString(),
-        author: newReview.author,
-        rating: newReview.rating,
-        date: new Date().toISOString().split('T')[0],
-        content: newReview.content,
-        replies: []
+  useEffect(() => {
+    const id = resolvedParams.courseId
+    const loadReviews = async () => {
+      setReviewsLoading(true)
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+        const res = await fetch(`/api/reviews/course/${id}`)
+        if (res.ok) {
+          const j = await res.json()
+          // TransformInterceptor wraps as { success, data: { data: [...], total, ... } }
+          const arr: any[] = Array.isArray(j) ? j
+            : Array.isArray(j?.data?.data) ? j.data.data
+            : Array.isArray(j?.data) ? j.data
+            : []
+          setReviews(arr)
+          // Detect current user's existing review by matching student id from JWT
+          if (token) {
+            try {
+              const payload = JSON.parse(atob(token.split(".")[1]))
+              const userId = payload?.sub || payload?.id
+              if (userId) {
+                const existing = arr.find((r: any) => r.studentId === userId || r.student?.id === userId)
+                if (existing) {
+                  setMyReview(existing)
+                  setNewReview({ rating: existing.rating, comment: existing.comment || "" })
+                }
+              }
+            } catch {
+              // invalid token shape, ignore
+            }
+          }
+        }
+      } catch {
+        // silent
+      } finally {
+        setReviewsLoading(false)
       }
-      setReviews([review, ...reviews])
-      setNewReview({ author: "", rating: 5, content: "" })
+    }
+    loadReviews()
+  }, [resolvedParams.courseId])
+
+  const handleSubmitReview = async () => {
+    if (!newReview.comment.trim()) return
+    setReviewSubmitting(true)
+    setReviewError(null)
+    try {
+      const token = localStorage.getItem("auth_token")
+      if (!token) {
+        setReviewError("Bạn cần đăng nhập để đánh giá khóa học.")
+        return
+      }
+      if (myReview) {
+        // Edit existing review
+        const res = await fetch(`/api/reviews/${myReview.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ rating: newReview.rating, comment: newReview.comment }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setReviewError(data?.message || data?.data?.message || "Không thể cập nhật đánh giá.")
+        } else {
+          const updated = { ...myReview, ...(data?.data ?? data) }
+          setMyReview(updated)
+          setReviews(reviews.map(r => r.id === updated.id ? updated : r))
+        }
+      } else {
+        // Create new review
+        const res = await fetch("/api/reviews", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            courseId: resolvedParams.courseId,
+            rating: newReview.rating,
+            comment: newReview.comment,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setReviewError(data?.message || data?.data?.message || "Không thể gửi đánh giá.")
+        } else {
+          const created = data?.data ?? data
+          setMyReview(created)
+          setReviews([created, ...reviews])
+        }
+      }
+    } catch {
+      setReviewError("Đã có lỗi xảy ra khi gửi đánh giá.")
+    } finally {
+      setReviewSubmitting(false)
     }
   }
 
-  const handleSubmitReply = (reviewId: string) => {
-    if (replyContent[reviewId]?.trim()) {
-      setReviews(reviews.map(review => {
-        if (review.id === reviewId) {
-          return {
-            ...review,
-            replies: [
-              ...review.replies,
-              {
-                id: `${reviewId}-${Date.now()}`,
-                author: "Bạn",
-                content: replyContent[reviewId],
-                date: new Date().toISOString().split('T')[0]
-              }
-            ]
-          }
-        }
-        return review
-      }))
-      setReplyContent({ ...replyContent, [reviewId]: "" })
+  const handleDeleteReview = async () => {
+    if (!myReview) return
+    const token = localStorage.getItem("auth_token")
+    if (!token) return
+    try {
+      await fetch(`/api/reviews/${myReview.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setReviews(reviews.filter(r => r.id !== myReview.id))
+      setMyReview(null)
+      setNewReview({ rating: 5, comment: "" })
+    } catch {
+      // silent
     }
   }
 
@@ -293,18 +341,23 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-6">Đánh giá từ học viên</h2>
                   
-                  {/* Write Review Section */}
+                  {/* Write / Edit Review Section */}
                   <div className="mb-8">
                     <PremiumCard>
-                      <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">Ghi đánh giá của bạn</h3>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-foreground dark:text-white">
+                          {myReview ? "Đánh giá của bạn" : "Ghi đánh giá của bạn"}
+                        </h3>
+                        {myReview && (
+                          <button
+                            onClick={handleDeleteReview}
+                            className="text-xs text-red-500 hover:text-red-600 hover:underline"
+                          >
+                            Xóa đánh giá
+                          </button>
+                        )}
+                      </div>
                       <div className="space-y-4">
-                        <input
-                          type="text"
-                          placeholder="Tên của bạn"
-                          value={newReview.author}
-                          onChange={(e) => setNewReview({ ...newReview, author: e.target.value })}
-                          className="w-full px-4 py-2 rounded-lg bg-background dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white placeholder-slate-500 focus:outline-none focus:border-primary dark:focus:border-accent"
-                        />
                         <div>
                           <label className="text-sm text-muted-foreground dark:text-slate-400 mb-2 block">Đánh giá</label>
                           <div className="flex gap-2">
@@ -328,16 +381,20 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                         </div>
                         <textarea
                           placeholder="Chia sẻ trải nghiệm của bạn về khóa học này..."
-                          value={newReview.content}
-                          onChange={(e) => setNewReview({ ...newReview, content: e.target.value })}
+                          value={newReview.comment}
+                          onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
                           className="w-full px-4 py-2 rounded-lg bg-background dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white placeholder-slate-500 focus:outline-none focus:border-primary dark:focus:border-accent"
                           rows={4}
                         />
+                        {reviewError && (
+                          <p className="text-sm text-red-500">{reviewError}</p>
+                        )}
                         <button
                           onClick={handleSubmitReview}
-                          className="px-6 py-2 bg-primary dark:bg-accent text-white rounded-lg hover:opacity-90 transition-smooth"
+                          disabled={reviewSubmitting}
+                          className="px-6 py-2 bg-primary dark:bg-accent text-white rounded-lg hover:opacity-90 transition-smooth disabled:opacity-60"
                         >
-                          Gửi đánh giá
+                          {reviewSubmitting ? "Đang lưu..." : myReview ? "Cập nhật đánh giá" : "Gửi đánh giá"}
                         </button>
                       </div>
                     </PremiumCard>
@@ -345,90 +402,80 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
                   {/* Reviews List */}
                   <div className="space-y-4">
-                    {reviews.map((review) => (
-                      <div key={review.id}>
-                        <PremiumCard>
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <p className="font-semibold text-foreground dark:text-white">{review.author}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <div className="flex gap-1">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star
-                                      key={i}
-                                      size={16}
-                                      className={
-                                        i < Math.floor(review.rating)
-                                          ? "fill-yellow-400 text-yellow-400"
-                                          : "text-slate-600 dark:text-slate-500"
-                                      }
-                                    />
-                                  ))}
+                    {reviewsLoading ? (
+                      [...Array(3)].map((_, i) => (
+                        <div key={i} className="animate-pulse bg-card dark:bg-slate-900/60 rounded-lg h-28 border border-border dark:border-slate-800" />
+                      ))
+                    ) : reviews.length === 0 ? (
+                      <p className="text-muted-foreground dark:text-slate-400 text-sm py-4">Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá!</p>
+                    ) : (
+                      reviews.map((review) => (
+                        <div key={review.id}>
+                          <PremiumCard>
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <p className="font-semibold text-foreground dark:text-white">{review.student?.name || "Ẩn danh"}</p>
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                  <div className="flex gap-1">
+                                    {[...Array(5)].map((_, i) => (
+                                      <Star
+                                        key={i}
+                                        size={16}
+                                        className={
+                                          i < Math.floor(review.rating)
+                                            ? "fill-yellow-400 text-yellow-400"
+                                            : "text-slate-600 dark:text-slate-500"
+                                        }
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-sm text-muted-foreground dark:text-slate-400">
+                                    {new Date(review.createdAt).toLocaleDateString("vi-VN")}
+                                  </span>
+                                  {review.isVerifiedPurchase && (
+                                    <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full">Đã mua</span>
+                                  )}
                                 </div>
-                                <span className="text-sm text-muted-foreground dark:text-slate-400">{review.date}</span>
                               </div>
                             </div>
-                          </div>
-                          <p className="text-muted-foreground dark:text-slate-300 mb-4">{review.content}</p>
-                          
-                          {/* Reply Button */}
-                          <button
-                            onClick={() => setExpandedReplies(expandedReplies === review.id ? null : review.id)}
-                            className="text-sm text-primary dark:text-accent hover:underline transition-smooth"
-                          >
-                            {expandedReplies === review.id ? "Ẩn trả lời" : `Trả lời (${review.replies.length})`}
-                          </button>
-
-                          {/* Replies Section */}
-                          <AnimatePresence>
-                            {expandedReplies === review.id && (
-                              <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: "auto" }}
-                                exit={{ opacity: 0, height: 0 }}
-                                transition={{ duration: 0.4, ease: "easeInOut" }}
-                                className="mt-4 pt-4 border-t border-border dark:border-slate-700 space-y-3"
-                              >
-                                {/* Show existing replies */}
-                                {review.replies.map((reply, replyIdx) => (
-                                  <motion.div 
-                                    key={reply.id} 
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={{ duration: 0.3, delay: replyIdx * 0.05, ease: "easeInOut" }}
-                                    className="bg-slate-50 dark:bg-slate-800/60 rounded-lg p-3 ml-0 sm:ml-4 border border-border dark:border-slate-700"
-                                  >
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <p className="font-semibold text-sm text-foreground dark:text-white">{reply.author}</p>
-                                      <span className="text-xs text-muted-foreground dark:text-slate-400">{reply.date}</span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground dark:text-slate-300">{reply.content}</p>
-                                  </motion.div>
-                                ))}
-
-                                {/* Reply form */}
-                                <div className="ml-0 sm:ml-4 space-y-2">
-                                  <textarea
-                                    placeholder="Viết trả lời của bạn..."
-                                    value={replyContent[review.id] || ""}
-                                    onChange={(e) => setReplyContent({ ...replyContent, [review.id]: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg bg-background dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white placeholder-slate-500 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
-                                    rows={2}
-                                  />
-                                  <button
-                                    onClick={() => handleSubmitReply(review.id)}
-                                    className="px-4 py-1 bg-primary dark:bg-accent text-white rounded text-sm hover:opacity-90 transition-smooth"
-                                  >
-                                    Gửi trả lời
-                                  </button>
-                                </div>
-                              </motion.div>
+                            <p className="text-muted-foreground dark:text-slate-300 mb-4">{review.comment}</p>
+                            {/* Teacher Reply */}
+                            {review.teacherReply && (
+                              <div>
+                                <button
+                                  onClick={() => setExpandedReplies(expandedReplies === review.id ? null : review.id)}
+                                  className="text-sm text-primary dark:text-accent hover:underline transition-smooth"
+                                >
+                                  {expandedReplies === review.id ? "Ẩn phản hồi" : "Phản hồi từ giảng viên (1)"}
+                                </button>
+                                <AnimatePresence>
+                                  {expandedReplies === review.id && (
+                                    <motion.div
+                                      initial={{ opacity: 0, height: 0 }}
+                                      animate={{ opacity: 1, height: "auto" }}
+                                      exit={{ opacity: 0, height: 0 }}
+                                      transition={{ duration: 0.4, ease: "easeInOut" }}
+                                      className="mt-4 pt-4 border-t border-border dark:border-slate-700"
+                                    >
+                                      <div className="bg-slate-50 dark:bg-slate-800/60 rounded-lg p-3 ml-0 sm:ml-4 border border-border dark:border-slate-700"
+                                      >
+                                        <p className="font-semibold text-sm text-foreground dark:text-white mb-1">Giảng viên</p>
+                                        <p className="text-sm text-muted-foreground dark:text-slate-300">{review.teacherReply}</p>
+                                        {review.repliedAt && (
+                                          <span className="text-xs text-muted-foreground dark:text-slate-400 mt-1 block">
+                                            {new Date(review.repliedAt).toLocaleDateString("vi-VN")}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
                             )}
-                          </AnimatePresence>
-                        </PremiumCard>
-                      </div>
-                    ))}
+                          </PremiumCard>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>

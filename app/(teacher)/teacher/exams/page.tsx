@@ -11,7 +11,6 @@ import {
   Edit2,
   Trash2,
   Eye,
-  Send,
   CheckCircle,
   Clock,
   XCircle,
@@ -141,6 +140,9 @@ export default function TeacherExamsPage() {
   const pendingExams = exams.filter(e => e.status === "pending").length
   const approvedExams = exams.filter(e => e.status === "approved").length
   const rejectedExams = exams.filter(e => e.status === "rejected").length
+  const practiceExams = exams.filter(e => e.type === "practice").length
+  const officialExams = exams.filter(e => e.type === "official").length
+  const usedExams = exams.filter(e => (e.attemptCount || 0) > 0).length
 
   const filteredExams = exams.filter(
     (exam) =>
@@ -180,23 +182,6 @@ export default function TeacherExamsPage() {
     } catch (error) {
       console.error("Error deleting exam:", error)
     }
-  }
-
-  const handleSubmitForReview = async (examId: string) => {
-    try {
-      const response = await authFetch(`/exams/${examId}/submit-for-approval`, {
-        method: "POST",
-      })
-
-      if (response.ok) {
-        setExams(exams.map(e =>
-          e.id === examId ? { ...e, status: "pending" as const, rejectionReason: undefined } : e
-        ))
-      }
-    } catch (error) {
-      console.error("Error submitting exam:", error)
-    }
-    setOpenMenu(null)
   }
 
   const handleRemoveCertificate = async (examId: string) => {
@@ -274,15 +259,25 @@ export default function TeacherExamsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Quản lý Bài thi</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Tạo và quản lý các bài thi cho khóa học của bạn</p>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Ngân hàng đề thi</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">Quản lý kho câu hỏi và cấu hình đề thi cho khóa học của bạn</p>
               </div>
-              <Link
-                href="/teacher/exams/create"
-                className="flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
-              >
-                <Plus size={20} /> Tạo bài thi mới
-              </Link>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3 py-2 rounded-lg bg-white/70 dark:bg-slate-800/60 text-foreground dark:text-white text-sm font-medium backdrop-blur-sm">
+                    Đã có: {totalExams}
+                  </span>
+                  <span className="px-3 py-2 rounded-lg bg-white/70 dark:bg-slate-800/60 text-foreground dark:text-white text-sm font-medium backdrop-blur-sm">
+                    Đã sử dụng: {usedExams}
+                  </span>
+                </div>
+                <Link
+                  href="/teacher/exams/create"
+                  className="flex items-center gap-2 bg-white text-primary px-5 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
+                >
+                  <Plus size={20} /> Tạo ngân hàng đề thi
+                </Link>
+              </div>
             </div>
 
             {/* Stats Cards */}
@@ -312,11 +307,11 @@ export default function TeacherExamsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Chờ duyệt</p>
-                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingExams}</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Thi thử</p>
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{practiceExams}</p>
                   </div>
-                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <ClipboardList size={20} className="text-blue-600 dark:text-blue-400" />
                   </div>
                 </div>
               </div>
@@ -334,11 +329,11 @@ export default function TeacherExamsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.65s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Bị từ chối</p>
-                    <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{rejectedExams}</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Thi thật</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{officialExams}</p>
                   </div>
-                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <XCircle size={20} className="text-red-600 dark:text-red-400" />
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <Award size={20} className="text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
               </div>
@@ -435,16 +430,6 @@ export default function TeacherExamsPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {(exam.status === "draft" || exam.status === "rejected") && (
-                    <button
-                      onClick={() => handleSubmitForReview(exam.id)}
-                      className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
-                    >
-                      <Send size={16} />
-                      Gửi duyệt
-                    </button>
-                  )}
-
                   <button
                     onClick={(e) => {
   const card = (e.currentTarget as HTMLElement).closest("[data-exam-card]")
@@ -476,16 +461,14 @@ export default function TeacherExamsPage() {
                     {openMenu === exam.id && (
                       <div className="fixed inset-0 z-50 flex items-end justify-end" style={{ background: "rgba(0,0,0,0.4)" }} onClick={() => setOpenMenu(null)}>
                         <div className="w-full max-w-xs mx-auto mb-6 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg" onClick={e => e.stopPropagation()}>
-                          {exam.status !== "approved" && (
-                            <button
-                              onClick={() => handleEdit(exam.id)}
-                              className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 rounded-t-xl"
-                            >
-                              <Edit2 size={16} />
-                              Chỉnh sửa
-                            </button>
-                          )}
-                          {exam.type === "official" && exam.certificateTemplateId && exam.status !== "approved" && (
+                          <button
+                            onClick={() => handleEdit(exam.id)}
+                            className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 rounded-t-xl"
+                          >
+                            <Edit2 size={16} />
+                            Chỉnh sửa
+                          </button>
+                          {exam.type === "official" && exam.certificateTemplateId && (
                             <button
                               onClick={() => handleRemoveCertificate(exam.id)}
                               className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-amber-600"
@@ -494,20 +477,13 @@ export default function TeacherExamsPage() {
                               Bỏ chứng chỉ
                             </button>
                           )}
-                          {exam.status !== "approved" && (
-                            <button
-                              onClick={() => handleDeleteClick(exam)}
-                              className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-b-xl"
-                            >
-                              <Trash2 size={16} />
-                              Xóa bài thi
-                            </button>
-                          )}
-                          {exam.status === "approved" && (
-                            <p className="px-4 py-3 text-sm text-muted-foreground dark:text-slate-400">
-                              Không thể chỉnh sửa bài thi đã duyệt
-                            </p>
-                          )}
+                          <button
+                            onClick={() => handleDeleteClick(exam)}
+                            className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-b-xl"
+                          >
+                            <Trash2 size={16} />
+                            Xóa ngân hàng đề
+                          </button>
                         </div>
                       </div>
                     )}
@@ -578,16 +554,16 @@ export default function TeacherExamsPage() {
           {!isLoading && filteredExams.length === 0 && (
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-12 text-center">
               <FileText size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
-              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">Chưa có bài thi nào</h3>
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">Chưa có ngân hàng đề thi</h3>
               <p className="text-muted-foreground dark:text-slate-400 mb-4">
-                Bắt đầu tạo bài thi đầu tiên cho khóa học của bạn
+                Bắt đầu tạo ngân hàng câu hỏi đầu tiên cho khóa học của bạn
               </p>
               <Link
                 href="/teacher/exams/create"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
               >
                 <Plus size={20} />
-                Tạo bài thi mới
+                Tạo ngân hàng
               </Link>
             </div>
           )}

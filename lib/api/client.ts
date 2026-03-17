@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_ENDPOINTS } from './config';
+import { API_ENDPOINTS, getApiBaseUrl } from './config';
 import { 
   LoginRequest, 
   LoginResponse, 
@@ -28,7 +28,7 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = API_BASE_URL || 'http://localhost:3001';
+    this.baseURL = getApiBaseUrl();
     console.log('API Client initialized with base URL:', this.baseURL);
   }
 
@@ -465,7 +465,19 @@ if (typeof window !== 'undefined' && token) {
   async getMyEnrollments(): Promise<any[]> {
     try {
       const result = await this.request(API_ENDPOINTS.ENROLLMENTS.MY_COURSES);
-      return Array.isArray(result) ? result : [];
+
+      // Backend may return either:
+      // 1) Enrollment[]
+      // 2) { data: Enrollment[], total, page, ... }
+      if (Array.isArray(result)) {
+        return result;
+      }
+
+      if (result && typeof result === 'object' && Array.isArray((result as any).data)) {
+        return (result as any).data;
+      }
+
+      return [];
     } catch (error) {
       console.error('Error fetching enrollments:', error);
       // Return empty array instead of throwing error
@@ -532,8 +544,38 @@ if (typeof window !== 'undefined' && token) {
     courseId: string;
     amount: number;
     paymentMethod: string;
+    couponCode?: string;
   }): Promise<any> {
     return this.request(API_ENDPOINTS.PAYMENTS.CREATE, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async validateCoupon(code: string, courseId: string): Promise<any> {
+    return this.request('/coupons/validate', {
+      method: 'POST',
+      body: JSON.stringify({ code, courseId }),
+    });
+  }
+
+  async getCoupons(): Promise<any[]> {
+    const result = await this.request('/coupons');
+    return Array.isArray(result) ? result : [];
+  }
+
+  async createCoupon(data: {
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+    courseId?: string;
+    minPurchase?: number;
+    maxDiscount?: number;
+    usageLimit?: number;
+    validFrom?: string;
+    validUntil?: string;
+  }): Promise<any> {
+    return this.request('/coupons', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -985,6 +1027,94 @@ if (typeof window !== 'undefined' && token) {
     return this.request('/admin/reports/performance');
   }
 
+  // ================== Instructor Subscription API ==================
+  async getInstructorPlans(): Promise<any[]> {
+    const result = await this.request('/instructor-subscriptions/plans/public');
+    return Array.isArray(result) ? result : [];
+  }
+
+  async getTeacherSubscription(): Promise<any> {
+    return this.request('/instructor-subscriptions/teacher/me');
+  }
+
+  async upgradeTeacherPlan(data: {
+    planId: string;
+    paymentMethod?: string;
+    metadata?: Record<string, any>;
+  }): Promise<any> {
+    return this.request('/instructor-subscriptions/teacher/upgrade', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async cancelTeacherSubscription(reason?: string): Promise<any> {
+    return this.request('/instructor-subscriptions/teacher/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async getAdminInstructorPlans(): Promise<any[]> {
+    const result = await this.request('/instructor-subscriptions/admin/plans');
+    return Array.isArray(result) ? result : [];
+  }
+
+  async createAdminInstructorPlan(data: {
+    name: string;
+    price: number;
+    durationMonths: number;
+    courseLimit: number;
+    storageLimitGb?: number | null;
+    studentsLimit?: number | null;
+    features?: string[];
+    isActive?: boolean;
+  }): Promise<any> {
+    return this.request('/instructor-subscriptions/admin/plans', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAdminInstructorPlan(id: string, data: Record<string, any>): Promise<any> {
+    return this.request(`/instructor-subscriptions/admin/plans/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAdminInstructorPlan(id: string): Promise<any> {
+    return this.request(`/instructor-subscriptions/admin/plans/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getAdminInstructorSubscriptions(): Promise<any[]> {
+    const result = await this.request('/instructor-subscriptions/admin/subscriptions');
+    return Array.isArray(result) ? result : [];
+  }
+
+  async getAdminInstructorPayments(): Promise<any[]> {
+    const result = await this.request('/instructor-subscriptions/admin/payments');
+    return Array.isArray(result) ? result : [];
+  }
+
+  async confirmAdminInstructorPayment(id: string): Promise<any> {
+    return this.request(`/instructor-subscriptions/admin/payments/${id}/confirm`, {
+      method: 'POST',
+    });
+  }
+
+  async refundAdminInstructorPayment(id: string): Promise<any> {
+    return this.request(`/instructor-subscriptions/admin/payments/${id}/refund`, {
+      method: 'POST',
+    });
+  }
+
+  async getAdminRevenueDashboard(): Promise<any> {
+    return this.request('/instructor-subscriptions/admin/revenue-dashboard');
+  }
+
   async getTeacherDashboardStats(): Promise<any> {
     return this.request('/teacher/dashboard/stats');
   }
@@ -998,25 +1128,31 @@ if (typeof window !== 'undefined' && token) {
     return this.request(`/exams/course/${courseId}`);
   }
 
+  async getAvailableExams(): Promise<any[]> {
+    const result = await this.request(API_ENDPOINTS.EXAMS.AVAILABLE);
+    return Array.isArray(result) ? result : [];
+  }
+
   async getExamById(id: string): Promise<any> {
     return this.request(`/exams/${id}`);
   }
 
-  async startExam(id: string): Promise<any> {
-    return this.request(`/exams/${id}/start`, {
+  async startExam(examId: string): Promise<any> {
+    return this.request(API_ENDPOINTS.EXAMS.START, {
       method: 'POST',
+      body: JSON.stringify({ examId }),
     });
   }
 
-  async submitExam(id: string, answers: Record<string, any>): Promise<any> {
-    return this.request(`/exams/${id}/submit`, {
+  async submitExamAttempt(attemptId: string, answers: Array<{ questionId: string; answer: any }>): Promise<any> {
+    return this.request(API_ENDPOINTS.EXAMS.SUBMIT, {
       method: 'POST',
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({ attemptId, answers }),
     });
   }
 
-  async getExamResults(id: string): Promise<any> {
-    return this.request(`/exams/${id}/results`);
+  async getAttemptResult(attemptId: string): Promise<any> {
+    return this.request(API_ENDPOINTS.EXAMS.ATTEMPT_RESULT(attemptId));
   }
 
   // ================== Cart API ==================
@@ -1184,11 +1320,55 @@ if (typeof window !== 'undefined' && token) {
     return this.request(API_ENDPOINTS.ASSIGNMENTS.MY_SUBMISSION(assignmentId));
   }
 
-  async gradeSubmission(submissionId: string, data: { score: number; feedback?: string }): Promise<any> {
+  async gradeSubmission(
+    submissionId: string,
+    data: {
+      score: number;
+      feedback?: string;
+      gradingDetails?: Array<{
+        criterion: string;
+        selectedLevel: number;
+        points: number;
+      }>;
+    },
+  ): Promise<any> {
     return this.request(API_ENDPOINTS.ASSIGNMENTS.GRADE(submissionId), {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async uploadDocument(file: File): Promise<{ url: string; filename: string; message?: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${this.baseURL}${API_ENDPOINTS.UPLOAD.DOCUMENT}`;
+    const config: RequestInit = {
+      method: 'POST',
+      body: formData,
+      cache: 'no-store',
+    };
+
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        config.headers = {
+          Authorization: `Bearer ${token}`,
+        };
+      }
+    }
+
+    const response = await fetch(url, config);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Upload failed with status ${response.status}`);
+    }
+
+    const json = await response.json();
+    if (json && typeof json === 'object' && 'data' in json) {
+      return json.data as { url: string; filename: string; message?: string };
+    }
+    return json as { url: string; filename: string; message?: string };
   }
 
   // ================== Quizzes API ==================

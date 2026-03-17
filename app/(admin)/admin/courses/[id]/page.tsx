@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { apiClient } from "@/lib/api/client"
 
 interface Lesson {
   id: string
@@ -42,7 +43,17 @@ interface Lesson {
     type?: string
     correctAnswer?: number
     correctAnswers?: number[]
+    correctAnswerText?: string
+    explanation?: string
+    difficulty?: number
+    topic?: string
+    learningObj?: string
+    globalObj?: string
   }[]
+  writingDueDate?: string
+  writingPrompt?: string
+  writingCriteria?: string[]
+  writingMaxScore?: number
 }
 
 interface Section {
@@ -96,15 +107,152 @@ export default function AdminCourseDetailPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "content" | "students" | "analytics">("overview")
   const [expandedQuizLessonId, setExpandedQuizLessonId] = useState<string | null>(null)
 
+  const parseWritingCriteria = (instructions: unknown): string[] => {
+    if (!instructions) return []
+
+    if (typeof instructions === "string") {
+      try {
+        const parsed = JSON.parse(instructions)
+        if (Array.isArray(parsed?.gradingCriteria)) {
+          return parsed.gradingCriteria.map((item: unknown) => String(item || "").trim()).filter(Boolean)
+        }
+        if (Array.isArray(parsed?.criteria)) {
+          return parsed.criteria.map((item: unknown) => String(item || "").trim()).filter(Boolean)
+        }
+      } catch {
+        return []
+      }
+    }
+
+    return []
+  }
+
+  const toPlainText = (value: unknown): string => {
+    if (value == null) return ""
+    const raw = String(value)
+      .replace(/<br\s*\/?\s*>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .trim()
+
+    if (typeof window === "undefined") return raw
+    const textarea = document.createElement("textarea")
+    textarea.innerHTML = raw
+    return textarea.value
+  }
+
+  const normalizeOptionText = (option: unknown): string => {
+    if (option == null) return ""
+    if (typeof option === "string") return toPlainText(option)
+    if (typeof option === "object") {
+      const opt = option as Record<string, unknown>
+      return toPlainText(opt.content ?? opt.text ?? opt.label ?? opt.value)
+    }
+    return toPlainText(option)
+  }
+
+  const normalizeQuizQuestion = (q: Record<string, unknown>) => {
+    const answerRows = Array.isArray(q.answers) ? (q.answers as Record<string, unknown>[]) : []
+    const optionsFromQuestion = Array.isArray(q.options)
+      ? (q.options as unknown[]).map(normalizeOptionText).filter(Boolean)
+      : []
+    const optionsFromAnswers = answerRows
+      .map((answer) => normalizeOptionText(answer?.content ?? answer?.text ?? answer))
+      .filter(Boolean)
+    const options = optionsFromQuestion.length > 0 ? optionsFromQuestion : optionsFromAnswers
+
+    let correctAnswers: number[] = []
+    if (Array.isArray(q.correctAnswers)) {
+      correctAnswers = (q.correctAnswers as unknown[])
+        .map((index) => Number(index))
+        .filter((index) => Number.isInteger(index) && index >= 0)
+    } else if (typeof q.correctAnswer === "number") {
+      correctAnswers = [q.correctAnswer as number]
+    }
+
+    if (correctAnswers.length === 0 && answerRows.length > 0) {
+      correctAnswers = answerRows
+        .map((answer, index) => {
+          const rawFlag = answer?.is_correct ?? answer?.isCorrect
+          const isCorrect =
+            rawFlag === true ||
+            rawFlag === 1 ||
+            String(rawFlag).toLowerCase() === "true"
+          return isCorrect ? index : -1
+        })
+        .filter((index) => index >= 0)
+    }
+
+    const rawType = toPlainText(q.type).toLowerCase()
+    let type = rawType
+    if (!type) {
+      if (correctAnswers.length > 1) {
+        type = "multiple-select"
+      } else if (options.length === 0) {
+        type = "fill_in"
+      } else if (
+        options.length === 2 &&
+        options.some((option) => /^(đúng|true)$/i.test(option)) &&
+        options.some((option) => /^(sai|false)$/i.test(option))
+      ) {
+        type = "true-false"
+      } else {
+        type = "multiple-choice"
+      }
+    }
+
+    const question = toPlainText(
+      q.question ?? q.content ?? q.contentHtml ?? q.content_html,
+    )
+
+    const fallbackFillAnswer =
+      answerRows
+        .map((answer) => {
+          const rawFlag = answer?.is_correct ?? answer?.isCorrect
+          const isCorrect =
+            rawFlag === true ||
+            rawFlag === 1 ||
+            String(rawFlag).toLowerCase() === "true"
+          return isCorrect ? toPlainText(answer?.content ?? answer?.text ?? answer?.value) : ""
+        })
+        .find(Boolean) || ""
+
+    const correctAnswerText =
+      type === "fill_in"
+        ? (toPlainText(q.correctAnswer ?? q.answer ?? q.expectedAnswer) || fallbackFillAnswer || undefined)
+        : undefined
+
+    return {
+      question,
+      image: toPlainText(q.image) || undefined,
+      options: options.length > 0 ? options : undefined,
+      type,
+      correctAnswer: correctAnswers.length > 0 ? correctAnswers[0] : undefined,
+      correctAnswers: correctAnswers.length > 1 ? correctAnswers : undefined,
+      correctAnswerText,
+      explanation: toPlainText(q.explanation ?? q.reason ?? q.rationale) || undefined,
+      difficulty:
+        typeof q.difficulty === "number"
+          ? (q.difficulty as number)
+          : Number.isFinite(Number(q.difficulty))
+          ? Number(q.difficulty)
+          : undefined,
+      topic: toPlainText(q.topic) || undefined,
+      learningObj: toPlainText(q.learningObj ?? q.learning_obj) || undefined,
+      globalObj: toPlainText(q.globalObj ?? q.global_obj) || undefined,
+    }
+  }
+
   useEffect(() => {
     const fetchCourse = async () => {
       setIsLoading(true)
       try {
         const auth = getAuth()
-        const [courseRes, lessonsRes, quizzesRes] = await Promise.all([
+        const [courseRes, lessonsRes, quizzesRes, assignments] = await Promise.all([
           fetch(`/api/courses/${params.id}`, { headers: auth }),
           fetch(`/api/lessons/course/${params.id}`, { headers: auth }),
           fetch(`/api/quizzes/course/${params.id}`, { headers: auth }),
+          apiClient.getAssignments(String(params.id)),
         ])
         if (!courseRes.ok) throw new Error()
         const courseJson = await courseRes.json()
@@ -131,14 +279,25 @@ export default function AdminCourseDetailPage() {
           }
           return acc
         }, {})
+        const assignmentByLesson: Record<string, any> = (Array.isArray(assignments) ? assignments : []).reduce(
+          (acc: Record<string, any>, assignment: any) => {
+            const lessonKey = String(assignment?.lessonId || "")
+            if (lessonKey && !acc[lessonKey]) {
+              acc[lessonKey] = assignment
+            }
+            return acc
+          },
+          {},
+        )
 
         const lessonList: Lesson[] = lessonArr.map((l: Record<string, unknown>) => {
           const linkedQuiz = quizByLesson[l.id as string]
+          const linkedAssignment = assignmentByLesson[l.id as string]
           const questions = Array.isArray(linkedQuiz?.questions) ? linkedQuiz.questions : []
           return {
           id: l.id as string,
           title: l.title as string,
-          type: (l.type === "article" ? "reading" : l.type) as Lesson["type"],
+          type: (l.type === "article" || l.type === "assignment" ? "reading" : l.type) as Lesson["type"],
           duration: l.duration ? String(l.duration) : "",
           order: (l.order as number) || 0,
           isPublished: (l.isPublished as boolean) || false,
@@ -146,14 +305,13 @@ export default function AdminCourseDetailPage() {
           content: l.content as string | undefined,
           resources: (l.resources as Lesson["resources"]) || [],
             quizCount: questions.length,
-            quizQuestions: questions.map((q: Record<string, unknown>) => ({
-              question: (q.question as string) || "",
-              image: (q.image as string) || undefined,
-              options: Array.isArray(q.options) ? (q.options as string[]) : undefined,
-              type: (q.type as string) || undefined,
-              correctAnswer: typeof q.correctAnswer === "number" ? (q.correctAnswer as number) : undefined,
-              correctAnswers: Array.isArray(q.correctAnswers) ? (q.correctAnswers as number[]) : undefined,
-            })),
+            quizQuestions: questions.map((q: Record<string, unknown>) =>
+              normalizeQuizQuestion(q),
+            ),
+            writingDueDate: linkedAssignment?.dueDate,
+            writingPrompt: linkedAssignment?.description,
+            writingCriteria: parseWritingCriteria(linkedAssignment?.instructions),
+            writingMaxScore: typeof linkedAssignment?.maxScore === "number" ? linkedAssignment.maxScore : undefined,
           }
         })
         const teacher = (c.teacher as Record<string, unknown>) || {}
@@ -530,6 +688,14 @@ export default function AdminCourseDetailPage() {
                                   </button>
                                 </div>
                               )}
+                              {(lesson.writingPrompt || lesson.writingDueDate || (lesson.writingCriteria && lesson.writingCriteria.length > 0)) && (
+                                <div className="mt-2">
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-2.5 py-1 text-xs font-medium text-fuchsia-700">
+                                    <FileText size={12} />
+                                    Writing
+                                  </span>
+                                </div>
+                              )}
                               {expandedQuizLessonId === lesson.id &&
                                 lesson.quizQuestions &&
                                 lesson.quizQuestions.length > 0 && (
@@ -581,8 +747,44 @@ export default function AdminCourseDetailPage() {
                                             })}
                                           </div>
                                         )}
+                                        {quiz.type === "fill_in" && quiz.correctAnswerText && (
+                                          <p className="mt-2 text-xs text-emerald-700">
+                                            <strong>Đáp án điền khuyết:</strong> {normalizeUploadedText(quiz.correctAnswerText)}
+                                          </p>
+                                        )}
+                                        {quiz.explanation && (
+                                          <p className="mt-1 text-xs text-blue-700 whitespace-pre-wrap break-words leading-relaxed">
+                                            <strong>Giải thích:</strong> {normalizeUploadedText(quiz.explanation)}
+                                          </p>
+                                        )}
                                       </div>
                                     ))}
+                                  </div>
+                                )}
+                                {(lesson.writingPrompt || lesson.writingDueDate || (lesson.writingCriteria && lesson.writingCriteria.length > 0)) && (
+                                  <div className="mt-3 space-y-2 rounded-lg border border-fuchsia-200 bg-fuchsia-50/60 p-3">
+                                    {lesson.writingDueDate && (
+                                      <p className="text-xs text-fuchsia-800">
+                                        <strong>Hạn nộp:</strong> {new Date(lesson.writingDueDate).toLocaleString('vi-VN')}
+                                      </p>
+                                    )}
+                                    {typeof lesson.writingMaxScore === "number" && (
+                                      <p className="text-xs text-fuchsia-800">
+                                        <strong>Điểm tối đa:</strong> {lesson.writingMaxScore}
+                                      </p>
+                                    )}
+                                    {lesson.writingPrompt && (
+                                      <p className="text-xs text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                                        {normalizeUploadedText(lesson.writingPrompt)}
+                                      </p>
+                                    )}
+                                    {Array.isArray(lesson.writingCriteria) && lesson.writingCriteria.length > 0 && (
+                                      <ul className="space-y-1 text-xs text-fuchsia-900">
+                                        {lesson.writingCriteria.map((criterion, idx) => (
+                                          <li key={`${lesson.id}-criteria-${idx}`}>{idx + 1}. {criterion}</li>
+                                        ))}
+                                      </ul>
+                                    )}
                                   </div>
                                 )}
                             </div>

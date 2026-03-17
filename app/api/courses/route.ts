@@ -46,8 +46,14 @@ export async function POST(request: Request) {
     })
 
     if (!response.ok) {
+      const errData = await response.json().catch(() => ({} as any))
       return NextResponse.json(
-        { error: "Failed to create course" },
+        {
+          error:
+            errData?.message ||
+            errData?.error ||
+            "Failed to create course",
+        },
         { status: response.status }
       )
     }

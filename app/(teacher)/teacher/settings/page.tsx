@@ -1,398 +1,330 @@
 "use client"
 
-import { useState } from "react"
-import {
-  Save,
-  Mail,
-  Database,
-  Bell,
-  BookOpen,
-  Users,
-  Moon,
-  Sun,
-  Palette,
-  CreditCard,
-  Upload,
-  Globe,
-  QrCode,
-} from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useEffect, useMemo, useState } from "react"
+import { Bell, CreditCard, Lock, Save, Shield, UserCircle } from "lucide-react"
 import { toast } from "sonner"
-import { useSystemConfig } from "@/lib/system-config/system-config-context"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { apiClient } from "@/lib/api/client"
 
+interface PlanItem {
+  id: string
+  name: string
+  price: number
+  durationMonths: number
+  courseLimit: number
+  storageLimitGb?: number | null
+  studentsLimit?: number | null
+  features?: string[]
+}
+
 export default function TeacherSettingsPage() {
-  const [isDarkMode, setIsDarkMode] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [qrPreview, setQrPreview] = useState<string | null>(null)
-  const [settings, setSettings] = useState({
-    bankAccount: "1234567890",
-    bankName: "Vietcombank",
-    accountHolder: "Nguyễn Ngọc Tuyền",
+  const [loading, setLoading] = useState(true)
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [savingSecurity, setSavingSecurity] = useState(false)
+  const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null)
+  const [cancelling, setCancelling] = useState(false)
+
+  const [profile, setProfile] = useState({ name: "", email: "", phone: "", bio: "" })
+  const [security, setSecurity] = useState({ currentPassword: "", newPassword: "" })
+  const [notifications, setNotifications] = useState({
     emailNotifications: true,
     courseNotifications: true,
     studentNotifications: true,
-    reviewNotifications: true,
-    earningNotifications: true,
-    // Teaching preferences
-    autoApproveEnrollments: false,
-    showContactInfo: true,
-    allowDirectMessages: true,
-    // Appearance
-    language: "vi",
+    billingNotifications: true,
   })
 
-  const handleSettingChange = (key: string, value: string | boolean) => {
-    setSettings((prev) => ({
-      ...prev,
-      [key]: value,
-    }))
-  }
+  const [plans, setPlans] = useState<PlanItem[]>([])
+  const [subscriptionData, setSubscriptionData] = useState<any>(null)
 
-  const handleQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("Kích thước file không được vượt quá 2MB")
-        return
-      }
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setQrPreview(reader.result as string)
-        toast.success("Đã tải lên mã QR thành công")
-      }
-      reader.readAsDataURL(file)
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const [me, publicPlans, mySub] = await Promise.all([
+        apiClient.getProfile(),
+        apiClient.getInstructorPlans(),
+        apiClient.getTeacherSubscription(),
+      ])
+
+      setProfile({
+        name: me?.name || "",
+        email: me?.email || "",
+        phone: me?.phone || "",
+        bio: me?.bio || "",
+      })
+      setPlans(Array.isArray(publicPlans) ? publicPlans : [])
+      setSubscriptionData(mySub)
+    } catch (error) {
+      toast.error("Không thể tải cài đặt tài khoản")
+    } finally {
+      setLoading(false)
     }
   }
 
-const { refresh } = useSystemConfig()
+  useEffect(() => {
+    loadData()
+  }, [])
 
-const handleSave = async () => {
-  setIsSaving(true)
+  const currentPlanId = subscriptionData?.subscription?.plan?.id
+  const usage = subscriptionData?.usage || { coursesCreated: 0, courseLimit: 2, remainingCourses: 2 }
+  const billingHistory = Array.isArray(subscriptionData?.billingHistory) ? subscriptionData.billingHistory : []
 
-  try {
-    await apiClient.updateManySystemSettings(settings)
+  const usagePercent = useMemo(() => {
+    const limit = Number(usage.courseLimit || 0)
+    if (!limit) return 0
+    return Math.min(100, Math.round((Number(usage.coursesCreated || 0) / limit) * 100))
+  }, [usage])
 
-    await refresh() // reload config mới từ server
-
-    toast.success("Cài đặt đã được lưu thành công!")
-  } catch (error) {
-    toast.error("Có lỗi xảy ra khi lưu cài đặt")
-  } finally {
-    setIsSaving(false)
+  const saveProfile = async () => {
+    setSavingProfile(true)
+    try {
+      await apiClient.updateProfile({
+        name: profile.name,
+        phone: profile.phone,
+        bio: profile.bio,
+      })
+      toast.success("Đã lưu thông tin hồ sơ")
+    } catch {
+      toast.error("Không thể lưu hồ sơ")
+    } finally {
+      setSavingProfile(false)
+    }
   }
-}
+
+  const saveSecurity = async () => {
+    if (!security.currentPassword || !security.newPassword) {
+      toast.error("Vui lòng nhập mật khẩu hiện tại và mật khẩu mới")
+      return
+    }
+
+    setSavingSecurity(true)
+    try {
+      await apiClient.changePassword(security)
+      setSecurity({ currentPassword: "", newPassword: "" })
+      toast.success("Đổi mật khẩu thành công")
+    } catch (error: any) {
+      toast.error(error?.message || "Không thể đổi mật khẩu")
+    } finally {
+      setSavingSecurity(false)
+    }
+  }
+
+  const upgradePlan = async (planId: string) => {
+    setUpgradingPlan(planId)
+    try {
+      await apiClient.upgradeTeacherPlan({ planId, paymentMethod: "manual" })
+      toast.success("Nâng cấp gói thành công")
+      await loadData()
+    } catch (error: any) {
+      toast.error(error?.message || "Không thể nâng cấp gói")
+    } finally {
+      setUpgradingPlan(null)
+    }
+  }
+
+  const cancelSubscription = async () => {
+    setCancelling(true)
+    try {
+      await apiClient.cancelTeacherSubscription("Cancelled by teacher")
+      toast.success("Đã hủy gói trả phí và chuyển về gói Free")
+      await loadData()
+    } catch (error: any) {
+      toast.error(error?.message || "Không thể hủy gói")
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  if (loading) {
+    return <div className="h-64 rounded-2xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+  }
 
   return (
-    <div className="min-h-screen w-full">
-      <div className="w-full space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground dark:text-white">Cài đặt</h1>
-          <p className="text-muted-foreground dark:text-slate-400">Quản lý cài đặt tài khoản giảng viên</p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground dark:text-white">Account Settings</h1>
+        <p className="text-muted-foreground">Quản lý tài khoản và gói subscription giảng viên</p>
+      </div>
 
-        <Tabs defaultValue="payment" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
-            <TabsTrigger value="payment" className="text-xs md:text-sm">
-              Thanh toán
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="text-xs md:text-sm">
-              Thông báo
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="text-xs md:text-sm">
-              Giao diện
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="billing">Billing & Subscription</TabsTrigger>
+        </TabsList>
 
-          {/* Payment Settings */}
-          <TabsContent value="payment" className="space-y-6 mt-6">
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <CreditCard size={24} /> Thông tin thanh toán
-              </h2>
-              <p className="text-muted-foreground dark:text-slate-400 text-sm">
-                Thông tin ngân hàng để nhận thanh toán từ các khóa học của bạn
-              </p>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    Tên ngân hàng
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.bankName}
-                    onChange={(e) => handleSettingChange("bankName", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    Số tài khoản
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.bankAccount}
-                    onChange={(e) => handleSettingChange("bankAccount", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    Chủ tài khoản
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.accountHolder}
-                    onChange={(e) => handleSettingChange("accountHolder", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                </div>
+        <TabsContent value="profile" className="mt-4">
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2"><UserCircle size={20} /> Profile</h2>
+            <input
+              className="w-full rounded-lg border border-border bg-background px-4 py-2"
+              placeholder="Họ tên"
+              value={profile.name}
+              onChange={(e) => setProfile((prev) => ({ ...prev, name: e.target.value }))}
+            />
+            <input className="w-full rounded-lg border border-border bg-muted px-4 py-2" value={profile.email} disabled />
+            <input
+              className="w-full rounded-lg border border-border bg-background px-4 py-2"
+              placeholder="Số điện thoại"
+              value={profile.phone}
+              onChange={(e) => setProfile((prev) => ({ ...prev, phone: e.target.value }))}
+            />
+            <textarea
+              className="w-full rounded-lg border border-border bg-background px-4 py-2 min-h-24"
+              placeholder="Giới thiệu"
+              value={profile.bio}
+              onChange={(e) => setProfile((prev) => ({ ...prev, bio: e.target.value }))}
+            />
+            <button
+              onClick={saveProfile}
+              disabled={savingProfile}
+              className="px-5 py-2 rounded-lg bg-primary text-white flex items-center gap-2 disabled:opacity-60"
+            >
+              <Save size={16} /> {savingProfile ? "Đang lưu..." : "Lưu hồ sơ"}
+            </button>
+          </div>
+        </TabsContent>
 
-                {/* QR Code Upload */}
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <QrCode size={16} /> Mã QR thanh toán
-                  </label>
-                  <div className="flex items-start gap-4">
-                    <div className="w-32 h-32 bg-secondary dark:bg-slate-800 rounded-lg flex items-center justify-center border-2 border-dashed border-border dark:border-slate-700 overflow-hidden">
-                      {qrPreview ? (
-                        <img
-                          src={qrPreview}
-                          alt="QR Code preview"
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <QrCode size={40} className="text-muted-foreground dark:text-slate-400" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <label className="block">
-                        <input
-                          type="file"
-                          accept="image/png, image/jpeg, image/jpg"
-                          onChange={handleQrUpload}
-                          className="hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            const input = e.currentTarget.parentElement?.querySelector(
-                              'input[type="file"]'
-                            ) as HTMLInputElement
-                            input?.click()
-                          }}
-                          className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth font-medium flex items-center gap-2"
-                        >
-                          <Upload size={16} /> Tải lên mã QR
-                        </button>
-                      </label>
-                      <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
-                        PNG, JPG (Tối đa 2MB). Mã QR sẽ được hiển thị cho học viên khi thanh toán.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+        <TabsContent value="security" className="mt-4">
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2"><Shield size={20} /> Security</h2>
+            <input
+              type="password"
+              className="w-full rounded-lg border border-border bg-background px-4 py-2"
+              placeholder="Mật khẩu hiện tại"
+              value={security.currentPassword}
+              onChange={(e) => setSecurity((prev) => ({ ...prev, currentPassword: e.target.value }))}
+            />
+            <input
+              type="password"
+              className="w-full rounded-lg border border-border bg-background px-4 py-2"
+              placeholder="Mật khẩu mới"
+              value={security.newPassword}
+              onChange={(e) => setSecurity((prev) => ({ ...prev, newPassword: e.target.value }))}
+            />
+            <button
+              onClick={saveSecurity}
+              disabled={savingSecurity}
+              className="px-5 py-2 rounded-lg bg-primary text-white flex items-center gap-2 disabled:opacity-60"
+            >
+              <Lock size={16} /> {savingSecurity ? "Đang cập nhật..." : "Đổi mật khẩu"}
+            </button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="mt-4">
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2"><Bell size={20} /> Notifications</h2>
+            {[
+              { key: "emailNotifications", label: "Thông báo email" },
+              { key: "courseNotifications", label: "Thông báo khóa học" },
+              { key: "studentNotifications", label: "Thông báo học viên" },
+              { key: "billingNotifications", label: "Thông báo thanh toán" },
+            ].map((item) => (
+              <div key={item.key} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <p>{item.label}</p>
+                <button
+                  onClick={() =>
+                    setNotifications((prev: any) => ({
+                      ...prev,
+                      [item.key]: !prev[item.key],
+                    }))
+                  }
+                  className={`w-12 h-6 rounded-full ${
+                    (notifications as any)[item.key] ? "bg-primary" : "bg-slate-400"
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                      (notifications as any)[item.key] ? "translate-x-6" : "translate-x-0"
+                    }`}
+                  />
+                </button>
               </div>
+            ))}
+            <p className="text-sm text-muted-foreground">Thiết lập này lưu trên giao diện giảng viên hiện tại.</p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="billing" className="mt-4 space-y-4">
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-3">
+            <h2 className="text-xl font-semibold flex items-center gap-2"><CreditCard size={20} /> Current Plan</h2>
+            <p>
+              Gói hiện tại: <strong>{subscriptionData?.subscription?.plan?.name || "Free"}</strong>
+            </p>
+            <p>
+              Hạn mức khóa học: <strong>{usage.coursesCreated}</strong> / <strong>{usage.courseLimit}</strong>
+            </p>
+            <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-full bg-primary" style={{ width: `${usagePercent}%` }} />
             </div>
+            <p className="text-sm text-muted-foreground">Usage: còn {usage.remainingCourses} khóa học có thể tạo.</p>
+          </div>
 
-            {/* Teaching Preferences */}
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <BookOpen size={24} /> Tùy chọn giảng dạy
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Users size={20} className="text-primary dark:text-accent" />
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">Tự động phê duyệt đăng ký</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">
-                        Học viên được ghi danh tự động không cần xét duyệt
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleSettingChange("autoApproveEnrollments", !settings.autoApproveEnrollments)}
-                    className={`w-12 h-6 rounded-full transition-all ${
-                      settings.autoApproveEnrollments ? "bg-primary dark:bg-accent" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        settings.autoApproveEnrollments ? "translate-x-6" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Mail size={20} className="text-primary dark:text-accent" />
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">Hiển thị thông tin liên hệ</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">
-                        Cho phép học viên xem email và số điện thoại của bạn
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleSettingChange("showContactInfo", !settings.showContactInfo)}
-                    className={`w-12 h-6 rounded-full transition-all ${
-                      settings.showContactInfo ? "bg-primary dark:bg-accent" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        settings.showContactInfo ? "translate-x-6" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Database size={20} className="text-primary dark:text-accent" />
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">Cho phép tin nhắn trực tiếp</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">
-                        Học viên có thể gửi tin nhắn trực tiếp cho bạn
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleSettingChange("allowDirectMessages", !settings.allowDirectMessages)}
-                    className={`w-12 h-6 rounded-full transition-all ${
-                      settings.allowDirectMessages ? "bg-primary dark:bg-accent" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        settings.allowDirectMessages ? "translate-x-6" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Notifications */}
-          <TabsContent value="notifications" className="space-y-6 mt-6">
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Bell size={24} /> Cài đặt thông báo
-              </h2>
-              <div className="space-y-4">
-                {[
-                  { key: "emailNotifications", icon: Mail, title: "Thông báo Email", desc: "Nhận thông báo qua email" },
-                  { key: "courseNotifications", icon: BookOpen, title: "Thông báo khóa học", desc: "Thông báo về khóa học của bạn" },
-                  { key: "studentNotifications", icon: Users, title: "Thông báo học viên", desc: "Thông báo khi có học viên mới đăng ký" },
-                  { key: "reviewNotifications", icon: BookOpen, title: "Thông báo đánh giá", desc: "Thông báo khi có đánh giá mới" },
-                  { key: "earningNotifications", icon: CreditCard, title: "Thông báo doanh thu", desc: "Thông báo về doanh thu và thanh toán" },
-                ].map((item) => (
-                  <div key={item.key} className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <item.icon size={20} className="text-primary dark:text-accent" />
-                      <div>
-                        <p className="text-foreground dark:text-white font-semibold">{item.title}</p>
-                        <p className="text-muted-foreground dark:text-slate-400 text-sm">{item.desc}</p>
-                      </div>
-                    </div>
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <h3 className="text-lg font-semibold">Upgrade Plan</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              {plans.map((plan) => {
+                const isCurrent = currentPlanId === plan.id
+                return (
+                  <div key={plan.id} className="rounded-xl border border-border p-4 space-y-2">
+                    <p className="font-semibold text-lg">{plan.name}</p>
+                    <p>${Number(plan.price || 0)} / {plan.durationMonths} month</p>
+                    <p>Courses limit: {plan.courseLimit}</p>
+                    <p>Storage: {plan.storageLimitGb ?? "Unlimited"}GB</p>
+                    <p>Students: {plan.studentsLimit ?? "Unlimited"}</p>
                     <button
-                      onClick={() => handleSettingChange(item.key, !(settings as any)[item.key])}
-                      className={`w-12 h-6 rounded-full transition-all ${
-                        (settings as any)[item.key] ? "bg-primary dark:bg-accent" : "bg-slate-400"
-                      }`}
+                      disabled={isCurrent || upgradingPlan === plan.id}
+                      onClick={() => upgradePlan(plan.id)}
+                      className="mt-2 px-4 py-2 rounded-lg bg-primary text-white disabled:opacity-50"
                     >
-                      <div
-                        className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                          (settings as any)[item.key] ? "translate-x-6" : "translate-x-0.5"
-                        }`}
-                      />
+                      {isCurrent ? "Đang sử dụng" : upgradingPlan === plan.id ? "Đang xử lý..." : "Upgrade Plan"}
                     </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <h3 className="text-lg font-semibold">Payment Method</h3>
+            <p>Phương thức hiện tại: Manual (demo). Có thể nối VNPay/Momo trong bước tiếp theo.</p>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-3">
+            <h3 className="text-lg font-semibold">Billing History</h3>
+            {billingHistory.length === 0 ? (
+              <p className="text-muted-foreground">Chưa có giao dịch nâng cấp.</p>
+            ) : (
+              <div className="space-y-2">
+                {billingHistory.map((item: any) => (
+                  <div key={item.id} className="rounded-lg border border-border p-3 text-sm flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{item.transactionId}</p>
+                      <p className="text-muted-foreground">{item.plan?.name || "Unknown plan"}</p>
+                    </div>
+                    <div className="text-right">
+                      <p>${Number(item.amount || 0)}</p>
+                      <p className="text-muted-foreground">{item.status}</p>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-          </TabsContent>
+            )}
+          </div>
 
-          {/* Appearance */}
-          <TabsContent value="appearance" className="space-y-6 mt-6">
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Palette size={24} /> Giao diện
-              </h2>
-              <div className="space-y-4">
-                {/* Language Selection */}
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <Globe size={16} /> Ngôn ngữ
-                  </label>
-                  <select
-                    value={settings.language}
-                    onChange={(e) => handleSettingChange("language", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  >
-                    <option value="vi">Tiếng Việt</option>
-                    <option value="en">Tiếng Anh</option>
-                    <option value="ja">日本語</option>
-                    <option value="ko">한국어</option>
-                    <option value="zh">中文</option>
-                  </select>
-                </div>
-
-                {/* Dark Mode Toggle */}
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    {isDarkMode ? (
-                      <Moon size={24} className="text-primary dark:text-accent" />
-                    ) : (
-                      <Sun size={24} className="text-yellow-400" />
-                    )}
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">Chế độ tối</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">
-                        Bật/tắt chế độ tối cho giao diện
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setIsDarkMode(!isDarkMode)
-                      if (!isDarkMode) {
-                        document.documentElement.classList.add("dark")
-                      } else {
-                        document.documentElement.classList.remove("dark")
-                      }
-                    }}
-                    className={`w-12 h-6 rounded-full transition-all ${
-                      isDarkMode ? "bg-primary dark:bg-accent" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        isDarkMode ? "translate-x-6" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Save Button */}
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50"
-        >
-          <Save size={20} />
-          {isSaving ? "Đang lưu..." : "Lưu cài đặt"}
-        </button>
-      </div>
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-3">
+            <h3 className="text-lg font-semibold">Cancel Subscription</h3>
+            <button
+              onClick={cancelSubscription}
+              disabled={cancelling}
+              className="px-4 py-2 rounded-lg bg-red-500 text-white disabled:opacity-60"
+            >
+              {cancelling ? "Đang hủy..." : "Cancel Subscription"}
+            </button>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
-

@@ -1,30 +1,163 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { CheckCircle, Download, Star, Users, Clock, Award, BookOpen } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
+import { apiClient } from "@/lib/api/client"
+
+interface CourseSuccessData {
+  id: string
+  title: string
+  teacher: string
+  price: number
+  rating: number
+  reviews: number
+  students: number
+  duration: string
+  level: string
+  image: string
+  description: string
+  sections: number
+  lessons: number
+  certificationIncluded: boolean
+}
+
+const DEFAULT_COURSE: CourseSuccessData = {
+  id: "",
+  title: "Khóa học",
+  teacher: "Đang cập nhật",
+  price: 0,
+  rating: 0,
+  reviews: 0,
+  students: 0,
+  duration: "Đang cập nhật",
+  level: "Đang cập nhật",
+  image: "/image/logo-ics.jpg",
+  description: "Thông tin khóa học đang được cập nhật.",
+  sections: 0,
+  lessons: 0,
+  certificationIncluded: false,
+}
+
+function getTeacherName(teacher: unknown): string {
+  if (typeof teacher === "string" && teacher.trim()) return teacher
+  if (teacher && typeof teacher === "object" && "name" in teacher) {
+    const name = String((teacher as { name?: string }).name || "").trim()
+    if (name) return name
+  }
+  return "Đang cập nhật"
+}
+
+function toDurationText(value: unknown): string {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return `${value} giờ`
+  }
+
+  const text = String(value || "").trim()
+  return text || "Đang cập nhật"
+}
+
+function normalizeCourseData(rawCourse: any): CourseSuccessData {
+  const lessons = Array.isArray(rawCourse?.lessons) ? rawCourse.lessons.length : Number(rawCourse?.lessonsCount || 0)
+  const sections = Array.isArray(rawCourse?.sections)
+    ? rawCourse.sections.length
+    : Number(rawCourse?.sectionsCount || 0)
+
+  return {
+    id: String(rawCourse?.id || ""),
+    title: String(rawCourse?.title || DEFAULT_COURSE.title),
+    teacher: getTeacherName(rawCourse?.teacher),
+    price: Number(rawCourse?.price || 0),
+    rating: Number(rawCourse?.rating ?? rawCourse?.averageRating ?? 0),
+    reviews: Number(rawCourse?.reviewsCount ?? rawCourse?.reviewCount ?? 0),
+    students: Number(rawCourse?.studentsCount ?? rawCourse?.enrollmentCount ?? 0),
+    duration: toDurationText(rawCourse?.duration ?? rawCourse?.totalDuration ?? rawCourse?.durationText),
+    level: String(rawCourse?.level || "Đang cập nhật"),
+    image: String(rawCourse?.thumbnail || rawCourse?.image || "/image/logo-ics.jpg"),
+    description: String(rawCourse?.description || DEFAULT_COURSE.description),
+    sections: Number.isFinite(sections) ? sections : 0,
+    lessons: Number.isFinite(lessons) ? lessons : 0,
+    certificationIncluded: Boolean(
+      rawCourse?.certificationIncluded ||
+      rawCourse?.certificateTemplate ||
+      rawCourse?.certificateTemplateId ||
+      rawCourse?.hasCertificate,
+    ),
+  }
+}
 
 export default function EnrollmentSuccessPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const courseId = searchParams.get("courseId")
+  const paymentStatus = searchParams.get("status")
 
-  const course = {
-    id: "next-js-advanced",
-    title: "Lập trình Next.js từ cơ bản đến nâng cao",
-    teacher: "Nguyễn Ngọc Tuyền",
-    price: 499000,
-    rating: 4.9,
-    reviews: 1250,
-    students: 1250,
-    duration: "40 giờ",
-    level: "Trung cấp",
-    image: "/image/python.png",
-    description: "Khóa học toàn diện về Next.js, từ những khái niệm cơ bản đến các kỹ thuật nâng cao. Bạn sẽ học cách xây dựng các ứng dụng web hiệu suất cao với React và Next.js.",
-    sections: 5,
-    lessons: 40,
-    certificationIncluded: true
-  }
+  const [course, setCourse] = useState<CourseSuccessData>(DEFAULT_COURSE)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const fetchCourseData = async () => {
+      if (!courseId) {
+        const localCourse = localStorage.getItem("checkoutCourse")
+        if (localCourse) {
+          try {
+            const parsed = JSON.parse(localCourse)
+            if (isMounted) {
+              setCourse(normalizeCourseData(parsed))
+              setLoading(false)
+            }
+            return
+          } catch {
+            // Ignore invalid local storage shape
+          }
+        }
+
+        if (isMounted) {
+          setLoading(false)
+        }
+        return
+      }
+
+      try {
+        const enrollments = await apiClient.getMyEnrollments()
+        const targetEnrollment = Array.isArray(enrollments)
+          ? enrollments.find((enrollment) => {
+              const enrollmentCourseId = String(enrollment?.courseId || enrollment?.course?.id || "")
+              return enrollmentCourseId === courseId
+            })
+          : null
+
+        if (targetEnrollment?.course) {
+          if (isMounted) {
+            setCourse(normalizeCourseData(targetEnrollment.course))
+          }
+          return
+        }
+
+        const rawCourse = await apiClient.getCourseById(courseId)
+        if (isMounted && rawCourse) {
+          setCourse(normalizeCourseData(rawCourse))
+        }
+      } catch (error) {
+        console.error("Error loading enrollment success data:", error)
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchCourseData()
+
+    return () => {
+      isMounted = false
+    }
+  }, [courseId])
 
   const handleStartLearning = () => {
     router.push("/my-courses")
@@ -105,6 +238,8 @@ Trang web: www.ics-elearning.com
     document.body.removeChild(element)
   }
 
+  const isSuccess = paymentStatus !== "pending"
+
   return (
     <div className="min-h-screen bg-background dark:bg-slate-950 flex items-center justify-center py-8 px-4">
       <motion.div
@@ -119,8 +254,12 @@ Trang web: www.ics-elearning.com
             <CheckCircle size={100} className="text-green-500" />
           </motion.div>
           
-          <h1 className="text-5xl font-bold text-foreground dark:text-white mb-3">Đăng ký thành công!</h1>
-          <p className="text-xl text-muted-foreground dark:text-slate-400">Bạn đã được thêm vào khóa học. Hãy bắt đầu hành trình học tập của mình ngay bây giờ.</p>
+          <h1 className="text-5xl font-bold text-foreground dark:text-white mb-3">{isSuccess ? "Đăng ký thành công!" : "Đăng ký đang chờ xác nhận"}</h1>
+          <p className="text-xl text-muted-foreground dark:text-slate-400">
+            {isSuccess
+              ? "Bạn đã được thêm vào khóa học. Hãy bắt đầu hành trình học tập của mình ngay bây giờ."
+              : "Giao dịch đã được tạo. Hệ thống sẽ cập nhật ngay khi thanh toán được xác nhận."}
+          </p>
         </div>
 
         {/* Course Card */}
@@ -131,6 +270,9 @@ Trang web: www.ics-elearning.com
             transition={{ delay: 0.2 }}
           >
             <PremiumCard className="overflow-hidden">
+              {loading ? (
+                <div className="p-8 text-center text-muted-foreground dark:text-slate-400">Đang tải thông tin khóa học...</div>
+              ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Course Image */}
                 <div className="md:col-span-1">
@@ -225,6 +367,7 @@ Trang web: www.ics-elearning.com
                   </div>
                 </div>
               </div>
+              )}
             </PremiumCard>
           </motion.div>
         </div>

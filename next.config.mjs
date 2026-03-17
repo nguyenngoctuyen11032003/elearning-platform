@@ -32,6 +32,10 @@ const nextConfig = {
     optimizeCss: true,
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'framer-motion'],
   },
+  // Tell Next.js to load pdfjs-dist via native Node.js ESM import instead of
+  // bundling it through webpack (which crashes because pdf.mjs uses top-level syntax
+  // incompatible with webpack's module-init layer).
+  serverExternalPackages: ['pdfjs-dist', 'pdfjs-dist/legacy/build/pdf.mjs'],
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },

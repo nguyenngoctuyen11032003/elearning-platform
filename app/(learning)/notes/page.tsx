@@ -18,6 +18,7 @@ import {
   Download
 } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
+import { getApiBaseUrl } from "@/lib/api/config"
 
 interface Note {
   id: string
@@ -43,6 +44,7 @@ const noteTypes = [
 ]
 
 export default function NotesPage() {
+  const apiUrl = getApiBaseUrl()
   const { user } = useAuth()
   const token =
   typeof window !== 'undefined'
@@ -161,7 +163,7 @@ export default function NotesPage() {
       setLoading(true)
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/notes/my-notes`,
+        `${apiUrl}/notes/my-notes`,
         {
           method: "GET",
           headers: {
@@ -238,7 +240,7 @@ export default function NotesPage() {
       payload.schedule = newNote.schedule;
     }
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notes`, {
+    const res = await fetch(`${apiUrl}/notes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -306,7 +308,7 @@ export default function NotesPage() {
       }
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/notes/${editingNote.id}`,
+        `${apiUrl}/notes/${editingNote.id}`,
         {
           method: 'PATCH',
           headers: {
@@ -330,7 +332,7 @@ export default function NotesPage() {
   const handleDeleteNote = async (id: string) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/notes/${id}`,
+        `${apiUrl}/notes/${id}`,
         {
           method: 'DELETE',
           headers: {
@@ -384,7 +386,7 @@ export default function NotesPage() {
   const handleExportToExcel = async () => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/notes/export/excel`,
+        `${apiUrl}/notes/export/excel`,
         {
           method: "GET",
           headers: {
@@ -414,7 +416,7 @@ export default function NotesPage() {
   const handleExportSingleNoteToExcel = async (noteId: string) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/notes/${noteId}/export/excel`,
+        `${apiUrl}/notes/${noteId}/export/excel`,
         {
           method: "GET",
           headers: {
@@ -446,7 +448,7 @@ export default function NotesPage() {
     try {
       setLoadingFavorites(true)
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/notes/favorites`,
+        `${apiUrl}/notes/favorites`,
         {
           method: "GET",
           headers: {
@@ -488,7 +490,7 @@ export default function NotesPage() {
   const handleToggleFavorite = async (noteId: string) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/notes/${noteId}/toggle-favorite`,
+        `${apiUrl}/notes/${noteId}/toggle-favorite`,
         {
           method: "POST",
           headers: {

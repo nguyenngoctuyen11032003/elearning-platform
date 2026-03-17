@@ -34,8 +34,14 @@ interface Exam {
   maxAttempts: number
   questionsCount: number
   certificateTemplate?: string
+  certificateTemplateId?: string
   rejectionReason?: string
   attemptCount: number
+}
+
+interface CertificateTemplate {
+  id: string
+  title: string
 }
 
 export default function AdminExamsPage() {
@@ -53,6 +59,7 @@ export default function AdminExamsPage() {
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; action: string; examId?: string }>({ isOpen: false, action: "" })
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
   const cardRef = useRef<HTMLDivElement | null>(null)
+  const [certificateTemplates, setCertificateTemplates] = useState<CertificateTemplate[]>([])
 
   const getAuthHeaders = () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
@@ -63,7 +70,12 @@ export default function AdminExamsPage() {
     return headers
   }
 
-  const mapExam = (item: any): Exam => {
+  const getTemplateName = (templateId?: string) => {
+    if (!templateId) return ""
+    return certificateTemplates.find((t) => t.id === templateId)?.title || templateId
+  }
+
+  const mapExam = (item: any, templates: CertificateTemplate[] = []): Exam => {
     const parseQuestions = (value: any): any[] => {
       let data = value
       while (typeof data === "string") {
@@ -81,6 +93,9 @@ export default function AdminExamsPage() {
       [teacher?.firstName, teacher?.lastName].filter(Boolean).join(" ") ||
       ""
 
+    const templateId = item?.certificateTemplate?.id || item?.certificateTemplateId
+    const templateName = item?.certificateTemplate?.name || templates.find((t) => t.id === templateId)?.title || undefined
+
     return {
       id: item?.id,
       title: item?.title || "",
@@ -96,13 +111,34 @@ export default function AdminExamsPage() {
       passingScore: item?.passingScore || 0,
       maxAttempts: item?.maxAttempts || 0,
       questionsCount: questions.length,
-      certificateTemplate: item?.certificateTemplate?.name || item?.certificateTemplateId || undefined,
+      certificateTemplate: templateName || undefined,
+      certificateTemplateId: templateId || undefined,
       rejectionReason: item?.rejectionReason || undefined,
       attemptCount: Array.isArray(item?.attempts) ? item.attempts.length : 0,
     }
   }
 
-  const fetchExams = async () => {
+  const fetchCertificateTemplates = async () => {
+    try {
+      const res = await fetch("/api/certificate-templates", {
+        headers: getAuthHeaders(),
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch certificate templates")
+      }
+
+      const payload = await res.json()
+      const templates = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : []
+      setCertificateTemplates(templates)
+      return templates
+    } catch (error) {
+      console.error("Failed to fetch certificate templates", error)
+      return []
+    }
+  }
+
+  const fetchExams = async (templates: CertificateTemplate[] = certificateTemplates) => {
     setIsLoading(true)
     try {
       const res = await fetch("/api/admin/exams", {
@@ -121,7 +157,7 @@ export default function AdminExamsPage() {
         ? unwrapped.data
         : []
 
-      setExams(examList.map(mapExam))
+      setExams(examList.map((item: any) => mapExam(item, templates)))
     } catch (error) {
       console.error("Failed to fetch admin exams", error)
       setExams([])
@@ -148,7 +184,12 @@ export default function AdminExamsPage() {
   }, [openMenu])
 
   useEffect(() => {
-    fetchExams()
+    const initialize = async () => {
+      const templates = await fetchCertificateTemplates()
+      setCertificateTemplates(templates)
+      await fetchExams(templates)
+    }
+    initialize()
   }, [])
 
   useEffect(() => {
@@ -301,7 +342,7 @@ export default function AdminExamsPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Quản lý Bài thi</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Duyệt và quản lý các bài thi từ giáo viên</p>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">Theo dõi và quản lý các bài thi từ giáo viên</p>
               </div>
             </div>
 
@@ -643,37 +684,12 @@ export default function AdminExamsPage() {
                       ref={menuRef}
                       className="relative right-0 bottom-0 z-[9999] w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg"
                     >
-                      {exam.status === "pending" && (
-                        <>
-                          <button
-                            onClick={() => {
-                              handleApprove(exam.id)
-                              setOpenMenu(null)
-                            }}
-                            className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-green-500 rounded-t-xl"
-                          >
-                            <CheckCircle size={16} />
-                            <span className="font-medium">Duyệt bài thi</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedExam(exam)
-                              setViewMode("reject")
-                              setOpenMenu(null)
-                            }}
-                            className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-yellow-500 border-t border-border dark:border-slate-700"
-                          >
-                            <XCircle size={16} />
-                            <span className="font-medium">Từ chối</span>
-                          </button>
-                        </>
-                      )}
                       <button
                         onClick={() => {
                           setConfirmDialog({ isOpen: true, action: "delete", examId: exam.id })
                           setOpenMenu(null)
                         }}
-                        className={`w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 ${exam.status === "pending" ? "border-t border-border dark:border-slate-700" : "rounded-xl"}`}
+                        className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-xl"
                       >
                         <XCircle size={16} />
                         <span className="font-medium">Xóa bài thi</span>
@@ -830,31 +846,6 @@ export default function AdminExamsPage() {
                         </div>
                       </div>
                     )}
-                    {/* Action Buttons */}
-                    {selectedExam.status === "pending" && (
-                      <div className="flex gap-3 pt-4 border-t border-border dark:border-slate-800">
-                        <button
-                          onClick={() => {
-                            handleApprove(selectedExam.id)
-                            setViewMode(null)
-                            setSelectedExam(null)
-                          }}
-                          className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg"
-                        >
-                          <CheckCircle size={20} />
-                          Duyệt bài thi
-                        </button>
-                        <button
-                          onClick={() => {
-                            setViewMode("reject")
-                          }}
-                          className="flex-1 px-6 py-3 bg-secondary hover:bg-secondary/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-foreground dark:text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 border border-border dark:border-slate-700"
-                        >
-                          <XCircle size={20} />
-                          Từ chối
-                        </button>
-                      </div>
-                    )}
                     {/* View Full Details Link */}
                     <Link
                       href={`/admin/exams/${selectedExam.id}`}
@@ -954,27 +945,9 @@ export default function AdminExamsPage() {
               style={{ top: menuButtonRect.top, right: menuButtonRect.right }}
               className="hidden xl:block fixed w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg z-[9999]"
             >
-              {activeExam.status === "pending" && (
-                <>
-                  <button
-                    onClick={() => { handleApprove(activeExam.id); setOpenMenu(null); setMenuButtonRect(null) }}
-                    className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-green-500 rounded-t-xl"
-                  >
-                    <CheckCircle size={16} />
-                    <span className="font-medium">Duyệt bài thi</span>
-                  </button>
-                  <button
-                    onClick={() => { setSelectedExam(activeExam); setViewMode("reject"); setOpenMenu(null); setMenuButtonRect(null) }}
-                    className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-yellow-500 border-t border-border dark:border-slate-700"
-                  >
-                    <XCircle size={16} />
-                    <span className="font-medium">Từ chối</span>
-                  </button>
-                </>
-              )}
               <button
                 onClick={() => { setConfirmDialog({ isOpen: true, action: "delete", examId: activeExam.id }); setOpenMenu(null); setMenuButtonRect(null) }}
-                className={`w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 ${activeExam.status === "pending" ? "border-t border-border dark:border-slate-700" : "rounded-t-xl rounded-b-xl"}`}
+                className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-t-xl rounded-b-xl"
               >
                 <XCircle size={16} />
                 <span className="font-medium">Xóa bài thi</span>

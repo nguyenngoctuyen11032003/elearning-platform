@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, BookOpen, Users, DollarSign, Settings, LogOut, User, Star, BarChart3, FileText, Award, ChevronRight } from "lucide-react"
+import { LayoutDashboard, BookOpen, Users, Settings, LogOut, User, Star, BarChart3, FileText, Award, ChevronRight, ClipboardList } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
@@ -17,12 +17,12 @@ export { SidebarProvider, MobileMenuToggle } from "@/components/ui/mobile-sideba
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/teacher/dashboard" },
   { icon: BookOpen, label: "Khóa học", href: "/teacher/courses" },
-  { icon: FileText, label: "Bài thi", href: "/teacher/exams" },
+  { icon: FileText, label: "Ngân hàng đề thi", href: "/teacher/exams" },
+  { icon: ClipboardList, label: "Đề thi", href: "/teacher/exams/generate" },
   { icon: Award, label: "Chứng chỉ", href: "/teacher/certificates" },
   { icon: Users, label: "Học viên", href: "/teacher/students" },
   { icon: Star, label: "Đánh giá", href: "/teacher/reviews" },
   { icon: BarChart3, label: "Thống kê", href: "/teacher/analytics" },
-  { icon: DollarSign, label: "Doanh thu", href: "/teacher/earnings" },
   { icon: Settings, label: "Cài đặt", href: "/teacher/settings" },
 ]
 
