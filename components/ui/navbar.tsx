@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Menu, X, Home, LogOut, User, Settings, MessageCircle } from "lucide-react"
+import { Menu, X, Home, LogOut, User, Settings } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -35,18 +35,6 @@ export function Navbar() {
   }, [isOpen])
 
   useEffect(() => {
-    if (pathname === "/") {
-      document.body.dataset.chatbot = "header"
-    } else {
-      delete document.body.dataset.chatbot
-    }
-
-    return () => {
-      delete document.body.dataset.chatbot
-    }
-  }, [pathname])
-
-  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
         setShowProfileMenu(false)
@@ -65,21 +53,6 @@ export function Navbar() {
   const handleLogout = () => {
     logout()
     router.push("/login")
-  }
-  const handleChatbotOpen = () => {
-    const botContainer = document.getElementById("gim-bot-tool-bot-container")
-    if (botContainer) {
-      botContainer.style.position = "fixed"
-      botContainer.style.right = "24px"
-      botContainer.style.top = "72px"
-      botContainer.style.bottom = "auto"
-      botContainer.style.zIndex = "10001"
-    }
-
-    const chatButton = document.getElementById("gim-bot-tool-button")
-    if (chatButton) {
-      chatButton.click()
-    }
   }
 
   return (
@@ -122,16 +95,6 @@ export function Navbar() {
           {isAuthenticated && user ? (
             <>
               <ThemeToggle />
-              {pathname === "/" && (
-                <button
-                  type="button"
-                  onClick={handleChatbotOpen}
-                  className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
-                >
-                  <MessageCircle size={16} />
-                  Chatbot
-                </button>
-              )}
               <div className="relative" ref={profileMenuRef}>
                 <button
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -209,16 +172,6 @@ export function Navbar() {
           ) : (
             <>
               <ThemeToggle />
-              {pathname === "/" && (
-                <button
-                  type="button"
-                  onClick={handleChatbotOpen}
-                  className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
-                >
-                  <MessageCircle size={16} />
-                  Chatbot
-                </button>
-              )}
               <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-smooth">
                 Đăng nhập
               </Link>
@@ -270,15 +223,6 @@ export function Navbar() {
                 <Link href="/about" className="text-sm hover:text-primary transition-smooth">
                   Về chúng tôi
                 </Link>
-                {pathname === "/" && (
-                  <button
-                    type="button"
-                    onClick={handleChatbotOpen}
-                    className="text-sm hover:text-primary transition-smooth flex items-center gap-2"
-                  >
-                    <MessageCircle size={16} /> Chatbot
-                  </button>
-                )}
                 {isAuthenticated ? (
                   <>
                     <div className="border-t border-border dark:border-slate-800 pt-4 mt-2">
