@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 type DashboardCourse = {
   id: string
@@ -62,31 +63,31 @@ type DashboardStats = {
   weeklyGoal: number
 }
 
-const formatRelativeTime = (value?: string | Date) => {
-  if (!value) return "Chưa có dữ liệu"
+const formatRelativeTime = (value: string | Date | undefined, t: (key: string, fallback: string) => string) => {
+  if (!value) return t("userdb_no_data", "Chưa có dữ liệu")
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return "Chưa có dữ liệu"
+  if (Number.isNaN(date.getTime())) return t("userdb_no_data", "Chưa có dữ liệu")
   const diffMs = Date.now() - date.getTime()
   const diffMinutes = Math.floor(diffMs / 60000)
-  if (diffMinutes < 1) return "Vừa xong"
-  if (diffMinutes < 60) return `${diffMinutes} phút trước`
+  if (diffMinutes < 1) return t("userdb_just_now", "Vừa xong")
+  if (diffMinutes < 60) return `${diffMinutes} ${t("userdb_min_ago", "phút trước")}`
   const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours} giờ trước`
+  if (diffHours < 24) return `${diffHours} ${t("userdb_hours_ago", "giờ trước")}`
   const diffDays = Math.floor(diffHours / 24)
-  if (diffDays < 30) return `${diffDays} ngày trước`
+  if (diffDays < 30) return `${diffDays} ${t("userdb_days_ago", "ngày trước")}`
   return date.toLocaleDateString("vi-VN")
 }
 
-const formatDate = (value?: string | Date) => {
-  if (!value) return "Chưa có hạn"
+const formatDate = (value: string | Date | undefined, t: (key: string, fallback: string) => string) => {
+  if (!value) return t("userdb_no_deadline", "Chưa có hạn")
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return "Chưa có hạn"
+  if (Number.isNaN(date.getTime())) return t("userdb_no_deadline", "Chưa có hạn")
   return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
-const formatHours = (hours: number) => {
+const formatHours = (hours: number, t: (key: string, fallback: string) => string) => {
   if (hours <= 0) return "0h"
-  if (hours < 1) return `${Math.round(hours * 60)} phút`
+  if (hours < 1) return `${Math.round(hours * 60)} ${t("userdb_minutes", "phút")}`
   return `${hours.toFixed(1)}h`
 }
 
@@ -105,6 +106,7 @@ const computeStreak = (courses: DashboardCourse[]) => {
 
 export default function StudentDashboardPage() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const [greeting, setGreeting] = useState("")
   const [stats, setStats] = useState<DashboardStats>({
     activeCourses: 0,
@@ -123,9 +125,9 @@ export default function StudentDashboardPage() {
 
   useEffect(() => {
     const hour = new Date().getHours()
-    if (hour < 12) setGreeting("Chào buổi sáng")
-    else if (hour < 18) setGreeting("Chào buổi chiều")
-    else setGreeting("Chào buổi tối")
+    if (hour < 12) setGreeting(t("userdb_morning", "Chào buổi sáng"))
+    else if (hour < 18) setGreeting(t("userdb_afternoon", "Chào buổi chiều"))
+    else setGreeting(t("userdb_evening", "Chào buổi tối"))
   }, [])
 
   useEffect(() => {
@@ -171,7 +173,7 @@ export default function StudentDashboardPage() {
             if (latestCompleted) {
               activityEvents.push({
                 id: `${enrollment.id}-${latestCompleted.lessonId}`,
-                title: `Hoàn thành: ${latestCompleted.lesson?.title || "Bài học"}`,
+                title: `${t("userdb_completed", "Hoàn thành")}: ${latestCompleted.lesson?.title || t("userdb_lesson", "Bài học")}`,
                 courseTitle: enrollment.course.title,
                 type: "lesson",
                 timestamp: latestCompleted.completedAt,
@@ -181,8 +183,8 @@ export default function StudentDashboardPage() {
             const nextLesson = Array.isArray(progressEntries)
               ? progressEntries.find((p: any) => !p?.isCompleted)?.lesson?.title ||
                 lessons.find((lesson: any) => lesson?.order === completedLessons + 1)?.title ||
-                "Tiếp tục học bài tiếp theo"
-              : "Tiếp tục học bài tiếp theo"
+                t("userdb_continue_next", "Tiếp tục học bài tiếp theo")
+              : t("userdb_continue_next", "Tiếp tục học bài tiếp theo")
 
             const totalDurationSeconds = Array.isArray(lessons)
               ? lessons.reduce((sum: number, lesson: any) => sum + (lesson.duration || 0), 0)
@@ -193,7 +195,7 @@ export default function StudentDashboardPage() {
               id: enrollment.id,
               courseId: enrollment.courseId,
               title: enrollment.course.title,
-              instructor: enrollment.course.teacher?.name || "Giảng viên",
+              instructor: enrollment.course.teacher?.name || t("userdb_instructor", "Giảng viên"),
               image: enrollment.course.thumbnail || "/image/logo-ics.jpg",
               progress: Math.round(Number(enrollment.progress) || 0),
               totalLessons,
@@ -233,7 +235,7 @@ export default function StudentDashboardPage() {
             id: assignment.id,
             title: assignment.title,
             courseTitle:
-              coursesData.find((c) => c.courseId === assignment.courseId)?.title || "Khóa học",
+              coursesData.find((c) => c.courseId === assignment.courseId)?.title || t("userdb_course", "Khóa học"),
             dueDate: assignment.dueDate,
             maxScore: assignment.maxScore,
           }))
@@ -241,7 +243,7 @@ export default function StudentDashboardPage() {
         assignments.forEach((assignment) => {
           activityEvents.push({
             id: `assignment-${assignment.id}`,
-            title: `Sắp đến hạn: ${assignment.title}`,
+            title: `${t("userdb_due_soon", "Sắp đến hạn")}: ${assignment.title}`,
             courseTitle: assignment.courseTitle,
             type: "assignment",
             timestamp: assignment.dueDate,
@@ -253,7 +255,7 @@ export default function StudentDashboardPage() {
           certificates.forEach((certificate: any) => {
             activityEvents.push({
               id: certificate.id,
-              title: `Nhận chứng chỉ: ${certificate.course?.title || "Khóa học"}`,
+              title: `${t("userdb_got_cert", "Nhận chứng chỉ")}: ${certificate.course?.title || t("userdb_course", t("userdb_course", "Khóa học"))}`,
               courseTitle: certificate.course?.title,
               type: "certificate",
               timestamp: certificate.issueDate,
@@ -297,7 +299,7 @@ export default function StudentDashboardPage() {
         })
       } catch (error) {
         console.error("Error loading dashboard", error)
-        toast.error("Không thể tải dữ liệu bảng điều khiển")
+        toast.error(t("userdb_load_error", "Không thể tải dữ liệu bảng điều khiển"))
       } finally {
         setLoading(false)
       }
@@ -310,30 +312,30 @@ export default function StudentDashboardPage() {
     () => [
       {
         icon: BookOpen,
-        label: "Khóa học đang học",
+        label: t("userdb_active_courses", "Khóa học đang học"),
         value: stats.activeCourses.toString(),
-        sublabel: `${stats.inProgress} đang diễn ra`,
+        sublabel: `${stats.inProgress} ${t("userdb_in_progress", "đang diễn ra")}`,
         color: "bg-blue-500",
       },
       {
         icon: TrendingUp,
-        label: "Tiến độ trung bình",
+        label: t("userdb_avg_progress", "Tiến độ trung bình"),
         value: `${stats.averageProgress}%`,
-        sublabel: `${stats.completedCourses} đã hoàn thành`,
+        sublabel: `${stats.completedCourses} ${t("userdb_completed_count", "đã hoàn thành")}`,
         color: "bg-purple-500",
       },
       {
         icon: Award,
-        label: "Chứng chỉ đạt được",
+        label: t("userdb_certs", "Chứng chỉ đạt được"),
         value: stats.certificates.toString(),
-        sublabel: `${stats.completedCourses} khóa hoàn tất`,
+        sublabel: `${stats.completedCourses} ${t("userdb_courses_done", "khóa hoàn tất")}`,
         color: "bg-green-500",
       },
       {
         icon: Clock,
-        label: "Giờ học ước tính",
-        value: formatHours(stats.totalHours),
-        sublabel: `${stats.activeCourses} khóa đang theo học`,
+        label: t("userdb_est_hours", "Giờ học ước tính"),
+        value: formatHours(stats.totalHours, t),
+        sublabel: `${stats.activeCourses} ${t("userdb_enrolled", "khóa đang theo học")}`,
         color: "bg-orange-500",
       },
     ],
@@ -372,22 +374,22 @@ export default function StudentDashboardPage() {
             <div>
               <p className="text-black/70 dark:text-white/80 drop-shadow mb-1">{greeting}</p>
               <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">
-                {user?.name || "Học viên"}! 👋
+                {user?.name || t("userdb_student", "Học viên")}! 👋
               </h1>
               <p className="text-black/70 dark:text-white/80 drop-shadow">
-                Tiếp tục hành trình học tập của bạn. Dữ liệu đang lấy trực tiếp từ khóa học của bạn.
+                {t("userdb_hero_desc", "Tiếp tục hành trình học tập của bạn. Dữ liệu đang lấy trực tiếp từ khóa học của bạn.")}
               </p>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <div className="text-center px-4 py-2 sm:px-6 sm:py-3 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl">
                 <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500 mx-auto mb-1 drop-shadow" />
                 <p className="text-xl sm:text-2xl font-bold text-white drop-shadow">{stats.streakDays}</p>
-                <p className="text-[10px] sm:text-xs text-black/70 dark:text-white/80 drop-shadow whitespace-nowrap">Ngày gần đây</p>
+                <p className="text-[10px] sm:text-xs text-black/70 dark:text-white/80 drop-shadow whitespace-nowrap">{t("userdb_recent_days", "Ngày gần đây")}</p>
               </div>
               <div className="text-center px-4 py-2 sm:px-6 sm:py-3 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl">
                 <Target className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 mx-auto mb-1 drop-shadow" />
                 <p className="text-xl sm:text-2xl font-bold text-white drop-shadow">{stats.weeklyGoal}%</p>
-                <p className="text-[10px] sm:text-xs text-black/70 dark:text-white/80 drop-shadow whitespace-nowrap">Mục tiêu tuần</p>
+                <p className="text-[10px] sm:text-xs text-black/70 dark:text-white/80 drop-shadow whitespace-nowrap">{t("userdb_weekly_goal", "Mục tiêu tuần")}</p>
               </div>
             </div>
           </div>
@@ -420,14 +422,14 @@ export default function StudentDashboardPage() {
           className="xl:col-span-2 group bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl p-6 hover:bg-white/50 dark:hover:bg-slate-900/40 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.01] transition-all duration-300 ease-out"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-foreground dark:text-white drop-shadow">Tiếp tục học</h2>
+            <h2 className="text-xl font-bold text-foreground dark:text-white drop-shadow">{t("userdb_continue", "Tiếp tục học")}</h2>
             <Link href="/my-courses" className="text-sm text-primary dark:text-accent hover:underline flex items-center gap-1 drop-shadow">
-              Xem tất cả <ChevronRight size={16} />
+              {t("userdb_view_all", "Xem tất cả")} <ChevronRight size={16} />
             </Link>
           </div>
           <div className="space-y-4">
             {courses.length === 0 && (
-              <p className="text-sm text-muted-foreground">Chưa có khóa học nào. Hãy bắt đầu một khóa học mới!</p>
+              <p className="text-sm text-muted-foreground">{t("userdb_no_courses", "Chưa có khóa học nào. Hãy bắt đầu một khóa học mới!")}</p>
             )}
             {courses.map((course, idx) => (
               <motion.div
@@ -452,7 +454,7 @@ export default function StudentDashboardPage() {
                     <h3 className="font-semibold text-foreground dark:text-white mb-1 line-clamp-1 drop-shadow-sm">{course.title}</h3>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 drop-shadow-sm">{course.instructor}</p>
                     <p className="text-xs text-muted-foreground dark:text-slate-500 mb-2 drop-shadow-sm">
-                      Tiếp theo: <span className="text-primary dark:text-accent">{course.nextLesson}</span>
+                      {t("userdb_next", "Tiếp theo")}: <span className="text-primary dark:text-accent">{course.nextLesson}</span>
                     </p>
                     <div className="flex items-center gap-4">
                       <div className="flex-1">
@@ -467,7 +469,7 @@ export default function StudentDashboardPage() {
                           />
                         </div>
                         <p className="text-[11px] text-muted-foreground dark:text-slate-400 mt-1 drop-shadow-sm">
-                          Cập nhật {formatRelativeTime(course.lastAccessed || undefined)} • Ước tính {formatHours(course.estimatedHours)} đã học
+                          {t("userdb_updated", "Cập nhật")} {formatRelativeTime(course.lastAccessed || undefined, t)} • {t("userdb_estimated", "Ước tính")} {formatHours(course.estimatedHours, t)} {t("userdb_studied", "đã học")}
                         </p>
                       </div>
                       <Link
@@ -475,7 +477,7 @@ export default function StudentDashboardPage() {
                         className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-2"
                       >
                         <Play size={16} />
-                        Học tiếp
+                        {t("userdb_resume", "Học tiếp")}
                       </Link>
                     </div>
                   </div>
@@ -493,12 +495,12 @@ export default function StudentDashboardPage() {
         >
           <div className="group bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl p-6 hover:bg-white/50 dark:hover:bg-slate-900/40 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.01] transition-all duration-300 ease-out">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-foreground dark:text-white drop-shadow">Bài tập/Bài thi sắp tới</h3>
-              <Link href="/exams" className="text-xs text-primary dark:text-accent hover:underline drop-shadow">Xem tất cả</Link>
+              <h3 className="font-bold text-foreground dark:text-white drop-shadow">{t("userdb_upcoming", "Bài tập/Bài thi sắp tới")}</h3>
+              <Link href="/exams" className="text-xs text-primary dark:text-accent hover:underline drop-shadow">{t("userdb_view_all", "Xem tất cả")}</Link>
             </div>
             <div className="space-y-3">
               {upcomingAssignments.length === 0 && (
-                <p className="text-sm text-muted-foreground">Chưa có bài tập hoặc bài thi sắp đến hạn.</p>
+                <p className="text-sm text-muted-foreground">{t("userdb_no_assignments", "Chưa có bài tập hoặc bài thi sắp đến hạn.")}</p>
               )}
               {upcomingAssignments.map((assignment) => (
                 <div key={assignment.id} className="p-3 bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm rounded-xl">
@@ -507,12 +509,12 @@ export default function StudentDashboardPage() {
                   <div className="flex items-center gap-3 text-xs text-muted-foreground dark:text-slate-400">
                     <span className="flex items-center gap-1 drop-shadow-sm">
                       <Calendar size={12} />
-                      {formatDate(assignment.dueDate)}
+                      {formatDate(assignment.dueDate, t)}
                     </span>
                     {assignment.maxScore && (
                       <span className="flex items-center gap-1 drop-shadow-sm">
                         <Star size={12} />
-                        Tối đa {assignment.maxScore} điểm
+                        {t("userdb_max_score", "Tối đa")} {assignment.maxScore} {t("userdb_points", "điểm")}
                       </span>
                     )}
                   </div>
@@ -522,10 +524,10 @@ export default function StudentDashboardPage() {
           </div>
 
           <div className="group bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl p-6 hover:bg-white/50 dark:hover:bg-slate-900/40 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.01] transition-all duration-300 ease-out">
-            <h3 className="font-bold text-foreground dark:text-white mb-4 drop-shadow">Hoạt động gần đây</h3>
+            <h3 className="font-bold text-foreground dark:text-white mb-4 drop-shadow">{t("userdb_recent_activity", "Hoạt động gần đây")}</h3>
             <div className="space-y-3">
               {activities.length === 0 && (
-                <p className="text-sm text-muted-foreground">Chưa có hoạt động mới.</p>
+                <p className="text-sm text-muted-foreground">{t("userdb_no_activity", "Chưa có hoạt động mới.")}</p>
               )}
               {activities.map((activity) => (
                 <div key={activity.id} className="flex items-start gap-3">
@@ -550,7 +552,7 @@ export default function StudentDashboardPage() {
                     <p className="text-sm text-foreground dark:text-white line-clamp-1 drop-shadow-sm">{activity.title}</p>
                     <p className="text-xs text-muted-foreground dark:text-slate-400 drop-shadow-sm">
                       {activity.courseTitle || ""} {activity.courseTitle ? "• " : ""}
-                      {formatRelativeTime(activity.timestamp)}
+                      {formatRelativeTime(activity.timestamp, t)}
                     </p>
                   </div>
                 </div>
@@ -559,15 +561,15 @@ export default function StudentDashboardPage() {
           </div>
 
           <div className="bg-gradient-to-br from-primary to-accent rounded-2xl p-6 text-white hover:shadow-xl hover:shadow-primary/20 hover:scale-[1.01] transition-all duration-300 ease-out">
-            <h3 className="font-bold mb-2 drop-shadow">Khám phá khóa học mới</h3>
+            <h3 className="font-bold mb-2 drop-shadow">{t("userdb_discover", "Khám phá khóa học mới")}</h3>
             <p className="text-sm text-white/90 mb-4 drop-shadow">
-              Hàng trăm khóa học chất lượng đang chờ bạn
+              {t("userdb_discover_desc", "Hàng trăm khóa học chất lượng đang chờ bạn")}
             </p>
             <Link
               href="/courses"
               className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-all backdrop-blur-sm hover:scale-105"
             >
-              Khám phá ngay <ArrowRight size={16} />
+              {t("userdb_discover_btn", "Khám phá ngay")} <ArrowRight size={16} />
             </Link>
           </div>
         </motion.div>

@@ -1,8 +1,10 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { Star, MessageSquare, ThumbsUp, Search, BookOpen, TrendingUp, Users, X, Send, StarIcon } from "lucide-react"
 import { toast } from "sonner"
+import { useLanguage } from "@/lib/i18n/language-context"
+import { autoTranslateData, getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
 
 interface Review {
   id: string
@@ -20,6 +22,7 @@ interface Review {
 }
 
 export default function TeacherReviewsPage() {
+  const { language, t } = useLanguage()
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
   const [ratingFilter, setRatingFilter] = useState("all")
@@ -32,6 +35,8 @@ export default function TeacherReviewsPage() {
 
   // Mock data
   useEffect(() => {
+    let isMounted = true
+
     const mockReviews: Review[] = [
       {
         id: "1",
@@ -99,11 +104,17 @@ export default function TeacherReviewsPage() {
       }
     ]
 
-    setTimeout(() => {
-      setReviews(mockReviews)
+    setTimeout(async () => {
+      const localizedReviews = await autoTranslateData(mockReviews, language)
+      if (!isMounted) return
+      setReviews(localizedReviews)
       setLoading(false)
     }, 500)
-  }, [])
+
+    return () => {
+      isMounted = false
+    }
+  }, [language])
 
   // Stats
   const avgRating = reviews.length > 0
@@ -129,7 +140,7 @@ export default function TeacherReviewsPage() {
 
   const handleReply = (reviewId: string) => {
     if (!replyText.trim()) {
-      toast.error("Vui lòng nhập nội dung phản hồi")
+      toast.error(t("tch_rev_enter_reply", "Vui lòng nhập nội dung phản hồi"))
       return
     }
 
@@ -140,11 +151,11 @@ export default function TeacherReviewsPage() {
     ))
     setReplyText("")
     setReplyingTo(null)
-    toast.success("Phản hồi đã được gửi!")
+    toast.success(t("tch_rev_reply_sent", "Phản hồi đã được gửi!"))
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN', {
+    return new Date(dateString).toLocaleDateString(getLocaleByLanguage(language), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -193,8 +204,8 @@ export default function TeacherReviewsPage() {
           <div className="relative z-10 space-y-8">
             {/* Header */}
             <div className="animate-slideDown" style={{ animationDelay: "0.15s" }}>
-              <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Đánh giá từ học viên</h1>
-              <p className="text-black/70 dark:text-white/80 drop-shadow">Xem và phản hồi đánh giá của học viên về các khóa học của bạn</p>
+              <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("tch_rev_title", "Đánh giá từ học viên")}</h1>
+              <p className="text-black/70 dark:text-white/80 drop-shadow">{t("tch_rev_subtitle", "Xem và phản hồi đánh giá của học viên về các khóa học của bạn")}</p>
             </div>
 
             {/* Stats Cards */}
@@ -202,7 +213,7 @@ export default function TeacherReviewsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng đánh giá</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tch_rev_total", "Tổng đánh giá")}</p>
                     <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{reviews.length}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -213,7 +224,7 @@ export default function TeacherReviewsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Điểm TB</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tch_rev_avg", "Điểm TB")}</p>
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1 flex items-center gap-1">
                       {avgRating} <Star size={18} className="fill-yellow-500 text-yellow-500" />
                     </p>
@@ -226,7 +237,7 @@ export default function TeacherReviewsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">5 sao</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tch_rev_5star", "5 sao")}</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{fiveStarCount}</p>
                   </div>
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -237,7 +248,7 @@ export default function TeacherReviewsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Đã phản hồi</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tch_rev_responded", "Đã phản hồi")}</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{responseRate}%</p>
                   </div>
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -255,7 +266,7 @@ export default function TeacherReviewsPage() {
             <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
             <input
               type="text"
-              placeholder="Tìm kiếm theo tên học viên hoặc nội dung..."
+              placeholder={t("tch_rev_search", "Tìm kiếm theo tên học viên hoặc nội dung...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
@@ -266,7 +277,7 @@ export default function TeacherReviewsPage() {
             onChange={(e) => setCourseFilter(e.target.value)}
             className="px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="all">Tất cả khóa học</option>
+            <option value="all">{t("tch_rev_all_courses", "Tất cả khóa học")}</option>
             {courses.map((course) => (
               <option key={course.id} value={course.id}>{course.name}</option>
             ))}
@@ -276,8 +287,8 @@ export default function TeacherReviewsPage() {
             onChange={(e) => setRatingFilter(e.target.value)}
             className="px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="all">Tất cả đánh giá</option>
-            <option value="5">5 sao</option>
+            <option value="all">{t("tch_rev_all_ratings", "Tất cả đánh giá")}</option>
+            <option value="5">{t("tch_rev_5star", "5 sao")}</option>
             <option value="4">4 sao</option>
             <option value="3">3 sao</option>
             <option value="2">2 sao</option>
@@ -333,7 +344,7 @@ export default function TeacherReviewsPage() {
                       ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                       : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
                   }`}>
-                    {review.response ? '✓ Đã' : '⏱ Chờ'}
+                    {review.response ? t('tch_rev_replied', '✓ Đã') : t('tch_rev_waiting', '⏱ Chờ')}
                   </span>
                 </div>
 
@@ -374,7 +385,7 @@ export default function TeacherReviewsPage() {
                         ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                         : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
                     }`}>
-                      {review.response ? '✓ Đã' : '⏱ Chờ'}
+                      {review.response ? t('tch_rev_replied', '✓ Đã') : t('tch_rev_waiting', '⏱ Chờ')}
                     </span>
                     <button className={`p-1.5 rounded transition-all duration-300 ${
                       expandedReviewId === review.id
@@ -405,7 +416,7 @@ export default function TeacherReviewsPage() {
                   {/* Comment Section */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-bold text-primary dark:text-primary uppercase tracking-widest">💬 Đánh giá</h4>
+                      <h4 className="text-sm font-bold text-primary dark:text-primary uppercase tracking-widest">💬 {t("tch_rev_review", "Đánh giá")}</h4>
                       <span className="text-xs px-2 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary rounded-full font-semibold">{review.rating} ⭐</span>
                     </div>
                     <div className="bg-white dark:bg-slate-900/60 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50 shadow-sm">
@@ -424,7 +435,7 @@ export default function TeacherReviewsPage() {
                   {/* Course Info */}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-5 bg-white dark:bg-slate-900/70 rounded-xl border border-slate-200 dark:border-slate-700/50 shadow-sm">
                     <div className="space-y-2">
-                      <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Khóa học</p>
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t("tch_rev_course", "Khóa học")}</p>
                       <p className="text-sm font-semibold text-foreground dark:text-white line-clamp-2">{review.courseName}</p>
                     </div>
                     <div className="space-y-2">
@@ -432,7 +443,7 @@ export default function TeacherReviewsPage() {
                       <p className="text-sm text-foreground dark:text-white break-all">{review.studentEmail}</p>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Ngày đánh giá</p>
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t("tch_rev_date", "Ngày đánh giá")}</p>
                       <p className="text-sm text-foreground dark:text-white">{formatDate(review.createdAt)}</p>
                     </div>
                   </div>
@@ -445,7 +456,7 @@ export default function TeacherReviewsPage() {
                           ✓
                         </div>
                         <div className="flex-1">
-                          <p className="font-bold text-green-800 dark:text-green-300 text-sm uppercase tracking-wider">Phản hồi của bạn</p>
+                          <p className="font-bold text-green-800 dark:text-green-300 text-sm uppercase tracking-wider">{t("tch_rev_your_reply", "Phản hồi của bạn")}</p>
                           {review.responseDate && (
                             <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">{formatDate(review.responseDate)}</p>
                           )}
@@ -460,12 +471,12 @@ export default function TeacherReviewsPage() {
                     <div className="space-y-4 p-5 bg-white dark:bg-slate-900/70 rounded-xl border-2 border-primary/50 dark:border-primary/40 shadow-sm">
                       <div>
                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                          {review.response ? '✏️ Chỉnh sửa phản hồi' : '💬 Viết phản hồi'}
+                          {review.response ? t('tch_rev_edit_reply_label', '✏️ Chỉnh sửa phản hồi') : t('tch_rev_write_reply_label', '💬 Viết phản hồi')}
                         </label>
                         <textarea
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          placeholder={review.response ? "Chỉnh sửa phản hồi của bạn..." : "Nhập phản hồi..."}
+                          placeholder={review.response ? t("tch_rev_edit_reply_ph", "Chỉnh sửa phản hồi của bạn...") : t("tch_rev_reply_ph", "Nhập phản hồi...")}
                           className="w-full bg-slate-50 dark:bg-slate-800/50 text-foreground dark:text-white rounded-lg px-4 py-3 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-900 focus:border-transparent resize-none shadow-sm"
                           rows={4}
                         />
@@ -502,11 +513,11 @@ export default function TeacherReviewsPage() {
                         onClick={() => setReplyingTo(review.id)}
                         className="flex-1 px-5 py-3 rounded-lg font-bold text-sm bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white transition-all hover:shadow-lg hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 shadow-md"
                       >
-                        <MessageSquare size={18} /> {review.response ? 'Chỉnh sửa phản hồi' : 'Phản hồi'}
+                        <MessageSquare size={18} /> {review.response ? t('tch_rev_edit_reply', 'Chỉnh sửa phản hồi') : t('tch_rev_reply', 'Phản hồi')}
                       </button>
                       <button
                         className="px-5 py-3 rounded-lg font-bold text-sm border-2 border-red-300 dark:border-red-600/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all hover:shadow-md hover:scale-[1.02] active:scale-95"
-                        title="Xóa đánh giá này"
+                        title={t("tch_rev_del_title", "Xóa đánh giá này")}
                       >
                         🗑️
                       </button>
@@ -521,7 +532,7 @@ export default function TeacherReviewsPage() {
         {filteredReviews.length === 0 && (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl py-12 text-center">
             <MessageSquare size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy đánh giá nào</p>
+            <p className="text-muted-foreground dark:text-slate-400">{t("tch_rev_empty", "Không tìm thấy đánh giá nào")}</p>
           </div>
         )}
       </div>

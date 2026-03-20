@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { CourseCard } from "@/components/ui/course-card";
 import { SectionTitle } from "@/components/ui/section-title";
@@ -17,6 +17,7 @@ import { Footer } from "@/components/ui/footer";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 // --- real data fetch helper ---
 async function fetchJson(url: string) {
@@ -42,6 +43,7 @@ async function fetchJson(url: string) {
 
 export default function CoursesPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category");
 
@@ -173,11 +175,11 @@ export default function CoursesPage() {
   };
 
   const priceRanges = [
-    { label: "Tất cả mức giá", min: 0, max: Number.POSITIVE_INFINITY },
-    { label: "Miễn phí", min: 0, max: 0 },
-    { label: "Dưới 1 triệu", min: 0, max: 1000000 },
-    { label: "1 - 2 triệu", min: 1000000, max: 2000000 },
-    { label: "Trên 2 triệu", min: 2000000, max: Number.POSITIVE_INFINITY },
+    { label: t("courses_price_all", "Tất cả mức giá"), min: 0, max: Number.POSITIVE_INFINITY },
+    { label: t("courses_price_free", "Miễn phí"), min: 0, max: 0 },
+    { label: t("courses_price_under1m", "Dưới 1 triệu"), min: 0, max: 1000000 },
+    { label: t("courses_price_1to2m", "1 - 2 triệu"), min: 1000000, max: 2000000 },
+    { label: t("courses_price_over2m", "Trên 2 triệu"), min: 2000000, max: Number.POSITIVE_INFINITY },
   ];
 
   return (
@@ -202,15 +204,14 @@ export default function CoursesPage() {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-full mb-4">
               <TrendingUp size={16} />
               <span className="text-sm font-medium">
-                Khám phá kiến thức mới
+                {t("courses_hero_badge", "Khám phá kiến thức mới")}
               </span>
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground dark:text-black mb-4">
-              Danh sách khóa học
+              {t("courses_hero_title", "Danh sách khóa học")}
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground dark:text-slate-400 max-w-2xl mx-auto">
-              Tìm khóa học phù hợp với mục tiêu học tập của bạn từ hàng trăm
-              khóa học chất lượng cao
+              {t("courses_hero_subtitle", "Tìm khóa học phù hợp với mục tiêu học tập của bạn từ hàng trăm khóa học chất lượng cao")}
             </p>
           </motion.div>
 
@@ -227,7 +228,7 @@ export default function CoursesPage() {
             />
             <input
               type="text"
-              placeholder="Tìm kiếm khóa học, giảng viên, chủ đề..."
+              placeholder={t("courses_search", "Tìm kiếm khóa học, giảng viên, chủ đề...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-12 sm:pl-14 pr-4 sm:pr-6 py-3 sm:py-4 bg-white dark:bg-slate-900/95 border border-border dark:border-slate-800 rounded-2xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-all text-base sm:text-lg"
@@ -245,13 +246,13 @@ export default function CoursesPage() {
               <div className="bg-white dark:bg-slate-900/95 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 lg:sticky lg:top-24 shadow-xl">
                 <h3 className="font-bold text-lg text-foreground dark:text-white mb-6 flex items-center gap-2">
                   <Filter size={20} className="text-primary dark:text-accent" />{" "}
-                  Bộ lọc
+                  {t("courses_filter", "Bộ lọc")}
                 </h3>
 
                 {/* Category Filter */}
                 <div className="mb-6">
                   <h4 className="text-sm font-medium text-foreground dark:text-white mb-3">
-                    Danh mục
+                    {t("courses_filter_category", "Danh mục")}
                   </h4>
                   <div className="space-y-2">
                     <button
@@ -277,7 +278,7 @@ export default function CoursesPage() {
                           ? "text-foreground dark:text-white font-medium"
                           : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
                       }`}>
-                        Tất cả
+                        {t("common_all", "Tất cả")}
                       </span>
                     </button>
                     {categories.map((cat) => (
@@ -382,10 +383,10 @@ export default function CoursesPage() {
                       onChange={(e) => setSortBy(e.target.value as any)}
                       className="w-full appearance-none pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                     >
-                      <option value="popular">Phổ biến nhất</option>
-                      <option value="newest">Mới nhất</option>
-                      <option value="price-low">Giá thấp → cao</option>
-                      <option value="price-high">Giá cao → thấp</option>
+                      <option value="popular">{t("courses_sort_popular", "Phổ biến nhất")}</option>
+                      <option value="newest">{t("courses_sort_newest", "Mới nhất")}</option>
+                      <option value="price-low">{t("courses_sort_price_low", "Giá thấp → cao")}</option>
+                      <option value="price-high">{t("courses_sort_price_high", "Giá cao → thấp")}</option>
                     </select>
                     <ChevronDown
                       className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground"
@@ -469,7 +470,7 @@ export default function CoursesPage() {
                         <CourseCard
                           id={course.id}
                           title={course.title}
-                          teacher={course.teacher?.name || "Unknown Teacher"}
+                          teacher={course.teacher?.name || t("courses_unknown_teacher", "Unknown Teacher")}
                           price={course.price}
                           rating={course.rating || 0}
                           image={course.image || "/placeholder.svg"}
@@ -494,7 +495,7 @@ export default function CoursesPage() {
                         Không tìm thấy khóa học
                       </h3>
                       <p className="text-muted-foreground dark:text-slate-400 mb-6">
-                        Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác
+                        {t("courses_try_other", "Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác")}
                       </p>
                       <button
                         onClick={handleReset}

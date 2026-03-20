@@ -168,10 +168,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const register = async (data: RegisterRequest) => {
     try {
       setLoading(true);
-      const response = await apiClient.register(data);
-      
-      toast.success(response.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực.');
-      router.push('/login');
+      await apiClient.register(data);
+
+      toast.success('Đăng ký thành công! Vui lòng kiểm tra email để xác thực.');
+      router.push('/login?registered=1');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Đăng ký thất bại';
       toast.error(message);

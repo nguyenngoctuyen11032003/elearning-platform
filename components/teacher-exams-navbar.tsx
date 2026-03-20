@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { Plus, ClipboardList, Users } from "lucide-react"
 import { authFetch } from "@/lib/authfetch"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 type ExamLike = {
   attemptCount?: number
@@ -17,6 +18,7 @@ const normalizeList = <T,>(payload: any): T[] => {
 }
 
 export function TeacherExamsNavbar() {
+  const { t } = useLanguage()
   const [total, setTotal] = useState<number | null>(null)
   const [used, setUsed] = useState<number | null>(null)
 
@@ -55,11 +57,11 @@ export function TeacherExamsNavbar() {
           <ClipboardList size={18} className="text-primary" />
         </div>
         <div>
-          <div className="text-sm font-semibold text-foreground dark:text-white">Ngân hàng đề thi</div>
+          <div className="text-sm font-semibold text-foreground dark:text-white">{t("exam_bank", "Ngân hàng đề thi")}</div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground dark:text-slate-400">
-            <span>Đã có: {totalText}</span>
+            <span>{t("exam_total_count", "Đã có")}: {totalText}</span>
             <span className="inline-flex items-center gap-1">
-              <Users size={12} /> Đã sử dụng: {usedText}
+              <Users size={12} /> {t("exam_used_count", "Đã sử dụng")}: {usedText}
             </span>
           </div>
         </div>
@@ -70,7 +72,7 @@ export function TeacherExamsNavbar() {
         className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-medium transition-colors hover:bg-primary/90"
       >
         <Plus size={16} />
-        Tạo đề thi
+        {t("exam_create", "Tạo đề thi")}
       </Link>
     </div>
   )

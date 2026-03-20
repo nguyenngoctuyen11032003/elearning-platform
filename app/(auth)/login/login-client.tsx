@@ -10,19 +10,34 @@ import { LogoDisplay } from "@/components/ui/logo-display"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
+import { useLanguage } from "@/lib/i18n/language-context"
 export default function LoginClient() {
   const searchParams = useSearchParams()
   const { config } = useSystemConfig()
+  const { t } = useLanguage()
 
   useEffect(() => {
     const error = searchParams.get("error")
     const message = searchParams.get("message")
+    const registered = searchParams.get("registered")
+
+    if (registered === "1") {
+      const timer = setTimeout(() => {
+        toast.success(t("auth_register_success_verify", "Đăng ký thành công! Vui lòng kiểm tra email để xác thực."), {
+          duration: 5000,
+        })
+
+        window.history.replaceState({}, "", "/login")
+      }, 250)
+
+      return () => clearTimeout(timer)
+    }
 
     if (error && message) {
       const timer = setTimeout(() => {
         toast.error(decodeURIComponent(message), {
           duration: 5000,
-          description: "Vui lòng kiểm tra lại thông tin đăng nhập",
+          description: t("auth_check_login_info", "Vui lòng kiểm tra lại thông tin đăng nhập"),
         })
 
         window.history.replaceState({}, "", "/login")
@@ -30,7 +45,7 @@ export default function LoginClient() {
 
       return () => clearTimeout(timer)
     }
-  }, [searchParams])
+  }, [searchParams, t])
 return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
       {/* Hình nền phía sau */}
@@ -65,7 +80,7 @@ return (
         className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-full text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-900 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-lg hover:shadow-xl group"
       >
         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-        <span className="text-sm font-semibold">Trang chủ</span>
+        <span className="text-sm font-semibold">{t("common_home", "Trang chủ")}</span>
       </Link>
 
       <div className="relative z-10 min-h-screen flex items-center justify-center px-3 sm:px-6 py-8 sm:py-12">
@@ -108,7 +123,7 @@ return (
                   transition={{ delay: 0.4 }}
                   className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed"
                 >
-                  Tiếp tục hành trình học tập của bạn cùng <span className="font-bold text-blue-600 dark:text-blue-400">15,000+ học viên</span> đang phát triển kỹ năng mỗi ngày.
+                  {t("login_hero_desc", "Tiếp tục hành trình học tập của bạn cùng 15,000+ học viên đang phát triển kỹ năng mỗi ngày.")}
                 </motion.p>
               </motion.div>
 
@@ -117,20 +132,20 @@ return (
                 {[
                   {
                     icon: Brain,
-                    title: "Học Thông Minh",
-                    description: "AI cá nhân hóa lộ trình học tập cho bạn",
+                    title: t("login_feature_smart", "Học Thông Minh"),
+                    description: t("login_feature_smart_desc", "AI cá nhân hóa lộ trình học tập cho bạn"),
                     color: "from-blue-500 to-cyan-500"
                   },
                   {
                     icon: Users,
-                    title: "Cộng Đồng Sôi Động",
-                    description: "Kết nối với hàng ngàn học viên khác",
+                    title: t("login_feature_community", "Cộng Đồng Sôi Động"),
+                    description: t("login_feature_community_desc", "Kết nối với hàng ngàn học viên khác"),
                     color: "from-purple-500 to-pink-500"
                   },
                   {
                     icon: Award,
-                    title: "Chứng Chỉ Uy Tín",
-                    description: "Được công nhận bởi các doanh nghiệp",
+                    title: t("login_feature_cert", "Chứng Chỉ Uy Tín"),
+                    description: t("login_feature_cert_desc", "Được công nhận bởi các doanh nghiệp"),
                     color: "from-orange-500 to-red-500"
                   }
                 ].map((feature, idx) => (
@@ -182,10 +197,10 @@ return (
                       className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full mb-4 font-semibold"
                     >
                       <Sparkles size={16} />
-                      <span className="text-sm">Đăng Nhập Tài Khoản</span>
+                      <span className="text-sm">{t("login_badge", "Đăng Nhập Tài Khoản")}</span>
                     </motion.div>
-                    <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-2">Đăng Nhập</h2>
-                    <p className="text-slate-600 dark:text-slate-400">Tiếp tục hành trình học tập của bạn</p>
+                    <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-2">{t("login_title", "Đăng Nhập")}</h2>
+                    <p className="text-slate-600 dark:text-slate-400">{t("login_subtitle", "Tiếp tục hành trình học tập của bạn")}</p>
                   </div>
 
                   {/* Form */}
@@ -197,21 +212,21 @@ return (
                       <div className="w-full border-t border-slate-200 dark:border-slate-800" />
                     </div>
                     <div className="relative flex justify-center">
-                      <span className="px-4 bg-white dark:bg-slate-900/95 text-sm text-slate-600 dark:text-slate-300 font-medium">Hoặc tiếp tục với</span>
+                      <span className="px-4 bg-white dark:bg-slate-900/95 text-sm text-slate-600 dark:text-slate-300 font-medium">{t("login_or_continue", "Hoặc tiếp tục với")}</span>
                     </div>
                   </div>
 
                   {/* Footer Links */}
                   <div className="mt-8 space-y-3 text-center">
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      Chưa có tài khoản?{" "}
+                      {t("login_no_account", "Chưa có tài khoản?")}{" "}
                       <Link href="/signup" className="font-bold text-blue-600 dark:text-blue-400 hover:underline">
-                        Đăng ký ngay
+                        {t("login_signup_now", "Đăng ký ngay")}
                       </Link>
                     </p>
                     <p className="text-sm">
                       <Link href="/forgot-password" className="font-semibold text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                        Quên mật khẩu?
+                        {t("login_forgot_password", "Quên mật khẩu?")}
                       </Link>
                     </p>
                   </div>
@@ -220,13 +235,13 @@ return (
 
               {/* Terms */}
               <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-6 leading-relaxed">
-                Bằng cách đăng nhập, bạn đồng ý với{" "}
+                {t("login_terms_agree", "Bằng cách đăng nhập, bạn đồng ý với")}{" "}
                 <Link href="/terms" className="font-semibold hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  Điều khoản sử dụng
+                  {t("terms_title", "Điều khoản sử dụng")}
                 </Link>{" "}
-                và{" "}
+                {t("common_and", "và")}{" "}
                 <Link href="/privacy" className="font-semibold hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  Chính sách bảo mật
+                  {t("privacy_title", "Chính sách bảo mật")}
                 </Link>
               </p>
             </motion.div>

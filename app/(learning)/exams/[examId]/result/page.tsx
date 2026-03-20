@@ -121,6 +121,8 @@ const formatAnswer = (value: string | string[] | undefined): string => {
 export default function ExamResultPage() {
   const searchParams = useSearchParams()
   const attemptId = searchParams.get("attemptId") || ""
+  const source = (searchParams.get("source") || "").toLowerCase()
+  const isExtractedSource = source === "extracted"
 
   const [result, setResult] = useState<AttemptResult | null>(null)
   const [loading, setLoading] = useState(true)
@@ -134,8 +136,17 @@ export default function ExamResultPage() {
 
       setLoading(true)
       try {
-        const data = await apiClient.getAttemptResult(attemptId)
-        setResult(data)
+        if (isExtractedSource) {
+          const raw = sessionStorage.getItem(`extracted_result_${attemptId}`)
+          if (!raw) {
+            throw new Error("Không tìm thấy kết quả bài thi extracted")
+          }
+          const data = JSON.parse(raw)
+          setResult(data)
+        } else {
+          const data = await apiClient.getAttemptResult(attemptId)
+          setResult(data)
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Không thể tải kết quả"
         toast.error(message)
@@ -145,7 +156,7 @@ export default function ExamResultPage() {
     }
 
     load()
-  }, [attemptId])
+  }, [attemptId, isExtractedSource])
 
   if (loading) {
     return <div className="p-6">Đang tải kết quả...</div>

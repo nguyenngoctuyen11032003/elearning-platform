@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
@@ -29,29 +29,31 @@ import {
 } from "@/components/ui/chart"
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
 import { PageHero } from "@/components/ui/page-hero"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function ProgressPage() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   
   const weeklyProgress = [
-    { day: "T2", hours: 2, target: 2 },
-    { day: "T3", hours: 3, target: 2 },
-    { day: "T4", hours: 1.5, target: 2 },
-    { day: "T5", hours: 2.5, target: 2 },
-    { day: "T6", hours: 2, target: 2 },
-    { day: "T7", hours: 4, target: 3 },
-    { day: "CN", hours: 3, target: 3 },
+    { day: t("prog_mon", "T2"), hours: 2, target: 2 },
+    { day: t("prog_tue", "T3"), hours: 3, target: 2 },
+    { day: t("prog_wed", "T4"), hours: 1.5, target: 2 },
+    { day: t("prog_thu", "T5"), hours: 2.5, target: 2 },
+    { day: t("prog_fri", "T6"), hours: 2, target: 2 },
+    { day: t("prog_sat", "T7"), hours: 4, target: 3 },
+    { day: t("prog_sun", "CN"), hours: 3, target: 3 },
   ]
 
   const courseProgress = [
     {
       id: "1",
-      title: "Next.js từ cơ bản đến nâng cao",
+      title: t("prog_course_nextjs", "Next.js từ cơ bản đến nâng cao"),
       progress: 75,
       totalLessons: 40,
       completedLessons: 30,
-      lastAccessed: "2 giờ trước",
-      estimatedCompletion: "7 ngày",
+      lastAccessed: t("prog_2h_ago", "2 giờ trước"),
+      estimatedCompletion: t("prog_7d", "7 ngày"),
       icon: "🚴",
       bgColor: "bg-purple-100 dark:bg-purple-900/30",
       image: "/image/logo-ics.jpg"
@@ -62,20 +64,20 @@ export default function ProgressPage() {
       progress: 60,
       totalLessons: 30,
       completedLessons: 18,
-      lastAccessed: "1 ngày trước",
-      estimatedCompletion: "14 ngày",
+      lastAccessed: t("prog_1d_ago", "1 ngày trước"),
+      estimatedCompletion: t("prog_14d", "14 ngày"),
       icon: "🏃",
       bgColor: "bg-blue-100 dark:bg-blue-900/30",
       image: "/image/logo-ics.jpg"
     },
     {
       id: "3",
-      title: "Thiết kế UI/UX với Figma",
+      title: t("prog_course_figma", "Thiết kế UI/UX với Figma"),
       progress: 45,
       totalLessons: 33,
       completedLessons: 15,
-      lastAccessed: "3 ngày trước",
-      estimatedCompletion: "21 ngày",
+      lastAccessed: t("prog_3d_ago", "3 ngày trước"),
+      estimatedCompletion: t("prog_21d", "21 ngày"),
       icon: "💪",
       bgColor: "bg-green-100 dark:bg-green-900/30",
       image: "/image/figma.jpg"
@@ -85,29 +87,29 @@ export default function ProgressPage() {
   const completedCourses = [
     {
       id: "4",
-      title: "JavaScript cơ bản",
+      title: t("prog_course_jsbasic", "JavaScript cơ bản"),
       progress: 100,
       totalLessons: 25,
       completedLessons: 25,
-      completedDate: "2 tuần trước"
+      completedDate: t("prog_2w_ago", "2 tuần trước")
     },
     {
       id: "5",
-      title: "HTML & CSS từ A-Z",
+      title: t("prog_course_htmlcss", "HTML & CSS từ A-Z"),
       progress: 100,
       totalLessons: 20,
       completedLessons: 20,
-      completedDate: "1 tháng trước"
+      completedDate: t("prog_1m_ago", "1 tháng trước")
     },
   ]
 
   const achievements = [
-    { icon: Flame, title: "Chuỗi 7 ngày", description: "Học liên tục 7 ngày", unlocked: true, color: "text-orange-500" },
-    { icon: Trophy, title: "Hoàn thành đầu tiên", description: "Hoàn thành khóa học đầu tiên", unlocked: true, color: "text-yellow-500" },
-    { icon: Star, title: "Điểm cao", description: "Đạt 90%+ trong bài thi", unlocked: true, color: "text-purple-500" },
-    { icon: Target, title: "Mục tiêu tuần", description: "Đạt mục tiêu học tập tuần", unlocked: false, color: "text-green-500" },
-    { icon: BookOpen, title: "Đọc giả", description: "Hoàn thành 50 bài học", unlocked: false, color: "text-blue-500" },
-    { icon: Award, title: "Collector", description: "Thu thập 5 chứng chỉ", unlocked: false, color: "text-pink-500" },
+    { icon: Flame, title: t("prog_ach_streak7", "Chuỗi 7 ngày"), description: t("prog_ach_streak7_desc", "Học liên tục 7 ngày"), unlocked: true, color: "text-orange-500" },
+    { icon: Trophy, title: t("prog_ach_first", "Hoàn thành đầu tiên"), description: t("prog_ach_first_desc", "Hoàn thành khóa học đầu tiên"), unlocked: true, color: "text-yellow-500" },
+    { icon: Star, title: t("prog_ach_highscore", "Điểm cao"), description: t("prog_ach_highscore_desc", "Đạt 90%+ trong bài thi"), unlocked: true, color: "text-purple-500" },
+    { icon: Target, title: t("prog_ach_weekly", "Mục tiêu tuần"), description: t("prog_ach_weekly_desc", "Đạt mục tiêu học tập tuần"), unlocked: false, color: "text-green-500" },
+    { icon: BookOpen, title: t("prog_ach_reader", "Đọc giả"), description: t("prog_ach_reader_desc", "Hoàn thành 50 bài học"), unlocked: false, color: "text-blue-500" },
+    { icon: Award, title: "Collector", description: t("prog_ach_collector_desc", "Thu thập 5 chứng chỉ"), unlocked: false, color: "text-pink-500" },
   ]
 
   const totalHours = weeklyProgress.reduce((sum, day) => sum + day.hours, 0)
@@ -121,8 +123,8 @@ export default function ProgressPage() {
   }))
 
   const chartConfig = {
-    hours: { label: "Giờ học", color: "#1E90FF" },
-    target: { label: "Mục tiêu", color: "#ef4444" },
+    hours: { label: t("prog_hours_label", "Giờ học"), color: "#1E90FF" },
+    target: { label: t("prog_target_label", "Mục tiêu"), color: "#ef4444" },
   }
 
   // Data for course completion pie chart
@@ -137,15 +139,15 @@ export default function ProgressPage() {
   return (
     <div className="space-y-8">
       <PageHero
-        title="Tiến độ học tập"
-        subtitle="Theo dõi và phân tích quá trình học của bạn"
+        title={t("prog_title", "Tiến độ học tập")}
+        subtitle={t("prog_subtitle", "Theo dõi và phân tích quá trình học của bạn")}
         bgImage="/image/bg_progress.png "
       >
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
             <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
               <div>
-                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Giờ học tuần này</p>
+                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_weekly_hours", "Giờ học tuần này")}</p>
                 <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalHours}h</p>
               </div>
               <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -156,7 +158,7 @@ export default function ProgressPage() {
           <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
             <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
               <div>
-                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Bài học hoàn thành</p>
+                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_lessons_done", "Bài học hoàn thành")}</p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">63</p>
               </div>
               <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -167,7 +169,7 @@ export default function ProgressPage() {
           <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
             <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
               <div>
-                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Ngày liên tiếp</p>
+                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_streak", "Ngày liên tiếp")}</p>
                 <p className="text-2xl font-bold text-orange-500 dark:text-orange-400 mt-1">7</p>
               </div>
               <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -178,7 +180,7 @@ export default function ProgressPage() {
           <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
             <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
               <div>
-                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Chứng chỉ đạt được</p>
+                <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_certs", "Chứng chỉ đạt được")}</p>
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">3</p>
               </div>
               <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -199,11 +201,11 @@ export default function ProgressPage() {
           className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 flex flex-col"
         >
           <div className="flex items-center justify-between mb-10">
-            <h2 className="text-xl font-bold text-foreground dark:text-white">Hoạt động trong tuần</h2>
+            <h2 className="text-xl font-bold text-foreground dark:text-white">{t("prog_weekly_activity", "Hoạt động trong tuần")}</h2>
             <select className="bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm">
-              <option>Tuần này</option>
-              <option>Tuần trước</option>
-              <option>Tháng này</option>
+              <option>{t("prog_this_week", "Tuần này")}</option>
+              <option>{t("prog_last_week", "Tuần trước")}</option>
+              <option>{t("prog_this_month", "Tháng này")}</option>
             </select>
           </div>
           
@@ -221,8 +223,8 @@ export default function ProgressPage() {
                   tick={{ fontSize: 12 }}/>
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Legend wrapperStyle={{ fontSize: '15px', fontWeight: '600', paddingTop: '12px' }} />
-                <Bar dataKey="hours" name="Giờ học" fill="var(--color-hours)" radius={[20, 20, 0, 0]} barSize={45} />
-                <Line type="monotone" dataKey="target" name="Mục tiêu" stroke="#ef4444" strokeWidth={2} dot={{ r: 5 }} />
+                <Bar dataKey="hours" name={t("prog_hours_label", "Giờ học")} fill="var(--color-hours)" radius={[20, 20, 0, 0]} barSize={45} />
+                <Line type="monotone" dataKey="target" name={t("prog_target_label", "Mục tiêu")} stroke="#ef4444" strokeWidth={2} dot={{ r: 5 }} />
               </ComposedChart>
             </ChartContainer>
           </div>
@@ -235,7 +237,7 @@ export default function ProgressPage() {
           transition={{ delay: 0.3 }}
           className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 flex flex-col"
         >
-          <h2 className="text-xl font-bold text-foreground dark:text-white mb-6">Hoàn thành khóa học</h2>
+          <h2 className="text-xl font-bold text-foreground dark:text-white mb-6">{t("prog_course_completion", "Hoàn thành khóa học")}</h2>
           <div className="flex-1 flex flex-col items-center justify-between min-h-[400px]">
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -285,7 +287,7 @@ export default function ProgressPage() {
           className="lg:col-span-2"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-foreground dark:text-white">Khóa học đang học</h2>
+            <h2 className="text-xl font-bold text-foreground dark:text-white">{t("prog_active_courses", "Khóa học đang học")}</h2>
             <Link href="/my-courses" className="text-sm text-primary dark:text-accent hover:underline">
               Xem tất cả
             </Link>
@@ -334,11 +336,11 @@ export default function ProgressPage() {
                     <span className="font-bold text-primary dark:text-accent">{course.progress}%</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground dark:text-slate-400">Thời gian còn lại</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("prog_time_left", "Thời gian còn lại")}</span>
                     <span className="font-bold text-primary dark:text-accent">~{course.estimatedCompletion}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground dark:text-slate-400">Bài học</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("prog_lessons", "Bài học")}</span>
                     <span className="font-bold text-foreground dark:text-white">{course.completedLessons}/{course.totalLessons}</span>
                   </div>
                 </div>
@@ -356,7 +358,7 @@ export default function ProgressPage() {
           transition={{ delay: 0.4 }}
           className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6"
         >
-          <h2 className="text-xl font-bold text-foreground dark:text-white mb-6">Thành tựu</h2>
+          <h2 className="text-xl font-bold text-foreground dark:text-white mb-6">{t("prog_achievements", "Thành tựu")}</h2>
           <div className="grid grid-cols-2 gap-3">
             {achievements.map((achievement, idx) => (
               <div 

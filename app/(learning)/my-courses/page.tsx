@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -7,6 +7,7 @@ import Link from "next/link"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
+import { useLanguage } from "@/lib/i18n/language-context"
 import { PageHero } from "@/components/ui/page-hero"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ResponsiveContainer as RespContainer } from "recharts"
 
@@ -32,6 +33,7 @@ const ITEMS_PER_PAGE = 4
 
 export default function MyCoursesPage() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const [courses, setCourses] = useState<EnrolledCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("all")
@@ -58,7 +60,7 @@ export default function MyCoursesPage() {
         setCourses([])
         // Don't show error toast if it's just empty data
         if (error instanceof Error && !error.message.includes('status: 404')) {
-          toast.error("Không thể tải danh sách khóa học")
+          toast.error(t("mycourses_load_error", "Không thể tải danh sách khóa học"))
         }
       } finally {
         setLoading(false)
@@ -121,10 +123,10 @@ export default function MyCoursesPage() {
       const newSet = new Set(prev)
       if (newSet.has(courseId)) {
         newSet.delete(courseId)
-        toast.success("Bỏ ghim khóa học")
+        toast.success(t("mycourses_unpinned", "Bỏ ghim khóa học"))
       } else {
         newSet.add(courseId)
-        toast.success("Đã ghim khóa học")
+        toast.success(t("mycourses_pinned", "Đã ghim khóa học"))
       }
       return newSet
     })
@@ -133,7 +135,7 @@ export default function MyCoursesPage() {
 
   const handleRemoveCourse = (courseId: string) => {
     // Implement remove course functionality
-    toast.info("Chức năng này sẽ được thêm sớm")
+    toast.info(t("mycourses_coming_soon", "Chức năng này sẽ được thêm sớm"))
     setOpenMenuId(null)
   }
 
@@ -141,12 +143,12 @@ export default function MyCoursesPage() {
     // Implement share functionality
     if (navigator.share) {
       navigator.share({
-        title: "Khóa học ICS",
-        text: `Hãy check out khóa học này: ${courseTitle}`,
+        title: t("mycourses_share_title", "Khóa học ICS"),
+        text: `${t("mycourses_share_text", "Hãy check out khóa học này")}: ${courseTitle}`,
         url: window.location.href
       })
     } else {
-      toast.info("Chức năng này sẽ được thêm sớm")
+      toast.info(t("mycourses_coming_soon", "Chức năng này sẽ được thêm sớm"))
     }
     setOpenMenuId(null)
   }
@@ -197,14 +199,14 @@ export default function MyCoursesPage() {
           className="bg-white dark:bg-slate-900/60 border-b border-border dark:border-slate-800 px-4 md:px-8 py-4 md:py-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0"
         >
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground dark:text-white">Khóa học của tôi</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground dark:text-white">{t("mycourses_title", "Khóa học của tôi")}</h1>
           </div>
           <div className="flex items-center gap-2 w-full md:w-auto">
             <div className="relative flex-1 md:flex-none">
               <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Tìm kiếm..."
+                placeholder={t("mycourses_search", "Tìm kiếm...")}
                 value={searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full md:w-auto pl-10 pr-4 py-2 bg-secondary dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -227,20 +229,20 @@ export default function MyCoursesPage() {
             >
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 mb-8">
                 <div>
-                  <h2 className="text-lg md:text-xl font-bold text-foreground dark:text-white mb-1 md:mb-2">Khóa học đang học</h2>
-                  <p className="text-xs md:text-sm text-muted-foreground dark:text-slate-400">Tổng cộng {courses.length} khóa học</p>
+                  <h2 className="text-lg md:text-xl font-bold text-foreground dark:text-white mb-1 md:mb-2">{t("mycourses_active", "Khóa học đang học")}</h2>
+                  <p className="text-xs md:text-sm text-muted-foreground dark:text-slate-400">{t("mycourses_total", "Tổng cộng")} {courses.length} {t("mycourses_courses_unit", "khóa học")}</p>
                 </div>
                 <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg px-3 md:px-4 py-2 text-sm md:text-base">
-                  <span className="text-sm font-medium text-foreground dark:text-white">Sắp xếp theo</span>
+                  <span className="text-sm font-medium text-foreground dark:text-white">{t("mycourses_sort", "Sắp xếp theo")}</span>
                   <select
                     value={filter}
                     onChange={(e) => handleFilterChange(e.target.value)}
                     className="bg-transparent border-0 focus:outline-none text-sm font-medium text-muted-foreground dark:text-slate-400"
                   >
-                    <option value="all">Tất cả</option>
-                    <option value="in-progress">Đang học</option>
-                    <option value="completed">Hoàn thành</option>
-                    <option value="not-started">Chưa bắt đầu</option>
+                    <option value="all">{t("mycourses_all", "Tất cả")}</option>
+                    <option value="in-progress">{t("mycourses_in_progress", "Đang học")}</option>
+                    <option value="completed">{t("mycourses_completed", "Hoàn thành")}</option>
+                    <option value="not-started">{t("mycourses_not_started", "Chưa bắt đầu")}</option>
                   </select>
                 </div>
               </div>
@@ -290,7 +292,7 @@ export default function MyCoursesPage() {
                                 {enrollment.course.title}
                               </h3>
                               <p className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded inline-block">
-                                {enrollment.progress === 100 ? "Hoàn thành" : "Đang học"}
+                                {enrollment.progress === 100 ? t("mycourses_completed", "Hoàn thành") : t("mycourses_in_progress", "Đang học")}
                               </p>
                             </div>
                             <div className="relative group flex-shrink-0">
@@ -316,7 +318,7 @@ export default function MyCoursesPage() {
                                       className="w-full flex items-center gap-3 px-4 py-2 hover:bg-secondary dark:hover:bg-slate-700 transition-colors text-sm text-foreground dark:text-white"
                                     >
                                       <Pin size={16} />
-                                      {pinnedCourses.has(enrollment.id) ? "Bỏ ghim" : "Ghim khóa học"}
+                                      {pinnedCourses.has(enrollment.id) ? t("mycourses_unpin", "Bỏ ghim") : t("mycourses_pin", "Ghim khóa học")}
                                     </button>
                                     <button
                                       onClick={() => handleShareCourse(enrollment.course.title)}
@@ -341,14 +343,14 @@ export default function MyCoursesPage() {
                           {/* Lessons Preview */}
                           <div className="space-y-2 mb-4">
                             {lessons.length > 0 && (
-                              <p className="text-xs text-primary dark:text-accent font-medium">+{lessons.length} bài khác</p>
+                              <p className="text-xs text-primary dark:text-accent font-medium">+{lessons.length} {t("mycourses_more_lessons", "bài khác")}</p>
                             )}
                           </div>
 
                           {/* Progress Bar */}
                           <div className="mb-4">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-medium text-foreground dark:text-white">Tiến độ</span>
+                              <span className="text-xs font-medium text-foreground dark:text-white">{t("mycourses_progress", "Tiến độ")}</span>
                               <span className="text-xs font-bold text-primary dark:text-accent">{enrollment.progress}%</span>
                             </div>
                             <div className="h-2 bg-secondary dark:bg-slate-800 rounded-full overflow-hidden">
@@ -390,7 +392,7 @@ export default function MyCoursesPage() {
               ) : (
                 <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-12 text-center">
                   <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <p className="text-muted-foreground dark:text-slate-400">Không có khóa học phù hợp</p>
+                  <p className="text-muted-foreground dark:text-slate-400">{t("mycourses_no_match", "Không có khóa học phù hợp")}</p>
                 </div>
               )}
             </motion.div>
@@ -403,7 +405,7 @@ export default function MyCoursesPage() {
             >
               {/* Total Project Card */}
               <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg">
-                <h3 className="text-base md:text-lg font-bold text-foreground dark:text-white mb-4 md:mb-6">Tổng khóa học</h3>
+                <h3 className="text-base md:text-lg font-bold text-foreground dark:text-white mb-4 md:mb-6">{t("mycourses_total_courses", "Tổng khóa học")}</h3>
                 <div className="flex items-center justify-center mb-4 md:mb-6">
                   <div className="w-32 h-32 md:w-48 md:h-48">
                     <svg viewBox="0 0 100 100" className="w-full h-full">
@@ -431,17 +433,17 @@ export default function MyCoursesPage() {
                 </div>
                 <div className="space-y-2 text-xs md:text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground dark:text-slate-400">Tổng cộng: {stats.total}</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("mycourses_total_label", "Tổng cộng")}: {stats.total}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground dark:text-slate-400">Đang học: {stats.inProgress}</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("mycourses_in_progress", "Đang học")}: {stats.inProgress}</span>
                   </div>
                 </div>
               </div>
 
               {/* Completed Courses List */}
               <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg min-h-auto lg:min-h-[350px]">
-                <h3 className="text-base md:text-lg font-bold text-foreground dark:text-white mb-4 md:mb-6">Đã hoàn thành</h3>
+                <h3 className="text-base md:text-lg font-bold text-foreground dark:text-white mb-4 md:mb-6">{t("mycourses_completed_list", "Đã hoàn thành")}</h3>
                 <div className="space-y-3 md:space-y-4">
                   {courses
                     .filter(c => c.progress === 100)
@@ -464,15 +466,15 @@ export default function MyCoursesPage() {
                       </Link>
                     ))}
                   {courses.filter(c => c.progress === 100).length === 0 && (
-                    <p className="text-sm text-muted-foreground dark:text-slate-400 text-center py-6">Chưa hoàn thành khóa học nào</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 text-center py-6">{t("mycourses_none_completed", "Chưa hoàn thành khóa học nào")}</p>
                   )}
                 </div>
               </div>
 
               {/* Buy More Courses */}
               <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-4 md:p-8 shadow-lg text-white flex flex-col justify-center">
-                <h3 className="text-lg md:text-2xl font-bold mb-2 md:mb-3">Mua thêm khóa học</h3>
-                <p className="text-sm md:text-base text-white/90 mb-4 md:mb-6">Khám phá các khóa học mới và nâng cao kỹ năng của bạn</p>
+                <h3 className="text-lg md:text-2xl font-bold mb-2 md:mb-3">{t("mycourses_buy_more", "Mua thêm khóa học")}</h3>
+                <p className="text-sm md:text-base text-white/90 mb-4 md:mb-6">{t("mycourses_buy_desc", "Khám phá các khóa học mới và nâng cao kỹ năng của bạn")}</p>
                 <Link
                   href="/courses"
                   className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-white/90 transition-all w-full text-sm md:text-base"

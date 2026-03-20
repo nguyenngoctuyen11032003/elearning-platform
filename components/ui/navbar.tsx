@@ -9,6 +9,8 @@ import { ThemeToggle } from "./theme-toggle"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { LogoDisplay } from "@/components/ui/logo-display"
+import { LanguageSelector } from "@/components/ui/language-selector"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -18,6 +20,7 @@ export function Navbar() {
   const pathname = usePathname()
   const { config } = useSystemConfig()
   const { user, logout, loading, isAuthenticated } = useAuth()
+  const { t } = useLanguage()
 
   useEffect(() => {
     setIsOpen(false)
@@ -95,14 +98,14 @@ export function Navbar() {
 
         <nav className="hidden md:flex gap-8 text-sm text-muted-foreground">
           <Link href="/" className="hover:text-foreground transition-smooth flex items-center gap-2">
-            <Home size={16} /> Trang chủ
+            <Home size={16} /> {t("nav_home", "Trang chủ")}
           </Link>
           <Link href="/courses" className="hover:text-foreground transition-smooth">
-            Khóa học
+            {t("nav_courses", "Khóa học")}
           </Link>
           {!isAuthenticated && (
             <Link href="/teachers" className="hover:text-foreground transition-smooth">
-              Giảng viên
+              {t("nav_teachers", "Giảng viên")}
             </Link>
           )}
           {isAuthenticated && user ? (
@@ -110,15 +113,16 @@ export function Navbar() {
               href={user.role === 'student' ? '/userdb' : user.role === 'teacher' ? '/teacher/dashboard' : '/admin/dashboard'} 
               className="hover:text-foreground transition-smooth"
             >
-              Trang chủ của tôi
+              {t("nav_my_home", "Trang chủ của tôi")}
             </Link>
           ) : null}
           <Link href="/about" className="hover:text-foreground transition-smooth">
-            Về chúng tôi
+            {t("nav_about", "Về chúng tôi")}
           </Link>
         </nav>
 
         <div className="hidden md:flex items-center gap-4 relative">
+          <LanguageSelector />
           {isAuthenticated && user ? (
             <>
               <ThemeToggle />
@@ -157,7 +161,7 @@ export function Navbar() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-foreground dark:text-white truncate">{user.name}</p>
                           <p className="text-xs text-muted-foreground dark:text-slate-400">
-                            {user.role === 'student' ? 'Học viên' : user.role === 'teacher' ? 'Giảng viên' : 'Quản trị viên'}
+                            {user.role === 'student' ? t("role_student", "Học viên") : user.role === 'teacher' ? t("role_teacher", "Giảng viên") : t("role_admin", "Quản trị viên")}
                           </p>
                         </div>
                       </div>
@@ -170,7 +174,7 @@ export function Navbar() {
                         className="flex items-center gap-3 px-4 py-2.5 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
                       >
                         <Home size={18} />
-                        <span className="text-sm font-medium">Trang chủ của tôi</span>
+                        <span className="text-sm font-medium">{t("nav_my_home", "Trang chủ của tôi")}</span>
                       </Link>
                       <Link
                         href={user.role === 'student' ? '/profile' : user.role === 'teacher' ? '/teacher/profile' : '/admin/profile'}
@@ -178,7 +182,7 @@ export function Navbar() {
                         className="flex items-center gap-3 px-4 py-2.5 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
                       >
                         <User size={18} />
-                        <span className="text-sm font-medium">Hồ sơ cá nhân</span>
+                        <span className="text-sm font-medium">{t("nav_profile", "Hồ sơ cá nhân")}</span>
                       </Link>
                       <Link
                         href={user.role === 'student' ? '/settings' : user.role === 'teacher' ? '/teacher/settings' : '/admin/settings'}
@@ -186,7 +190,7 @@ export function Navbar() {
                         className="flex items-center gap-3 px-4 py-2.5 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
                       >
                         <Settings size={18} />
-                        <span className="text-sm font-medium">Cài đặt</span>
+                        <span className="text-sm font-medium">{t("nav_settings", "Cài đặt")}</span>
                       </Link>
                     </div>
 
@@ -199,7 +203,7 @@ export function Navbar() {
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/20 transition-smooth"
                       >
                         <LogOut size={18} />
-                        <span className="text-sm font-medium">Đăng xuất</span>
+                        <span className="text-sm font-medium">{t("nav_logout", "Đăng xuất")}</span>
                       </button>
                     </div>
                   </div>
@@ -220,13 +224,13 @@ export function Navbar() {
                 </button>
               )}
               <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-smooth">
-                Đăng nhập
+                {t("nav_login", "Đăng nhập")}
               </Link>
               <Link
                 href="/signup"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-full text-sm font-medium transition-smooth"
               >
-                Bắt đầu học
+                {t("nav_start_learning", "Bắt đầu học")}
               </Link>
             </>
           )}
@@ -247,16 +251,19 @@ export function Navbar() {
               onClick={() => setIsOpen(false)}
             />
             <div className="absolute top-16 left-0 right-0 bg-background dark:bg-slate-950 border-b border-border dark:border-slate-800 p-4 md:hidden z-50 shadow-xl">
+              <div className="mb-4 pb-4 border-b border-border dark:border-slate-800">
+                <LanguageSelector />
+              </div>
               <nav className="flex flex-col gap-4">
                 <Link href="/" className="text-sm hover:text-primary transition-smooth flex items-center gap-2">
-                  <Home size={16} /> Trang chủ
+                  <Home size={16} /> {t("nav_home", "Trang chủ")}
                 </Link>
                 <Link href="/courses" className="text-sm hover:text-primary transition-smooth">
-                  Khóa học
+                  {t("nav_courses", "Khóa học")}
                 </Link>
                 {!isAuthenticated && (
                   <Link href="/teachers" className="text-sm hover:text-primary transition-smooth">
-                    Giảng viên
+                    {t("nav_teachers", "Giảng viên")}
                   </Link>
                 )}
                 {isAuthenticated && user ? (
@@ -264,11 +271,11 @@ export function Navbar() {
                     href={user?.role === 'student' ? '/userdb' : user?.role === 'teacher' ? '/teacher/dashboard' : '/admin/dashboard'} 
                     className="text-sm hover:text-primary transition-smooth"
                   >
-                    Trang chủ của tôi
+                    {t("nav_my_home", "Trang chủ của tôi")}
                   </Link>
                 ) : null}
                 <Link href="/about" className="text-sm hover:text-primary transition-smooth">
-                  Về chúng tôi
+                  {t("nav_about", "Về chúng tôi")}
                 </Link>
                 {pathname === "/" && (
                   <button
@@ -286,13 +293,13 @@ export function Navbar() {
                         href="/profile"
                         className="text-sm hover:text-primary transition-smooth flex items-center gap-2 py-2"
                       >
-                        <User size={16} /> Hồ sơ cá nhân
+                        <User size={16} /> {t("nav_profile", "Hồ sơ cá nhân")}
                       </Link>
                       <Link
                         href="/settings"
                         className="text-sm hover:text-primary transition-smooth flex items-center gap-2 py-2"
                       >
-                        <Settings size={16} /> Cài đặt
+                        <Settings size={16} /> {t("nav_settings", "Cài đặt")}
                       </Link>
                       <button
                         onClick={() => {
@@ -301,20 +308,20 @@ export function Navbar() {
                         }}
                         className="text-sm hover:text-primary transition-smooth text-left text-destructive w-full flex items-center gap-2 py-2"
                       >
-                        <LogOut size={16} /> Đăng xuất
+                        <LogOut size={16} /> {t("nav_logout", "Đăng xuất")}
                       </button>
                     </div>
                   </>
                 ) : (
                   <>
                     <Link href="/login" className="text-sm hover:text-primary transition-smooth">
-                      Đăng nhập
+                      {t("nav_login", "Đăng nhập")}
                     </Link>
                     <Link
                       href="/signup"
                       className="bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-medium text-center"
                     >
-                      Bắt đầu học
+                      {t("nav_start_learning", "Bắt đầu học")}
                     </Link>
                   </>
                 )}

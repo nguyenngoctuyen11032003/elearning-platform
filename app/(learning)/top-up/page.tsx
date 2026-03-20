@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -7,6 +7,7 @@ import { motion } from "framer-motion"
 import { ArrowLeft, CreditCard, Smartphone, DollarSign, Check } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface TopUpMethod {
   id: string
@@ -25,47 +26,69 @@ interface TopUpHistory {
   transactionId: string
 }
 
-const topUpMethods: TopUpMethod[] = [
+interface TopUpMethodMeta {
+  id: string
+  nameKey: string
+  nameFallback: string
+  icon: React.ReactNode
+  descKey: string
+  descFallback: string
+  fee: number
+}
+
+const topUpMethodsMeta: TopUpMethodMeta[] = [
   {
     id: "credit-card",
-    name: "Thẻ tín dụng",
+    nameKey: "topup_credit_card",
+    nameFallback: "Thẻ tín dụng",
     icon: <CreditCard size={24} />,
-    description: "Visa, Mastercard",
+    descKey: "topup_credit_desc",
+    descFallback: "Visa, Mastercard",
     fee: 0,
   },
   {
     id: "debit-card",
-    name: "Thẻ ghi nợ",
+    nameKey: "topup_debit_card",
+    nameFallback: "Thẻ ghi nợ",
     icon: <CreditCard size={24} />,
-    description: "Thẻ ghi nợ nội địa",
+    descKey: "topup_debit_desc",
+    descFallback: "Thẻ ghi nợ nội địa",
     fee: 0,
   },
   {
     id: "bank-transfer",
-    name: "Chuyển khoản ngân hàng",
+    nameKey: "topup_bank_transfer",
+    nameFallback: "Chuyển khoản ngân hàng",
     icon: <DollarSign size={24} />,
-    description: "Chuyển khoản từ tài khoản ngân hàng",
+    descKey: "topup_bank_desc",
+    descFallback: "Chuyển khoản từ tài khoản ngân hàng",
     fee: 0,
   },
   {
     id: "momo",
-    name: "Momo",
+    nameKey: "topup_momo",
+    nameFallback: "Momo",
     icon: <Smartphone size={24} />,
-    description: "Ví điện tử Momo",
+    descKey: "topup_momo_desc",
+    descFallback: "Ví điện tử Momo",
     fee: 0,
   },
   {
     id: "zalo-pay",
-    name: "ZaloPay",
+    nameKey: "topup_zalopay",
+    nameFallback: "ZaloPay",
     icon: <Smartphone size={24} />,
-    description: "Ví điện tử ZaloPay",
+    descKey: "topup_zalopay_desc",
+    descFallback: "Ví điện tử ZaloPay",
     fee: 0,
   },
   {
     id: "bank-app",
-    name: "Ứng dụng ngân hàng",
+    nameKey: "topup_bank_app",
+    nameFallback: "Ứng dụng ngân hàng",
     icon: <Smartphone size={24} />,
-    description: "QR code thanh toán",
+    descKey: "topup_bankapp_desc",
+    descFallback: "QR code thanh toán",
     fee: 0,
   },
 ]
@@ -76,6 +99,14 @@ export default function TopUpPage() {
   const { user } = useAuth()
   const { resolvedTheme } = useTheme()
   const router = useRouter()
+  const { t } = useLanguage()
+  const topUpMethods: TopUpMethod[] = topUpMethodsMeta.map(m => ({
+    id: m.id,
+    name: t(m.nameKey, m.nameFallback),
+    icon: m.icon,
+    description: t(m.descKey, m.descFallback),
+    fee: m.fee,
+  }))
   const [mounted, setMounted] = useState(false)
   const [balance, setBalance] = useState(5000000)
   const [selectedMethod, setSelectedMethod] = useState<string>("credit-card")
@@ -84,7 +115,7 @@ export default function TopUpPage() {
     {
       id: "top-1",
       amount: 500000,
-      method: "Thẻ tín dụng",
+      method: t("topup_credit_card", "Thẻ tín dụng"),
       status: "completed",
       date: "2024-12-20T14:30:00Z",
       transactionId: "TOP-001",
@@ -108,7 +139,7 @@ export default function TopUpPage() {
     {
       id: "top-4",
       amount: 2000000,
-      method: "Chuyển khoản ngân hàng",
+      method: t("topup_bank_transfer", "Chuyển khoản ngân hàng"),
       status: "pending",
       date: "2024-12-05T09:20:00Z",
       transactionId: "TOP-004",
@@ -156,13 +187,13 @@ export default function TopUpPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case "completed":
-        return "Thành công"
+        return t("topup_status_ok", "Thành công")
       case "pending":
-        return "Đang xử lý"
+        return t("topup_status_pending", "Đang xử lý")
       case "failed":
-        return "Thất bại"
+        return t("topup_status_failed", "Thất bại")
       default:
-        return "Không xác định"
+        return t("topup_status_unknown", "Không xác định")
     }
   }
 
@@ -183,7 +214,7 @@ export default function TopUpPage() {
       setBalance(balance + selectedAmount)
       setIsProcessing(false)
       // Optional: Show success message and redirect
-      alert(`Nạp tiền ${formatCurrency(selectedAmount)} thành công!`)
+      alert(`${t("topup_success_prefix", "Nạp tiền")} ${formatCurrency(selectedAmount)} ${t("topup_success_suffix", "thành công!")}`)
     }, 2000)
   }
 
@@ -203,11 +234,11 @@ export default function TopUpPage() {
           </Link>
           <div className="flex justify-between items-start gap-4">
             <div className="flex-1">
-              <h1 className="text-3xl sm:text-4xl font-bold">Nạp tiền vào tài khoản</h1>
-              <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Chọn hình thức nạp tiền và mức giá phù hợp</p>
+              <h1 className="text-3xl sm:text-4xl font-bold">{t("topup_title", "Nạp tiền vào tài khoản")}</h1>
+              <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t("topup_subtitle", "Chọn hình thức nạp tiền và mức giá phù hợp")}</p>
             </div>
             <div className={`${isDarkMode ? 'bg-cyan-900/50 border-cyan-700' : 'bg-cyan-50 border-cyan-200'} rounded-xl p-4 border text-right flex-shrink-0`}>
-              <p className={`text-sm mb-1 ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>Số dư hiện tại</p>
+              <p className={`text-sm mb-1 ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>{t("topup_balance", "Số dư hiện tại")}</p>
               <p className={`text-2xl sm:text-3xl font-bold ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>{formatCurrency(balance)}</p>
             </div>
           </div>
@@ -304,7 +335,7 @@ export default function TopUpPage() {
                   </label>
                   <input
                     type="number"
-                    placeholder="Ví dụ: 750000"
+                    placeholder={t("topup_example", "Ví dụ: 750000")}
                     value={selectedAmount}
                     onChange={(e) => setSelectedAmount(parseInt(e.target.value) || 0)}
                     className={`w-full px-4 py-2 ${isDarkMode ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400`}
@@ -330,19 +361,19 @@ export default function TopUpPage() {
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Hình thức:</span>
+                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>{t("topup_method_label", "Hình thức:")}</span>
                   <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     {topUpMethods.find(m => m.id === selectedMethod)?.name}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Số tiền:</span>
+                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>{t("topup_amount_label", "Số tiền:")}</span>
                   <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     {formatCurrency(selectedAmount)}
                   </span>
                 </div>
                 <div className={`border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-300'} pt-3 flex justify-between text-lg font-bold`}>
-                  <span>Tổng cộng:</span>
+                  <span>{t("topup_total", "Tổng cộng:")}</span>
                   <span className="text-emerald-500">{formatCurrency(selectedAmount)}</span>
                 </div>
               </div>
@@ -356,7 +387,7 @@ export default function TopUpPage() {
                     : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:shadow-lg hover:shadow-emerald-500/30'
                 }`}
               >
-                {isProcessing ? 'Đang xử lý...' : 'Nạp tiền ngay'}
+                {isProcessing ? t('topup_processing', 'Đang xử lý...') : t('topup_submit', 'Nạp tiền ngay')}
               </button>
             </motion.div>
           </div>

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -6,6 +6,7 @@ import { motion } from "framer-motion"
 import { Download, Share2, Award, Calendar, User, FileText, CheckCircle, ExternalLink, Loader2 } from "lucide-react"
 import { PremiumCard } from "@/components/ui/premium-card"
 import { PageHero } from "@/components/ui/page-hero"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface Certificate {
   id: string
@@ -39,7 +40,7 @@ function mapCertificate(raw: any): Certificate {
     course: raw?.course
       ? {
           id: raw.course.id || "",
-          title: raw.course.title || "Khóa học",
+          title: raw.course.title || "",
           teacher: raw.course.teacher,
         }
       : undefined,
@@ -48,6 +49,7 @@ function mapCertificate(raw: any): Certificate {
 }
 
 export default function CertificatesPage() {
+  const { t } = useLanguage()
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -91,7 +93,7 @@ export default function CertificatesPage() {
 
   const getInstructorName = (cert: Certificate) => {
     const t = cert.course?.teacher
-    if (!t) return "Giảng viên"
+    if (!t) return ""
     return t.name || [t.firstName, t.lastName].filter(Boolean).join(" ") || "Giảng viên"
   }
 
@@ -103,7 +105,7 @@ export default function CertificatesPage() {
     const url = `${window.location.origin}/certificates/${cert.id}`
     try {
       await navigator.clipboard.writeText(url)
-      alert("Đã sao chép link chứng chỉ!")
+      alert(t("cert_copied", "Đã sao chép link chứng chỉ!"))
     } catch {
       alert(`Link chứng chỉ: ${url}`)
     }
@@ -120,8 +122,8 @@ export default function CertificatesPage() {
   return (
     <div className="space-y-8">
       <PageHero
-        title="Chứng chỉ của tôi"
-        subtitle={`Tổng cộng ${certificates.length} chứng chỉ đã đạt được`}
+        title={t("cert_title", "Chứng chỉ của tôi")}
+        subtitle={`${t("cert_total", "Tổng cộng")} ${certificates.length} ${t("cert_achieved", "chứng chỉ đã đạt được")}`}
         bgImage="/image/bg_certificate.png"
       >
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -133,7 +135,7 @@ export default function CertificatesPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground dark:text-white">{certificates.length}</p>
-                  <p className="text-xs text-muted-foreground">Tổng chứng chỉ</p>
+                  <p className="text-xs text-muted-foreground">{t("cert_total_label", "Tổng chứng chỉ")}</p>
                 </div>
               </div>
             </div>
@@ -148,7 +150,7 @@ export default function CertificatesPage() {
                   <p className="text-2xl font-bold text-foreground dark:text-white">
                     {certificates.filter(c => c.status === "approved").length}
                   </p>
-                  <p className="text-xs text-muted-foreground">Đã phê duyệt</p>
+                  <p className="text-xs text-muted-foreground">{t("cert_approved_label", "Đã phê duyệt")}</p>
                 </div>
               </div>
             </div>
@@ -197,34 +199,34 @@ export default function CertificatesPage() {
                         ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
                         : "bg-red-500/20 text-red-400 border-red-500/30"
                     }`}>
-                      {cert.status === "approved" ? "Đã xác nhận" : cert.status === "pending" ? "Chờ duyệt" : "Từ chối"}
+                      {cert.status === "approved" ? t("cert_approved", "Đã xác nhận") : cert.status === "pending" ? t("cert_pending", "Chờ duyệt") : t("cert_rejected", "Từ chối")}
                     </span>
                   </div>
                 </div>
 
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-foreground dark:text-white mb-1">
-                    {cert.course?.title || "Chứng chỉ khóa học"}
+                    {cert.course?.title || t("cert_course_cert", "Chứng chỉ khóa học")}
                   </h3>
                   <p className="text-muted-foreground dark:text-slate-400 text-sm mb-4">
-                    Chứng nhận hoàn thành xuất sắc khóa học
+                    {t("cert_completion", "Chứng nhận hoàn thành xuất sắc khóa học")}
                   </p>
 
                   <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                     <div>
                       <p className="text-muted-foreground dark:text-slate-500 flex items-center gap-1">
-                        <User size={14} /> Giảng viên
+                        <User size={14} /> {t("cert_instructor", "Giảng viên")}
                       </p>
                       <p className="text-foreground dark:text-white font-medium">{getInstructorName(cert)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground dark:text-slate-500 flex items-center gap-1">
-                        <Calendar size={14} /> Ngày cấp
+                        <Calendar size={14} /> {t("cert_issue_date", "Ngày cấp")}
                       </p>
                       <p className="text-foreground dark:text-white font-medium">{formatDate(cert.issueDate)}</p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-muted-foreground dark:text-slate-500">Số chứng chỉ</p>
+                      <p className="text-muted-foreground dark:text-slate-500">{t("cert_number", "Số chứng chỉ")}</p>
                       <p className="text-foreground dark:text-white font-medium font-mono text-xs">{cert.certificateNumber}</p>
                     </div>
                   </div>
@@ -266,9 +268,9 @@ export default function CertificatesPage() {
           className="text-center py-12"
         >
           <Award size={64} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
-          <h3 className="text-xl font-semibold text-foreground dark:text-white mb-2">Chưa có chứng chỉ nào</h3>
+          <h3 className="text-xl font-semibold text-foreground dark:text-white mb-2">{t("cert_empty", "Chưa có chứng chỉ nào")}</h3>
           <p className="text-muted-foreground dark:text-slate-400 mb-4">
-            Hoàn thành các bài thi chính thức để nhận chứng chỉ
+            {t("cert_empty_desc", "Hoàn thành các bài thi chính thức để nhận chứng chỉ")}
           </p>
           <Link
             href="/exams"

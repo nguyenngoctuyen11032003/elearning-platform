@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useRef, useEffect } from "react"
 import { Edit, Trash2, Eye, Search, MoreVertical, CheckCircle, Clock, XCircle, BookOpen, Users, DollarSign, Star, X, AlertCircle, BarChart3, Loader2 } from "lucide-react"
@@ -8,6 +8,7 @@ import { formatStudentCount, formatPrice } from "@/lib/format"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { authFetch } from "@/lib/authfetch"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface Course {
   id: string
@@ -18,7 +19,7 @@ interface Course {
   students: number
   revenue: number
   price: number
-  status: "pending" | "approved" | "rejected" | "published"
+  status: "draft" | "pending" | "approved" | "rejected" | "published" | "archived"
   createdAt: string
   category: string
   thumbnail: string
@@ -30,6 +31,7 @@ interface Course {
 }
 
 export default function AdminCoursesPage() {
+  const { t } = useLanguage()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [courses, setCourses] = useState<Course[]>([])
@@ -77,7 +79,7 @@ export default function AdminCoursesPage() {
         }))
         setCourses(mapped)
       } catch {
-        toast.error("Không thể tải danh sách khóa học")
+        toast.error(t("adm_courses_load_err", "Không thể tải danh sách khóa học"))
       } finally {
         setIsLoading(false)
       }
@@ -92,9 +94,11 @@ export default function AdminCoursesPage() {
       (statusFilter === "all" || course.status === statusFilter),
   )
 
+  const canModerateCourse = (status: Course["status"]) => status === "pending" || status === "draft"
+
   // Stats
   const totalCourses = courses.length
-  const pendingCourses = courses.filter(c => c.status === "pending").length
+  const pendingCourses = courses.filter(c => canModerateCourse(c.status)).length
   const publishedCourses = courses.filter(c => c.status === "published" || c.status === "approved").length
   const rejectedCourses = courses.filter(c => c.status === "rejected").length
 
@@ -120,15 +124,15 @@ export default function AdminCoursesPage() {
         const res = await authFetch(`/courses/${courseId}/approve`, { method: "PATCH" })
         if (!res.ok) throw new Error()
         setCourses(courses.map((c) => (c.id === courseId ? { ...c, status: "published" as const } : c)))
-        toast.success("Đã duyệt khóa học!")
+        toast.success(t("adm_courses_approved", "Đã duyệt khóa học!"))
       } else if (action === "delete") {
         const res = await authFetch(`/courses/${courseId}`, { method: "DELETE" })
         if (!res.ok) throw new Error()
         setCourses(courses.filter((c) => c.id !== courseId))
-        toast.success("Đã xóa khóa học!")
+        toast.success(t("adm_courses_deleted", "Đã xóa khóa học!"))
       }
     } catch {
-      toast.error("Thao tác thất bại")
+      toast.error(t("adm_courses_action_fail", "Thao tác thất bại"))
     }
     setConfirmDialog({ isOpen: false, action: "" })
   }
@@ -146,9 +150,9 @@ export default function AdminCoursesPage() {
           ? { ...c, status: "rejected" as const, rejectionReason }
           : c
       ))
-      toast.success("Đã từ chối khóa học")
+      toast.success(t("adm_courses_rejected", "Đã từ chối khóa học"))
     } catch {
-      toast.error("Thao tác thất bại")
+      toast.error(t("adm_courses_action_fail", "Thao tác thất bại"))
     }
     setViewMode(null)
     setSelectedCourse(null)
@@ -176,23 +180,39 @@ export default function AdminCoursesPage() {
       case "approved":
         return (
           <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-            <CheckCircle size={14} /> Đã duyệt
+            <CheckCircle size={14} /> {t("adm_courses_approved_label", "Đã duyệt")}
           </span>
         )
       case "pending":
         return (
           <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
-            <Clock size={14} /> Chờ duyệt
+            <Clock size={14} /> {t("adm_courses_pending", "Chờ duyệt")}
+          </span>
+        )
+      case "draft":
+        return (
+          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-slate-100 dark:bg-slate-700/40 text-slate-700 dark:text-slate-300">
+            <Clock size={14} /> {t("adm_courses_draft", "Nháp")}
+          </span>
+        )
+      case "archived":
+        return (
+          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-slate-100 dark:bg-slate-700/40 text-slate-700 dark:text-slate-300">
+            <XCircle size={14} /> {t("adm_courses_archived", "Đã lưu trữ")}
           </span>
         )
       case "rejected":
         return (
           <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-            <XCircle size={14} /> Từ chối
+            <XCircle size={14} /> {t("adm_courses_rejected_label", "Từ chối")}
           </span>
         )
       default:
-        return null
+        return (
+          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-slate-100 dark:bg-slate-700/40 text-slate-700 dark:text-slate-300">
+            {status}
+          </span>
+        )
     }
   }
 
@@ -216,8 +236,8 @@ export default function AdminCoursesPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Quản lý khóa học</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Xem xét, duyệt và quản lý các khóa học từ giảng viên</p>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("adm_courses_title", "Quản lý khóa học")}</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("adm_courses_subtitle", "Xem xét, duyệt và quản lý các khóa học từ giảng viên")}</p>
               </div>
             </div>
 
@@ -226,7 +246,7 @@ export default function AdminCoursesPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng khóa học</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_courses_total", "Tổng khóa học")}</p>
                     <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalCourses}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -237,7 +257,7 @@ export default function AdminCoursesPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Chờ duyệt</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_courses_pending", "Chờ duyệt")}</p>
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingCourses}</p>
                   </div>
                   <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -248,7 +268,7 @@ export default function AdminCoursesPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Đã duyệt</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_courses_approved_label", "Đã duyệt")}</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{publishedCourses}</p>
                   </div>
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -259,7 +279,7 @@ export default function AdminCoursesPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Từ chối</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_courses_rejected_label", "Từ chối")}</p>
                     <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{rejectedCourses}</p>
                   </div>
                   <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -277,7 +297,7 @@ export default function AdminCoursesPage() {
             <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
             <input
               type="text"
-              placeholder="Tìm kiếm khóa học hoặc giảng viên..."
+              placeholder={t("adm_courses_search", "Tìm kiếm khóa học hoặc giảng viên...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
@@ -285,10 +305,11 @@ export default function AdminCoursesPage() {
           </div>
           <div className="flex gap-2 flex-wrap">
             {[
-              { value: "all", label: "Tất cả" },
-              { value: "pending", label: "Chờ duyệt" },
-              { value: "published", label: "Đã duyệt" },
-              { value: "rejected", label: "Từ chối" },
+              { value: "all", label: t("adm_courses_all", "Tất cả") },
+              { value: "draft", label: t("adm_courses_draft", "Nháp") },
+              { value: "pending", label: t("adm_courses_pending", "Chờ duyệt") },
+              { value: "published", label: t("adm_courses_approved_label", "Đã duyệt") },
+              { value: "rejected", label: t("adm_courses_rejected_label", "Từ chối") },
             ].map((option) => (
               <button
                 key={option.value}
@@ -311,19 +332,19 @@ export default function AdminCoursesPage() {
             <table className="w-full min-w-[500px] text-sm table-fixed">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800 bg-white/50 dark:bg-slate-800/50">
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Khóa học</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Giảng viên</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Danh mục</th>
-                  <th className="px-6 py-4 min-w-[120px]">Giá</th>
-                  <th className="px-6 py-4 min-w-[100px]">Học viên</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Trạng thái</th>
-                  <th className="px-6 py-4 min-w-[100px]">Ngày tạo</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("adm_courses_col_course", "Khóa học")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("adm_courses_col_instructor", "Giảng viên")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("adm_courses_col_category", "Danh mục")}</th>
+                  <th className="px-6 py-4 min-w-[120px]">{t("adm_courses_col_price", "Giá")}</th>
+                  <th className="px-6 py-4 min-w-[100px]">{t("adm_courses_col_students", "Học viên")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("adm_courses_col_status", "Trạng thái")}</th>
+                  <th className="px-6 py-4 min-w-[100px]">{t("adm_courses_col_date", "Ngày tạo")}</th>
                   <th
   className=" right-0 top-auto z-20 min-w-[140px]
              bg-white/90 dark:bg-slate-900/90 backdrop-blur
              text-left py-4 px-6 font-semibold"
 >
-  Hành động
+  {t("adm_courses_actions", "Hành động")}
 </th>
                 </tr>
               </thead>
@@ -333,7 +354,7 @@ export default function AdminCoursesPage() {
                     key={course.id}
                     className="border-b border-border dark:border-slate-800 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-300"
                   >
-                    <td className="py-4 px-6" data-label="Khóa học">
+                    <td className="py-4 px-6" data-label={t("adm_courses_col_course", "Khóa học")}>
                       <div className="flex items-center gap-3">
                         <img
                           src={course.thumbnail || "/image/course-placeholder.png"}
@@ -342,29 +363,45 @@ export default function AdminCoursesPage() {
                         />
                         <div>
                           <p className="text-foreground dark:text-white font-medium line-clamp-2 break-words">{course.title}</p>
-                          <p className="text-muted-foreground dark:text-slate-400 text-xs">{course.lessons} bài học • {course.duration}</p>
+                          <p className="text-muted-foreground dark:text-slate-400 text-xs">{course.lessons} {t("adm_courses_lessons_unit", "bài học")} • {course.duration}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400" data-label="Giảng viên">{course.instructor}</td>
-                    <td className="py-4 px-6" data-label="Danh mục">
+                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400" data-label={t("adm_courses_col_instructor", "Giảng viên")}>{course.instructor}</td>
+                    <td className="py-4 px-6" data-label={t("adm_courses_col_category", "Danh mục")}>
                       <span className="px-2 py-1 bg-secondary dark:bg-slate-800 rounded text-foreground dark:text-white text-xs">
                         {course.category}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white font-medium" data-label="Giá">
+                    <td className="py-4 px-6 text-foreground dark:text-white font-medium" data-label={t("adm_courses_col_price", "Giá")}>
                       ₫{formatPrice(course.price)}
                     </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white" data-label="Học viên">{formatStudentCount(course.students)}</td>
-                    <td className="py-4 px-6" data-label="Trạng thái">{getStatusBadge(course.status)}</td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400" data-label="Ngày tạo">{formatDate(course.createdAt)}</td>
+                    <td className="py-4 px-6 text-foreground dark:text-white" data-label={t("adm_courses_col_students", "Học viên")}>{formatStudentCount(course.students)}</td>
+                    <td className="py-4 px-6" data-label={t("adm_courses_col_status", "Trạng thái")}>{getStatusBadge(course.status)}</td>
+                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400" data-label={t("adm_courses_col_date", "Ngày tạo")}>{formatDate(course.createdAt)}</td>
                     <td className="py-4 px-6 relative">
                       <div className="flex items-center gap-2">
+                        {canModerateCourse(course.status) && (
+                          <button
+                            onClick={() => handleCourseAction("approve", course.id, course)}
+                            className="px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-700 dark:text-green-400 rounded-lg transition-colors text-sm font-medium"
+                          >
+                            {t("adm_courses_approve", "Duyệt khóa học")}
+                          </button>
+                        )}
+                        {canModerateCourse(course.status) && (
+                          <button
+                            onClick={() => handleCourseAction("reject", course.id, course)}
+                            className="px-3 py-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 rounded-lg transition-colors text-sm font-medium"
+                          >
+                            {t("adm_courses_rejected_label", "Từ chối")}
+                          </button>
+                        )}
                         <button
                           onClick={() => handleCourseAction("view", course.id, course)}
                           className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary dark:text-accent rounded-lg transition-colors text-sm font-medium"
                         >
-                          Xem trước
+                          {t("adm_courses_preview", "Xem trước")}
                         </button>
                         <button
                           onClick={e => {
@@ -396,7 +433,7 @@ export default function AdminCoursesPage() {
           {filteredCourses.length === 0 && (
             <div className="py-12 text-center">
               <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy khóa học nào</p>
+              <p className="text-muted-foreground dark:text-slate-400">{t("adm_courses_not_found", "Không tìm thấy khóa học nào")}</p>
             </div>
           )}
         </div>
@@ -406,7 +443,7 @@ export default function AdminCoursesPage() {
           {filteredCourses.length === 0 ? (
             <div className="py-12 text-center">
               <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy khóa học nào</p>
+              <p className="text-muted-foreground dark:text-slate-400">{t("adm_courses_not_found", "Không tìm thấy khóa học nào")}</p>
             </div>
           ) : (
             filteredCourses.map(course => (
@@ -424,29 +461,45 @@ export default function AdminCoursesPage() {
 
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <p className="text-slate-400">Giá</p>
+                    <p className="text-slate-400">{t("adm_courses_col_price", "Giá")}</p>
                     <p className="font-medium">₫{formatPrice(course.price)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-400">Học viên</p>
+                    <p className="text-slate-400">{t("adm_courses_students", "Học viên")}</p>
                     <p>{formatStudentCount(course.students)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-400">Trạng thái</p>
+                    <p className="text-slate-400">{t("adm_courses_col_status", "Trạng thái")}</p>
                     {getStatusBadge(course.status)}
                   </div>
                   <div>
-                    <p className="text-slate-400">Ngày tạo</p>
+                    <p className="text-slate-400">{t("adm_courses_col_date", "Ngày tạo")}</p>
                     <p>{formatDate(course.createdAt)}</p>
                   </div>
                 </div>
 
                 <div className="flex gap-2 pt-2">
+                  {canModerateCourse(course.status) && (
+                    <button
+                      className="flex-1 bg-green-500/20 text-green-300 py-2 rounded-lg"
+                      onClick={() => handleCourseAction("approve", course.id, course)}
+                    >
+                      {t("adm_courses_approve", "Duyệt khóa học")}
+                    </button>
+                  )}
+                  {canModerateCourse(course.status) && (
+                    <button
+                      className="flex-1 bg-yellow-500/20 text-yellow-300 py-2 rounded-lg"
+                      onClick={() => handleCourseAction("reject", course.id, course)}
+                    >
+                      {t("adm_courses_rejected_label", "Từ chối")}
+                    </button>
+                  )}
                   <button
                     className="flex-1 bg-primary/20 text-primary py-2 rounded-lg"
                     onClick={() => handleCourseAction("view", course.id, course)}
                   >
-                    Xem trước
+                    {t("adm_courses_preview", "Xem trước")}
                   </button>
                   <button
                     className="p-2 bg-slate-700 rounded-lg"
@@ -486,7 +539,7 @@ export default function AdminCoursesPage() {
             className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
             onClick={() => { setOpenMenu(null); setMenuPos(null); }}
           >
-            <Eye size={16} /> <span className="font-medium">Chi tiết đầy đủ</span>
+            <Eye size={16} /> <span className="font-medium">{t("adm_courses_full_detail", "Chi tiết đầy đủ")}</span>
           </Link>
           <button
             onClick={() => {
@@ -497,11 +550,11 @@ export default function AdminCoursesPage() {
             }}
             className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white border-t border-border dark:border-slate-800"
           >
-            <Edit size={16} /> <span className="font-medium">Chỉnh sửa</span>
+            <Edit size={16} /> <span className="font-medium">{t("adm_courses_edit", "Chỉnh sửa")}</span>
           </button>
           {(() => {
             const course = filteredCourses.find(c => c.id === openMenu);
-            if (course?.status === "pending") return <>
+            if (course && canModerateCourse(course.status)) return <>
               <button
                 onClick={() => {
                   handleCourseAction("approve", course.id, course);
@@ -510,7 +563,7 @@ export default function AdminCoursesPage() {
                 }}
                 className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-green-600 dark:text-green-400 border-t border-border dark:border-slate-800"
               >
-                <CheckCircle size={16} /> <span className="font-medium">Duyệt khóa học</span>
+                <CheckCircle size={16} /> <span className="font-medium">{t("adm_courses_approve", "Duyệt khóa học")}</span>
               </button>
               <button
                 onClick={() => {
@@ -520,7 +573,7 @@ export default function AdminCoursesPage() {
                 }}
                 className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-yellow-600 dark:text-yellow-400 border-t border-border dark:border-slate-800"
               >
-                <XCircle size={16} /> <span className="font-medium">Từ chối</span>
+                <XCircle size={16} /> <span className="font-medium">{t("adm_courses_rejected_label", "Từ chối")}</span>
               </button>
             </>;
             return null;
@@ -534,7 +587,7 @@ export default function AdminCoursesPage() {
             }}
             className="w-full text-left px-4 py-3 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive border-t border-border dark:border-slate-800 rounded-b-lg"
           >
-            <Trash2 size={16} /> <span className="font-medium">Xóa khóa học</span>
+            <Trash2 size={16} /> <span className="font-medium">{t("adm_courses_delete", "Xóa khóa học")}</span>
           </button>
         </div>
       )}
@@ -547,7 +600,7 @@ export default function AdminCoursesPage() {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                   <BookOpen className="text-white" size={20} />
                 </div>
-                <h2 className="text-xl font-bold text-foreground dark:text-white">Xem trước khóa học</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_courses_preview_title", "Xem trước khóa học")}</h2>
               </div>
               <button
                 onClick={() => { setViewMode(null); setSelectedCourse(null); }}
@@ -583,7 +636,7 @@ export default function AdminCoursesPage() {
                   <div className="flex items-start gap-3">
                     <AlertCircle size={24} className="text-red-500 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h5 className="font-semibold text-red-600 dark:text-red-400 mb-2">Lý do từ chối</h5>
+                      <h5 className="font-semibold text-red-600 dark:text-red-400 mb-2">{t("adm_courses_reject_reason", "Lý do từ chối")}</h5>
                       <p className="text-red-500 dark:text-red-300 leading-relaxed">{selectedCourse.rejectionReason}</p>
                     </div>
                   </div>
@@ -594,40 +647,40 @@ export default function AdminCoursesPage() {
               <div>
                 <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4 flex items-center gap-2">
                   <BarChart3 size={20} className="text-primary dark:text-accent" />
-                  Hiệu quả khóa học
+                  {t("adm_courses_performance", "Hiệu quả khóa học")}
                 </h4>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
                   <div className="bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 p-5 rounded-xl">
                     <Users size={24} className="text-blue-500 mb-3" />
                     <p className="text-3xl font-bold text-foreground dark:text-white">{formatStudentCount(selectedCourse.students)}</p>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Học viên</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{t("adm_courses_students", "Học viên")}</p>
                   </div>
                   <div className="bg-green-500/5 dark:bg-green-500/10 border border-green-500/20 p-5 rounded-xl">
                     <BookOpen size={24} className="text-green-500 mb-3" />
                     <p className="text-3xl font-bold text-foreground dark:text-white">{selectedCourse.lessons}</p>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Bài học</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{t("adm_courses_lessons", "Bài học")}</p>
                   </div>
                   <div className="bg-yellow-500/5 dark:bg-yellow-500/10 border border-yellow-500/20 p-5 rounded-xl">
                     <Star size={24} className="text-yellow-500 mb-3" />
                     <p className="text-3xl font-bold text-foreground dark:text-white">{selectedCourse.rating || "N/A"}</p>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{selectedCourse.reviewCount} đánh giá</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{selectedCourse.reviewCount} {t("adm_courses_reviews", "đánh giá")}</p>
                   </div>
                   <div className="bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/20 p-5 rounded-xl">
                     <DollarSign size={24} className="text-purple-500 mb-3" />
                     <p className="text-3xl font-bold text-foreground dark:text-white">₫{(selectedCourse.revenue / 1000000).toFixed(1)}M</p>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">Doanh thu</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{t("adm_courses_revenue", "Doanh thu")}</p>
                   </div>
                 </div>
               </div>
 
               {/* Course Details */}
               <div>
-                <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">Thông tin chi tiết</h4>
+                <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("adm_courses_detail_info", "Thông tin chi tiết")}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 flex items-center gap-2">
                       <Users size={16} />
-                      Giảng viên
+                      {t("adm_courses_col_instructor", "Giảng viên")}
                     </p>
                     <p className="text-foreground dark:text-white font-semibold">{selectedCourse.instructor}</p>
                     <p className="text-muted-foreground dark:text-slate-400 text-sm">{selectedCourse.instructorEmail}</p>
@@ -635,26 +688,26 @@ export default function AdminCoursesPage() {
                   <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 flex items-center gap-2">
                       <DollarSign size={16} />
-                      Giá khóa học
+                      {t("adm_courses_price_label", "Giá khóa học")}
                     </p>
                     <p className="text-foreground dark:text-white font-semibold text-xl">₫{formatPrice(selectedCourse.price)}</p>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 flex items-center gap-2">
                       <Clock size={16} />
-                      Thời lượng
+                      {t("adm_courses_duration", "Thời lượng")}
                     </p>
                     <p className="text-foreground dark:text-white font-semibold">{selectedCourse.duration}</p>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2">Ngày tạo</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2">{ t("adm_courses_col_date", "Ngày tạo")}</p>
                     <p className="text-foreground dark:text-white font-semibold">{formatDate(selectedCourse.createdAt)}</p>
                   </div>
                 </div>
               </div>
 
               {/* Actions */}
-              {selectedCourse.status === "pending" && (
+              {(selectedCourse.status === "pending" || selectedCourse.status === "draft") && (
                 <div className="flex gap-3 pt-4 border-t border-border dark:border-slate-800">
                   <button
                     onClick={() => {
@@ -665,14 +718,14 @@ export default function AdminCoursesPage() {
                     className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg"
                   >
                     <CheckCircle size={20} />
-                    Duyệt khóa học
+                    {t("adm_courses_approve", "Duyệt khóa học")}
                   </button>
                   <button
                     onClick={() => setViewMode("reject")}
                     className="flex-1 px-6 py-3 bg-secondary hover:bg-secondary/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-foreground dark:text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 border border-border dark:border-slate-700"
                   >
                     <XCircle size={20} />
-                    Từ chối
+                    {t("adm_courses_rejected_label", "Từ chối")}
                   </button>
                 </div>
               )}
@@ -682,7 +735,7 @@ export default function AdminCoursesPage() {
                 href={`/admin/courses/${selectedCourse.id}`}
                 className="block w-full text-center px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary dark:text-accent rounded-xl font-medium transition-all"
               >
-                Xem chi tiết đầy đủ (nội dung, bài học) →
+                {t("adm_courses_view_full_detail", "Xem chi tiết đầy đủ (nội dung, bài học)")} →
               </Link>
             </div>
           </div>
@@ -694,7 +747,7 @@ export default function AdminCoursesPage() {
         <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-foreground dark:text-white">Chỉnh sửa khóa học</h2>
+              <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_courses_edit_title", "Chỉnh sửa khóa học")}</h2>
               <button
                 onClick={() => { setViewMode(null); setSelectedCourse(null); }}
                 className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
@@ -705,7 +758,7 @@ export default function AdminCoursesPage() {
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Tên khóa học</label>
+                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_name_label", "Tên khóa học")}</label>
                 <input
                   type="text"
                   value={selectedCourse.title}
@@ -714,7 +767,7 @@ export default function AdminCoursesPage() {
                 />
               </div>
               <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Mô tả</label>
+                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_desc_label", "Mô tả")}</label>
                 <textarea
                   value={selectedCourse.description}
                   onChange={(e) => setSelectedCourse({ ...selectedCourse, description: e.target.value })}
@@ -723,21 +776,21 @@ export default function AdminCoursesPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Danh mục</label>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_cat_label", "Danh mục")}</label>
                   <select
                     value={selectedCourse.category}
                     onChange={(e) => setSelectedCourse({ ...selectedCourse, category: e.target.value })}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="Lập trình">Lập trình</option>
-                    <option value="Thiết kế">Thiết kế</option>
+                    <option value="Lập trình">{t("adm_courses_cat_programming", "Lập trình")}</option>
+                    <option value="Thiết kế">{t("adm_courses_cat_design", "Thiết kế")}</option>
                     <option value="AI & Data">AI & Data</option>
-                    <option value="Kinh doanh">Kinh doanh</option>
-                    <option value="Ngoại ngữ">Ngoại ngữ</option>
+                    <option value="Kinh doanh">{t("adm_courses_cat_business", "Kinh doanh")}</option>
+                    <option value="Ngoại ngữ">{t("adm_courses_cat_language", "Ngoại ngữ")}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Giá (VND)</label>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_price_vnd", "Giá (VND)")}</label>
                   <input
                     type="number"
                     value={selectedCourse.price}
@@ -747,15 +800,15 @@ export default function AdminCoursesPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Trạng thái</label>
+                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_status_label", "Trạng thái")}</label>
                 <select
                   value={selectedCourse.status}
                   onChange={(e) => setSelectedCourse({ ...selectedCourse, status: e.target.value as Course["status"] })}
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="pending">Chờ duyệt</option>
-                  <option value="published">Đã duyệt</option>
-                  <option value="rejected">Từ chối</option>
+                  <option value="pending">{t("adm_courses_pending", "Chờ duyệt")}</option>
+                  <option value="published">{t("adm_courses_approved_label", "Đã duyệt")}</option>
+                  <option value="rejected">{t("adm_courses_rejected_label", "Từ chối")}</option>
                 </select>
               </div>
 
@@ -763,7 +816,7 @@ export default function AdminCoursesPage() {
                 onClick={handleSaveEdit}
                 className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
               >
-                <Edit size={18} /> Lưu thay đổi
+                <Edit size={18} /> {t("adm_courses_save", "Lưu thay đổi")}
               </button>
             </div>
           </div>
@@ -776,32 +829,32 @@ export default function AdminCoursesPage() {
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full">
             <div className="p-6 border-b border-border dark:border-slate-800">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <XCircle size={24} className="text-red-500" /> Từ chối khóa học
+                <XCircle size={24} className="text-red-500" /> {t("adm_courses_reject_title", "Từ chối khóa học")}
               </h2>
               <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">
-                Vui lòng nhập lý do từ chối để giảng viên biết cần cải thiện điều gì
+                {t("adm_courses_reject_hint", "Vui lòng nhập lý do từ chối để giảng viên biết cần cải thiện điều gì")}
               </p>
             </div>
 
             <div className="p-6 space-y-4">
               <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Khóa học</p>
+                <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">{t("adm_courses_col_course", "Khóa học")}</p>
                 <p className="text-foreground dark:text-white font-medium">{selectedCourse.title}</p>
-                <p className="text-muted-foreground dark:text-slate-400 text-xs mt-1">Giảng viên: {selectedCourse.instructor}</p>
+                <p className="text-muted-foreground dark:text-slate-400 text-xs mt-1">{t("adm_courses_col_instructor", "Giảng viên")}: {selectedCourse.instructor}</p>
               </div>
 
               <div>
                 <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                  Lý do từ chối <span className="text-red-500">*</span>
+                  {t("adm_courses_reject_reason", "Lý do từ chối")} <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Nhập lý do từ chối khóa học này..."
+                  placeholder={t("adm_courses_reject_placeholder", "Nhập lý do từ chối khóa học này...")}
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500 h-32 resize-none"
                 />
                 <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
-                  Lý do này sẽ được gửi đến email của giảng viên
+                  {t("adm_courses_reject_email_note", "Lý do này sẽ được gửi đến email của giảng viên")}
                 </p>
               </div>
 
@@ -810,14 +863,14 @@ export default function AdminCoursesPage() {
                   onClick={() => { setViewMode("view"); setRejectionReason(""); }}
                   className="flex-1 py-3 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
                 >
-                  Quay lại
+                  {t("adm_courses_back", "Quay lại")}
                 </button>
                 <button
                   onClick={handleReject}
                   disabled={!rejectionReason.trim()}
                   className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <XCircle size={18} /> Xác nhận từ chối
+                  <XCircle size={18} /> {t("adm_courses_confirm_reject", "Xác nhận từ chối")}
                 </button>
               </div>
             </div>
@@ -829,11 +882,11 @@ export default function AdminCoursesPage() {
         isOpen={confirmDialog.isOpen}
         onClose={() => setConfirmDialog({ isOpen: false, action: "" })}
         onConfirm={executeCourseAction}
-        title={confirmDialog.action === "approve" ? "Duyệt khóa học" : "Xóa khóa học"}
+        title={confirmDialog.action === "approve" ? t("adm_courses_approve", "Duyệt khóa học") : t("adm_courses_delete", "Xóa khóa học")}
         message={
           confirmDialog.action === "approve"
-            ? `Bạn có chắc chắn muốn duyệt khóa học "${selectedCourse?.title}" không? Khóa học sẽ được công khai và học viên có thể đăng ký.`
-            : `Bạn có chắc chắn muốn xóa khóa học "${selectedCourse?.title}" không? Hành động này không thể hoàn tác.`
+            ? t("adm_courses_confirm_approve_msg", `Bạn có chắc chắn muốn duyệt khóa học "${selectedCourse?.title}" không? Khóa học sẽ được công khai và học viên có thể đăng ký.`)
+            : t("adm_courses_confirm_delete_msg", `Bạn có chắc chắn muốn xóa khóa học "${selectedCourse?.title}" không? Hành động này không thể hoàn tác.`)
         }
         isDangerous={confirmDialog.action === "delete"}
       />

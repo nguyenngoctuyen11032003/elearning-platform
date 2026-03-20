@@ -8,6 +8,7 @@ import { PremiumCard } from "@/components/ui/premium-card"
 import Link from "next/link"
 import { formatPrice, formatStudentCount } from "@/lib/format"
 import { useRouter } from "next/navigation"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface WishlistItem {
   id: string
@@ -23,6 +24,7 @@ interface WishlistItem {
 
 export default function WishlistPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [wishlist, setWishlist] = useState<WishlistItem[]>([
     {
       id: "1",
@@ -91,7 +93,7 @@ export default function WishlistPage() {
 
   const handleCheckout = () => {
     if (selectedCourses.length === 0) {
-      alert("Vui lòng chọn ít nhất 1 khóa học để thanh toán")
+      alert(t("wishlist_select_one", "Vui lòng chọn ít nhất 1 khóa học để thanh toán"))
       return
     }
 
@@ -116,10 +118,10 @@ export default function WishlistPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-foreground dark:text-white">
-              Danh sách yêu thích
+              {t("wishlist_title", "Danh sách yêu thích")}
             </h1>
             <p className="text-muted-foreground dark:text-slate-400 mt-1">
-              {wishlist.length} khóa học • {selectedItems.length} khóa được chọn
+              {wishlist.length} {t("wishlist_courses", "khóa học")} • {selectedItems.length} {t("wishlist_selected", "khóa được chọn")}
             </p>
           </div>
           <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center">
@@ -190,7 +192,7 @@ export default function WishlistPage() {
                               {course.title}
                             </h3>
                             <p className="text-sm text-muted-foreground dark:text-slate-400 mb-3">
-                              Giảng viên:{" "}
+                              {t("pay_instructor", "Giảng viên")}:{" "}
                               <span className="font-medium text-primary dark:text-accent">
                                 {course.teacher}
                               </span>
@@ -204,7 +206,7 @@ export default function WishlistPage() {
                                 </span>
                               </div>
                               <span className="text-sm text-muted-foreground dark:text-slate-400">
-                                {formatStudentCount(course.students)} học viên
+                                {formatStudentCount(course.students)} {t("wishlist_student_count", "học viên")}
                               </span>
                             </div>
 
@@ -220,7 +222,7 @@ export default function WishlistPage() {
                                   removeFromWishlist(course.id)
                                 }}
                                 className="p-2 hover:bg-red-500/10 dark:hover:bg-red-500/20 rounded-lg text-red-500 transition-smooth"
-                                title="Xóa khỏi yêu thích"
+                                title={t("wishlist_remove", "Xóa khỏi yêu thích")}
                               >
                                 <Trash2 size={20} />
                               </button>
@@ -247,10 +249,10 @@ export default function WishlistPage() {
               <div>
                 <h3 className="text-xl font-bold text-foreground dark:text-white mb-1 flex items-center gap-2">
                   <ShoppingCart size={22} className="text-primary dark:text-accent" />
-                  Thanh toán
+                  {t("wishlist_checkout", "Thanh toán")}
                 </h3>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">
-                  {selectedItems.length} khóa học được chọn
+                  {selectedItems.length} {t("wishlist_courses_selected", "khóa học được chọn")}
                 </p>
               </div>
 
@@ -278,7 +280,7 @@ export default function WishlistPage() {
                     ))}
 
                     <div className="flex justify-between text-base pt-3 border-t border-border dark:border-slate-800">
-                      <span className="text-muted-foreground dark:text-slate-400">Tạm tính</span>
+                      <span className="text-muted-foreground dark:text-slate-400">{t("wishlist_subtotal", "Tạm tính")}</span>
                       <span className="font-semibold text-foreground dark:text-white">
                         ₫{formatPrice(totalPrice)}
                       </span>
@@ -287,7 +289,7 @@ export default function WishlistPage() {
                 ) : (
                   <div className="text-center py-6">
                     <p className="text-sm text-muted-foreground dark:text-slate-400">
-                      Chọn khóa học để xem giá
+                      {t("wishlist_select_to_see", "Chọn khóa học để xem giá")}
                     </p>
                   </div>
                 )}
@@ -302,7 +304,7 @@ export default function WishlistPage() {
                 >
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-bold text-foreground dark:text-white">
-                      Tổng cộng
+                      {t("wishlist_total", "Tổng cộng")}
                     </span>
                     <span className="text-3xl font-bold text-primary dark:text-accent">
                       ₫{formatPrice(totalPrice)}
@@ -314,11 +316,11 @@ export default function WishlistPage() {
                     className="w-full flex items-center justify-center gap-2"
                   >
                     <ShoppingCart size={20} />
-                    <span>Thanh toán ngay</span>
+                    <span>{t("wishlist_checkout_now", "Thanh toán ngay")}</span>
                   </AnimatedButton>
 
                   <p className="text-xs text-center text-muted-foreground dark:text-slate-400">
-                    ✓ Thanh toán an toàn • Truy cập trọn đời • Hoàn tiền 30 ngày
+                    ✓ {t("wishlist_safe_pay", "Thanh toán an toàn")} • {t("wishlist_lifetime", "Truy cập trọn đời")} • {t("wishlist_refund", "Hoàn tiền 30 ngày")}
                   </p>
                 </motion.div>
               )}
@@ -326,7 +328,7 @@ export default function WishlistPage() {
               {/* Continue Shopping */}
               <Link href="/courses">
                 <button className="w-full px-4 py-3 border-2 border-border dark:border-slate-800 text-foreground dark:text-white rounded-lg hover:border-primary dark:hover:border-accent transition-smooth font-medium">
-                  Tiếp tục mua sắm
+                  {t("wishlist_continue_shopping", "Tiếp tục mua sắm")}
                 </button>
               </Link>
             </PremiumCard>
@@ -337,13 +339,13 @@ export default function WishlistPage() {
           <PremiumCard className="text-center py-16">
             <Heart className="w-16 h-16 text-slate-600 dark:text-slate-400 mx-auto mb-4" />
             <h3 className="text-2xl font-semibold text-foreground dark:text-white mb-2">
-              Danh sách yêu thích trống
+              {t("wishlist_empty", "Danh sách yêu thích trống")}
             </h3>
             <p className="text-muted-foreground dark:text-slate-400 mb-8">
-              Hãy thêm các khóa học yêu thích để xem lại sau
+              {t("wishlist_empty_desc", "Hãy thêm các khóa học yêu thích để xem lại sau")}
             </p>
             <Link href="/courses">
-              <AnimatedButton>Khám phá khóa học</AnimatedButton>
+              <AnimatedButton>{t("wishlist_explore", "Khám phá khóa học")}</AnimatedButton>
             </Link>
           </PremiumCard>
         </motion.div>

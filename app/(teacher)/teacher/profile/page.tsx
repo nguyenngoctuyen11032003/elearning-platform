@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { Save, Lock, User, Mail, Phone, Eye, EyeOff, ArrowLeft, Upload, Camera, MapPin, FileText } from "lucide-react"
@@ -8,8 +8,10 @@ import { toast } from "sonner"
 import { getRoleAvatar, getRoleDisplayName } from "@/lib/utils/avatar"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function TeacherProfilePage() {
+  const { t } = useLanguage()
   const { user, loading, refreshProfile } = useAuth()
   const [saving, setSaving] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -65,7 +67,7 @@ export default function TeacherProfilePage() {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Kích thước file không được vượt quá 5MB")
+        toast.error(t("tch_prof_file_too_big", "Kích thước file không được vượt quá 5MB"))
         return
       }
       
@@ -76,7 +78,7 @@ export default function TeacherProfilePage() {
       const reader = new FileReader()
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string)
-        toast.success("Đã chọn ảnh đại diện mới")
+        toast.success(t("tch_prof_avatar_selected", "Đã chọn ảnh đại diện mới"))
       }
       reader.readAsDataURL(file)
     }
@@ -98,7 +100,7 @@ export default function TeacherProfilePage() {
           // You might want to call a refresh function here
         } catch (error) {
           console.error('Avatar upload failed:', error)
-          toast.error("Có lỗi xảy ra khi tải lên ảnh đại diện")
+          toast.error(t("tch_prof_avatar_fail", "Có lỗi xảy ra khi tải lên ảnh đại diện"))
           return; // Stop if avatar upload fails
         }
       }
@@ -113,10 +115,10 @@ export default function TeacherProfilePage() {
       // Refresh profile data in auth context
       await refreshProfile()
 
-      toast.success("Cập nhật hồ sơ thành công!")
+      toast.success(t("tch_prof_updated", "Cập nhật hồ sơ thành công!"))
     } catch (error) {
       console.error("Error updating profile:", error)
-      toast.error("Có lỗi xảy ra khi cập nhật hồ sơ")
+      toast.error(t("tch_prof_update_fail", "Có lỗi xảy ra khi cập nhật hồ sơ"))
     } finally {
       setSaving(false)
     }
@@ -126,12 +128,12 @@ export default function TeacherProfilePage() {
     e.preventDefault()
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Mật khẩu mới không khớp!")
+      toast.error(t("tch_prof_pw_mismatch", "Mật khẩu mới không khớp!"))
       return
     }
 
     if (passwordData.newPassword.length < 6) {
-      toast.error("Mật khẩu mới phải có ít nhất 6 ký tự!")
+      toast.error(t("tch_prof_pw_short", "Mật khẩu mới phải có ít nhất 6 ký tự!"))
       return
     }
 
@@ -143,7 +145,7 @@ export default function TeacherProfilePage() {
         newPassword: passwordData.newPassword,
       })
 
-      toast.success("Đổi mật khẩu thành công!")
+      toast.success(t("tch_prof_pw_ok", "Đổi mật khẩu thành công!"))
       setPasswordData({
         currentPassword: "",
         newPassword: "",
@@ -151,7 +153,7 @@ export default function TeacherProfilePage() {
       })
     } catch (error) {
       console.error("Error changing password:", error)
-      toast.error("Có lỗi xảy ra khi đổi mật khẩu. Vui lòng kiểm tra mật khẩu hiện tại.")
+      toast.error(t("tch_prof_pw_fail", "Có lỗi xảy ra khi đổi mật khẩu. Vui lòng kiểm tra mật khẩu hiện tại."))
     } finally {
       setSaving(false)
     }
@@ -179,9 +181,9 @@ export default function TeacherProfilePage() {
       <div className="min-h-screen w-full">
         <div className="w-full text-center">
           <h1 className="text-3xl font-bold text-foreground dark:text-white">
-            Không tìm thấy thông tin người dùng
+            {t("tch_prof_not_found", "Không tìm thấy thông tin người dùng")}
           </h1>
-          <p className="text-muted-foreground mt-2">Vui lòng đăng nhập lại</p>
+          <p className="text-muted-foreground mt-2">{t("tch_prof_login_again", "Vui lòng đăng nhập lại")}</p>
         </div>
       </div>
     )
@@ -199,8 +201,8 @@ export default function TeacherProfilePage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Hồ sơ cá nhân</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Quản lý thông tin và bảo mật tài khoản</p>
+            <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("tch_prof_title", "Hồ sơ cá nhân")}</h1>
+            <p className="text-muted-foreground dark:text-slate-400">{t("tch_prof_subtitle", "Quản lý thông tin và bảo mật tài khoản")}</p>
           </div>
         </div>
 
@@ -213,7 +215,7 @@ export default function TeacherProfilePage() {
                 {avatarPreview ? (
                   <img
                     src={avatarPreview}
-                    alt={`${user.name || 'Giảng viên'} Avatar`}
+                    alt={`${user.name || t("tch_prof_instructor", "Giảng viên")} Avatar`}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -225,7 +227,7 @@ export default function TeacherProfilePage() {
                 ) : user.avatar && !user.avatar.includes('ui-avatars.com') ? (
                   <img
                     src={user.avatar}
-                    alt={`${user.name || 'Giảng viên'} Avatar`}
+                    alt={`${user.name || t("tch_prof_instructor", "Giảng viên")} Avatar`}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -267,7 +269,7 @@ export default function TeacherProfilePage() {
             </div>
 
             <div className="text-center md:text-left">
-              <h2 className="text-2xl font-bold text-foreground dark:text-white">{user.name || 'Giảng viên'}</h2>
+              <h2 className="text-2xl font-bold text-foreground dark:text-white">{user.name || t("tch_prof_instructor", "Giảng viên")}</h2>
               <p className="text-muted-foreground dark:text-slate-400">{user.email}</p>
               <div className="mt-2">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary dark:bg-accent/20 dark:text-accent">
@@ -275,7 +277,7 @@ export default function TeacherProfilePage() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground dark:text-slate-500 mt-2">
-                Nhấn vào ảnh đại diện để thay đổi (PNG, JPG - Tối đa 2MB)
+                {t("tch_prof_avatar_hint", "Nhấn vào ảnh đại diện để thay đổi (PNG, JPG - Tối đa 2MB)")}
               </p>
             </div>
           </div>
@@ -286,11 +288,11 @@ export default function TeacherProfilePage() {
           <TabsList className="grid w-full grid-cols-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
             <TabsTrigger value="profile" className="text-sm md:text-base">
               <User size={16} className="mr-2" />
-              Thông tin cá nhân
+              {t("tch_prof_tab_info", "Thông tin cá nhân")}
             </TabsTrigger>
             <TabsTrigger value="password" className="text-sm md:text-base">
               <Lock size={16} className="mr-2" />
-              Đổi mật khẩu
+              {t("tch_prof_tab_pw", "Đổi mật khẩu")}
             </TabsTrigger>
           </TabsList>
 
@@ -301,7 +303,7 @@ export default function TeacherProfilePage() {
                 {/* Name Field */}
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <User size={16} /> Họ và tên
+                    <User size={16} /> {t("tch_prof_lbl_name", "Họ và tên")}
                   </label>
                   <input
                     type="text"
@@ -310,7 +312,7 @@ export default function TeacherProfilePage() {
                     onChange={handleProfileChange}
                     required
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
-                    placeholder="Nhập họ và tên của bạn"
+                    placeholder={t("tch_prof_ph_name", "Nhập họ và tên của bạn")}
                   />
                 </div>
 
@@ -327,14 +329,14 @@ export default function TeacherProfilePage() {
                     className="w-full bg-muted dark:bg-slate-800 text-muted-foreground cursor-not-allowed rounded-lg px-4 py-3 border border-border dark:border-slate-800"
                   />
                   <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
-                    Email không thể thay đổi vì lý do bảo mật
+                    {t("tch_prof_email_readonly", "Email không thể thay đổi vì lý do bảo mật")}
                   </p>
                 </div>
 
                 {/* Phone Field */}
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <Phone size={16} /> Số điện thoại
+                    <Phone size={16} /> {t("tch_prof_lbl_phone", "Số điện thoại")}
                   </label>
                   <input
                     type="tel"
@@ -342,14 +344,14 @@ export default function TeacherProfilePage() {
                     value={profileData.phone}
                     onChange={handleProfileChange}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
-                    placeholder="Nhập số điện thoại (tùy chọn)"
+                    placeholder={t("tch_prof_ph_phone", "Nhập số điện thoại (tùy chọn)")}
                   />
                 </div>
 
                 {/* Address Field */}
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <MapPin size={16} /> Địa chỉ
+                    <MapPin size={16} /> {t("tch_prof_lbl_addr", "Địa chỉ")}
                   </label>
                   <input
                     type="text"
@@ -357,14 +359,14 @@ export default function TeacherProfilePage() {
                     value={profileData.address}
                     onChange={handleProfileChange}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
-                    placeholder="Nhập địa chỉ của bạn"
+                    placeholder={t("tch_prof_ph_addr", "Nhập địa chỉ của bạn")}
                   />
                 </div>
 
                 {/* Bio Field */}
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <FileText size={16} /> Giới thiệu bản thân
+                    <FileText size={16} /> {t("tch_prof_lbl_bio", "Giới thiệu bản thân")}
                   </label>
                   <textarea
                     name="bio"
@@ -372,7 +374,7 @@ export default function TeacherProfilePage() {
                     onChange={handleProfileChange}
                     rows={4}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth resize-none"
-                    placeholder="Giới thiệu về bản thân, kinh nghiệm giảng dạy, chuyên môn..."
+                    placeholder={t("tch_prof_ph_bio", "Giới thiệu về bản thân, kinh nghiệm giảng dạy, chuyên môn...")}
                   />
                   <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
                     Giới thiệu này sẽ hiển thị trên trang hồ sơ công khai của bạn
@@ -399,7 +401,7 @@ export default function TeacherProfilePage() {
                 {/* Current Password */}
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <Lock size={16} /> Mật khẩu hiện tại
+                    <Lock size={16} /> {t("tch_prof_lbl_cur_pw", "Mật khẩu hiện tại")}
                   </label>
                   <div className="relative">
                     <input
@@ -409,7 +411,7 @@ export default function TeacherProfilePage() {
                       onChange={handlePasswordChange}
                       required
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 pr-12 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
-                      placeholder="Nhập mật khẩu hiện tại"
+                      placeholder={t("tch_prof_ph_cur_pw", "Nhập mật khẩu hiện tại")}
                     />
                     <button
                       type="button"
@@ -424,7 +426,7 @@ export default function TeacherProfilePage() {
                 {/* New Password */}
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <Lock size={16} /> Mật khẩu mới
+                    <Lock size={16} /> {t("tch_prof_lbl_new_pw", "Mật khẩu mới")}
                   </label>
                   <div className="relative">
                     <input
@@ -434,7 +436,7 @@ export default function TeacherProfilePage() {
                       onChange={handlePasswordChange}
                       required
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 pr-12 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
-                      placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                      placeholder={t("tch_prof_ph_new_pw", "Nhập mật khẩu mới (tối thiểu 6 ký tự)")}
                     />
                     <button
                       type="button"
@@ -449,7 +451,7 @@ export default function TeacherProfilePage() {
                 {/* Confirm Password */}
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <Lock size={16} /> Xác nhận mật khẩu mới
+                    <Lock size={16} /> {t("tch_prof_lbl_confirm_pw", "Xác nhận mật khẩu mới")}
                   </label>
                   <div className="relative">
                     <input
@@ -459,7 +461,7 @@ export default function TeacherProfilePage() {
                       onChange={handlePasswordChange}
                       required
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 pr-12 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
-                      placeholder="Nhập lại mật khẩu mới"
+                      placeholder={t("tch_prof_ph_confirm_pw", "Nhập lại mật khẩu mới")}
                     />
                     <button
                       type="button"
@@ -478,7 +480,7 @@ export default function TeacherProfilePage() {
                   className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Save size={20} />
-                  {saving ? "Đang lưu..." : "Đổi mật khẩu"}
+                  {saving ? t("tch_prof_saving", "Đang lưu...") : t("tch_prof_change_pw", "Đổi mật khẩu")}
                 </button>
               </form>
             </div>

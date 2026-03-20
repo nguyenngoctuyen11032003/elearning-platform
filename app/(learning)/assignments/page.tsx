@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { FileText, Loader2, Calendar, Filter } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import { toast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/lib/i18n/language-context';
 
 interface Assignment {
   id: string;
@@ -47,6 +48,7 @@ type SortOption = 'dueDate' | 'title' | 'course';
 
 export default function AssignmentsPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<AssignmentStatus>('all');
@@ -104,8 +106,8 @@ export default function AssignmentsPage() {
     } catch (error) {
       console.error('Error loading assignments:', error);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể tải danh sách bài tập',
+        title: t('assign_error', 'Lỗi'),
+        description: t('assign_load_error', 'Không thể tải danh sách bài tập'),
         variant: 'destructive',
       });
     } finally {
@@ -156,9 +158,9 @@ export default function AssignmentsPage() {
       <div className="w-full space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Bài tập</h1>
+          <h1 className="text-3xl font-bold">{t("assign_title", "Bài tập")}</h1>
           <p className="text-muted-foreground mt-1">
-            Quản lý và nộp bài tập của bạn
+            {t("assign_desc", "Quản lý và nộp bài tập của bạn")}
           </p>
         </div>
       </div>
@@ -169,10 +171,10 @@ export default function AssignmentsPage() {
          onValueChange={(v) => setSelectedCourse("null")}>
           <SelectTrigger className="w-full sm:w-[240px]">
             <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Lọc theo khóa học" />
+            <SelectValue placeholder={t("assign_filter_course", "Lọc theo khóa học")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả khóa học</SelectItem>
+            <SelectItem value="all">{t("assign_all_courses", "Tất cả khóa học")}</SelectItem>
             {courses.map((course) => (
               <SelectItem key={course.id} value={course.id}>
                 {course.title}
@@ -184,12 +186,12 @@ export default function AssignmentsPage() {
         <Select value={sortBy?? ""} onValueChange={(v) => setSortBy(v as SortOption)}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <Calendar className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Sắp xếp theo" />
+            <SelectValue placeholder={t("assign_sort_by", "Sắp xếp theo")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="dueDate">Hạn nộp</SelectItem>
-            <SelectItem value="title">Tên bài tập</SelectItem>
-            <SelectItem value="course">Khóa học</SelectItem>
+            <SelectItem value="dueDate">{t("assign_sort_due", "Hạn nộp")}</SelectItem>
+            <SelectItem value="title">{t("assign_sort_name", "Tên bài tập")}</SelectItem>
+            <SelectItem value="course">{t("assign_sort_course", "Khóa học")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -197,11 +199,11 @@ export default function AssignmentsPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AssignmentStatus)}>
         <TabsList className="grid w-full grid-cols-5 lg:w-auto">
-          <TabsTrigger value="all">{getTabLabel('all', 'Tất cả')}</TabsTrigger>
-          <TabsTrigger value="pending">{getTabLabel('pending', 'Chưa nộp')}</TabsTrigger>
-          <TabsTrigger value="submitted">{getTabLabel('submitted', 'Đã nộp')}</TabsTrigger>
-          <TabsTrigger value="graded">{getTabLabel('graded', 'Đã chấm')}</TabsTrigger>
-          <TabsTrigger value="overdue">{getTabLabel('overdue', 'Quá hạn')}</TabsTrigger>
+          <TabsTrigger value="all">{getTabLabel('all', t('assign_tab_all', 'Tất cả'))}</TabsTrigger>
+          <TabsTrigger value="pending">{getTabLabel('pending', t('assign_tab_pending', 'Chưa nộp'))}</TabsTrigger>
+          <TabsTrigger value="submitted">{getTabLabel('submitted', t('assign_tab_submitted', 'Đã nộp'))}</TabsTrigger>
+          <TabsTrigger value="graded">{getTabLabel('graded', t('assign_tab_graded', 'Đã chấm'))}</TabsTrigger>
+          <TabsTrigger value="overdue">{getTabLabel('overdue', t('assign_tab_overdue', 'Quá hạn'))}</TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-6">
@@ -214,15 +216,15 @@ export default function AssignmentsPage() {
               <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
               <p className="text-muted-foreground">
                 {activeTab === 'all'
-                  ? 'Chưa có bài tập nào'
+                  ? t('assign_empty_all', 'Chưa có bài tập nào')
                   : `Không có bài tập ${
                       activeTab === 'pending'
-                        ? 'chưa nộp'
+                        ? t('assign_status_pending', 'chưa nộp')
                         : activeTab === 'submitted'
-                        ? 'đã nộp'
+                        ? t('assign_status_submitted', 'đã nộp')
                         : activeTab === 'graded'
-                        ? 'đã chấm'
-                        : 'quá hạn'
+                        ? t('assign_status_graded', 'đã chấm')
+                        : t('assign_status_overdue', 'quá hạn')
                     }`}
               </p>
             </div>

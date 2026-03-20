@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { getApiBaseUrl } from '@/lib/api/config'
+import { useLanguage } from '@/lib/i18n/language-context'
 
 interface GoogleLoginButtonProps {
   className?: string
@@ -10,6 +11,7 @@ interface GoogleLoginButtonProps {
 
 export function GoogleLoginButton({ className = '', size = 'md' }: GoogleLoginButtonProps) {
   const [loading, setLoading] = useState(false)
+  const { t } = useLanguage()
 
   const handleGoogleLogin = () => {
     setLoading(true)
@@ -47,7 +49,7 @@ export function GoogleLoginButton({ className = '', size = 'md' }: GoogleLoginBu
           d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
         />
       </svg>
-      <span>{loading ? 'Đang xử lý...' : 'Đăng nhập với Google'}</span>
+      <span>{loading ? t("auth_processing", 'Đang xử lý...') : t("google_login", 'Đăng nhập với Google')}</span>
     </button>
   )
 }

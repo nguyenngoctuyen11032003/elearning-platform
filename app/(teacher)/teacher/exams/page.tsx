@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { authFetch } from "@/lib/authfetch"
+import { useLanguage } from "@/lib/i18n/language-context"
 import {
   Plus,
   Search,
@@ -54,6 +55,7 @@ interface CertificateTemplate {
 
 export default function TeacherExamsPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
   const [exams, setExams] = useState<Exam[]>([])
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
@@ -210,10 +212,10 @@ export default function TeacherExamsPage() {
       rejected: "bg-red-500/10 text-red-500 border-red-500/20",
     }
     const labels = {
-      draft: "Nháp",
-      pending: "Chờ duyệt",
-      approved: "Đã duyệt",
-      rejected: "Từ chối",
+      draft: t("te_status_draft", "Nháp"),
+      pending: t("te_status_pending", "Chờ duyệt"),
+      approved: t("te_status_approved", "Đã duyệt"),
+      rejected: t("te_status_rejected", "Từ chối"),
     }
     const icons = {
       draft: FileText,
@@ -236,8 +238,8 @@ export default function TeacherExamsPage() {
       official: "bg-purple-500/10 text-purple-500 border-purple-500/20",
     }
     const labels = {
-      practice: "Thi thử",
-      official: "Thi thật",
+      practice: t("te_type_practice", "Thi thử"),
+      official: t("te_type_official", "Thi thật"),
     }
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${styles[type as keyof typeof styles]}`}>
@@ -259,23 +261,23 @@ export default function TeacherExamsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Ngân hàng đề thi</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Quản lý kho câu hỏi và cấu hình đề thi cho khóa học của bạn</p>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("te_title", "Ngân hàng đề thi")}</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("te_subtitle", "Quản lý kho câu hỏi và cấu hình đề thi cho khóa học của bạn")}</p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="px-3 py-2 rounded-lg bg-white/70 dark:bg-slate-800/60 text-foreground dark:text-white text-sm font-medium backdrop-blur-sm">
-                    Đã có: {totalExams}
+                    {t("te_total_count", "Đã có:")}{" "}{totalExams}
                   </span>
                   <span className="px-3 py-2 rounded-lg bg-white/70 dark:bg-slate-800/60 text-foreground dark:text-white text-sm font-medium backdrop-blur-sm">
-                    Đã sử dụng: {usedExams}
+                    {t("te_used_count", "Đã sử dụng:")}{" "}{usedExams}
                   </span>
                 </div>
                 <Link
                   href="/teacher/exams/create"
                   className="flex items-center gap-2 bg-white text-primary px-5 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
                 >
-                  <Plus size={20} /> Tạo ngân hàng đề thi
+                  <Plus size={20} /> {t("te_create_exam", "Tạo ngân hàng đề thi")}
                 </Link>
               </div>
             </div>
@@ -285,7 +287,7 @@ export default function TeacherExamsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng bài thi</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("te_stat_total", "Tổng bài thi")}</p>
                     <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalExams}</p>
                   </div>
                   <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -296,7 +298,7 @@ export default function TeacherExamsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Nháp</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("te_stat_draft", "Nháp")}</p>
                     <p className="text-2xl font-bold text-gray-600 dark:text-gray-400 mt-1">{draftExams}</p>
                   </div>
                   <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -307,7 +309,7 @@ export default function TeacherExamsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Thi thử</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("te_stat_practice", "Thi thử")}</p>
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{practiceExams}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -318,7 +320,7 @@ export default function TeacherExamsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Hoạt động</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("te_stat_active", "Hoạt động")}</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{approvedExams}</p>
                   </div>
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -329,7 +331,7 @@ export default function TeacherExamsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.65s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Thi thật</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("te_stat_official", "Thi thật")}</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{officialExams}</p>
                   </div>
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -347,7 +349,7 @@ export default function TeacherExamsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
             <input
               type="text"
-              placeholder="Tìm kiếm bài thi..."
+              placeholder={t("te_search_placeholder", "Tìm kiếm bài thi...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -358,20 +360,20 @@ export default function TeacherExamsPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="draft">Nháp</option>
-            <option value="pending">Chờ duyệt</option>
-            <option value="approved">Đã duyệt</option>
-            <option value="rejected">Từ chối</option>
+            <option value="all">{t("te_all_status", "Tất cả trạng thái")}</option>
+            <option value="draft">{t("te_status_draft", "Nháp")}</option>
+            <option value="pending">{t("te_status_pending", "Chờ duyệt")}</option>
+            <option value="approved">{t("te_status_approved", "Đã duyệt")}</option>
+            <option value="rejected">{t("te_status_rejected", "Từ chối")}</option>
           </select>
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
             className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
           >
-            <option value="all">Tất cả loại</option>
-            <option value="practice">Thi thử</option>
-            <option value="official">Thi thật</option>
+            <option value="all">{t("te_all_types", "Tất cả loại")}</option>
+            <option value="practice">{t("te_type_practice", "Thi thử")}</option>
+            <option value="official">{t("te_type_official", "Thi thật")}</option>
           </select>
         </div>
 
@@ -379,7 +381,7 @@ export default function TeacherExamsPage() {
         <div className="grid gap-4">
           {isLoading && (
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 text-sm text-muted-foreground">
-              Đang tải bài thi...
+              {t("te_loading", "Đang tải bài thi...")}
             </div>
           )}
 
@@ -404,13 +406,13 @@ export default function TeacherExamsPage() {
                       <BookOpen size={14} /> {exam.courseName}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Timer size={14} /> {exam.timeLimit} phút
+                      <Timer size={14} /> {exam.timeLimit} {t("te_minutes", "phút")}
                     </span>
                     <span className="flex items-center gap-1">
-                      <FileText size={14} /> {exam.questionsCount} câu hỏi
+                      <FileText size={14} /> {exam.questionsCount} {t("te_questions", "câu hỏi")}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Users size={14} /> {exam.attemptCount} lượt thi
+                      <Users size={14} /> {exam.attemptCount} {t("te_attempts", "lượt thi")}
                     </span>
                     {exam.type === "official" && templateName && (
                       <span className="flex items-center gap-1 text-purple-500">
@@ -423,7 +425,7 @@ export default function TeacherExamsPage() {
                     <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                       <p className="text-sm text-red-500 flex items-start gap-2">
                         <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-                        <span><strong>Lý do từ chối:</strong> {exam.rejectionReason}</span>
+                        <span><strong>{t("te_rejection_reason", "Lý do từ chối")}:</strong> {exam.rejectionReason}</span>
                       </p>
                     </div>
                   )}
@@ -446,7 +448,7 @@ export default function TeacherExamsPage() {
   setViewMode("view")
 }}
                     className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
-                    title="Xem chi tiết"
+                    title={t("te_view_details", "Xem chi tiết")}
                   >
                     <Eye size={18} className="text-muted-foreground" />
                   </button>
@@ -466,7 +468,7 @@ export default function TeacherExamsPage() {
                             className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 rounded-t-xl"
                           >
                             <Edit2 size={16} />
-                            Chỉnh sửa
+                            {t("te_edit", "Chỉnh sửa")}
                           </button>
                           {exam.type === "official" && exam.certificateTemplateId && (
                             <button
@@ -474,7 +476,7 @@ export default function TeacherExamsPage() {
                               className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-amber-600"
                             >
                               <Award size={16} />
-                              Bỏ chứng chỉ
+                              {t("te_remove_certificate", "Bỏ chứng chỉ")}
                             </button>
                           )}
                           <button
@@ -482,7 +484,7 @@ export default function TeacherExamsPage() {
                             className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-b-xl"
                           >
                             <Trash2 size={16} />
-                            Xóa ngân hàng đề
+                            {t("te_delete_exam_bank", "Xóa ngân hàng đề")}
                           </button>
                         </div>
                       </div>
@@ -516,32 +518,32 @@ export default function TeacherExamsPage() {
     {/* Info grid */}
     <div className="grid grid-cols-2 gap-2 text-sm mb-3">
       <div className="bg-background rounded-lg p-2">
-        <p className="text-xs text-muted-foreground">Khóa học</p>
+        <p className="text-xs text-muted-foreground">{t("te_course", "Khóa học")}</p>
         <p className="font-medium">{exam.courseName}</p>
       </div>
 
       <div className="bg-background rounded-lg p-2">
-        <p className="text-xs text-muted-foreground">Thời gian</p>
-        <p className="font-medium">{exam.timeLimit} phút</p>
+        <p className="text-xs text-muted-foreground">{t("te_time", "Thời gian")}</p>
+        <p className="font-medium">{exam.timeLimit} {t("te_minutes", "phút")}</p>
       </div>
 
       <div className="bg-background rounded-lg p-2">
-        <p className="text-xs text-muted-foreground">Câu hỏi</p>
-        <p className="font-medium">{exam.questionsCount} câu</p>
+        <p className="text-xs text-muted-foreground">{t("te_questions_label", "Câu hỏi")}</p>
+        <p className="font-medium">{exam.questionsCount} {t("te_questions_unit", "câu")}</p>
       </div>
 
       <div className="bg-background rounded-lg p-2">
-        <p className="text-xs text-muted-foreground">Điểm đạt</p>
+        <p className="text-xs text-muted-foreground">{t("te_passing_score", "Điểm đạt")}</p>
         <p className="font-medium">{exam.passingScore}%</p>
       </div>
 
       <div className="bg-background rounded-lg p-2">
-        <p className="text-xs text-muted-foreground">Số lần thi</p>
-        <p className="font-medium">{exam.maxAttempts} lần</p>
+        <p className="text-xs text-muted-foreground">{t("te_max_attempts", "Số lần thi")}</p>
+        <p className="font-medium">{exam.maxAttempts} {t("te_times", "lần")}</p>
       </div>
 
       <div className="bg-background rounded-lg p-2">
-        <p className="text-xs text-muted-foreground">Lượt thi</p>
+        <p className="text-xs text-muted-foreground">{t("te_attempt_count", "Lượt thi")}</p>
         <p className="font-medium">{exam.attemptCount}</p>
       </div>
     </div>
@@ -554,16 +556,16 @@ export default function TeacherExamsPage() {
           {!isLoading && filteredExams.length === 0 && (
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-12 text-center">
               <FileText size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
-              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">Chưa có ngân hàng đề thi</h3>
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">{t("te_no_exams", "Chưa có ngân hàng đề thi")}</h3>
               <p className="text-muted-foreground dark:text-slate-400 mb-4">
-                Bắt đầu tạo ngân hàng câu hỏi đầu tiên cho khóa học của bạn
+                {t("te_no_exams_desc", "Bắt đầu tạo ngân hàng câu hỏi đầu tiên cho khóa học của bạn")}
               </p>
               <Link
                 href="/teacher/exams/create"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
               >
                 <Plus size={20} />
-                Tạo ngân hàng
+                {t("te_create_bank", "Tạo ngân hàng")}
               </Link>
             </div>
           )}
@@ -586,7 +588,7 @@ export default function TeacherExamsPage() {
         
         {/* Header */}
         <div className="p-6 border-b border-border flex items-center justify-between">
-          <h2 className="text-xl font-bold">Chi tiết bài thi</h2>
+          <h2 className="text-xl font-bold">{t("te_exam_detail", "Chi tiết bài thi")}</h2>
           <button
           ref={el => { detailBtnRefs.current[selectedExam.id] = el }}
             onClick={() => {
@@ -606,35 +608,35 @@ export default function TeacherExamsPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Loại bài thi</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_exam_type", "Loại bài thi")}</p>
                     <div className="mt-1">{getTypeBadge(selectedExam.type)}</div>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Trạng thái</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_status", "Trạng thái")}</p>
                     <div className="mt-1">{getStatusBadge(selectedExam.status)}</div>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Khóa học</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_course", "Khóa học")}</p>
                     <p className="text-foreground dark:text-white font-medium">{selectedExam.courseName}</p>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Thời gian làm bài</p>
-                    <p className="text-foreground dark:text-white font-medium">{selectedExam.timeLimit} phút</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_exam_duration", "Thời gian làm bài")}</p>
+                    <p className="text-foreground dark:text-white font-medium">{selectedExam.timeLimit} {t("te_minutes", "phút")}</p>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Số câu hỏi</p>
-                    <p className="text-foreground dark:text-white font-medium">{selectedExam.questionsCount} câu</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_question_count", "Số câu hỏi")}</p>
+                    <p className="text-foreground dark:text-white font-medium">{selectedExam.questionsCount} {t("te_questions_unit", "câu")}</p>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Điểm đạt</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_passing_score", "Điểm đạt")}</p>
                     <p className="text-foreground dark:text-white font-medium">{selectedExam.passingScore}%</p>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Số lần thi tối đa</p>
-                    <p className="text-foreground dark:text-white font-medium">{selectedExam.maxAttempts} lần</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_max_attempts_label", "Số lần thi tối đa")}</p>
+                    <p className="text-foreground dark:text-white font-medium">{selectedExam.maxAttempts} {t("te_times", "lần")}</p>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Lượt thi</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_attempt_count", "Lượt thi")}</p>
                     <p className="text-foreground dark:text-white font-medium">{selectedExam.attemptCount}</p>
                   </div>
                 </div>
@@ -644,11 +646,11 @@ export default function TeacherExamsPage() {
                     <div className="flex items-center gap-2 text-purple-500">
                       <Award size={20} />
                       <span className="font-medium">
-                        Chứng chỉ: {selectedExam.certificateTemplateName || getTemplateName(selectedExam.certificateTemplateId)}
+                        {t("te_certificate", "Chứng chỉ")}:{" "}{selectedExam.certificateTemplateName || getTemplateName(selectedExam.certificateTemplateId)}
                       </span>
                     </div>
                     <p className="text-sm text-purple-400 mt-1">
-                      Học viên đạt điểm sẽ được cấp chứng chỉ này
+                      {t("te_certificate_desc", "Học viên đạt điểm sẽ được cấp chứng chỉ này")}
                     </p>
                   </div>
                 )}
@@ -657,7 +659,7 @@ export default function TeacherExamsPage() {
                   <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl">
                     <div className="flex items-center gap-2 text-red-500 mb-2">
                       <AlertCircle size={20} />
-                      <span className="font-medium">Lý do từ chối</span>
+                      <span className="font-medium">{t("te_rejection_reason", "Lý do từ chối")}</span>
                     </div>
                     <p className="text-red-400">{selectedExam.rejectionReason}</p>
                   </div>
@@ -674,10 +676,10 @@ export default function TeacherExamsPage() {
             <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-md p-6">
               <div className="flex items-center gap-3 text-red-500 mb-4">
                 <AlertCircle size={24} />
-                <h3 className="text-lg font-bold">Xác nhận xóa</h3>
+                <h3 className="text-lg font-bold">{t("te_delete_title", "Xác nhận xóa")}</h3>
               </div>
               <p className="text-muted-foreground dark:text-slate-400 mb-6">
-                Bạn có chắc chắn muốn xóa bài thi "{selectedExam.title}"? Hành động này không thể hoàn tác.
+                {t("te_delete_confirm", "Bạn có chắc chắn muốn xóa bài thi")} "{selectedExam.title}"? {t("te_delete_warning", "Hành động này không thể hoàn tác.")}
               </p>
               <div className="flex gap-3 justify-end">
                 <button
@@ -687,13 +689,13 @@ export default function TeacherExamsPage() {
                   }}
                   className="px-4 py-2 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
                 >
-                  Hủy
+                  {t("te_cancel", "Hủy")}
                 </button>
                 <button
                   onClick={handleDeleteConfirm}
                   className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
                 >
-                  Xóa bài thi
+                  {t("te_delete_exam", "Xóa bài thi")}
                 </button>
               </div>
             </div>

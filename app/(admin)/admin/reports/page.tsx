@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
@@ -23,6 +23,8 @@ import { formatCurrency, formatNumber, formatStudentCount } from "@/lib/format"
 import { StatCard } from "@/components/ui/stat-card"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
+import { useLanguage } from "@/lib/i18n/language-context"
+import { autoTranslateData } from "@/lib/i18n/dynamic-translate"
 
 // Types mirror backend admin report DTOs
 type RevenueByMonth = { month: string; revenue: number; orders: number; growth: number }
@@ -86,6 +88,7 @@ const sampleGrowth: GrowthPoint[] = [
 ]
 
 export default function AdminReportsPage() {
+  const { t, language } = useLanguage()
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [selectedReport, setSelectedReport] = useState("revenue")
   const [filterPeriod, setFilterPeriod] = useState("month")
@@ -113,6 +116,12 @@ export default function AdminReportsPage() {
     const load = async () => {
       setLoading(true)
       try {
+        const [localizedRevenueByCategory, localizedCoursePerformance, localizedCompletionRates] = await Promise.all([
+          autoTranslateData(sampleRevenueByCategory, language),
+          autoTranslateData(sampleCoursePerformance, language),
+          autoTranslateData(sampleCompletionRates, language),
+        ])
+
         const [revenueReport, userReport, performanceReport, dashboardStats, growthStats] = await Promise.all([
           apiClient.getAdminRevenueReport(),
           apiClient.getAdminUserReport(),
@@ -144,9 +153,9 @@ export default function AdminReportsPage() {
 
         // Set chart data - prefer real DB data
         setRevenueByMonth(hasPayments ? revenueReport.revenueByMonth : sampleRevenueByMonth)
-        setRevenueByCategory(hasPayments ? revenueReport.revenueByCategory : sampleRevenueByCategory)
-        setCoursePerformance(hasCourses ? performanceReport.topPerformingCourses : sampleCoursePerformance)
-        setCompletionRates(hasCompletion ? performanceReport.completionRates : sampleCompletionRates)
+        setRevenueByCategory(hasPayments ? revenueReport.revenueByCategory : localizedRevenueByCategory)
+        setCoursePerformance(hasCourses ? performanceReport.topPerformingCourses : localizedCoursePerformance)
+        setCompletionRates(hasCompletion ? performanceReport.completionRates : localizedCompletionRates)
         setGrowthChart(hasGrowth ? mergedGrowth : sampleGrowth)
 
         // Helper function to safely convert to number
@@ -167,14 +176,14 @@ export default function AdminReportsPage() {
         })
       } catch (error) {
         console.error("Error loading reports", error)
-        toast.error("Không thể tải báo cáo. Vui lòng thử lại.")
+        toast.error(t("adm_rpt_load_fail", "Không thể tải báo cáo. Vui lòng thử lại."))
       } finally {
         setLoading(false)
       }
     }
 
     load()
-  }, [])
+  }, [language])
 
   useEffect(() => {
     if (!isExportOpen || !exportAnchor) return
@@ -238,16 +247,16 @@ export default function AdminReportsPage() {
     let headers: string[] = []
 
     if (selectedReport === "revenue") {
-      headers = ["Kỳ", "Doanh thu", "Đơn hàng", "Tăng trưởng (%)"]
+      headers = [t("adm_rpt_xl_period", "Kỳ"), t("adm_rpt_xl_revenue", "Doanh thu"), t("adm_rpt_xl_orders", "Đơn hàng"), t("adm_rpt_xl_growth", "Tăng trưởng (%)")]
       data = revenueByMonth.map((r) => [r.month, r.revenue, r.orders, r.growth])
     } else if (selectedReport === "courses") {
-      headers = ["Khóa học", "Giảng viên", "Học viên", "Doanh thu", "Đánh giá", "Hoàn thành (%)"]
+      headers = [t("adm_rpt_xl_course", "Khóa học"), t("adm_rpt_xl_instructor", "Giảng viên"), t("adm_rpt_xl_students", "Học viên"), t("adm_rpt_xl_revenue", "Doanh thu"), t("adm_rpt_xl_rating", "Đánh giá"), t("adm_rpt_xl_completion", "Hoàn thành (%)")]
       data = coursePerformance.map((c) => [c.courseTitle, c.teacherName, c.enrollments, c.revenue, c.averageRating, c.completionRate])
     } else if (selectedReport === "category") {
-      headers = ["Danh mục", "Doanh thu", "Đơn hàng", "Tỷ lệ (%)"]
+      headers = [t("adm_rpt_xl_category", "Danh mục"), t("adm_rpt_xl_revenue", "Doanh thu"), t("adm_rpt_xl_orders", "Đơn hàng"), t("adm_rpt_xl_ratio", "Tỷ lệ (%)")]
       data = revenueByCategory.map((c) => [c.categoryName, c.revenue, c.orderCount, c.percentage])
     } else if (selectedReport === "teachers" || selectedReport === "students") {
-      headers = ["Thời gian", selectedReport === "teachers" ? "Giáo viên" : "Học viên"]
+      headers = [t("adm_rpt_xl_time", "Thời gian"), selectedReport === "teachers" ? t("adm_rpt_xl_teachers", "Giáo viên") : t("adm_rpt_xl_students", "Học viên")]
       const src = selectedReport === "teachers" ? teacherGrowth : studentGrowth
       data = src.map((r) => [
         r.month,
@@ -259,16 +268,16 @@ export default function AdminReportsPage() {
 
     const reportName =
       selectedReport === "revenue"
-        ? "Báo cáo doanh thu"
+        ? t("adm_rpt_name_revenue", "Báo cáo doanh thu")
         : selectedReport === "category"
-          ? "Báo cáo danh mục"
+          ? t("adm_rpt_name_category", "Báo cáo danh mục")
           : selectedReport === "teachers"
-            ? "Báo cáo giáo viên"
+            ? t("adm_rpt_name_teachers", "Báo cáo giáo viên")
             : selectedReport === "students"
-              ? "Báo cáo học viên"
-              : "Báo cáo khóa học"
+              ? t("adm_rpt_name_students", "Báo cáo học viên")
+              : t("adm_rpt_name_courses", "Báo cáo khóa học")
     const exportDate = new Date().toLocaleDateString("vi-VN")
-    const bannerLines = [[`Báo cáo: ${reportName}`], [`Ngày xuất: ${exportDate}`]]
+    const bannerLines = [[`${t("adm_rpt_xl_report", "Báo cáo")}: ${reportName}`], [`${t("adm_rpt_xl_export_date", "Ngày xuất")}: ${exportDate}`]]
     const aoa = [...bannerLines, headers, ...data]
 
     const worksheet = XLSX.utils.aoa_to_sheet(aoa)
@@ -323,15 +332,15 @@ export default function AdminReportsPage() {
               style={{ animationDelay: "0.15s" }}
             >
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Báo cáo & Phân tích</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Xem chi tiết hiệu suất nền tảng</p>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("adm_rpt_title", "Báo cáo & Phân tích")}</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("adm_rpt_subtitle", "Xem chi tiết hiệu suất nền tảng")}</p>
               </div>
               <div className="flex gap-2 flex-wrap">
                 {[
-                  { value: "day", label: "Ngày" },
-                  { value: "week", label: "Tuần" },
-                  { value: "month", label: "Tháng" },
-                  { value: "year", label: "Năm" },
+                  { value: "day", label: t("adm_rpt_day", "Ngày") },
+                  { value: "week", label: t("adm_rpt_week", "Tuần") },
+                  { value: "month", label: t("adm_rpt_month", "Tháng") },
+                  { value: "year", label: t("adm_rpt_year", "Năm") },
                 ].map((period) => (
                   <button
                     key={period.value}
@@ -350,16 +359,16 @@ export default function AdminReportsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <StatCard icon={DollarSign} title="Tổng doanh thu" value={formatCurrency(totals.totalRevenue)} change="Cập nhật theo kỳ" />
+                <StatCard icon={DollarSign} title={t("adm_rpt_total_revenue", "Tổng doanh thu")} value={formatCurrency(totals.totalRevenue)} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <StatCard icon={Users} title="Tổng giáo viên" value={formatNumber(totals.totalTeachers)} change="Cập nhật theo kỳ" />
+                <StatCard icon={Users} title={t("adm_rpt_total_teachers", "Tổng giáo viên")} value={formatNumber(totals.totalTeachers)} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <StatCard icon={TrendingUp} title="Tổng học viên" value={formatNumber(totals.totalStudents)} change="Cập nhật theo kỳ" />
+                <StatCard icon={TrendingUp} title={t("adm_rpt_total_students", "Tổng học viên")} value={formatNumber(totals.totalStudents)} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <StatCard icon={BookOpen} title="Khóa học" value={formatNumber(totals.totalCourses)} change="Cập nhật theo kỳ" />
+                <StatCard icon={BookOpen} title={t("adm_rpt_courses", "Khóa học")} value={formatNumber(totals.totalCourses)} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
               </div>
             </div>
           </div>
@@ -369,9 +378,9 @@ export default function AdminReportsPage() {
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-lg font-bold text-foreground dark:text-white">Biểu đồ doanh thu</h2>
+                <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_revenue_chart", "Biểu đồ doanh thu")}</h2>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">
-                  {filterPeriod === "day" ? "7 ngày gần nhất" : filterPeriod === "week" ? "Tuần này" : filterPeriod === "month" ? "12 tháng" : "Cả năm"}
+                  {filterPeriod === "day" ? t("adm_rpt_last_7_days", "7 ngày gần nhất") : filterPeriod === "week" ? t("adm_rpt_this_week", "Tuần này") : filterPeriod === "month" ? t("adm_rpt_12_months", "12 tháng") : t("adm_rpt_full_year", "Cả năm")}
                 </p>
               </div>
               <button
@@ -388,8 +397,8 @@ export default function AdminReportsPage() {
                 <YAxis stroke="#9ca3af" />
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 <Legend />
-                <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} name="Doanh thu" />
-                <Line type="monotone" dataKey="orders" stroke="#16a34a" strokeWidth={2} name="Đơn hàng" />
+                <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} name={t("adm_rpt_legend_revenue", "Doanh thu")} />
+                <Line type="monotone" dataKey="orders" stroke="#16a34a" strokeWidth={2} name={t("adm_rpt_legend_orders", "Đơn hàng")} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -397,8 +406,8 @@ export default function AdminReportsPage() {
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-lg font-bold text-foreground dark:text-white">Phân bố theo danh mục</h2>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Tỷ lệ doanh thu theo danh mục</p>
+                <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_category_dist", "Phân bố theo danh mục")}</h2>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_category_revenue", "Tỷ lệ doanh thu theo danh mục")}</p>
               </div>
               <button
                 onClick={(event) => handleExport("category", event.currentTarget)}
@@ -433,8 +442,8 @@ export default function AdminReportsPage() {
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-lg font-bold text-foreground dark:text-white">Tăng trưởng giáo viên</h2>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Số lượng giáo viên theo thời gian</p>
+                <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_teacher_growth", "Tăng trưởng giáo viên")}</h2>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_teacher_growth_desc", "Số lượng giáo viên theo thời gian")}</p>
               </div>
               <button
                 onClick={(event) => handleExport("teachers", event.currentTarget)}
@@ -450,7 +459,7 @@ export default function AdminReportsPage() {
                 <YAxis stroke="#9ca3af" />
                 <Tooltip formatter={(value) => formatNumber(Number(value))} />
                 <Legend />
-                <Line type="monotone" dataKey="teachers" stroke="#8b5cf6" strokeWidth={2} name="Giáo viên" />
+                <Line type="monotone" dataKey="teachers" stroke="#8b5cf6" strokeWidth={2} name={t("adm_rpt_legend_teachers", "Giáo viên")} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -458,8 +467,8 @@ export default function AdminReportsPage() {
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-lg font-bold text-foreground dark:text-white">Tăng trưởng học viên</h2>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Số lượng học viên theo thời gian</p>
+                <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_student_growth", "Tăng trưởng học viên")}</h2>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_student_growth_desc", "Số lượng học viên theo thời gian")}</p>
               </div>
               <button
                 onClick={(event) => handleExport("students", event.currentTarget)}
@@ -475,7 +484,7 @@ export default function AdminReportsPage() {
                 <YAxis stroke="#9ca3af" />
                 <Tooltip formatter={(value) => formatNumber(Number(value))} />
                 <Legend />
-                <Bar dataKey="students" fill="#06b6d4" name="Học viên" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="students" fill="#06b6d4" name={t("adm_rpt_legend_students", "Học viên")} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -484,14 +493,14 @@ export default function AdminReportsPage() {
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-bold text-foreground dark:text-white">Hiệu suất khóa học</h2>
-              <p className="text-sm text-muted-foreground dark:text-slate-400">Thống kê chi tiết theo khóa học</p>
+              <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_course_perf", "Hiệu suất khóa học")}</h2>
+              <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_course_perf_desc", "Thống kê chi tiết theo khóa học")}</p>
             </div>
             <button
               onClick={(event) => handleExport("courses", event.currentTarget)}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg transition-smooth hover:shadow-lg"
             >
-              <Download size={16} /> Xuất báo cáo
+              <Download size={16} /> {t("adm_rpt_export", "Xuất báo cáo")}
             </button>
           </div>
           
@@ -500,18 +509,18 @@ export default function AdminReportsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800">
-                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Khóa học</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Giảng viên</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Học viên</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Đánh giá</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Hoàn thành</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Doanh thu</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_course", "Khóa học")}</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_instructor", "Giảng viên")}</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_students", "Học viên")}</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_rating", "Đánh giá")}</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_completion", "Hoàn thành")}</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_revenue", "Doanh thu")}</th>
                 </tr>
               </thead>
               <tbody>
                 {coursePerformance.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-4 px-4 text-center text-muted-foreground">Chưa có dữ liệu</td>
+                    <td colSpan={6} className="py-4 px-4 text-center text-muted-foreground">{t("adm_rpt_no_data", "Chưa có dữ liệu")}</td>
                   </tr>
                 )}
                 {coursePerformance.map((course) => (
@@ -534,7 +543,7 @@ export default function AdminReportsPage() {
           {/* Mobile/Tablet Card View */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
             {coursePerformance.length === 0 ? (
-              <div className="col-span-full py-8 text-center text-muted-foreground">Chưa có dữ liệu</div>
+              <div className="col-span-full py-8 text-center text-muted-foreground">{t("adm_rpt_no_data", "Chưa có dữ liệu")}</div>
             ) : (
               coursePerformance.map((course) => (
                 <div
@@ -542,28 +551,28 @@ export default function AdminReportsPage() {
                   className="bg-white dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl p-4 space-y-3 hover:shadow-md transition-shadow"
                 >
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground dark:text-slate-400 mb-1">Khóa học</p>
+                    <p className="text-xs font-medium text-muted-foreground dark:text-slate-400 mb-1">{t("adm_rpt_th_course", "Khóa học")}</p>
                     <p className="text-sm font-semibold text-foreground dark:text-white line-clamp-2">{course.courseTitle}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground dark:text-slate-400 mb-1">Giảng viên</p>
+                    <p className="text-xs font-medium text-muted-foreground dark:text-slate-400 mb-1">{t("adm_rpt_th_instructor", "Giảng viên")}</p>
                     <p className="text-sm text-foreground dark:text-white">{course.teacherName}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">Học viên</p>
+                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">{t("adm_rpt_th_students", "Học viên")}</p>
                       <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatStudentCount(course.enrollments)}</p>
                     </div>
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3">
-                      <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400 mb-1">Đánh giá</p>
+                      <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400 mb-1">{t("adm_rpt_th_rating", "Đánh giá")}</p>
                       <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300">{course.averageRating?.toFixed(1) || "-"}</p>
                     </div>
                     <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">Hoàn thành</p>
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">{t("adm_rpt_th_completion", "Hoàn thành")}</p>
                       <p className="text-lg font-bold text-green-700 dark:text-green-300">{course.completionRate?.toFixed(1) || 0}%</p>
                     </div>
                     <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
-                      <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-1">Doanh thu</p>
+                      <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-1">{t("adm_rpt_th_revenue", "Doanh thu")}</p>
                       <p className="text-lg font-bold text-purple-700 dark:text-purple-300">{formatCurrency(course.revenue)}</p>
                     </div>
                   </div>
@@ -576,8 +585,8 @@ export default function AdminReportsPage() {
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-bold text-foreground dark:text-white">Tỷ lệ hoàn thành theo danh mục</h2>
-              <p className="text-sm text-muted-foreground dark:text-slate-400">Theo dõi mức độ hoàn thành của học viên</p>
+              <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_completion_rate", "Tỷ lệ hoàn thành theo danh mục")}</h2>
+              <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_completion_desc", "Theo dõi mức độ hoàn thành của học viên")}</p>
             </div>
           </div>
           
@@ -586,16 +595,16 @@ export default function AdminReportsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800">
-                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Danh mục</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Tổng ghi danh</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Hoàn thành</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Tỷ lệ</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_category", "Danh mục")}</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_enrollments", "Tổng ghi danh")}</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_completion", "Hoàn thành")}</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_ratio", "Tỷ lệ")}</th>
                 </tr>
               </thead>
               <tbody>
                 {completionRates.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="py-4 px-4 text-center text-muted-foreground">Chưa có dữ liệu</td>
+                    <td colSpan={4} className="py-4 px-4 text-center text-muted-foreground">{t("adm_rpt_no_data", "Chưa có dữ liệu")}</td>
                   </tr>
                 )}
                 {completionRates.map((item) => (
@@ -613,7 +622,7 @@ export default function AdminReportsPage() {
           {/* Mobile/Tablet Card View */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
             {completionRates.length === 0 ? (
-              <div className="col-span-full py-8 text-center text-muted-foreground">Chưa có dữ liệu</div>
+              <div className="col-span-full py-8 text-center text-muted-foreground">{t("adm_rpt_no_data", "Chưa có dữ liệu")}</div>
             ) : (
               completionRates.map((item) => (
                 <div
@@ -621,21 +630,21 @@ export default function AdminReportsPage() {
                   className="bg-white dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl p-4 space-y-3 hover:shadow-md transition-shadow"
                 >
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground dark:text-slate-400 mb-1">Danh mục</p>
+                    <p className="text-xs font-medium text-muted-foreground dark:text-slate-400 mb-1">{t("adm_rpt_th_category", "Danh mục")}</p>
                     <p className="text-sm font-semibold text-foreground dark:text-white">{item.categoryName}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">Tổng ghi danh</p>
+                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">{t("adm_rpt_th_enrollments", "Tổng ghi danh")}</p>
                       <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatStudentCount(item.totalEnrollments)}</p>
                     </div>
                     <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">Hoàn thành</p>
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">{t("adm_rpt_th_completion", "Hoàn thành")}</p>
                       <p className="text-lg font-bold text-green-700 dark:text-green-300">{formatStudentCount(item.completedEnrollments)}</p>
                     </div>
                   </div>
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3">
-                    <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-2">Tỷ lệ hoàn thành</p>
+                    <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-2">{t("adm_rpt_completion_progress", "Tỷ lệ hoàn thành")}</p>
                     <div className="flex items-end gap-2">
                       <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{item.completionRate?.toFixed(1) || 0}%</p>
                       <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
@@ -662,7 +671,7 @@ export default function AdminReportsPage() {
               <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
                 <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
                   <h2 className="text-xl font-bold text-foreground dark:text-white">
-                    Xuất báo cáo: {selectedReport === "revenue" ? "Báo cáo doanh thu" : selectedReport === "category" ? "Báo cáo danh mục" : selectedReport === "teachers" ? "Báo cáo giáo viên" : selectedReport === "students" ? "Báo cáo học viên" : "Báo cáo khóa học"}
+                    {t("adm_rpt_export", "Xuất báo cáo")}: {selectedReport === "revenue" ? t("adm_rpt_name_revenue", "Báo cáo doanh thu") : selectedReport === "category" ? t("adm_rpt_name_category", "Báo cáo danh mục") : selectedReport === "teachers" ? t("adm_rpt_name_teachers", "Báo cáo giáo viên") : selectedReport === "students" ? t("adm_rpt_name_students", "Báo cáo học viên") : t("adm_rpt_name_courses", "Báo cáo khóa học")}
                   </h2>
                   <button onClick={() => setIsExportOpen(false)} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
                     <X size={20} className="text-muted-foreground" />
@@ -670,12 +679,12 @@ export default function AdminReportsPage() {
                 </div>
 
                 <div className="p-6 space-y-4">
-                  <p className="text-sm text-muted-foreground">File Excel sẽ chứa toàn bộ dữ liệu đang hiển thị.</p>
+                  <p className="text-sm text-muted-foreground">{t("adm_rpt_export_desc", "File Excel sẽ chứa toàn bộ dữ liệu đang hiển thị.")}</p>
                   <button
                     onClick={executeExport}
                     className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
                   >
-                    <Download size={20} /> Xuất báo cáo Excel
+                    <Download size={20} /> {t("adm_rpt_export_excel", "Xuất báo cáo Excel")}
                   </button>
                 </div>
               </div>

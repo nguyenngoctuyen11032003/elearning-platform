@@ -1,4 +1,5 @@
 import { API_ENDPOINTS, getApiBaseUrl } from './config';
+import { autoTranslateData, getCurrentLanguage } from '../i18n/dynamic-translate';
 import { 
   LoginRequest, 
   LoginResponse, 
@@ -12,9 +13,32 @@ import {
 } from './types';
 
 class ApiClient {
-  get(arg0: string): any {
-    throw new Error("Method not implemented.");
+  private async localizeDynamicResponse<T>(endpoint: string, payload: T): Promise<T> {
+    const language = getCurrentLanguage();
+
+    if (language === 'vi') return payload;
+
+    // Keep auth payloads untouched to avoid changing backend message contracts.
+    if (/\/auth\b/i.test(endpoint)) return payload;
+
+    try {
+      return await autoTranslateData(payload, language);
+    } catch {
+      return payload;
+    }
   }
+
+  async put<T = any>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    })
+  }
+
+  async get<T = any>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint)
+  }
+
   async getSystemSettings(): Promise<Record<string, any>> {
     return this.request('/system-settings')
   }
@@ -56,6 +80,11 @@ if (!(options.body instanceof FormData)) {
     // Add auth token if available
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('auth_token');
+      const language = localStorage.getItem('ics_lang') || 'vi';
+      config.headers = {
+        ...config.headers,
+        'X-Client-Language': language,
+      };
       if (token) {
         config.headers = {
           ...config.headers,
@@ -133,21 +162,21 @@ if (!(options.body instanceof FormData)) {
         // Handle wrapped response from backend interceptor
         // Backend wraps responses in { success: true, data: ..., meta: ... }
         if (json && typeof json === 'object' && 'data' in json) {
-          return json.data as T;
+          return this.localizeDynamicResponse(endpoint, json.data as T);
         }
         
-        return json;
+        return this.localizeDynamicResponse(endpoint, json as T);
       }
       
       // If not JSON, return empty object or text
       const text = await response.text();
-      return (text ? { data: text } : {}) as any;
+      return this.localizeDynamicResponse(endpoint, (text ? { data: text } : {}) as any);
     } catch (error) {
       // Handle network errors gracefully
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
         const isGetRequest = config.method === 'GET' || !config.method;
         
-        console.error('❌ Network error - Cannot connect to API server:', {
+        console.warn('⚠️ Network warning - Cannot connect to API server:', {
           url,
           baseURL: this.baseURL,
           error: error.message,
@@ -341,10 +370,10 @@ if (typeof window !== 'undefined' && token) {
         
         // Handle wrapped response from backend interceptor
         if (json && typeof json === 'object' && 'data' in json) {
-          return json.data as { url: string; message: string };
+          return this.localizeDynamicResponse(API_ENDPOINTS.UPLOAD.AVATAR, json.data as { url: string; message: string });
         }
         
-        return json;
+        return this.localizeDynamicResponse(API_ENDPOINTS.UPLOAD.AVATAR, json);
       }
       
       throw new Error('Invalid response format');
@@ -1040,6 +1069,8 @@ if (typeof window !== 'undefined' && token) {
   async upgradeTeacherPlan(data: {
     planId: string;
     paymentMethod?: string;
+    paymentMethodId?: string;
+    paymentChannel?: string;
     metadata?: Record<string, any>;
   }): Promise<any> {
     return this.request('/instructor-subscriptions/teacher/upgrade', {
@@ -1052,6 +1083,53 @@ if (typeof window !== 'undefined' && token) {
     return this.request('/instructor-subscriptions/teacher/cancel', {
       method: 'POST',
       body: JSON.stringify({ reason }),
+    });
+  }
+
+  async getTeacherPaymentMethods(): Promise<any[]> {
+    const result = await this.request('/instructor-subscriptions/teacher/payment-methods');
+    return Array.isArray(result) ? result : [];
+  }
+
+  async createTeacherPaymentMethod(data: {
+    type: 'bank_card' | 'e_wallet';
+    provider?: string;
+    label?: string;
+    cardHolderName?: string;
+    cardNumber?: string;
+    cardExpiry?: string;
+    cvv?: string;
+    walletPhone?: string;
+    isDefault?: boolean;
+    returnUrl?: string;
+  }): Promise<any> {
+    return this.request('/instructor-subscriptions/teacher/payment-methods', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async setDefaultTeacherPaymentMethod(id: string): Promise<any> {
+    return this.request(`/instructor-subscriptions/teacher/payment-methods/${id}/default`, {
+      method: 'PATCH',
+    });
+  }
+
+  async createTeacherCheckout(data: {
+    planId: string;
+    paymentMethodId?: string;
+    paymentChannel?: 'bank_card' | 'e_wallet' | 'qr';
+    metadata?: Record<string, any>;
+  }): Promise<any> {
+    return this.request('/instructor-subscriptions/teacher/checkout', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async confirmTeacherCheckout(transactionId: string): Promise<any> {
+    return this.request(`/instructor-subscriptions/teacher/checkout/${transactionId}/confirm`, {
+      method: 'POST',
     });
   }
 
@@ -1133,8 +1211,17 @@ if (typeof window !== 'undefined' && token) {
     return Array.isArray(result) ? result : [];
   }
 
+  async getAvailableExtractedExams(): Promise<any[]> {
+    const result = await this.request('/extracted-exams/available');
+    return Array.isArray(result) ? result : [];
+  }
+
   async getExamById(id: string): Promise<any> {
     return this.request(`/exams/${id}`);
+  }
+
+  async getExtractedExamById(id: string): Promise<any> {
+    return this.request(`/extracted-exams/student/${id}`);
   }
 
   async startExam(examId: string): Promise<any> {
@@ -1148,6 +1235,13 @@ if (typeof window !== 'undefined' && token) {
     return this.request(API_ENDPOINTS.EXAMS.SUBMIT, {
       method: 'POST',
       body: JSON.stringify({ attemptId, answers }),
+    });
+  }
+
+  async submitExtractedExam(examId: string, answers: Array<{ questionId: string; answer: any }>): Promise<any> {
+    return this.request(`/extracted-exams/${examId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
     });
   }
 

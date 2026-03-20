@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, CalendarClock, CheckCircle2, Loader2, FileText } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'sonner';
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface AssignmentDetail {
   id: string;
@@ -116,15 +117,16 @@ function parseGradingDetails(value?: string): GradingDetailItem[] {
   }
 }
 
-function formatTimeRemaining(dueAt?: Date | null, submittedAt?: Date | null): string {
-  if (!dueAt) return 'Không giới hạn thời gian';
+function formatTimeRemaining(dueAt?: Date | null, submittedAt?: Date | null, t?: (key: string, fallback: string) => string): string {
+  const tr = t || ((k: string, f: string) => f);
+  if (!dueAt) return tr('asgn_no_time_limit', 'Không giới hạn thời gian');
   if (!submittedAt) {
     const diff = dueAt.getTime() - Date.now();
-    if (diff <= 0) return 'Đã quá hạn nộp';
+    if (diff <= 0) return tr('asgn_overdue', 'Đã quá hạn nộp');
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-    return `${days} ngày ${hours} giờ còn lại`;
+    return `${days} ${tr('asgn_days', 'ngày')} ${hours} ${tr('asgn_hours_left', 'giờ còn lại')}`;
   }
 
   const diff = dueAt.getTime() - submittedAt.getTime();
@@ -133,16 +135,17 @@ function formatTimeRemaining(dueAt?: Date | null, submittedAt?: Date | null): st
   const hours = Math.floor((abs / (1000 * 60 * 60)) % 24);
 
   if (diff >= 0) {
-    return `Bài được nộp sớm ${days} ngày ${hours} giờ`;
+    return `${tr('asgn_submitted_early', 'Bài được nộp sớm')} ${days} ${tr('asgn_days', 'ngày')} ${hours} ${tr('asgn_hours', 'giờ')}`;
   }
 
-  return `Bài nộp trễ ${days} ngày ${hours} giờ`;
+  return `${tr('asgn_submitted_late', 'Bài nộp trễ')} ${days} ${tr('asgn_days', 'ngày')} ${hours} ${tr('asgn_hours', 'giờ')}`;
 }
 
 export default function StudentAssignmentDetailPage() {
   const router = useRouter();
   const params = useParams();
   const assignmentId = String(params?.id || '');
+  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -334,7 +337,7 @@ export default function StudentAssignmentDetailPage() {
                 <tr className="border-t border-border align-top">
                   <td className="px-4 py-4 font-semibold text-foreground">Time remaining</td>
                   <td className={`px-4 py-4 ${submitted ? 'bg-green-900/40 text-green-100' : 'text-foreground'}`}>
-                    {formatTimeRemaining(dueAt, submittedAt)}
+                    {formatTimeRemaining(dueAt, submittedAt, t)}
                   </td>
                 </tr>
                 {submittedAt && (
@@ -438,7 +441,7 @@ export default function StudentAssignmentDetailPage() {
                         className="text-xs text-red-500"
                         onClick={() => setAttachments((prev) => prev.filter((item) => item !== url))}
                       >
-                        Xóa
+                        {t('asgn_delete', 'Xóa')}
                       </button>
                     </div>
                   ))}
@@ -484,7 +487,7 @@ export default function StudentAssignmentDetailPage() {
                         {gradingDetails.map((row, index) => (
                           <tr key={`${row.criterion}-${index}`} className="border-t border-border">
                             <td className="px-3 py-2">{row.criterion}</td>
-                            <td className="px-3 py-2">Mức {row.selectedLevel + 1}</td>
+                            <td className="px-3 py-2">{t('asgn_level', 'Mức')} {row.selectedLevel + 1}</td>
                             <td className="px-3 py-2 font-semibold text-emerald-600">{row.points}</td>
                           </tr>
                         ))}

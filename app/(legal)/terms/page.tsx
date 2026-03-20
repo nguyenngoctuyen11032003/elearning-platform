@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useLanguage } from "@/lib/i18n/language-context";
 import {
   FileText,
   AlertTriangle,
@@ -18,6 +19,7 @@ const fadeUp = {
 };
 
 export default function TermsOfServicePage() {
+  const { t } = useLanguage();
   return (
     <div
       className="relative min-h-screen"
@@ -47,7 +49,7 @@ export default function TermsOfServicePage() {
             size={18}
             className="group-hover:-translate-x-1 transition-transform"
           />
-          <span className="text-sm font-semibold">Trang chủ</span>
+          <span className="text-sm font-semibold">{t("common_home", "Trang chủ")}</span>
         </Link>
 
         {/* Hero */}
@@ -58,18 +60,16 @@ export default function TermsOfServicePage() {
             animate="visible"
             className="rounded-3xl bg-gradient-to-r from-indigo-500 to-purple-500 p-8 text-white"
           >
-            <h1 className="text-3xl font-semibold">Điều khoản sử dụng</h1>
+            <h1 className="text-3xl font-semibold">{t("terms_title", "Điều khoản sử dụng")}</h1>
 
             <p className="mt-3 text-white/90 max-w-2xl">
-              Khi sử dụng nền tảng ICS Learning, bạn đồng ý tuân thủ các điều khoản
-              và điều kiện nhằm đảm bảo môi trường học tập an toàn, công bằng
-              và minh bạch.
+              {t("terms_hero_desc", "Khi sử dụng nền tảng ICS Learning, bạn đồng ý tuân thủ các điều khoản và điều kiện nhằm đảm bảo môi trường học tập an toàn, công bằng và minh bạch.")}
             </p>
 
             <div className="mt-6 flex flex-wrap gap-4">
-              <Badge icon={<UserCheck size={18} />} text="Trách nhiệm người dùng" />
-              <Badge icon={<ShieldCheck size={18} />} text="Quy định rõ ràng" />
-              <Badge icon={<AlertTriangle size={18} />} text="Xử lý vi phạm" />
+              <Badge icon={<UserCheck size={18} />} text={t("terms_badge_responsibility", "Trách nhiệm người dùng")} />
+              <Badge icon={<ShieldCheck size={18} />} text={t("terms_badge_clear_rules", "Quy định rõ ràng")} />
+              <Badge icon={<AlertTriangle size={18} />} text={t("terms_badge_violations", "Xử lý vi phạm")} />
             </div>
           </motion.div>
         </div>
@@ -80,55 +80,51 @@ export default function TermsOfServicePage() {
           <aside className="lg:col-span-3">
             <div className="sticky top-24 bg-white dark:bg-slate-900/95 rounded-2xl border border-gray-200 dark:border-slate-700 p-5">
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
-                Nội dung
+                {t("terms_sidebar_title", "Nội dung")}
               </h2>
               <ul className="space-y-3 text-sm text-gray-700 dark:text-slate-300">
-                <li><a href="#acceptance" className="hover:text-primary dark:hover:text-accent">Chấp nhận điều khoản</a></li>
-                <li><a href="#account" className="hover:text-primary dark:hover:text-accent">Tài khoản người dùng</a></li>
-                <li><a href="#usage" className="hover:text-primary dark:hover:text-accent">Quy tắc sử dụng</a></li>
-                <li><a href="#violations" className="hover:text-primary dark:hover:text-accent">Vi phạm & xử lý</a></li>
-                <li><a href="#changes" className="hover:text-primary dark:hover:text-accent">Thay đổi điều khoản</a></li>
+                <li><a href="#acceptance" className="hover:text-primary dark:hover:text-accent">{t("terms_nav_acceptance", "Chấp nhận điều khoản")}</a></li>
+                <li><a href="#account" className="hover:text-primary dark:hover:text-accent">{t("terms_nav_account", "Tài khoản người dùng")}</a></li>
+                <li><a href="#usage" className="hover:text-primary dark:hover:text-accent">{t("terms_nav_usage", "Quy tắc sử dụng")}</a></li>
+                <li><a href="#violations" className="hover:text-primary dark:hover:text-accent">{t("terms_nav_violations", "Vi phạm & xử lý")}</a></li>
+                <li><a href="#changes" className="hover:text-primary dark:hover:text-accent">{t("terms_nav_changes", "Thay đổi điều khoản")}</a></li>
               </ul>
             </div>
           </aside>
 
           {/* Main */}
           <section className="lg:col-span-9 space-y-12">
-            <AnimatedSection id="acceptance" title="Chấp nhận điều khoản" icon={<FileText />}>
+            <AnimatedSection id="acceptance" title={t("terms_nav_acceptance", "Chấp nhận điều khoản")} icon={<FileText />}>
               <p>
-                Việc truy cập và sử dụng ICS Learning đồng nghĩa với việc bạn
-                đã đọc, hiểu và đồng ý với toàn bộ điều khoản sử dụng này.
+                {t("terms_acceptance_content", "Việc truy cập và sử dụng ICS Learning đồng nghĩa với việc bạn đã đọc, hiểu và đồng ý với toàn bộ điều khoản sử dụng này.")}
               </p>
             </AnimatedSection>
 
-            <AnimatedSection id="account" title="Tài khoản người dùng" icon={<UserCheck />}>
+            <AnimatedSection id="account" title={t("terms_nav_account", "Tài khoản người dùng")} icon={<UserCheck />}>
               <ul className="list-disc pl-5 space-y-2">
-                <li>Bạn chịu trách nhiệm bảo mật thông tin tài khoản.</li>
-                <li>Không chia sẻ tài khoản cho bên thứ ba.</li>
-                <li>Mọi hoạt động phát sinh từ tài khoản được xem là do bạn thực hiện.</li>
+                <li>{t("terms_account_item1", "Bạn chịu trách nhiệm bảo mật thông tin tài khoản.")}</li>
+                <li>{t("terms_account_item2", "Không chia sẻ tài khoản cho bên thứ ba.")}</li>
+                <li>{t("terms_account_item3", "Mọi hoạt động phát sinh từ tài khoản được xem là do bạn thực hiện.")}</li>
               </ul>
             </AnimatedSection>
 
-            <AnimatedSection id="usage" title="Quy tắc sử dụng" icon={<ShieldCheck />}>
+            <AnimatedSection id="usage" title={t("terms_nav_usage", "Quy tắc sử dụng")} icon={<ShieldCheck />}>
               <ul className="list-disc pl-5 space-y-2">
-                <li>Sử dụng nền tảng đúng mục đích học tập.</li>
-                <li>Không đăng tải nội dung vi phạm pháp luật.</li>
-                <li>Tôn trọng giảng viên và học viên khác.</li>
+                <li>{t("terms_usage_item1", "Sử dụng nền tảng đúng mục đích học tập.")}</li>
+                <li>{t("terms_usage_item2", "Không đăng tải nội dung vi phạm pháp luật.")}</li>
+                <li>{t("terms_usage_item3", "Tôn trọng giảng viên và học viên khác.")}</li>
               </ul>
             </AnimatedSection>
 
-            <AnimatedSection id="violations" title="Vi phạm & xử lý" icon={<Ban />}>
+            <AnimatedSection id="violations" title={t("terms_nav_violations", "Vi phạm & xử lý")} icon={<Ban />}>
               <p>
-                ICS Learning có quyền tạm khóa hoặc chấm dứt tài khoản nếu phát hiện
-                hành vi vi phạm điều khoản sử dụng.
+                {t("terms_violations_content", "ICS Learning có quyền tạm khóa hoặc chấm dứt tài khoản nếu phát hiện hành vi vi phạm điều khoản sử dụng.")}
               </p>
             </AnimatedSection>
 
-            <AnimatedSection id="changes" title="Thay đổi điều khoản" icon={<AlertTriangle />}>
+            <AnimatedSection id="changes" title={t("terms_nav_changes", "Thay đổi điều khoản")} icon={<AlertTriangle />}>
               <p>
-                Điều khoản sử dụng có thể được cập nhật theo thời gian.
-                Việc tiếp tục sử dụng nền tảng đồng nghĩa với việc bạn chấp nhận
-                các thay đổi này.
+                {t("terms_changes_content", "Điều khoản sử dụng có thể được cập nhật theo thời gian. Việc tiếp tục sử dụng nền tảng đồng nghĩa với việc bạn chấp nhận các thay đổi này.")}
               </p>
             </AnimatedSection>
 
@@ -143,16 +139,16 @@ export default function TermsOfServicePage() {
               <HelpCircle className="text-indigo-600" size={28} />
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Có câu hỏi về điều khoản?
+                  {t("terms_support_title", "Có câu hỏi về điều khoản?")}
                 </h3>
                 <p className="mt-1 text-gray-600 dark:text-slate-300">
-                  Hãy liên hệ với chúng tôi để được hỗ trợ chi tiết hơn.
+                  {t("terms_support_desc", "Hãy liên hệ với chúng tôi để được hỗ trợ chi tiết hơn.")}
                 </p>
                 <Link
                   href="/lien-he"
                   className="inline-block mt-4 text-primary font-medium hover:underline"
                 >
-                  Liên hệ hỗ trợ →
+                  {t("terms_support_link", "Liên hệ hỗ trợ →")}
                 </Link>
               </div>
             </motion.div>

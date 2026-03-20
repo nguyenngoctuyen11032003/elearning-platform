@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -15,6 +15,8 @@ import {
   Trophy
 } from "lucide-react"
 import { PremiumCard } from "@/components/ui/premium-card"
+import { useLanguage } from "@/lib/i18n/language-context"
+import { autoTranslateData, getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
 
 interface ExamAttempt {
   id: string
@@ -70,8 +72,30 @@ const mockAttempts: ExamAttempt[] = [
 export default function ExamHistoryPage() {
   const params = useParams()
   const examId = params.examId as string
-  const [examInfo] = useState<ExamInfo>(mockExamInfo)
-  const [attempts] = useState<ExamAttempt[]>(mockAttempts)
+  const { language } = useLanguage()
+  const [examInfo, setExamInfo] = useState<ExamInfo>(mockExamInfo)
+  const [attempts, setAttempts] = useState<ExamAttempt[]>(mockAttempts)
+
+  useEffect(() => {
+    let active = true
+
+    const localize = async () => {
+      const [localizedExamInfo, localizedAttempts] = await Promise.all([
+        autoTranslateData(mockExamInfo, language),
+        autoTranslateData(mockAttempts, language),
+      ])
+
+      if (!active) return
+      setExamInfo(localizedExamInfo)
+      setAttempts(localizedAttempts)
+    }
+
+    localize()
+
+    return () => {
+      active = false
+    }
+  }, [language])
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600)
@@ -85,7 +109,7 @@ export default function ExamHistoryPage() {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
-    return date.toLocaleDateString('vi-VN', {
+    return date.toLocaleDateString(getLocaleByLanguage(language), {
       year: 'numeric',
       month: 'long',
       day: 'numeric',

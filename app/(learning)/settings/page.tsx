@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { Save, Bell, Moon, Sun, Palette, Mail, BookOpen, Award, Globe } from "lucide-react"
@@ -8,9 +8,11 @@ import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { SystemSettings } from "@/app/types/system-settings"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function StudentSettingsPage() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -45,9 +47,9 @@ const handleSave = async () => {
 
     await refresh() // reload config mới từ server
 
-    toast.success("Cài đặt đã được lưu thành công!")
+    toast.success(t("settings_saved", "Cài đặt đã được lưu thành công!"))
   } catch (error) {
-    toast.error("Có lỗi xảy ra khi lưu cài đặt")
+    toast.error(t("settings_save_error", "Có lỗi xảy ra khi lưu cài đặt"))
   } finally {
     setIsSaving(false)
   }
@@ -62,8 +64,8 @@ if (!config) return null
       <div className="w-full space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground dark:text-white">Cài đặt</h1>
-          <p className="text-muted-foreground dark:text-slate-400">Quản lý cài đặt tài khoản của bạn</p>
+          <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("settings_title", "Cài đặt")}</h1>
+          <p className="text-muted-foreground dark:text-slate-400">{t("settings_desc", "Quản lý cài đặt tài khoản của bạn")}</p>
         </div>
 
       <Tabs defaultValue="notifications" className="w-full">
@@ -80,15 +82,15 @@ if (!config) return null
         <TabsContent value="notifications" className="space-y-6 mt-6">
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
             <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-              <Bell size={24} /> Cài đặt thông báo
+              <Bell size={24} /> {t("settings_notif_title", "Cài đặt thông báo")}
             </h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
                 <div className="flex items-center gap-3">
                   <Mail size={20} className="text-primary dark:text-accent" />
                   <div>
-                    <p className="text-foreground dark:text-white font-semibold">Thông báo Email</p>
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm">Nhận thông báo qua email</p>
+                    <p className="text-foreground dark:text-white font-semibold">{t("settings_email_notif", "Thông báo Email")}</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("settings_email_desc", "Nhận thông báo qua email")}</p>
                   </div>
                 </div>
                 <button
@@ -108,8 +110,8 @@ if (!config) return null
                 <div className="flex items-center gap-3">
                   <BookOpen size={20} className="text-primary dark:text-accent" />
                   <div>
-                    <p className="text-foreground dark:text-white font-semibold">Thông báo khóa học</p>
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm">Cập nhật về khóa học đã đăng ký</p>
+                    <p className="text-foreground dark:text-white font-semibold">{t("settings_course_notif", "Thông báo khóa học")}</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("settings_course_desc", "Cập nhật về khóa học đã đăng ký")}</p>
                   </div>
                 </div>
                 <button
@@ -129,8 +131,8 @@ if (!config) return null
                 <div className="flex items-center gap-3">
                   <BookOpen size={20} className="text-primary dark:text-accent" />
                   <div>
-                    <p className="text-foreground dark:text-white font-semibold">Khóa học mới</p>
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm">Thông báo về khóa học mới</p>
+                    <p className="text-foreground dark:text-white font-semibold">{t("settings_new_course", "Khóa học mới")}</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("settings_new_course_desc", "Thông báo về khóa học mới")}</p>
                   </div>
                 </div>
                 <button
@@ -150,8 +152,8 @@ if (!config) return null
                 <div className="flex items-center gap-3">
                   <Award size={20} className="text-primary dark:text-accent" />
                   <div>
-                    <p className="text-foreground dark:text-white font-semibold">Chứng chỉ</p>
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm">Thông báo khi nhận chứng chỉ mới</p>
+                    <p className="text-foreground dark:text-white font-semibold">{t("settings_cert_notif", "Chứng chỉ")}</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("settings_cert_desc", "Thông báo khi nhận chứng chỉ mới")}</p>
                   </div>
                 </div>
                 <button
@@ -171,8 +173,8 @@ if (!config) return null
                 <div className="flex items-center gap-3">
                   <Bell size={20} className="text-primary dark:text-accent" />
                   <div>
-                    <p className="text-foreground dark:text-white font-semibold">Khuyến mãi</p>
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm">Nhận thông tin khuyến mãi và ưu đãi</p>
+                    <p className="text-foreground dark:text-white font-semibold">{t("settings_promo", "Khuyến mãi")}</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("settings_promo_desc", "Nhận thông tin khuyến mãi và ưu đãi")}</p>
                   </div>
                 </div>
                 <button
@@ -207,9 +209,9 @@ if (!config) return null
                     <Sun size={24} className="text-yellow-400" />
                   )}
                   <div>
-                    <p className="text-foreground dark:text-white font-semibold">Chế độ tối</p>
+                    <p className="text-foreground dark:text-white font-semibold">{t("settings_dark_mode", "Chế độ tối")}</p>
                     <p className="text-muted-foreground dark:text-slate-400 text-sm">
-                      Bật/tắt chế độ tối cho giao diện
+                      {t("settings_dark_desc", "Bật/tắt chế độ tối cho giao diện")}
                     </p>
                   </div>
                 </div>
@@ -238,8 +240,8 @@ if (!config) return null
                 <div className="flex items-center gap-3">
                   <Globe size={20} className="text-primary dark:text-accent" />
                   <div>
-                    <p className="text-foreground dark:text-white font-semibold">Ngôn ngữ</p>
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm">Chọn ngôn ngữ hiển thị</p>
+                    <p className="text-foreground dark:text-white font-semibold">{t("settings_language", "Ngôn ngữ")}</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("settings_language_desc", "Chọn ngôn ngữ hiển thị")}</p>
                   </div>
                 </div>
                 <select
@@ -247,8 +249,8 @@ if (!config) return null
                   onChange={(e) => handleSettingChange("language", e.target.value)}
                   className="bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                 >
-                  <option value="vi">Tiếng Việt</option>
-                  <option value="en">Tiếng Anh</option>
+                  <option value="vi">{t("settings_lang_vi", "Tiếng Việt")}</option>
+                  <option value="en">{t("settings_lang_en", "Tiếng Anh")}</option>
                 </select>
               </div>
             </div>
@@ -257,7 +259,7 @@ if (!config) return null
           {/* Info box */}
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm text-blue-900 dark:text-blue-200">
-              Giao diện sẽ được lưu tự động và áp dụng cho tất cả các trang trong hệ thống.
+              {t("settings_info", "Giao diện sẽ được lưu tự động và áp dụng cho tất cả các trang trong hệ thống.")}
             </p>
           </div>
         </TabsContent>
@@ -270,7 +272,7 @@ if (!config) return null
         className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50"
       >
         <Save size={20} />
-        {isSaving ? "Đang lưu..." : "Lưu cài đặt"}
+        {isSaving ? t("settings_saving", "Đang lưu...") : t("settings_save", "Lưu cài đặt")}
       </button>
       </div>
     </div>

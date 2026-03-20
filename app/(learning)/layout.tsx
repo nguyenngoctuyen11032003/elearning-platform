@@ -5,9 +5,11 @@ import Link from "next/link"
 import { useAuth } from "@/lib/auth/auth-context"
 import { StudentSidebar, SidebarProvider, MobileMenuToggle } from "@/components/ui/student-sidebar"
 import { GraduationCap } from "lucide-react"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function LearningLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth()
+  const { t } = useLanguage()
 
   if (loading) {
     return (
@@ -16,7 +18,7 @@ export default function LearningLayout({ children }: { children: React.ReactNode
           <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
             <GraduationCap className="text-white" size={32} />
           </div>
-          <p className="text-muted-foreground dark:text-slate-400">Đang tải...</p>
+          <p className="text-muted-foreground dark:text-slate-400">{t("common_loading", "Đang tải...")}</p>
         </div>
       </div>
     )
@@ -29,13 +31,13 @@ export default function LearningLayout({ children }: { children: React.ReactNode
           <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4">
             <GraduationCap className="text-white" size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-foreground dark:text-white mb-2">Bạn cần đăng nhập</h2>
-          <p className="text-muted-foreground dark:text-slate-400 mb-6">Đăng nhập để tiếp tục học tập</p>
+          <h2 className="text-2xl font-bold text-foreground dark:text-white mb-2">{t("auth_login_required", "Bạn cần đăng nhập")}</h2>
+          <p className="text-muted-foreground dark:text-slate-400 mb-6">{t("auth_login_to_continue", "Đăng nhập để tiếp tục học tập")}</p>
           <Link 
             href="/login" 
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl font-medium hover:shadow-lg transition-all"
           >
-            Đăng nhập ngay
+            {t("auth_login_now", "Đăng nhập ngay")}
           </Link>
         </div>
       </div>

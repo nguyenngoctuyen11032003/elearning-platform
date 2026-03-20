@@ -2,10 +2,9 @@
 
 import { Suspense } from "react"
 import { GoogleAuthCallback } from "@/components/ui/google-auth-callback"
-
 export default function GoogleCallbackPage() {
   return (
-    <Suspense fallback={<div>Đang xử lý đăng nhập Google...</div>}>
+    <Suspense fallback={<div>...</div>}>
       <GoogleAuthCallback />
     </Suspense>
   )

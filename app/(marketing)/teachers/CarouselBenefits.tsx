@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion, type Variants } from "framer-motion";
 import {
@@ -10,47 +10,9 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useState } from "react";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 /* ===================== DATA ===================== */
-
-const benefits = [
-  {
-    icon: DollarSign,
-    title: "Kiếm thu nhập thụ động",
-    desc: "Nhận hoa hồng 70% từ mỗi học viên đăng ký. Thu nhập không giới hạn, được chi trả hàng tháng.",
-    gradient: "from-green-500 to-emerald-500",
-  },
-  {
-    icon: Users,
-    title: "Xây dựng cộng đồng",
-    desc: "Kết nối với hàng ngàn học viên toàn cầu và xây dựng cộng đồng riêng của bạn.",
-    gradient: "from-blue-500 to-cyan-500",
-  },
-  {
-    icon: TrendingUp,
-    title: "Phát triển thương hiệu",
-    desc: "Nâng cao danh tiếng và xây dựng thương hiệu cá nhân chuyên nghiệp trong lĩnh vực của bạn.",
-    gradient: "from-purple-500 to-pink-500",
-  },
-  {
-    icon: Zap,
-    title: "Công cụ hiện đại",
-    desc: "Sử dụng các công cụ giảng dạy AI tiên tiến để tạo khóa học chất lượng cao nhanh chóng.",
-    gradient: "from-yellow-500 to-orange-500",
-  },
-  {
-    icon: Award,
-    title: "Hỗ trợ 24/7",
-    desc: "Nhận hỗ trợ chuyên nghiệp từ đội ngũ chăm sóc giảng viên mọi lúc mọi nơi.",
-    gradient: "from-red-500 to-pink-500",
-  },
-  {
-    icon: BarChart3,
-    title: "Phân tích chi tiết",
-    desc: "Theo dõi tiến độ học viên, doanh thu và hiệu suất khóa học với dashboard trực quan.",
-    gradient: "from-indigo-500 to-purple-500",
-  },
-];
 
 /* ===================== ANIMATION ===================== */
 
@@ -74,7 +36,47 @@ const itemVariants: Variants  =  {
 /* ===================== COMPONENT ===================== */
 
 export function CarouselBenefits() {
+  const { t } = useLanguage();
   const [slideIdx, setSlideIdx] = useState(0);
+
+  const benefits = [
+    {
+      icon: DollarSign,
+      title: t("teachers_benefit1_title", "Kiếm thu nhập thụ động"),
+      desc: t("teachers_benefit1_desc", "Nhận hoa hồng 70% từ mỗi học viên đăng ký. Thu nhập không giới hạn, được chi trả hàng tháng."),
+      gradient: "from-green-500 to-emerald-500",
+    },
+    {
+      icon: Users,
+      title: t("teachers_benefit2_title", "Xây dựng cộng đồng"),
+      desc: t("teachers_benefit2_desc", "Kết nối với hàng ngàn học viên toàn cầu và xây dựng cộng đồng riêng của bạn."),
+      gradient: "from-blue-500 to-cyan-500",
+    },
+    {
+      icon: TrendingUp,
+      title: t("teachers_benefit3_title", "Phát triển thương hiệu"),
+      desc: t("teachers_benefit3_desc", "Nâng cao danh tiếng và xây dựng thương hiệu cá nhân chuyên nghiệp trong lĩnh vực của bạn."),
+      gradient: "from-purple-500 to-pink-500",
+    },
+    {
+      icon: Zap,
+      title: t("teachers_benefit4_title", "Công cụ hiện đại"),
+      desc: t("teachers_benefit4_desc", "Sử dụng các công cụ giảng dạy AI tiên tiến để tạo khóa học chất lượng cao nhanh chóng."),
+      gradient: "from-yellow-500 to-orange-500",
+    },
+    {
+      icon: Award,
+      title: t("teachers_benefit5_title", "Hỗ trợ 24/7"),
+      desc: t("teachers_benefit5_desc", "Nhận hỗ trợ chuyên nghiệp từ đội ngũ chăm sóc giảng viên mọi lúc mọi nơi."),
+      gradient: "from-red-500 to-pink-500",
+    },
+    {
+      icon: BarChart3,
+      title: t("teachers_benefit6_title", "Phân tích chi tiết"),
+      desc: t("teachers_benefit6_desc", "Theo dõi tiến độ học viên, doanh thu và hiệu suất khóa học với dashboard trực quan."),
+      gradient: "from-indigo-500 to-purple-500",
+    },
+  ];
 
   const visibleCount = 3;
   const totalSlides = Math.ceil(benefits.length / visibleCount);

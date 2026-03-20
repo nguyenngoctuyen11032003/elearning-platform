@@ -20,9 +20,11 @@ import {
   BookOpen
 } from "lucide-react"
 import { getApiBaseUrl } from "@/lib/api/config"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
+  const { t } = useLanguage()
   const [email, setEmail] = useState("")
   const [subscribed, setSubscribed] = useState(false)
   const [settings, setSettings] = useState<any>(null);
@@ -45,28 +47,22 @@ useEffect(() => {
 }, []);
 
   const footerLinks = {
-    courses: [
-      { name: "Lập trình Web", href: "/courses?category=web" },
-      { name: "Mobile App", href: "/courses?category=mobile" },
-      { name: "Data Science", href: "/courses?category=data" },
-      { name: "DevOps", href: "/courses?category=devops" },
-    ],
     support: [
-      { name: "Trung tâm hỗ trợ", href: "/faq" },
-      { name: "Câu hỏi thường gặp", href: "/faq" },
-      { name: "Liên hệ", href: "/contact" },
-      { name: "Phản hồi", href: "/contact" },
+      { name: t("footer_support_center", "Trung tâm hỗ trợ"), href: "/faq" },
+      { name: t("footer_faq", "Câu hỏi thường gặp"), href: "/faq" },
+      { name: t("footer_contact", "Liên hệ"), href: "/contact" },
+      { name: t("footer_feedback", "Phản hồi"), href: "/contact" },
     ],
     company: [
-      { name: "Về chúng tôi", href: "/about" },
-      { name: "Đội ngũ giảng viên", href: "/teachers" },
-      { name: "Tuyển dụng", href: "/about" },
-      { name: "Blog", href: "/courses" },
+      { name: t("footer_about_us", "Về chúng tôi"), href: "/about" },
+      { name: t("footer_instructors", "Đội ngũ giảng viên"), href: "/teachers" },
+      { name: t("footer_careers", "Tuyển dụng"), href: "/about" },
+      { name: t("footer_blog", "Blog"), href: "/courses" },
     ],
     legal: [
-      { name: "Điều khoản sử dụng", href: "/terms" },
-      { name: "Chính sách bảo mật", href: "/privacy" },
-      { name: "Chính sách hoàn tiền", href: "/refund" },
+      { name: t("footer_terms", "Điều khoản sử dụng"), href: "/terms" },
+      { name: t("footer_privacy", "Chính sách bảo mật"), href: "/privacy" },
+      { name: t("footer_refund", "Chính sách hoàn tiền"), href: "/refund" },
     ],
   }
 
@@ -150,14 +146,13 @@ const fixUrl = (url: string) => {
                     ICS Learning
                   </span>
                   <p className="text-xs text-muted-foreground dark:text-slate-400">
-                    Nền tảng học trực tuyến
+                    {t("footer_platform", "Nền tảng học trực tuyến")}
                   </p>
                 </div>
               </Link>
 
               <p className="text-sm text-muted-foreground dark:text-slate-400 leading-relaxed max-w-sm">
-                Khám phá hàng ngàn khóa học chất lượng cao từ các chuyên gia hàng đầu.
-                Nâng cao kỹ năng, phát triển sự nghiệp.
+                {t("footer_description", "Khám phá hàng ngàn khóa học chất lượng cao từ các chuyên gia hàng đầu. Nâng cao kỹ năng, phát triển sự nghiệp.")}
               </p>
             </div>
 
@@ -167,7 +162,7 @@ const fixUrl = (url: string) => {
               {/* CÔNG TY */}
               <div>
                 <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">
-                  Công ty
+                  {t("footer_company", "Công ty")}
                 </h4>
                 <ul className="space-y-3.5">
                   {footerLinks.company.map((link) => (
@@ -190,7 +185,7 @@ const fixUrl = (url: string) => {
               {/* HỖ TRỢ */}
               <div>
                 <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">
-                  Hỗ trợ
+                  {t("footer_support", "Hỗ trợ")}
                 </h4>
                 <ul className="space-y-3.5">
                   {footerLinks.support.map((link) => (
@@ -213,11 +208,11 @@ const fixUrl = (url: string) => {
               {/* CẬP NHẬT */}
               <div>
                 <h4 className="font-semibold text-foreground dark:text-white mb-6 text-sm uppercase tracking-wider">
-                  Cập nhật
+                  {t("footer_updates", "Cập nhật")}
                 </h4>
 
                 <p className="text-sm text-muted-foreground dark:text-slate-400 mb-4">
-                  Nhận các khóa học mới và ưu đãi đặc biệt
+                  {t("footer_updates_desc", "Nhận các khóa học mới và ưu đãi đặc biệt")}
                 </p>
 
                 <form onSubmit={handleSubscribe} className="space-y-3">
@@ -227,7 +222,7 @@ const fixUrl = (url: string) => {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Email của bạn..."
+                        placeholder={t("footer_email_placeholder", "Email của bạn...")}
                         className="w-full pr-10 px-4 py-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm
                         text-foreground dark:text-white placeholder:text-muted-foreground
                         focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
@@ -246,7 +241,7 @@ const fixUrl = (url: string) => {
 
                   {subscribed && (
                     <p className="text-xs text-green-600 dark:text-green-400 font-medium animate-pulse">
-                      Đăng ký thành công!
+                      {t("footer_subscribe_success", "Đăng ký thành công!")}
                     </p>
                   )}
                 </form>
@@ -270,7 +265,7 @@ const fixUrl = (url: string) => {
               <a href={`tel:${settings?.hotline || '1900123456'}`} className="flex items-center gap-3 group cursor-pointer py-4 md:py-0 md:px-4 first:pt-0 md:first:pl-0">
                 <Phone size={18} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                 <div className="flex flex-col">
-                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">Hotline</span>
+                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">{t("footer_hotline", "Hotline")}</span>
                   <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{settings?.hotline || '1900 1234'}</span>
                 </div>
               </a>
@@ -279,7 +274,7 @@ const fixUrl = (url: string) => {
               <a href={`mailto:${settings?.supportEmail || 'support@icslearning.vn'}`} className="flex items-center gap-3 group cursor-pointer py-4 md:py-0 md:px-4">
                 <Mail size={18} className="text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                 <div className="flex flex-col">
-                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">Email</span>
+                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">{t("footer_email", "Email")}</span>
                   <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{settings?.supportEmail || 'support@icslearning.vn'}</span>
                 </div>
               </a>
@@ -288,14 +283,14 @@ const fixUrl = (url: string) => {
               <a href="#" className="flex items-center gap-3 group cursor-pointer py-4 md:py-0 md:px-4">
                 <MapPin size={18} className="text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                 <div className="flex flex-col">
-                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">Địa chỉ</span>
+                  <span className="text-xs text-muted-foreground dark:text-slate-500 group-hover:text-primary transition-colors uppercase tracking-wide">{t("footer_address", "Địa chỉ")}</span>
                   <span className="text-sm font-medium text-foreground dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{settings?.address || '123 Nguyễn Huệ, Q.1, TP.HCM'}</span>
                 </div>
               </a>
 
               {/* Social Links */}
               <div className="py-4 md:py-0 md:px-4">
-                <h4 className="text-xs text-muted-foreground dark:text-slate-500 uppercase tracking-wide font-semibold mb-3">Theo dõi</h4>
+                <h4 className="text-xs text-muted-foreground dark:text-slate-500 uppercase tracking-wide font-semibold mb-3">{t("footer_follow", "Theo dõi")}</h4>
                 <div className="flex gap-3">
                   {socialLinks.map((social) => {
                     const Icon = social.icon
@@ -340,7 +335,7 @@ const fixUrl = (url: string) => {
                 © {currentYear}{' '}
                 <span className="text-foreground dark:text-white font-semibold">
                   ICS Learning
-                </span>. Bảo lưu mọi quyền.
+                </span>. {t("footer_rights_reserved", "Bảo lưu mọi quyền.")}
               </p>
             </div>
 
@@ -364,9 +359,9 @@ const fixUrl = (url: string) => {
             {/* Made with heart */}
             <div className="flex items-center justify-center md:justify-end">
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-slate-400">
-                <span className="font-medium">Made with</span>
+                <span className="font-medium">{t("footer_made_with", "Made with")}</span>
                 <Heart size={16} className="text-red-500 fill-red-500 animate-pulse" />
-                <span className="font-medium">in Vietnam</span>
+                <span className="font-medium">{t("footer_in_vietnam", "in Vietnam")}</span>
               </div>
             </div>
           </div>
@@ -382,6 +377,7 @@ const fixUrl = (url: string) => {
 // Compact Footer for internal pages
 export function CompactFooter() {
   const currentYear = new Date().getFullYear()
+  const { t } = useLanguage()
 
   return (
     <footer className="border-t border-slate-200 dark:border-slate-800 bg-gray-200 dark:bg-gray-800">
@@ -397,21 +393,21 @@ export function CompactFooter() {
 
           {/* Copyright */}
           <p className="text-xs text-muted-foreground dark:text-slate-400 font-medium">
-            © {currentYear} <span className="text-foreground dark:text-white font-semibold">ICS Learning</span>. Bảo lưu mọi quyền.
+            © {currentYear} <span className="text-foreground dark:text-white font-semibold">ICS Learning</span>. {t("footer_rights_reserved", "Bảo lưu mọi quyền.")}
           </p>
 
           {/* Legal Links */}
           <div className="flex items-center gap-4">
             <Link href="/terms" className="text-xs text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium">
-              Điều khoản
+              {t("footer_terms_short", "Điều khoản")}
             </Link>
             <div className="h-3 w-px bg-slate-300 dark:bg-slate-700" />
             <Link href="/privacy" className="text-xs text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium">
-              Bảo mật
+              {t("footer_privacy_short", "Bảo mật")}
             </Link>
             <div className="h-3 w-px bg-slate-300 dark:bg-slate-700" />
             <Link href="/faq" className="text-xs text-muted-foreground dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 transition-colors font-medium">
-              Hỗ trợ
+              {t("footer_support_short", "Hỗ trợ")}
             </Link>
           </div>
         </div>

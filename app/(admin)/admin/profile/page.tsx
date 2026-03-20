@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { Save, Lock, User, Mail, Phone, Eye, EyeOff, ArrowLeft, Upload, Camera } from "lucide-react"
@@ -9,8 +9,10 @@ import { getRoleAvatar, getRoleDisplayName, getInitials } from "@/lib/utils/avat
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UserAvatar } from "@/components/ui/user-avatar"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function AdminProfilePage() {
+  const { t } = useLanguage()
   const { user, loading, refreshProfile } = useAuth()
   const [saving, setSaving] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -64,7 +66,7 @@ export default function AdminProfilePage() {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Kích thước file không được vượt quá 5MB")
+        toast.error(t("adm_prof_file_too_large", "Kích thước file không được vượt quá 5MB"))
         return
       }
       
@@ -75,7 +77,7 @@ export default function AdminProfilePage() {
       const reader = new FileReader()
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string)
-        toast.success("Đã chọn ảnh đại diện mới")
+        toast.success(t("adm_prof_avatar_selected", "Đã chọn ảnh đại diện mới"))
       }
       reader.readAsDataURL(file)
     }
@@ -97,7 +99,7 @@ export default function AdminProfilePage() {
           // You might want to call a refresh function here
         } catch (error) {
           console.error('Avatar upload failed:', error)
-          toast.error("Có lỗi xảy ra khi tải lên ảnh đại diện")
+          toast.error(t("adm_prof_avatar_fail", "Có lỗi xảy ra khi tải lên ảnh đại diện"))
           return; // Stop if avatar upload fails
         }
       }
@@ -111,10 +113,10 @@ export default function AdminProfilePage() {
       // Refresh user profile in auth context
       await refreshProfile()
 
-      toast.success("Cập nhật hồ sơ thành công!")
+      toast.success(t("adm_prof_update_ok", "Cập nhật hồ sơ thành công!"))
     } catch (error) {
       console.error("Error updating profile:", error)
-      toast.error("Có lỗi xảy ra khi cập nhật hồ sơ")
+      toast.error(t("adm_prof_update_fail", "Có lỗi xảy ra khi cập nhật hồ sơ"))
     } finally {
       setSaving(false)
     }
@@ -124,12 +126,12 @@ export default function AdminProfilePage() {
     e.preventDefault()
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Mật khẩu mới không khớp!")
+      toast.error(t("adm_prof_pw_mismatch", "Mật khẩu mới không khớp!"))
       return
     }
 
     if (passwordData.newPassword.length < 6) {
-      toast.error("Mật khẩu mới phải có ít nhất 6 ký tự!")
+      toast.error(t("adm_prof_pw_too_short", "Mật khẩu mới phải có ít nhất 6 ký tự!"))
       return
     }
 
@@ -141,7 +143,7 @@ export default function AdminProfilePage() {
         newPassword: passwordData.newPassword,
       })
 
-      toast.success("Đổi mật khẩu thành công!")
+      toast.success(t("adm_prof_pw_ok", "Đổi mật khẩu thành công!"))
       setPasswordData({
         currentPassword: "",
         newPassword: "",
@@ -149,7 +151,7 @@ export default function AdminProfilePage() {
       })
     } catch (error) {
       console.error("Error changing password:", error)
-      toast.error("Có lỗi xảy ra khi đổi mật khẩu. Vui lòng kiểm tra mật khẩu hiện tại.")
+      toast.error(t("adm_prof_pw_fail", "Có lỗi xảy ra khi đổi mật khẩu. Vui lòng kiểm tra mật khẩu hiện tại."))
     } finally {
       setSaving(false)
     }
@@ -177,9 +179,9 @@ export default function AdminProfilePage() {
       <div className="min-h-screen w-full">
         <div className="w-full text-center">
           <h1 className="text-3xl font-bold text-foreground dark:text-white">
-            Không tìm thấy thông tin người dùng
+            {t("adm_prof_user_not_found", "Không tìm thấy thông tin người dùng")}
           </h1>
-          <p className="text-muted-foreground mt-2">Vui lòng đăng nhập lại</p>
+          <p className="text-muted-foreground mt-2">{t("adm_prof_login_again", "Vui lòng đăng nhập lại")}</p>
         </div>
       </div>
     )
@@ -197,8 +199,8 @@ export default function AdminProfilePage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Hồ sơ cá nhân</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Quản lý thông tin và bảo mật tài khoản</p>
+            <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("adm_prof_title", "Hồ sơ cá nhân")}</h1>
+            <p className="text-muted-foreground dark:text-slate-400">{t("adm_prof_subtitle", "Quản lý thông tin và bảo mật tài khoản")}</p>
           </div>
         </div>
 
@@ -246,7 +248,7 @@ export default function AdminProfilePage() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground dark:text-slate-500 mt-2">
-                Nhấn vào ảnh đại diện để thay đổi (PNG, JPG - Tối đa 2MB)
+                {t("adm_prof_avatar_hint", "Nhấn vào ảnh đại diện để thay đổi (PNG, JPG - Tối đa 2MB)")}
               </p>
             </div>
           </div>
@@ -257,11 +259,11 @@ export default function AdminProfilePage() {
           <TabsList className="grid w-full grid-cols-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
             <TabsTrigger value="profile" className="text-sm md:text-base">
               <User size={16} className="mr-2" />
-              Thông tin cá nhân
+              {t("adm_prof_tab_info", "Thông tin cá nhân")}
             </TabsTrigger>
             <TabsTrigger value="password" className="text-sm md:text-base">
               <Lock size={16} className="mr-2" />
-              Đổi mật khẩu
+              {t("adm_prof_tab_password", "Đổi mật khẩu")}
             </TabsTrigger>
           </TabsList>
 
@@ -272,7 +274,7 @@ export default function AdminProfilePage() {
                 {/* Name Field */}
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <User size={16} /> Họ và tên
+                    <User size={16} /> {t("adm_prof_name", "Họ và tên")}
                   </label>
                   <input
                     type="text"
@@ -281,7 +283,7 @@ export default function AdminProfilePage() {
                     onChange={handleProfileChange}
                     required
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
-                    placeholder="Nhập họ và tên của bạn"
+                    placeholder={t("adm_prof_name_placeholder", "Nhập họ và tên của bạn")}
                   />
                 </div>
 
@@ -298,14 +300,14 @@ export default function AdminProfilePage() {
                     className="w-full bg-muted dark:bg-slate-800 text-muted-foreground cursor-not-allowed rounded-lg px-4 py-3 border border-border dark:border-slate-800"
                   />
                   <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
-                    Email không thể thay đổi vì lý do bảo mật
+                    {t("adm_prof_email_readonly", "Email không thể thay đổi vì lý do bảo mật")}
                   </p>
                 </div>
 
                 {/* Phone Field */}
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <Phone size={16} /> Số điện thoại
+                    <Phone size={16} /> {t("adm_prof_phone", "Số điện thoại")}
                   </label>
                   <input
                     type="tel"
@@ -313,7 +315,7 @@ export default function AdminProfilePage() {
                     value={profileData.phone}
                     onChange={handleProfileChange}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
-                    placeholder="Nhập số điện thoại (tùy chọn)"
+                    placeholder={t("adm_prof_phone_placeholder", "Nhập số điện thoại (tùy chọn)")}
                   />
                 </div>
 
@@ -324,7 +326,7 @@ export default function AdminProfilePage() {
                   className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Save size={20} />
-                  {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                  {saving ? t("adm_prof_saving", "Đang lưu...") : t("adm_prof_save", "Lưu thay đổi")}
                 </button>
               </form>
             </div>
@@ -337,7 +339,7 @@ export default function AdminProfilePage() {
                 {/* Current Password */}
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <Lock size={16} /> Mật khẩu hiện tại
+                    <Lock size={16} /> {t("adm_prof_current_pw", "Mật khẩu hiện tại")}
                   </label>
                   <div className="relative">
                     <input
@@ -347,7 +349,7 @@ export default function AdminProfilePage() {
                       onChange={handlePasswordChange}
                       required
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 pr-12 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
-                      placeholder="Nhập mật khẩu hiện tại"
+                      placeholder={t("adm_prof_current_pw_placeholder", "Nhập mật khẩu hiện tại")}
                     />
                     <button
                       type="button"
@@ -362,7 +364,7 @@ export default function AdminProfilePage() {
                 {/* New Password */}
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <Lock size={16} /> Mật khẩu mới
+                    <Lock size={16} /> {t("adm_prof_new_pw", "Mật khẩu mới")}
                   </label>
                   <div className="relative">
                     <input
@@ -372,7 +374,7 @@ export default function AdminProfilePage() {
                       onChange={handlePasswordChange}
                       required
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 pr-12 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
-                      placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                      placeholder={t("adm_prof_new_pw_placeholder", "Nhập mật khẩu mới (tối thiểu 6 ký tự)")}
                     />
                     <button
                       type="button"
@@ -387,7 +389,7 @@ export default function AdminProfilePage() {
                 {/* Confirm Password */}
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <Lock size={16} /> Xác nhận mật khẩu mới
+                    <Lock size={16} /> {t("adm_prof_confirm_pw", "Xác nhận mật khẩu mới")}
                   </label>
                   <div className="relative">
                     <input
@@ -397,7 +399,7 @@ export default function AdminProfilePage() {
                       onChange={handlePasswordChange}
                       required
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 pr-12 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
-                      placeholder="Nhập lại mật khẩu mới"
+                      placeholder={t("adm_prof_confirm_pw_placeholder", "Nhập lại mật khẩu mới")}
                     />
                     <button
                       type="button"
@@ -416,7 +418,7 @@ export default function AdminProfilePage() {
                   className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Save size={20} />
-                  {saving ? "Đang lưu..." : "Đổi mật khẩu"}
+                  {saving ? t("adm_prof_saving", "Đang lưu...") : t("adm_prof_change_pw", "Đổi mật khẩu")}
                 </button>
               </form>
             </div>

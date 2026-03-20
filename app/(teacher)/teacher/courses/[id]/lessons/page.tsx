@@ -5,6 +5,7 @@ import type React from "react"
 import { TeacherSidebar } from "@/components/ui/teacher-sidebar"
 import { Plus, GripVertical, Edit, Trash2, Eye } from "lucide-react"
 import { useState } from "react"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 const initialLessons = [
   { id: 1, title: "Giới thiệu Next.js", duration: "15:30", type: "video", order: 1 },
@@ -14,6 +15,7 @@ const initialLessons = [
 ]
 
 export default function TeacherLessonsPage() {
+  const { t } = useLanguage()
   const [lessons, setLessons] = useState(initialLessons)
   const [draggedItem, setDraggedItem] = useState<number | null>(null)
 
@@ -47,11 +49,11 @@ export default function TeacherLessonsPage() {
         <div className="w-full space-y-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground dark:text-white">Quản lý bài giảng</h1>
-              <p className="text-muted-foreground dark:text-slate-400">Kéo để sắp xếp thứ tự bài giảng</p>
+              <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("tch_les_title", "Quản lý bài giảng")}</h1>
+              <p className="text-muted-foreground dark:text-slate-400">{t("tch_les_subtitle", "Kéo để sắp xếp thứ tự bài giảng")}</p>
             </div>
             <button className="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center gap-2">
-              <Plus size={20} /> Thêm bài giảng
+              <Plus size={20} /> {t("tch_les_add", "Thêm bài giảng")}
             </button>
           </div>
 

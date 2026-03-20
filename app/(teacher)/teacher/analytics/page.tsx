@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { StatCard } from "@/components/ui/stat-card"
 import { apiClient } from "@/lib/api/client"
+import { useLanguage } from "@/lib/i18n/language-context"
 import { toast } from "sonner"
 
 interface AnalyticsData {
@@ -41,6 +42,17 @@ export default function TeacherAnalyticsPage() {
   const [coursePerformance, setCoursePerformance] = useState<CoursePerformance[]>([])
   const [loading, setLoading] = useState(true)
   const [dateRange, setDateRange] = useState("month")
+  const { language, t } = useLanguage()
+
+  const localeByLanguage: Record<string, string> = {
+    vi: "vi-VN",
+    en: "en-US",
+    ja: "ja-JP",
+    ko: "ko-KR",
+    "zh-CN": "zh-CN",
+  }
+
+  const activeLocale = localeByLanguage[language] || "vi-VN"
 
   useEffect(() => {
     const loadAnalytics = async () => {
@@ -61,7 +73,7 @@ export default function TeacherAnalyticsPage() {
         setCoursePerformance(Array.isArray(res?.coursePerformance) ? res.coursePerformance : [])
       } catch (error) {
         console.error("Failed to load teacher analytics", error)
-        toast.error("Không thể tải dữ liệu phân tích")
+        toast.error(t("teacher_analytics_load_failed", "Không thể tải dữ liệu phân tích"))
         setAnalytics({
           totalStudents: 0,
           totalCourses: 0,
@@ -83,7 +95,7 @@ export default function TeacherAnalyticsPage() {
   }, [dateRange])
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
+    return new Intl.NumberFormat(activeLocale, {
       style: 'currency',
       currency: 'VND',
     }).format(amount)
@@ -117,15 +129,15 @@ export default function TeacherAnalyticsPage() {
           <div className="relative z-10 space-y-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Phân tích & Thống kê</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Theo dõi hiệu suất khóa học của bạn</p>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("teacher_analytics_title", "Phân tích & Thống kê")}</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("teacher_analytics_subtitle", "Theo dõi hiệu suất khóa học của bạn")}</p>
               </div>
               <div className="flex gap-2 flex-wrap">
                 {[
-                  { value: "day", label: "Ngày" },
-                  { value: "week", label: "Tuần" },
-                  { value: "month", label: "Tháng" },
-                  { value: "year", label: "Năm" },
+                  { value: "day", label: t("period_day", "Ngày") },
+                  { value: "week", label: t("period_week", "Tuần") },
+                  { value: "month", label: t("period_month", "Tháng") },
+                  { value: "year", label: t("period_year", "Năm") },
                 ].map((period) => (
                   <button
                     key={period.value}
@@ -147,33 +159,33 @@ export default function TeacherAnalyticsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <StatCard 
                   icon={Users} 
-                  title="Tổng học viên" 
-                  value={(analytics?.totalStudents || 0).toLocaleString('en-US')} 
-                  change={`${(analytics?.studentGrowth || 0) > 0 ? '+' : ''}${analytics?.studentGrowth || 0}% so với tháng trước`} 
+                  title={t("teacher_analytics_total_students", "Tổng học viên")}
+                  value={(analytics?.totalStudents || 0).toLocaleString(activeLocale)}
+                  change={`${(analytics?.studentGrowth || 0) > 0 ? '+' : ''}${analytics?.studentGrowth || 0}% ${t("teacher_analytics_vs_last_month", "so với tháng trước")}`} 
                 />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
                 <StatCard 
                   icon={DollarSign} 
-                  title="Tổng doanh thu" 
+                  title={t("teacher_analytics_total_revenue", "Tổng doanh thu")}
                   value={formatCurrency(analytics?.totalRevenue || 0)} 
-                  change={`${(analytics?.revenueGrowth || 0) > 0 ? '+' : ''}${analytics?.revenueGrowth || 0}% so với tháng trước`} 
+                  change={`${(analytics?.revenueGrowth || 0) > 0 ? '+' : ''}${analytics?.revenueGrowth || 0}% ${t("teacher_analytics_vs_last_month", "so với tháng trước")}`} 
                 />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
                 <StatCard 
                   icon={Eye} 
-                  title="Lượt đăng ký" 
-                  value={(analytics?.totalViews || 0).toLocaleString('en-US')} 
-                  change="Tổng lượt đăng ký khóa học" 
+                  title={t("teacher_analytics_enrollments", "Lượt đăng ký")}
+                  value={(analytics?.totalViews || 0).toLocaleString(activeLocale)}
+                  change={t("teacher_analytics_total_enrollments", "Tổng lượt đăng ký khóa học")}
                 />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
                 <StatCard 
                   icon={Star} 
-                  title="Đánh giá trung bình" 
+                  title={t("teacher_dashboard_average_rating", "Đánh giá trung bình")}
                   value={`${analytics?.averageRating ?? 0}★`} 
-                  change="Từ tất cả học viên" 
+                  change={t("teacher_analytics_from_all_students", "Từ tất cả học viên")}
                 />
               </div>
             </div>
@@ -184,7 +196,7 @@ export default function TeacherAnalyticsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-foreground dark:text-white">Tỷ lệ hoàn thành</h2>
+              <h2 className="text-lg font-bold text-foreground dark:text-white">{t("teacher_analytics_completion_title", "Tỷ lệ hoàn thành")}</h2>
               <Clock size={20} className="text-muted-foreground" />
             </div>
             <div className="flex items-center gap-4">
@@ -216,10 +228,10 @@ export default function TeacherAnalyticsPage() {
               </div>
               <div>
                 <p className="text-muted-foreground dark:text-slate-400 text-sm">
-                  Tỷ lệ học viên hoàn thành khóa học
+                  {t("teacher_analytics_completion_desc", "Tỷ lệ học viên hoàn thành khóa học")}
                 </p>
                 <p className="text-foreground dark:text-white font-medium mt-1">
-                  Cao hơn 12% so với tháng trước
+                  {t("teacher_analytics_completion_trend", "Cao hơn 12% so với tháng trước")}
                 </p>
               </div>
             </div>
@@ -227,17 +239,17 @@ export default function TeacherAnalyticsPage() {
 
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-foreground dark:text-white">Khóa học</h2>
+              <h2 className="text-lg font-bold text-foreground dark:text-white">{t("teacher_dashboard_courses", "Khóa học")}</h2>
               <BookOpen size={20} className="text-muted-foreground" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-background dark:bg-slate-950 rounded-xl p-4 text-center">
                 <p className="text-3xl font-bold text-foreground dark:text-white">{analytics?.totalCourses ?? 0}</p>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm">Tổng khóa học</p>
+                <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("teacher_analytics_total_courses", "Tổng khóa học")}</p>
               </div>
               <div className="bg-background dark:bg-slate-950 rounded-xl p-4 text-center">
                 <p className="text-3xl font-bold text-green-500">{analytics?.activeCourses ?? 0}</p>
-                <p className="text-muted-foreground dark:text-slate-400 text-sm">Đang hoạt động</p>
+                <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("teacher_analytics_active_courses", "Đang hoạt động")}</p>
               </div>
             </div>
           </div>
@@ -245,7 +257,7 @@ export default function TeacherAnalyticsPage() {
 
         {/* Course Performance: Cards for mobile, table for desktop */}
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-          <h2 className="text-lg font-bold text-foreground dark:text-white mb-6">Hiệu suất khóa học</h2>
+          <h2 className="text-lg font-bold text-foreground dark:text-white mb-6">{t("teacher_analytics_course_performance", "Hiệu suất khóa học")}</h2>
           {/* Cards for mobile */}
           <div className="block lg:hidden">
             <div className="space-y-4">
@@ -261,15 +273,15 @@ export default function TeacherAnalyticsPage() {
                     </div>
                     <div className="flex flex-wrap gap-4 items-center justify-between">
                       <div className="flex flex-col items-center">
-                        <span className="text-xs text-muted-foreground dark:text-slate-400">Học viên</span>
-                        <span className="text-base font-bold text-foreground dark:text-white">{course.students.toLocaleString('en-US')}</span>
+                        <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_dashboard_students", "Học viên")}</span>
+                        <span className="text-base font-bold text-foreground dark:text-white">{course.students.toLocaleString(activeLocale)}</span>
                       </div>
                       <div className="flex flex-col items-center">
-                        <span className="text-xs text-muted-foreground dark:text-slate-400">Doanh thu</span>
+                        <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_dashboard_revenue", "Doanh thu")}</span>
                         <span className="text-base font-bold text-green-500">{formatCurrency(course.revenue)}</span>
                       </div>
                       <div className="flex flex-col items-center">
-                        <span className="text-xs text-muted-foreground dark:text-slate-400">Hoàn thành</span>
+                        <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_dashboard_completed", "Hoàn thành")}</span>
                         <div className="flex items-center gap-2">
                           <div className="w-16 h-2 bg-secondary dark:bg-slate-800 rounded-full overflow-hidden">
                             <div
@@ -285,7 +297,7 @@ export default function TeacherAnalyticsPage() {
                 ))
               ) : (
                 <div className="py-6 text-center text-muted-foreground dark:text-slate-400">
-                  Chưa có dữ liệu hiệu suất khóa học
+                  {t("teacher_analytics_no_course_performance", "Chưa có dữ liệu hiệu suất khóa học")}
                 </div>
               )}
             </div>
@@ -295,11 +307,11 @@ export default function TeacherAnalyticsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800">
-                  <th className="text-left py-3 px-4 text-muted-foreground dark:text-slate-400 font-medium">Khóa học</th>
-                  <th className="text-center py-3 px-4 text-muted-foreground dark:text-slate-400 font-medium">Học viên</th>
-                  <th className="text-center py-3 px-4 text-muted-foreground dark:text-slate-400 font-medium">Doanh thu</th>
-                  <th className="text-center py-3 px-4 text-muted-foreground dark:text-slate-400 font-medium">Đánh giá</th>
-                  <th className="text-center py-3 px-4 text-muted-foreground dark:text-slate-400 font-medium">Hoàn thành</th>
+                  <th className="text-left py-3 px-4 text-muted-foreground dark:text-slate-400 font-medium">{t("teacher_dashboard_courses", "Khóa học")}</th>
+                  <th className="text-center py-3 px-4 text-muted-foreground dark:text-slate-400 font-medium">{t("teacher_dashboard_students", "Học viên")}</th>
+                  <th className="text-center py-3 px-4 text-muted-foreground dark:text-slate-400 font-medium">{t("teacher_dashboard_revenue", "Doanh thu")}</th>
+                  <th className="text-center py-3 px-4 text-muted-foreground dark:text-slate-400 font-medium">{t("teacher_dashboard_average_rating", "Đánh giá trung bình")}</th>
+                  <th className="text-center py-3 px-4 text-muted-foreground dark:text-slate-400 font-medium">{t("teacher_dashboard_completed", "Hoàn thành")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -309,7 +321,7 @@ export default function TeacherAnalyticsPage() {
                       <p className="font-medium text-foreground dark:text-white">{course.title}</p>
                     </td>
                     <td className="py-4 px-4 text-center text-foreground dark:text-white">
-                      {course.students.toLocaleString('en-US')}
+                      {course.students.toLocaleString(activeLocale)}
                     </td>
                     <td className="py-4 px-4 text-center text-green-500 font-medium">
                       {formatCurrency(course.revenue)}
@@ -336,7 +348,7 @@ export default function TeacherAnalyticsPage() {
                 {coursePerformance.length === 0 && (
                   <tr>
                     <td colSpan={5} className="py-6 text-center text-muted-foreground dark:text-slate-400">
-                      Chưa có dữ liệu hiệu suất khóa học
+                      {t("teacher_analytics_no_course_performance", "Chưa có dữ liệu hiệu suất khóa học")}
                     </td>
                   </tr>
                 )}

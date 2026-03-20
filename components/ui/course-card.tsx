@@ -5,6 +5,7 @@ import Image from "next/image"
 import { Star } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState } from "react"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface CourseCardProps {
   id: string
@@ -17,6 +18,7 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ id, title, teacher, price, rating, image, students }: CourseCardProps) {
+  const { t } = useLanguage()
   const [showTooltip, setShowTooltip] = useState(false)
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
 
@@ -79,14 +81,14 @@ export function CourseCard({ id, title, teacher, price, rating, image, students 
               </div>
               <div className="flex justify-between items-center pt-3 border-t border-border dark:border-slate-800 flex-shrink-0 mt-auto">
                 <span className="text-primary dark:text-accent font-bold text-lg">
-                  {price === 0 ? "Miễn phí" : `₫${price.toLocaleString("vi-VN")}`}
+                  {price === 0 ? t("course_free", "Miễn phí") : `₫${price.toLocaleString("vi-VN")}`}
                 </span>
                 <motion.button 
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-full transition-smooth font-semibold"
                 >
-                  Xem
+                  {t("course_view", "Xem")}
                 </motion.button>
               </div>
             </div>

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import type React from "react"
 import { apiClient } from "@/lib/api/client"
@@ -31,9 +31,11 @@ import {
   QrCode,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useLanguage } from "@/lib/i18n/language-context"
 import { DEFAULT_SYSTEM_SETTINGS } from "../../../../lib/system-config/default-system-settings"
 
 export default function AdminSettingsPage() {
+  const { t } = useLanguage()
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
@@ -80,14 +82,14 @@ useEffect(() => {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        toast.error("Kích thước file không được vượt quá 2MB")
+        toast.error(t("adm_set_file_too_large", "Kích thước file không được vượt quá 2MB"))
         return
       }
       setQrFile(file)
       const reader = new FileReader()
       reader.onloadend = () => {
         setQrPreview(reader.result as string)
-        toast.success("Đã tải lên mã QR thành công")
+        toast.success(t("adm_set_qr_upload_success", "Đã tải lên mã QR thành công"))
       }
       reader.readAsDataURL(file)
     }
@@ -110,9 +112,21 @@ const handleSave = async () => {
       const uploadRes = await apiClient.uploadFile(qrFile)
       updatedSettings.paymentQrCode = uploadRes.url
     }
+
+    // Lưu cài đặt vào API
+    await apiClient.put('/system-settings', updatedSettings)
+
+    // Cập nhật config cục bộ
+    setConfig(updatedSettings)
+    
+    // Clear file state sau khi lưu thành công
+    setLogoFile(null)
+    setQrFile(null)
+
+    toast.success(t("adm_set_save_success", "Lưu cài đặt thành công"))
   } catch (err) {
     console.error(err)
-    toast.error("Lưu thất bại")
+    toast.error(t("adm_set_save_fail", "Lưu thất bại"))
   } finally {
     setIsSaving(false)
   }
@@ -123,26 +137,26 @@ if (!settings) return null
       <div className="w-full space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground dark:text-white">Cài đặt hệ thống</h1>
-          <p className="text-muted-foreground dark:text-slate-400">Quản lý cấu hình toàn bộ nền tảng</p>
+          <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("adm_set_title", "Cài đặt hệ thống")}</h1>
+          <p className="text-muted-foreground dark:text-slate-400">{t("adm_set_subtitle", "Quản lý cấu hình toàn bộ nền tảng")}</p>
         </div>
 
         <Tabs defaultValue="payment" className="w-full">
           <TabsList className="grid w-full grid-cols-5 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
             <TabsTrigger value="payment" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
-              Thanh toán
+              {t("adm_set_tab_payment", "Thanh toán")}
             </TabsTrigger>
             <TabsTrigger value="general" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
-              Chung
+              {t("adm_set_tab_general", "Chung")}
             </TabsTrigger>
             <TabsTrigger value="contact" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
-              Liên hệ
+              {t("adm_set_tab_contact", "Liên hệ")}
             </TabsTrigger>
             <TabsTrigger value="branding" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
-              Giao diện
+              {t("adm_set_tab_branding", "Giao diện")}
             </TabsTrigger>
             <TabsTrigger value="security" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
-              Bảo mật
+              {t("adm_set_tab_security", "Bảo mật")}
             </TabsTrigger>
           </TabsList>
 
@@ -150,14 +164,14 @@ if (!settings) return null
           <TabsContent value="payment" className="space-y-6 mt-6">
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <CreditCard size={24} className="text-primary dark:text-accent" /> Thông tin thanh toán
+                <CreditCard size={24} className="text-primary dark:text-accent" /> {t("adm_set_payment_title", "Thông tin thanh toán")}
               </h2>
               <p className="text-muted-foreground dark:text-slate-400 text-sm">
-                Thông tin ngân hàng để nhận thanh toán từ học viên
+                {t("adm_set_payment_desc", "Thông tin ngân hàng để nhận thanh toán từ học viên")}
               </p>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Tên ngân hàng</label>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_set_bank_name", "Tên ngân hàng")}</label>
                   <input
                     type="text"
                     value={settings.bankName ?? ""}
@@ -167,7 +181,7 @@ if (!settings) return null
                   />
                 </div>
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Số tài khoản</label>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_set_account_number", "Số tài khoản")}</label>
                   <input
                     type="text"
                     value={settings.bankAccount ?? ""}
@@ -177,7 +191,7 @@ if (!settings) return null
                   />
                 </div>
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Chủ tài khoản</label>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_set_account_holder", "Chủ tài khoản")}</label>
                   <input
                     type="text"
                     value={settings.accountHolder ?? ""}
@@ -188,7 +202,7 @@ if (!settings) return null
                 </div>
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <QrCode size={16} /> Mã QR thanh toán
+                    <QrCode size={16} /> {t("adm_set_qr_code", "Mã QR thanh toán")}
                   </label>
                   <div className="flex items-start gap-4">
                     <div className="w-32 h-32 bg-secondary dark:bg-slate-800 rounded-lg flex items-center justify-center border-2 border-dashed border-border dark:border-slate-700 overflow-hidden">
@@ -218,11 +232,11 @@ if (!settings) return null
                           }}
                           className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth font-medium flex items-center gap-2"
                         >
-                          <Upload size={16} /> Tải lên mã QR
+                          <Upload size={16} /> {t("adm_set_upload_qr", "Tải lên mã QR")}
                         </button>
                       </label>
                       <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
-                        PNG, JPG (Tối đa 2MB). Mã QR sẽ được hiển thị cho học viên khi thanh toán.
+                        {t("adm_set_qr_note", "PNG, JPG (Tối đa 2MB). Mã QR sẽ được hiển thị cho học viên khi thanh toán.")}
                       </p>
                     </div>
                   </div>
@@ -236,12 +250,12 @@ if (!settings) return null
             {/* About ICS Learning */}
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Heart size={24} className="text-primary dark:text-accent" /> Về ICS Learning
+                <Heart size={24} className="text-primary dark:text-accent" /> {t("adm_set_about", "Về ICS Learning")}
               </h2>
               <div className="space-y-4">
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    Giới thiệu về ICS Learning
+                    {t("adm_set_about_label", "Giới thiệu về ICS Learning")}
                   </label>
                   <textarea
                     value={settings.about_ics}
@@ -256,12 +270,12 @@ if (!settings) return null
             {/* Mission */}
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Target size={24} className="text-primary dark:text-accent" /> Sứ mệnh của chúng tôi
+                <Target size={24} className="text-primary dark:text-accent" /> {t("adm_set_our_mission", "Sứ mệnh của chúng tôi")}
               </h2>
               <div className="space-y-4">
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    Sứ mệnh
+                    {t("adm_set_mission", "Sứ mệnh")}
                   </label>
                   <textarea
                     value={settings.mission}
@@ -272,7 +286,7 @@ if (!settings) return null
                 </div>
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    Tầm nhìn
+                    {t("adm_set_vision", "Tầm nhìn")}
                   </label>
                   <textarea
                     value={settings.vision}
@@ -290,12 +304,12 @@ if (!settings) return null
             {/* Contact Information */}
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Mail size={24} className="text-primary dark:text-accent" /> Thông tin liên hệ
+                <Mail size={24} className="text-primary dark:text-accent" /> {t("adm_set_contact_info", "Thông tin liên hệ")}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <Mail size={16} /> Email hỗ trợ
+                    <Mail size={16} /> {t("adm_set_support_email", "Email hỗ trợ")}
                   </label>
                   <input
                     type="email"
@@ -318,7 +332,7 @@ if (!settings) return null
               </div>
               <div>
                 <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                  <MapPin size={16} /> Địa chỉ
+                  <MapPin size={16} /> {t("adm_set_address", "Địa chỉ")}
                 </label>
                 <input
                   type="text"
@@ -332,7 +346,7 @@ if (!settings) return null
             {/* Social Media */}
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Globe size={24} className="text-primary dark:text-accent" /> Mạng xã hội
+                <Globe size={24} className="text-primary dark:text-accent" /> {t("adm_set_social_media", "Mạng xã hội")}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -407,11 +421,11 @@ if (!settings) return null
           <TabsContent value="branding" className="space-y-6 mt-6">
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Palette size={24} className="text-primary dark:text-accent" /> Giao diện hệ thống
+                <Palette size={24} className="text-primary dark:text-accent" /> {t("adm_set_branding_title", "Giao diện hệ thống")}
               </h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-3">Logo</label>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-3">{t("adm_set_logo", "Logo")}</label>
                   <div className="flex items-center gap-4">
                     <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-700 border-2 border-border dark:border-slate-600 flex items-center justify-center">
                       {logoPreview ? (
@@ -429,7 +443,7 @@ if (!settings) return null
                     </div>
                     <div className="flex-1">
                       <label className="block">
-                        <span className="sr-only">Chọn logo</span>
+                        <span className="sr-only">{t("adm_set_choose_logo", "Chọn logo")}</span>
                         <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
                         <button
                           onClick={(e) => {
@@ -440,7 +454,7 @@ if (!settings) return null
                           }}
                           className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth font-medium"
                         >
-                          Tải lên logo
+                          {t("adm_set_upload_logo", "Tải lên logo")}
                         </button>
                       </label>
                       <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">PNG, JPG (Max 2MB)</p>
@@ -451,15 +465,15 @@ if (!settings) return null
                 {/* Language Selection */}
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <Globe size={16} /> Ngôn ngữ
+                    <Globe size={16} /> {t("adm_set_language", "Ngôn ngữ")}
                   </label>
                   <select
                     value={settings.language}
                     onChange={(e) => handleSettingChange("language", e.target.value)}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                   >
-                    <option value="vi">Tiếng Việt</option>
-                    <option value="en">Tiếng Anh</option>
+                    <option value="vi">{t("adm_set_lang_vi", "Tiếng Việt")}</option>
+                    <option value="en">{t("adm_set_lang_en", "Tiếng Anh")}</option>
                     <option value="ja">日本語</option>
                     <option value="ko">한국어</option>
                     <option value="zh">中文</option>
@@ -474,9 +488,9 @@ if (!settings) return null
                       <Sun size={24} className="text-yellow-400" />
                     )}
                     <div>
-                      <p className="text-foreground dark:text-white font-semibold">Chế độ tối</p>
+                      <p className="text-foreground dark:text-white font-semibold">{t("adm_set_dark_mode", "Chế độ tối")}</p>
                       <p className="text-muted-foreground dark:text-slate-400 text-sm">
-                        Bật/tắt chế độ tối cho toàn bộ hệ thống
+                        {t("adm_set_dark_mode_desc", "Bật/tắt chế độ tối cho toàn bộ hệ thống")}
                       </p>
                     </div>
                   </div>
@@ -508,15 +522,15 @@ if (!settings) return null
           <TabsContent value="security" className="space-y-6 mt-6">
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Shield size={24} className="text-primary dark:text-accent" /> Bảo mật hệ thống
+                <Shield size={24} className="text-primary dark:text-accent" /> {t("adm_set_security_title", "Bảo mật hệ thống")}
               </h2>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
                   <div className="flex items-center gap-3">
                     <Globe size={20} className="text-orange-500" />
                     <div>
-                      <p className="text-foreground dark:text-white font-semibold">Chế độ bảo trì</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">Tắt trang web để bảo trì</p>
+                      <p className="text-foreground dark:text-white font-semibold">{t("adm_set_maintenance", "Chế độ bảo trì")}</p>
+                      <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("adm_set_maintenance_desc", "Tắt trang web để bảo trì")}</p>
                     </div>
                   </div>
                   <button
@@ -537,8 +551,8 @@ if (!settings) return null
                   <div className="flex items-center gap-3">
                     <Mail size={20} className="text-blue-500" />
                     <div>
-                      <p className="text-foreground dark:text-white font-semibold">Thông báo Email</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">Gửi thông báo qua email</p>
+                      <p className="text-foreground dark:text-white font-semibold">{t("adm_set_email_notif", "Thông báo Email")}</p>
+                      <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("adm_set_email_notif_desc", "Gửi thông báo qua email")}</p>
                     </div>
                   </div>
                   <button
@@ -560,7 +574,7 @@ if (!settings) return null
                     <Database size={20} className="text-purple-500" />
                     <div>
                       <p className="text-foreground dark:text-white font-semibold">AI Assistant</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">Kích hoạt trợ lý AI</p>
+                      <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("adm_set_ai_desc", "Kích hoạt trợ lý AI")}</p>
                     </div>
                   </div>
                   <button
@@ -579,7 +593,7 @@ if (!settings) return null
 
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <p className="text-sm text-blue-900 dark:text-blue-200">
-                    Các cài đặt bảo mật được mã hóa và lưu trữ an toàn. Chỉ quản trị viên mới có thể truy cập và thay đổi các cài đặt này.
+                    {t("adm_set_security_note", "Các cài đặt bảo mật được mã hóa và lưu trữ an toàn. Chỉ quản trị viên mới có thể truy cập và thay đổi các cài đặt này.")}
                   </p>
                 </div>
               </div>
@@ -595,7 +609,7 @@ if (!settings) return null
           className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Save size={20} />
-          {isSaving ? "Đang lưu..." : "Lưu cài đặt"}
+          {isSaving ? t("adm_set_saving", "Đang lưu...") : t("adm_set_save", "Lưu cài đặt")}
         </button>
       </div>
     </div>

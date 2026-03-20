@@ -6,8 +6,10 @@ import { ResetPasswordForm } from "@/components/ui/reset-password-form"
 import { motion } from "framer-motion"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { LogoDisplay } from "@/components/ui/logo-display"
+import { useLanguage } from "@/lib/i18n/language-context"
 export default function ResetPasswordPage() {
     const { config } = useSystemConfig()
+    const { t } = useLanguage()
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
       {/* Animated Background */}
@@ -38,7 +40,7 @@ export default function ResetPasswordPage() {
         className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-full text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-900 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all shadow-lg hover:shadow-xl group"
       >
         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-        <span className="text-sm font-semibold">Quay lại</span>
+        <span className="text-sm font-semibold">{t("common_back", "Quay lại")}</span>
       </Link>
 
       <div className="relative z-10 min-h-screen flex items-center justify-center px-3 sm:px-6 py-8 sm:py-12">
@@ -73,11 +75,11 @@ export default function ResetPasswordPage() {
             >
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full mb-4 font-semibold">
                 <Key size={16} />
-                <span className="text-sm">Tạo Mật Khẩu Mới</span>
+                <span className="text-sm">{t("auth_create_new_password", "Tạo Mật Khẩu Mới")}</span>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-3">Đặt Lại Mật Khẩu</h1>
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-3">{t("auth_reset_password", "Đặt Lại Mật Khẩu")}</h1>
               <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
-                Tạo mật khẩu mới an toàn và dễ nhớ cho tài khoản của bạn
+                {t("auth_reset_desc", "Tạo mật khẩu mới an toàn và dễ nhớ cho tài khoản của bạn")}
               </p>
             </motion.div>
           </div>
@@ -96,17 +98,17 @@ export default function ResetPasswordPage() {
                 <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800">
                   <Shield size={20} className="text-emerald-600 dark:text-emerald-400" />
                   <span className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">
-                    Mật khẩu được mã hóa với chuẩn AES-256
+                    {t("auth_aes_encryption", "Mật khẩu được mã hóa với chuẩn AES-256")}
                   </span>
                 </div>
                 
                 {/* Password Requirements */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    "Tối thiểu 8 ký tự",
-                    "Có chữ hoa & thường",
-                    "Có ít nhất 1 số",
-                    "Có ký tự đặc biệt"
+                    t("auth_req_min_chars", "Tối thiểu 8 ký tự"),
+                    t("auth_req_case", "Có chữ hoa & thường"),
+                    t("auth_req_number", "Có ít nhất 1 số"),
+                    t("auth_req_special", "Có ký tự đặc biệt")
                   ].map((req, idx) => (
                     <div key={idx} className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                       <CheckCircle size={14} className="text-emerald-600 dark:text-emerald-400" />
@@ -119,9 +121,9 @@ export default function ResetPasswordPage() {
               <ResetPasswordForm />
 
               <p className="text-center text-sm text-slate-600 dark:text-slate-400 mt-6">
-                Nhớ mật khẩu?{" "}
+                {t("auth_remember_password", "Nhớ mật khẩu?")}{" "}
                 <Link href="/login" className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">
-                  Đăng nhập ngay
+                  {t("auth_login_now", "Đăng nhập ngay")}
                 </Link>
               </p>
             </div>
@@ -137,15 +139,15 @@ export default function ResetPasswordPage() {
             <div className="flex items-center gap-3 p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl">
               <Shield size={20} className="text-emerald-600 dark:text-emerald-400" />
               <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">Bảo mật cao</div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Mã hóa 256-bit</div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">{t("auth_high_security", "Bảo mật cao")}</div>
+                <div className="text-xs text-slate-600 dark:text-slate-400">{t("auth_256bit", "Mã hóa 256-bit")}</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl">
               <Sparkles size={20} className="text-purple-600 dark:text-purple-400" />
               <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">Hỗ trợ 24/7</div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Liên hệ admin</div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">{t("auth_support_247", "Hỗ trợ 24/7")}</div>
+                <div className="text-xs text-slate-600 dark:text-slate-400">{t("auth_contact_admin", "Liên hệ admin")}</div>
               </div>
             </div>
           </motion.div>
@@ -159,11 +161,11 @@ export default function ResetPasswordPage() {
           >
             Bằng cách sử dụng dịch vụ, bạn đồng ý với{" "}
             <Link href="/terms" className="font-semibold hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-              Điều khoản sử dụng
+              {t("auth_terms", "Điều khoản sử dụng")}
             </Link>{" "}
-            và{" "}
+            {t("common_and", "và")}{" "}
             <Link href="/privacy" className="font-semibold hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-              Chính sách bảo mật
+              {t("auth_privacy", "Chính sách bảo mật")}
             </Link>
           </motion.p>
         </motion.div>

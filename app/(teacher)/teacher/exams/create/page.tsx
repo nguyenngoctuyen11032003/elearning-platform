@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner"
 import { parseExamQuestionsFileWithReport, type ExamImportReport } from "@/lib/utils/exam-import"
 import { TeacherExamsNavbar } from "@/components/teacher-exams-navbar"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 // Generate unique ID without uuid dependency
 const generateId = () => {
@@ -81,6 +82,7 @@ const shouldFlagAssetReview = (question: Pick<Question, "question" | "options" |
 
 export default function CreateExamPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null)
@@ -275,27 +277,27 @@ export default function CreateExamPage() {
     const newErrors: Record<string, string> = {}
 
     if (step === 1) {
-      if (!formData.title.trim()) newErrors.title = "Vui lòng nhập tiêu đề bài thi"
-      if (!formData.courseId) newErrors.courseId = "Vui lòng chọn khóa học"
+      if (!formData.title.trim()) newErrors.title = t("exam_err_title", "Vui lòng nhập tiêu đề bài thi")
+      if (!formData.courseId) newErrors.courseId = t("exam_err_course", "Vui lòng chọn khóa học")
       if (formData.type === "official" && !formData.certificateTemplateId) {
-        newErrors.certificateTemplateId = "Bài thi thật phải chọn chứng chỉ"
+        newErrors.certificateTemplateId = t("exam_err_cert", "Bài thi thật phải chọn chứng chỉ")
       }
       if (formData.availableFrom && formData.availableUntil) {
         if (formData.availableUntil <= formData.availableFrom) {
-          newErrors.availableUntil = "Thời gian kết thúc phải sau thời gian bắt đầu"
+          newErrors.availableUntil = t("exam_err_time", "Thời gian kết thúc phải sau thời gian bắt đầu")
         }
       }
     }
 
     if (step === 2) {
-      if (questions.length === 0) newErrors.questions = "Vui lòng thêm ít nhất 1 câu hỏi"
+      if (questions.length === 0) newErrors.questions = t("exam_err_no_questions", "Vui lòng thêm ít nhất 1 câu hỏi")
       questions.forEach((q, index) => {
-        if (!q.question.trim()) newErrors[`question_${index}`] = "Câu hỏi không được để trống"
+        if (!q.question.trim()) newErrors[`question_${index}`] = t("exam_err_empty_question", "Câu hỏi không được để trống")
         if (q.type === "multiple_choice" && q.options.filter(o => o.trim()).length < 2) {
-          newErrors[`options_${index}`] = "Cần ít nhất 2 đáp án"
+          newErrors[`options_${index}`] = t("exam_err_min_options", "Cần ít nhất 2 đáp án")
         }
         if (!q.correctAnswer || (Array.isArray(q.correctAnswer) && q.correctAnswer.length === 0)) {
-          newErrors[`answer_${index}`] = "Vui lòng chọn đáp án đúng"
+          newErrors[`answer_${index}`] = t("exam_err_no_answer", "Vui lòng chọn đáp án đúng")
         }
       })
     }
@@ -350,7 +352,7 @@ export default function CreateExamPage() {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = () => resolve(String(reader.result || ""))
-      reader.onerror = () => reject(new Error("Không đọc được file ảnh"))
+      reader.onerror = () => reject(new Error(t("exam_err_read_image", "Không đọc được file ảnh")))
       reader.readAsDataURL(file)
     })
   }
@@ -359,11 +361,11 @@ export default function CreateExamPage() {
     if (!file) return
     try {
       const dataUrl = await readFileAsDataUrl(file)
-      if (!dataUrl) throw new Error("Không đọc được nội dung ảnh")
+      if (!dataUrl) throw new Error(t("exam_err_read_content", "Không đọc được nội dung ảnh"))
       updateQuestion(questionId, { image: dataUrl, needsAssetReview: false })
-      toast.success("Đã thêm ảnh cho câu hỏi")
+      toast.success(t("exam_image_added", "Đã thêm ảnh cho câu hỏi"))
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Không thể thêm ảnh"
+      const msg = err instanceof Error ? err.message : t("exam_err_add_image", "Không thể thêm ảnh")
       toast.error(msg)
     }
   }
@@ -397,7 +399,7 @@ export default function CreateExamPage() {
     try {
       const normalizedQuestions = sanitizeQuestions(questions)
       if (normalizedQuestions.length === 0) {
-        throw new Error("Không có câu hỏi hợp lệ để lưu bài thi")
+        throw new Error(t("exam_err_no_valid", "Không có câu hỏi hợp lệ để lưu bài thi"))
       }
 
       const examData: any = {
@@ -445,7 +447,7 @@ export default function CreateExamPage() {
 
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => ({}))
-        throw new Error(errorPayload?.details?.message || errorPayload?.error || "Tạo bài thi thất bại")
+        throw new Error(errorPayload?.details?.message || errorPayload?.error || t("exam_err_create", "Tạo bài thi thất bại"))
       }
 
       const createdPayload = await response.json().catch(() => ({}))
@@ -455,7 +457,7 @@ export default function CreateExamPage() {
         (createdPayload as any)?.exam?.id ||
         (createdPayload as any)?.data?.exam?.id
 
-      toast.success(asDraft ? "Đã lưu bài thi nháp" : "Đã tạo và xuất bản bài thi")
+      toast.success(asDraft ? t("exam_saved_draft", "Đã lưu bài thi nháp") : t("exam_published", "Đã tạo và xuất bản bài thi"))
       if (createdExamId) {
         router.push(`/teacher/exams/${createdExamId}/edit`)
       } else {
@@ -463,7 +465,7 @@ export default function CreateExamPage() {
       }
     } catch (error) {
       console.error("Error creating exam:", error)
-      const message = error instanceof Error ? error.message : "Tạo bài thi thất bại"
+      const message = error instanceof Error ? error.message : t("exam_err_create", "Tạo bài thi thất bại")
       toast.error(message)
     } finally {
       setIsSubmitting(false)
@@ -485,17 +487,17 @@ export default function CreateExamPage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Tạo Ngân Hàng Đề Thi</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Tạo ngân hàng câu hỏi để sử dụng trong các bài thi của khóa học</p>
+            <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("exam_create_title", "Tạo Ngân Hàng Đề Thi")}</h1>
+            <p className="text-muted-foreground dark:text-slate-400">{t("exam_create_subtitle", "Tạo ngân hàng câu hỏi để sử dụng trong các bài thi của khóa học")}</p>
           </div>
         </div>
 
         {/* Progress Steps */}
         <div className="flex items-center justify-center gap-4">
           {[
-            { step: 1, label: "Thông tin cơ bản" },
-            { step: 2, label: "Câu hỏi" },
-            { step: 3, label: "Xem trước" },
+            { step: 1, label: t("exam_step_info", "Thông tin cơ bản") },
+            { step: 2, label: t("exam_step_questions", "Câu hỏi") },
+            { step: 3, label: t("exam_step_preview", "Xem trước") },
           ].map((item, index) => (
             <div key={item.step} className="flex items-center">
               <div
@@ -524,7 +526,7 @@ export default function CreateExamPage() {
         {/* Step 1: Basic Info */}
         {currentStep === 1 && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-            <h2 className="text-xl font-semibold text-foreground dark:text-white">Thông tin cơ bản</h2>
+            <h2 className="text-xl font-semibold text-foreground dark:text-white">{t("exam_step_info", "Thông tin cơ bản")}</h2>
 
             <div className="space-y-4">
               {/* Title */}
@@ -539,7 +541,7 @@ export default function CreateExamPage() {
                   className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
                     errors.title ? "border-red-500" : "border-border dark:border-slate-700"
                   }`}
-                  placeholder="VD: Bài thi cuối khóa Next.js"
+                  placeholder={t("exam_title_placeholder", "VD: Bài thi cuối khóa Next.js")}
                 />
                 {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
               </div>
@@ -547,21 +549,21 @@ export default function CreateExamPage() {
               {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                  Mô tả
+                  {t("exam_description", "Mô tả")}
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
                   className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  placeholder="Mô tả ngắn về bài thi..."
+                  placeholder={t("exam_desc_placeholder", "Mô tả ngắn về bài thi...")}
                 />
               </div>
 
               {/* Course */}
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                  Khóa học <span className="text-red-500">*</span>
+                  {t("exam_course", "Khóa học")} <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.courseId}
@@ -570,7 +572,7 @@ export default function CreateExamPage() {
                     errors.courseId ? "border-red-500" : "border-border dark:border-slate-700"
                   }`}
                 >
-                  <option value="">Chọn khóa học</option>
+                  <option value="">{t("exam_select_course", "Chọn khóa học")}</option>
                   {courses.map(course => (
                     <option key={course.id} value={course.id}>{course.title}</option>
                   ))}
@@ -581,7 +583,7 @@ export default function CreateExamPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    Thời gian mở bài thi
+                    {t("exam_available_from", "Thời gian mở bài thi")}
                   </label>
                   <input
                     type="datetime-local"
@@ -592,7 +594,7 @@ export default function CreateExamPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    Thời gian đóng bài thi
+                    {t("exam_available_until", "Thời gian đóng bài thi")}
                   </label>
                   <input
                     type="datetime-local"
@@ -611,7 +613,7 @@ export default function CreateExamPage() {
               {/* Exam Type */}
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                  Loại bài thi <span className="text-red-500">*</span>
+                  {t("exam_type", "Loại bài thi")} <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-4">
                   <button
@@ -625,9 +627,9 @@ export default function CreateExamPage() {
                   >
                     <ClipboardList size={24} className={formData.type === "practice" ? "text-blue-500" : "text-muted-foreground"} />
                     <p className={`font-semibold mt-2 ${formData.type === "practice" ? "text-blue-500" : "text-foreground dark:text-white"}`}>
-                      Thi thử
+                      {t("exam_type_practice", "Thi thử")}
                     </p>
-                    <p className="text-sm text-muted-foreground mt-1">Để luyện tập, không cấp chứng chỉ</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("exam_practice_desc", "Để luyện tập, không cấp chứng chỉ")}</p>
                   </button>
                   <button
                     type="button"
@@ -640,9 +642,9 @@ export default function CreateExamPage() {
                   >
                     <Award size={24} className={formData.type === "official" ? "text-purple-500" : "text-muted-foreground"} />
                     <p className={`font-semibold mt-2 ${formData.type === "official" ? "text-purple-500" : "text-foreground dark:text-white"}`}>
-                      Thi thật
+                      {t("exam_type_official", "Thi thật")}
                     </p>
-                    <p className="text-sm text-muted-foreground mt-1">Để cấp chứng chỉ khi đạt</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("exam_official_desc", "Để cấp chứng chỉ khi đạt")}</p>
                   </button>
                 </div>
               </div>
@@ -651,24 +653,24 @@ export default function CreateExamPage() {
               {formData.type === "official" && (
                 <div>
                   <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    Chứng chỉ <span className="text-red-500">*</span>
+                    {t("exam_certificate", "Chứng chỉ")} <span className="text-red-500">*</span>
                   </label>
                   {!formData.courseId ? (
                     <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
                       <p className="text-yellow-500 text-sm flex items-center gap-2">
                         <AlertCircle size={16} />
-                        Vui lòng chọn khóa học trước để xem danh sách chứng chỉ
+                        {t("exam_select_course_first", "Vui lòng chọn khóa học trước để xem danh sách chứng chỉ")}
                       </p>
                     </div>
                   ) : isLoadingTemplates ? (
                     <div className="p-4 bg-slate-100/80 dark:bg-slate-800/60 border border-border dark:border-slate-700 rounded-xl">
-                      <p className="text-sm text-muted-foreground">Đang tải chứng chỉ...</p>
+                      <p className="text-sm text-muted-foreground">{t("exam_loading_certs", "Đang tải chứng chỉ...")}</p>
                     </div>
                   ) : availableCertificates.length === 0 ? (
                     <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
                       <p className="text-yellow-500 text-sm flex items-center gap-2">
                         <AlertCircle size={16} />
-                        Không có chứng chỉ nào cho khóa học này. Vui lòng tạo chứng chỉ trước.
+                        {t("exam_no_certs", "Không có chứng chỉ nào cho khóa học này. Vui lòng tạo chứng chỉ trước.")}
                       </p>
                     </div>
                   ) : (
@@ -679,7 +681,7 @@ export default function CreateExamPage() {
                         errors.certificateTemplateId ? "border-red-500" : "border-border dark:border-slate-700"
                       }`}
                     >
-                      <option value="">Chọn chứng chỉ</option>
+                      <option value="">{t("exam_select_cert", "Chọn chứng chỉ")}</option>
                       {availableCertificates.map(cert => (
                         <option key={cert.id} value={cert.id}>{cert.title}</option>
                       ))}
@@ -693,7 +695,7 @@ export default function CreateExamPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    Thời gian (phút)
+                    {t("exam_time_limit", "Thời gian (phút)")}
                   </label>
                   <input
                     type="number"
@@ -706,7 +708,7 @@ export default function CreateExamPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    Điểm đạt (%)
+                    {t("exam_passing_score", "Điểm đạt (%)")}
                   </label>
                   <input
                     type="number"
@@ -719,7 +721,7 @@ export default function CreateExamPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    Số lần thi
+                    {t("exam_max_attempts", "Số lần thi")}
                   </label>
                   <input
                     type="number"
@@ -738,7 +740,7 @@ export default function CreateExamPage() {
                       onChange={(e) => setFormData({ ...formData, shuffleQuestions: e.target.checked })}
                       className="w-5 h-5 rounded border-border dark:border-slate-700"
                     />
-                    <span className="text-sm text-foreground dark:text-white">Tráo câu hỏi</span>
+                    <span className="text-sm text-foreground dark:text-white">{t("exam_shuffle_questions", "Tráo câu hỏi")}</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -747,7 +749,7 @@ export default function CreateExamPage() {
                       onChange={(e) => setFormData({ ...formData, shuffleAnswers: e.target.checked })}
                       className="w-5 h-5 rounded border-border dark:border-slate-700"
                     />
-                    <span className="text-sm text-foreground dark:text-white">Tráo đáp án</span>
+                    <span className="text-sm text-foreground dark:text-white">{t("exam_shuffle_answers", "Tráo đáp án")}</span>
                   </label>
                 </div>
               </div>
@@ -761,9 +763,9 @@ export default function CreateExamPage() {
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-xl font-semibold text-foreground dark:text-white">Câu hỏi</h2>
+                  <h2 className="text-xl font-semibold text-foreground dark:text-white">{t("exam_step_questions", "Câu hỏi")}</h2>
                   <p className="text-sm text-muted-foreground dark:text-slate-400">
-                    {questions.length} câu hỏi • Tổng {totalPoints} điểm
+                    {questions.length} {t("exam_questions_count", "câu hỏi")} • {t("exam_total", "Tổng")} {totalPoints} {t("exam_points", "điểm")}
                   </p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
@@ -773,28 +775,28 @@ export default function CreateExamPage() {
                     className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
                   >
                     <Upload size={16} />
-                    Nhập đề thi
+                    {t("exam_import", "Nhập đề thi")}
                   </button>
                   <button
                     onClick={() => addQuestion("multiple_choice")}
                     className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
                   >
                     <Plus size={16} />
-                    Trắc nghiệm
+                    {t("exam_multiple_choice", "Trắc nghiệm")}
                   </button>
                   <button
                     onClick={() => addQuestion("true_false")}
                     className="px-4 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg font-medium hover:bg-secondary/80 transition-colors flex items-center gap-2"
                   >
                     <Plus size={16} />
-                    Đúng/Sai
+                    {t("exam_true_false", "Đúng/Sai")}
                   </button>
                   <button
                     onClick={() => addQuestion("fill_in")}
                     className="px-4 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg font-medium hover:bg-secondary/80 transition-colors flex items-center gap-2"
                   >
                     <Plus size={16} />
-                    Điền khuyết
+                    {t("exam_fill_in", "Điền khuyết")}
                   </button>
                 </div>
               </div>
@@ -812,7 +814,7 @@ export default function CreateExamPage() {
                 <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl mb-4">
                   <p className="text-amber-300 text-sm flex items-center gap-2">
                     <AlertCircle size={16} className="text-amber-400" />
-                    Phát hiện {reviewIssueCount} câu nghi thiếu công thức/ảnh. Mở câu có icon vàng để kiểm tra.
+                    {t("exam_asset_review_hint", "Phát hiện")} {reviewIssueCount} {t("exam_asset_review_hint2", "câu nghi thiếu công thức/ảnh. Mở câu có icon vàng để kiểm tra.")}
                   </p>
                 </div>
               )}
@@ -831,7 +833,7 @@ export default function CreateExamPage() {
                       <div className="flex items-center gap-3">
                         <GripVertical size={16} className="text-muted-foreground" />
                         <span className="font-semibold text-foreground dark:text-white">
-                          Câu {index + 1}
+                          {t("exam_question_num", "Câu")} {index + 1}
                         </span>
                         <span className={`text-xs px-2 py-1 rounded-full ${
                           question.type === "multiple_choice" 
@@ -840,10 +842,10 @@ export default function CreateExamPage() {
                             ? "bg-green-500/10 text-green-500"
                             : "bg-purple-500/10 text-purple-500"
                         }`}>
-                          {question.type === "multiple_choice" ? "Trắc nghiệm" : question.type === "true_false" ? "Đúng/Sai" : "Điền khuyết"}
+                          {question.type === "multiple_choice" ? t("exam_multiple_choice", "Trắc nghiệm") : question.type === "true_false" ? t("exam_true_false", "Đúng/Sai") : t("exam_fill_in", "Điền khuyết")}
                         </span>
                         <span className="text-sm text-muted-foreground">
-                          {question.points} điểm
+                          {question.points} {t("exam_points", "điểm")}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -874,7 +876,7 @@ export default function CreateExamPage() {
                         {/* Question Text */}
                         <div>
                           <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                            Câu hỏi <span className="text-red-500">*</span>
+                            {t("exam_question_label", "Câu hỏi")} <span className="text-red-500">*</span>
                           </label>
                           <textarea
                             value={question.question}
@@ -883,7 +885,7 @@ export default function CreateExamPage() {
                             className={`w-full px-4 py-3 bg-card dark:bg-slate-900 border rounded-xl text-foreground dark:text-white ${
                               errors[`question_${index}`] ? "border-red-500" : "border-border dark:border-slate-700"
                             }`}
-                            placeholder="Nhập câu hỏi..."
+                            placeholder={t("exam_question_placeholder", "Nhập câu hỏi...")}
                           />
                           {errors[`question_${index}`] && (
                             <p className="text-red-500 text-sm mt-1">{errors[`question_${index}`]}</p>
@@ -909,7 +911,7 @@ export default function CreateExamPage() {
                               className="px-3 py-2 border border-border dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
                             >
                               <Upload size={16} />
-                              {question.image ? "Đổi ảnh" : "Thêm ảnh"}
+                              {question.image ? t("exam_change_image", "Đổi ảnh") : t("exam_add_image", "Thêm ảnh")}
                             </button>
                             {question.image && (
                               <button
@@ -917,7 +919,7 @@ export default function CreateExamPage() {
                                 onClick={() => updateQuestion(question.id, { image: undefined })}
                                 className="px-3 py-2 border border-border dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
                               >
-                                Xóa ảnh
+                                {t("exam_remove_image", "Xóa ảnh")}
                               </button>
                             )}
                           </div>
@@ -934,7 +936,7 @@ export default function CreateExamPage() {
                         {question.type === "multiple_choice" && (
                           <div>
                             <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                              Đáp án <span className="text-red-500">*</span>
+                              {t("exam_answers", "Đáp án")} <span className="text-red-500">*</span>
                             </label>
                             <div className="space-y-2">
                               {question.options.map((option, optIndex) => (
@@ -955,7 +957,7 @@ export default function CreateExamPage() {
                                       updateQuestion(question.id, { options: newOptions })
                                     }}
                                     className="flex-1 px-4 py-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg text-foreground dark:text-white"
-                                    placeholder={`Đáp án ${String.fromCharCode(65 + optIndex)}`}
+                                    placeholder={`${t("exam_answer_label", "Đáp án")} ${String.fromCharCode(65 + optIndex)}`}
                                   />
                                   {question.options.length > 2 && (
                                     <button
@@ -976,7 +978,7 @@ export default function CreateExamPage() {
                                   className="text-sm text-primary hover:underline flex items-center gap-1"
                                 >
                                   <Plus size={14} />
-                                  Thêm đáp án
+                                  {t("exam_add_answer", "Thêm đáp án")}
                                 </button>
                               )}
                             </div>
@@ -987,7 +989,7 @@ export default function CreateExamPage() {
                         {question.type === "true_false" && (
                           <div>
                             <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                              Đáp án đúng <span className="text-red-500">*</span>
+                              {t("exam_correct_answer", "Đáp án đúng")} <span className="text-red-500">*</span>
                             </label>
                             <div className="flex gap-4">
                               {["Đúng", "Sai"].map((opt) => (
@@ -1010,14 +1012,14 @@ export default function CreateExamPage() {
                         {question.type === "fill_in" && (
                           <div>
                             <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                              Đáp án đúng <span className="text-red-500">*</span>
+                              {t("exam_correct_answer", "Đáp án đúng")} <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
                               value={question.correctAnswer as string}
                               onChange={(e) => updateQuestion(question.id, { correctAnswer: e.target.value })}
                               className="w-full px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-                              placeholder="Nhập đáp án đúng..."
+                              placeholder={t("exam_correct_answer_placeholder", "Nhập đáp án đúng...")}
                             />
                           </div>
                         )}
@@ -1026,7 +1028,7 @@ export default function CreateExamPage() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                              Điểm
+                              {t("exam_points_label", "Điểm")}
                             </label>
                             <input
                               type="number"
@@ -1039,14 +1041,14 @@ export default function CreateExamPage() {
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                              Giải thích (tùy chọn)
+                              {t("exam_explanation", "Giải thích (tùy chọn)")}
                             </label>
                             <input
                               type="text"
                               value={question.explanation}
                               onChange={(e) => updateQuestion(question.id, { explanation: e.target.value })}
                               className="w-full px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-                              placeholder="Giải thích đáp án..."
+                              placeholder={t("exam_explanation_placeholder", "Giải thích đáp án...")}
                             />
                           </div>
                         </div>
@@ -1059,7 +1061,7 @@ export default function CreateExamPage() {
                   <div className="text-center py-12">
                     <ClipboardList size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
                     <p className="text-muted-foreground dark:text-slate-400">
-                      Chưa có câu hỏi nào. Bấm nút ở trên để thêm câu hỏi.
+                      {t("exam_no_questions_yet", "Chưa có câu hỏi nào. Bấm nút ở trên để thêm câu hỏi.")}
                     </p>
                   </div>
                 )}
@@ -1071,56 +1073,56 @@ export default function CreateExamPage() {
         {/* Step 3: Preview */}
         {currentStep === 3 && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-            <h2 className="text-xl font-semibold text-foreground dark:text-white">Xem trước bài thi</h2>
+            <h2 className="text-xl font-semibold text-foreground dark:text-white">{t("exam_preview_title", "Xem trước bài thi")}</h2>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Loại bài thi</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("exam_type", "Loại bài thi")}</p>
                 <p className="text-foreground dark:text-white font-medium flex items-center gap-2 mt-1">
                   {formData.type === "official" ? <Award size={16} className="text-purple-500" /> : <ClipboardList size={16} className="text-blue-500" />}
-                  {formData.type === "official" ? "Thi thật" : "Thi thử"}
+                  {formData.type === "official" ? t("exam_type_official", "Thi thật") : t("exam_type_practice", "Thi thử")}
                 </p>
               </div>
               <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Thời gian</p>
-                <p className="text-foreground dark:text-white font-medium mt-1">{formData.timeLimit} phút</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("exam_time", "Thời gian")}</p>
+                <p className="text-foreground dark:text-white font-medium mt-1">{formData.timeLimit} {t("exam_minutes", "phút")}</p>
               </div>
               <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Số câu hỏi</p>
-                <p className="text-foreground dark:text-white font-medium mt-1">{questions.length} câu</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("exam_num_questions", "Số câu hỏi")}</p>
+                <p className="text-foreground dark:text-white font-medium mt-1">{questions.length} {t("exam_questions_unit", "câu")}</p>
               </div>
               <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Tổng điểm</p>
-                <p className="text-foreground dark:text-white font-medium mt-1">{totalPoints} điểm</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("exam_total_points", "Tổng điểm")}</p>
+                <p className="text-foreground dark:text-white font-medium mt-1">{totalPoints} {t("exam_points", "điểm")}</p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-semibold text-foreground dark:text-white">Thông tin chi tiết</h3>
+              <h3 className="font-semibold text-foreground dark:text-white">{t("exam_detail_info", "Thông tin chi tiết")}</h3>
               <div className="grid gap-2 text-sm">
                 <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
-                  <span className="text-muted-foreground dark:text-slate-400">Tiêu đề</span>
-                  <span className="text-foreground dark:text-white font-medium">{formData.title || "Chưa nhập"}</span>
+                  <span className="text-muted-foreground dark:text-slate-400">{t("exam_title_label", "Tiêu đề")}</span>
+                  <span className="text-foreground dark:text-white font-medium">{formData.title || t("exam_not_entered", "Chưa nhập")}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
-                  <span className="text-muted-foreground dark:text-slate-400">Khóa học</span>
+                  <span className="text-muted-foreground dark:text-slate-400">{t("exam_course", "Khóa học")}</span>
                   <span className="text-foreground dark:text-white font-medium">
-                    {courses.find(c => c.id === formData.courseId)?.title || "Chưa chọn"}
+                    {courses.find(c => c.id === formData.courseId)?.title || t("exam_not_selected", "Chưa chọn")}
                   </span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
-                  <span className="text-muted-foreground dark:text-slate-400">Điểm đạt</span>
+                  <span className="text-muted-foreground dark:text-slate-400">{t("exam_passing_score", "Điểm đạt")}</span>
                   <span className="text-foreground dark:text-white font-medium">{formData.passingScore}%</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
-                  <span className="text-muted-foreground dark:text-slate-400">Số lần thi tối đa</span>
-                  <span className="text-foreground dark:text-white font-medium">{formData.maxAttempts} lần</span>
+                  <span className="text-muted-foreground dark:text-slate-400">{t("exam_max_attempts_label", "Số lần thi tối đa")}</span>
+                  <span className="text-foreground dark:text-white font-medium">{formData.maxAttempts} {t("exam_times", "lần")}</span>
                 </div>
                 {formData.type === "official" && (
                   <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
-                    <span className="text-muted-foreground dark:text-slate-400">Chứng chỉ</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("exam_certificate", "Chứng chỉ")}</span>
                     <span className="text-purple-500 font-medium">
-                      {templates.find(c => c.id === formData.certificateTemplateId)?.title || "Chưa chọn"}
+                      {templates.find(c => c.id === formData.certificateTemplateId)?.title || t("exam_not_selected", "Chưa chọn")}
                     </span>
                   </div>
                 )}
@@ -1128,7 +1130,7 @@ export default function CreateExamPage() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-semibold text-foreground dark:text-white">Danh sách câu hỏi</h3>
+              <h3 className="font-semibold text-foreground dark:text-white">{t("exam_question_list", "Danh sách câu hỏi")}</h3>
               <div className="space-y-2">
                 {questions.map((q, index) => (
                   <div key={q.id} className="p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg space-y-2">
@@ -1137,7 +1139,7 @@ export default function CreateExamPage() {
                       {index + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed">{q.question || "Câu hỏi trống"}</p>
+                        <p className="text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed">{q.question || t("exam_empty_question", "Câu hỏi trống")}</p>
                         {q.image && (
                           <img
                             src={q.image}
@@ -1146,14 +1148,14 @@ export default function CreateExamPage() {
                           />
                         )}
                       </div>
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">{q.points} điểm</span>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">{q.points} {t("exam_points", "điểm")}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Đáp án đúng: {Array.isArray(q.correctAnswer) ? q.correctAnswer.join(", ") : String(q.correctAnswer || "(chưa có)")}
+                      {t("exam_correct_answer", "Đáp án đúng")}: {Array.isArray(q.correctAnswer) ? q.correctAnswer.join(", ") : String(q.correctAnswer || t("exam_no_answer_yet", "(chưa có)"))}
                     </p>
                     {q.explanation && (
                       <p className="text-xs text-blue-600 dark:text-blue-300 whitespace-pre-wrap break-words leading-relaxed">
-                        Giải thích: {q.explanation}
+                        {t("exam_explanation_label", "Giải thích")}: {q.explanation}
                       </p>
                     )}
                   </div>
@@ -1170,7 +1172,7 @@ export default function CreateExamPage() {
             disabled={currentStep === 1}
             className="px-6 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Quay lại
+            {t("common_back", "Quay lại")}
           </button>
           <div className="flex gap-3">
             <button
@@ -1179,14 +1181,14 @@ export default function CreateExamPage() {
               className="px-6 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               <Save size={18} />
-              Lưu nháp
+              {t("exam_save_draft", "Lưu nháp")}
             </button>
             {currentStep < 3 ? (
               <button
                 onClick={handleNext}
                 className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
               >
-                Tiếp theo
+                {t("common_next", "Tiếp theo")}
               </button>
             ) : (
               <button
@@ -1195,7 +1197,7 @@ export default function CreateExamPage() {
                 className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 <Send size={18} />
-                {isSubmitting ? "Đang xử lý..." : "Xuất bản"}
+                {isSubmitting ? t("common_processing", "Đang xử lý...") : t("exam_publish", "Xuất bản")}
               </button>
             )}
           </div>
@@ -1221,6 +1223,7 @@ function ImportQuestionsModal({
   onClose: () => void
   onImport: (questions: Question[]) => void
 }) {
+  const { t } = useLanguage()
   const [importType, setImportType] = useState<"excel" | "word">("excel")
   const [file, setFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -1349,7 +1352,7 @@ function ImportQuestionsModal({
       }
 
       if (mapped.length === 0) {
-        toast.error("Không tìm thấy câu hỏi hợp lệ trong file")
+        toast.error(t("exam_no_valid_questions", "Không tìm thấy câu hỏi hợp lệ trong file"))
       }
       if (isPdf && !hasImportedImage) {
         if ((importReport?.extractedImageCount ?? report.extractedImageCount) > 0) {
@@ -1365,7 +1368,7 @@ function ImportQuestionsModal({
         toast.warning("Phát hiện câu hỏi có thể bị mất công thức/ảnh khi đọc PDF. Vui lòng kiểm tra lại nội dung sau import.")
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Không thể đọc file đề thi"
+      const message = error instanceof Error ? error.message : t("exam_err_read_file", "Không thể đọc file đề thi")
       toast.error(message)
       setPreviewQuestions([])
       setImportReport(null)
@@ -1389,8 +1392,8 @@ function ImportQuestionsModal({
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-foreground dark:text-white">Câu cần bổ sung ảnh/tài liệu</h3>
-                <p className="text-sm text-muted-foreground mt-1">Danh sách câu cần bạn kiểm tra và tự thêm ảnh nếu cần.</p>
+                <h3 className="text-lg font-bold text-foreground dark:text-white">{t("exam_asset_issues_title", "Câu cần bổ sung ảnh/tài liệu")}</h3>
+                <p className="text-sm text-muted-foreground mt-1">{t("exam_asset_issues_subtitle", "Danh sách câu cần bạn kiểm tra và tự thêm ảnh nếu cần.")}</p>
               </div>
               <button
                 type="button"
@@ -1433,7 +1436,7 @@ function ImportQuestionsModal({
                 onClick={() => setShowAssetIssuesModal(false)}
                 className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
               >
-                Đã hiểu
+                {t("exam_understood", "Đã hiểu")}
               </button>
             </div>
           </div>
@@ -1442,8 +1445,8 @@ function ImportQuestionsModal({
       <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         <div className="p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-foreground dark:text-white">Nhập đề thi từ file</h2>
-            <p className="text-sm text-muted-foreground mt-1">Hỗ trợ file Excel (.xlsx) hoặc Word/PDF (.docx, .pdf)</p>
+            <h2 className="text-xl font-bold text-foreground dark:text-white">{t("exam_import_title", "Nhập đề thi từ file")}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{t("exam_import_subtitle", "Hỗ trợ file Excel (.xlsx) hoặc Word/PDF (.docx, .pdf)")}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg">
             <X size={20} />
@@ -1455,7 +1458,7 @@ function ImportQuestionsModal({
             <div className="flex gap-2 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
               <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-600" />
               <div>
-                <p className="font-medium">Báo cáo import PDF</p>
+                <p className="font-medium">{t("exam_import_report", "Báo cáo import PDF")}</p>
                 <p className="mt-1">Trích xuất {importReport.extractedImageCount} ảnh/công thức, gắn vào {importReport.importedImageCount} câu.</p>
                 {importReport.questionsWithExtraImages.length > 0 && (
                   <p className="mt-1">Câu có ảnh bổ sung chưa import (chỉ lấy ảnh đầu): {importReport.questionsWithExtraImages.join(", ")}</p>
@@ -1464,7 +1467,7 @@ function ImportQuestionsModal({
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-foreground dark:text-white mb-3">Loại file</label>
+            <label className="block text-sm font-medium text-foreground dark:text-white mb-3">{t("exam_file_type", "Loại file")}</label>
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
@@ -1496,7 +1499,7 @@ function ImportQuestionsModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground dark:text-white mb-3">Chọn file</label>
+            <label className="block text-sm font-medium text-foreground dark:text-white mb-3">{t("exam_select_file", "Chọn file")}</label>
             <div className="border-2 border-dashed border-border dark:border-slate-700 rounded-xl p-8 text-center hover:border-primary/50 transition-colors">
               <input type="file" accept={importType === "excel" ? ".xlsx,.xls" : ".docx,.doc,.pdf"} onChange={handleFileChange} className="hidden" id="file-upload" />
               <label htmlFor="file-upload" className="cursor-pointer">
@@ -1508,8 +1511,8 @@ function ImportQuestionsModal({
                   </div>
                 ) : (
                   <div>
-                    <p className="font-medium text-foreground dark:text-white">Kéo thả file hoặc click để chọn</p>
-                    <p className="text-sm text-muted-foreground mt-1">{importType === "excel" ? "Hỗ trợ .xlsx, .xls" : "Hỗ trợ .docx, .doc, .pdf"}</p>
+                    <p className="font-medium text-foreground dark:text-white">{t("exam_drag_drop", "Kéo thả file hoặc click để chọn")}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{importType === "excel" ? t("exam_support_xlsx", "Hỗ trợ .xlsx, .xls") : t("exam_support_docx", "Hỗ trợ .docx, .doc, .pdf")}</p>
                   </div>
                 )}
               </label>
@@ -1519,7 +1522,7 @@ function ImportQuestionsModal({
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
             <h4 className="font-medium text-blue-500 mb-2 flex items-center gap-2">
               <AlertCircle size={16} />
-              Hướng dẫn định dạng file
+              {t("exam_format_guide", "Hướng dẫn định dạng file")}
             </h4>
             <ul className="text-sm text-blue-400 space-y-1">
               {importType === "excel" ? (
@@ -1535,31 +1538,31 @@ function ImportQuestionsModal({
                   <li>• Mỗi câu hỏi bắt đầu bằng "Câu [số]:"</li>
                   <li>• Đáp án được đánh dấu A., B., C., D.</li>
                   <li>• Đáp án đúng ghi ở dòng "Answer:" hoặc "Đáp án:"</li>
-                  <li>• Giải thích bắt đầu bằng "Giải thích:"</li>
+                  <li>• Giải thích bắt đầu bằng "Giải thích:"</li>  
                   <li>• Với PDF: chỉ đọc text, ảnh/công thức nhúng có thể không import được</li>
                   <li>• Khuyến cáo sử dụng file docx để giữ được chất lượng và đầy đủ định dạng.</li>
                 </>
               )}
             </ul>
-            <button className="mt-3 text-sm text-blue-500 hover:underline flex items-center gap-1">Tải file mẫu</button>
+            <button className="mt-3 text-sm text-blue-500 hover:underline flex items-center gap-1">{t("exam_download_template", "Tải file mẫu")}</button>
           </div>
 
           {isProcessing && (
             <div className="text-center py-8">
               <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Đang xử lý file...</p>
+              <p className="text-muted-foreground">{t("exam_processing_file", "Đang xử lý file...")}</p>
             </div>
           )}
 
           {previewQuestions.length > 0 && !isProcessing && (
             <div>
-              <h4 className="font-medium text-foreground dark:text-white mb-3">Xem trước ({previewQuestions.length} câu hỏi)</h4>
+              <h4 className="font-medium text-foreground dark:text-white mb-3">{t("exam_preview", "Xem trước")} ({previewQuestions.length} {t("exam_questions_count", "câu hỏi")})</h4>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {previewQuestions.map((q, index) => (
                   <div key={q.id} className="p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg flex items-center gap-3">
                     <span className="w-6 h-6 flex items-center justify-center bg-primary/10 text-primary rounded font-semibold text-sm">{index + 1}</span>
                     <span className="flex-1 text-foreground dark:text-white text-sm truncate">{q.question}</span>
-                    <span className="text-xs text-muted-foreground">{q.points} điểm</span>
+                    <span className="text-xs text-muted-foreground">{q.points} {t("exam_points", "điểm")}</span>
                   </div>
                 ))}
               </div>
@@ -1568,14 +1571,14 @@ function ImportQuestionsModal({
         </div>
 
         <div className="p-6 border-t border-border dark:border-slate-800 flex gap-3 justify-end">
-          <button onClick={onClose} className="px-6 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors">Hủy</button>
+          <button onClick={onClose} className="px-6 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors">{t("common_cancel", "Hủy")}</button>
           {assetIssues.length > 0 && !isProcessing && (
             <button
               type="button"
               onClick={() => setShowAssetIssuesModal(true)}
               className="px-6 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
             >
-              Xem câu cần bổ sung
+              {t("exam_view_issues", "Xem câu cần bổ sung")}
             </button>
           )}
           <button
@@ -1584,7 +1587,7 @@ function ImportQuestionsModal({
             className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <CheckCircle size={18} />
-            Nhập {previewQuestions.length} câu hỏi
+            {t("exam_import_btn", "Nhập")} {previewQuestions.length} {t("exam_questions_count", "câu hỏi")}
           </button>
         </div>
       </div>

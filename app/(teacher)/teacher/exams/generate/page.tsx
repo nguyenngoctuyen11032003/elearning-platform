@@ -1,10 +1,11 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { authFetch } from "@/lib/authfetch"
 import { CheckCircle, Clock, FileText, Loader2, MoreVertical, Pencil, Plus, Search, ShieldCheck, Trash2, XCircle } from "lucide-react"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 type Exam = {
   id: string
@@ -41,6 +42,7 @@ const parseQuestionsCount = (value: any): number => {
 }
 
 export default function TeacherExamsListPage() {
+  const { t } = useLanguage()
   const router = useRouter()
   const [exams, setExams] = useState<Exam[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -113,7 +115,7 @@ export default function TeacherExamsListPage() {
 
   const handleDelete = async (examId: string, examTitle: string) => {
     setOpenMenuId(null)
-    const ok = window.confirm(`Bạn có chắc muốn xóa đề thi "${examTitle}"?`)
+    const ok = window.confirm(t("tch_exg_confirm_del", `Bạn có chắc muốn xóa đề thi "${examTitle}"?`))
     if (!ok) return
 
     try {
@@ -122,12 +124,12 @@ export default function TeacherExamsListPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Xóa đề thi thất bại")
+        throw new Error(t("tch_exg_del_fail", "Xóa đề thi thất bại"))
       }
 
       setExams((prev) => prev.filter((item) => item.id !== examId))
     } catch {
-      window.alert("Không thể xóa đề thi")
+      window.alert(t("tch_exg_del_error", "Không thể xóa đề thi"))
     }
   }
 
@@ -154,10 +156,10 @@ export default function TeacherExamsListPage() {
 
   const StatusBadge = ({ status }: { status: Exam["status"] }) => {
     const map = {
-      draft: { label: "Nháp", className: "bg-gray-500/10 text-gray-500" },
-      pending: { label: "Chờ duyệt", className: "bg-amber-500/10 text-amber-600" },
-      approved: { label: "Đã duyệt", className: "bg-green-500/10 text-green-600" },
-      rejected: { label: "Từ chối", className: "bg-red-500/10 text-red-600" },
+      draft: { label: t("tch_exg_draft", "Nháp"), className: "bg-gray-500/10 text-gray-500" },
+      pending: { label: t("tch_exg_pending", "Chờ duyệt"), className: "bg-amber-500/10 text-amber-600" },
+      approved: { label: t("tch_exg_approved", "Đã duyệt"), className: "bg-green-500/10 text-green-600" },
+      rejected: { label: t("tch_exg_rejected", "Từ chối"), className: "bg-red-500/10 text-red-600" },
     } as const
     const item = map[status]
     return <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.className}`}>{item.label}</span>
@@ -165,32 +167,32 @@ export default function TeacherExamsListPage() {
 
   const TypeBadge = ({ type }: { type: Exam["type"] }) => {
     const map = {
-      practice: { label: "Thi thử", className: "bg-blue-500/10 text-blue-600" },
-      official: { label: "Thi thật", className: "bg-purple-500/10 text-purple-600" },
+      practice: { label: t("tch_exg_practice", "Thi thử"), className: "bg-blue-500/10 text-blue-600" },
+      official: { label: t("tch_exg_official", "Thi thật"), className: "bg-purple-500/10 text-purple-600" },
     } as const
     const item = map[type]
     return <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.className}`}>{item.label}</span>
   }
 
   const cards = [
-    { title: "Tổng đề thi", value: stats.total, icon: FileText, accent: "text-primary" },
-    { title: "Thi thử", value: stats.practice, icon: Clock, accent: "text-blue-500" },
-    { title: "Thi thật", value: stats.official, icon: ShieldCheck, accent: "text-purple-500" },
-    { title: "Đã duyệt", value: stats.approved, icon: CheckCircle, accent: "text-green-500" },
+    { title: t("tch_exg_total", "Tổng đề thi"), value: stats.total, icon: FileText, accent: "text-primary" },
+    { title: t("tch_exg_practice", "Thi thử"), value: stats.practice, icon: Clock, accent: "text-blue-500" },
+    { title: t("tch_exg_official", "Thi thật"), value: stats.official, icon: ShieldCheck, accent: "text-purple-500" },
+    { title: t("tch_exg_approved", "Đã duyệt"), value: stats.approved, icon: CheckCircle, accent: "text-green-500" },
   ]
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Đề thi</h1>
-          <p className="text-sm text-muted-foreground">Quản lý đề thi đã tạo và sinh đề mới từ ngân hàng</p>
+          <h1 className="text-2xl font-bold">{t("tch_exg_title", "Đề thi")}</h1>
+          <p className="text-sm text-muted-foreground">{t("tch_exg_subtitle", "Quản lý đề thi đã tạo và sinh đề mới từ ngân hàng")}</p>
         </div>
         <button
           onClick={() => router.push("/teacher/exams/generate/create")}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90"
         >
-          <Plus size={16} /> Tạo đề thi
+          <Plus size={16} /> {t("tch_exg_create", "Tạo đề thi")}
         </button>
       </div>
 
@@ -215,7 +217,7 @@ export default function TeacherExamsListPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm đề thi theo tiêu đề hoặc khóa học"
+              placeholder={t("tch_exg_search", "Tìm đề thi theo tiêu đề hoặc khóa học")}
               className="w-full bg-transparent outline-none text-sm"
             />
           </div>
@@ -225,20 +227,20 @@ export default function TeacherExamsListPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="border rounded-lg px-3 py-2 text-sm w-1/2 md:w-auto"
             >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="approved">Đã duyệt</option>
-              <option value="pending">Chờ duyệt</option>
-              <option value="draft">Nháp</option>
-              <option value="rejected">Từ chối</option>
+              <option value="all">{t("tch_exg_all_status", "Tất cả trạng thái")}</option>
+              <option value="approved">{t("tch_exg_approved", "Đã duyệt")}</option>
+              <option value="pending">{t("tch_exg_pending", "Chờ duyệt")}</option>
+              <option value="draft">{t("tch_exg_draft", "Nháp")}</option>
+              <option value="rejected">{t("tch_exg_rejected", "Từ chối")}</option>
             </select>
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
               className="border rounded-lg px-3 py-2 text-sm w-1/2 md:w-auto"
             >
-              <option value="all">Tất cả loại</option>
-              <option value="practice">Thi thử</option>
-              <option value="official">Thi thật</option>
+              <option value="all">{t("tch_exg_all_type", "Tất cả loại")}</option>
+              <option value="practice">{t("tch_exg_practice", "Thi thử")}</option>
+              <option value="official">{t("tch_exg_official", "Thi thật")}</option>
             </select>
           </div>
         </div>
@@ -247,20 +249,20 @@ export default function TeacherExamsListPage() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="text-left text-muted-foreground">
-                <th className="py-2 pr-3">Tiêu đề</th>
-                <th className="py-2 pr-3">Khóa học</th>
-                <th className="py-2 pr-3">Loại</th>
-                <th className="py-2 pr-3">Trạng thái</th>
-                <th className="py-2 pr-3">Câu hỏi</th>
-                <th className="py-2 pr-3">Lượt thi</th>
-                <th className="py-2 pr-3">Thao tác</th>
+                <th className="py-2 pr-3">{t("tch_exg_th_title", "Tiêu đề")}</th>
+                <th className="py-2 pr-3">{t("tch_exg_th_course", "Khóa học")}</th>
+                <th className="py-2 pr-3">{t("tch_exg_th_type", "Loại")}</th>
+                <th className="py-2 pr-3">{t("tch_exg_th_status", "Trạng thái")}</th>
+                <th className="py-2 pr-3">{t("tch_exg_th_questions", "Câu hỏi")}</th>
+                <th className="py-2 pr-3">{t("tch_exg_th_attempts", "Lượt thi")}</th>
+                <th className="py-2 pr-3">{t("tch_exg_th_action", "Thao tác")}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="py-6 text-center text-muted-foreground"><Loader2 className="animate-spin inline-block mr-2" size={16} /> Đang tải...</td></tr>
+                <tr><td colSpan={7} className="py-6 text-center text-muted-foreground"><Loader2 className="animate-spin inline-block mr-2" size={16} /> {t("tch_exg_loading", "Đang tải...")}</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">Chưa có đề thi nào</td></tr>
+                <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">{t("tch_exg_empty", "Chưa có đề thi nào")}</td></tr>
               ) : (
                 filtered.map((exam) => (
                   <tr key={exam.id} className="border-t">
@@ -276,7 +278,7 @@ export default function TeacherExamsListPage() {
                           ref={menuButtonRef}
                           onClick={(e) => handleMenuToggle(exam.id, e.currentTarget)}
                           className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-secondary"
-                          title="Thao tác"
+                          title={t("tch_exg_th_action", "Thao tác")}
                         >
                           <MoreVertical size={16} />
                         </button>
@@ -308,7 +310,7 @@ export default function TeacherExamsListPage() {
             className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-secondary rounded-t-lg"
           >
             <Pencil size={14} />
-            Sửa cấu hình đề thi
+            {t("tch_exg_edit", "Sửa cấu hình đề thi")}
           </button>
           <button
             onClick={(e) => {
@@ -319,7 +321,7 @@ export default function TeacherExamsListPage() {
             className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-secondary text-red-500 rounded-b-lg"
           >
             <Trash2 size={14} />
-            Xóa đề thi
+            {t("tch_exg_delete", "Xóa đề thi")}
           </button>
         </div>
       )}

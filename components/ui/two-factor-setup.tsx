@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { Button } from "./button"
 import { Input } from "./input"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface TwoFactorSetupProps {
   onClose: () => void
@@ -33,6 +34,7 @@ interface SetupData {
 type SetupStep = "intro" | "setup" | "verify" | "backup" | "complete"
 
 export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
+  const { t } = useLanguage()
   const [step, setStep] = useState<SetupStep>("intro")
   const [setupData, setSetupData] = useState<SetupData | null>(null)
   const [verificationCode, setVerificationCode] = useState("")
@@ -64,7 +66,7 @@ export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
       setSetupData(data)
       setStep("setup")
     } catch {
-      setError("Không thể khởi tạo 2FA. Vui lòng thử lại.")
+      setError(t("tfa_init_error", "Không thể khởi tạo 2FA. Vui lòng thử lại."))
     } finally {
       setIsLoading(false)
     }
@@ -73,7 +75,7 @@ export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
   // Verify code and enable 2FA
   const verifyAndEnable = async () => {
     if (verificationCode.length !== 6) {
-      setError("Vui lòng nhập mã 6 số")
+      setError(t("tfa_enter_6_digits", "Vui lòng nhập mã 6 số"))
       return
     }
 
@@ -98,7 +100,7 @@ export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
 
       setStep("backup")
     } catch {
-      setError("Mã xác thực không đúng. Vui lòng thử lại.")
+      setError(t("tfa_code_wrong", "Mã xác thực không đúng. Vui lòng thử lại."))
     } finally {
       setIsLoading(false)
     }
@@ -120,15 +122,15 @@ export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
   const downloadBackupCodes = () => {
     if (!setupData) return
 
-    const content = `ICS E-Learning - Mã backup 2FA
+    const content = `${t("tfa_backup_file_title", "ICS E-Learning - Mã backup 2FA")}
 ========================================
-Lưu các mã này ở nơi an toàn.
-Mỗi mã chỉ có thể sử dụng một lần.
+${t("tfa_backup_file_save", "Lưu các mã này ở nơi an toàn.")}
+${t("tfa_backup_file_once", "Mỗi mã chỉ có thể sử dụng một lần.")}
 
 ${setupData.backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
 
 ========================================
-Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
+${t("tfa_backup_file_date", "Ngày tạo")}: ${new Date().toLocaleDateString("vi-VN")}
 `
 
     const blob = new Blob([content], { type: "text/plain" })
@@ -169,10 +171,10 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
             </div>
             <div>
               <h2 className="text-lg font-semibold text-foreground dark:text-white">
-                Xác thực 2 yếu tố (2FA)
+                {t("tfa_title", "Xác thực 2 yếu tố (2FA)")}
               </h2>
               <p className="text-sm text-muted-foreground dark:text-slate-400">
-                Bảo vệ tài khoản của bạn
+                {t("tfa_subtitle", "Bảo vệ tài khoản của bạn")}
               </p>
             </div>
           </div>
@@ -201,8 +203,8 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                     <Smartphone className="w-10 h-10 text-white" />
                   </div>
                   <p className="text-muted-foreground dark:text-slate-400">
-                    Sử dụng ứng dụng như <strong>Google Authenticator</strong> hoặc{" "}
-                    <strong>Authy</strong> để bảo vệ tài khoản của bạn.
+                    {t("tfa_intro_desc", "Sử dụng ứng dụng như")} <strong>Google Authenticator</strong> {t("tfa_intro_or", "hoặc")}{" "}
+                    <strong>Authy</strong> {t("tfa_intro_protect", "để bảo vệ tài khoản của bạn.")}
                   </p>
                 </div>
 
@@ -211,10 +213,10 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                     <QrCode className="w-5 h-5 text-primary dark:text-accent mt-0.5" />
                     <div>
                       <p className="font-medium text-foreground dark:text-white text-sm">
-                        Quét mã QR
+                        {t("tfa_scan_qr", "Quét mã QR")}
                       </p>
                       <p className="text-xs text-muted-foreground dark:text-slate-400">
-                        Sử dụng ứng dụng authenticator để quét mã
+                        {t("tfa_scan_qr_desc", "Sử dụng ứng dụng authenticator để quét mã")}
                       </p>
                     </div>
                   </div>
@@ -222,10 +224,10 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                     <Key className="w-5 h-5 text-primary dark:text-accent mt-0.5" />
                     <div>
                       <p className="font-medium text-foreground dark:text-white text-sm">
-                        Nhập mã xác thực
+                        {t("tfa_enter_code", "Nhập mã xác thực")}
                       </p>
                       <p className="text-xs text-muted-foreground dark:text-slate-400">
-                        Mã 6 số sẽ thay đổi mỗi 30 giây
+                        {t("tfa_code_changes", "Mã 6 số sẽ thay đổi mỗi 30 giây")}
                       </p>
                     </div>
                   </div>
@@ -239,10 +241,10 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Đang xử lý...
+                      {t("auth_processing", "Đang xử lý...")}
                     </>
                   ) : (
-                    "Bắt đầu thiết lập"
+                    t("tfa_start_setup", "Bắt đầu thiết lập")
                   )}
                 </Button>
               </motion.div>
@@ -259,7 +261,7 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
               >
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground dark:text-slate-400 mb-4">
-                    Quét mã QR bằng ứng dụng authenticator
+                    {t("tfa_scan_qr_with_app", "Quét mã QR bằng ứng dụng authenticator")}
                   </p>
                   <div className="inline-block p-4 bg-white rounded-xl shadow-inner">
                     <img
@@ -273,14 +275,14 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                 <div className="relative">
                   <div className="flex items-center justify-between text-sm mb-2">
                     <span className="text-muted-foreground dark:text-slate-400">
-                      Hoặc nhập mã thủ công:
+                      {t("tfa_or_manual", "Hoặc nhập mã thủ công:")}
                     </span>
                     <button
                       onClick={() => setShowSecret(!showSecret)}
                       className="text-primary dark:text-accent hover:underline text-xs flex items-center gap-1"
                     >
                       {showSecret ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                      {showSecret ? "Ẩn" : "Hiện"}
+                      {showSecret ? t("tfa_hide", "Ẩn") : t("tfa_show", "Hiện")}
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
@@ -301,7 +303,7 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                 </div>
 
                 <Button onClick={() => setStep("verify")} className="w-full">
-                  Tiếp tục
+                  {t("tfa_continue", "Tiếp tục")}
                 </Button>
               </motion.div>
             )}
@@ -317,7 +319,7 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
               >
                 <div className="text-center py-2">
                   <p className="text-muted-foreground dark:text-slate-400">
-                    Nhập mã 6 số từ ứng dụng authenticator
+                    {t("tfa_enter_6_from_app", "Nhập mã 6 số từ ứng dụng authenticator")}
                   </p>
                 </div>
 
@@ -346,7 +348,7 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                     onClick={() => setStep("setup")}
                     className="flex-1"
                   >
-                    Quay lại
+                    {t("tfa_go_back", "Quay lại")}
                   </Button>
                   <Button
                     onClick={verifyAndEnable}
@@ -356,10 +358,10 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                     {isLoading ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Đang xác thực...
+                        {t("tfa_verifying", "Đang xác thực...")}
                       </>
                     ) : (
-                      "Xác nhận"
+                      t("tfa_confirm", "Xác nhận")
                     )}
                   </Button>
                 </div>
@@ -380,11 +382,10 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                     <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
                     <div>
                       <p className="font-medium text-amber-800 dark:text-amber-200 text-sm">
-                        Lưu các mã backup này
+                        {t("tfa_save_backup_title", "Lưu các mã backup này")}
                       </p>
                       <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                        Nếu bạn mất điện thoại, hãy sử dụng các mã này để đăng nhập.
-                        Mỗi mã chỉ có thể sử dụng một lần.
+                        {t("tfa_save_backup_desc", "Nếu bạn mất điện thoại, hãy sử dụng các mã này để đăng nhập. Mỗi mã chỉ có thể sử dụng một lần.")}
                       </p>
                     </div>
                   </div>
@@ -410,23 +411,23 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                     {copiedBackup ? (
                       <>
                         <Check className="w-4 h-4 mr-2" />
-                        Đã sao chép
+                        {t("tfa_copied", "Đã sao chép")}
                       </>
                     ) : (
                       <>
                         <Copy className="w-4 h-4 mr-2" />
-                        Sao chép
+                        {t("tfa_copy", "Sao chép")}
                       </>
                     )}
                   </Button>
                   <Button variant="outline" onClick={downloadBackupCodes} className="flex-1">
                     <Download className="w-4 h-4 mr-2" />
-                    Tải xuống
+                    {t("tfa_download", "Tải xuống")}
                   </Button>
                 </div>
 
                 <Button onClick={() => setStep("complete")} className="w-full">
-                  Tôi đã lưu các mã này
+                  {t("tfa_saved_codes", "Tôi đã lưu các mã này")}
                 </Button>
               </motion.div>
             )}
@@ -444,13 +445,13 @@ Ngày tạo: ${new Date().toLocaleDateString("vi-VN")}
                   <Check className="w-10 h-10 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground dark:text-white mb-2">
-                  Đã bật 2FA!
+                  {t("tfa_enabled", "Đã bật 2FA!")}
                 </h3>
                 <p className="text-muted-foreground dark:text-slate-400 mb-6">
-                  Tài khoản của bạn đã được bảo vệ bởi xác thực 2 yếu tố.
+                  {t("tfa_enabled_desc", "Tài khoản của bạn đã được bảo vệ bởi xác thực 2 yếu tố.")}
                 </p>
                 <Button onClick={completeSetup} className="w-full">
-                  Hoàn tất
+                  {t("tfa_complete", "Hoàn tất")}
                 </Button>
               </motion.div>
             )}
@@ -492,6 +493,7 @@ export function TwoFactorVerify({
   error?: string
 }) {
   const [code, setCode] = useState("")
+  const { t } = useLanguage()
 
   return (
     <motion.div
@@ -513,10 +515,10 @@ export function TwoFactorVerify({
             <Shield className="w-8 h-8 text-primary dark:text-accent" />
           </div>
           <h2 className="text-xl font-semibold text-foreground dark:text-white mb-1">
-            Xác thực 2 yếu tố
+            {t("tfa_verify_title", "Xác thực 2 yếu tố")}
           </h2>
           <p className="text-sm text-muted-foreground dark:text-slate-400">
-            Nhập mã từ ứng dụng authenticator hoặc mã backup
+            {t("tfa_verify_desc", "Nhập mã từ ứng dụng authenticator hoặc mã backup")}
           </p>
         </div>
 
@@ -526,7 +528,7 @@ export function TwoFactorVerify({
             inputMode="numeric"
             pattern="[0-9A-Za-z]*"
             maxLength={8}
-            placeholder="Nhập mã xác thực"
+            placeholder={t("tfa_enter_code_placeholder", "Nhập mã xác thực")}
             value={code}
             onChange={(e) => setCode(e.target.value)}
             className="text-center text-xl tracking-wider font-medium"
@@ -541,7 +543,7 @@ export function TwoFactorVerify({
 
           <div className="flex gap-3">
             <Button variant="outline" onClick={onClose} className="flex-1">
-              Hủy
+              {t("common_cancel", "Hủy")}
             </Button>
             <Button
               onClick={() => onVerify(code)}
@@ -551,10 +553,10 @@ export function TwoFactorVerify({
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Đang xác thực...
+                  {t("tfa_verifying", "Đang xác thực...")}
                 </>
               ) : (
-                "Xác nhận"
+                t("tfa_confirm", "Xác nhận")
               )}
             </Button>
           </div>

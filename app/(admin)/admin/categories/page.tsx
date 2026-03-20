@@ -1,7 +1,8 @@
-"use client"
+﻿"use client"
 import { useState, useEffect } from "react"
 import { Plus, Edit, Trash2, Save, X, Search, BookOpen, TrendingUp, FolderOpen, MoreVertical, ImagePlus } from "lucide-react"
 import { authFetch } from "@/lib/authfetch"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface Category {
   id: string
@@ -15,6 +16,7 @@ interface Category {
   createdAt: string
 }
 export default function AdminCategoriesPage() {
+  const { t } = useLanguage()
   // const [categories, setCategories] = useState<Category[]>([
   //   { id: "1", name: "Lập trình", description: "Các khóa học về lập trình web, mobile, và phần mềm", courses: 45, students: 2340, color: "#2563eb", icon: "💻", createdAt: "2024-01-15" },
   //   { id: "2", name: "Thiết kế", description: "UI/UX Design, Graphic Design, Motion Graphics", courses: 32, students: 1890, color: "#06b6d4", icon: "🎨", createdAt: "2024-01-20" },
@@ -56,13 +58,13 @@ const [isSubmitting, setIsSubmitting] = useState(false)
 
 const handleAddCategory = async () => {
   if (!newCategory.name.trim()) {
-    alert("Vui lòng nhập tên danh mục")
+    alert(t("adm_cat_name_required", "Vui lòng nhập tên danh mục"))
     return
   }
 
   // ❌ CHƯA CHỌN ICON VÀ ẢNH
   if (!newCategory.icon && !imageFile) {
-    alert("Vui lòng chọn icon hoặc ảnh cho danh mục")
+    alert(t("adm_cat_icon_required", "Vui lòng chọn icon hoặc ảnh cho danh mục"))
     return
   }
 
@@ -127,7 +129,7 @@ const handleUpdateCategory = async (
 
   // ❌ CHƯA CHỌN ICON & ẢNH
   if (!updatedIcon && !current.image && !editImageFile) {
-    alert("Danh mục cần có icon hoặc ảnh")
+    alert(t("adm_cat_icon_needed", "Danh mục cần có icon hoặc ảnh"))
     return
   }
 
@@ -248,24 +250,23 @@ useEffect(() => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Quản lý danh mục</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Phân loại và tổ chức các khóa học</p>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("adm_cat_title", "Quản lý danh mục")}</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("adm_cat_subtitle", "Phân loại và tổ chức các khóa học")}</p>
               </div>
               <button
                 onClick={() => setIsAdding(true)}
                 className="flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
               >
                 <Plus size={20} />
-                Thêm danh mục
+                {t("adm_cat_add_btn", "Thêm danh mục")}
               </button>
-            </div>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className="group flex items-center justify-between p-6 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng danh mục</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_cat_total", "Tổng danh mục")}</p>
                     <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalCategories}</p>
                   </div>
                   <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -276,7 +277,7 @@ useEffect(() => {
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
                 <div className="group flex items-center justify-between p-6 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng khóa học</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_cat_total_courses", "Tổng khóa học")}</p>
                     <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalCourses}</p>
                   </div>
                   <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -287,7 +288,7 @@ useEffect(() => {
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
                 <div className="group flex items-center justify-between p-6 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng học viên</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_cat_total_students", "Tổng học viên")}</p>
                     <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalStudents.toLocaleString('en-US')}</p>
                   </div>
                   <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -304,7 +305,7 @@ useEffect(() => {
           <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
           <input
             type="text"
-            placeholder="Tìm kiếm danh mục theo tên hoặc mô tả..."
+            placeholder={t("adm_cat_search", "Tìm kiếm danh mục theo tên hoặc mô tả...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
@@ -316,7 +317,7 @@ useEffect(() => {
           <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 h-screen w-screen">
             <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 relative z-[10000] max-h-[90vh] overflow-y-auto flex flex-col">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-foreground dark:text-white">Thêm danh mục mới</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_cat_add_title", "Thêm danh mục mới")}</h2>
                 <button
                   onClick={() => {
                     setIsAdding(false)
@@ -331,10 +332,10 @@ useEffect(() => {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Tên danh mục</label>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_name_label", "Tên danh mục")}</label>
                   <input
                     type="text"
-                    placeholder="Nhập tên danh mục..."
+                    placeholder={t("adm_cat_name_ph", "Nhập tên danh mục...")}
                     value={newCategory.name}
                     onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
@@ -344,7 +345,7 @@ useEffect(() => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Icon (tuỳ chọn)</label>
+                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_icon_label", "Icon (tuỳ chọn)")}</label>
                     <select
                       value={newCategory.icon}
                       onChange={(e) => {
@@ -357,18 +358,18 @@ useEffect(() => {
                       }}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 text-xl"
                     >
-                      <option value="">Không chọn icon</option>
+                      <option value="">{t("adm_cat_no_icon", "Không chọn icon")}</option>
                       {iconOptions.map((icon) => (
                         <option key={icon} value={icon}>{icon}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Ảnh danh mục (tuỳ chọn)</label>
+                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_img_label", "Ảnh danh mục (tuỳ chọn)")}</label>
                     <div className="flex items-center gap-3">
                       <label className="flex-1 flex items-center justify-center gap-2 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 cursor-pointer hover:bg-secondary dark:hover:bg-slate-800 transition-smooth">
                         <ImagePlus size={20} className="text-muted-foreground" />
-                        <span className="text-sm">{imageFile ? imageFile.name : "Chọn ảnh..."}</span>
+                        <span className="text-sm">{imageFile ? imageFile.name : t("adm_cat_choose_img", "Chọn ảnh...")}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -402,9 +403,9 @@ useEffect(() => {
                 </div>
 
                 <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Mô tả</label>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_desc_label", "Mô tả")}</label>
                   <textarea
-                    placeholder="Nhập mô tả danh mục..."
+                    placeholder={t("adm_cat_desc_ph", "Nhập mô tả danh mục...")}
                     value={newCategory.description}
                     onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-24 resize-none"
@@ -421,14 +422,14 @@ useEffect(() => {
                   }}
                   className="flex-1 px-4 py-2.5 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
                 >
-                  Hủy
+                  {t("adm_cat_cancel", "Hủy")}
                 </button>
                 <button
                   onClick={handleAddCategory}
                   disabled={isSubmitting}
                   className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Save size={18} /> {isSubmitting ? "Đang lưu..." : "Thêm danh mục"}
+                  <Save size={18} /> {isSubmitting ? t("adm_cat_saving", "Đang lưu...") : t("adm_cat_add_btn", "Thêm danh mục")}
                 </button>
               </div>
             </div>
@@ -462,7 +463,7 @@ useEffect(() => {
                   <div className="grid grid-cols-2 gap-4 items-start">
                   {/* ICON */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-semibold">Icon</label>
+                    <label className="block text-sm font-semibold">{t("adm_cat_icon", "Icon")}</label>
 
                     <select
                       value={category.icon || ""}
@@ -482,7 +483,7 @@ useEffect(() => {
                       }}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-2 border border-border dark:border-slate-800 text-base"
                     >
-                      <option value="">Không chọn icon</option>
+                      <option value="">{t("adm_cat_no_icon", "Không chọn icon")}</option>
                       {iconOptions.map((icon) => (
                         <option key={icon} value={icon}>
                           {icon}
@@ -493,7 +494,7 @@ useEffect(() => {
 
                   {/* IMAGE */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-semibold">Ảnh danh mục</label>
+                    <label className="block text-sm font-semibold">{t("adm_cat_image", "Ảnh danh mục")}</label>
 
                     <input
                       type="file"
@@ -540,7 +541,7 @@ useEffect(() => {
                       disabled={isSubmitting}
                       className="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isSubmitting ? "Đang lưu..." : "Lưu"}
+                      {isSubmitting ? t("adm_cat_saving", "Đang lưu...") : t("adm_cat_save", "Lưu")}
                     </button>
                     <button
                       onClick={() => {
@@ -549,7 +550,7 @@ useEffect(() => {
                       }}
                       className="flex-1 px-4 py-2 border border-border dark:border-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-smooth text-sm font-medium"
                     >
-                      Hủy
+                      {t("adm_cat_cancel", "Hủy")}
                     </button>
                   </div>
                 </div>
@@ -579,7 +580,7 @@ useEffect(() => {
                         </div>
                         <div>
                           <h3 className="text-foreground dark:text-white font-bold text-lg truncate max-w-[150px]">{category.name}</h3>
-                          <p className="text-muted-foreground dark:text-slate-400 text-sm">{category.courses} khóa học</p>
+                          <p className="text-muted-foreground dark:text-slate-400 text-sm">{category.courses} {t("adm_cat_courses_unit", "khóa học")}</p>
                         </div>
                       </div>
                       <div className="relative">
@@ -598,13 +599,13 @@ useEffect(() => {
                               }}
                               className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white text-sm"
                             >
-                              <Edit size={14} /> Chỉnh sửa
+                              <Edit size={14} /> {t("adm_cat_edit", "Chỉnh sửa")}
                             </button>
                             <button
                               onClick={() => handleDelete(category.id)}
                               className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive text-sm"
                             >
-                              <Trash2 size={14} /> Xóa
+                              <Trash2 size={14} /> {t("adm_cat_delete", "Xóa")}
                             </button>
                           </div>
                         )}
@@ -618,11 +619,11 @@ useEffect(() => {
                     <div className="grid grid-cols-2 gap-3 pt-4 border-t border-border dark:border-slate-800">
                       <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3 text-center">
                         <p className="text-foreground dark:text-white font-bold">{category.courses}</p>
-                        <p className="text-muted-foreground dark:text-slate-400 text-xs">Khóa học</p>
+                        <p className="text-muted-foreground dark:text-slate-400 text-xs">{t("adm_cat_courses", "Khóa học")}</p>
                       </div>
                       <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3 text-center">
                         <p className="text-foreground dark:text-white font-bold">{(category.students ?? 0).toLocaleString('en-US')}</p>
-                        <p className="text-muted-foreground dark:text-slate-400 text-xs">Học viên</p>
+                        <p className="text-muted-foreground dark:text-slate-400 text-xs">{t("adm_cat_students", "Học viên")}</p>
                       </div>
                     </div>
                   </div>
@@ -635,7 +636,7 @@ useEffect(() => {
         {filteredCategories.length === 0 && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-12 text-center">
             <FolderOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy danh mục nào</p>
+            <p className="text-muted-foreground dark:text-slate-400">{t("adm_cat_empty", "Không tìm thấy danh mục nào")}</p>
           </div>
         )}
       </div>
@@ -644,12 +645,12 @@ useEffect(() => {
       {deleteModal.isOpen && (
         <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 relative z-[10000]">
-            <h2 className="text-xl font-bold text-foreground dark:text-white mb-2">Xác nhận xóa danh mục</h2>
+            <h2 className="text-xl font-bold text-foreground dark:text-white mb-2">{t("adm_cat_delete_title", "Xác nhận xóa danh mục")}</h2>
             <p className="text-muted-foreground dark:text-slate-400 mb-6">
-              Bạn có chắc chắn muốn xóa danh mục <strong className="text-foreground dark:text-white">"{deleteModal.categoryName}"</strong> không?
+              {t("adm_cat_delete_msg", "Bạn có chắc chắn muốn xóa danh mục")} <strong className="text-foreground dark:text-white">"{deleteModal.categoryName}"</strong>?
               <br />
               <span className="text-destructive dark:text-red-400 text-sm">
-                Hành động này không thể hoàn tác.
+                {t("adm_cat_delete_warn", "Hành động này không thể hoàn tác.")}
               </span>
             </p>
             <div className="flex gap-3">
@@ -657,18 +658,19 @@ useEffect(() => {
                 onClick={() => setDeleteModal({ isOpen: false, categoryId: "", categoryName: "" })}
                 className="flex-1 px-4 py-2.5 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
               >
-                Hủy
+                {t("adm_cat_cancel", "Hủy")}
               </button>
               <button
                 onClick={confirmDelete}
                 className="flex-1 px-4 py-2.5 bg-destructive text-white rounded-lg hover:bg-destructive/90 transition-smooth font-medium"
               >
-                Xóa danh mục
+                {t("adm_cat_delete_confirm", "Xóa danh mục")}
               </button>
             </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -6,6 +6,7 @@ import { Loader2, Ticket, CreditCard } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { formatPrice } from "@/lib/format"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface CheckoutCourse {
   id: string
@@ -23,6 +24,7 @@ interface CouponPreview {
 
 export default function CheckoutPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [course, setCourse] = useState<CheckoutCourse | null>(null)
   const [paymentCode, setPaymentCode] = useState("")
   const [couponPreview, setCouponPreview] = useState<CouponPreview | null>(null)
@@ -68,7 +70,7 @@ export default function CheckoutPage() {
     if (!course) return
     if (!paymentCode.trim()) {
       setCouponPreview(null)
-      toast.error("Vui lòng nhập mã thanh toán")
+      toast.error(t("checkout_enter_code", "Vui lòng nhập mã thanh toán"))
       return
     }
 
@@ -81,13 +83,13 @@ export default function CheckoutPage() {
       setCouponPreview(result)
 
       if (result?.valid) {
-        toast.success("Mã thanh toán hợp lệ")
+        toast.success(t("checkout_code_valid", "Mã thanh toán hợp lệ"))
       } else {
-        toast.error(result?.message || "Mã thanh toán không hợp lệ")
+        toast.error(result?.message || t("checkout_code_invalid", "Mã thanh toán không hợp lệ"))
       }
     } catch (error) {
-      setCouponPreview({ valid: false, message: "Không thể kiểm tra mã" })
-      const message = error instanceof Error ? error.message : "Không thể kiểm tra mã"
+      setCouponPreview({ valid: false, message: t("checkout_code_check_error", "Không thể kiểm tra mã") })
+      const message = error instanceof Error ? error.message : t("checkout_code_check_error", "Không thể kiểm tra mã")
       toast.error(message)
     } finally {
       setIsCheckingCode(false)
@@ -96,7 +98,7 @@ export default function CheckoutPage() {
 
   const handlePay = async () => {
     if (!course) {
-      toast.error("Không tìm thấy khóa học để thanh toán")
+      toast.error(t("checkout_no_course", "Không tìm thấy khóa học để thanh toán"))
       return
     }
 
@@ -113,19 +115,19 @@ export default function CheckoutPage() {
         localStorage.removeItem("checkoutCourse")
         localStorage.removeItem("checkoutItems")
         localStorage.removeItem("checkoutTotal")
-        toast.success("Thanh toán thành công, bạn đã được vào khóa học")
+        toast.success(t("checkout_success", "Thanh toán thành công, bạn đã được vào khóa học"))
         router.push(
           `/enrollment/success?courseId=${course.id}&paymentId=${payment.id}&status=success`,
         )
         return
       }
 
-      toast.info("Đã tạo giao dịch, vui lòng chờ xác nhận thanh toán")
+      toast.info(t("checkout_pending", "Đã tạo giao dịch, vui lòng chờ xác nhận thanh toán"))
       router.push(
         `/enrollment/success?courseId=${course.id}&paymentId=${payment?.id || ""}&status=pending`,
       )
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Thanh toán thất bại"
+      const message = error instanceof Error ? error.message : t("checkout_failed", "Thanh toán thất bại")
       toast.error(message)
     } finally {
       setIsSubmitting(false)
@@ -135,8 +137,8 @@ export default function CheckoutPage() {
   if (!course) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <h1 className="mb-3 text-2xl font-bold">Chưa có khóa học để thanh toán</h1>
-        <p className="text-muted-foreground">Hãy chọn khóa học trước khi checkout.</p>
+        <h1 className="mb-3 text-2xl font-bold">{t("checkout_empty_title", "Chưa có khóa học để thanh toán")}</h1>
+        <p className="text-muted-foreground">{t("checkout_empty_desc", "Hãy chọn khóa học trước khi checkout.")}</p>
       </div>
     )
   }
@@ -144,15 +146,15 @@ export default function CheckoutPage() {
   return (
     <div className="mx-auto grid max-w-4xl gap-6 px-4 py-8 lg:grid-cols-2">
       <div className="rounded-2xl border bg-card p-6">
-        <h1 className="mb-4 text-2xl font-bold">Thanh toán khóa học</h1>
+        <h1 className="mb-4 text-2xl font-bold">{t("checkout_title", "Thanh toán khóa học")}</h1>
         <div className="space-y-3">
           <p className="text-lg font-semibold">{course.title}</p>
           {course.teacher && (
-            <p className="text-sm text-muted-foreground">Giảng viên: {course.teacher}</p>
+            <p className="text-sm text-muted-foreground">{t("checkout_instructor", "Giảng viên")}: {course.teacher}</p>
           )}
-          <p className="text-sm text-muted-foreground">Giá gốc: {formatPrice(Number(course.price || 0))} VND</p>
-          <p className="text-sm text-muted-foreground">Giảm giá: {formatPrice(discount)} VND</p>
-          <p className="text-xl font-bold text-primary">Cần thanh toán: {formatPrice(finalAmount)} VND</p>
+          <p className="text-sm text-muted-foreground">{t("checkout_original_price", "Giá gốc")}: {formatPrice(Number(course.price || 0))} VND</p>
+          <p className="text-sm text-muted-foreground">{t("checkout_discount", "Giảm giá")}: {formatPrice(discount)} VND</p>
+          <p className="text-xl font-bold text-primary">{t("checkout_total", "Cần thanh toán")}: {formatPrice(finalAmount)} VND</p>
         </div>
       </div>
 
@@ -166,7 +168,7 @@ export default function CheckoutPage() {
           <input
             value={paymentCode}
             onChange={(e) => setPaymentCode(e.target.value.toUpperCase())}
-            placeholder="Nhập mã do admin cung cấp"
+            placeholder={t("checkout_code_placeholder", "Nhập mã do admin cung cấp")}
             className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
           />
           <button
@@ -174,13 +176,13 @@ export default function CheckoutPage() {
             disabled={isCheckingCode}
             className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60"
           >
-            {isCheckingCode ? "Đang kiểm tra" : "Kiểm tra"}
+            {isCheckingCode ? t("checkout_checking", "Đang kiểm tra") : t("checkout_check", "Kiểm tra")}
           </button>
         </div>
 
         {couponPreview && (
           <p className={`mt-3 text-sm ${couponPreview.valid ? "text-green-600" : "text-red-500"}`}>
-            {couponPreview.message || (couponPreview.valid ? "Mã thanh toán hợp lệ" : "Mã thanh toán không hợp lệ")}
+            {couponPreview.message || (couponPreview.valid ? "Mã thanh toán hợp lệ" : t("checkout_code_invalid", "Mã thanh toán không hợp lệ"))}
           </p>
         )}
 
@@ -190,7 +192,7 @@ export default function CheckoutPage() {
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-semibold text-white hover:bg-primary/90 disabled:opacity-60"
         >
           {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <CreditCard size={16} />}
-          {isSubmitting ? "Đang xử lý" : "Thanh toán và đăng ký khóa học"}
+          {isSubmitting ? t("checkout_processing", "Đang xử lý") : t("checkout_pay", "Thanh toán và đăng ký khóa học")}
         </button>
       </div>
     </div>

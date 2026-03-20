@@ -1,9 +1,10 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { Mail, Phone, MapPin, Clock, Send, Facebook, Instagram, Youtube, Linkedin, MessageCircle } from "lucide-react"
 import { Footer } from "@/components/ui/footer"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
+import { useLanguage } from "@/lib/i18n/language-context"
 export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: "",
@@ -13,20 +14,21 @@ export default function ContactPage() {
     message: ""
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { t } = useLanguage()
   const { config: settings } = useSystemConfig()
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     // Validation
     if (!formData.name || !formData.email || !formData.message) {
-      alert('Vui lòng điền đầy đủ thông tin bắt buộc (Họ tên, Email, Nội dung)')
+      alert(t('contact_required_fields', 'Vui lòng điền đầy đủ thông tin bắt buộc (Họ tên, Email, Nội dung)'))
       return
     }
     
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
-      alert('Email không hợp lệ')
+      alert(t('contact_invalid_email', 'Email không hợp lệ'))
       return
     }
     
@@ -43,14 +45,14 @@ export default function ContactPage() {
       })
       
       if (response.ok) {
-        alert("Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất.")
+        alert(t("contact_thank_you", "Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất."))
         setFormData({ name: "", email: "", phone: "", subject: "", message: "" })
       } else {
         throw new Error('Failed to send message')
       }
     } catch (error) {
       console.error('Contact form error:', error)
-      alert("Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất.")
+      alert(t("contact_thank_you", "Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất."))
       setFormData({ name: "", email: "", phone: "", subject: "", message: "" })
     } finally {
       setIsSubmitting(false)
@@ -62,23 +64,23 @@ if (!settings) return null
     icon: Phone,
     title: "Hotline",
     content: settings.hotline,
-    description: "Hỗ trợ 24/7",
+    description: t("contact_support_247", "Hỗ trợ 24/7"),
   },
   {
     icon: Mail,
     title: "Email",
     content: settings.supportEmail,
-    description: "Phản hồi trong 24h",
+    description: t("contact_reply_24h", "Phản hồi trong 24h"),
   },
   {
     icon: MapPin,
-    title: "Địa chỉ",
+    title: t("contact_address", "Địa chỉ"),
     content: settings.address,
     description: "Việt Nam",
     },
     {
       icon: Clock,
-      title: "Giờ làm việc",
+      title: t("contact_hours", "Giờ làm việc"),
       content: settings.address,
       description: "T7: 8:00 - 12:00"
     }
@@ -103,10 +105,10 @@ console.log(settings.facebook)
       <section className="relative py-20 bg-gradient-to-br from-primary/10 via-background to-accent/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
-            Liên hệ với chúng tôi
+            {t("contact_title", "Liên hệ với chúng tôi")}
           </h1>
           <p className="text-lg text-muted-foreground dark:text-slate-400 max-w-2xl mx-auto">
-            Chúng tôi luôn sẵn sàng lắng nghe và hỗ trợ bạn. Hãy để lại thông tin, chúng tôi sẽ liên hệ lại sớm nhất!
+            {t("contact_desc", "Chúng tôi luôn sẵn sàng lắng nghe và hỗ trợ bạn. Hãy để lại thông tin, chúng tôi sẽ liên hệ lại sớm nhất!")}
           </p>
         </div>
       </section>
@@ -138,15 +140,15 @@ console.log(settings.facebook)
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Contact Form */}
             <div>
-              <h2 className="text-3xl font-bold text-foreground dark:text-white mb-4">Gửi tin nhắn cho chúng tôi</h2>
+              <h2 className="text-3xl font-bold text-foreground dark:text-white mb-4">{t("contact_form_title", "Gửi tin nhắn cho chúng tôi")}</h2>
               <p className="text-muted-foreground dark:text-slate-400 mb-8">
-                Điền thông tin vào form dưới đây, chúng tôi sẽ phản hồi trong thời gian sớm nhất.
+                {t("contact_form_desc", "Điền thông tin vào form dưới đây, chúng tôi sẽ phản hồi trong thời gian sớm nhất.")}
               </p>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                      Họ và tên *
+                      {t("contact_name", "Họ và tên")} *
                     </label>
                     <input
                       type="text"
@@ -155,7 +157,7 @@ console.log(settings.facebook)
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full px-4 py-3 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary dark:focus:ring-accent focus:border-transparent"
-                      placeholder="Nguyễn Văn A"
+                      placeholder={t("contact_name_placeholder", "Nguyễn Văn A")}
                     />
                   </div>
                   <div>
@@ -176,7 +178,7 @@ console.log(settings.facebook)
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="phone" className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                      Số điện thoại
+                      {t("contact_phone", "Số điện thoại")}
                     </label>
                     <input
                       type="tel"
@@ -189,7 +191,7 @@ console.log(settings.facebook)
                   </div>
                   <div>
                     <label htmlFor="subject" className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                      Chủ đề *
+                      {t("contact_subject", "Chủ đề")} *
                     </label>
                     <select
                       id="subject"
@@ -198,18 +200,18 @@ console.log(settings.facebook)
                       onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                       className="w-full px-4 py-3 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary dark:focus:ring-accent focus:border-transparent"
                     >
-                      <option value="">Chọn chủ đề</option>
-                      <option value="general">Câu hỏi chung</option>
-                      <option value="course">Về khóa học</option>
-                      <option value="payment">Thanh toán</option>
-                      <option value="technical">Hỗ trợ kỹ thuật</option>
-                      <option value="other">Khác</option>
+                      <option value="">{t("contact_select_subject", "Chọn chủ đề")}</option>
+                      <option value="general">{t("contact_opt_general", "Câu hỏi chung")}</option>
+                      <option value="course">{t("contact_opt_course", "Về khóa học")}</option>
+                      <option value="payment">{t("contact_opt_payment", "Thanh toán")}</option>
+                      <option value="technical">{t("contact_opt_technical", "Hỗ trợ kỹ thuật")}</option>
+                      <option value="other">{t("contact_opt_other", "Khác")}</option>
                     </select>
                   </div>
                 </div>
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    Nội dung *
+                    {t("contact_content", "Nội dung")} *
                   </label>
                   <textarea
                     id="message"
@@ -218,7 +220,7 @@ console.log(settings.facebook)
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     className="w-full px-4 py-3 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary dark:focus:ring-accent focus:border-transparent resize-none"
-                    placeholder="Nội dung tin nhắn của bạn..."
+                    placeholder={t("contact_message_placeholder", "Nội dung tin nhắn của bạn...")}
                   />
                 </div>
                 <button
@@ -227,11 +229,11 @@ console.log(settings.facebook)
                   className="w-full px-6 py-4 bg-gradient-to-r from-primary to-accent text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
-                    "Đang gửi..."
+                    t("contact_sending", "Đang gửi...")
                   ) : (
                     <>
                       <Send size={20} />
-                      Gửi tin nhắn
+                      {t("contact_send", "Gửi tin nhắn")}
                     </>
                   )}
                 </button>
@@ -245,22 +247,22 @@ console.log(settings.facebook)
                 <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                   <div className="text-center">
                     <MapPin size={48} className="mx-auto mb-4 text-primary dark:text-accent" />
-                    <p className="text-muted-foreground dark:text-slate-400">Bản đồ vị trí</p>
+                    <p className="text-muted-foreground dark:text-slate-400">{t("contact_map", "Bản đồ vị trí")}</p>
                   </div>
                 </div>
                 <div className="p-6">
-                  <h3 className="font-semibold text-foreground dark:text-white mb-2">Trụ sở chính</h3>
+                  <h3 className="font-semibold text-foreground dark:text-white mb-2">{t("contact_hq", "Trụ sở chính")}</h3>
                   <p className="text-muted-foreground dark:text-slate-400">
-                    Tầng 10, Tòa nhà ICS Tower<br />
-                    123 Nguyễn Huệ, Quận 1<br />
-                    TP. Hồ Chí Minh, Việt Nam
+                    {t("contact_address_line1", "Tầng 10, Tòa nhà ICS Tower")}<br />
+                    {t("contact_address_line2", "123 Nguyễn Huệ, Quận 1")}<br />
+                    {t("contact_address_line3", "TP. Hồ Chí Minh, Việt Nam")}
                   </p>
                 </div>
               </div>
 
               {/* Social Media */}
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-                <h3 className="font-semibold text-foreground dark:text-white mb-4">Kết nối với chúng tôi</h3>
+                <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("contact_connect", "Kết nối với chúng tôi")}</h3>
                 <div className="flex gap-3">
                   {socialLinks.map((social, index) => {
                     const Icon = social.icon
@@ -286,7 +288,7 @@ console.log(settings.facebook)
                   })}
                 </div>
                 <p className="text-sm text-muted-foreground dark:text-slate-400 mt-4">
-                  Theo dõi chúng tôi trên mạng xã hội để cập nhật tin tức mới nhất về khóa học và ưu đãi đặc biệt!
+                  {t("contact_social_desc", "Theo dõi chúng tôi trên mạng xã hội để cập nhật tin tức mới nhất về khóa học và ưu đãi đặc biệt!")}
                 </p>
               </div>
             </div>

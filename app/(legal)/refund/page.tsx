@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useLanguage } from "@/lib/i18n/language-context";
 import {
   ShieldCheck,
   Clock,
@@ -19,6 +20,7 @@ const fadeUp = {
 };
 
 export default function RefundPolicyPage() {
+  const { t } = useLanguage();
   return (
     <div
       className="relative min-h-screen bg-gray-50 bg-center bg-no-repeat"
@@ -46,7 +48,7 @@ export default function RefundPolicyPage() {
           size={18}
           className="group-hover:-translate-x-1 transition-transform"
         />
-        <span className="text-sm font-semibold">Trang chủ</span>
+        <span className="text-sm font-semibold">{t("common_home", "Trang chủ")}</span>
       </Link>
 
       {/* Hero */}
@@ -59,23 +61,22 @@ export default function RefundPolicyPage() {
         >
           {/* Page indicator */}
 
-          <h1 className="text-3xl font-semibold">Chính sách hoàn tiền</h1>
+          <h1 className="text-3xl font-semibold">{t("refund_title", "Chính sách hoàn tiền")}</h1>
 
           <p className="mt-3 text-white/90 max-w-2xl">
-            Chúng tôi mong muốn bạn học tập với sự an tâm tuyệt đối. Nếu khóa
-            học chưa phù hợp, ICS Learning luôn có chính sách hỗ trợ minh bạch.
+            {t("refund_hero_desc", "Chúng tôi mong muốn bạn học tập với sự an tâm tuyệt đối. Nếu khóa học chưa phù hợp, ICS Learning luôn có chính sách hỗ trợ minh bạch.")}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-4">
             <Badge
               icon={<Clock size={18} />}
-              text="Xử lý trong 5–7 ngày làm việc"
+              text={t("refund_badge_time", "Xử lý trong 5–7 ngày làm việc")}
             />
             <Badge
               icon={<ShieldCheck size={18} />}
-              text="Minh bạch & công bằng"
+              text={t("refund_badge_fair", "Minh bạch & công bằng")}
             />
-            <Badge icon={<CheckCircle2 size={18} />} text="Điều kiện rõ ràng" />
+            <Badge icon={<CheckCircle2 size={18} />} text={t("refund_badge_clear", "Điều kiện rõ ràng")} />
           </div>
         </motion.div>
       </div>
@@ -86,37 +87,37 @@ export default function RefundPolicyPage() {
         <aside className="lg:col-span-3">
           <div className="sticky top-24 bg-white dark:bg-slate-900/95 rounded-2xl border border-gray-200 dark:border-slate-700 p-5">
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
-              Nội dung
+              {t("terms_sidebar_title", "Nội dung")}
             </h2>
             <ul className="space-y-3 text-sm text-gray-700 dark:text-slate-300">
               <li>
                 <a href="#summary" className="hover:text-primary dark:hover:text-accent">
-                  Tóm tắt nhanh
+                  {t("refund_nav_summary", "Tóm tắt nhanh")}
                 </a>
               </li>
               <li>
                 <a href="#conditions" className="hover:text-primary dark:hover:text-accent">
-                  Điều kiện hoàn tiền
+                  {t("refund_nav_conditions", "Điều kiện hoàn tiền")}
                 </a>
               </li>
               <li>
                 <a href="#process" className="hover:text-primary dark:hover:text-accent">
-                  Quy trình hoàn tiền
+                  {t("refund_nav_process", "Quy trình hoàn tiền")}
                 </a>
               </li>
               <li>
                 <a href="#timeline" className="hover:text-primary dark:hover:text-accent">
-                  Thời gian xử lý
+                  {t("refund_nav_timeline", "Thời gian xử lý")}
                 </a>
               </li>
               <li>
                 <a href="#method" className="hover:text-primary dark:hover:text-accent">
-                  Phương thức hoàn tiền
+                  {t("refund_nav_method", "Phương thức hoàn tiền")}
                 </a>
               </li>
               <li>
                 <a href="#exceptions" className="hover:text-primary dark:hover:text-accent">
-                  Không áp dụng
+                  {t("refund_nav_exceptions", "Không áp dụng")}
                 </a>
               </li>
             </ul>
@@ -125,13 +126,13 @@ export default function RefundPolicyPage() {
 
         {/* Main */}
         <section className="lg:col-span-9 space-y-12">
-          <AnimatedSection id="summary" title="Những điều bạn cần biết">
+          <AnimatedSection id="summary" title={t("refund_summary_title", "Những điều bạn cần biết")}>
             <ul className="space-y-3">
               {[
-                "Bạn có thể yêu cầu hoàn tiền trong thời gian quy định kể từ khi mua khóa học.",
-                "Yêu cầu hoàn tiền được xử lý trong vòng 5–7 ngày làm việc.",
-                "Hoàn tiền được thực hiện qua phương thức thanh toán ban đầu.",
-                "Một số khóa học hoặc ưu đãi có thể không áp dụng.",
+                t("refund_summary_1", "Bạn có thể yêu cầu hoàn tiền trong thời gian quy định kể từ khi mua khóa học."),
+                t("refund_summary_2", "Yêu cầu hoàn tiền được xử lý trong vòng 5–7 ngày làm việc."),
+                t("refund_summary_3", "Hoàn tiền được thực hiện qua phương thức thanh toán ban đầu."),
+                t("refund_summary_4", "Một số khóa học hoặc ưu đãi có thể không áp dụng."),
               ].map((item, i) => (
                 <li key={i} className="flex gap-2">
                   <CheckCircle2 className="text-indigo-500 mt-0.5" size={18} />
@@ -143,26 +144,26 @@ export default function RefundPolicyPage() {
 
           <AnimatedSection
             id="conditions"
-            title="Điều kiện hoàn tiền"
+            title={t("refund_nav_conditions", "Điều kiện hoàn tiền")}
             icon={<ShieldCheck />}
           >
             <ul className="list-disc pl-5 space-y-2">
-              <li>Yêu cầu được gửi trong thời hạn cho phép.</li>
-              <li>Tài khoản không vi phạm điều khoản sử dụng.</li>
-              <li>Khóa học chưa hoàn thành quá tỷ lệ quy định.</li>
+              <li>{t("refund_condition_1", "Yêu cầu được gửi trong thời hạn cho phép.")}</li>
+              <li>{t("refund_condition_2", "Tài khoản không vi phạm điều khoản sử dụng.")}</li>
+              <li>{t("refund_condition_3", "Khóa học chưa hoàn thành quá tỷ lệ quy định.")}</li>
             </ul>
           </AnimatedSection>
 
           <AnimatedSection
             id="process"
-            title="Quy trình hoàn tiền"
+            title={t("refund_nav_process", "Quy trình hoàn tiền")}
             icon={<ArrowRight />}
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
-                { step: "Bước 1", text: "Gửi yêu cầu hoàn tiền" },
-                { step: "Bước 2", text: "Xác minh thông tin" },
-                { step: "Bước 3", text: "Hoàn tiền về phương thức ban đầu" },
+                { step: t("refund_step1", "Bước 1"), text: t("refund_step1_text", "Gửi yêu cầu hoàn tiền") },
+                { step: t("refund_step2", "Bước 2"), text: t("refund_step2_text", "Xác minh thông tin") },
+                { step: t("refund_step3", "Bước 3"), text: t("refund_step3_text", "Hoàn tiền về phương thức ban đầu") },
               ].map((item, i) => (
                 <motion.div
                   key={i}
@@ -180,36 +181,33 @@ export default function RefundPolicyPage() {
 
           <AnimatedSection
             id="timeline"
-            title="Thời gian xử lý"
+            title={t("refund_nav_timeline", "Thời gian xử lý")}
             icon={<Clock />}
           >
             <p>
-              Sau khi yêu cầu được chấp nhận, quá trình hoàn tiền thường mất từ{" "}
-              <strong> 5–7 ngày làm việc</strong>, tùy thuộc vào ngân hàng hoặc
-              cổng thanh toán của bạn.
+              {t("refund_timeline_content", "Sau khi yêu cầu được chấp nhận, quá trình hoàn tiền thường mất từ 5–7 ngày làm việc, tùy thuộc vào ngân hàng hoặc cổng thanh toán của bạn.")}
             </p>
           </AnimatedSection>
 
           <AnimatedSection
             id="method"
-            title="Phương thức hoàn tiền"
+            title={t("refund_nav_method", "Phương thức hoàn tiền")}
             icon={<CreditCard />}
           >
             <p>
-              Khoản tiền hoàn sẽ được chuyển về đúng phương thức thanh toán bạn
-              đã sử dụng khi mua khóa học.
+              {t("refund_method_content", "Khoản tiền hoàn sẽ được chuyển về đúng phương thức thanh toán bạn đã sử dụng khi mua khóa học.")}
             </p>
           </AnimatedSection>
 
           <AnimatedSection
             id="exceptions"
-            title="Trường hợp không áp dụng"
+            title={t("refund_nav_exceptions", "Trường hợp không áp dụng")}
             icon={<Ban />}
           >
             <ul className="list-disc pl-5 space-y-2">
-              <li>Khóa học đã hoàn thành phần lớn nội dung.</li>
-              <li>Sản phẩm khuyến mãi đặc biệt.</li>
-              <li>Vi phạm điều khoản sử dụng.</li>
+              <li>{t("refund_exception_1", "Khóa học đã hoàn thành phần lớn nội dung.")}</li>
+              <li>{t("refund_exception_2", "Sản phẩm khuyến mãi đặc biệt.")}</li>
+              <li>{t("refund_exception_3", "Vi phạm điều khoản sử dụng.")}</li>
             </ul>
           </AnimatedSection>
 
@@ -223,16 +221,16 @@ export default function RefundPolicyPage() {
             <HelpCircle className="text-indigo-600" size={28} />
             <div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Cần hỗ trợ thêm?
+                {t("refund_support_title", "Cần hỗ trợ thêm?")}
               </h3>
               <p className="mt-1 text-gray-600 dark:text-slate-300">
-                Đội ngũ ICS Learning luôn sẵn sàng giải đáp mọi thắc mắc.
+                {t("refund_support_desc", "Đội ngũ ICS Learning luôn sẵn sàng giải đáp mọi thắc mắc.")}
               </p>
               <Link
                 href="/lien-he"
                 className="inline-block mt-4 text-primary font-medium hover:underline"
               >
-                Liên hệ hỗ trợ →
+                {t("terms_support_link", "Liên hệ hỗ trợ →")}
               </Link>
             </div>
           </motion.div>

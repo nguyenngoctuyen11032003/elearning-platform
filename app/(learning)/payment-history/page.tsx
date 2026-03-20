@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -7,6 +7,8 @@ import { motion } from "framer-motion"
 import { Download, Search, CreditCard, Wallet, Plus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useLanguage } from "@/lib/i18n/language-context"
+import { autoTranslateData, getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
 
 interface PaymentHistory {
   id: string
@@ -34,6 +36,7 @@ export default function PaymentHistoryPage() {
   const [selectedPayment, setSelectedPayment] = useState<PaymentHistory | null>(null)
   const [viewingDetails, setViewingDetails] = useState(false)
   const [balance, setBalance] = useState(5000000)
+  const { language, t } = useLanguage()
 
   useEffect(() => {
     setMounted(true)
@@ -122,10 +125,22 @@ export default function PaymentHistoryPage() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    setPayments(mockPaymentHistory)
-    setFilteredPayments(mockPaymentHistory)
-    setLoading(false)
-  }, [])
+    let active = true
+
+    const localizePayments = async () => {
+      const localized = await autoTranslateData(mockPaymentHistory, language)
+      if (!active) return
+      setPayments(localized)
+      setFilteredPayments(localized)
+      setLoading(false)
+    }
+
+    localizePayments()
+
+    return () => {
+      active = false
+    }
+  }, [language])
 
   useEffect(() => {
     let filtered = payments
@@ -141,19 +156,19 @@ export default function PaymentHistoryPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case "completed":
-        return "Thành công"
+        return t("pay_status_completed", "Thành công")
       case "pending":
-        return "Đang xử lý"
+        return t("pay_status_pending", "Đang xử lý")
       case "failed":
-        return "Thất bại"
+        return t("pay_status_failed", "Thất bại")
       default:
-        return "Không xác định"
+        return t("pay_status_unknown", "Không xác định")
     }
   }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString("vi-VN", {
+    return date.toLocaleDateString(getLocaleByLanguage(language), {
       year: "numeric",
       month: "numeric",
       day: "numeric",
@@ -161,7 +176,8 @@ export default function PaymentHistoryPage() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN", {
+    const locale = getLocaleByLanguage(language)
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "VND",
     }).format(amount)
@@ -248,7 +264,7 @@ export default function PaymentHistoryPage() {
       <div className={`min-h-screen transition-colors duration-300 flex items-center justify-center ${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50'}`}>
         <div className="text-center">
           <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${isDarkMode ? 'border-blue-400' : 'border-blue-600'} mx-auto mb-4`}></div>
-          <p className={isDarkMode ? "text-blue-400" : "text-blue-600"}>Đang tải...</p>
+          <p className={isDarkMode ? "text-blue-400" : "text-blue-600"}>{t("pay_loading", "Đang tải...")}</p>
         </div>
       </div>
     )
@@ -270,23 +286,23 @@ export default function PaymentHistoryPage() {
             {/* Top Balance Section */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div className={`${isDarkMode ? 'bg-gradient-to-br from-blue-900 to-blue-800 border-blue-700' : 'bg-gradient-to-br from-blue-500 to-blue-600 border-blue-400'} rounded-2xl p-4 sm:p-6 border shadow-lg text-white hover:shadow-xl transition-all`}>
-                <p className={`text-xs ${isDarkMode ? 'text-blue-200' : 'text-blue-100'} mb-2`}>SỐ DƯ HIỆN TẠI</p>
+                <p className={`text-xs ${isDarkMode ? 'text-blue-200' : 'text-blue-100'} mb-2`}>{t("pay_balance", "SỐ DƯ HIỆN TẠI")}</p>
                 <p className="text-2xl sm:text-3xl font-bold mb-4">{formatCurrency(balance)}</p>
                 <button
                   onClick={() => router.push("/top-up")}
                   className={`w-full px-3 py-2 ${isDarkMode ? 'bg-blue-700/70 hover:bg-blue-600/70' : 'bg-white/20 hover:bg-white/30'} rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm`}
                 >
                   <Plus size={16} />
-                  Nạp tiền
+                  {t("pay_topup", "Nạp tiền")}
                 </button>
               </div>
               <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm hover:shadow-md transition-all`}>
-                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>TỔNG ĐÃ CHI</p>
+                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>{t("pay_total_spent", "TỔNG ĐÃ CHI")}</p>
                 <p className={`text-2xl sm:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatCurrency(totalSpent)}</p>
               </div>
               <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm hover:shadow-md transition-all flex items-center justify-between`}>
                 <div>
-                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>Thẻ liên kết</p>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>{t("pay_linked_cards", "Thẻ liên kết")}</p>
                   <div className="flex gap-2">
                     <div className="w-8 h-5 bg-red-500 rounded text-xs flex items-center justify-center text-white">💳</div>
                     <div className="w-8 h-5 bg-blue-600 rounded text-xs flex items-center justify-center text-white">V</div>
@@ -294,7 +310,7 @@ export default function PaymentHistoryPage() {
                 </div>
               </div>
               <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm hover:shadow-md transition-all`}>
-                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>CHI TIÊU HÀNG NGÀY</p>
+                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>{t("pay_daily_spend", "CHI TIÊU HÀNG NGÀY")}</p>
                 <p className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatCurrency(dailySpend)}</p>
               </div>
             </div>
@@ -302,12 +318,12 @@ export default function PaymentHistoryPage() {
             {/* Transactions Section */}
             <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm`}>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <h2 className={`text-lg sm:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Giao dịch gần đây</h2>
+                <h2 className={`text-lg sm:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t("pay_recent_tx", "Giao dịch gần đây")}</h2>
                 <div className="relative w-full sm:w-64">
                   <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} size={16} />
                   <input
                     type="text"
-                    placeholder="Tìm kiếm..."
+                    placeholder={t("pay_search", "Tìm kiếm...")}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className={`w-full pl-10 pr-4 py-2 text-sm ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400'} border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400`}
@@ -318,17 +334,17 @@ export default function PaymentHistoryPage() {
               {filteredPayments.length === 0 ? (
                 <div className="text-center py-8">
                   <CreditCard className={`w-12 h-12 ${isDarkMode ? 'text-gray-600' : 'text-gray-300'} mx-auto mb-3`} />
-                  <p className={isDarkMode ? "text-gray-400" : "text-gray-500"}>Không có giao dịch nào</p>
+                  <p className={isDarkMode ? "text-gray-400" : "text-gray-500"}>{t("pay_no_tx", "Không có giao dịch nào")}</p>
                 </div>
               ) : (
                 <div className="space-y-2 overflow-x-auto">
                   {/* Table Header */}
                   <div className={`hidden sm:grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-3 text-xs sm:text-sm ${isDarkMode ? 'text-gray-400 border-gray-700' : 'text-gray-600 border-gray-200'} font-medium border-b`}>
-                    <div className="col-span-4">Giao dịch</div>
-                    <div className="col-span-2">Ngày</div>
-                    <div className="col-span-2">Trạng thái</div>
-                    <div className="col-span-2">Số tiền</div>
-                    <div className="col-span-2 text-right">Thao tác</div>
+                    <div className="col-span-4">{t("pay_col_tx", "Giao dịch")}</div>
+                    <div className="col-span-2">{t("pay_col_date", "Ngày")}</div>
+                    <div className="col-span-2">{t("pay_col_status", "Trạng thái")}</div>
+                    <div className="col-span-2">{t("pay_col_amount", "Số tiền")}</div>
+                    <div className="col-span-2 text-right">{t("pay_col_actions", "Thao tác")}</div>
                   </div>
 
                   {/* Table Rows */}
@@ -431,10 +447,10 @@ export default function PaymentHistoryPage() {
             {/* Your Courses Section */}
             <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm`}>
               <div className="flex items-center justify-between mb-6 sm:mb-8">
-                <h2 className={`text-lg sm:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Khóa học của bạn</h2>
+                <h2 className={`text-lg sm:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t("pay_your_courses", "Khóa học của bạn")}</h2>
                 <button className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm whitespace-nowrap">
                   <span>+</span>
-                  Thêm khóa học
+                  {t("pay_add_course", "Thêm khóa học")}
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -464,7 +480,7 @@ export default function PaymentHistoryPage() {
                       {/* Progress */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Tiến độ</p>
+                          <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t("pay_progress", "Tiến độ")}</p>
                           <p className={`text-xs font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>75%</p>
                         </div>
                         <div className={`w-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-2 overflow-hidden`}>
@@ -480,18 +496,18 @@ export default function PaymentHistoryPage() {
                       {/* Stats */}
                       <div className="grid grid-cols-2 gap-2">
                         <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-lg p-3 text-center`}>
-                          <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Bài học</p>
+                          <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t("pay_lessons", "Bài học")}</p>
                           <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>12</p>
                         </div>
                         <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-lg p-3 text-center`}>
-                          <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hoàn thành</p>
+                          <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t("pay_completed", "Hoàn thành")}</p>
                           <p className={`text-lg font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>9</p>
                         </div>
                       </div>
 
                       {/* Button */}
                       <button className={`w-full py-2.5 rounded-lg font-medium transition-all text-sm ${isDarkMode ? 'bg-blue-600/20 text-blue-300 hover:bg-blue-600/30' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}>
-                        Tiếp tục học
+                        {t("pay_continue", "Tiếp tục học")}
                       </button>
                     </div>
                   </motion.div>
@@ -511,7 +527,7 @@ export default function PaymentHistoryPage() {
           >
             <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-cyan-500 border-b text-white p-4 sm:p-6">
               <div className="flex items-center justify-between gap-2">
-                <h2 className="text-xl sm:text-2xl font-bold flex-1">Chi tiết giao dịch</h2>
+                <h2 className="text-xl sm:text-2xl font-bold flex-1">{t("pay_detail_title", "Chi tiết giao dịch")}</h2>
                 <button
                   onClick={() => setViewingDetails(false)}
                   className="p-2 hover:bg-white/20 rounded-lg transition-all flex-shrink-0"
@@ -535,38 +551,38 @@ export default function PaymentHistoryPage() {
 
               <div className="space-y-4">
                 <div>
-                  <h4 className={`font-semibold mb-2 sm:mb-3 text-sm sm:text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Thông tin thanh toán</h4>
+                  <h4 className={`font-semibold mb-2 sm:mb-3 text-sm sm:text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t("pay_info_title", "Thông tin thanh toán")}</h4>
                   <div className="space-y-2 text-xs sm:text-sm">
                     <div className="flex justify-between">
-                      <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>Mã giao dịch:</span>
+                      <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>{t("pay_tx_id", "Mã giao dịch:")}</span>
                       <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedPayment.transactionId}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>Ngày giao dịch:</span>
+                      <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>{t("pay_tx_date", "Ngày giao dịch:")}</span>
                       <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatDate(selectedPayment.enrolledAt)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>Phương thức:</span>
+                      <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>{t("pay_method", "Phương thức:")}</span>
                       <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedPayment.paymentMethod}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className={`border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} pt-3 sm:pt-4`}>
-                  <h4 className={`font-semibold mb-2 sm:mb-3 text-sm sm:text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Chi tiết giá</h4>
+                  <h4 className={`font-semibold mb-2 sm:mb-3 text-sm sm:text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t("pay_price_detail", "Chi tiết giá")}</h4>
                   <div className="space-y-2 text-xs sm:text-sm">
                     <div className="flex justify-between">
-                      <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>Giá gốc:</span>
+                      <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>{t("pay_original_price", "Giá gốc:")}</span>
                       <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatCurrency(selectedPayment.amount)}</span>
                     </div>
                     {selectedPayment.discountAmount && selectedPayment.discountAmount > 0 && (
                       <div className={`flex justify-between ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                        <span>Giảm giá:</span>
+                        <span>{t("pay_discount", "Giảm giá:")}</span>
                         <span className="font-medium">-{formatCurrency(selectedPayment.discountAmount)}</span>
                       </div>
                     )}
                     <div className={`flex justify-between font-bold border-t ${isDarkMode ? 'border-gray-700 text-white' : 'border-gray-200 text-gray-900'} pt-2 text-sm sm:text-base`}>
-                      <span>Tổng thanh toán:</span>
+                      <span>{t("pay_total", "Tổng thanh toán:")}</span>
                       <span>{formatCurrency(selectedPayment.finalAmount)}</span>
                     </div>
                   </div>
@@ -579,7 +595,7 @@ export default function PaymentHistoryPage() {
                     href={`/course/${selectedPayment.courseSlug}`}
                     className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg hover:shadow-lg transition-all text-center font-semibold text-sm sm:text-base"
                   >
-                    Xem khóa học
+                    {t("pay_view_course", "Xem khóa học")}
                   </Link>
                 )}
                 {selectedPayment.status === "completed" && (
@@ -588,7 +604,7 @@ export default function PaymentHistoryPage() {
                     className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white border-gray-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-900 border-gray-200'} rounded-lg transition-all flex items-center justify-center gap-2 font-semibold border text-sm sm:text-base`}
                   >
                     <Download size={16} />
-                    Tải hóa đơn
+                    {t("pay_download_invoice", "Tải hóa đơn")}
                   </button>
                 )}
               </div>

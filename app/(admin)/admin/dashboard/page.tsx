@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { StatCard } from "@/components/ui/stat-card"
 import { Users, BookOpen, CreditCard, TrendingUp, Star, UserCheck, Target } from "lucide-react"
@@ -21,6 +21,7 @@ import {
 } from "recharts"
 import { useState, useEffect } from "react"
 import { formatPrice, formatCurrency } from "@/lib/format"
+import { useLanguage } from "@/lib/i18n/language-context"
 import { apiClient } from "@/lib/api/client"
 import { format } from "date-fns/format"
 
@@ -48,6 +49,7 @@ type Transaction = { id: string; user: string; course: string; amount: number; s
 const pieColors = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"]
 
 export default function AdminDashboard() {
+  const { t } = useLanguage()
   const [filterPeriod, setFilterPeriod] = useState("month")
 
   const [loading, setLoading] = useState(true)
@@ -190,7 +192,7 @@ useEffect(() => {
 if (loading) {
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <p>Đang tải dashboard...</p>
+      <p>{t("adm_dash_loading", "Đang tải dashboard...")}</p>
     </div>
   )
 }
@@ -229,15 +231,15 @@ if (loading) {
           <div className="relative z-10 space-y-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">Bảng điều khiển quản trị</h1>
-                <p className="text-black/80 dark:text-white/90 drop-shadow">Tổng quan hệ thống ICS Learning - Quản lý toàn diện</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("adm_dash_title", "Bảng điều khiển quản trị")}</h1>
+                <p className="text-black/80 dark:text-white/90 drop-shadow">{t("adm_dash_subtitle", "Tổng quan hệ thống ICS Learning - Quản lý toàn diện")}</p>
               </div>
               <div className="flex gap-2 flex-wrap">
                 {[
-                  { value: "day", label: "Ngày" },
-                  { value: "week", label: "Tuần" },
-                  { value: "month", label: "Tháng" },
-                  { value: "year", label: "Năm" },
+                  { value: "day", label: t("adm_dash_day", "Ngày") },
+                  { value: "week", label: t("adm_dash_week", "Tuần") },
+                  { value: "month", label: t("adm_dash_month", "Tháng") },
+                  { value: "year", label: t("adm_dash_year", "Năm") },
                 ].map((period) => (
                   <button
                     key={period.value}
@@ -258,29 +260,29 @@ if (loading) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard
   icon={UserCheck}
-  title="Tổng giáo viên"
+  title={t("adm_dash_total_teachers", "Tổng giáo viên")}
   value={stats?.totalTeachers || 0}
-  change={`+${stats?.teacherGrowth || 0}% so với tháng trước`}
+  change={`+${stats?.teacherGrowth || 0}% ${t("adm_dash_vs_last_month", "so với tháng trước")}`}
 />
 
 <StatCard
   icon={Users}
-  title="Tổng học viên"
+  title={t("adm_dash_total_students", "Tổng học viên")}
   value={stats?.totalStudents || 0}
-  change={`+${stats?.studentGrowth || 0}% so với tháng trước`}
+  change={`+${stats?.studentGrowth || 0}% ${t("adm_dash_vs_last_month", "so với tháng trước")}`}
 />
 
 <StatCard
   icon={BookOpen}
-  title="Tổng khóa học"
+  title={t("adm_dash_total_courses", "Tổng khóa học")}
   value={stats?.totalCourses || 0}
-  change={`+${stats?.courseGrowth || 0}% so với tháng trước`}
+  change={`+${stats?.courseGrowth || 0}% ${t("adm_dash_vs_last_month", "so với tháng trước")}`}
 />
 <StatCard
   icon={CreditCard}
-  title="Tổng doanh thu"
+  title={t("adm_dash_total_revenue", "Tổng doanh thu")}
   value={formatCurrency(Math.round(Number(stats?.totalRevenue || 0)))}
-  change={`${stats?.revenueGrowth || 0}% so với 30 ngày trước`}
+  change={`${stats?.revenueGrowth || 0}% ${t("adm_dash_vs_30_days", "so với 30 ngày trước")}`}
 />
 
             </div>
@@ -291,10 +293,10 @@ if (loading) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Revenue Chart */}
           <div className="lg:col-span-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Doanh thu theo tháng</h3>
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_revenue_monthly", "Doanh thu theo tháng")}</h3>
             {revenueData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">
-                Chưa có dữ liệu doanh thu
+                {t("adm_dash_no_revenue_data", "Chưa có dữ liệu doanh thu")}
               </p>
             ) : (
             <ResponsiveContainer width="100%" height={300}>
@@ -316,7 +318,7 @@ if (loading) {
                     color: "#fff"
                   }}
                   itemStyle={{ color: "#fff" }}
-                  formatter={(value: number | undefined) => [formatCurrency(Math.round(value ?? 0)), "Doanh thu"]}
+                  formatter={(value: number | undefined) => [formatCurrency(Math.round(value ?? 0)), t("adm_dash_revenue", "Doanh thu")]}
                 />
                 <Legend />
                 <Area
@@ -325,7 +327,7 @@ if (loading) {
                   stroke="#2563eb"
                   fillOpacity={1}
                   fill="url(#colorRevenue)"
-                  name="Doanh thu"
+                  name={t("adm_dash_revenue", "Doanh thu")}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -334,9 +336,9 @@ if (loading) {
 
           {/* Category Distribution */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Phân bố khóa học</h3>
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_course_dist", "Phân bố khóa học")}</h3>
             {categoryData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">Chưa có dữ liệu danh mục</p>
+              <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_cat_data", "Chưa có dữ liệu danh mục")}</p>
             ) : (
               <>
                 <ResponsiveContainer width="100%" height={280}>
@@ -364,7 +366,7 @@ if (loading) {
                       }}
                       itemStyle={{ color: "#fff" }}
                       formatter={(value: number | undefined, name: string | undefined, _props: any, index: number) => [
-                        `${value ?? 0} khóa (${categoryData[index]?.percentage ?? 0}%)`,
+                        `${value ?? 0} ${t("adm_dash_courses_unit", "khóa")} (${categoryData[index]?.percentage ?? 0}%)`,
                         name ?? "",
                       ]}
                     />
@@ -387,10 +389,10 @@ if (loading) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* User Activity Chart */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Hoạt động người dùng tuần này</h3>
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_weekly_activity", "Hoạt động người dùng tuần này")}</h3>
             {weeklyStats.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center">
-              Chưa có dữ liệu tuần này
+              {t("adm_dash_no_weekly_data", "Chưa có dữ liệu tuần này")}
             </p>
           ) : (
             <ResponsiveContainer width="100%" height={280}>
@@ -423,7 +425,7 @@ if (loading) {
                   stroke="#06b6d4"
                   fillOpacity={1}
                   fill="url(#colorActive)"
-                  name="Người dùng hoạt động"
+                  name={t("adm_dash_active_users", "Người dùng hoạt động")}
                 />
                 <Area
                   type="monotone"
@@ -431,7 +433,7 @@ if (loading) {
                   stroke="#8b5cf6"
                   fillOpacity={1}
                   fill="url(#colorSignups)"
-                  name="Đăng ký mới"
+                  name={t("adm_dash_new_signups", "Đăng ký mới")}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -440,10 +442,10 @@ if (loading) {
 
           {/* Teacher & Student Growth */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Tăng trưởng theo tháng</h3>
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_growth_monthly", "Tăng trưởng theo tháng")}</h3>
             {growthData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">
-                Chưa có dữ liệu tăng trưởng
+                {t("adm_dash_no_growth_data", "Chưa có dữ liệu tăng trưởng")}
               </p>
             ) : (
             <ResponsiveContainer width="100%" height={280}>
@@ -466,7 +468,7 @@ if (loading) {
                   stroke="#8b5cf6" 
                   strokeWidth={2} 
                   dot={{ fill: "#8b5cf6" }}
-                  name="Giáo viên" 
+                  name={t("adm_dash_teachers", "Giáo viên")} 
                 />
                 <Line 
                   type="monotone" 
@@ -474,7 +476,7 @@ if (loading) {
                   stroke="#06b6d4" 
                   strokeWidth={2} 
                   dot={{ fill: "#06b6d4" }}
-                  name="Học viên" 
+                  name={t("adm_dash_students", "Học viên")} 
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -487,12 +489,12 @@ if (loading) {
         {/* ===== MOBILE TRANSACTION CARDS ===== */}
         <div className="lg:hidden bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
           <h3 className="font-semibold text-foreground dark:text-white mb-4">
-            Giao dịch gần đây
+            {t("adm_dash_recent_tx", "Giao dịch gần đây")}
           </h3>
           <div className="space-y-4">
             {recentTransactions.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                Chưa có giao dịch nào
+                {t("adm_dash_no_tx", "Chưa có giao dịch nào")}
               </div>
             ) : (
               recentTransactions.map((tx) => (
@@ -512,22 +514,22 @@ if (loading) {
                   {/* Info rows */}
                   <div className="space-y-2 text-sm">
                     <TransactionInfoRow
-                      label="Số tiền"
+                      label={t("adm_dash_amount", "Số tiền")}
                       value={`₫${formatPrice(tx.amount)}`}
                       highlight
                     />
                     <TransactionInfoRow
-                      label="Trạng thái"
+                      label={t("adm_dash_status", "Trạng thái")}
                       value={
                         tx.status === "success"
-                          ? "Thành công"
+                          ? t("adm_dash_success", "Thành công")
                           : tx.status === "pending"
-                          ? "Chờ xử lý"
-                          : "Thất bại"
+                          ? t("adm_dash_pending", "Chờ xử lý")
+                          : t("adm_dash_failed", "Thất bại")
                       }
                     />
                     <TransactionInfoRow
-                      label="Ngày"
+                      label={t("adm_dash_date", "Ngày")}
                       value={tx.date}
                     />
                   </div>
@@ -540,17 +542,17 @@ if (loading) {
         {/* ===== DESKTOP TABLE ===== */}
         <div className="hidden lg:block bg-card dark:bg-slate-900/60 rounded-2xl p-6">
           <h3 className="font-semibold text-foreground dark:text-white mb-4">
-            Giao dịch gần đây
+            {t("adm_dash_recent_tx", "Giao dịch gần đây")}
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800">
-                  <th className="whitespace-nowrap py-3 px-4">Người dùng</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">Khóa học</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">Số tiền</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">Trạng thái</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">Ngày</th>
+                  <th className="whitespace-nowrap py-3 px-4">{t("adm_dash_user", "Người dùng")}</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">{t("adm_dash_course", "Khóa học")}</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">{t("adm_dash_amount", "Số tiền")}</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">{t("adm_dash_status", "Trạng thái")}</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">{t("adm_dash_date", "Ngày")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -573,10 +575,10 @@ if (loading) {
                         }`}
                       >
                         {transaction.status === "success"
-                          ? "Thành công"
+                          ? t("adm_dash_success", "Thành công")
                           : transaction.status === "pending"
-                            ? "Chờ xử lý"
-                            : "Thất bại"}
+                            ? t("adm_dash_pending", "Chờ xử lý")
+                            : t("adm_dash_failed", "Thất bại")}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground dark:text-slate-400">{transaction.date}</td>

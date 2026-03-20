@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ import { DiscussionThread } from '@/components/ui/discussion-thread';
 import { MessageSquarePlus, Search, Filter, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import { toast } from '@/hooks/use-toast';
+import { useLanguage } from '@/lib/i18n/language-context';
 
 interface Course {
   id: string;
@@ -55,6 +56,7 @@ interface Discussion {
 }
 
 export default function DiscussionsPage() {
+  const { t } = useLanguage();
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -187,7 +189,7 @@ export default function DiscussionsPage() {
   const handleReply = async (discussionId: string, content: string) => {
     try {
       await apiClient.replyToDiscussion(discussionId, { content });
-      toast({ title: 'Đã gửi trả lời' });
+      toast({ title: t('discuss_replied', 'Đã gửi trả lời') });
       loadDiscussions(selectedCourse !== 'all' ? selectedCourse : undefined);
     } catch (error) {
       console.error('Error replying:', error);
@@ -200,11 +202,11 @@ export default function DiscussionsPage() {
   };
 
   const handleDelete = async (discussionId: string) => {
-    if (!confirm('Bạn có chắc muốn xóa thảo luận này?')) return;
+    if (!confirm(t('discuss_confirm_delete', 'Bạn có chắc muốn xóa thảo luận này?'))) return;
 
     try {
       await apiClient.deleteDiscussion(discussionId);
-      toast({ title: 'Đã xóa thảo luận' });
+      toast({ title: t('discuss_deleted', 'Đã xóa thảo luận') });
       loadDiscussions(selectedCourse !== 'all' ? selectedCourse : undefined);
     } catch (error) {
       console.error('Error deleting:', error);
@@ -253,9 +255,9 @@ export default function DiscussionsPage() {
       <div className="w-full space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Thảo luận</h1>
+          <h1 className="text-3xl font-bold">{t("discuss_title", "Thảo luận")}</h1>
           <p className="text-muted-foreground mt-1">
-            Trao đổi và hỏi đáp với giáo viên và bạn học
+            {t("discuss_desc", "Trao đổi và hỏi đáp với giáo viên và bạn học")}
           </p>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -267,17 +269,17 @@ export default function DiscussionsPage() {
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Tạo thảo luận mới</DialogTitle>
+              <DialogTitle>{t("discuss_create", "Tạo thảo luận mới")}</DialogTitle>
               <DialogDescription>
-                Đặt câu hỏi hoặc thảo luận về nội dung khóa học
+                {t("discuss_create_desc", "Đặt câu hỏi hoặc thảo luận về nội dung khóa học")}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Tiêu đề *</Label>
+                <Label htmlFor="title">{t("discuss_form_title", "Tiêu đề")} *</Label>
                 <Input
                   id="title"
-                  placeholder="Nhập tiêu đề thảo luận..."
+                  placeholder={t("discuss_title_placeholder", "Nhập tiêu đề thảo luận...")}
                   value={newDiscussion.title}
                   onChange={(e) =>
                     setNewDiscussion({ ...newDiscussion, title: e.target.value })
@@ -285,7 +287,7 @@ export default function DiscussionsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="course">Khóa học *</Label>
+                <Label htmlFor="course">{t("discuss_form_course", "Khóa học")} *</Label>
                 <Select
                   value={newDiscussion.courseId}
                   onValueChange={(value) =>
@@ -293,7 +295,7 @@ export default function DiscussionsPage() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn khóa học" />
+                    <SelectValue placeholder={t("discuss_select_course", "Chọn khóa học")} />
                   </SelectTrigger>
                   <SelectContent>
                     {courses.map((course) => (
@@ -306,7 +308,7 @@ export default function DiscussionsPage() {
               </div>
               {newDiscussion.courseId && (
                 <div className="space-y-2">
-                  <Label htmlFor="lesson">Bài học (tùy chọn)</Label>
+                  <Label htmlFor="lesson">{t("discuss_form_lesson", "Bài học (tùy chọn)")}</Label>
                   <Select
                     value={newDiscussion.lessonId}
                     onValueChange={(value) =>
@@ -314,7 +316,7 @@ export default function DiscussionsPage() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn bài học" />
+                      <SelectValue placeholder={t("discuss_select_lesson", "Chọn bài học")} />
                     </SelectTrigger>
                     <SelectContent>
                       {lessons
@@ -329,10 +331,10 @@ export default function DiscussionsPage() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="content">Nội dung *</Label>
+                <Label htmlFor="content">{t("discuss_form_content", "Nội dung")} *</Label>
                 <Textarea
                   id="content"
-                  placeholder="Nhập nội dung thảo luận..."
+                  placeholder={t("discuss_content_placeholder", "Nhập nội dung thảo luận...")}
                   value={newDiscussion.content}
                   onChange={(e) =>
                     setNewDiscussion({ ...newDiscussion, content: e.target.value })
@@ -352,7 +354,7 @@ export default function DiscussionsPage() {
               </Button>
               <Button onClick={handleCreateDiscussion} disabled={creating}>
                 {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {creating ? 'Đang tạo...' : 'Tạo thảo luận'}
+                {creating ? t('discuss_creating', 'Đang tạo...') : t('discuss_create_btn', 'Tạo thảo luận')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -364,7 +366,7 @@ export default function DiscussionsPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Tìm kiếm thảo luận..."
+            placeholder={t("discuss_search", "Tìm kiếm thảo luận...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -374,10 +376,10 @@ export default function DiscussionsPage() {
          onValueChange={(v) => setSelectedCourse("null")}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Lọc theo khóa học" />
+            <SelectValue placeholder={t("discuss_filter_course", "Lọc theo khóa học")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả khóa học</SelectItem>
+            <SelectItem value="all">{t("discuss_all_courses", "Tất cả khóa học")}</SelectItem>
             {courses.map((course) => (
               <SelectItem key={course.id} value={course.id}>
                 {course.title}
@@ -389,10 +391,10 @@ export default function DiscussionsPage() {
           <Select value={selectedLesson?? ""}
            onValueChange={(v) => setSelectedLesson("")}>
             <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="Lọc theo bài học" />
+              <SelectValue placeholder={t("discuss_filter_lesson", "Lọc theo bài học")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả bài học</SelectItem>
+              <SelectItem value="all">{t("discuss_all_lessons", "Tất cả bài học")}</SelectItem>
               {lessons.map((lesson) => (
                 <SelectItem key={lesson.id} value={lesson.id}>
                   {lesson.title}
@@ -413,8 +415,8 @@ export default function DiscussionsPage() {
           <MessageSquarePlus className="h-12 w-12 mx-auto text-muted-foreground" />
           <p className="text-muted-foreground">
             {searchQuery || selectedCourse !== 'all' || selectedLesson !== 'all'
-              ? 'Không tìm thấy thảo luận nào'
-              : 'Chưa có thảo luận nào. Hãy tạo thảo luận đầu tiên!'}
+              ? t('discuss_no_results', 'Không tìm thấy thảo luận nào')
+              : t('discuss_empty', 'Chưa có thảo luận nào. Hãy tạo thảo luận đầu tiên!')}
           </p>
         </div>
       ) : (

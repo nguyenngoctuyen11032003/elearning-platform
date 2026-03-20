@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { Footer } from "@/components/ui/footer"
 import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button"
@@ -6,6 +6,7 @@ import { BarChart3, Users, TrendingUp, Award, Zap, DollarSign, Sparkles, BookOpe
 import { CarouselBenefits } from "./CarouselBenefits";
 import Link from "next/link"
 import { formatStudentCount } from "@/lib/format"
+import { useLanguage } from "@/lib/i18n/language-context"
 import { motion, AnimatePresence, type Variants } from "framer-motion"
 import { useState } from "react"
 
@@ -130,6 +131,7 @@ const teachers = [
     gradient: "from-teal-500 to-cyan-500",
   },
 ]
+  const { t } = useLanguage()
   const VISIBLE_COUNT = 3
   const [page, setPage] = useState(0)
   const [direction, setDirection] = useState(1)
@@ -185,18 +187,18 @@ const teachers = [
             className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 dark:bg-accent/20 rounded-full text-accent font-medium text-sm mb-4"
           >
             <Sparkles size={16} />
-            <span>Tham gia cộng đồng 200+ giảng viên</span>
+            <span>{t("teachers_hero_badge", "Tham gia cộng đồng 200+ giảng viên")}</span>
           </motion.div>
 
           <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight">
-            Trở thành{" "}
+            {t("teachers_hero_title1", "Trở thành")}{" "}
             <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               Giảng viên
             </span>
           </h1>
 
           <p className="text-xl md:text-2xl text-slate-200 max-w-3xl mx-auto">
-            Chia sẻ kiến thức của bạn với hàng triệu học viên trên toàn thế giới và tạo thu nhập thụ động
+            {t("teachers_hero_desc", "Chia sẻ kiến thức của bạn với hàng triệu học viên trên toàn thế giới và tạo thu nhập thụ động")}
           </p>
 
           <motion.div
@@ -209,7 +211,7 @@ const teachers = [
               href="/signup?role=teacher"
               className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-4 rounded-full font-semibold transition-all shadow-xl hover:shadow-2xl hover:scale-105"
             >
-              <span>Bắt đầu dạy ngay</span>
+              <span>{t("teachers_cta_start", "Bắt đầu dạy ngay")}</span>
               <Sparkles size={18} />
             </Link>
 
@@ -217,7 +219,7 @@ const teachers = [
               href="#benefits"
               className="inline-flex items-center justify-center gap-2 border-2 border-white/30 hover:border-white text-white px-8 py-4 rounded-full font-semibold transition-all hover:scale-105"
             >
-              <span>Tìm hiểu thêm</span>
+              <span>{t("teachers_learn_more", "Tìm hiểu thêm")}</span>
               <BookOpen size={18} />
             </Link>
           </motion.div>
@@ -235,10 +237,10 @@ const teachers = [
           className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4"
         >
           {[
-            { label: "₫50M+", desc: "Thu nhập TB/năm", icon: DollarSign, color: "from-green-500 to-emerald-500" },
-            { label: "15K+", desc: "Học viên TB/khóa", icon: Users, color: "from-blue-500 to-cyan-500" },
-            { label: "70%", desc: "Hoa hồng cho GV", icon: TrendingUp, color: "from-purple-500 to-pink-500" },
-            { label: "24/7", desc: "Hỗ trợ tận tâm", icon: Award, color: "from-orange-500 to-red-500" },
+            { label: "₫50M+", desc: t("teachers_stat_income", "Thu nhập TB/năm"), icon: DollarSign, color: "from-green-500 to-emerald-500" },
+            { label: "15K+", desc: t("teachers_stat_students", "Học viên TB/khóa"), icon: Users, color: "from-blue-500 to-cyan-500" },
+            { label: "70%", desc: t("teachers_stat_commission", "Hoa hồng cho GV"), icon: TrendingUp, color: "from-purple-500 to-pink-500" },
+            { label: "24/7", desc: t("teachers_stat_support", "Hỗ trợ tận tâm"), icon: Award, color: "from-orange-500 to-red-500" },
           ].map((stat, i) => (
             <motion.div key={i} variants={itemVariants} className="group">
               <div className="relative p-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl hover:shadow-2xl transition-all duration-300 text-center overflow-hidden">
@@ -263,10 +265,10 @@ const teachers = [
             className="md:w-1/3 w-full mb-8 md:mb-0"
           >
             <h2 className="text-4xl md:text-5xl font-bold text-left text-foreground dark:text-white mb-4 mt-8">
-              Lợi ích khi trở thành giảng viên
+              {t("teachers_benefits_title", "Lợi ích khi trở thành giảng viên")}
             </h2>
             <p className="text-xl text-muted-foreground dark:text-slate-300 max-w-md text-left mt-2">
-              Những ưu đãi độc quyền dành riêng cho giảng viên ICS Learning
+              {t("teachers_benefits_desc", "Những ưu đãi độc quyền dành riêng cho giảng viên ICS Learning")}
             </p>
           </motion.div>
 
@@ -294,17 +296,17 @@ const teachers = [
                   Cách bắt đầu
                 </h2>
                 <p className="text-2xl md:text-xl text-slate-700 dark:text-slate-300">
-                  Chỉ 4 bước đơn giản để trở thành giảng viên
+                  {t("teachers_how_desc", "Chỉ 4 bước đơn giản để trở thành giảng viên")}
                 </p>
               </div>
 
               {/* Steps Grid - 2x2 */}
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { step: "1", title: "Đăng ký miễn phí", desc: "Tạo tài khoản giảng viên chỉ trong 2 phút", icon: Users, gradient: "from-blue-500 to-cyan-500" },
-                  { step: "2", title: "Tạo nội dung", desc: "Tải lên video, tài liệu và quiz với công cụ AI", icon: Video, gradient: "from-purple-500 to-pink-500" },
-                  { step: "3", title: "Xuất bản khóa học", desc: "Đưa khóa học của bạn ra toàn cầu", icon: Globe, gradient: "from-orange-500 to-red-500" },
-                  { step: "4", title: "Bắt đầu kiếm tiền", desc: "Nhận hoa hồng từ mỗi học viên đăng ký", icon: DollarSign, gradient: "from-green-500 to-emerald-500" },
+                  { step: "1", title: t("teachers_step1_title", "Đăng ký miễn phí"), desc: t("teachers_step1_desc", "Tạo tài khoản giảng viên chỉ trong 2 phút"), icon: Users, gradient: "from-blue-500 to-cyan-500" },
+                  { step: "2", title: t("teachers_step2_title", "Tạo nội dung"), desc: t("teachers_step2_desc", "Tải lên video, tài liệu và quiz với công cụ AI"), icon: Video, gradient: "from-purple-500 to-pink-500" },
+                  { step: "3", title: t("teachers_step3_title", "Xuất bản khóa học"), desc: t("teachers_step3_desc", "Đưa khóa học của bạn ra toàn cầu"), icon: Globe, gradient: "from-orange-500 to-red-500" },
+                  { step: "4", title: t("teachers_step4_title", "Bắt đầu kiếm tiền"), desc: t("teachers_step4_desc", "Nhận hoa hồng từ mỗi học viên đăng ký"), icon: DollarSign, gradient: "from-green-500 to-emerald-500" },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
@@ -338,11 +340,11 @@ const teachers = [
                   href="/signup?role=teacher"
                   className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105"
                 >
-                  <span>Tìm hiểu thêm</span>
+                  <span>{t("teachers_learn_more", "Tìm hiểu thêm")}</span>
                   <BookOpen size={18} />
                 </Link>
                 <p className="text-sm text-slate-700 dark:text-slate-300 mt-3">
-                  Bắt đầu miễn phí • Không phí ẩn
+                  {t("teachers_free_no_hidden", "Bắt đầu miễn phí • Không phí ẩn")}
                 </p>
               </motion.div>
             </div>
@@ -415,7 +417,7 @@ const teachers = [
               Giảng viên thành công
             </h2>
             <p className="text-xl text-muted-foreground dark:text-slate-300">
-              Những câu chuyện truyền cảm hứng từ cộng đồng giảng viên
+              {t("teachers_success_desc", "Những câu chuyện truyền cảm hứng từ cộng đồng giảng viên")}
             </p>
           </motion.div>
 
@@ -472,17 +474,17 @@ const teachers = [
                             <p className="font-bold">
                               {formatStudentCount(teacher.students)}
                             </p>
-                            <p className="text-muted-foreground">Học viên</p>
+                            <p className="text-muted-foreground">{t("teachers_card_students", "Học viên")}</p>
                           </div>
                           <div>
                             <p className="font-bold">{teacher.courses}</p>
-                            <p className="text-muted-foreground">Khóa học</p>
+                            <p className="text-muted-foreground">{t("teachers_card_courses", "Khóa học")}</p>
                           </div>
                           <div>
                             <p className="font-bold text-green-600">
                               {teacher.revenue}
                             </p>
-                            <p className="text-muted-foreground">Năm ngoái</p>
+                            <p className="text-muted-foreground">{t("teachers_card_lastyear", "Năm ngoái")}</p>
                           </div>
                         </div>
 
@@ -561,19 +563,19 @@ const teachers = [
           <div className="relative bg-gradient-to-r from-purple-500 to-pink-500 rounded-3xl p-12 text-center text-white overflow-hidden">
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
             <div className="relative z-10">
-              <h2 className="text-4xl md:text-5xl font-bold mb-4">Sẵn sàng chia sẻ kiến thức?</h2>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">{t("teachers_cta_title", "Sẵn sàng chia sẻ kiến thức?")}</h2>
               <p className="text-lg md:text-xl mb-8 opacity-90">
-                Tham gia cộng đồng giảng viên ICS Learning và bắt đầu kiếm thu nhập từ đam mê
+                {t("teachers_cta_desc", "Tham gia cộng đồng giảng viên ICS Learning và bắt đầu kiếm thu nhập từ đam mê")}
               </p>
               <Link
                 href="/signup?role=teacher"
                 className="inline-flex items-center justify-center gap-2 bg-white text-purple-600 hover:bg-slate-100 px-8 py-4 rounded-full font-semibold transition-all hover:scale-105 shadow-xl"
               >
-                <span>Đăng ký giảng viên ngay</span>
+                <span>{t("teachers_cta_register", "Đăng ký giảng viên ngay")}</span>
                 <Sparkles size={18} />
               </Link>
               <p className="text-sm mt-6 opacity-80">
-                Miễn phí đăng ký • Không phí ẩn • Hoa hồng 70%
+                {t("teachers_cta_footer", "Miễn phí đăng ký • Không phí ẩn • Hoa hồng 70%")}
               </p>
             </div>
           </div>

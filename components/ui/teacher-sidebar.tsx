@@ -10,30 +10,32 @@ import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { LogoDisplay } from "@/components/ui/logo-display"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { useSidebarContext } from "@/components/ui/mobile-sidebar-toggle"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 // Re-export for layout usage
 export { SidebarProvider, MobileMenuToggle } from "@/components/ui/mobile-sidebar-toggle"
-
-const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/teacher/dashboard" },
-  { icon: BookOpen, label: "Khóa học", href: "/teacher/courses" },
-  { icon: FileText, label: "Ngân hàng đề thi", href: "/teacher/exams" },
-  { icon: ClipboardList, label: "Đề thi", href: "/teacher/exams/generate" },
-  { icon: Award, label: "Chứng chỉ", href: "/teacher/certificates" },
-  { icon: Users, label: "Học viên", href: "/teacher/students" },
-  { icon: Star, label: "Đánh giá", href: "/teacher/reviews" },
-  { icon: BarChart3, label: "Thống kê", href: "/teacher/analytics" },
-  { icon: Settings, label: "Cài đặt", href: "/teacher/settings" },
-]
 
 export function TeacherSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
+  const { t } = useLanguage()
   const { isOpen, setIsOpen } = useSidebarContext()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { config } = useSystemConfig()
+
+  const menuItems = [
+    { icon: LayoutDashboard, label: t("teacher_menu_dashboard", "Dashboard"), href: "/teacher/dashboard" },
+    { icon: BookOpen, label: t("teacher_menu_courses", "Khóa học"), href: "/teacher/courses" },
+    { icon: FileText, label: t("teacher_menu_question_bank", "Ngân hàng đề thi"), href: "/teacher/exams" },
+    { icon: ClipboardList, label: t("teacher_menu_exams", "Đề thi"), href: "/teacher/exams/generate" },
+    { icon: Award, label: t("teacher_menu_certificates", "Chứng chỉ"), href: "/teacher/certificates" },
+    { icon: Users, label: t("teacher_menu_students", "Học viên"), href: "/teacher/students" },
+    { icon: Star, label: t("teacher_menu_reviews", "Đánh giá"), href: "/teacher/reviews" },
+    { icon: BarChart3, label: t("teacher_menu_analytics", "Thống kê"), href: "/teacher/analytics" },
+    { icon: Settings, label: t("teacher_menu_settings", "Cài đặt"), href: "/teacher/settings" },
+  ]
 
   const handleLogout = async () => {
     await logout()
@@ -54,7 +56,7 @@ export function TeacherSidebar() {
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="hidden xl:flex absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
-          title={isCollapsed ? "Mở rộng" : "Thu gọn"}
+          title={isCollapsed ? t("sidebar_expand", "Mở rộng") : t("sidebar_collapse", "Thu gọn")}
         >
           <ChevronRight size={14} className={`text-white transition-transform duration-300 ${
             isCollapsed ? "rotate-0" : "rotate-180"
@@ -73,7 +75,7 @@ export function TeacherSidebar() {
           </Link>
           {!isCollapsed && (
             <div className="mt-2 text-center">
-              <h3 className="text-sm font-bold text-foreground dark:text-white">Teacher Portal</h3>
+              <h3 className="text-sm font-bold text-foreground dark:text-white">{t("teacher_portal", "Teacher Portal")}</h3>
               <p className="text-xs text-muted-foreground dark:text-slate-400">ICS E-Learning</p>
             </div>
           )}
@@ -113,13 +115,13 @@ export function TeacherSidebar() {
               <div className="flex items-center gap-3">
                 <UserAvatar 
                   src={user.avatar}
-                  name={user.name || 'Giảng viên'}
+                  name={user.name || t("role_teacher", "Giảng viên")}
                   size="md"
                   className="group-hover:scale-105 transition-all shadow-md"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground dark:text-white font-semibold text-sm truncate group-hover:text-primary dark:group-hover:text-accent transition-colors">
-                    {user.name || 'Giảng viên'}
+                    {user.name || t("role_teacher", "Giảng viên")}
                   </p>
                   <p className="text-muted-foreground dark:text-slate-400 text-xs truncate">
                     {user.email}
@@ -134,11 +136,11 @@ export function TeacherSidebar() {
             <Link
               href="/teacher/profile"
               className="flex justify-center"
-              title={user.name || 'Giảng viên'}
+              title={user.name || t("role_teacher", "Giảng viên")}
             >
               <UserAvatar 
                 src={user.avatar}
-                name={user.name || 'Giảng viên'}
+                name={user.name || t("role_teacher", "Giảng viên")}
                 size="md"
                 className="hover:scale-105 transition-all shadow-md"
               />
@@ -151,10 +153,10 @@ export function TeacherSidebar() {
               className={`w-full flex items-center gap-3 py-2.5 text-muted-foreground dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all group border border-transparent hover:border-red-200 dark:hover:border-red-900/50 ${
                 isCollapsed ? "justify-center px-2" : "px-3"
               }`}
-              title={isCollapsed ? "Đăng xuất" : ""}
+              title={isCollapsed ? t("nav_logout", "Đăng xuất") : ""}
             >
               <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
-              {!isCollapsed && <span className="font-medium text-sm">Đăng xuất</span>}
+              {!isCollapsed && <span className="font-medium text-sm">{t("nav_logout", "Đăng xuất")}</span>}
             </button>
 
             {/* Logout Confirmation Modal - anchored to button */}
@@ -165,22 +167,22 @@ export function TeacherSidebar() {
                   onClick={() => setShowLogoutConfirm(false)}
                 />
                 <div className="absolute bottom-full left-0 mb-2 z-[9999] bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl shadow-2xl w-72 p-4">
-                  <h3 className="text-base font-bold text-foreground dark:text-white mb-2">Đăng xuất?</h3>
+                  <h3 className="text-base font-bold text-foreground dark:text-white mb-2">{t("logout_confirm_title", "Đăng xuất?")}</h3>
                   <p className="text-sm text-muted-foreground dark:text-slate-400 mb-4">
-                    Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?
+                    {t("logout_confirm_message", "Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?")}
                   </p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setShowLogoutConfirm(false)}
                       className="flex-1 px-3 py-2 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium text-sm"
                     >
-                      Hủy
+                      {t("common_cancel", "Hủy")}
                     </button>
                     <button
                       onClick={handleLogout}
                       className="flex-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-smooth font-medium text-sm"
                     >
-                      Đăng xuất
+                      {t("nav_logout", "Đăng xuất")}
                     </button>
                   </div>
                 </div>

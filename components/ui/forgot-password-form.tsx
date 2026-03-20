@@ -4,8 +4,10 @@ import { useState } from "react"
 import { Mail, ArrowRight, CheckCircle } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export function ForgotPasswordForm() {
+  const { t } = useLanguage()
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -14,7 +16,7 @@ export function ForgotPasswordForm() {
     e.preventDefault()
     
     if (!email) {
-      toast.error("Vui lòng nhập email")
+      toast.error(t("forgot_form_email_required", "Vui lòng nhập email"))
       return
     }
 
@@ -22,9 +24,9 @@ export function ForgotPasswordForm() {
       setLoading(true)
       await apiClient.forgotPassword({ email })
       setSent(true)
-      toast.success("Email khôi phục đã được gửi!")
+      toast.success(t("forgot_form_email_sent", "Email khôi phục đã được gửi!"))
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Gửi email thất bại"
+      const message = error instanceof Error ? error.message : t("forgot_form_send_failed", "Gửi email thất bại")
       toast.error(message)
     } finally {
       setLoading(false)
@@ -39,13 +41,13 @@ export function ForgotPasswordForm() {
         </div>
         <div>
           <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">
-            Email đã được gửi!
+            {t("forgot_form_sent_title", "Email đã được gửi!")}
           </h3>
           <p className="text-sm text-muted-foreground dark:text-slate-400">
-            Chúng tôi đã gửi liên kết đặt lại mật khẩu đến <strong>{email}</strong>
+            {t("forgot_form_sent_desc", "Chúng tôi đã gửi liên kết đặt lại mật khẩu đến")} <strong>{email}</strong>
           </p>
           <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">
-            Vui lòng kiểm tra email (kể cả thư mục spam) và làm theo hướng dẫn.
+            {t("forgot_form_check_spam", "Vui lòng kiểm tra email (kể cả thư mục spam) và làm theo hướng dẫn.")}
           </p>
         </div>
         <button
@@ -55,7 +57,7 @@ export function ForgotPasswordForm() {
           }}
           className="text-sm text-primary dark:text-accent hover:underline"
         >
-          Gửi lại email
+          {t("forgot_form_resend", "Gửi lại email")}
         </button>
       </div>
     )
@@ -74,7 +76,7 @@ export function ForgotPasswordForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full pl-11 pr-4 py-3 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth text-foreground dark:text-white"
-            placeholder="Nhập email của bạn"
+            placeholder={t("forgot_form_email_placeholder", "Nhập email của bạn")}
             required
             disabled={loading}
           />
@@ -89,11 +91,11 @@ export function ForgotPasswordForm() {
         {loading ? (
           <>
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            Đang gửi...
+            {t("forgot_form_sending", "Đang gửi...")}
           </>
         ) : (
           <>
-            Gửi email khôi phục
+            {t("forgot_form_submit", "Gửi email khôi phục")}
             <ArrowRight size={18} />
           </>
         )}
@@ -101,9 +103,9 @@ export function ForgotPasswordForm() {
 
       <div className="text-xs text-muted-foreground dark:text-slate-400 text-center">
         <p>
-          Bạn sẽ nhận được email chứa liên kết để đặt lại mật khẩu.
+          {t("forgot_form_info_line1", "Bạn sẽ nhận được email chứa liên kết để đặt lại mật khẩu.")}
           <br />
-          Liên kết có hiệu lực trong 1 giờ.
+          {t("forgot_form_info_line2", "Liên kết có hiệu lực trong 1 giờ.")}
         </p>
       </div>
     </form>

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
@@ -21,6 +21,8 @@ import {
   Brain
 } from "lucide-react"
 import Link from "next/link"
+import { useLanguage } from "@/lib/i18n/language-context"
+import { autoTranslateData } from "@/lib/i18n/dynamic-translate"
 
 interface Question {
   id: string
@@ -213,8 +215,10 @@ const mockExamDetail: ExamDetail = {
 export default function AdminExamDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { t, language } = useLanguage()
   const examId = Array.isArray(params.id) ? params.id[0] : (params.id as string)
   const [exam, setExam] = useState<ExamDetail>(mockExamDetail)
+  const [usingMockData, setUsingMockData] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState("")
   const [activeTab, setActiveTab] = useState<"overview" | "questions" | "attempts" | "analytics">("overview")
@@ -407,7 +411,7 @@ export default function AdminExamDetailPage() {
     const teacherName =
       item?.teacher?.name ||
       [item?.teacher?.firstName, item?.teacher?.lastName].filter(Boolean).join(" ") ||
-      "Chưa có giảng viên"
+      t("adm_examd_no_teacher", "Chưa có giảng viên")
 
     return {
       id: item?.id || "",
@@ -432,10 +436,10 @@ export default function AdminExamDetailPage() {
       attemptCount: Array.isArray(item?.attempts) ? item.attempts.length : Number(item?.attemptCount) || 0,
       questions: normalizedQuestions,
       instructions: [
-        "Đọc kỹ từng câu hỏi trước khi trả lời",
-        `Bạn có ${Number(item?.timeLimit) || 60} phút để hoàn thành bài thi`,
-        `Bạn phải đạt ít nhất ${Number(item?.passingScore) || 70}% để vượt qua bài thi`,
-        `Bạn có thể làm lại bài thi tối đa ${Number(item?.maxAttempts) || 3} lần`,
+        t("adm_examd_instr_1", "Đọc kỹ từng câu hỏi trước khi trả lời"),
+        `${t("adm_examd_instr_2a", "Bạn có")} ${Number(item?.timeLimit) || 60} ${t("adm_examd_instr_2b", "phút để hoàn thành bài thi")}`,
+        `${t("adm_examd_instr_3a", "Bạn phải đạt ít nhất")} ${Number(item?.passingScore) || 70}% ${t("adm_examd_instr_3b", "để vượt qua bài thi")}`,
+        `${t("adm_examd_instr_4a", "Bạn có thể làm lại bài thi tối đa")} ${Number(item?.maxAttempts) || 3} ${t("adm_examd_instr_4b", "lần")}`,
       ],
       passRate: Number(item?.passRate) || 0,
       averageScore: Number(item?.averageScore) || 0,
@@ -456,10 +460,10 @@ export default function AdminExamDetailPage() {
         headers: getAuthHeaders(),
       })
       if (!res.ok) throw new Error("Failed")
-      showToast("success", "Đã duyệt bài thi thành công")
+      showToast("success", t("adm_examd_approve_ok", "Đã duyệt bài thi thành công"))
       await fetchExamDetail()
     } catch {
-      showToast("error", "Không thể duyệt bài thi")
+      showToast("error", t("adm_examd_approve_fail", "Không thể duyệt bài thi"))
     } finally {
       setActionLoading(false)
     }
@@ -475,12 +479,12 @@ export default function AdminExamDetailPage() {
         body: JSON.stringify({ reason: rejectionReason.trim() }),
       })
       if (!res.ok) throw new Error("Failed")
-      showToast("success", "Đã từ chối bài thi")
+      showToast("success", t("adm_examd_reject_ok", "Đã từ chối bài thi"))
       setRejectDialog(false)
       setRejectionReason("")
       await fetchExamDetail()
     } catch {
-      showToast("error", "Không thể từ chối bài thi")
+      showToast("error", t("adm_examd_reject_fail", "Không thể từ chối bài thi"))
     } finally {
       setActionLoading(false)
     }
@@ -495,10 +499,10 @@ export default function AdminExamDetailPage() {
         headers: getAuthHeaders(),
       })
       if (!res.ok) throw new Error("Failed")
-      showToast("success", "Đã xóa bài thi")
+      showToast("success", t("adm_examd_delete_ok", "Đã xóa bài thi"))
       setTimeout(() => router.push("/admin/exams"), 1000)
     } catch {
-      showToast("error", "Không thể xóa bài thi")
+      showToast("error", t("adm_examd_delete_fail", "Không thể xóa bài thi"))
       setActionLoading(false)
     }
   }
@@ -514,7 +518,7 @@ export default function AdminExamDetailPage() {
       })
 
       if (!res.ok) {
-        throw new Error("Không thể tải chi tiết bài thi")
+        throw new Error(t("adm_examd_load_fail", "Không thể tải chi tiết bài thi"))
       }
 
       const payload = await res.json()
@@ -524,18 +528,39 @@ export default function AdminExamDetailPage() {
       // Log trường questions
       console.log("[ExamDetail] item.questions:", item?.questions)
       setExam(mapExam(item))
+      setUsingMockData(false)
     } catch (error) {
       console.error("Failed to fetch exam detail", error)
-      setLoadError("Không thể tải chi tiết bài thi")
+      setLoadError(t("adm_examd_load_fail", "Không thể tải chi tiết bài thi"))
+      setUsingMockData(true)
     } finally {
       setIsLoading(false)
     }
   }
 
   useEffect(() => {
+    if (!usingMockData) return
+
+    let cancelled = false
+
+    const localizeMock = async () => {
+      const localizedMock = await autoTranslateData(mockExamDetail, language)
+      if (!cancelled) {
+        setExam(localizedMock)
+      }
+    }
+
+    void localizeMock()
+
+    return () => {
+      cancelled = true
+    }
+  }, [language, usingMockData])
+
+  useEffect(() => {
     fetchExamDetail()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [examId])
+  }, [examId, language])
 
   const isOptionCorrect = (question: Question, option: string, optionIndex: number) => {
     const answer = question.correctAnswer
@@ -575,10 +600,10 @@ export default function AdminExamDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      approved: { label: "Đã duyệt", icon: CheckCircle, color: "text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" },
-      pending: { label: "Chờ duyệt", icon: Clock, color: "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800" },
-      rejected: { label: "Từ chối", icon: XCircle, color: "text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800" },
-      draft: { label: "Bản nháp", icon: FileText, color: "text-gray-600 bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800" },
+      approved: { label: t("adm_examd_status_approved", "Đã duyệt"), icon: CheckCircle, color: "text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" },
+      pending: { label: t("adm_examd_status_pending", "Chờ duyệt"), icon: Clock, color: "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800" },
+      rejected: { label: t("adm_examd_status_rejected", "Từ chối"), icon: XCircle, color: "text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800" },
+      draft: { label: t("adm_examd_status_draft", "Bản nháp"), icon: FileText, color: "text-gray-600 bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800" },
     }
     const config = statusConfig[status as keyof typeof statusConfig]
     const Icon = config.icon
@@ -593,11 +618,11 @@ export default function AdminExamDetailPage() {
 
   const getQuestionTypeLabel = (type: string) => {
     switch (type) {
-      case "multiple_choice": return "Trắc nghiệm"
-      case "multiple-choice": return "Trắc nghiệm"
-      case "true_false": return "Đúng/Sai"
-      case "true-false": return "Đúng/Sai"
-      case "fill_in": return "Điền khuyết"
+      case "multiple_choice": return t("adm_examd_qtype_mc", "Trắc nghiệm")
+      case "multiple-choice": return t("adm_examd_qtype_mc", "Trắc nghiệm")
+      case "true_false": return t("adm_examd_qtype_tf", "Đúng/Sai")
+      case "true-false": return t("adm_examd_qtype_tf", "Đúng/Sai")
+      case "fill_in": return t("adm_examd_qtype_fill", "Điền khuyết")
       default: return type
     }
   }
@@ -621,14 +646,14 @@ export default function AdminExamDetailPage() {
   const getVisibleQuestionText = (question: Question) => {
     const normalized = normalizeUploadedText(question.question)
     if (normalized.trim()) return normalized
-    return `Câu hỏi #${question.order}: chưa có nội dung hiển thị từ dữ liệu nguồn.`
+    return `${t("adm_examd_question_prefix", "Câu hỏi")} #${question.order}: ${t("adm_examd_no_content", "chưa có nội dung hiển thị từ dữ liệu nguồn.")}`
   }
 
   if (isLoading) {
     return (
       <div className="p-6 md:p-8">
         <div className="w-full rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground dark:border-slate-800 dark:bg-slate-900/60">
-          Đang tải chi tiết bài thi...
+          {t("adm_examd_loading", "Đang tải chi tiết bài thi...")}
         </div>
       </div>
     )
@@ -643,7 +668,7 @@ export default function AdminExamDetailPage() {
             onClick={fetchExamDetail}
             className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primary/90"
           >
-            Thử lại
+            {t("adm_examd_retry", "Thử lại")}
           </button>
         </div>
       </div>
@@ -660,7 +685,7 @@ export default function AdminExamDetailPage() {
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground dark:hover:text-white transition-colors"
           >
             <ArrowLeft size={20} />
-            <span>Quay lại</span>
+            <span>{t("adm_examd_back", "Quay lại")}</span>
           </button>
           <div className="flex items-center gap-2">
             <button
@@ -669,7 +694,7 @@ export default function AdminExamDetailPage() {
               className="px-4 py-2 bg-destructive/10 hover:bg-destructive/20 disabled:opacity-50 text-destructive rounded-lg transition-colors flex items-center gap-2"
             >
               <Trash2 size={18} />
-              Xóa
+              {t("adm_examd_delete", "Xóa")}
             </button>
           </div>
         </div>
@@ -682,7 +707,7 @@ export default function AdminExamDetailPage() {
                 <h1 className="text-3xl font-bold text-foreground dark:text-white">{exam.title}</h1>
                 {exam.type === "official" && (
                   <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-sm font-medium rounded-full">
-                    Chính thức
+                    {t("adm_examd_official", "Chính thức")}
                   </span>
                 )}
               </div>
@@ -698,35 +723,35 @@ export default function AdminExamDetailPage() {
             <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
               <ClipboardList size={20} className="text-primary dark:text-accent" />
               <div>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Số câu hỏi</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_num_questions", "Số câu hỏi")}</p>
                 <p className="font-semibold text-foreground dark:text-white">{exam.questionsCount}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
               <Timer size={20} className="text-blue-500" />
               <div>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Thời gian</p>
-                <p className="font-semibold text-foreground dark:text-white">{exam.timeLimit} phút</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_time", "Thời gian")}</p>
+                <p className="font-semibold text-foreground dark:text-white">{exam.timeLimit} {t("adm_examd_minutes", "phút")}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
               <Target size={20} className="text-green-500" />
               <div>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Điểm đạt</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_pass_score", "Điểm đạt")}</p>
                 <p className="font-semibold text-foreground dark:text-white">{exam.passingScore}%</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
               <Users size={20} className="text-purple-500" />
               <div>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Lượt thi</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_attempts", "Lượt thi")}</p>
                 <p className="font-semibold text-foreground dark:text-white">{exam.attemptCount}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
               <Trophy size={20} className="text-yellow-500" />
               <div>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Tỷ lệ đạt</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_pass_rate", "Tỷ lệ đạt")}</p>
                 <p className="font-semibold text-foreground dark:text-white">{exam.passRate}%</p>
               </div>
             </div>
@@ -746,10 +771,10 @@ export default function AdminExamDetailPage() {
                     : "border-transparent text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
                 }`}
               >
-                {tab === "overview" && "Tổng quan"}
-                {tab === "questions" && "Câu hỏi"}
-                {tab === "attempts" && "Bài thi"}
-                {tab === "analytics" && "Phân tích"}
+                {tab === "overview" && t("adm_examd_tab_overview", "Tổng quan")}
+                {tab === "questions" && t("adm_examd_tab_questions", "Câu hỏi")}
+                {tab === "attempts" && t("adm_examd_tab_attempts", "Bài thi")}
+                {tab === "analytics" && t("adm_examd_tab_analytics", "Phân tích")}
               </button>
             ))}
           </div>
@@ -761,7 +786,7 @@ export default function AdminExamDetailPage() {
             <div className="lg:col-span-2 space-y-6">
               {/* Teacher Info */}
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-                <h2 className="text-xl font-bold text-foreground dark:text-white mb-4">Giảng viên</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white mb-4">{t("adm_examd_teacher", "Giảng viên")}</h2>
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-xl font-bold">
                     {exam.teacher.split(" ").filter(Boolean).map(n => n[0]).join("") || "GV"}
@@ -778,7 +803,7 @@ export default function AdminExamDetailPage() {
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
                 <h2 className="text-xl font-bold text-foreground dark:text-white mb-4 flex items-center gap-2">
                   <FileText size={24} className="text-primary dark:text-accent" />
-                  Hướng dẫn làm bài
+                  {t("adm_examd_instructions", "Hướng dẫn làm bài")}
                 </h2>
                 <ul className="space-y-3">
                   {exam.instructions.map((instruction, index) => (
@@ -797,7 +822,7 @@ export default function AdminExamDetailPage() {
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
                   <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-3">
                     <AlertCircle size={24} />
-                    <h3 className="font-semibold text-lg">Lý do từ chối</h3>
+                    <h3 className="font-semibold text-lg">{t("adm_examd_rejection_reason", "Lý do từ chối")}</h3>
                   </div>
                   <p className="text-red-600 dark:text-red-300">{exam.rejectionReason}</p>
                 </div>
@@ -808,23 +833,23 @@ export default function AdminExamDetailPage() {
             <div className="space-y-6">
               {/* Exam Settings */}
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-4">
-                <h2 className="text-xl font-bold text-foreground dark:text-white">Cài đặt</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_examd_settings", "Cài đặt")}</h2>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Loại bài thi</span>
-                    <span className="font-semibold text-foreground dark:text-white capitalize">{exam.type === 'official' ? 'Chính thức' : 'Luyện tập'}</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_exam_type", "Loại bài thi")}</span>
+                    <span className="font-semibold text-foreground dark:text-white capitalize">{exam.type === 'official' ? t("adm_examd_official", "Chính thức") : t("adm_examd_practice", "Luyện tập")}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Số lần làm tối đa</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_max_attempts", "Số lần làm tối đa")}</span>
                     <span className="font-semibold text-foreground dark:text-white">{exam.maxAttempts}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Tổng điểm</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_total_points", "Tổng điểm")}</span>
                     <span className="font-semibold text-foreground dark:text-white">{exam.totalPoints}</span>
                   </div>
                   {exam.certificateTemplate && (
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground dark:text-slate-400">Chứng chỉ</span>
+                      <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_certificate", "Chứng chỉ")}</span>
                       <Award size={20} className="text-yellow-500" />
                     </div>
                   )}
@@ -833,22 +858,22 @@ export default function AdminExamDetailPage() {
 
               {/* Exam Info */}
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-4">
-                <h2 className="text-xl font-bold text-foreground dark:text-white">Thông tin</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_examd_info", "Thông tin")}</h2>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Tạo lúc</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_created_at", "Tạo lúc")}</span>
                     <span className="font-semibold text-foreground dark:text-white text-sm">
                       {new Date(exam.createdAt).toLocaleDateString('vi-VN')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Cập nhật</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_updated_at", "Cập nhật")}</span>
                     <span className="font-semibold text-foreground dark:text-white text-sm">
                       {new Date(exam.updatedAt).toLocaleDateString('vi-VN')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Điểm TB</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_avg_score", "Điểm TB")}</span>
                     <span className="font-semibold text-foreground dark:text-white">{exam.averageScore.toFixed(1)}</span>
                   </div>
                 </div>
@@ -860,8 +885,8 @@ export default function AdminExamDetailPage() {
         {activeTab === "questions" && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-foreground dark:text-white">Danh sách câu hỏi ({exam.questions.length})</h2>
-              <span className="text-sm text-muted-foreground dark:text-slate-400">Tổng điểm: {exam.totalPoints}</span>
+              <h2 className="text-2xl font-bold text-foreground dark:text-white">{t("adm_examd_question_list", "Danh sách câu hỏi")} ({exam.questions.length})</h2>
+              <span className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_total_points_label", "Tổng điểm:")}{" "}{exam.totalPoints}</span>
             </div>
             <div className="space-y-6">
               {exam.questions.map((question, index) => (
@@ -878,7 +903,7 @@ export default function AdminExamDetailPage() {
                           </h3>
                           {/* Render ảnh nếu có */}
                           {question.image && (
-                            <img src={question.image} alt="Minh họa câu hỏi" className="max-w-full rounded border border-border dark:border-slate-800 mt-2" />
+                            <img src={question.image} alt={t("adm_examd_question_img", "Minh họa câu hỏi")} className="max-w-full rounded border border-border dark:border-slate-800 mt-2" />
                           )}  
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -886,7 +911,7 @@ export default function AdminExamDetailPage() {
                             {getQuestionTypeLabel(question.type)}
                           </span>
                           <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded-full">
-                            {question.points} điểm
+                            {question.points} {t("adm_examd_points", "điểm")}
                           </span>
                         </div>
                       </div>
@@ -931,7 +956,7 @@ export default function AdminExamDetailPage() {
 
                       {question.type === "fill_in" && (
                         <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-                          <p className="mb-1 text-sm font-semibold text-green-700 dark:text-green-300">Đáp án điền khuyết</p>
+                          <p className="mb-1 text-sm font-semibold text-green-700 dark:text-green-300">{t("adm_examd_fill_answer", "Đáp án điền khuyết")}</p>
                           <p className="text-sm text-green-700 dark:text-green-200">
                             {Array.isArray(question.correctAnswer)
                               ? question.correctAnswer.map((item) => normalizeUploadedText(String(item))).join(", ")
@@ -942,7 +967,7 @@ export default function AdminExamDetailPage() {
 
                       {question.type !== "fill_in" && (!question.options || question.options.length === 0) && (
                         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
-                          <p className="mb-1 text-sm font-semibold text-amber-700 dark:text-amber-300">Đáp án đúng</p>
+                          <p className="mb-1 text-sm font-semibold text-amber-700 dark:text-amber-300">{t("adm_examd_correct_answer", "Đáp án đúng")}</p>
                           <p className="text-sm text-amber-700 dark:text-amber-200 whitespace-pre-wrap break-words leading-relaxed">
                             {Array.isArray(question.correctAnswer)
                               ? question.correctAnswer.map((item) => normalizeUploadedText(String(item))).join(", ")
@@ -956,7 +981,7 @@ export default function AdminExamDetailPage() {
                           <div className="flex items-start gap-2">
                             <Brain size={18} className="text-blue-500 flex-shrink-0 mt-0.5" />
                             <div>
-                              <p className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-1">Giải thích</p>
+                              <p className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-1">{t("adm_examd_explanation", "Giải thích")}</p>
                               <p className="text-sm text-blue-600 dark:text-blue-300 whitespace-pre-wrap break-words leading-relaxed">
                                 {normalizeUploadedText(question.explanation)}
                               </p>
@@ -974,10 +999,10 @@ export default function AdminExamDetailPage() {
 
         {activeTab === "attempts" && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">Lịch sử làm bài</h2>
-            <p className="text-muted-foreground dark:text-slate-400 mb-6">Có {exam.attemptCount} lượt làm bài thi này.</p>
+            <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">{t("adm_examd_history", "Lịch sử làm bài")}</h2>
+            <p className="text-muted-foreground dark:text-slate-400 mb-6">{t("adm_examd_has_attempts", "Có")} {exam.attemptCount} {t("adm_examd_attempts_count", "lượt làm bài thi này.")}</p>
             <div className="rounded-xl border border-border bg-secondary/30 p-6 text-sm text-muted-foreground dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
-              Dữ liệu chi tiết từng lượt thi chưa được backend trả về ở endpoint chi tiết bài thi. Hiện trang đang hiển thị đúng tổng số lượt thi thực tế.
+              {t("adm_examd_attempts_note", "Dữ liệu chi tiết từng lượt thi chưa được backend trả về ở endpoint chi tiết bài thi. Hiện trang đang hiển thị đúng tổng số lượt thi thực tế.")}
             </div>
           </div>
         )}
@@ -988,29 +1013,29 @@ export default function AdminExamDetailPage() {
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
                 <Users className="text-blue-500 mb-3" size={32} />
                 <p className="text-3xl font-bold text-foreground dark:text-white">{exam.attemptCount}</p>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Tổng lượt thi</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_total_attempts", "Tổng lượt thi")}</p>
               </div>
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
                 <Trophy className="text-green-500 mb-3" size={32} />
                 <p className="text-3xl font-bold text-foreground dark:text-white">{exam.passRate}%</p>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Tỷ lệ đạt</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_pass_rate", "Tỷ lệ đạt")}</p>
               </div>
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
                 <BarChart3 className="text-purple-500 mb-3" size={32} />
                 <p className="text-3xl font-bold text-foreground dark:text-white">{exam.averageScore.toFixed(1)}</p>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Điểm trung bình</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_average_score", "Điểm trung bình")}</p>
               </div>
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
                 <Target className="text-orange-500 mb-3" size={32} />
                 <p className="text-3xl font-bold text-foreground dark:text-white">{exam.passingScore}%</p>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Điểm chuẩn</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_benchmark", "Điểm chuẩn")}</p>
               </div>
             </div>
 
             <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">Biểu đồ phân tích</h3>
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">{t("adm_examd_chart_title", "Biểu đồ phân tích")}</h3>
               <p className="text-sm text-muted-foreground dark:text-slate-400">
-                Endpoint hiện tại chưa trả về dữ liệu phân bố điểm và xu hướng theo thời gian, nên trang chỉ hiển thị các chỉ số tổng quan thực tế ở phía trên.
+                {t("adm_examd_analytics_note", "Endpoint hiện tại chưa trả về dữ liệu phân bố điểm và xu hướng theo thời gian, nên trang chỉ hiển thị các chỉ số tổng quan thực tế ở phía trên.")}
               </p>
             </div>
           </div>
@@ -1031,31 +1056,31 @@ export default function AdminExamDetailPage() {
           <div className="w-full max-w-md bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center gap-2 text-yellow-500 mb-4">
               <XCircle size={24} />
-              <h3 className="text-lg font-bold">Từ chối bài thi</h3>
+              <h3 className="text-lg font-bold">{t("adm_examd_reject_title", "Từ chối bài thi")}</h3>
             </div>
             <p className="text-sm text-muted-foreground dark:text-slate-400 mb-4">
-              Nhập lý do từ chối bài thi <span className="font-medium text-foreground dark:text-white">&ldquo;{exam.title}&rdquo;</span>
+              {t("adm_examd_reject_subtitle", "Nhập lý do từ chối bài thi")} <span className="font-medium text-foreground dark:text-white">&ldquo;{exam.title}&rdquo;</span>
             </p>
             <textarea
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               rows={4}
               className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary mb-4"
-              placeholder="Nhập lý do từ chối bài thi..."
+              placeholder={t("adm_examd_reject_placeholder", "Nhập lý do từ chối bài thi...")}
             />
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => { setRejectDialog(false); setRejectionReason("") }}
                 className="px-4 py-2 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
               >
-                Hủy
+                {t("adm_examd_cancel", "Hủy")}
               </button>
               <button
                 onClick={handleReject}
                 disabled={!rejectionReason.trim() || actionLoading}
                 className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {actionLoading ? "Đang xử lý..." : "Xác nhận từ chối"}
+                {actionLoading ? t("adm_examd_processing", "Đang xử lý...") : t("adm_examd_confirm_reject", "Xác nhận từ chối")}
               </button>
             </div>
           </div>
@@ -1068,24 +1093,24 @@ export default function AdminExamDetailPage() {
           <div className="w-full max-w-md p-6 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl">
             <div className="flex items-center gap-3 text-red-500 mb-4">
               <AlertCircle size={24} />
-              <h3 className="text-lg font-bold">Xác nhận xóa</h3>
+              <h3 className="text-lg font-bold">{t("adm_examd_confirm_delete", "Xác nhận xóa")}</h3>
             </div>
             <p className="text-muted-foreground dark:text-slate-400 mb-6">
-              Bạn có chắc chắn muốn xóa bài thi <span className="font-medium text-foreground dark:text-white">&ldquo;{exam.title}&rdquo;</span>? Hành động này không thể hoàn tác.
+              {t("adm_examd_delete_msg", "Bạn có chắc chắn muốn xóa bài thi")} <span className="font-medium text-foreground dark:text-white">&ldquo;{exam.title}&rdquo;</span>? {t("adm_examd_cannot_undo", "Hành động này không thể hoàn tác.")}
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setConfirmDelete(false)}
                 className="px-4 py-2 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
               >
-                Hủy
+                {t("adm_examd_cancel", "Hủy")}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={actionLoading}
                 className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
               >
-                {actionLoading ? "Đang xóa..." : "Xóa bài thi"}
+                {actionLoading ? t("adm_examd_deleting", "Đang xóa...") : t("adm_examd_delete_btn", "Xóa bài thi")}
               </button>
             </div>
           </div>

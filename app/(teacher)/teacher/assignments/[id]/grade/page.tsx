@@ -1,10 +1,11 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'sonner';
+import { useLanguage } from '@/lib/i18n/language-context';
 
 interface WritingLevel {
   description: string;
@@ -123,6 +124,7 @@ function parseSavedDetails(value?: string): SavedGradeRow[] {
 }
 
 export default function TeacherAssignmentGradingPage() {
+  const { t } = useLanguage();
   const params = useParams();
   const router = useRouter();
   const assignmentId = String(params?.id || '');
@@ -192,7 +194,7 @@ export default function TeacherAssignmentGradingPage() {
       }
     } catch (error) {
       console.error('Failed to load grading data:', error);
-      toast.error('Không thể tải dữ liệu chấm bài');
+      toast.error(t('tch_grd_load_fail', 'Không thể tải dữ liệu chấm bài'));
     } finally {
       setLoading(false);
     }
@@ -240,7 +242,7 @@ export default function TeacherAssignmentGradingPage() {
   const handleSaveGrade = async () => {
     if (!selectedSubmission || !assignment) return;
     if (!allCriteriaSelected) {
-      toast.error('Vui lòng chọn mức điểm cho tất cả tiêu chí');
+      toast.error(t('tch_grd_select_all', 'Vui lòng chọn mức điểm cho tất cả tiêu chí'));
       return;
     }
 
@@ -260,11 +262,11 @@ export default function TeacherAssignmentGradingPage() {
         gradingDetails: details,
       });
 
-      toast.success('Đã gửi điểm và nhận xét cho học viên');
+      toast.success(t('tch_grd_sent', 'Đã gửi điểm và nhận xét cho học viên'));
       await loadData();
       setSelectedSubmissionId(selectedSubmission.id);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Không thể lưu điểm';
+      const message = error instanceof Error ? error.message : t('tch_grd_save_fail', 'Không thể lưu điểm');
       toast.error(message);
     } finally {
       setSaving(false);
@@ -286,21 +288,21 @@ export default function TeacherAssignmentGradingPage() {
           onClick={() => router.push('/teacher/assignments')}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-smooth"
         >
-          <ArrowLeft size={16} /> Quay lại danh sách bài tập
+          <ArrowLeft size={16} /> {t('tch_grd_back', 'Quay lại danh sách bài tập')}
         </button>
 
         <div className="rounded-xl border border-border bg-card p-5">
-          <h1 className="text-2xl font-bold text-foreground">{assignment?.title || 'Chấm bài writing'}</h1>
+          <h1 className="text-2xl font-bold text-foreground">{assignment?.title || t('tch_grd_title', 'Chấm bài writing')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Điểm tối đa: {assignment?.maxScore ?? 100} | Tổng tiêu chí: {criteria.length}
+            {t('tch_grd_max_score', 'Điểm tối đa')}: {assignment?.maxScore ?? 100} | {t('tch_grd_total_criteria', 'Tổng tiêu chí')}: {criteria.length}
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5">
           <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-            <h2 className="font-semibold text-foreground">Bài đã nộp</h2>
+            <h2 className="font-semibold text-foreground">{t('tch_grd_submissions', 'Bài đã nộp')}</h2>
             {submissions.length === 0 && (
-              <p className="text-sm text-muted-foreground">Chưa có học viên nào nộp bài.</p>
+              <p className="text-sm text-muted-foreground">{t('tch_grd_no_sub', 'Chưa có học viên nào nộp bài.')}</p>
             )}
             {submissions.map((submission) => {
               const active = submission.id === selectedSubmissionId;
@@ -315,22 +317,22 @@ export default function TeacherAssignmentGradingPage() {
                       : 'border-border bg-background hover:border-primary/40'
                   }`}
                 >
-                  <p className="font-medium text-foreground">{submission.student?.name || 'Học viên'}</p>
+                  <p className="font-medium text-foreground">{submission.student?.name || t('tch_grd_student', 'Học viên')}</p>
                   <p className="text-xs text-muted-foreground mt-1">{submission.student?.email || ''}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Nộp lúc:{' '}
+                    {t('tch_grd_submitted_at', 'Nộp lúc')}:{' '}
                     {submission.submittedAt
                       ? new Date(submission.submittedAt).toLocaleString('vi-VN')
-                      : 'Không rõ'}
+                      : t('tch_grd_unknown', 'Không rõ')}
                   </p>
                   <div className="mt-2">
                     {submission.status === 'graded' ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">
-                        <CheckCircle2 size={12} /> Đã chấm ({submission.score ?? 0} điểm)
+                        <CheckCircle2 size={12} /> {t('tch_grd_graded', 'Đã chấm')} ({submission.score ?? 0} {t('tch_grd_points', 'điểm')})
                       </span>
                     ) : (
                       <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
-                        Chờ chấm
+                        {t('tch_grd_pending', 'Chờ chấm')}
                       </span>
                     )}
                   </div>
@@ -341,19 +343,19 @@ export default function TeacherAssignmentGradingPage() {
 
           <div className="rounded-xl border border-border bg-card p-4 md:p-5 space-y-5">
             {!selectedSubmission ? (
-              <p className="text-sm text-muted-foreground">Chọn một bài nộp ở cột trái để bắt đầu chấm.</p>
+              <p className="text-sm text-muted-foreground">{t('tch_grd_pick_sub', 'Chọn một bài nộp ở cột trái để bắt đầu chấm.')}</p>
             ) : (
               <>
                 <div className="space-y-2">
-                  <h2 className="text-lg font-semibold text-foreground">Nội dung bài nộp</h2>
+                  <h2 className="text-lg font-semibold text-foreground">{t('tch_grd_content', 'Nội dung bài nộp')}</h2>
                   <div className="rounded-lg border border-border bg-background p-4 max-h-[260px] overflow-y-auto">
                     <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                      {selectedSubmission.content || '(Học viên nộp file, không có nội dung text)'}
+                      {selectedSubmission.content || t('tch_grd_no_text', '(Học viên nộp file, không có nội dung text)')}
                     </p>
                   </div>
                   {selectedSubmission.attachments && selectedSubmission.attachments.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-foreground">File đính kèm của học viên</p>
+                      <p className="text-sm font-medium text-foreground">{t('tch_grd_attachments', 'File đính kèm của học viên')}</p>
                       <div className="space-y-2">
                         {selectedSubmission.attachments.map((url) => (
                           <a
@@ -373,7 +375,7 @@ export default function TeacherAssignmentGradingPage() {
 
                 {criteria.length > 0 && (
                   <div className="space-y-3">
-                    <h2 className="text-lg font-semibold text-foreground">Chấm theo criteria</h2>
+                    <h2 className="text-lg font-semibold text-foreground">{t('tch_grd_grade_criteria', 'Chấm theo criteria')}</h2>
                     <div className="overflow-x-auto rounded-xl border border-border">
                       <table className="w-full min-w-[980px] text-sm">
                         <tbody>
@@ -392,7 +394,7 @@ export default function TeacherAssignmentGradingPage() {
                                   >
                                     <div className="space-y-2">
                                       <p className="whitespace-pre-wrap break-words text-foreground leading-relaxed">
-                                        {level.description || 'Không có mô tả mức điểm này'}
+                                        {level.description || t('tch_grd_no_level_desc', 'Không có mô tả mức điểm này')}
                                       </p>
                                       <p className="text-emerald-600 font-semibold italic">{level.points} points</p>
                                       <label className="inline-flex items-center gap-2 text-xs font-medium text-foreground">
@@ -402,7 +404,7 @@ export default function TeacherAssignmentGradingPage() {
                                           checked={isActive}
                                           onChange={() => handlePickLevel(criterionIndex, levelIndex)}
                                         />
-                                        Chọn mức này
+                                        {t('tch_grd_pick_level', 'Chọn mức này')}
                                       </label>
                                     </div>
                                   </td>
@@ -424,12 +426,12 @@ export default function TeacherAssignmentGradingPage() {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Feedback cho học viên</label>
+                    <label className="text-sm font-medium text-foreground">{t('tch_grd_feedback_label', 'Feedback cho học viên')}</label>
                     <textarea
                       value={feedback}
                       onChange={(e) => setFeedback(e.target.value)}
                       rows={6}
-                      placeholder="Nhập nhận xét tổng kết cho học viên..."
+                      placeholder={t('tch_grd_feedback_ph', 'Nhập nhận xét tổng kết cho học viên...')}
                       className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
@@ -440,7 +442,7 @@ export default function TeacherAssignmentGradingPage() {
                       disabled={saving || !selectedSubmission || !allCriteriaSelected}
                       className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
                     >
-                      {saving ? 'Đang gửi điểm...' : 'Gửi điểm cho học viên'}
+                      {saving ? t('tch_grd_sending', 'Đang gửi điểm...') : t('tch_grd_send', 'Gửi điểm cho học viên')}
                     </button>
                   </div>
                 </div>

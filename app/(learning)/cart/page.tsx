@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/lib/auth/auth-context"
 import { formatPrice } from "@/lib/format"
 import { toast } from "sonner"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface CartItem {
   id: string
@@ -42,6 +43,7 @@ interface CartItem {
 
 export default function CartPage() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedItems, setSelectedItems] = useState<string[]>([])
@@ -60,7 +62,7 @@ export default function CartPage() {
         }
       } catch (error) {
         console.error("Error loading cart:", error)
-        toast.error("Không thể tải giỏ hàng")
+        toast.error(t("cart_load_error", "Không thể tải giỏ hàng"))
       } finally {
         setLoading(false)
       }
@@ -74,7 +76,7 @@ export default function CartPage() {
       localStorage.setItem(`cart_${user?.id || "guest"}`, JSON.stringify(items))
     } catch (error) {
       console.error("Error saving cart:", error)
-      toast.error("Không thể lưu giỏ hàng")
+      toast.error(t("cart_save_error", "Không thể lưu giỏ hàng"))
     }
   }
 
@@ -83,7 +85,7 @@ export default function CartPage() {
     setCartItems(newItems)
     setSelectedItems(selectedItems.filter(id => id !== itemId))
     saveCart(newItems)
-    toast.success("Đã xóa khỏi giỏ hàng")
+    toast.success(t("cart_removed", "Đã xóa khỏi giỏ hàng"))
   }
 
   const toggleSelectItem = (itemId: string) => {
@@ -104,7 +106,7 @@ export default function CartPage() {
 
   const applyCoupon = () => {
     if (!couponCode.trim()) {
-      toast.error("Vui lòng nhập mã giảm giá")
+      toast.error(t("cart_enter_coupon", "Vui lòng nhập mã giảm giá"))
       return
     }
 
@@ -120,22 +122,22 @@ export default function CartPage() {
         code: couponCode.toUpperCase(),
         discount: validCoupons[couponCode.toUpperCase()],
       })
-      toast.success(`Đã áp dụng mã giảm giá ${couponCode.toUpperCase()}`)
+      toast.success(t("cart_coupon_applied", "Đã áp dụng mã giảm giá"))
     } else {
-      toast.error("Mã giảm giá không hợp lệ")
+      toast.error(t("cart_coupon_invalid", "Mã giảm giá không hợp lệ"))
     }
   }
 
   const removeCoupon = () => {
     setAppliedCoupon(null)
     setCouponCode("")
-    toast.success("Đã hủy mã giảm giá")
+    toast.success(t("cart_coupon_removed", "Đã hủy mã giảm giá"))
   }
 
   const moveToWishlist = (item: CartItem) => {
     removeFromCart(item.id)
     // Add to wishlist logic here
-    toast.success("Đã chuyển vào danh sách yêu thích")
+    toast.success(t("cart_moved_wishlist", "Đã chuyển vào danh sách yêu thích"))
   }
 
   const selectedCartItems = cartItems.filter(item => selectedItems.includes(item.id))
@@ -145,7 +147,7 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     if (selectedItems.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một khóa học")
+      toast.error(t("cart_select_one", "Vui lòng chọn ít nhất một khóa học"))
       return
     }
 
@@ -190,10 +192,10 @@ export default function CartPage() {
           <ShoppingCart className="w-16 h-16 text-primary dark:text-accent" />
         </div>
         <h2 className="text-2xl font-bold text-foreground dark:text-white mb-2">
-          Giỏ hàng trống
+          {t("cart_empty", "Giỏ hàng trống")}
         </h2>
         <p className="text-muted-foreground dark:text-slate-400 mb-6">
-          Khám phá và thêm các khóa học yêu thích vào giỏ hàng của bạn
+          {t("cart_empty_desc", "Khám phá và thêm các khóa học yêu thích vào giỏ hàng của bạn")}
         </p>
         <Link
           href="/courses"
@@ -211,10 +213,10 @@ export default function CartPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground dark:text-white mb-2">
-          Giỏ hàng của bạn
+          {t("cart_title", "Giỏ hàng của bạn")}
         </h1>
         <p className="text-muted-foreground dark:text-slate-400">
-          {cartItems.length} khóa học • {selectedItems.length} được chọn
+          {cartItems.length} {t("cart_courses", "khóa học")} • {selectedItems.length} {t("cart_selected", "được chọn")}
         </p>
       </div>
 
@@ -230,7 +232,7 @@ export default function CartPage() {
               className="w-5 h-5 rounded border-border dark:border-slate-700 text-primary focus:ring-primary"
             />
             <span className="font-medium text-foreground dark:text-white">
-              Chọn tất cả ({cartItems.length})
+              {t("cart_select_all", "Chọn tất cả")} ({cartItems.length})
             </span>
           </div>
 
@@ -290,7 +292,7 @@ export default function CartPage() {
                       </div>
                       <div className="flex items-center gap-1">
                         <BookOpen className="w-4 h-4" />
-                        <span>{item.lessons} bài học</span>
+                        <span>{item.lessons} {t("cart_lessons", "bài học")}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
@@ -369,7 +371,7 @@ export default function CartPage() {
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Nhập mã giảm giá"
+                  placeholder={t("cart_coupon_placeholder", "Nhập mã giảm giá")}
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && applyCoupon()}
@@ -391,17 +393,17 @@ export default function CartPage() {
           {/* Price Summary */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">
-              Tóm tắt đơn hàng
+              {t("cart_summary", "Tóm tắt đơn hàng")}
             </h3>
             
             <div className="space-y-3 mb-4">
               <div className="flex justify-between text-muted-foreground dark:text-slate-400">
-                <span>Tạm tính ({selectedItems.length} khóa học)</span>
+                <span>{t("cart_subtotal", "Tạm tính")} ({selectedItems.length} {t("cart_courses", "khóa học")})</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
               {appliedCoupon && (
                 <div className="flex justify-between text-green-600 dark:text-green-400">
-                  <span>Giảm giá ({appliedCoupon.discount}%)</span>
+                  <span>{t("cart_discount", "Giảm giá")} ({appliedCoupon.discount}%)</span>
                   <span>-{formatPrice(couponDiscount)}</span>
                 </div>
               )}
@@ -410,7 +412,7 @@ export default function CartPage() {
             <div className="border-t border-border dark:border-slate-700 pt-4 mb-6">
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold text-foreground dark:text-white">
-                  Tổng cộng
+                  {t("cart_total", "Tổng cộng")}
                 </span>
                 <span className="text-2xl font-bold text-primary dark:text-accent">
                   {formatPrice(total)}
@@ -423,14 +425,14 @@ export default function CartPage() {
               disabled={selectedItems.length === 0}
               className="w-full py-4 bg-gradient-to-r from-primary to-accent text-white rounded-xl font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
             >
-              Thanh toán ngay
+              {t("cart_checkout", "Thanh toán ngay")}
               <ArrowRight size={20} />
             </button>
 
             {selectedItems.length === 0 && (
               <div className="flex items-start gap-2 mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-xl text-sm text-yellow-800 dark:text-yellow-400">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span>Vui lòng chọn ít nhất một khóa học để thanh toán</span>
+                <span>{t("cart_select_warning", "Vui lòng chọn ít nhất một khóa học để thanh toán")}</span>
               </div>
             )}
           </div>
@@ -440,7 +442,7 @@ export default function CartPage() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            <span>Thanh toán an toàn & bảo mật</span>
+            <span>{t("cart_secure", "Thanh toán an toàn & bảo mật")}</span>
           </div>
         </div>
       </div>

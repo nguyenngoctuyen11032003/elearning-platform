@@ -1,0 +1,91 @@
+adm_cd_1d_ago	1 ngày trước
+adm_cd_1w_ago	1 tuần trước
+adm_cd_2d_ago	2 ngày trước
+adm_cd_2h_ago	2 giờ trước
+adm_cd_3d_ago	3 ngày trước
+adm_cd_3h_ago	3 giờ trước
+adm_cd_5h_ago	5 giờ trước
+adm_cd_lang_en	Tiếng Anh
+adm_cd_lang_vi	Tiếng Việt
+adm_cd_type_reading	Đọc
+asgn_level	Mức
+assign_error	Lỗi
+assign_status_graded	đã chấm
+assign_status_overdue	quá hạn
+assign_status_pending	chưa nộp
+assign_status_submitted	đã nộp
+assign_tab_graded	Đã chấm
+assign_tab_overdue	Quá hạn
+assign_tab_pending	Chưa nộp
+assign_tab_submitted	Đã nộp
+enroll_step1_desc	Vào trang "Khóa học của tôi" trên dashboard để bắt đầu học
+enroll_step2_desc	Bắt đầu với phần "Giới thiệu" để làm quen với kiến thức cơ bản
+google_login_failed	Đăng nhập Google thất bại
+google_login_missing_info	Thiếu thông tin đăng nhập
+google_login_process_error	Lỗi xử lý Google login
+google_login_success	Đăng nhập Google thành công!
+language_select	Ch?n ng�n ng?
+maintenance_admin_hint	N?u b?n l� qu?n tr? vi�n, h�y dang nh?p d? t?t ch? d? b?o tr� sau khi ki?m tra ho�n t?t.
+maintenance_message	Chúng tôi đang nâng cấp để phục vụ bạn tốt hơn. Tạm thời tất cả tài khoản học viên và giảng viên bị vô hiệu hóa cho đến khi bảo trì kết thúc.", )} </p> </div> <div className="flex flex-col sm:flex-row items-center justify-center gap-3"> <button onClick={() => window.location.reload()} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-black font-semibold shadow-lg shadow-amber-500/30 hover:bg-amber-400 transition-colors" > <RefreshCw size={18} /> {t("maintenance_retry", "Thử tải lại
+notes_add_deadline	+ Thêm deadline
+notes_checklist_items	Các mục kiểm tra
+notes_create_failed	Tạo note thất bại
+notes_deadlines	Các deadline
+notes_delete_failed	Xóa note thất bại
+notes_done	hoàn thành
+notes_export_failed	Xuất Excel thất bại
+notes_items	mục
+notes_items_required	Loại này cần có ít nhất một mục
+notes_schedule_required	Lịch học cần có ít nhất một lịch
+notes_schedules	lịch
+notes_toggle_fav_failed	Thay đổi yêu thích thất bại
+notes_uncategorized	Chưa phân loại
+notes_update_failed	Cập nhật note thất bại
+pdf_done	Xử lý xong: ${questionCount} câu hỏi${imageCount > 0 ? `, ${imageCount} hình ảnh` : ""}
+pdf_extracted_images	PDF chứa ${imageCount} hình ảnh/công thức. Các công thức đã được trích xuất và sẽ được liên kết với câu hỏi.
+pdf_large_no_images	File khá lớn (${fileSizeMB.toFixed(1)}MB). Tương tự sẽ không trích xuất hình ảnh để tránh timeout.
+pdf_processing	Đang xử lý: ${file.name}...
+pdf_processing_large	Đang xử lý file lớn: ${file.name}... (có thể mất vài phút)
+pdf_skipped_images	Đã bỏ qua trích xuất hình ảnh cho file lớn. PDF chứa ${questionCount} câu hỏi.
+pdf_timeout	Xử lý timed out sau ${timeoutSeconds} giây. File PDF quá phức tạp. Vui lòng thử nén PDF hoặc chia nhỏ thành nhiều file.
+pdf_too_large	File PDF quá lớn (${fileSizeMB.toFixed(1)}MB > 15MB limit). Vui lòng: 1. Nén PDF hoặc giảm chất lượng hình ảnh 2. Chia nhỏ PDF thành nhiều file nhỏ hơn 3. Sử dụng công cụ khác để chuyển đổi PDF
+profile_role_admin	Quản trị viên
+sched_assigned	đã quy định
+sched_come_back	Hãy quay lại vào ngày
+sched_delete_failed	Xoá thất bại
+sched_finish_now	Bạn cần hoàn thành ngay lập tức!
+sched_fri	T6
+sched_future_badge	✓ Chưa đến ngày làm
+sched_mon	T2
+sched_no_date	Chưa đặt
+sched_not_time	Chưa đến giờ làm
+sched_overdue	Quá hạn
+sched_overdue_badge	🔴 Quá hạn
+sched_sat	T7
+sched_soon_badge	🟡 Sắp đến -
+sched_started	Đã bắt đầu công việc
+sched_status_update_failed	Cập nhật trạng thái thất bại
+sched_subtitle	Quản lý các công việc học tập của bạn
+sched_sun	CN
+sched_tasks_on	Các công việc ngày
+sched_thu	T5
+sched_today	Hôm nay
+sched_tomorrow_badge	⚠️ Ngày mai
+sched_tue	T3
+sched_wed	T4
+tch_exg_confirm_del	Bạn có chắc muốn xóa đề thi "${examTitle}"?
+tch_grd_grade_criteria	Chấm theo criteria
+tch_grd_graded	Đã chấm
+tch_grd_no_level_desc	Không có mô tả mức điểm này
+tch_grd_pending	Chờ chấm
+tch_grd_pick_sub	Chọn một bài nộp ở cột trái để bắt đầu chấm.
+tch_grd_save_fail	Không thể lưu điểm
+tch_grd_sending	Đang gửi điểm...
+tch_grd_submissions	Bài đã nộp
+tch_grd_submitted_at	Nộp lúc
+tch_grd_title	Chấm bài writing
+tch_grd_total_criteria	Tổng tiêu chí
+tch_grd_unknown	Không rõ
+tch_rev_replied	✓ Đã
+tch_rev_waiting	⏱ Chờ
+topup_submit	Nạp tiền ngay

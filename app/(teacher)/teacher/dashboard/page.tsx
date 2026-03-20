@@ -23,6 +23,7 @@ import { useEffect, useState } from "react"
 import { formatPrice, formatNumber } from "@/lib/format"
 import { apiClient } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 type ChartPoint = { label: string; value: number }
 type PieItem = { name: string; value: number; color?: string }
@@ -34,6 +35,7 @@ const PIE_COLORS = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#22c
 export default function TeacherDashboard() {
   const [filterPeriod, setFilterPeriod] = useState("month")
   const { user } = useAuth()
+  const { language, t } = useLanguage()
 
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
@@ -42,6 +44,14 @@ export default function TeacherDashboard() {
   const [pieData, setPieData] = useState<PieItem[]>([])
   const [weeklyPerformance, setWeeklyPerformance] = useState<WeeklyPoint[]>([])
   const [recentEnrollments, setRecentEnrollments] = useState<EnrollmentRow[]>([])
+
+  const localeByLanguage: Record<string, string> = {
+    vi: "vi-VN",
+    en: "en-US",
+    ja: "ja-JP",
+    ko: "ko-KR",
+    "zh-CN": "zh-CN",
+  }
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -81,24 +91,24 @@ export default function TeacherDashboard() {
             id: item.id,
             studentName: item.studentName,
             courseName: item.courseName,
-            createdAt: new Date(item.createdAt).toLocaleDateString("vi-VN"),
+            createdAt: new Date(item.createdAt).toLocaleDateString(localeByLanguage[language] || "vi-VN"),
             status: item.status,
           }))
         )
       } catch (error) {
-        console.error("Lỗi tải dashboard giáo viên:", error)
+        console.error("Teacher dashboard loading error:", error)
       } finally {
         setLoading(false)
       }
     }
 
     loadDashboard()
-  }, [])
+  }, [language])
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Đang tải dữ liệu dashboard...</p>
+        <p>{t("teacher_dashboard_loading", "Đang tải dữ liệu dashboard...")}</p>
       </div>
     )
   }
@@ -114,15 +124,15 @@ export default function TeacherDashboard() {
           <div className="relative z-10 space-y-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">Chào mừng, {user?.name || "Giáo viên"}</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Tổng quan hoạt động của bạn</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("teacher_dashboard_welcome", "Chào mừng")}, {user?.name || t("role_teacher", "Giáo viên")}</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("teacher_dashboard_overview", "Tổng quan hoạt động của bạn")}</p>
               </div>
               <div className="flex gap-2 flex-wrap">
                 {[
-                  { value: "day", label: "Ngày" },
-                  { value: "week", label: "Tuần" },
-                  { value: "month", label: "Tháng" },
-                  { value: "year", label: "Năm" },
+                  { value: "day", label: t("period_day", "Ngày") },
+                  { value: "week", label: t("period_week", "Tuần") },
+                  { value: "month", label: t("period_month", "Tháng") },
+                  { value: "year", label: t("period_year", "Năm") },
                 ].map((period) => (
                   <button
                     key={period.value}
@@ -144,33 +154,33 @@ export default function TeacherDashboard() {
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <StatCard
                   icon={TrendingUp}
-                  title="Tổng doanh thu"
+                  title={t("teacher_dashboard_total_revenue", "Tổng doanh thu")}
                   value={`₫${formatPrice(stats?.totalRevenue ?? 0)}`}
-                  change={`+${stats?.revenueGrowth ?? 0}% so với kỳ trước`}
+                  change={`+${stats?.revenueGrowth ?? 0}% ${t("teacher_dashboard_vs_previous", "so với kỳ trước")}`}
                 />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
                 <StatCard
                   icon={Users}
-                  title="Học viên"
+                  title={t("teacher_dashboard_students", "Học viên")}
                   value={formatNumber(stats?.totalStudents ?? 0)}
-                  change={`+${stats?.studentGrowth ?? 0}% so với kỳ trước`}
+                  change={`+${stats?.studentGrowth ?? 0}% ${t("teacher_dashboard_vs_previous", "so với kỳ trước")}`}
                 />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
                 <StatCard
                   icon={BookOpen}
-                  title="Khóa học"
+                  title={t("teacher_dashboard_courses", "Khóa học")}
                   value={formatNumber(stats?.totalCourses ?? 0)}
-                  change="Số khóa đang hoạt động"
+                  change={t("teacher_dashboard_active_courses", "Số khóa đang hoạt động")}
                 />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
                 <StatCard
                   icon={Star}
-                  title="Đánh giá trung bình"
+                  title={t("teacher_dashboard_average_rating", "Đánh giá trung bình")}
                   value={`${(stats?.averageRating ?? 0).toFixed(1)}★`}
-                  change={`Từ ${formatNumber(stats?.totalStudents ?? 0)} học viên`}
+                  change={`${t("teacher_dashboard_from", "Từ")} ${formatNumber(stats?.totalStudents ?? 0)} ${t("teacher_dashboard_students", "học viên")}`}
                 />
               </div>
             </div>
@@ -181,9 +191,9 @@ export default function TeacherDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Revenue Chart */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Doanh thu</h3>
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("teacher_dashboard_revenue", "Doanh thu")}</h3>
             {revenueChart.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">Chưa có dữ liệu doanh thu</p>
+              <p className="text-sm text-muted-foreground text-center">{t("teacher_dashboard_no_revenue", "Chưa có dữ liệu doanh thu")}</p>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={revenueChart.map(item => ({ month: item.label, revenue: item.value }))}>
@@ -205,7 +215,7 @@ export default function TeacherDashboard() {
                     stroke="#2563eb"
                     strokeWidth={2}
                     dot={{ fill: "#2563eb" }}
-                    name="Doanh thu"
+                    name={t("teacher_dashboard_revenue", "Doanh thu")}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -214,9 +224,9 @@ export default function TeacherDashboard() {
 
           {/* Student Growth Chart */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Học viên mới</h3>
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("teacher_dashboard_new_students", "Học viên mới")}</h3>
             {studentChart.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">Chưa có dữ liệu học viên</p>
+              <p className="text-sm text-muted-foreground text-center">{t("teacher_dashboard_no_students", "Chưa có dữ liệu học viên")}</p>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={studentChart.map(item => ({ month: item.label, students: item.value }))}>
@@ -231,7 +241,7 @@ export default function TeacherDashboard() {
                     }}
                   />
                   <Legend />
-                  <Bar dataKey="students" fill="#06b6d4" name="Học viên mới" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="students" fill="#06b6d4" name={t("teacher_dashboard_new_students", "Học viên mới")} radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -242,9 +252,9 @@ export default function TeacherDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Pie Chart - Course Distribution */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Phân bố khóa học</h3>
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("teacher_dashboard_course_distribution", "Phân bố khóa học")}</h3>
             {pieData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">Chưa có dữ liệu khóa học</p>
+              <p className="text-sm text-muted-foreground text-center">{t("teacher_dashboard_no_courses", "Chưa có dữ liệu khóa học")}</p>
             ) : (
               <>
                 <ResponsiveContainer width="100%" height={280}>
@@ -289,9 +299,9 @@ export default function TeacherDashboard() {
 
           {/* Area Chart - Weekly Performance */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 animate-fadeIn">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">Hiệu suất tuần này</h3>
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("teacher_dashboard_weekly_performance", "Hiệu suất tuần này")}</h3>
             {weeklyPerformance.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">Chưa có dữ liệu tuần này</p>
+              <p className="text-sm text-muted-foreground text-center">{t("teacher_dashboard_no_weekly", "Chưa có dữ liệu tuần này")}</p>
             ) : (
               <ResponsiveContainer width="100%" height={280}>
                 <AreaChart data={weeklyPerformance}>
@@ -324,7 +334,7 @@ export default function TeacherDashboard() {
                     stroke="#2563eb"
                     fillOpacity={1}
                     fill="url(#colorRevenue)"
-                    name="Thực tế"
+                    name={t("teacher_dashboard_actual", "Thực tế")}
                   />
                   <Area
                     type="monotone"
@@ -332,7 +342,7 @@ export default function TeacherDashboard() {
                     stroke="#ef4444"
                     fillOpacity={1}
                     fill="url(#colorTarget)"
-                    name="Mục tiêu"
+                    name={t("teacher_dashboard_target", "Mục tiêu")}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -342,11 +352,11 @@ export default function TeacherDashboard() {
 
         {/* Recent Enrollments - Mobile: Cards, Desktop: Table */}
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-          <h3 className="font-semibold text-foreground dark:text-white mb-4">Đăng ký gần đây</h3>
+          <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("teacher_dashboard_recent_enrollments", "Đăng ký gần đây")}</h3>
           {/* Mobile: Cards */}
           <div className="block md:hidden">
             {recentEnrollments.length === 0 ? (
-              <div className="py-4 text-center text-muted-foreground">Chưa có đăng ký nào</div>
+              <div className="py-4 text-center text-muted-foreground">{t("teacher_dashboard_no_enrollments", "Chưa có đăng ký nào")}</div>
             ) : (
               <div className="grid grid-cols-1 gap-6">
                 {recentEnrollments.map((enrollment) => (
@@ -364,11 +374,11 @@ export default function TeacherDashboard() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground dark:text-slate-400">Ngày đăng ký:</span>
+                      <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_dashboard_enrolled_date", "Ngày đăng ký")}: </span>
                       <span className="text-sm text-foreground dark:text-white">{enrollment.createdAt}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground dark:text-slate-400">Trạng thái:</span>
+                      <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_dashboard_status", "Trạng thái")}: </span>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
                           enrollment.status === "completed"
@@ -376,7 +386,7 @@ export default function TeacherDashboard() {
                             : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                         }`}
                       >
-                        {enrollment.status === "completed" ? "Hoàn thành" : "Đang học"}
+                        {enrollment.status === "completed" ? t("teacher_dashboard_completed", "Hoàn thành") : t("teacher_dashboard_learning", "Đang học")}
                       </span>
                     </div>
                   </div>
@@ -390,16 +400,16 @@ export default function TeacherDashboard() {
               <thead>
                 <tr className="border-b border-border dark:border-slate-800">
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">
-                    Học viên
+                    {t("teacher_dashboard_students", "Học viên")}
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">
-                    Khóa học
+                    {t("teacher_dashboard_courses", "Khóa học")}
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">
-                    Ngày đăng ký
+                    {t("teacher_dashboard_enrolled_date", "Ngày đăng ký")}
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">
-                    Trạng thái
+                    {t("teacher_dashboard_status", "Trạng thái")}
                   </th>
                 </tr>
               </thead>
@@ -407,7 +417,7 @@ export default function TeacherDashboard() {
                 {recentEnrollments.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-4 text-center text-muted-foreground">
-                      Chưa có đăng ký nào
+                      {t("teacher_dashboard_no_enrollments", "Chưa có đăng ký nào")}
                     </td>
                   </tr>
                 ) : (
@@ -427,7 +437,7 @@ export default function TeacherDashboard() {
                               : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                           }`}
                         >
-                          {enrollment.status === "completed" ? "Hoàn thành" : "Đang học"}
+                        {enrollment.status === "completed" ? t("teacher_dashboard_completed", "Hoàn thành") : t("teacher_dashboard_learning", "Đang học")}
                         </span>
                       </td>
                     </tr>

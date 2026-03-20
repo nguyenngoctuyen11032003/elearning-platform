@@ -1,8 +1,9 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { ChevronDown, Search, HelpCircle, Book, CreditCard, User, Settings, Shield } from "lucide-react"
 import { Footer } from "@/components/ui/footer"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface FAQItem {
   question: string
@@ -11,18 +12,19 @@ interface FAQItem {
 }
 
 export default function FAQPage() {
+  const { t } = useLanguage()
   const [searchTerm, setSearchTerm] = useState("")
   const [activeCategory, setActiveCategory] = useState("all")
   const [expandedItems, setExpandedItems] = useState<number[]>([])
 
   const categories = [
-    { id: "all", label: "Tất cả", icon: HelpCircle },
-    { id: "general", label: "Chung", icon: Book },
-    { id: "course", label: "Khóa học", icon: Book },
-    { id: "payment", label: "Thanh toán", icon: CreditCard },
-    { id: "account", label: "Tài khoản", icon: User },
-    { id: "technical", label: "Kỹ thuật", icon: Settings },
-    { id: "policy", label: "Chính sách", icon: Shield }
+    { id: "all", label: t("faq_cat_all", "Tất cả"), icon: HelpCircle },
+    { id: "general", label: t("faq_cat_general", "Chung"), icon: Book },
+    { id: "course", label: t("faq_cat_course", "Khóa học"), icon: Book },
+    { id: "payment", label: t("faq_cat_payment", "Thanh toán"), icon: CreditCard },
+    { id: "account", label: t("faq_cat_account", "Tài khoản"), icon: User },
+    { id: "technical", label: t("faq_cat_technical", "Kỹ thuật"), icon: Settings },
+    { id: "policy", label: t("faq_cat_policy", "Chính sách"), icon: Shield }
   ]
 
   const faqs: FAQItem[] = [
@@ -131,10 +133,10 @@ export default function FAQPage() {
             <HelpCircle className="text-white" size={40} />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
-            Câu hỏi thường gặp
+            {t("faq_title", "Câu hỏi thường gặp")}
           </h1>
           <p className="text-lg text-muted-foreground dark:text-slate-400 mb-8">
-            Tìm câu trả lời cho những câu hỏi phổ biến về ICS Learning
+            {t("faq_desc", "Tìm câu trả lời cho những câu hỏi phổ biến về ICS Learning")}
           </p>
           
           {/* Search */}
@@ -142,7 +144,7 @@ export default function FAQPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
             <input
               type="text"
-              placeholder="Tìm kiếm câu hỏi..."
+              placeholder={t("faq_search", "Tìm kiếm câu hỏi...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-4 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary dark:focus:ring-accent focus:border-transparent"
@@ -183,7 +185,7 @@ export default function FAQPage() {
             <div className="text-center py-12">
               <HelpCircle size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground dark:text-slate-400">
-                Không tìm thấy câu hỏi nào phù hợp. Vui lòng thử từ khóa khác.
+                {t("faq_no_results", "Không tìm thấy câu hỏi nào phù hợp. Vui lòng thử từ khóa khác.")}
               </p>
             </div>
           ) : (

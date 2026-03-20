@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Footer } from "@/components/ui/footer";
 import {
@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { getApiBaseUrl } from "@/lib/api/config";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 
 const containerVariants = {
@@ -46,24 +47,31 @@ const backgrounds = [
 ];
 const heroContents = [
   {
-    badge: "Hành trình 10+ năm phát triển",
-    title: "Về ICS Learning",
+    badgeKey: "about_hero_badge_journey",
+    badgeFallback: "Hành trình 10+ năm phát triển",
+    titleKey: "about_hero_title_about",
+    titleFallback: "Về ICS Learning",
     getContent: (data: any) => data.about_ics,
   },
   {
-    badge: "Sứ mệnh",
-    title: "Sứ mệnh của chúng tôi",
+    badgeKey: "about_hero_badge_mission",
+    badgeFallback: "Sứ mệnh",
+    titleKey: "about_hero_title_mission",
+    titleFallback: "Sứ mệnh của chúng tôi",
     getContent: (data: any) => data.mission,
   },
   {
-    badge: "Tầm nhìn",
-    title: "Tầm nhìn chiến lược",
+    badgeKey: "about_hero_badge_vision",
+    badgeFallback: "Tầm nhìn",
+    titleKey: "about_hero_title_vision",
+    titleFallback: "Tầm nhìn chiến lược",
     getContent: (data: any) => data.vision,
   },
 ];
 
 export default function AboutPage() {
   const [bgIndex, setBgIndex] = useState(0);
+  const { t } = useLanguage();
 
   const [systemData, setSystemData] = useState<{
   about_ics: string;
@@ -201,7 +209,7 @@ const [loading, setLoading] = useState(true);
       className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-accent/10 rounded-full text-primary dark:text-accent font-medium text-sm mb-4"
     >
       <Sparkles size={16} />
-      <span>{heroContents[bgIndex].badge}</span>
+      <span>{t(heroContents[bgIndex].badgeKey, heroContents[bgIndex].badgeFallback)}</span>
     </motion.div>
 
     {/* Title */}
@@ -214,7 +222,7 @@ const [loading, setLoading] = useState(true);
           </span>
         </>
       ) : (
-        heroContents[bgIndex].title
+        t(heroContents[bgIndex].titleKey, heroContents[bgIndex].titleFallback)
       )}
     </h1>
 
@@ -239,25 +247,25 @@ const [loading, setLoading] = useState(true);
             {
               icon: Users,
               label: "50K+",
-              desc: "Học viên toàn cầu",
+              desc: t("about_stat_students", "Học viên toàn cầu"),
               color: "from-blue-500 to-cyan-500",
             },
             {
               icon: Target,
               label: "500+",
-              desc: "Khóa học đa dạng",
+              desc: t("about_stat_courses", "Khóa học đa dạng"),
               color: "from-purple-500 to-pink-500",
             },
             {
               icon: Award,
               label: "200+",
-              desc: "Giảng viên chuyên gia",
+              desc: t("about_stat_teachers", "Giảng viên chuyên gia"),
               color: "from-orange-500 to-red-500",
             },
             {
               icon: TrendingUp,
               label: "4.8★",
-              desc: "Đánh giá trung bình",
+              desc: t("about_stat_rating", "Đánh giá trung bình"),
               color: "from-green-500 to-emerald-500",
             },
           ].map((stat, i) => (
@@ -294,22 +302,17 @@ const [loading, setLoading] = useState(true);
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-accent/10 rounded-full text-primary dark:text-accent font-medium text-sm">
                 <Target size={16} />
-                <span>Sứ mệnh của chúng tôi</span>
+                <span>{t("about_mission_badge", "Sứ mệnh của chúng tôi")}</span>
               </div>
               <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white leading-tight">
-                Dân chủ hóa giáo dục chất lượng cao
+                {t("about_mission_title", "Dân chủ hóa giáo dục chất lượng cao")}
               </h2>
               <div className="space-y-4 text-lg text-muted-foreground dark:text-slate-300">
                 <p>
-                  ICS Learning được thành lập với mục tiêu mang giáo dục chất
-                  lượng cao đến với mọi người, bất kể họ ở đâu hay hoàn cảnh ra
-                  sao.
+                  {t("about_mission_p1", "ICS Learning được thành lập với mục tiêu mang giáo dục chất lượng cao đến với mọi người, bất kể họ ở đâu hay hoàn cảnh ra sao.")}
                 </p>
                 <p>
-                  Chúng tôi tin rằng mọi người đều xứng đáng có cơ hội học tập
-                  từ những giảng viên tốt nhất thế giới. Thông qua công nghệ và
-                  sự đổi mới, chúng tôi tạo ra một nền tảng nơi kiến thức được
-                  chia sẻ tự do.
+                  {t("about_mission_p2", "Chúng tôi tin rằng mọi người đều xứng đáng có cơ hội học tập từ những giảng viên tốt nhất thế giới. Thông qua công nghệ và sự đổi mới, chúng tôi tạo ra một nền tảng nơi kiến thức được chia sẻ tự do.")}
                 </p>
               </div>
               <div className="flex flex-wrap gap-4">
@@ -317,13 +320,13 @@ const [loading, setLoading] = useState(true);
                   href="/courses"
                   className="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-full font-semibold hover:shadow-xl transition-all hover:scale-105"
                 >
-                  Khám phá khóa học
+                  {t("about_mission_explore", "Khám phá khóa học")}
                 </Link>
                 <Link
                   href="/teachers"
                   className="px-6 py-3 border-2 border-border hover:border-primary dark:hover:border-accent text-foreground dark:text-white rounded-full font-semibold transition-all hover:scale-105"
                 >
-                  Trở thành giảng viên
+                  {t("about_mission_become_teacher", "Trở thành giảng viên")}
                 </Link>
               </div>
             </div>
@@ -339,23 +342,23 @@ const [loading, setLoading] = useState(true);
                 {[
                   {
                     icon: Globe,
-                    label: "Toàn cầu",
-                    desc: "Học viên từ 120+ quốc gia",
+                    label: t("about_mission_card_global", "Toàn cầu"),
+                    desc: t("about_mission_card_global_desc", "Học viên từ 120+ quốc gia"),
                   },
                   {
                     icon: Shield,
-                    label: "Tin cậy",
-                    desc: "Bảo mật thông tin tuyệt đối",
+                    label: t("about_mission_card_trust", "Tin cậy"),
+                    desc: t("about_mission_card_trust_desc", "Bảo mật thông tin tuyệt đối"),
                   },
                   {
                     icon: Zap,
-                    label: "Nhanh chóng",
-                    desc: "Học mọi lúc mọi nơi",
+                    label: t("about_mission_card_fast", "Nhanh chóng"),
+                    desc: t("about_mission_card_fast_desc", "Học mọi lúc mọi nơi"),
                   },
                   {
                     icon: Heart,
-                    label: "Chất lượng",
-                    desc: "Nội dung được kiểm duyệt",
+                    label: t("about_mission_card_quality", "Chất lượng"),
+                    desc: t("about_mission_card_quality_desc", "Nội dung được kiểm duyệt"),
                   },
                 ].map((item, i) => (
                   <motion.div
@@ -399,10 +402,10 @@ const [loading, setLoading] = useState(true);
             className="text-center mb-12"
           >
             <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
-              Giá trị cốt lõi
+              {t("about_values_title", "Giá trị cốt lõi")}
             </h2>
             <p className="text-xl text-muted-foreground dark:text-slate-300 max-w-2xl mx-auto">
-              Những nguyên tắc định hướng mọi hoạt động của chúng tôi
+              {t("about_values_desc", "Những nguyên tắc định hướng mọi hoạt động của chúng tôi")}
             </p>
           </motion.div>
 
@@ -416,20 +419,20 @@ const [loading, setLoading] = useState(true);
             {[
               {
                 icon: Heart,
-                title: "Chất lượng là ưu tiên hàng đầu",
-                desc: "Chúng tôi cam kết cung cấp nội dung học tập chất lượng cao từ những chuyên gia hàng đầu trong ngành. Mỗi khóa học đều được kiểm duyệt kỹ lưỡng.",
+                title: t("about_val1_title", "Chất lượng là ưu tiên hàng đầu"),
+                desc: t("about_val1_desc", "Chúng tôi cam kết cung cấp nội dung học tập chất lượng cao từ những chuyên gia hàng đầu trong ngành. Mỗi khóa học đều được kiểm duyệt kỹ lưỡng."),
                 gradient: "from-red-500 to-pink-500",
               },
               {
                 icon: Zap,
-                title: "Đổi mới không ngừng",
-                desc: "Luôn cập nhật công nghệ mới nhất để mang lại trải nghiệm học tập tốt nhất. Chúng tôi đầu tư vào AI và machine learning để cá nhân hóa học tập.",
+                title: t("about_val2_title", "Đổi mới không ngừng"),
+                desc: t("about_val2_desc", "Luôn cập nhật công nghệ mới nhất để mang lại trải nghiệm học tập tốt nhất. Chúng tôi đầu tư vào AI và machine learning để cá nhân hóa học tập."),
                 gradient: "from-yellow-500 to-orange-500",
               },
               {
                 icon: Users,
-                title: "Cộng đồng kết nối",
-                desc: "Xây dựng một cộng đồng học tập sôi động nơi mọi người có thể chia sẻ, hỗ trợ và phát triển cùng nhau. Học không chỉ là cá nhân mà là tập thể.",
+                title: t("about_val3_title", "Cộng đồng kết nối"),
+                desc: t("about_val3_desc", "Xây dựng một cộng đồng học tập sôi động nơi mọi người có thể chia sẻ, hỗ trợ và phát triển cùng nhau. Học không chỉ là cá nhân mà là tập thể."),
                 gradient: "from-blue-500 to-cyan-500",
               },
             ].map((value, i) => (
@@ -463,10 +466,10 @@ const [loading, setLoading] = useState(true);
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-12">
             <div className="text-center md:text-left">
               <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-3">
-                Đội ngũ lãnh đạo
+                {t("about_team_title", "Đội ngũ lãnh đạo")}
               </h2>
               <p className="text-xl text-muted-foreground dark:text-slate-300 max-w-2xl">
-                Những con người đầy nhiệt huyết đằng sau ICS Learning
+                {t("about_team_desc", "Những con người đầy nhiệt huyết đằng sau ICS Learning")}
               </p>
             </div>
 
@@ -555,25 +558,24 @@ const [loading, setLoading] = useState(true);
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
             <div className="relative z-10">
               <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                Tham gia cộng đồng ICS Learning
+                {t("about_cta_title", "Tham gia cộng đồng ICS Learning")}
               </h2>
               <p className="text-lg md:text-xl mb-8 opacity-90">
-                Bắt đầu hành trình học tập của bạn ngay hôm nay và mở ra cơ hội
-                vô hạn
+                {t("about_cta_subtitle", "Bắt đầu hành trình học tập của bạn ngay hôm nay và mở ra cơ hội vô hạn")}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/signup"
                   className="inline-flex items-center justify-center gap-2 bg-white text-primary hover:bg-slate-100 px-8 py-4 rounded-full font-semibold transition-all hover:scale-105 shadow-xl"
                 >
-                  <span>Đăng ký học viên</span>
+                  <span>{t("about_cta_signup", "Đăng ký học viên")}</span>
                   <Sparkles size={18} />
                 </Link>
                 <Link
                   href="/teachers"
                   className="inline-flex items-center justify-center gap-2 border-2 border-white text-white hover:bg-white/10 px-8 py-4 rounded-full font-semibold transition-all hover:scale-105"
                 >
-                  <span>Trở thành giảng viên</span>
+                  <span>{t("about_cta_teacher", "Trở thành giảng viên")}</span>
                   <Award size={18} />
                 </Link>
               </div>

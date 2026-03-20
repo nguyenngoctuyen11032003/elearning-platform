@@ -27,6 +27,7 @@ import {
   Share2,
   TrendingUp
 } from "lucide-react"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface CertificateTemplate {
   id: string
@@ -64,6 +65,7 @@ interface ExamItem {
 
 export default function TeacherCertificatesPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
     const cardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
@@ -267,7 +269,7 @@ export default function TeacherCertificatesPage() {
 
   const handleAssignTemplate = async () => {
     if (!useTemplate || !selectedExamId) {
-      setAssignError("Vui lòng chọn bài thi thật để gán chứng chỉ.")
+      setAssignError(t("teacher_cert_select_official_exam", "Vui lòng chọn bài thi thật để gán chứng chỉ."))
       return
     }
 
@@ -283,17 +285,17 @@ export default function TeacherCertificatesPage() {
       })
 
       if (!response.ok) {
-        const message = "Không thể gán chứng chỉ cho bài thi. Vui lòng thử lại."
+        const message = t("teacher_cert_assign_failed", "Không thể gán chứng chỉ cho bài thi. Vui lòng thử lại.")
         setAssignError(message)
         toast.error(message)
         return
       }
 
-      toast.success("Gán chứng chỉ thành công.")
+      toast.success(t("teacher_cert_assign_success", "Gán chứng chỉ thành công."))
       setUseTemplate(null)
       setSelectedExamId("")
     } catch (error) {
-      const message = "Không thể gán chứng chỉ cho bài thi. Vui lòng thử lại."
+      const message = t("teacher_cert_assign_failed", "Không thể gán chứng chỉ cho bài thi. Vui lòng thử lại.")
       console.error("Error assigning template:", error)
       setAssignError(message)
       toast.error(message)
@@ -310,10 +312,10 @@ export default function TeacherCertificatesPage() {
       rejected: "bg-red-500/10 text-red-500 border-red-500/20",
     }
     const labels = {
-      draft: "Nháp",
-      pending: "Chờ duyệt",
-      approved: "Đã duyệt",
-      rejected: "Từ chối",
+      draft: t("status_draft", "Nháp"),
+      pending: t("status_pending", "Chờ duyệt"),
+      approved: t("status_approved", "Đã duyệt"),
+      rejected: t("status_rejected", "Từ chối"),
     }
     const icons = {
       draft: FileText,
@@ -342,14 +344,14 @@ export default function TeacherCertificatesPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Quản lý Chứng chỉ</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Tạo và quản lý mẫu chứng chỉ cho khóa học</p>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("teacher_cert_manage_title", "Quản lý Chứng chỉ")}</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("teacher_cert_manage_subtitle", "Tạo và quản lý mẫu chứng chỉ cho khóa học")}</p>
               </div>
               <Link
                 href="/teacher/certificates/create"
                 className="flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
               >
-                <Plus size={20} /> Tạo mẫu chứng chỉ
+                <Plus size={20} /> {t("teacher_cert_create_template", "Tạo mẫu chứng chỉ")}
               </Link>
             </div>
 
@@ -358,7 +360,7 @@ export default function TeacherCertificatesPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng mẫu</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("teacher_cert_total_templates", "Tổng mẫu")}</p>
                     <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalTemplates}</p>
                   </div>
                   <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -369,7 +371,7 @@ export default function TeacherCertificatesPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Chờ duyệt</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("teacher_cert_pending", "Chờ duyệt")}</p>
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingTemplates}</p>
                   </div>
                   <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -380,7 +382,7 @@ export default function TeacherCertificatesPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Hoạt động</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("teacher_cert_active", "Hoạt động")}</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{approvedTemplates}</p>
                   </div>
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -391,7 +393,7 @@ export default function TeacherCertificatesPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Đã cấp</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("teacher_cert_issued", "Đã cấp")}</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{totalIssued}</p>
                   </div>
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -409,7 +411,7 @@ export default function TeacherCertificatesPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
             <input
               type="text"
-              placeholder="Tìm kiếm mẫu chứng chỉ..."
+              placeholder={t("teacher_cert_search_placeholder", "Tìm kiếm mẫu chứng chỉ...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -420,11 +422,11 @@ export default function TeacherCertificatesPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="draft">Nháp</option>
-            <option value="pending">Chờ duyệt</option>
-            <option value="approved">Đã duyệt</option>
-            <option value="rejected">Từ chối</option>
+            <option value="all">{t("teacher_cert_all_status", "Tất cả trạng thái")}</option>
+            <option value="draft">{t("status_draft", "Nháp")}</option>
+            <option value="pending">{t("status_pending", "Chờ duyệt")}</option>
+            <option value="approved">{t("status_approved", "Đã duyệt")}</option>
+            <option value="rejected">{t("status_rejected", "Từ chối")}</option>
           </select>
         </div>
 
@@ -433,16 +435,16 @@ export default function TeacherCertificatesPage() {
           {filteredTemplates.length === 0 ? (
             <div className="text-center py-10">
               <Award size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
-              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">Chưa có mẫu chứng chỉ nào</h3>
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">{t("teacher_cert_empty_title", "Chưa có mẫu chứng chỉ nào")}</h3>
               <p className="text-muted-foreground dark:text-slate-400 mb-4">
-                Bắt đầu tạo mẫu chứng chỉ đầu tiên cho khóa học của bạn
+                {t("teacher_cert_empty_desc", "Bắt đầu tạo mẫu chứng chỉ đầu tiên cho khóa học của bạn")}
               </p>
               <Link
                 href="/teacher/certificates/create"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
               >
                 <Plus size={20} />
-                Tạo mẫu chứng chỉ
+                {t("teacher_cert_create_template", "Tạo mẫu chứng chỉ")}
               </Link>
             </div>
           ) : (
@@ -497,7 +499,7 @@ export default function TeacherCertificatesPage() {
                             className="text-[9px] sm:text-[10px] font-semibold tracking-[0.25em] uppercase"
                             style={{ color: template.borderColor || "#d4af37" }}
                           >
-                            Chứng chỉ hoàn thành
+                            {t("teacher_cert_preview_title", "Chứng chỉ hoàn thành")}
                           </p>
                           <div
                             className="w-10 h-px my-2"
@@ -522,7 +524,7 @@ export default function TeacherCertificatesPage() {
                             className="w-10 h-px my-2"
                             style={{ backgroundColor: template.borderColor || "#d4af37" }}
                           />
-                          <p className="text-[9px] sm:text-[11px] opacity-70">Chứng nhận rằng</p>
+                          <p className="text-[9px] sm:text-[11px] opacity-70">{t("teacher_cert_preview_certify", "Chứng nhận rằng")}</p>
                           <p className="text-xs sm:text-sm font-semibold italic mt-1 line-clamp-1 max-w-[90%]">[Tên học viên]</p>
                           <div
                             className="w-24 h-px mt-2"
@@ -566,7 +568,7 @@ export default function TeacherCertificatesPage() {
                         onClick={() => handleOpenUseModal(template)}
                         className="w-full px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
                       >
-                        Sử dụng
+                        {t("teacher_cert_use", "Sử dụng")}
                       </button>
                     </div>
                   )}
@@ -588,7 +590,7 @@ export default function TeacherCertificatesPage() {
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-foreground dark:text-white">
-                  Gán chứng chỉ cho bài thi
+                  {t("teacher_cert_assign_title", "Gán chứng chỉ cho bài thi")}
                 </h3>
                 <button
                   onClick={() => setUseTemplate(null)}
@@ -601,7 +603,7 @@ export default function TeacherCertificatesPage() {
 
               <div className="space-y-3">
                 <div className="text-sm text-muted-foreground">
-                  Chỉ hiển thị các bài thi thật (official).
+                  {t("teacher_cert_assign_only_official", "Chỉ hiển thị các bài thi thật (official).")}
                 </div>
                 <select
                   value={selectedExamId}
@@ -609,7 +611,7 @@ export default function TeacherCertificatesPage() {
                   className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
                   disabled={isLoadingExams}
                 >
-                  <option value="">Chọn bài thi thật</option>
+                  <option value="">{t("teacher_cert_select_official_exam_option", "Chọn bài thi thật")}</option>
                   {officialExams.map((exam) => (
                     <option key={exam.id} value={exam.id}>
                       {exam.title}{exam.course?.title ? ` - ${exam.course.title}` : ""}
@@ -618,7 +620,7 @@ export default function TeacherCertificatesPage() {
                 </select>
                 {!isLoadingExams && officialExams.length === 0 && (
                   <p className="text-sm text-muted-foreground">
-                    Chưa có bài thi thật nào để gán chứng chỉ.
+                    {t("teacher_cert_no_official_exams", "Chưa có bài thi thật nào để gán chứng chỉ.")}
                   </p>
                 )}
                 {assignError && (
@@ -633,7 +635,7 @@ export default function TeacherCertificatesPage() {
                   className="px-4 py-2 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
                   disabled={isAssigning}
                 >
-                  Hủy
+                  {t("common_cancel", "Hủy")}
                 </button>
                 <button
                   type="button"
@@ -641,7 +643,7 @@ export default function TeacherCertificatesPage() {
                   className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
                   disabled={isAssigning || officialExams.length === 0}
                 >
-                  {isAssigning ? "Đang gán..." : "Gán chứng chỉ"}
+                  {isAssigning ? t("teacher_cert_assigning", "Đang gán...") : t("teacher_cert_assign", "Gán chứng chỉ")}
                 </button>
               </div>
             </div>

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { CourseCard } from "@/components/ui/course-card"
 import { SectionTitle } from "@/components/ui/section-title"
@@ -13,11 +13,13 @@ import { Footer } from "@/components/ui/footer"
 import { useEffect, useState, useRef } from "react"
 import { apiClient } from "@/lib/api/client"
 import { motion } from "framer-motion"
+import { useLanguage } from "@/lib/i18n/language-context"
+import { autoTranslateData } from "@/lib/i18n/dynamic-translate"
 
 const testimonials = [
   {
     name: "Trần Văn Minh",
-    role: "Full-stack Developer tại FPT Software",
+    role: "Full-stack Developer @ FPT Software",
     content: "Tôi đã chuyển đổi sự nghiệp từ kế toán sang lập trình chỉ sau 6 tháng học tại ICS Learning. Các khóa học được thiết kế bài bản, giảng viên hỗ trợ nhiệt tình.",
     avatar: "/avatars/student-1.jpg",
     rating: 5,
@@ -25,7 +27,7 @@ const testimonials = [
   },
   {
     name: "Nguyễn Thị Mai",
-    role: "UI/UX Designer tại Tiki",
+    role: "UI/UX Designer @ Tiki",
     content: "Khóa UI/UX Design đã giúp tôi có được công việc mơ ước. Nội dung cập nhật, thực tế và có nhiều bài tập thực hành. Giá cả hợp lý so với chất lượng nhận được.",
     avatar: "/avatars/student-2.jpg",
     rating: 5,
@@ -33,7 +35,7 @@ const testimonials = [
   },
   {
     name: "Lê Hoàng Anh",
-    role: "Data Analyst tại Shopee",
+    role: "Data Analyst @ Shopee",
     content: "ICS Learning đã thay đổi cuộc đời tôi! Từ không biết gì về data, giờ tôi đã tự tin phân tích và xử lý dữ liệu lớn. Tỷ lệ có việc làm sau khóa học rất cao.",
     avatar: "/avatars/student-3.jpg",
     rating: 5,
@@ -56,6 +58,7 @@ export default function Home() {
   const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [categoriesPage, setCategoriesPage] = useState(0)
+  const { language, t } = useLanguage()
 
   const CATEGORIES_PER_PAGE = 10
   
@@ -116,13 +119,14 @@ export default function Home() {
         
         // Lấy 5 khóa học có đánh giá cao nhất
         const courses = Array.isArray(coursesRes) && coursesRes.length > 0 ? coursesRes : mockCourses
-        const sortedCourses = courses
-          .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-          .slice(0, 5)
-        setFeaturedCourses(sortedCourses)
+        const localizedCourses = await autoTranslateData(courses, language)
+        setFeaturedCourses(localizedCourses
+          .sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0))
+          .slice(0, 5))
 
         const categoriesRes = await apiClient.getCategories()
-        setCategories(Array.isArray(categoriesRes) ? categoriesRes : [])
+        const localizedCategories = await autoTranslateData(Array.isArray(categoriesRes) ? categoriesRes : [], language)
+        setCategories(localizedCategories)
         setCategoriesPage(0)
       } catch (error) {
         console.error("Error fetching data:", error)
@@ -134,7 +138,7 @@ export default function Home() {
     }
 
     fetchData()
-  }, [])
+  }, [language])
 
   const FEATURES_VISIBLE = 4
   const [featurePage, setFeaturePage] = useState(0)
@@ -155,57 +159,57 @@ export default function Home() {
   const features = [
     {
       icon: Shield,
-      title: "Chất Lượng Đảm Bảo",
-      description: "100% khóa học được kiểm duyệt bởi chuyên gia. Hoàn tiền nếu không hài lòng.",
+      title: t("home_feat_quality_title", "Chất Lượng Đảm Bảo"),
+      description: t("home_feat_quality_desc", "100% khóa học được kiểm duyệt bởi chuyên gia. Hoàn tiền nếu không hài lòng."),
       color: "from-blue-500 to-cyan-500",
       bgColor: "bg-blue-50 dark:bg-blue-950/30"
     },
     {
       icon: Clock,
-      title: "Học Mọi Lúc, Mọi Nơi",
-      description: "Truy cập trọn đời, học theo tốc độ riêng. Hỗ trợ offline trên mobile.",
+      title: t("home_feat_anytime_title", "Học Mọi Lúc, Mọi Nơi"),
+      description: t("home_feat_anytime_desc", "Truy cập trọn đời, học theo tốc độ riêng. Hỗ trợ offline trên mobile."),
       color: "from-purple-500 to-pink-500",
       bgColor: "bg-purple-50 dark:bg-purple-950/30"
     },
     {
       icon: Users,
-      title: "Cộng Đồng 15K+",
-      description: "Kết nối, thảo luận và học hỏi cùng cộng đồng học viên năng động.",
+      title: t("home_feat_community_title", "Cộng Đồng 15K+"),
+      description: t("home_feat_community_desc", "Kết nối, thảo luận và học hỏi cùng cộng đồng học viên năng động."),
       color: "from-orange-500 to-red-500",
       bgColor: "bg-orange-50 dark:bg-orange-950/30"
     },
     {
       icon: Trophy,
-      title: "Chứng Chỉ Uy Tín",
-      description: "Nhận chứng chỉ được công nhận bởi doanh nghiệp sau khi hoàn thành.",
+      title: t("home_feat_cert_title", "Chứng Chỉ Uy Tín"),
+      description: t("home_feat_cert_desc", "Nhận chứng chỉ được công nhận bởi doanh nghiệp sau khi hoàn thành."),
       color: "from-green-500 to-emerald-500",
       bgColor: "bg-green-50 dark:bg-green-950/30"
     },
     {
       icon: Lightbulb,
-      title: "Nội Dung Thực Tế",
-      description: "Học từ dự án thực tế, bài tập case study từ doanh nghiệp hàng đầu.",
+      title: t("home_feat_practical_title", "Nội Dung Thực Tế"),
+      description: t("home_feat_practical_desc", "Học từ dự án thực tế, bài tập case study từ doanh nghiệp hàng đầu."),
       color: "from-yellow-500 to-amber-500",
       bgColor: "bg-yellow-50 dark:bg-yellow-950/30"
     },
     {
       icon: HeartHandshake,
-      title: "Hỗ Trợ 24/7",
-      description: "Đội ngũ support luôn sẵn sàng giải đáp mọi thắc mắc của bạn.",
+      title: t("home_feat_support_title", "Hỗ Trợ 24/7"),
+      description: t("home_feat_support_desc", "Đội ngũ support luôn sẵn sàng giải đáp mọi thắc mắc của bạn."),
       color: "from-pink-500 to-rose-500",
       bgColor: "bg-pink-50 dark:bg-pink-950/30"
     },
     {
       icon: Brain,
-      title: "AI Tutor Thông Minh",
-      description: "Trợ lý AI cá nhân hóa giúp bạn học hiệu quả hơn.",
+      title: t("home_feat_ai_title", "AI Tutor Thông Minh"),
+      description: t("home_feat_ai_desc", "Trợ lý AI cá nhân hóa giúp bạn học hiệu quả hơn."),
       color: "from-indigo-500 to-purple-500",
       bgColor: "bg-indigo-50 dark:bg-indigo-950/30"
     },
     {
       icon: BarChart3,
-      title: "Theo Dõi Tiến Độ",
-      description: "Dashboard chi tiết giúp bạn theo dõi quá trình học.",
+      title: t("home_feat_progress_title", "Theo Dõi Tiến Độ"),
+      description: t("home_feat_progress_desc", "Dashboard chi tiết giúp bạn theo dõi quá trình học."),
       color: "from-teal-500 to-cyan-500",
       bgColor: "bg-teal-50 dark:bg-teal-950/30"
     }
@@ -263,8 +267,8 @@ export default function Home() {
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-white text-xs font-bold">+</div>
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">15,000+ Học viên thành công</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">Đánh giá 4.9/5 ⭐</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{t("home_hero_students", "15,000+ Học viên thành công")}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">{t("home_hero_rating", "Đánh giá 4.9/5 ⭐")}</p>
                 </div>
               </motion.div>
 
@@ -277,12 +281,12 @@ export default function Home() {
                   className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] tracking-tight"
                 >
                   <span className="bg-gradient-to-r from-slate-900 via-blue-700 to-purple-700 dark:from-white dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                    Nền Tảng Học Trực Tuyến
+                    {t("home_hero_title1", "Nền Tảng Học Trực Tuyến")}
                   </span>
                   <br />
                   <span className="relative inline-block mt-2">
                     <span className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 bg-clip-text text-transparent">
-                      Hàng Đầu Việt Nam
+                      {t("home_hero_title2", "Hàng Đầu Việt Nam")}
                     </span>
                     <motion.div
                       initial={{ width: 0 }}
@@ -299,10 +303,10 @@ export default function Home() {
                   transition={{ delay: 0.5 }}
                   className="text-base sm:text-lg md:text-2xl text-slate-700 dark:text-slate-300 leading-relaxed font-medium"
                 >
-                  Học <span className="font-bold text-blue-600 dark:text-blue-400">Lập Trình</span>, {" "}
-                  <span className="font-bold text-purple-600 dark:text-purple-400">Thiết Kế</span>, {" "}
+                  {t("home_hero_learn", "Học")} <span className="font-bold text-blue-600 dark:text-blue-400">{t("home_hero_programming", "Lập Trình")}</span>, {" "}
+                  <span className="font-bold text-purple-600 dark:text-purple-400">{t("home_hero_design", "Thiết Kế")}</span>, {" "}
                   <span className="font-bold text-pink-600 dark:text-pink-400">Data Science</span> {" "}
-                  & <span className="font-bold text-orange-600 dark:text-orange-400">AI</span> từ các chuyên gia hàng đầu
+                  & <span className="font-bold text-orange-600 dark:text-orange-400">AI</span> {t("home_hero_from_experts", "từ các chuyên gia hàng đầu")}
                 </motion.p>
               </div>
 
@@ -318,14 +322,14 @@ export default function Home() {
                   className="group relative inline-flex w-full sm:w-auto items-center justify-center gap-3 bg-gradient-to-r from-blue-600 via-blue-700 to-purple-600 hover:from-blue-700 hover:via-blue-800 hover:to-purple-700 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl font-bold text-base sm:text-lg shadow-[0_8px_30px_rgba(37,99,235,0.3)] hover:shadow-[0_12px_40px_rgba(37,99,235,0.4)] transition-all transform hover:scale-105 hover:-translate-y-0.5"
                 >
                   <GraduationCap size={24} />
-                  Khám Phá Khóa Học
+                  {t("home_cta_explore", "Khám Phá Khóa Học")}
                   <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <Link
                   href="/about"
                   className="group inline-flex w-full sm:w-auto items-center justify-center gap-3 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 text-slate-900 dark:text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl font-bold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all"
                 >
-                  Tìm Hiểu Thêm
+                  {t("home_cta_learn_more", "Tìm Hiểu Thêm")}
                   <Play size={20} className="group-hover:scale-110 transition-transform" />
                 </Link>
               </motion.div>
@@ -339,15 +343,15 @@ export default function Home() {
               >
                 <div className="text-center sm:text-left">
                   <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">15K+</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">Học viên</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">{t("home_stat_students", "Học viên")}</p>
                 </div>
                 <div className="text-center sm:text-left">
                   <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">500+</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">Khóa học</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">{t("home_stat_courses", "Khóa học")}</p>
                 </div>
                 <div className="text-center sm:text-left">
                   <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">98%</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">Hài lòng</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">{t("home_stat_satisfied", "Hài lòng")}</p>
                 </div>
               </motion.div>
             </motion.div>
@@ -374,8 +378,8 @@ export default function Home() {
                       <Trophy className="text-white" size={24} />
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900 dark:text-white">Chứng Chỉ Uy Tín</p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Được công nhận</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{t("home_hero_cert", "Chứng Chỉ Uy Tín")}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{t("home_hero_cert_sub", "Được công nhận")}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -390,8 +394,8 @@ export default function Home() {
                       <Users className="text-white" size={24} />
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900 dark:text-white">Học Cùng Chuyên Gia</p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">100+ giảng viên</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{t("home_hero_expert", "Học Cùng Chuyên Gia")}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{t("home_hero_expert_sub", "100+ giảng viên")}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -416,7 +420,7 @@ export default function Home() {
             viewport={{ once: true }}
             className="text-center text-sm font-semibold text-slate-600 dark:text-slate-400 mb-8 uppercase tracking-wider"
           >
-            Được tin dùng bởi các tổ chức hàng đầu
+            {t("home_trust_bar", "Được tin dùng bởi các tổ chức hàng đầu")}
           </motion.p>
           <div className="flex flex-wrap items-center justify-center gap-12">
             {partners.map((partner, idx) => (
@@ -448,13 +452,13 @@ export default function Home() {
           >
             <div className="inline-flex items-center gap-2 px-5 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full mb-6 font-semibold">
               <Target size={18} />
-              <span>Lợi Ích Vượt Trội</span>
+              <span>{t("home_why_badge", "Lợi Ích Vượt Trội")}</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
-              Tại Sao Chọn ICS Learning?
+              {t("home_why_title", "Tại Sao Chọn ICS Learning?")}
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-400">
-              Chúng tôi cam kết mang đến trải nghiệm học tập chất lượng cao nhất với công nghệ hiện đại và đội ngũ giảng viên chuyên nghiệp
+              {t("home_why_desc", "Chúng tôi cam kết mang đến trải nghiệm học tập chất lượng cao nhất với công nghệ hiện đại và đội ngũ giảng viên chuyên nghiệp")}
             </p>
           </motion.div>
           {/* FEATURES SLIDER */}
@@ -535,13 +539,13 @@ export default function Home() {
           >
             <div className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 text-blue-700 dark:text-blue-300 rounded-full mb-6 font-semibold">
               <Star size={18} className="text-yellow-500" />
-              <span>Khóa Học Nổi Bật</span>
+              <span>{t("home_courses_badge", "Khóa Học Nổi Bật")}</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
-              Khóa Học Được Yêu Thích Nhất
+              {t("home_courses_title", "Khóa Học Được Yêu Thích Nhất")}
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-400">
-              Các khóa học chất lượng cao được hàng ngàn học viên tin tưởng và đánh giá 5 sao
+              {t("home_courses_desc", "Các khóa học chất lượng cao được hàng ngàn học viên tin tưởng và đánh giá 5 sao")}
             </p>
           </motion.div>
 
@@ -577,7 +581,7 @@ export default function Home() {
                       <CourseCard
                         id={course.id}
                         title={course.title}
-                        teacher={course.teacher?.name || "Chuyên gia hàng đầu"}
+                        teacher={course.teacher?.name || t("home_default_teacher", "Chuyên gia hàng đầu")}
                         price={course.price}
                         rating={course.rating || 4.8}
                         image={course.image || "/placeholder.svg"}
@@ -588,7 +592,7 @@ export default function Home() {
                 ) : (
                   <div className="col-span-full text-center py-12">
                     <BookOpen size={64} className="mx-auto text-slate-300 dark:text-slate-700 mb-4" />
-                    <p className="text-slate-600 dark:text-slate-400 text-lg">Đang tải khóa học...</p>
+                    <p className="text-slate-600 dark:text-slate-400 text-lg">{t("home_loading_courses", "Đang tải khóa học...")}</p>
                   </div>
                 )}
               </div>
@@ -604,7 +608,7 @@ export default function Home() {
                   href="/courses"
                   className="group inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold text-base shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
                 >
-                  Xem Tất Cả Khóa Học
+                  {t("home_view_all_courses", "Xem Tất Cả Khóa Học")}
                   <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
               </motion.div>
@@ -626,13 +630,13 @@ export default function Home() {
           >
             <div className="inline-flex items-center gap-2 px-5 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full mb-6 font-semibold">
               <Rocket size={18} />
-              <span>Danh Mục Phổ Biến</span>
+              <span>{t("home_cat_badge", "Danh Mục Phổ Biến")}</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
-              Khám Phá Lĩnh Vực Của Bạn
+              {t("home_cat_title", "Khám Phá Lĩnh Vực Của Bạn")}
             </h2>
             <p className="text-xl text-slate-600 dark:text-white">
-              Chọn lĩnh vực bạn muốn chinh phục và bắt đầu hành trình phát triển kỹ năng
+              {t("home_cat_desc", "Chọn lĩnh vực bạn muốn chinh phục và bắt đầu hành trình phát triển kỹ năng")}
             </p>
           </motion.div>
 
@@ -674,7 +678,7 @@ export default function Home() {
 
                       <div className="pt-3 border-t border-slate-200 dark:border-slate-700 w-full">
                         <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                          {category.courseCount || category.courses?.length || 0}+ khóa học
+                          {category.courseCount || category.courses?.length || 0}+ {t("home_cat_courses", "khóa học")}
                         </p>
                       </div>
                     </Link>
@@ -684,7 +688,7 @@ export default function Home() {
             ) : (
               <div className="col-span-full text-center py-12">
                 <Globe size={64} className="mx-auto text-slate-300 dark:text-slate-700 mb-4" />
-                <p className="text-slate-600 dark:text-slate-400 text-lg">Đang tải danh mục...</p>
+                <p className="text-slate-600 dark:text-slate-400 text-lg">{t("home_loading_categories", "Đang tải danh mục...")}</p>
               </div>
             )}
           </motion.div>
@@ -750,13 +754,13 @@ export default function Home() {
           >
             <div className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full mb-6 font-semibold">
               <MessageSquare size={18} />
-              <span>Câu Chuyện Thành Công</span>
+              <span>{t("home_test_badge", "Câu Chuyện Thành Công")}</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
-              Học Viên Nói Gì Về Chúng Tôi
+              {t("home_test_title", "Học Viên Nói Gì Về Chúng Tôi")}
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Hàng ngàn học viên đã thay đổi cuộc đời và sự nghiệp nhờ ICS Learning
+              {t("home_test_desc", "Hàng ngàn học viên đã thay đổi cuộc đời và sự nghiệp nhờ ICS Learning")}
             </p>
           </motion.div>
 
@@ -812,10 +816,10 @@ export default function Home() {
             className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8"
           >
             {[
-              { number: "4.9/5", label: "Đánh giá trung bình", icon: Star },
-              { number: "15,000+", label: "Học viên hài lòng", icon: Users },
-              { number: "95%", label: "Tỷ lệ hoàn thành", icon: CheckCircle },
-              { number: "85%", label: "Có việc làm sau 6 tháng", icon: Trophy }
+              { number: "4.9/5", label: t("home_metric_rating", "Đánh giá trung bình"), icon: Star },
+              { number: "15,000+", label: t("home_metric_students", "Học viên hài lòng"), icon: Users },
+              { number: "95%", label: t("home_metric_completion", "Tỷ lệ hoàn thành"), icon: CheckCircle },
+              { number: "85%", label: t("home_metric_employment", "Có việc làm sau 6 tháng"), icon: Trophy }
             ].map((metric, idx) => (
               <motion.div
                 key={idx}
@@ -884,17 +888,17 @@ export default function Home() {
               }}
             >
               <Sparkles size={18} />
-              <span>Bắt Đầu Ngay Hôm Nay</span>
+              <span>{t("home_final_badge", "Bắt Đầu Ngay Hôm Nay")}</span>
             </motion.div>
 
             {/* Headline */}
             <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight">
-              Sẵn Sàng Thay Đổi Cuộc Đời<br />
-              Qua Học Tập?
+              {t("home_final_title1", "Sẵn Sàng Thay Đổi Cuộc Đời")}<br />
+              {t("home_final_title2", "Qua Học Tập?")}
             </h2>
 
             <p className="text-base sm:text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed font-medium">
-              Tham gia cùng <span className="font-black">15,000+ học viên</span> đang chinh phục mục tiêu sự nghiệp của họ mỗi ngày
+              {t("home_final_desc_pre", "Tham gia cùng")} <span className="font-black">{t("home_final_desc_count", "15,000+ học viên")}</span> {t("home_final_desc_post", "đang chinh phục mục tiêu sự nghiệp của họ mỗi ngày")}
             </p>
 
             {/* CTAs */}
@@ -904,7 +908,7 @@ export default function Home() {
                 className="group inline-flex items-center justify-center gap-3 bg-white hover:bg-slate-100 dark:bg-white dark:hover:bg-slate-100 text-blue-700 px-6 sm:px-10 py-3.5 sm:py-5 rounded-2xl font-black text-base sm:text-lg shadow-2xl hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)] transition-all transform hover:scale-105"
               >
                 <Rocket size={24} />
-                Đăng Ký Miễn Phí Ngay
+                {t("home_final_signup", "Đăng Ký Miễn Phí Ngay")}
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
@@ -912,7 +916,7 @@ export default function Home() {
                 className="group inline-flex items-center justify-center gap-3 bg-white/10 backdrop-blur-md hover:bg-white/20 border-2 border-white/50 text-white px-6 sm:px-10 py-3.5 sm:py-5 rounded-2xl font-bold text-base sm:text-lg transition-all"
               >
                 <BookOpen size={24} />
-                Xem Khóa Học
+                {t("home_final_courses", "Xem Khóa Học")}
               </Link>
             </div>
 
@@ -926,15 +930,15 @@ export default function Home() {
             >
               <div className="flex items-center gap-2">
                 <CheckCircle size={20} className="text-green-300" />
-                <span className="font-semibold">Không cần thẻ tín dụng</span>
+                <span className="font-semibold">{t("home_trust_no_card", "Không cần thẻ tín dụng")}</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle size={20} className="text-green-300" />
-                <span className="font-semibold">Hủy bất kỳ lúc nào</span>
+                <span className="font-semibold">{t("home_trust_cancel", "Hủy bất kỳ lúc nào")}</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle size={20} className="text-green-300" />
-                <span className="font-semibold">Hoàn tiền trong 30 ngày</span>
+                <span className="font-semibold">{t("home_trust_refund", "Hoàn tiền trong 30 ngày")}</span>
               </div>
             </motion.div>
           </motion.div>

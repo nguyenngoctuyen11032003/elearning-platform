@@ -8,6 +8,7 @@ import { formatPrice } from "@/lib/format"
 import { authFetch } from "@/lib/authfetch"
 import { createPortal } from "react-dom"
 import React from "react"
+import { useLanguage } from "@/lib/i18n/language-context"
 interface Course {
   id: string
   title: string
@@ -107,6 +108,7 @@ const InfoItem = ({ icon, label, value }: any) => (
 )
 export default function TeacherCoursesPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [courses, setCourses] = useState<Course[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -147,7 +149,7 @@ export default function TeacherCoursesPage() {
       createdAt: course.createdAt || "",
       thumbnail: course.thumbnail || "/placeholder.jpg",
       lessons: course.lessons?.length || 0,
-      duration: durationHours > 0 ? `${durationHours} giờ` : "—",
+      duration: durationHours > 0 ? `${durationHours} ${t("tc_hours", "giờ")}` : "—",
       category: course.category?.name || "—",
       rejectionReason: course.rejectionReason || null,
     }
@@ -337,26 +339,26 @@ useEffect(() => {
       case "approved":
         return (
           <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-            <CheckCircle size={14} /> Đã duyệt
+            <CheckCircle size={14} /> {t("tc_status_approved", "Đã duyệt")}
           </span>
         )
       case "pending":
         return (
           <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
-            <Clock size={14} /> Chờ duyệt
+            <Clock size={14} /> {t("tc_status_pending", "Chờ duyệt")}
           </span>
         )
       case "rejected":
         return (
           <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-            <XCircle size={14} /> Bị từ chối
+            <XCircle size={14} /> {t("tc_status_rejected", "Bị từ chối")}
           </span>
         )
       case "draft":
       default:
         return (
           <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400">
-            <Edit2 size={14} /> Nháp
+            <Edit2 size={14} /> {t("tc_status_draft", "Nháp")}
           </span>
         )
     }
@@ -382,14 +384,14 @@ useEffect(() => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Khóa học của tôi</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Quản lý và tạo khóa học mới</p>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("tc_my_courses", "Khóa học của tôi")}</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("tc_manage_courses", "Quản lý và tạo khóa học mới")}</p>
               </div>
               <Link
                 href="/teacher/courses/create"
                 className="flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
               >
-                <Plus size={20} /> Tạo khóa học mới
+                <Plus size={20} /> {t("tc_create_course", "Tạo khóa học mới")}
               </Link>
             </div>
 
@@ -398,7 +400,7 @@ useEffect(() => {
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tc_stat_total", "Tổng")}</p>
                     <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalCourses}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -409,7 +411,7 @@ useEffect(() => {
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Nháp</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tc_stat_draft", "Nháp")}</p>
                     <p className="text-2xl font-bold text-slate-600 dark:text-slate-400 mt-1">{draftCourses}</p>
                   </div>
                   <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -420,7 +422,7 @@ useEffect(() => {
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Chờ duyệt</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tc_stat_pending", "Chờ duyệt")}</p>
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingCourses}</p>
                   </div>
                   <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -431,7 +433,7 @@ useEffect(() => {
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Đã duyệt</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tc_stat_approved", "Đã duyệt")}</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{approvedCourses}</p>
                   </div>
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -442,7 +444,7 @@ useEffect(() => {
               <div className="animate-slideUp" style={{ animationDelay: "0.65s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Từ chối</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tc_stat_rejected", "Từ chối")}</p>
                     <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{rejectedCourses}</p>
                   </div>
                   <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -460,7 +462,7 @@ useEffect(() => {
             <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
             <input
               type="text"
-              placeholder="Tìm kiếm khóa học..."
+              placeholder={t("tc_search_placeholder", "Tìm kiếm khóa học...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
@@ -468,11 +470,11 @@ useEffect(() => {
           </div>
           <div className="flex gap-2 flex-wrap">
             {[
-              { value: "all", label: "Tất cả" },
-              { value: "draft", label: "Nháp" },
-              { value: "pending", label: "Chờ duyệt" },
-              { value: "approved", label: "Đã duyệt" },
-              { value: "rejected", label: "Từ chối" },
+              { value: "all", label: t("tc_filter_all", "Tất cả") },
+              { value: "draft", label: t("tc_filter_draft", "Nháp") },
+              { value: "pending", label: t("tc_filter_pending", "Chờ duyệt") },
+              { value: "approved", label: t("tc_filter_approved", "Đã duyệt") },
+              { value: "rejected", label: t("tc_filter_rejected", "Từ chối") },
             ].map((option) => (
               <button
                 key={option.value}
@@ -494,12 +496,12 @@ useEffect(() => {
         <div className="block xl:hidden">
           {isLoading ? (
             <div className="py-8 text-center text-muted-foreground dark:text-slate-400">
-              Đang tải khóa học...
+              {t("tc_loading_courses", "Đang tải khóa học...")}
             </div>
           ) : filteredCourses.length === 0 ? (
             <div className="py-12 text-center">
               <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy khóa học nào</p>
+              <p className="text-muted-foreground dark:text-slate-400">{t("tc_no_courses_found", "Không tìm thấy khóa học nào")}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-6">
@@ -517,7 +519,7 @@ useEffect(() => {
                     />
                     <div className="flex-1">
                       <div className="font-semibold text-foreground dark:text-white text-base">{course.title}</div>
-                      <div className="text-xs text-muted-foreground dark:text-slate-400">{course.lessons} bài học • {course.duration}</div>
+                      <div className="text-xs text-muted-foreground dark:text-slate-400">{course.lessons} {t("tc_lessons", "bài học")} • {course.duration}</div>
                     </div>
                     <button
                       ref={(() => {
@@ -543,23 +545,23 @@ useEffect(() => {
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">Danh mục:</span>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_category_label", "Danh mục:")}</span>
                     <span className="text-sm text-foreground dark:text-white">{course.category}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">Học viên:</span>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_students_label", "Học viên:")}</span>
                     <span className="text-sm text-foreground dark:text-white">{course.students}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">Đánh giá:</span>
-                    <span className="text-sm text-yellow-500">{course.rating > 0 ? `${course.rating}★` : "Chưa có"}</span>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_rating_label", "Đánh giá:")}</span>
+                    <span className="text-sm text-yellow-500">{course.rating > 0 ? `${course.rating}★` : t("tc_no_rating", "Chưa có")}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">Giá:</span>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_price_label", "Giá:")}</span>
                     <span className="text-sm text-foreground dark:text-white">₫{formatPrice(course.price)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">Trạng thái:</span>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_status_label", "Trạng thái:")}</span>
                     {getStatusBadge(course.status)}
                   </div>
                   {/* INLINE DETAIL – NEO THEO CARD */}
@@ -598,22 +600,22 @@ useEffect(() => {
 
     {/* Stats */}
     <div className="grid grid-cols-2 gap-2 mb-3">
-      <InfoItem icon={<Users size={14} />} label="Học viên" value={course.students} />
-      <InfoItem icon={<BookOpen size={14} />} label="Bài học" value={course.lessons} />
-      <InfoItem icon={<Clock size={14} />} label="Thời lượng" value={course.duration} />
+      <InfoItem icon={<Users size={14} />} label={t("tc_info_students", "Học viên")} value={course.students} />
+      <InfoItem icon={<BookOpen size={14} />} label={t("tc_info_lessons", "Bài học")} value={course.lessons} />
+      <InfoItem icon={<Clock size={14} />} label={t("tc_info_duration", "Thời lượng")} value={course.duration} />
       <InfoItem
         icon={<DollarSign size={14} />}
-        label="Giá"
+        label={t("tc_info_price", "Giá")}
         value={`₫${formatPrice(course.price)}`}
       />
     </div>
 
     <div className="border-t border-border pt-3 mb-3">
-      <p className="text-xs font-semibold text-foreground">Nội dung khóa học</p>
+      <p className="text-xs font-semibold text-foreground">{t("tc_course_content", "Nội dung khóa học")}</p>
       {isLessonsLoading ? (
-        <p className="text-xs text-muted-foreground mt-2">Đang tải bài học...</p>
+        <p className="text-xs text-muted-foreground mt-2">{t("tc_loading_lessons", "Đang tải bài học...")}</p>
       ) : selectedCourseLessons.length === 0 ? (
-        <p className="text-xs text-muted-foreground mt-2">Chưa có bài học nào</p>
+        <p className="text-xs text-muted-foreground mt-2">{t("tc_no_lessons", "Chưa có bài học nào")}</p>
       ) : (
         <div className="mt-2 space-y-2">
           {selectedCourseLessons.map((lesson, idx) => (
@@ -640,12 +642,12 @@ useEffect(() => {
                     download={lesson.documentName || true}
                     className="inline-flex items-center gap-1 rounded-md bg-red-500/10 px-2 py-1 text-[11px] text-red-600"
                   >
-                    <FileText size={12} /> {lesson.documentName || "Tài liệu"}
+                    <FileText size={12} /> {lesson.documentName || t("tc_document", "Tài liệu")}
                   </a>
                 )}
                 {lesson.quizQuestions && lesson.quizQuestions.length > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600">
-                     {lesson.quizQuestions.length} câu hỏi
+                     {lesson.quizQuestions.length} {t("tc_questions", "câu hỏi")}
                   </span>
                 )}
               </div>
@@ -654,14 +656,14 @@ useEffect(() => {
                   {lesson.quizQuestions.map((quiz, qIdx) => (
                     <div key={`${lesson.id}-quiz-${qIdx}`}>
                       <p className="text-[11px] font-semibold text-foreground">
-                        {qIdx + 1}. {quiz.question || "(Chưa có nội dung)"}
+                        {qIdx + 1}. {quiz.question || t("tc_no_content", "(Chưa có nội dung)")}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
                         {quiz.type === "true-false"
-                          ? "Đúng/Sai"
+                          ? t("tc_true_false", "Đúng/Sai")
                           : quiz.type === "multiple-select"
-                          ? "Nhiều đáp án"
-                          : "1 đáp án"}
+                          ? t("tc_multiple_answers", "Nhiều đáp án")
+                          : t("tc_single_answer", "1 đáp án")}
                       </p>
                       {quiz.options && quiz.options.length > 0 && (
                         <div className="mt-1 grid gap-1 text-[11px]">
@@ -700,7 +702,7 @@ useEffect(() => {
         onClick={() => handleEdit(course.id)}
         className="flex-1 py-2 rounded-lg bg-background border text-sm"
       >
-        Chỉnh sửa
+        {t("tc_edit", "Chỉnh sửa")}
       </button>
 
       {(course.status === "draft" || course.status === "rejected") && (
@@ -709,8 +711,8 @@ useEffect(() => {
           className="flex-1 py-2 rounded-lg bg-primary text-white text-sm"
         >
           {course.status === "rejected"
-            ? "Gửi duyệt lại"
-            : "Gửi duyệt"}
+            ? t("tc_resubmit", "Gửi duyệt lại")
+            : t("tc_submit", "Gửi duyệt")}
         </button>
       )}
     </div>
@@ -728,22 +730,22 @@ useEffect(() => {
                         <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                           <Trash2 size={32} className="text-red-600 dark:text-red-400" />
                         </div>
-                        <h2 className="text-xl font-bold text-foreground dark:text-white mb-2 text-center">Xóa khóa học?</h2>
+                        <h2 className="text-xl font-bold text-foreground dark:text-white mb-2 text-center">{t("tc_delete_title", "Xóa khóa học?")}</h2>
                         <p className="text-muted-foreground dark:text-slate-400 mb-6 text-center">
-                          Bạn có chắc chắn muốn xóa khóa học "<strong>{selectedCourse.title}</strong>"? Hành động này không thể hoàn tác.
+                          {t("tc_delete_confirm", "Bạn có chắc chắn muốn xóa khóa học")} "<strong>{selectedCourse.title}</strong>"? {t("tc_delete_warning", "Hành động này không thể hoàn tác.")}
                         </p>
                         <div className="flex gap-3">
                           <button
                             onClick={() => { setViewMode(null); setSelectedCourse(null); }}
                             className="flex-1 py-3 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
                           >
-                            Hủy
+                            {t("tc_cancel", "Hủy")}
                           </button>
                           <button
                             onClick={handleDeleteConfirm}
                             className="flex-1 py-3 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white"
                           >
-                            Xóa khóa học
+                            {t("tc_delete_course", "Xóa khóa học")}
                           </button>
                         </div>
                       </div>
@@ -760,20 +762,20 @@ useEffect(() => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Khóa học</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Danh mục</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Học viên</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Đánh giá</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Giá</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Trạng thái</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Hành động</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_course", "Khóa học")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_category", "Danh mục")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_students", "Học viên")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_rating", "Đánh giá")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_price", "Giá")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_status", "Trạng thái")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_actions", "Hành động")}</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-muted-foreground dark:text-slate-400">
-                      Đang tải khóa học...
+                      {t("tc_loading_courses", "Đang tải khóa học...")}
                     </td>
                   </tr>
                 ) : (
@@ -793,7 +795,7 @@ useEffect(() => {
                         />
                         <div>
                           <p className="font-medium text-foreground dark:text-white line-clamp-1">{course.title}</p>
-                          <p className="text-xs text-muted-foreground dark:text-slate-400">{course.lessons} bài học • {course.duration}</p>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">{course.lessons} {t("tc_lessons", "bài học")} • {course.duration}</p>
                         </div>
                       </div>
                     </td>
@@ -810,7 +812,7 @@ useEffect(() => {
                           <span className="text-yellow-500">★</span>
                         </span>
                       ) : (
-                        <span className="text-muted-foreground dark:text-slate-400">Chưa có</span>
+                        <span className="text-muted-foreground dark:text-slate-400">{t("tc_no_rating", "Chưa có")}</span>
                       )}
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white font-medium">₫{formatPrice(course.price)}</td>
@@ -838,7 +840,7 @@ useEffect(() => {
                               }}
                               className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
                             >
-                              <Eye size={16} /> Xem chi tiết
+                              <Eye size={16} /> {t("tc_view_details", "Xem chi tiết")}
                             </button>
                             <button
                               onClick={(e) => {
@@ -847,7 +849,7 @@ useEffect(() => {
                               }}
                               className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
                             >
-                              <Edit2 size={16} /> Chỉnh sửa
+                              <Edit2 size={16} /> {t("tc_edit", "Chỉnh sửa")}
                             </button>
                             {course.status === "draft" && (
                               <button
@@ -857,7 +859,7 @@ useEffect(() => {
                                 }}
                                 className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-primary dark:text-accent"
                               >
-                                <Send size={16} /> Gửi duyệt
+                                <Send size={16} /> {t("tc_submit", "Gửi duyệt")}
                               </button>
                             )}
                             {course.status === "rejected" && (
@@ -868,7 +870,7 @@ useEffect(() => {
                                 }}
                                 className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-primary dark:text-accent"
                               >
-                                <Send size={16} /> Gửi duyệt lại
+                                <Send size={16} /> {t("tc_resubmit", "Gửi duyệt lại")}
                               </button>
                             )}
                             <button
@@ -878,7 +880,7 @@ useEffect(() => {
                               }}
                               className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg"
                             >
-                              <Trash2 size={16} /> Xóa khóa học
+                              <Trash2 size={16} /> {t("tc_delete_course", "Xóa khóa học")}
                             </button>
                           </div>
                         )}
@@ -893,7 +895,7 @@ useEffect(() => {
           {!isLoading && filteredCourses.length === 0 && (
             <div className="py-12 text-center">
               <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy khóa học nào</p>
+              <p className="text-muted-foreground dark:text-slate-400">{t("tc_no_courses_found", "Không tìm thấy khóa học nào")}</p>
             </div>
           )}
         </div>
@@ -905,7 +907,7 @@ useEffect(() => {
         <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4 p-4 border-b border-border dark:border-slate-800">
-              <h2 className="text-xl font-bold text-foreground dark:text-white">Chi tiết khóa học</h2>
+              <h2 className="text-xl font-bold text-foreground dark:text-white">{t("tc_course_details", "Chi tiết khóa học")}</h2>
               <button
                 onClick={() => { setViewMode(null); setSelectedCourse(null); }}
                 className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
@@ -930,7 +932,7 @@ useEffect(() => {
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4">
                   <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-2">
                     <AlertCircle size={18} />
-                    <span className="font-semibold">Lý do từ chối từ Admin</span>
+                    <span className="font-semibold">{t("tc_rejection_reason", "Lý do từ chối từ Admin")}</span>
                   </div>
                   <p className="text-red-600 dark:text-red-300 text-sm">{selectedCourse.rejectionReason}</p>
                 </div>
@@ -939,41 +941,41 @@ useEffect(() => {
                 <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4 text-center">
                   <Users size={24} className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
                   <p className="text-2xl font-bold text-foreground dark:text-white">{selectedCourse.students}</p>
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">Học viên</p>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400">{t("tc_info_students", "Học viên")}</p>
                 </div>
                 <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4 text-center">
                   <BookOpen size={24} className="mx-auto mb-2 text-green-600 dark:text-green-400" />
                   <p className="text-2xl font-bold text-foreground dark:text-white">{selectedCourse.lessons}</p>
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">Bài học</p>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400">{t("tc_info_lessons", "Bài học")}</p>
                 </div>
                 <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4 text-center">
                   <Clock size={24} className="mx-auto mb-2 text-purple-600 dark:text-purple-400" />
                   <p className="text-2xl font-bold text-foreground dark:text-white">{selectedCourse.duration}</p>
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">Thời lượng</p>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400">{t("tc_info_duration", "Thời lượng")}</p>
                 </div>
                 <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4 text-center">
                   <DollarSign size={24} className="mx-auto mb-2 text-yellow-600 dark:text-yellow-400" />
                   <p className="text-2xl font-bold text-foreground dark:text-white">₫{formatPrice(selectedCourse.price)}</p>
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">Giá</p>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400">{t("tc_info_price", "Giá")}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Danh mục</p>
+                  <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">{t("tc_th_category", "Danh mục")}</p>
                   <p className="text-foreground dark:text-white font-medium">{selectedCourse.category}</p>
                 </div>
                 <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Ngày tạo</p>
+                  <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">{t("tc_created_date", "Ngày tạo")}</p>
                   <p className="text-foreground dark:text-white font-medium">{formatDate(selectedCourse.createdAt)}</p>
                 </div>
               </div>
 
               <div className="border-t border-border dark:border-slate-800 pt-4 mb-4">
-                <h3 className="text-base font-semibold text-foreground dark:text-white">Nội dung khóa học</h3>
+                <h3 className="text-base font-semibold text-foreground dark:text-white">{t("tc_course_content", "Nội dung khóa học")}</h3>
                 {isLessonsLoading ? (
-                  <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">Đang tải bài học...</p>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">{t("tc_loading_lessons", "Đang tải bài học...")}</p>
                 ) : selectedCourseLessons.length === 0 ? (
-                  <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">Chưa có bài học nào</p>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">{t("tc_no_lessons", "Chưa có bài học nào")}</p>
                 ) : (
                   <div className="mt-3 space-y-3">
                     {selectedCourseLessons.map((lesson, idx) => (
@@ -1000,7 +1002,7 @@ useEffect(() => {
                               download={lesson.documentName || true}
                               className="inline-flex items-center gap-1 rounded-md bg-red-500/10 dark:bg-red-500/20 px-2 py-1 text-xs text-red-600 dark:text-red-400"
                             >
-                              <FileText size={14} /> {lesson.documentName || "Tài liệu"}
+                              <FileText size={14} /> {lesson.documentName || t("tc_document", "Tài liệu")}
                             </a>
                           )}
                         </div>
@@ -1014,7 +1016,7 @@ useEffect(() => {
                   onClick={() => handleEdit(selectedCourse.id)}
                   className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-secondary dark:bg-slate-800 text-foreground dark:text-white hover:bg-secondary/80"
                 >
-                  <Edit2 size={18} /> Chỉnh sửa
+                  <Edit2 size={18} /> {t("tc_edit", "Chỉnh sửa")}
                 </button>
                 {(selectedCourse.status === "draft" || selectedCourse.status === "rejected") && (
                   <button
@@ -1025,7 +1027,7 @@ useEffect(() => {
                     }}
                     className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-white hover:shadow-lg"
                   >
-                    <Send size={18} /> {selectedCourse.status === "rejected" ? "Gửi duyệt lại" : "Gửi duyệt"}
+                    <Send size={18} /> {selectedCourse.status === "rejected" ? t("tc_resubmit", "Gửi duyệt lại") : t("tc_submit", "Gửi duyệt")}
                   </button>
                 )}
               </div>
@@ -1044,22 +1046,22 @@ useEffect(() => {
               <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Trash2 size={32} className="text-red-600 dark:text-red-400" />
               </div>
-              <h2 className="text-xl font-bold text-foreground dark:text-white mb-2">Xóa khóa học?</h2>
+              <h2 className="text-xl font-bold text-foreground dark:text-white mb-2">{t("tc_delete_title", "Xóa khóa học?")}</h2>
               <p className="text-muted-foreground dark:text-slate-400 mb-6">
-                Bạn có chắc chắn muốn xóa khóa học "<strong>{selectedCourse.title}</strong>"? Hành động này không thể hoàn tác.
+                {t("tc_delete_confirm", "Bạn có chắc chắn muốn xóa khóa học")} "<strong>{selectedCourse.title}</strong>"? {t("tc_delete_warning", "Hành động này không thể hoàn tác.")}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => { setViewMode(null); setSelectedCourse(null); }}
                   className="flex-1 py-3 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
                 >
-                  Hủy
+                  {t("tc_cancel", "Hủy")}
                 </button>
                 <button
                   onClick={handleDeleteConfirm}
                   className="flex-1 py-3 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white"
                 >
-                  Xóa khóa học
+                  {t("tc_delete_course", "Xóa khóa học")}
                 </button>
               </div>
             </div>
@@ -1095,7 +1097,7 @@ useEffect(() => {
             }}
             className="w-full px-4 py-4 flex items-center gap-3 hover:bg-secondary"
           >
-            <Eye size={18} /> Xem chi tiết
+            <Eye size={18} /> {t("tc_view_details", "Xem chi tiết")}
           </button>
           <button
             onClick={() => {
@@ -1104,7 +1106,7 @@ useEffect(() => {
             }}
             className="w-full px-4 py-4 flex items-center gap-3 hover:bg-secondary"
           >
-            <Edit2 size={18} /> Chỉnh sửa
+            <Edit2 size={18} /> {t("tc_edit", "Chỉnh sửa")}
           </button>
           {(menuCourse.status === "draft" || menuCourse.status === "rejected") && (
             <button
@@ -1114,7 +1116,7 @@ useEffect(() => {
               }}
               className="w-full px-4 py-4 flex items-center gap-3 text-primary hover:bg-secondary"
             >
-              <Send size={18} /> {menuCourse.status === "rejected" ? "Gửi duyệt lại" : "Gửi duyệt"}
+              <Send size={18} /> {menuCourse.status === "rejected" ? t("tc_resubmit", "Gửi duyệt lại") : t("tc_submit", "Gửi duyệt")}
             </button>
           )}
           <button
@@ -1124,7 +1126,7 @@ useEffect(() => {
             }}
             className="w-full px-4 py-4 flex items-center gap-3 text-red-600 hover:bg-red-50"
           >
-            <Trash2 size={18} /> Xóa khóa học
+            <Trash2 size={18} /> {t("tc_delete_course", "Xóa khóa học")}
           </button>
         </div>
       </>,

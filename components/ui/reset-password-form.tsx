@@ -5,10 +5,12 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { Lock, Eye, EyeOff, CheckCircle, Mail, AlertTriangle } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { t } = useLanguage()
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -20,7 +22,7 @@ function ResetPasswordContent() {
 
   useEffect(() => {
     if (!token) {
-      toast.error("Liên kết không hợp lệ hoặc đã hết hạn")
+      toast.error(t("reset_invalid_link", "Liên kết không hợp lệ hoặc đã hết hạn"))
       // Don't redirect immediately, let user see the error
       setTimeout(() => {
         router.push("/forgot-password")
@@ -32,22 +34,22 @@ function ResetPasswordContent() {
     e.preventDefault()
     
     if (!password || !confirmPassword) {
-      toast.error("Vui lòng nhập đầy đủ thông tin")
+      toast.error(t("reset_fill_all", "Vui lòng nhập đầy đủ thông tin"))
       return
     }
 
     if (password.length < 6) {
-      toast.error("Mật khẩu phải có ít nhất 6 ký tự")
+      toast.error(t("auth_password_min", "Mật khẩu phải có ít nhất 6 ký tự"))
       return
     }
 
     if (password !== confirmPassword) {
-      toast.error("Mật khẩu xác nhận không khớp")
+      toast.error(t("reset_password_mismatch", "Mật khẩu xác nhận không khớp"))
       return
     }
 
     if (!token) {
-      toast.error("Token không hợp lệ")
+      toast.error(t("reset_token_invalid", "Token không hợp lệ"))
       return
     }
 
@@ -55,14 +57,14 @@ function ResetPasswordContent() {
       setLoading(true)
       await apiClient.resetPassword({ token, password })
       setSuccess(true)
-      toast.success("Đặt lại mật khẩu thành công!")
+      toast.success(t("reset_success", "Đặt lại mật khẩu thành công!"))
       
       // Redirect to login after 3 seconds
       setTimeout(() => {
         router.push("/login")
       }, 3000)
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Đặt lại mật khẩu thất bại"
+      const message = error instanceof Error ? error.message : t("reset_failed", "Đặt lại mật khẩu thất bại")
       toast.error(message)
     } finally {
       setLoading(false)
@@ -77,13 +79,13 @@ function ResetPasswordContent() {
         </div>
         <div>
           <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">
-            Liên kết không hợp lệ
+            {t("reset_link_invalid_title", "Liên kết không hợp lệ")}
           </h3>
           <p className="text-sm text-muted-foreground dark:text-slate-400">
-            Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.
+            {t("reset_link_invalid_desc", "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.")}
           </p>
           <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">
-            Bạn sẽ được chuyển hướng đến trang quên mật khẩu...
+            {t("reset_redirecting_forgot", "Bạn sẽ được chuyển hướng đến trang quên mật khẩu...")}
           </p>
         </div>
       </div>
@@ -98,13 +100,13 @@ function ResetPasswordContent() {
         </div>
         <div>
           <h3 className="text-lg font-semibold text-foreground dark:text-white mb-2">
-            Đặt lại mật khẩu thành công!
+            {t("reset_success_title", "Đặt lại mật khẩu thành công!")}
           </h3>
           <p className="text-sm text-muted-foreground dark:text-slate-400">
-            Mật khẩu của bạn đã được cập nhật thành công.
+            {t("reset_success_desc", "Mật khẩu của bạn đã được cập nhật thành công.")}
           </p>
           <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">
-            Đang chuyển hướng đến trang đăng nhập...
+            {t("reset_redirecting_login", "Đang chuyển hướng đến trang đăng nhập...")}
           </p>
         </div>
       </div>
@@ -115,7 +117,7 @@ function ResetPasswordContent() {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-          Mật khẩu mới
+          {t("reset_new_password", "Mật khẩu mới")}
         </label>
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground dark:text-slate-400" size={20} />
@@ -124,7 +126,7 @@ function ResetPasswordContent() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full pl-11 pr-12 py-3 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth text-foreground dark:text-white"
-            placeholder="Nhập mật khẩu mới"
+            placeholder={t("reset_new_password_placeholder", "Nhập mật khẩu mới")}
             required
             minLength={6}
             disabled={loading}
@@ -141,7 +143,7 @@ function ResetPasswordContent() {
 
       <div>
         <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-          Xác nhận mật khẩu
+          {t("auth_confirm_password", "Xác nhận mật khẩu")}
         </label>
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground dark:text-slate-400" size={20} />
@@ -150,7 +152,7 @@ function ResetPasswordContent() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="w-full pl-11 pr-12 py-3 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth text-foreground dark:text-white"
-            placeholder="Nhập lại mật khẩu mới"
+            placeholder={t("reset_confirm_placeholder", "Nhập lại mật khẩu mới")}
             required
             minLength={6}
             disabled={loading}
@@ -173,26 +175,30 @@ function ResetPasswordContent() {
         {loading ? (
           <>
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            Đang xử lý...
+            {t("auth_processing", "Đang xử lý...")}
           </>
         ) : (
-          "Đặt lại mật khẩu"
+          t("reset_submit", "Đặt lại mật khẩu")
         )}
       </button>
 
       <div className="text-xs text-muted-foreground dark:text-slate-400 text-center">
-        <p>Mật khẩu phải có ít nhất 6 ký tự</p>
+        <p>{t("auth_password_min", "Mật khẩu phải có ít nhất 6 ký tự")}</p>
       </div>
     </form>
   )
 }
 
 export function ResetPasswordForm() {
+  function t(arg0: string, arg1: string): import("react").ReactNode {
+    throw new Error("Function not implemented.")
+  }
+
   return (
     <Suspense fallback={
       <div className="text-center">
         <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-muted-foreground dark:text-slate-400">Đang tải...</p>
+        <p className="text-muted-foreground dark:text-slate-400">{t("common_loading", "Đang tải...")}</p>
       </div>
     }>
       <ResetPasswordContent />

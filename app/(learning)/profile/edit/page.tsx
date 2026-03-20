@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { Save, ArrowLeft, Mail, Phone, User } from "lucide-react"
@@ -8,9 +8,11 @@ import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { getRoleAvatar, getRoleDisplayName, getInitials } from "@/lib/utils/avatar"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function EditProfilePage() {
   const { user, loading } = useAuth()
+  const { t } = useLanguage()
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
@@ -47,11 +49,11 @@ export default function EditProfilePage() {
         phone: formData.phone || undefined,
       })
 
-      toast.success("Cập nhật hồ sơ thành công!")
+      toast.success(t("profile_edit_success", "Cập nhật hồ sơ thành công!"))
       router.push("/profile")
     } catch (error) {
       console.error("Error updating profile:", error)
-      toast.error("Có lỗi xảy ra khi cập nhật hồ sơ")
+      toast.error(t("profile_edit_error", "Có lỗi xảy ra khi cập nhật hồ sơ"))
     } finally {
       setSaving(false)
     }
@@ -74,7 +76,7 @@ export default function EditProfilePage() {
         <h1 className="text-3xl font-bold text-foreground dark:text-white">
           Không tìm thấy thông tin người dùng
         </h1>
-        <p className="text-muted-foreground">Vui lòng đăng nhập lại</p>
+        <p className="text-muted-foreground">{t("profile_login_again", "Vui lòng đăng nhập lại")}</p>
       </div>
     )
   }
@@ -117,14 +119,14 @@ export default function EditProfilePage() {
               />
             </div>
             <p className="text-sm text-muted-foreground">
-              Avatar mặc định theo vai trò: {getRoleDisplayName(user.role)}
+              {t("profile_edit_avatar_note", "Avatar mặc định theo vai trò")}: {getRoleDisplayName(user.role)}
             </p>
           </div>
 
           {/* Name Field */}
           <div>
             <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-              <User size={16} /> Họ và tên
+              <User size={16} /> {t("profile_edit_name", "Họ và tên")}
             </label>
             <input
               type="text"
@@ -133,14 +135,14 @@ export default function EditProfilePage() {
               onChange={handleChange}
               required
               className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-              placeholder="Nhập họ và tên của bạn"
+              placeholder={t("profile_edit_name_ph", "Nhập họ và tên của bạn")}
             />
           </div>
 
           {/* Email Field (Read-only) */}
           <div>
             <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-              <Mail size={16} /> Email
+              <Mail size={16} /> {t("profile_edit_email", "Email")}
             </label>
             <input
               type="email"
@@ -150,14 +152,14 @@ export default function EditProfilePage() {
               className="w-full bg-muted dark:bg-slate-800 text-muted-foreground cursor-not-allowed rounded-lg px-4 py-2 border border-border dark:border-slate-800"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Email không thể thay đổi vì lý do bảo mật
+              {t("profile_edit_email_note", "Email không thể thay đổi vì lý do bảo mật")}
             </p>
           </div>
 
           {/* Phone Field */}
           <div>
             <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-              <Phone size={16} /> Số điện thoại
+              <Phone size={16} /> {t("profile_edit_phone", "Số điện thoại")}
             </label>
             <input
               type="tel"
@@ -165,21 +167,21 @@ export default function EditProfilePage() {
               value={formData.phone}
               onChange={handleChange}
               className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-              placeholder="Nhập số điện thoại (tùy chọn)"
+              placeholder={t("profile_edit_phone_ph", "Nhập số điện thoại (tùy chọn)")}
             />
           </div>
 
           {/* Role Display */}
           <div>
-            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Vai trò</label>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("profile_edit_role", "Vai trò")}</label>
             <div className="px-4 py-2 bg-muted dark:bg-slate-800 rounded-lg">
               <span className="text-foreground dark:text-white font-medium">
-                {user.role === 'student' ? 'Học viên' : 
-                 user.role === 'teacher' ? 'Giảng viên' : 'Quản trị viên'}
+                {user.role === 'student' ? t('profile_role_student', 'Học viên') : 
+                 user.role === 'teacher' ? t('profile_role_teacher', 'Giảng viên') : t('profile_role_admin', 'Quản trị viên')}
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Vai trò không thể thay đổi. Liên hệ admin nếu cần hỗ trợ.
+              {t("profile_edit_role_note", "Vai trò không thể thay đổi. Liên hệ admin nếu cần hỗ trợ.")}
             </p>
           </div>
 
@@ -196,7 +198,7 @@ export default function EditProfilePage() {
               className="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Save size={20} />
-              {saving ? "Đang lưu..." : "Lưu thay đổi"}
+              {saving ? t("common_saving", "Đang lưu...") : t("profile_edit_save", "Lưu thay đổi")}
             </button>
           </div>
         </form>

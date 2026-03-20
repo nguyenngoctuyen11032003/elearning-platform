@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 import { SystemConfigProvider } from "@/lib/system-config/system-config-context"
 import { MaintenanceWatcher } from "@/lib/system-config/maintenance-watcher"
+import { LanguageProvider } from "@/lib/i18n/language-context"
 const roboto = Roboto({ 
   subsets: ["latin", "vietnamese"],
   weight: ["300", "400", "500", "700", "900"],
@@ -36,10 +37,12 @@ export default function RootLayout({
       <body className={`${roboto.variable} font-sans antialiased bg-background text-foreground transition-smooth`} style={{ fontFamily: 'var(--font-roboto), sans-serif' }}>
         <ThemeProvider>
           <AuthProvider>
-            <SystemConfigProvider>
-            <MaintenanceWatcher />
-            {children}
-            </SystemConfigProvider>
+            <LanguageProvider>
+              <SystemConfigProvider>
+              <MaintenanceWatcher />
+              {children}
+              </SystemConfigProvider>
+            </LanguageProvider>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>

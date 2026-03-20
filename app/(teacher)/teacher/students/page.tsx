@@ -19,6 +19,7 @@ import * as XLSX from "xlsx"
 import { toast } from "sonner"
 
 import { apiClient } from "@/lib/api/client"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface Student {
   id: string
@@ -45,14 +46,15 @@ const normalizeStatus = (status?: string): Student["status"] => {
   return "inactive"
 }
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString: string, locale: string) => {
   if (!dateString) return ""
   const d = new Date(dateString)
   if (Number.isNaN(d.getTime())) return ""
-  return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })
+  return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
 export default function TeacherStudentsPage() {
+  const { language, t } = useLanguage()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCourse, setFilterCourse] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
@@ -61,6 +63,15 @@ export default function TeacherStudentsPage() {
   const [viewMode, setViewMode] = useState<"view" | "remove" | null>(null)
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
+
+  const localeByLanguage: Record<string, string> = {
+    vi: "vi-VN",
+    en: "en-US",
+    ja: "ja-JP",
+    ko: "ko-KR",
+    "zh-CN": "zh-CN",
+  }
+  const activeLocale = localeByLanguage[language] || "vi-VN"
 
   useEffect(() => {
     const loadStudents = async () => {
@@ -71,7 +82,7 @@ export default function TeacherStudentsPage() {
         const mapped: Student[] = rows.map((s: any) => ({
           id: s.id,
           studentId: s.studentId || s.id,
-          name: s.name || "Không rõ",
+          name: s.name || t("teacher_students_unknown", "Không rõ"),
           email: s.email || "",
           phone: s.phone || "",
           avatar: s.avatar || "/placeholder-user.jpg",
@@ -88,7 +99,7 @@ export default function TeacherStudentsPage() {
         setStudents(mapped)
       } catch (error) {
         console.error("Failed to load students", error)
-        toast.error("Không thể tải danh sách học viên")
+        toast.error(t("teacher_students_load_failed", "Không thể tải danh sách học viên"))
         setStudents([])
       } finally {
         setLoading(false)
@@ -150,14 +161,26 @@ export default function TeacherStudentsPage() {
   const handleExport = () => {
     try {
       const statusLabel = (status: Student["status"]) => {
-        if (status === "completed") return "Hoàn thành"
-        if (status === "active") return "Đang học"
-        return "Không hoạt động"
+        if (status === "completed") return t("teacher_dashboard_completed", "Hoàn thành")
+        if (status === "active") return t("teacher_dashboard_learning", "Đang học")
+        return t("teacher_students_inactive", "Không hoạt động")
       }
 
-      const headers = ["Mã học viên", "Học viên", "Email", "Khóa học", "Tiến độ", "Điểm Quiz", "Ngày tham gia", "Trạng thái"]
-      const exportDate = new Date().toLocaleDateString("vi-VN")
-      const bannerLines = [["Báo cáo: Danh sách học viên"], [`Ngày xuất: ${exportDate}`]]
+      const headers = [
+        t("teacher_students_code", "Mã học viên"),
+        t("teacher_dashboard_students", "Học viên"),
+        t("footer_email", "Email"),
+        t("teacher_dashboard_courses", "Khóa học"),
+        t("teacher_students_progress", "Tiến độ"),
+        t("teacher_students_quiz_score", "Điểm Quiz"),
+        t("teacher_students_join_date", "Ngày tham gia"),
+        t("teacher_dashboard_status", "Trạng thái"),
+      ]
+      const exportDate = new Date().toLocaleDateString(activeLocale)
+      const bannerLines = [
+        [t("teacher_students_export_title", "Báo cáo: Danh sách học viên")],
+        [`${t("teacher_earnings_export_date", "Ngày xuất")}: ${exportDate}`],
+      ]
       const groups = new Map<string, Student[]>()
 
       filteredStudents.forEach((student) => {
@@ -181,7 +204,7 @@ export default function TeacherStudentsPage() {
             student.course,
             `${student.progress}%`,
             `${student.quizScore}%`,
-            formatDate(student.joinDate),
+            formatDate(student.joinDate, activeLocale),
             statusLabel(student.status),
           ])
         })
@@ -234,11 +257,11 @@ export default function TeacherStudentsPage() {
       })
 
       const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Hoc vien")
+      XLSX.utils.book_append_sheet(workbook, worksheet, t("teacher_dashboard_students", "Học viên"))
       XLSX.writeFile(workbook, `students_report_${new Date().toISOString().split("T")[0]}.xlsx`)
     } catch (error) {
       console.error("Failed to export students", error)
-      toast.error("Xuất danh sách thất bại")
+      toast.error(t("teacher_students_export_failed", "Xuất danh sách thất bại"))
     }
   }
 
@@ -247,19 +270,19 @@ export default function TeacherStudentsPage() {
       case "completed":
         return (
           <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-            Hoàn thành
+            {t("teacher_dashboard_completed", "Hoàn thành")}
           </span>
         )
       case "active":
         return (
           <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-            Đang học
+            {t("teacher_dashboard_learning", "Đang học")}
           </span>
         )
       case "inactive":
         return (
           <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400">
-            Không hoạt động
+            {t("teacher_students_inactive", "Không hoạt động")}
           </span>
         )
       default:
@@ -304,14 +327,14 @@ export default function TeacherStudentsPage() {
           <div className="relative z-10 space-y-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Quản lý học viên</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Theo dõi và quản lý học viên trong các khóa học của bạn</p>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("teacher_students_manage_title", "Quản lý học viên")}</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("teacher_students_manage_subtitle", "Theo dõi và quản lý học viên trong các khóa học của bạn")}</p>
               </div>
               <button
                 onClick={handleExport}
                 className="flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
               >
-                <Download size={20} /> Xuất danh sách
+                <Download size={20} /> {t("teacher_students_export_list", "Xuất danh sách")}
               </button>
             </div>
 
@@ -319,7 +342,7 @@ export default function TeacherStudentsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng học viên</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("teacher_students_total", "Tổng học viên")}</p>
                     <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalStudents}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -330,7 +353,7 @@ export default function TeacherStudentsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Đang học</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("teacher_dashboard_learning", "Đang học")}</p>
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{activeStudents}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -341,7 +364,7 @@ export default function TeacherStudentsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Hoàn thành</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("teacher_dashboard_completed", "Hoàn thành")}</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{completedStudents}</p>
                   </div>
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -352,7 +375,7 @@ export default function TeacherStudentsPage() {
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tiến độ TB</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("teacher_students_avg_progress", "Tiến độ TB")}</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{avgProgress}%</p>
                   </div>
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -369,7 +392,7 @@ export default function TeacherStudentsPage() {
             <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
             <input
               type="text"
-              placeholder="Tìm kiếm học viên theo tên hoặc email..."
+              placeholder={t("teacher_students_search_placeholder", "Tìm kiếm học viên theo tên hoặc email...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
@@ -380,7 +403,7 @@ export default function TeacherStudentsPage() {
             onChange={(e) => setFilterCourse(e.target.value)}
             className="px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="all">Tất cả khóa học</option>
+            <option value="all">{t("teacher_students_all_courses", "Tất cả khóa học")}</option>
             {courseOptions.map((course) => (
               <option key={course.id} value={course.id}>
                 {course.title}
@@ -392,10 +415,10 @@ export default function TeacherStudentsPage() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang học</option>
-            <option value="completed">Hoàn thành</option>
-            <option value="inactive">Không hoạt động</option>
+            <option value="all">{t("teacher_students_all_statuses", "Tất cả trạng thái")}</option>
+            <option value="active">{t("teacher_dashboard_learning", "Đang học")}</option>
+            <option value="completed">{t("teacher_dashboard_completed", "Hoàn thành")}</option>
+            <option value="inactive">{t("teacher_students_inactive", "Không hoạt động")}</option>
           </select>
         </div>
 
@@ -404,7 +427,7 @@ export default function TeacherStudentsPage() {
           {filteredStudents.length === 0 ? (
             <div className="py-12 text-center">
               <Users size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground dark:text-slate-400">Chưa có học viên nào</p>
+              <p className="text-muted-foreground dark:text-slate-400">{t("teacher_students_no_students", "Chưa có học viên nào")}</p>
             </div>
           ) : (
             filteredStudents.map((student) => (
@@ -447,7 +470,7 @@ export default function TeacherStudentsPage() {
                             }}
                             className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
                           >
-                            <Eye size={16} /> Xem chi tiết
+                            <Eye size={16} /> {t("teacher_students_view_details", "Xem chi tiết")}
                           </button>
                           <button
                             onClick={(e) => {
@@ -456,7 +479,7 @@ export default function TeacherStudentsPage() {
                             }}
                             className="w-full text-left px-4 py-3 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg"
                           >
-                            <UserX size={16} /> Xóa học viên
+                            <UserX size={16} /> {t("teacher_students_remove_student", "Xóa học viên")}
                           </button>
                         </div>
                       </>
@@ -466,17 +489,17 @@ export default function TeacherStudentsPage() {
 
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">Khóa học</span>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_dashboard_courses", "Khóa học")}</span>
                     <p className="text-foreground dark:text-white font-medium truncate">{student.course}</p>
                   </div>
                   <div>
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">Ngày tham gia</span>
-                    <p className="text-foreground dark:text-white">{formatDate(student.joinDate)}</p>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_students_join_date", "Ngày tham gia")}</span>
+                    <p className="text-foreground dark:text-white">{formatDate(student.joinDate, activeLocale)}</p>
                   </div>
                 </div>
 
                 <div>
-                  <span className="text-xs text-muted-foreground dark:text-slate-400">Tiến độ</span>
+                  <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_students_progress", "Tiến độ")}</span>
                   <div className="flex items-center gap-2 mt-1">
                     <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                       <div
@@ -492,7 +515,7 @@ export default function TeacherStudentsPage() {
 
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">Điểm Quiz</span>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_students_quiz_score", "Điểm Quiz")}</span>
                     <p className={`font-medium ${
                       student.quizScore >= 80
                         ? "text-green-600 dark:text-green-400"
@@ -504,7 +527,7 @@ export default function TeacherStudentsPage() {
                     </p>
                   </div>
                   <div>
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">Trạng thái</span>
+                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_dashboard_status", "Trạng thái")}</span>
                     <div className="mt-0.5">{getStatusBadge(student.status)}</div>
                   </div>
                 </div>
@@ -518,7 +541,7 @@ export default function TeacherStudentsPage() {
                     />
                     <div className="absolute left-0 right-0 top-full mt-2 z-[9999] bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-xl shadow-2xl p-4 animate-slideDown space-y-4 mx-2">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-foreground dark:text-white">Thông tin học viên</h4>
+                        <h4 className="font-semibold text-foreground dark:text-white">{t("teacher_students_info", "Thông tin học viên")}</h4>
                         <button 
                           onClick={() => { setViewMode(null); setSelectedStudent(null) }}
                           className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"
@@ -542,41 +565,41 @@ export default function TeacherStudentsPage() {
                         <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
                           <div className="flex items-center gap-1.5 text-muted-foreground dark:text-slate-400 mb-1">
                             <Mail size={14} />
-                            <span className="text-xs">Email</span>
+                            <span className="text-xs">{t("footer_email", "Email")}</span>
                           </div>
                           <p className="text-foreground dark:text-white text-xs break-all">{selectedStudent.email}</p>
                         </div>
                         <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
                           <div className="flex items-center gap-1.5 text-muted-foreground dark:text-slate-400 mb-1">
                             <Calendar size={14} />
-                            <span className="text-xs">Ngày tham gia</span>
+                            <span className="text-xs">{t("teacher_students_join_date", "Ngày tham gia")}</span>
                           </div>
-                          <p className="text-foreground dark:text-white text-xs">{formatDate(selectedStudent.joinDate)}</p>
+                          <p className="text-foreground dark:text-white text-xs">{formatDate(selectedStudent.joinDate, activeLocale)}</p>
                         </div>
                       </div>
 
                       {/* Progress Details */}
                       <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
-                        <h5 className="text-sm font-semibold text-foreground dark:text-white mb-3">Tiến độ học tập</h5>
+                        <h5 className="text-sm font-semibold text-foreground dark:text-white mb-3">{t("teacher_students_learning_progress", "Tiến độ học tập")}</h5>
                         <div className="space-y-3 text-sm">
                           <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground dark:text-slate-400">Hoàn thành khóa học</span>
+                            <span className="text-muted-foreground dark:text-slate-400">{t("teacher_students_course_completion", "Hoàn thành khóa học")}</span>
                             <span className="font-medium text-foreground dark:text-white">{selectedStudent.progress}%</span>
                           </div>
                           <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div className="h-full bg-primary rounded-full" style={{ width: `${selectedStudent.progress}%` }} />
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground dark:text-slate-400">Bài học đã hoàn thành</span>
+                            <span className="text-muted-foreground dark:text-slate-400">{t("teacher_students_lessons_completed", "Bài học đã hoàn thành")}</span>
                             <span className="font-medium text-foreground dark:text-white">{selectedStudent.lessonsCompleted}/{selectedStudent.totalLessons}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground dark:text-slate-400">Điểm Quiz trung bình</span>
+                            <span className="text-muted-foreground dark:text-slate-400">{t("teacher_students_avg_quiz_score", "Điểm Quiz trung bình")}</span>
                             <span className={`font-medium ${selectedStudent.quizScore >= 80 ? "text-green-600 dark:text-green-400" : selectedStudent.quizScore >= 60 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400"}`}>{selectedStudent.quizScore}%</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground dark:text-slate-400">Hoạt động gần nhất</span>
-                            <span className="font-medium text-foreground dark:text-white">{formatDate(selectedStudent.lastActive)}</span>
+                            <span className="text-muted-foreground dark:text-slate-400">{t("teacher_students_last_activity", "Hoạt động gần nhất")}</span>
+                            <span className="font-medium text-foreground dark:text-white">{formatDate(selectedStudent.lastActive, activeLocale)}</span>
                           </div>
                         </div>
                       </div>
@@ -597,8 +620,8 @@ export default function TeacherStudentsPage() {
                           <UserX size={20} className="text-red-600 dark:text-red-400" />
                         </div>
                         <div>
-                          <h4 className="font-semibold text-foreground dark:text-white">Xóa học viên?</h4>
-                          <p className="text-xs text-muted-foreground dark:text-slate-400">Hành động này không thể hoàn tác</p>
+                          <h4 className="font-semibold text-foreground dark:text-white">{t("teacher_students_remove_title", "Xóa học viên?")}</h4>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_students_remove_desc", "Hành động này không thể hoàn tác")}</p>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -606,13 +629,13 @@ export default function TeacherStudentsPage() {
                           onClick={() => { setViewMode(null); setSelectedStudent(null) }}
                           className="flex-1 py-2 rounded-lg text-sm font-medium border border-border dark:border-slate-700 text-foreground dark:text-white hover:bg-white dark:hover:bg-slate-800"
                         >
-                          Hủy
+                          {t("common_cancel", "Hủy")}
                         </button>
                         <button 
                           onClick={handleRemoveConfirm} 
                           className="flex-1 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-700 text-white"
                         >
-                          Xóa
+                          {t("teacher_students_remove", "Xóa")}
                         </button>
                       </div>
                     </div>
@@ -629,13 +652,13 @@ export default function TeacherStudentsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Học viên</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Khóa học</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Tiến độ</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Điểm Quiz</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Ngày tham gia</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Trạng thái</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">Hành động</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_dashboard_students", "Học viên")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_dashboard_courses", "Khóa học")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_students_progress", "Tiến độ")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_students_quiz_score", "Điểm Quiz")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_students_join_date", "Ngày tham gia")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_dashboard_status", "Trạng thái")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_students_actions", "Hành động")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -682,7 +705,7 @@ export default function TeacherStudentsPage() {
                         {student.quizScore}%
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{formatDate(student.joinDate)}</td>
+                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{formatDate(student.joinDate, activeLocale)}</td>
                     <td className="py-4 px-6">{getStatusBadge(student.status)}</td>
                     <td className="py-4 px-6 relative" data-dropdown>
                       <button
@@ -703,7 +726,7 @@ export default function TeacherStudentsPage() {
                             }}
                             className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
                           >
-                            <Eye size={16} /> Xem chi tiết
+                            <Eye size={16} /> {t("teacher_students_view_details", "Xem chi tiết")}
                           </button>
                           <button
                             onClick={(e) => {
@@ -712,17 +735,17 @@ export default function TeacherStudentsPage() {
                             }}
                             className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg"
                           >
-                            <UserX size={16} /> Xóa học viên
+                            <UserX size={16} /> {t("teacher_students_remove_student", "Xóa học viên")}
                           </button>
                         </div>
-                      )}hidden xl:flex fixed inset-0 bg-black/60 z-[9999]
+                      )}
                     </td>
                   </tr>
                 ))}
                 {filteredStudents.length === 0 && (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-muted-foreground dark:text-slate-400">
-                      Chưa có học viên nào
+                      {t("teacher_students_no_students", "Chưa có học viên nào")}
                     </td>
                   </tr>
                 )}
@@ -735,7 +758,7 @@ export default function TeacherStudentsPage() {
           <div className="hidden xl:flex fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4">
             <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-foreground dark:text-white">Thông tin học viên</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white">{t("teacher_students_info", "Thông tin học viên")}</h2>
                 <button onClick={() => { setViewMode(null); setSelectedStudent(null) }} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
                   <UserX size={20} className="text-muted-foreground" />
                 </button>
@@ -755,25 +778,25 @@ export default function TeacherStudentsPage() {
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Mail size={16} />
-                      <span className="text-sm">Email</span>
+                      <span className="text-sm">{t("footer_email", "Email")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium text-sm">{selectedStudent.email}</p>
                   </div>
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Calendar size={16} />
-                      <span className="text-sm">Ngày tham gia</span>
+                      <span className="text-sm">{t("teacher_students_join_date", "Ngày tham gia")}</span>
                     </div>
-                    <p className="text-foreground dark:text-white font-medium">{formatDate(selectedStudent.joinDate)}</p>
+                    <p className="text-foreground dark:text-white font-medium">{formatDate(selectedStudent.joinDate, activeLocale)}</p>
                   </div>
                 </div>
 
                 <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                  <h4 className="font-semibold text-foreground dark:text-white mb-3">Tiến độ học tập</h4>
+                  <h4 className="font-semibold text-foreground dark:text-white mb-3">{t("teacher_students_learning_progress", "Tiến độ học tập")}</h4>
                   <div className="space-y-3">
                     <div>
                       <div className="flex justify-between mb-1">
-                        <span className="text-sm text-muted-foreground dark:text-slate-400">Hoàn thành khóa học</span>
+                        <span className="text-sm text-muted-foreground dark:text-slate-400">{t("teacher_students_course_completion", "Hoàn thành khóa học")}</span>
                         <span className="text-sm font-medium text-foreground dark:text-white">{selectedStudent.progress}%</span>
                       </div>
                       <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -781,20 +804,20 @@ export default function TeacherStudentsPage() {
                       </div>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground dark:text-slate-400">Bài học đã hoàn thành</span>
+                      <span className="text-sm text-muted-foreground dark:text-slate-400">{t("teacher_students_lessons_completed", "Bài học đã hoàn thành")}</span>
                       <span className="text-sm font-medium text-foreground dark:text-white">
                         {selectedStudent.lessonsCompleted}/{selectedStudent.totalLessons}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground dark:text-slate-400">Điểm Quiz trung bình</span>
+                      <span className="text-sm text-muted-foreground dark:text-slate-400">{t("teacher_students_avg_quiz_score", "Điểm Quiz trung bình")}</span>
                       <span className={`text-sm font-medium ${selectedStudent.quizScore >= 80 ? "text-green-600 dark:text-green-400" : "text-yellow-600 dark:text-yellow-400"}`}>
                         {selectedStudent.quizScore}%
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground dark:text-slate-400">Hoạt động gần nhất</span>
-                      <span className="text-sm font-medium text-foreground dark:text-white">{formatDate(selectedStudent.lastActive)}</span>
+                      <span className="text-sm text-muted-foreground dark:text-slate-400">{t("teacher_students_last_activity", "Hoạt động gần nhất")}</span>
+                      <span className="text-sm font-medium text-foreground dark:text-white">{formatDate(selectedStudent.lastActive, activeLocale)}</span>
                     </div>
                   </div>
                 </div>
@@ -810,9 +833,9 @@ export default function TeacherStudentsPage() {
                 <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                   <UserX size={32} className="text-red-600 dark:text-red-400" />
                 </div>
-                <h2 className="text-xl font-bold text-foreground dark:text-white mb-2">Xóa học viên?</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white mb-2">{t("teacher_students_remove_title", "Xóa học viên?")}</h2>
                 <p className="text-muted-foreground dark:text-slate-400 mb-6">
-                  Bạn có chắc chắn muốn xóa học viên "<strong>{selectedStudent.name}</strong>" khỏi khóa học này?
+                  {t("teacher_students_remove_question_prefix", "Bạn có chắc chắn muốn xóa học viên")} "<strong>{selectedStudent.name}</strong>" {t("teacher_students_remove_question_suffix", "khỏi khóa học này?")}
                 </p>
                 <div className="flex gap-3">
                   <button
@@ -822,10 +845,10 @@ export default function TeacherStudentsPage() {
                     }}
                     className="flex-1 py-3 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
                   >
-                    Hủy
+                    {t("common_cancel", "Hủy")}
                   </button>
                   <button onClick={handleRemoveConfirm} className="flex-1 py-3 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white">
-                    Xóa học viên
+                    {t("teacher_students_remove_student", "Xóa học viên")}
                   </button>
                 </div>
               </div>

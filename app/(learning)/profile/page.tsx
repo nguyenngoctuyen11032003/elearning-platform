@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { Save, Lock, User, Mail, Phone, Eye, EyeOff, Upload, Camera, MapPin, Award, BookOpen, Calendar } from "lucide-react"
@@ -7,6 +7,7 @@ import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
 import { getRoleAvatar, getRoleDisplayName } from "@/lib/utils/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface UserStats {
   coursesEnrolled: number
@@ -16,6 +17,7 @@ interface UserStats {
 
 export default function StudentProfilePage() {
   const { user, loading, refreshProfile } = useAuth()
+  const { t } = useLanguage()
   const [saving, setSaving] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [userStats, setUserStats] = useState<UserStats>({
@@ -108,7 +110,7 @@ export default function StudentProfilePage() {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Kích thước file không được vượt quá 5MB")
+        toast.error(t("profile_file_too_large", "Kích thước file không được vượt quá 5MB"))
         return
       }
       
@@ -119,7 +121,7 @@ export default function StudentProfilePage() {
       const reader = new FileReader()
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string)
-        toast.success("Đã chọn ảnh đại diện mới")
+        toast.success(t("profile_avatar_selected", "Đã chọn ảnh đại diện mới"))
       }
       reader.readAsDataURL(file)
     }
@@ -141,7 +143,7 @@ export default function StudentProfilePage() {
           // You might want to call a refresh function here
         } catch (error) {
           console.error('Avatar upload failed:', error)
-          toast.error("Có lỗi xảy ra khi tải lên ảnh đại diện")
+          toast.error(t("profile_avatar_error", "Có lỗi xảy ra khi tải lên ảnh đại diện"))
           return; // Stop if avatar upload fails
         }
       }
@@ -155,10 +157,10 @@ export default function StudentProfilePage() {
       // Refresh profile data in auth context
       await refreshProfile()
 
-      toast.success("Cập nhật hồ sơ thành công!")
+      toast.success(t("profile_updated", "Cập nhật hồ sơ thành công!"))
     } catch (error) {
       console.error("Error updating profile:", error)
-      toast.error("Có lỗi xảy ra khi cập nhật hồ sơ")
+      toast.error(t("profile_update_error", "Có lỗi xảy ra khi cập nhật hồ sơ"))
     } finally {
       setSaving(false)
     }
@@ -168,12 +170,12 @@ export default function StudentProfilePage() {
     e.preventDefault()
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Mật khẩu mới không khớp!")
+      toast.error(t("profile_pwd_mismatch", "Mật khẩu mới không khớp!"))
       return
     }
 
     if (passwordData.newPassword.length < 6) {
-      toast.error("Mật khẩu mới phải có ít nhất 6 ký tự!")
+      toast.error(t("profile_pwd_too_short", "Mật khẩu mới phải có ít nhất 6 ký tự!"))
       return
     }
 
@@ -185,7 +187,7 @@ export default function StudentProfilePage() {
         newPassword: passwordData.newPassword,
       })
 
-      toast.success("Đổi mật khẩu thành công!")
+      toast.success(t("profile_pwd_changed", "Đổi mật khẩu thành công!"))
       setPasswordData({
         currentPassword: "",
         newPassword: "",
@@ -193,7 +195,7 @@ export default function StudentProfilePage() {
       })
     } catch (error) {
       console.error("Error changing password:", error)
-      toast.error("Có lỗi xảy ra khi đổi mật khẩu. Vui lòng kiểm tra mật khẩu hiện tại.")
+      toast.error(t("profile_pwd_error", "Có lỗi xảy ra khi đổi mật khẩu. Vui lòng kiểm tra mật khẩu hiện tại."))
     } finally {
       setSaving(false)
     }
@@ -221,9 +223,9 @@ export default function StudentProfilePage() {
       <div className="min-h-screen w-full">
         <div className="w-full text-center">
           <h1 className="text-3xl font-bold text-foreground dark:text-white">
-            Không tìm thấy thông tin người dùng
+            {t("profile_not_found", "Không tìm thấy thông tin người dùng")}
           </h1>
-          <p className="text-muted-foreground">Vui lòng đăng nhập lại</p>
+          <p className="text-muted-foreground">{t("profile_login_again", "Vui lòng đăng nhập lại")}</p>
         </div>
       </div>
     )
@@ -235,10 +237,10 @@ export default function StudentProfilePage() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Hồ sơ cá nhân
+            {t("profile_title", "Hồ sơ cá nhân")}
           </h1>
           <p className="text-muted-foreground dark:text-slate-400 mt-1">
-            Quản lý thông tin và cài đặt tài khoản của bạn
+            {t("profile_desc", "Quản lý thông tin và cài đặt tài khoản của bạn")}
           </p>
       </div>
 
@@ -307,7 +309,7 @@ export default function StudentProfilePage() {
           </div>
 
           <div className="flex-1 text-center md:text-left">
-            <h2 className="text-2xl font-bold text-foreground dark:text-white">{user.name || 'Học viên'}</h2>
+            <h2 className="text-2xl font-bold text-foreground dark:text-white">{user.name || t('profile_student', 'Học viên')}</h2>
             <p className="text-muted-foreground dark:text-slate-400">{user.email}</p>
             <div className="mt-2">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary dark:text-accent">
@@ -315,7 +317,7 @@ export default function StudentProfilePage() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground dark:text-slate-500 mt-2">
-              Nhấn vào ảnh đại diện để thay đổi (PNG, JPG - Tối đa 2MB)
+              {t("profile_avatar_hint", "Nhấn vào ảnh đại diện để thay đổi (PNG, JPG - Tối đa 2MB)")}
             </p>
           </div>
 
@@ -372,7 +374,7 @@ export default function StudentProfilePage() {
               {/* Name Field */}
               <div>
                 <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                  <User size={16} /> Họ và tên
+                  <User size={16} /> {t("profile_name", "Họ và tên")}
                 </label>
                 <input
                   type="text"
@@ -381,14 +383,14 @@ export default function StudentProfilePage() {
                   onChange={handleProfileChange}
                   required
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                  placeholder="Nhập họ và tên của bạn"
+                  placeholder={t("profile_name_placeholder", "Nhập họ và tên của bạn")}
                 />
               </div>
 
               {/* Email Field (Read-only) */}
               <div>
                 <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                  <Mail size={16} /> Email
+                  <Mail size={16} /> {t("profile_email", "Email")}
                 </label>
                 <input
                   type="email"
@@ -398,14 +400,14 @@ export default function StudentProfilePage() {
                   className="w-full bg-muted dark:bg-slate-800 text-muted-foreground cursor-not-allowed rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800"
                 />
                 <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
-                  Email không thể thay đổi vì lý do bảo mật
+                  {t("profile_email_note", "Email không thể thay đổi vì lý do bảo mật")}
                 </p>
               </div>
 
               {/* Phone Field */}
               <div>
                 <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                  <Phone size={16} /> Số điện thoại
+                  <Phone size={16} /> {t("profile_phone", "Số điện thoại")}
                 </label>
                 <input
                   type="tel"
@@ -413,14 +415,14 @@ export default function StudentProfilePage() {
                   value={profileData.phone}
                   onChange={handleProfileChange}
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                  placeholder="Nhập số điện thoại (tùy chọn)"
+                  placeholder={t("profile_phone_placeholder", "Nhập số điện thoại (tùy chọn)")}
                 />
               </div>
 
               {/* Address Field */}
               <div>
                 <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                  <MapPin size={16} /> Địa chỉ
+                  <MapPin size={16} /> {t("profile_address", "Địa chỉ")}
                 </label>
                 <input
                   type="text"
@@ -428,7 +430,7 @@ export default function StudentProfilePage() {
                   value={profileData.address}
                   onChange={handleProfileChange}
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                  placeholder="Nhập địa chỉ của bạn (tùy chọn)"
+                  placeholder={t("profile_address_placeholder", "Nhập địa chỉ của bạn (tùy chọn)")}
                 />
               </div>
 
@@ -439,7 +441,7 @@ export default function StudentProfilePage() {
                 className="w-full px-6 py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save size={18} />
-                {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                {saving ? t("profile_saving", "Đang lưu...") : t("profile_save", "Lưu thay đổi")}
               </button>
             </form>
           </div>
@@ -453,10 +455,10 @@ export default function StudentProfilePage() {
                 <Lock size={20} className="text-amber-500 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                    Bảo mật tài khoản
+                    {t("profile_security", "Bảo mật tài khoản")}
                   </p>
                   <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                    Mật khẩu mới phải có ít nhất 6 ký tự và khác mật khẩu cũ
+                    {t("profile_pwd_hint", "Mật khẩu mới phải có ít nhất 6 ký tự và khác mật khẩu cũ")}
                   </p>
                 </div>
               </div>
@@ -474,7 +476,7 @@ export default function StudentProfilePage() {
                     onChange={handlePasswordChange}
                     required
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 pr-12 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                    placeholder="Nhập mật khẩu hiện tại"
+                    placeholder={t("profile_current_pwd_placeholder", "Nhập mật khẩu hiện tại")}
                   />
                   <button
                     type="button"
@@ -499,7 +501,7 @@ export default function StudentProfilePage() {
                     onChange={handlePasswordChange}
                     required
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 pr-12 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                    placeholder="Nhập mật khẩu mới"
+                    placeholder={t("profile_new_pwd_placeholder", "Nhập mật khẩu mới")}
                   />
                   <button
                     type="button"
@@ -524,7 +526,7 @@ export default function StudentProfilePage() {
                     onChange={handlePasswordChange}
                     required
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 pr-12 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                    placeholder="Nhập lại mật khẩu mới"
+                    placeholder={t("profile_confirm_pwd_placeholder", "Nhập lại mật khẩu mới")}
                   />
                   <button
                     type="button"
@@ -543,7 +545,7 @@ export default function StudentProfilePage() {
                 className="w-full px-6 py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Lock size={18} />
-                {saving ? "Đang cập nhật..." : "Đổi mật khẩu"}
+                {saving ? t("profile_changing_pwd", "Đang cập nhật...") : t("profile_change_pwd", "Đổi mật khẩu")}
               </button>
             </form>
           </div>

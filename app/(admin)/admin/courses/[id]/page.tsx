@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
@@ -24,6 +24,7 @@ import {
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface Lesson {
   id: string
@@ -104,6 +105,7 @@ export default function AdminCourseDetailPage() {
   const router = useRouter()
   const [course, setCourse] = useState<CourseDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState<"overview" | "content" | "students" | "analytics">("overview")
   const [expandedQuizLessonId, setExpandedQuizLessonId] = useState<string | null>(null)
 
@@ -337,7 +339,7 @@ export default function AdminCourseDetailPage() {
           language: c.language || "vi",
           requirements: c.requirements || [],
           learningOutcomes: c.learningOutcomes || [],
-          sections: [{ id: "main", title: "Nội dung khóa học", order: 1, lessons: lessonList }],
+          sections: [{ id: "main", title: t("adm_cd_course_content", "Nội dung khóa học"), order: 1, lessons: lessonList }],
           totalLessons: lessonList.length,
           totalVideoDuration: "",
           enrollmentCount: c.enrollmentCount || 0,
@@ -346,7 +348,7 @@ export default function AdminCourseDetailPage() {
           rejectionReason: c.rejectionReason,
         })
       } catch {
-        toast.error("Không thể tải thông tin khóa học")
+        toast.error(t("adm_cd_load_err", "Không thể tải thông tin khóa học"))
       } finally {
         setIsLoading(false)
       }
@@ -365,18 +367,18 @@ export default function AdminCourseDetailPage() {
   if (!course) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Không tìm thấy khóa học</p>
+        <p className="text-muted-foreground">{t("adm_cd_not_found", "Không tìm thấy khóa học")}</p>
       </div>
     )
   }
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      published: { label: "Đã xuất bản", icon: CheckCircle, color: "text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" },
-      approved: { label: "Đã duyệt", icon: CheckCircle, color: "text-blue-600 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800" },
-      pending: { label: "Chờ duyệt", icon: Clock, color: "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800" },
-      rejected: { label: "Từ chối", icon: XCircle, color: "text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800" },
-      draft: { label: "Nháp", icon: Clock, color: "text-gray-600 bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800" },
+      published: { label: t("adm_cd_published", "Đã xuất bản"), icon: CheckCircle, color: "text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" },
+      approved: { label: t("adm_cd_approved", "Đã duyệt"), icon: CheckCircle, color: "text-blue-600 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800" },
+      pending: { label: t("adm_cd_pending", "Chờ duyệt"), icon: Clock, color: "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800" },
+      rejected: { label: t("adm_cd_rejected", "Từ chối"), icon: XCircle, color: "text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800" },
+      draft: { label: t("adm_cd_draft", "Nháp"), icon: Clock, color: "text-gray-600 bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800" },
     }
     const config = statusConfig[status as keyof typeof statusConfig] ?? { label: status, icon: Clock, color: "text-gray-600 bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800" }
     const Icon = config.icon
@@ -424,16 +426,16 @@ export default function AdminCourseDetailPage() {
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground dark:hover:text-white transition-colors"
           >
             <ArrowLeft size={20} />
-            <span>Quay lại</span>
+            <span>{t("adm_cd_back", "Quay lại")}</span>
           </button>
           <div className="flex items-center gap-3">
             <button className="px-4 py-2 bg-secondary dark:bg-slate-800 hover:bg-secondary/80 dark:hover:bg-slate-700 text-foreground dark:text-white rounded-lg transition-smooth flex items-center gap-2">
               <Edit size={18} />
-              Chỉnh sửa
+              {t("adm_cd_edit", "Chỉnh sửa")}
             </button>
             <button className="px-4 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-smooth flex items-center gap-2">
               <Trash2 size={18} />
-              Xóa
+              {t("adm_cd_delete", "Xóa")}
             </button>
           </div>
         </div>
@@ -459,28 +461,28 @@ export default function AdminCourseDetailPage() {
                 <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
                   <Users size={20} className="text-primary dark:text-accent" />
                   <div>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Học viên</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_students", "Học viên")}</p>
                     <p className="font-semibold text-foreground dark:text-white">{course.students}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
                   <DollarSign size={20} className="text-green-500" />
                   <div>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Doanh thu</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_revenue", "Doanh thu")}</p>
                     <p className="font-semibold text-foreground dark:text-white">{(course.revenue / 1000000).toFixed(1)}M</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
                   <Star size={20} className="text-yellow-500" />
                   <div>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Đánh giá</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_rating", "Đánh giá")}</p>
                     <p className="font-semibold text-foreground dark:text-white">{course.rating} ({course.reviewCount})</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
                   <Clock size={20} className="text-blue-500" />
                   <div>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Thời lượng</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_duration", "Thời lượng")}</p>
                     <p className="font-semibold text-foreground dark:text-white">{course.duration}</p>
                   </div>
                 </div>
@@ -502,10 +504,10 @@ export default function AdminCourseDetailPage() {
                     : "border-transparent text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
                 }`}
               >
-                {tab === "overview" && "Tổng quan"}
-                {tab === "content" && "Nội dung"}
-                {tab === "students" && "Học viên"}
-                {tab === "analytics" && "Thống kê"}
+                {tab === "overview" && t("adm_cd_tab_overview", "Tổng quan")}
+                {tab === "content" && t("adm_cd_tab_content", "Nội dung")}
+                {tab === "students" && t("adm_cd_tab_students", "Học viên")}
+                {tab === "analytics" && t("adm_cd_tab_analytics", "Thống kê")}
               </button>
             ))}
           </div>
@@ -517,7 +519,7 @@ export default function AdminCourseDetailPage() {
             <div className="lg:col-span-2 space-y-6">
               {/* Instructor Info */}
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-                <h2 className="text-xl font-bold text-foreground dark:text-white mb-4">Giảng viên</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white mb-4">{t("adm_cd_instructor", "Giảng viên")}</h2>
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-xl font-bold">
                     {course.instructor.split(" ").map(n => n[0]).join("")}
@@ -532,7 +534,7 @@ export default function AdminCourseDetailPage() {
 
               {/* Learning Outcomes */}
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-                <h2 className="text-xl font-bold text-foreground dark:text-white mb-4">Học viên sẽ học được gì</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white mb-4">{t("adm_cd_outcomes", "Học viên sẽ học được gì")}</h2>
                 <ul className="space-y-3">
                   {course.learningOutcomes.map((outcome, index) => (
                     <li key={index} className="flex items-start gap-3">
@@ -545,7 +547,7 @@ export default function AdminCourseDetailPage() {
 
               {/* Requirements */}
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-                <h2 className="text-xl font-bold text-foreground dark:text-white mb-4">Yêu cầu</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white mb-4">{t("adm_cd_requirements", "Yêu cầu")}</h2>
                 <ul className="space-y-3">
                   {course.requirements.map((req, index) => (
                     <li key={index} className="flex items-start gap-3">
@@ -561,26 +563,26 @@ export default function AdminCourseDetailPage() {
             <div className="space-y-6">
               {/* Course Stats */}
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-4">
-                <h2 className="text-xl font-bold text-foreground dark:text-white">Thống kê</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_cd_stats", "Thống kê")}</h2>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Tổng bài học</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_total_lessons", "Tổng bài học")}</span>
                     <span className="font-semibold text-foreground dark:text-white">{course.totalLessons}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Thời lượng video</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_video_duration", "Thời lượng video")}</span>
                     <span className="font-semibold text-foreground dark:text-white">{course.totalVideoDuration}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Số lượt đăng ký</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_enrollments", "Số lượt đăng ký")}</span>
                     <span className="font-semibold text-foreground dark:text-white">{course.enrollmentCount}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Tỷ lệ hoàn thành</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_completion_rate", "Tỷ lệ hoàn thành")}</span>
                     <span className="font-semibold text-green-600">{course.completionRate}%</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Tiến độ TB</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_avg_progress", "Tiến độ TB")}</span>
                     <span className="font-semibold text-foreground dark:text-white">{course.averageProgress}%</span>
                   </div>
                 </div>
@@ -588,32 +590,32 @@ export default function AdminCourseDetailPage() {
 
               {/* Course Info */}
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-4">
-                <h2 className="text-xl font-bold text-foreground dark:text-white">Thông tin</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_cd_info", "Thông tin")}</h2>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Giá</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_price", "Giá")}</span>
                     <span className="font-semibold text-foreground dark:text-white">{course.price.toLocaleString('vi-VN')}đ</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Danh mục</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_category", "Danh mục")}</span>
                     <span className="font-semibold text-foreground dark:text-white">{course.category}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Trình độ</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_level", "Trình độ")}</span>
                     <span className="font-semibold text-foreground dark:text-white capitalize">{course.level}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Ngôn ngữ</span>
-                    <span className="font-semibold text-foreground dark:text-white">{course.language === 'vi' ? 'Tiếng Việt' : 'Tiếng Anh'}</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_language", "Ngôn ngữ")}</span>
+                    <span className="font-semibold text-foreground dark:text-white">{course.language === 'vi' ? t('adm_cd_lang_vi', 'Tiếng Việt') : t('adm_cd_lang_en', 'Tiếng Anh')}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Tạo lúc</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_created_at", "Tạo lúc")}</span>
                     <span className="font-semibold text-foreground dark:text-white">
                       {new Date(course.createdAt).toLocaleDateString('vi-VN')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">Cập nhật</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_updated_at", "Cập nhật")}</span>
                     <span className="font-semibold text-foreground dark:text-white">
                       {new Date(course.updatedAt).toLocaleDateString('vi-VN')}
                     </span>
@@ -626,7 +628,7 @@ export default function AdminCourseDetailPage() {
 
         {activeTab === "content" && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">Nội dung khóa học</h2>
+            <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">{t("adm_cd_course_content", "Nội dung khóa học")}</h2>
             <div className="space-y-4">
               {course.sections.map((section) => (
                 <div key={section.id} className="border border-border dark:border-slate-800 rounded-xl overflow-hidden">
@@ -635,7 +637,7 @@ export default function AdminCourseDetailPage() {
                       {section.order}. {section.title}
                     </h3>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">
-                      {section.lessons.length} bài học
+                      {section.lessons.length} {t("adm_cd_lessons_unit", "bài học")}
                     </p>
                   </div>
                   <div className="divide-y divide-border dark:divide-slate-800">
@@ -649,8 +651,8 @@ export default function AdminCourseDetailPage() {
                               <div className="flex items-center gap-3 mt-1">
                                 <span className="text-xs text-muted-foreground dark:text-slate-400 capitalize">
                                   {lesson.type === 'video' && 'Video'}
-                                  {lesson.type === 'reading' && 'Đọc'}
-                                  {lesson.type === 'quiz' && 'Bài tập'}
+                                  {lesson.type === 'reading' && t('adm_cd_type_reading', 'Đọc')}
+                                  {lesson.type === 'quiz' && t('adm_cd_type_quiz', 'Bài tập')}
                                 </span>
                                 <span className="text-xs text-muted-foreground dark:text-slate-400">•</span>
                                 <span className="text-xs text-muted-foreground dark:text-slate-400">{lesson.duration}</span>
@@ -684,7 +686,7 @@ export default function AdminCourseDetailPage() {
                                     className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
                                   >
                                     <Clipboard size={12} />
-                                    {lesson.quizCount} câu hỏi
+                                    {lesson.quizCount} {t("adm_cd_questions", "câu hỏi")}
                                   </button>
                                 </div>
                               )}
@@ -703,21 +705,21 @@ export default function AdminCourseDetailPage() {
                                     {lesson.quizQuestions.map((quiz, idx) => (
                                       <div key={`${lesson.id}-q-${idx}`}>
                                         <p className="text-xs font-semibold text-foreground whitespace-pre-wrap break-words leading-relaxed">
-                                          {idx + 1}. {normalizeUploadedText(quiz.question) || "(Chưa có nội dung)"}
+                                          {idx + 1}. {normalizeUploadedText(quiz.question) || t("adm_cd_no_content", "(Chưa có nội dung)")}
                                         </p>
                                         {quiz.image && (
                                           <img
                                             src={quiz.image}
-                                            alt={`Ảnh câu hỏi ${idx + 1}`}
+                                            alt={`${t("adm_cd_question_img", "Ảnh câu hỏi")} ${idx + 1}`}
                                             className="mt-2 max-w-xs rounded border border-amber-200"
                                           />
                                         )}
                                         <p className="text-[11px] text-muted-foreground">
                                           {quiz.type === "true-false"
-                                            ? "Đúng/Sai"
+                                            ? t("adm_cd_true_false", "Đúng/Sai")
                                             : quiz.type === "multiple-select"
-                                            ? "Nhiều đáp án"
-                                            : "1 đáp án"}
+                                            ? t("adm_cd_multi_answer", "Nhiều đáp án")
+                                            : t("adm_cd_single_answer", "1 đáp án")}
                                         </p>
                                         {quiz.options && quiz.options.length > 0 && (
                                           <div className="mt-2 grid gap-1 text-xs">
@@ -749,12 +751,12 @@ export default function AdminCourseDetailPage() {
                                         )}
                                         {quiz.type === "fill_in" && quiz.correctAnswerText && (
                                           <p className="mt-2 text-xs text-emerald-700">
-                                            <strong>Đáp án điền khuyết:</strong> {normalizeUploadedText(quiz.correctAnswerText)}
+                                            <strong>{t("adm_cd_fill_answer", "Đáp án điền khuyết")}:</strong> {normalizeUploadedText(quiz.correctAnswerText)}
                                           </p>
                                         )}
                                         {quiz.explanation && (
                                           <p className="mt-1 text-xs text-blue-700 whitespace-pre-wrap break-words leading-relaxed">
-                                            <strong>Giải thích:</strong> {normalizeUploadedText(quiz.explanation)}
+                                            <strong>{t("adm_cd_explanation", "Giải thích")}:</strong> {normalizeUploadedText(quiz.explanation)}
                                           </p>
                                         )}
                                       </div>
@@ -765,12 +767,12 @@ export default function AdminCourseDetailPage() {
                                   <div className="mt-3 space-y-2 rounded-lg border border-fuchsia-200 bg-fuchsia-50/60 p-3">
                                     {lesson.writingDueDate && (
                                       <p className="text-xs text-fuchsia-800">
-                                        <strong>Hạn nộp:</strong> {new Date(lesson.writingDueDate).toLocaleString('vi-VN')}
+                                        <strong>{t("adm_cd_due_date", "Hạn nộp")}:</strong> {new Date(lesson.writingDueDate).toLocaleString('vi-VN')}
                                       </p>
                                     )}
                                     {typeof lesson.writingMaxScore === "number" && (
                                       <p className="text-xs text-fuchsia-800">
-                                        <strong>Điểm tối đa:</strong> {lesson.writingMaxScore}
+                                        <strong>{t("adm_cd_max_score", "Điểm tối đa")}:</strong> {lesson.writingMaxScore}
                                       </p>
                                     )}
                                     {lesson.writingPrompt && (
@@ -793,12 +795,12 @@ export default function AdminCourseDetailPage() {
                             {lesson.isPublished ? (
                               <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
                                 <CheckCircle size={14} />
-                                Đã xuất bản
+                                {t("adm_cd_published", "Đã xuất bản")}
                               </span>
                             ) : (
                               <span className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
                                 <Clock size={14} />
-                                Bản nháp
+                                {t("adm_cd_draft", "Bản nháp")}
                               </span>
                             )}
                             {lesson.videoUrl ? (
@@ -807,14 +809,14 @@ export default function AdminCourseDetailPage() {
                                 target="_blank"
                                 rel="noreferrer"
                                 className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
-                                aria-label={`Mở video bài học ${lesson.title}`}
+                                aria-label={`${t("adm_cd_open_video", "Mở video bài học")} ${lesson.title}`}
                               >
                                 <PlayCircle size={18} className="text-primary dark:text-accent" />
                               </a>
                             ) : (
                               <button
                                 className="p-2 rounded-lg text-muted-foreground cursor-not-allowed"
-                                aria-label={`Bài học ${lesson.title} chưa có video`}
+                                aria-label={`${t("adm_cd_no_video", "Bài học chưa có video")} ${lesson.title}`}
                                 disabled
                               >
                                 <PlayCircle size={18} />
@@ -833,31 +835,31 @@ export default function AdminCourseDetailPage() {
 
         {activeTab === "students" && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">Học viên đăng ký</h2>
-            <p className="text-muted-foreground dark:text-slate-400 mb-6">Danh sách {course.students} học viên đã đăng ký khóa học này.</p>
+            <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">{t("adm_cd_enrolled_students", "Học viên đăng ký")}</h2>
+            <p className="text-muted-foreground dark:text-slate-400 mb-6">{t("adm_cd_student_list", "Danh sách")} {course.students} {t("adm_cd_students_enrolled", "học viên đã đăng ký khóa học này.")}</p>
             
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border dark:border-slate-800">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Học viên</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">{t("adm_cd_col_student", "Học viên")}</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Email</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Tiến độ</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Trạng thái</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Ngày đăng ký</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">Lần cuối truy cập</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-foreground dark:text-white">{t("adm_cd_col_progress", "Tiến độ")}</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-foreground dark:text-white">{t("adm_cd_col_status", "Trạng thái")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">{t("adm_cd_col_enrolled_date", "Ngày đăng ký")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground dark:text-white">{t("adm_cd_col_last_access", "Lần cuối truy cập")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    { id: 1, name: 'Nguyễn Văn A', email: 'nguyenvana@email.com', progress: 85, status: 'active', enrolled: '2024-01-15', lastAccess: '2 giờ trước' },
-                    { id: 2, name: 'Trần Thị B', email: 'tranthib@email.com', progress: 100, status: 'completed', enrolled: '2024-01-10', lastAccess: '1 ngày trước' },
-                    { id: 3, name: 'Lê Văn C', email: 'levanc@email.com', progress: 45, status: 'active', enrolled: '2024-02-01', lastAccess: '5 giờ trước' },
-                    { id: 4, name: 'Phạm Thị D', email: 'phamthid@email.com', progress: 92, status: 'active', enrolled: '2024-01-20', lastAccess: '3 giờ trước' },
-                    { id: 5, name: 'Hoàng Văn E', email: 'hoangvane@email.com', progress: 15, status: 'active', enrolled: '2024-03-05', lastAccess: '1 tuần trước' },
-                    { id: 6, name: 'Vũ Thị F', email: 'vuthif@email.com', progress: 100, status: 'completed', enrolled: '2024-01-08', lastAccess: '3 ngày trước' },
-                    { id: 7, name: 'Đặng Văn G', email: 'dangvang@email.com', progress: 68, status: 'active', enrolled: '2024-02-15', lastAccess: '1 ngày trước' },
-                    { id: 8, name: 'Bùi Thị H', email: 'buithih@email.com', progress: 30, status: 'active', enrolled: '2024-02-28', lastAccess: '2 ngày trước' },
+                    { id: 1, name: 'Nguyễn Văn A', email: 'nguyenvana@email.com', progress: 85, status: 'active', enrolled: '2024-01-15', lastAccess: t('adm_cd_2h_ago', '2 giờ trước') },
+                    { id: 2, name: 'Trần Thị B', email: 'tranthib@email.com', progress: 100, status: 'completed', enrolled: '2024-01-10', lastAccess: t('adm_cd_1d_ago', '1 ngày trước') },
+                    { id: 3, name: 'Lê Văn C', email: 'levanc@email.com', progress: 45, status: 'active', enrolled: '2024-02-01', lastAccess: t('adm_cd_5h_ago', '5 giờ trước') },
+                    { id: 4, name: 'Phạm Thị D', email: 'phamthid@email.com', progress: 92, status: 'active', enrolled: '2024-01-20', lastAccess: t('adm_cd_3h_ago', '3 giờ trước') },
+                    { id: 5, name: 'Hoàng Văn E', email: 'hoangvane@email.com', progress: 15, status: 'active', enrolled: '2024-03-05', lastAccess: t('adm_cd_1w_ago', '1 tuần trước') },
+                    { id: 6, name: 'Vũ Thị F', email: 'vuthif@email.com', progress: 100, status: 'completed', enrolled: '2024-01-08', lastAccess: t('adm_cd_3d_ago', '3 ngày trước') },
+                    { id: 7, name: 'Đặng Văn G', email: 'dangvang@email.com', progress: 68, status: 'active', enrolled: '2024-02-15', lastAccess: t('adm_cd_1d_ago', '1 ngày trước') },
+                    { id: 8, name: 'Bùi Thị H', email: 'buithih@email.com', progress: 30, status: 'active', enrolled: '2024-02-28', lastAccess: t('adm_cd_2d_ago', '2 ngày trước') },
                   ].map((student) => (
                     <tr key={student.id} className="border-b border-border dark:border-slate-800 hover:bg-muted/50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="py-3 px-4 text-sm text-foreground dark:text-white font-medium">{student.name}</td>
@@ -877,12 +879,12 @@ export default function AdminCourseDetailPage() {
                         {student.status === 'completed' ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                             <CheckCircle className="w-3 h-3 mr-1" />
-                            Hoàn thành
+                            {t("adm_cd_completed", "Hoàn thành")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
                             <Clock className="w-3 h-3 mr-1" />
-                            Đang học
+                            {t("adm_cd_studying", "Đang học")}
                           </span>
                         )}
                       </td>
@@ -895,12 +897,12 @@ export default function AdminCourseDetailPage() {
             </div>
             
             <div className="mt-6 flex justify-between items-center">
-              <p className="text-sm text-muted-foreground dark:text-slate-400">Hiển thị 8 / {course.students} học viên</p>
+              <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_showing", "Hiển thị")} 8 / {course.students} {t("adm_cd_students", "học viên")}</p>
               <div className="flex gap-2">
-                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">Trước</button>
+                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">{t("adm_cd_prev", "Trước")}</button>
                 <button className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg">1</button>
                 <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">2</button>
-                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">Sau</button>
+                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">{t("adm_cd_next", "Sau")}</button>
               </div>
             </div>
           </div>
@@ -908,28 +910,28 @@ export default function AdminCourseDetailPage() {
 
         {activeTab === "analytics" && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">Phân tích & Thống kê</h2>
+            <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">{t("adm_cd_analytics_title", "Phân tích & Thống kê")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/20 rounded-xl">
                 <BarChart3 className="text-blue-500 mb-3" size={32} />
                 <p className="text-2xl font-bold text-foreground dark:text-white">{course.enrollmentCount}</p>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Tổng đăng ký</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_total_enrollments", "Tổng đăng ký")}</p>
               </div>
               <div className="p-6 bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20 rounded-xl">
                 <CheckCircle className="text-green-500 mb-3" size={32} />
                 <p className="text-2xl font-bold text-foreground dark:text-white">{course.completionRate}%</p>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Tỷ lệ hoàn thành</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_completion_rate", "Tỷ lệ hoàn thành")}</p>
               </div>
               <div className="p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/20 rounded-xl">
                 <Star className="text-purple-500 mb-3" size={32} />
                 <p className="text-2xl font-bold text-foreground dark:text-white">{course.rating}/5</p>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Đánh giá trung bình</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_avg_rating", "Đánh giá trung bình")}</p>
               </div>
             </div>
             
             {/* Revenue Over Time Chart */}
             <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">Doanh thu theo thời gian</h3>
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("adm_cd_revenue_over_time", "Doanh thu theo thời gian")}</h3>
               <div className="h-64 flex items-end justify-between gap-2">
                 {[
                   { month: 'T1', revenue: 15000000, enrollments: 25 },
@@ -946,7 +948,7 @@ export default function AdminCourseDetailPage() {
                     <div 
                       className="w-full bg-gradient-to-t from-green-500 to-emerald-400 dark:from-green-600 dark:to-emerald-400 rounded-t-lg transition-all hover:opacity-80 cursor-pointer"
                       style={{ height: `${(data.revenue / 35000000) * 100}%` }}
-                      title={`${data.enrollments} đăng ký, ${(data.revenue / 1000000).toFixed(1)}M VNĐ`}
+                      title={`${data.enrollments} ${t("adm_cd_enrollments_unit", "đăng ký")}, ${(data.revenue / 1000000).toFixed(1)}M VNĐ`}
                     ></div>
                     <div className="text-xs font-medium text-foreground dark:text-white">{data.month}</div>
                     <div className="text-xs text-muted-foreground dark:text-slate-400">{data.enrollments}</div>
@@ -954,14 +956,14 @@ export default function AdminCourseDetailPage() {
                 ))}
               </div>
               <div className="mt-4 pt-4 border-t border-border dark:border-slate-800 flex justify-between text-sm">
-                <span className="text-muted-foreground dark:text-slate-400">Số lượng đăng ký</span>
-                <span className="text-muted-foreground dark:text-slate-400">Doanh thu (triệu VNĐ)</span>
+                <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_enrollment_count", "Số lượng đăng ký")}</span>
+                <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_revenue_million", "Doanh thu (triệu VNĐ)")}</span>
               </div>
             </div>
             
             {/* Completion Rate by Section */}
             <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">Tỷ lệ hoàn thành theo chương</h3>
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("adm_cd_completion_by_section", "Tỷ lệ hoàn thành theo chương")}</h3>
               <div className="space-y-4">
                 {[
                   { section: 'Giới thiệu và cài đặt', lessons: 5, completion: 95 },
@@ -975,7 +977,7 @@ export default function AdminCourseDetailPage() {
                   <div key={index}>
                     <div className="flex justify-between text-sm mb-2">
                       <span className="text-foreground dark:text-white font-medium">{section.section}</span>
-                      <span className="text-muted-foreground dark:text-slate-400">{section.lessons} bài • {section.completion}%</span>
+                      <span className="text-muted-foreground dark:text-slate-400">{section.lessons} {t("adm_cd_lessons_unit_short", "bài")} • {section.completion}%</span>
                     </div>
                     <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
                       <div 
@@ -993,7 +995,7 @@ export default function AdminCourseDetailPage() {
             
             {/* Rating Distribution */}
             <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">Phân bố đánh giá</h3>
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("adm_cd_rating_dist", "Phân bố đánh giá")}</h3>
               <div className="space-y-3">
                 {[
                   { stars: 5, count: 145, percentage: 58 },

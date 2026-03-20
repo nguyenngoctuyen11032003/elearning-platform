@@ -3,6 +3,7 @@
 import React, { useState } from "react"
 import { Upload, AlertCircle, CheckCircle, Loader } from "lucide-react"
 import { toast } from "sonner"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 /**
  * Configuration for PDF OCR/image extraction
@@ -40,6 +41,7 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
   onError,
   className = "",
 }) => {
+  const { t } = useLanguage()
   const [isProcessing, setIsProcessing] = useState(false)
   const [progress, setProgress] = useState(0)
   const [selectedFileSize, setSelectedFileSize] = useState(0)
@@ -54,7 +56,7 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
     if (!file) return
 
     if (!file.name.toLowerCase().endsWith(".pdf")) {
-      toast.error("Vui lòng chọn file PDF")
+      toast.error(t("pdf_select_pdf", "Vui lòng chọn file PDF"))
       return
     }
 
@@ -62,10 +64,10 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
 
     // Server limit is 15MB - enforce it client-side to prevent unnecessary uploads
     if (fileSizeMB > 15) {
-      toast.error(`File PDF quá lớn (${fileSizeMB.toFixed(1)}MB > 15MB limit). Vui lòng:
+      toast.error(t("pdf_too_large", `File PDF quá lớn (${fileSizeMB.toFixed(1)}MB > 15MB limit). Vui lòng:
 1. Nén PDF hoặc giảm chất lượng hình ảnh
 2. Chia nhỏ PDF thành nhiều file nhỏ hơn
-3. Sử dụng công cụ khác để chuyển đổi PDF`)
+3. Sử dụng công cụ khác để chuyển đổi PDF`))
       return
     }
 
@@ -76,7 +78,7 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
         ...prev,
         extractImages: false,
       }))
-      toast.info(`File khá lớn (${fileSizeMB.toFixed(1)}MB). Tương tự sẽ không trích xuất hình ảnh để tránh timeout.`)
+      toast.info(t("pdf_large_no_images", `File khá lớn (${fileSizeMB.toFixed(1)}MB). Tương tự sẽ không trích xuất hình ảnh để tránh timeout.`))
     }
 
     setSelectedFileSize(file.size)
@@ -86,8 +88,8 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
     try {
       // Show extraction info
       const processingMsg = shouldDisableImages
-        ? `Đang xử lý file lớn: ${file.name}... (có thể mất vài phút)`
-        : `Đang xử lý: ${file.name}...`
+        ? t("pdf_processing_large", `Đang xử lý file lớn: ${file.name}... (có thể mất vài phút)`)
+        : t("pdf_processing", `Đang xử lý: ${file.name}...`)
       toast.loading(processingMsg)
       setProgress(30)
 
@@ -117,7 +119,7 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}))
-        const errorMsg = error?.error || "Lỗi xử lý PDF"
+        const errorMsg = error?.error || t("pdf_error_processing", "Lỗi xử lý PDF")
         throw new Error(errorMsg)
       }
 
@@ -139,25 +141,25 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
         extractionTime,
         hasFormulas: imageCount > 0,
         preprocessingNote: shouldDisableImages
-          ? `Đã bỏ qua trích xuất hình ảnh cho file lớn. PDF chứa ${questionCount} câu hỏi.`
+          ? t("pdf_skipped_images", `Đã bỏ qua trích xuất hình ảnh cho file lớn. PDF chứa ${questionCount} câu hỏi.`)
           : imageCount > 0
-          ? `PDF chứa ${imageCount} hình ảnh/công thức. Các công thức đã được trích xuất và sẽ được liên kết với câu hỏi.`
-          : "PDF chứa chỉ văn bản.",
+          ? t("pdf_extracted_images", `PDF chứa ${imageCount} hình ảnh/công thức. Các công thức đã được trích xuất và sẽ được liên kết với câu hỏi.`)
+          : t("pdf_text_only", "PDF chứa chỉ văn bản."),
       }
 
       toast.success(
-        `Xử lý xong: ${questionCount} câu hỏi${imageCount > 0 ? `, ${imageCount} hình ảnh` : ""}`,
+        t("pdf_done", `Xử lý xong: ${questionCount} câu hỏi${imageCount > 0 ? `, ${imageCount} hình ảnh` : ""}`),
       )
       onImportComplete?.(importResult)
 
       // Reset
       event.target.value = ""
     } catch (error) {
-      let errorMsg = "Lỗi không xác định"
+      let errorMsg = t("pdf_unknown_error", "Lỗi không xác định")
 
       if (error instanceof DOMException && error.name === "AbortError") {
         const timeoutSeconds = selectedFileSize / (1024 * 1024) > 10 ? 20 : 10
-        errorMsg = `Xử lý timed out sau ${timeoutSeconds} giây. File PDF quá phức tạp. Vui lòng thử nén PDF hoặc chia nhỏ thành nhiều file.`
+        errorMsg = t("pdf_timeout", `Xử lý timed out sau ${timeoutSeconds} giây. File PDF quá phức tạp. Vui lòng thử nén PDF hoặc chia nhỏ thành nhiều file.`)
       } else if (error instanceof Error) {
         errorMsg = error.message
       }
@@ -181,8 +183,8 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
             <p className="font-medium">File lớn được chọn ({(selectedFileSize / (1024 * 1024)).toFixed(1)}MB)</p>
             <p className="mt-1">
               {selectedFileSize / (1024 * 1024) > 20
-                ? "Trích xuất hình ảnh đã bị tắt cho file này để tránh timeout."
-                : "Trích xuất hình ảnh có thể mất lâu hơn."}
+                ? t("pdf_images_disabled", "Trích xuất hình ảnh đã bị tắt cho file này để tránh timeout.")
+                : t("pdf_images_slow", "Trích xuất hình ảnh có thể mất lâu hơn.")}
             </p>
           </div>
         </div>
@@ -190,7 +192,7 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
 
       {/* OCR Settings */}
       <div className="space-y-3 rounded border border-gray-200 bg-gray-50 p-3">
-        <div className="text-sm font-semibold text-gray-700">Cấu hình OCR</div>
+        <div className="text-sm font-semibold text-gray-700">{t("pdf_ocr_config", "Cấu hình OCR")}</div>
 
         {/* Extract Images Option */}
         <label className="flex items-center gap-2 cursor-pointer">
@@ -206,16 +208,16 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
             disabled={isProcessing || selectedFileSize / (1024 * 1024) > 20}
             className="rounded border-gray-300"
           />
-          <span className="text-sm text-gray-700">Trích xuất hình ảnh/công thức</span>
+          <span className="text-sm text-gray-700">{t("pdf_extract_images", "Trích xuất hình ảnh/công thức")}</span>
           {selectedFileSize / (1024 * 1024) > 20 && (
-            <span className="text-xs text-gray-500">(Tắt cho file lớn)</span>
+            <span className="text-xs text-gray-500">({t("pdf_disabled_large", "Tắt cho file lớn")})</span>
           )}
         </label>
 
         {/* OCR Mode Selection */}
         {ocrSettings.extractImages && selectedFileSize / (1024 * 1024) <= 20 && (
           <div className="ml-6 space-y-2">
-            <label className="text-xs font-medium text-gray-600">Chế độ xử lý:</label>
+            <label className="text-xs font-medium text-gray-600">{t("pdf_processing_mode", "Chế độ xử lý")}:</label>
             <div className="space-y-2">
               <label className="flex items-center gap-2 cursor-pointer text-sm">
                 <input
@@ -231,7 +233,7 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
                   }
                   disabled={isProcessing}
                 />
-                <span>Trích xuất (nhanh)</span>
+                <span>{t("pdf_extract_fast", "Trích xuất (nhanh)")}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer text-sm">
                 <input
@@ -247,7 +249,7 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
                   }
                   disabled={isProcessing}
                 />
-                <span>Nhận dạng OCR (chậm, chính xác hơn)</span>
+                <span>{t("pdf_ocr_full", "Nhận dạng OCR (chậm, chính xác hơn)")}</span>
               </label>
             </div>
           </div>
@@ -267,14 +269,14 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
             disabled={isProcessing}
             className="rounded border-gray-300"
           />
-          <span className="text-sm text-gray-700">Tự động xử lý công thức toán học</span>
+          <span className="text-sm text-gray-700">{t("pdf_auto_formulas", "Tự động xử lý công thức toán học")}</span>
         </label>
       </div>
 
       {/* File Upload Area */}
       <div className="space-y-2">
         <label htmlFor="pdf-upload" className="block text-sm font-medium text-gray-700">
-          {isProcessing ? "Đang xử lý..." : "Chọn file PDF"}
+          {isProcessing ? t("pdf_processing_label", "Đang xử lý...") : t("pdf_select_file", "Chọn file PDF")}
         </label>
 
         <div className="relative">
@@ -302,9 +304,9 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
                 <Upload className="mx-auto h-8 w-8 text-gray-400" />
               )}
               <p className="text-sm font-medium text-gray-700">
-                {isProcessing ? "Đang xử lý file..." : "Tải lên file PDF"}
+                {isProcessing ? t("pdf_processing_file", "Đang xử lý file...") : t("pdf_upload", "Tải lên file PDF")}
               </p>
-              <p className="text-xs text-gray-500">Hoặc kéo thả file vào đây (Tối đa 50MB)</p>
+              <p className="text-xs text-gray-500">{t("pdf_drag_drop", "Hoặc kéo thả file vào đây (Tối đa 50MB)")}</p>
             </div>
           </label>
         </div>
@@ -324,13 +326,13 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
       <div className="flex gap-2 rounded border border-blue-200 bg-blue-50 p-3 text-xs text-gray-700">
         <AlertCircle className="h-4 w-4 flex-shrink-0 text-blue-600" />
         <div>
-          <p className="font-medium text-blue-900">Lưu ý:</p>
+          <p className="font-medium text-blue-900">{t("pdf_note", "Lưu ý")}:</p>
           <p className="mt-1">
             {ocrSettings.extractImages
               ? ocrSettings.ocrMode === "full"
-                ? "Chế độ được chọn sẽ xử lý OCR để nhận dạng công thức. Quá trình này có thể mất vài phút."
-                : "Các hình ảnh/công thức sẽ được trích xuất và liên kết với câu hỏi."
-              : "Chỉ văn bản sẽ được trích xuất từ PDF."}
+                ? t("pdf_note_ocr", "Chế độ được chọn sẽ xử lý OCR để nhận dạng công thức. Quá trình này có thể mất vài phút.")
+                : t("pdf_note_extract", "Các hình ảnh/công thức sẽ được trích xuất và liên kết với câu hỏi.")
+              : t("pdf_note_text_only", "Chỉ văn bản sẽ được trích xuất từ PDF.")}
           </p>
         </div>
       </div>

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
@@ -18,6 +18,7 @@ import {
   Download
 } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
+import { useLanguage } from "@/lib/i18n/language-context"
 import { getApiBaseUrl } from "@/lib/api/config"
 
 interface Note {
@@ -36,16 +37,18 @@ interface Note {
   schedule?: { date: string; time: string; content: string }[]
 }
 
-const noteTypes = [
-  { value: 'general', label: 'Ghi chú thường', color: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300', icon: '📝' },
-  { value: 'deadline', label: 'Deadline Tracker', color: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300', icon: '⏰' },
-  { value: 'checklist', label: 'Checklist', color: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-300', icon: '☑' },
-  { value: 'plan', label: 'Lịch học / Plan', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300', icon: '📅' },
+const noteTypesMeta = [
+  { value: 'general', labelKey: 'notes_type_general', labelFallback: 'Ghi chú thường', color: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300', icon: '📝' },
+  { value: 'deadline', labelKey: 'notes_type_deadline', labelFallback: 'Deadline Tracker', color: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300', icon: '⏰' },
+  { value: 'checklist', labelKey: 'notes_type_checklist', labelFallback: 'Checklist', color: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-300', icon: '☑' },
+  { value: 'plan', labelKey: 'notes_type_plan', labelFallback: 'Lịch học / Plan', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300', icon: '📅' },
 ]
 
 export default function NotesPage() {
   const apiUrl = getApiBaseUrl()
   const { user } = useAuth()
+  const { t } = useLanguage()
+  const noteTypes = noteTypesMeta.map(nt => ({ ...nt, label: t(nt.labelKey, nt.labelFallback) }))
   const token =
   typeof window !== 'undefined'
     ? localStorage.getItem('auth_token')
@@ -175,17 +178,17 @@ export default function NotesPage() {
       const json = await res.json()
 
       if (!res.ok) {
-        throw new Error(json?.error?.message || "Không lấy được ghi chú")
+        throw new Error(json?.error?.message || t("notes_fetch_error", "Không lấy được ghi chú"))
       }
 
       setNotes(
         (json.data ?? json).map((n: any) => ({
           id: n.id,
-          title: n.title ?? n.content?.split('\n')[0] ?? 'Ghi chú',
+          title: n.title ?? n.content?.split('\n')[0] ?? t('notes_default_title', 'Ghi chú'),
           content: n.content || '',
-          course: n.course?.title ?? 'Chưa phân loại',
+          course: n.course?.title ?? t('notes_uncategorized', 'Chưa phân loại'),
           courseId: n.course?.id ?? '',
-          lessonTitle: n.lesson?.title ?? 'Ghi chú',
+          lessonTitle: n.lesson?.title ?? t('notes_default_title', 'Ghi chú'),
           createdAt: n.createdAt,
           updatedAt: n.updatedAt,
           tags: [],
@@ -206,17 +209,17 @@ export default function NotesPage() {
   try {
     // Validate based on note type
     if (newNote.type === 'general' && !newNote.content?.trim()) {
-      console.error('Ghi chú thường cần có nội dung');
+      console.error(t('notes_general_content_required', 'Ghi chú thường cần có nội dung'));
       return;
     }
     
     if ((newNote.type === 'deadline' || newNote.type === 'checklist') && (!newNote.items || newNote.items.length === 0)) {
-      console.error('Loại này cần có ít nhất một mục');
+      console.error(t('notes_items_required', 'Loại này cần có ít nhất một mục'));
       return;
     }
     
     if (newNote.type === 'plan' && (!newNote.schedule || newNote.schedule.length === 0)) {
-      console.error('Lịch học cần có ít nhất một lịch');
+      console.error(t('notes_schedule_required', 'Lịch học cần có ít nhất một lịch'));
       return;
     }
 
@@ -249,7 +252,7 @@ export default function NotesPage() {
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) throw new Error('Tạo note thất bại');
+    if (!res.ok) throw new Error(t('notes_create_failed', 'Tạo note thất bại'));
 
     // Fetch lại danh sách để cập nhật
     await fetchNotes();
@@ -273,17 +276,17 @@ export default function NotesPage() {
 
     // Validate based on note type
     if (editingNote.type === 'general' && !editingNote.content?.trim()) {
-      console.error('Ghi chú thường cần có nội dung');
+      console.error(t('notes_general_content_required', 'Ghi chú thường cần có nội dung'));
       return;
     }
     
     if ((editingNote.type === 'deadline' || editingNote.type === 'checklist') && (!editingNote.items || editingNote.items.length === 0)) {
-      console.error('Loại này cần có ít nhất một mục');
+      console.error(t('notes_items_required', 'Loại này cần có ít nhất một mục'));
       return;
     }
     
     if (editingNote.type === 'plan' && (!editingNote.schedule || editingNote.schedule.length === 0)) {
-      console.error('Lịch học cần có ít nhất một lịch');
+      console.error(t('notes_schedule_required', 'Lịch học cần có ít nhất một lịch'));
       return;
     }
 
@@ -319,7 +322,7 @@ export default function NotesPage() {
         }
       );
 
-      if (!res.ok) throw new Error('Cập nhật note thất bại');
+      if (!res.ok) throw new Error(t('notes_update_failed', 'Cập nhật note thất bại'));
 
       // Fetch lại danh sách để cập nhật
       await fetchNotes();
@@ -341,7 +344,7 @@ export default function NotesPage() {
         }
       );
 
-      if (!res.ok) throw new Error('Xóa note thất bại');
+      if (!res.ok) throw new Error(t('notes_delete_failed', 'Xóa note thất bại'));
 
       setNotes(notes.filter(n => n.id !== id))
       if (viewingNote?.id === id) setViewingNote(null)
@@ -376,7 +379,7 @@ export default function NotesPage() {
     const url = URL.createObjectURL(dataBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `ghi-chú-${new Date().toISOString().split('T')[0]}.json`
+    link.download = `notes-${new Date().toISOString().split('T')[0]}.json`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -396,14 +399,14 @@ export default function NotesPage() {
       )
 
       if (!res.ok) {
-        throw new Error('Xuất Excel thất bại')
+        throw new Error(t('notes_export_failed', 'Xuất Excel thất bại'))
       }
 
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `ghi-chu-${new Date().toISOString().split('T')[0]}.xlsx`
+      link.download = `notes-${new Date().toISOString().split('T')[0]}.xlsx`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -426,14 +429,14 @@ export default function NotesPage() {
       )
 
       if (!res.ok) {
-        throw new Error('Xuất Excel thất bại')
+        throw new Error(t('notes_export_failed', 'Xuất Excel thất bại'))
       }
 
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `ghi-chu-${new Date().toISOString().split('T')[0]}.xlsx`
+      link.download = `notes-${new Date().toISOString().split('T')[0]}.xlsx`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -460,17 +463,17 @@ export default function NotesPage() {
       const json = await res.json()
 
       if (!res.ok) {
-        throw new Error(json?.error?.message || "Không lấy được ghi chú yêu thích")
+        throw new Error(json?.error?.message || t("notes_fetch_fav_error", "Không lấy được ghi chú yêu thích"))
       }
 
       setFavoriteNotes(
         (json.data ?? json).map((n: any) => ({
           id: n.id,
-          title: n.title ?? n.content?.split('\n')[0] ?? 'Ghi chú',
+          title: n.title ?? n.content?.split('\n')[0] ?? t('notes_default_title', 'Ghi chú'),
           content: n.content || '',
-          course: n.course?.title ?? 'Chưa phân loại',
+          course: n.course?.title ?? t('notes_uncategorized', 'Chưa phân loại'),
           courseId: n.course?.id ?? '',
-          lessonTitle: n.lesson?.title ?? 'Ghi chú',
+          lessonTitle: n.lesson?.title ?? t('notes_default_title', 'Ghi chú'),
           createdAt: n.createdAt,
           updatedAt: n.updatedAt,
           tags: [],
@@ -499,7 +502,7 @@ export default function NotesPage() {
         }
       )
 
-      if (!res.ok) throw new Error('Thay đổi yêu thích thất bại')
+      if (!res.ok) throw new Error(t('notes_toggle_fav_failed', 'Thay đổi yêu thích thất bại'))
 
       // Update local state
       setNotes(notes.map(n => 
@@ -536,26 +539,26 @@ useEffect(() => {
             <p className="text-muted-foreground dark:text-slate-400 mt-1 flex items-center gap-3">
               <span className="flex items-center gap-1">
                 <StickyNote size={16} />
-                {notes.length} ghi chú
+                {notes.length} {t("notes_count_label", "ghi chú")}
               </span>
               <span className="flex items-center gap-1">
                 <Star size={16} className="text-yellow-500" />
-                {notes.filter(n => n.isFavorite).length} yêu thích
+                {notes.filter(n => n.isFavorite).length} {t("notes_favorites", "yêu thích")}
               </span>
             </p>
           </div>
           <div className="flex gap-3">
             <button 
               onClick={handleShowFavorites}
-              title="Xem ghi chú yêu thích"
+              title={t("notes_view_fav", "Xem ghi chú yêu thích")}
               className="px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg hover:shadow-xl"
             >
               <Star size={20} />
-              <span className="hidden sm:inline">Yêu thích</span>
+              <span className="hidden sm:inline">{t("notes_fav_btn", "Yêu thích")}</span>
             </button>
             <button 
               onClick={handleExportToExcel}
-              title="Xuất ra file Excel"
+              title={t("notes_export_excel", "Xuất ra file Excel")}
               className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg hover:shadow-xl"
             >
               <Download size={20} />
@@ -583,7 +586,7 @@ useEffect(() => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
           <input
             type="text"
-            placeholder="Tìm kiếm ghi chú..."
+            placeholder={t("notes_search", "Tìm kiếm ghi chú...")}
             value={searchTerm}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full bg-card dark:bg-slate-900/60 border-2 border-border dark:border-slate-800 text-foreground dark:text-white rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
@@ -616,7 +619,7 @@ useEffect(() => {
                 <button
                   onClick={() => setTagToDelete(tag)}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg"
-                  title="Xóa tag"
+                  title={t("notes_delete_tag", "Xóa tag")}
                 >
                   <X size={14} />
                 </button>
@@ -631,7 +634,7 @@ useEffect(() => {
                 ? 'bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30'
                 : 'bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 text-muted-foreground cursor-not-allowed opacity-50'
             }`}
-            title="Xóa tất cả bộ lọc"
+            title={t("notes_clear_all_filters", "Xóa tất cả bộ lọc")}
           >
             <X size={20} />
             Xóa tất cả
@@ -650,12 +653,12 @@ useEffect(() => {
             <StickyNote size={40} className="text-primary dark:text-accent" />
           </div>
           <h3 className="text-xl font-bold text-foreground dark:text-white mb-2">
-            {searchTerm || selectedCourse !== "all" ? "Không tìm thấy ghi chú" : "Chưa có ghi chú nào"}
+            {searchTerm || selectedCourse !== "all" ? t("notes_not_found", "Không tìm thấy ghi chú") : t("notes_empty", "Chưa có ghi chú nào")}
           </h3>
           <p className="text-muted-foreground dark:text-slate-400 mb-6">
             {searchTerm || selectedCourse !== "all" 
-              ? "Thử thay đổi từ khóa hoặc bộ lọc" 
-              : "Tạo ghi chú để lưu lại những điều quan trọng trong quá trình học"}
+              ? t("notes_try_different", "Thử thay đổi từ khóa hoặc bộ lọc") 
+              : t("notes_create_hint", "Tạo ghi chú để lưu lại những điều quan trọng trong quá trình học")}
           </p>
           {!searchTerm && selectedCourse === "all" && (
             <button 
@@ -699,7 +702,7 @@ useEffect(() => {
                       handleToggleFavorite(note.id)
                     }}
                     className="p-2 hover:bg-yellow-500/20 rounded-lg transition-all"
-                    title="Thêm vào yêu thích"
+                    title={t("notes_add_fav", "Thêm vào yêu thích")}
                   >
                     <Star 
                       size={20} 
@@ -712,7 +715,7 @@ useEffect(() => {
                       setEditingNote(note)
                     }}
                     className="p-2 hover:bg-blue-500/20 rounded-lg text-blue-500 dark:text-blue-400 transition-all"
-                    title="Chỉnh sửa"
+                    title={t("notes_edit", "Chỉnh sửa")}
                   >
                     <Edit3 size={20} />
                   </button>
@@ -722,7 +725,7 @@ useEffect(() => {
                       handleDeleteNote(note.id)
                     }}
                     className="p-2 hover:bg-red-500/20 rounded-lg text-red-500 dark:text-red-400 transition-all hover:scale-110"
-                    title="Xóa"
+                    title={t("notes_delete", "Xóa")}
                   >
                     <Trash2 size={22} className="font-bold" />
                   </button>
@@ -737,9 +740,9 @@ useEffect(() => {
               {(note.type === 'deadline' || note.type === 'checklist') && (
                 <div className="mb-4 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-2">
-                    <span className="font-medium">{note.items?.length || 0} {note.type === 'deadline' ? 'deadline' : 'mục'}</span>
+                    <span className="font-medium">{note.items?.length || 0} {note.type === 'deadline' ? 'deadline' : t('notes_items', 'mục')}</span>
                     {note.items && note.items.length > 0 && (
-                      <span className="text-xs">({note.items.filter(i => i.completed).length} hoàn thành)</span>
+                      <span className="text-xs">({note.items.filter(i => i.completed).length} {t('notes_done', 'hoàn thành')})</span>
                     )}
                   </div>
                   <div className="space-y-1">
@@ -768,7 +771,7 @@ useEffect(() => {
                       </div>
                     ))}
                     {note.items && note.items.length > 2 && (
-                      <div className="text-xs text-muted-foreground">+{note.items.length - 2} {note.type === 'deadline' ? 'deadline' : 'mục'} khác</div>
+                      <div className="text-xs text-muted-foreground">+{note.items.length - 2} more</div>
                     )}
                   </div>
                 </div>
@@ -776,17 +779,17 @@ useEffect(() => {
               {note.type === 'plan' && (
                 <div className="mb-4 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-2">
-                    <span className="font-medium">{note.schedule?.length || 0} lịch</span>
+                    <span className="font-medium">{note.schedule?.length || 0} {t('notes_schedules', 'lịch')}</span>
                   </div>
                   <div className="space-y-1">
                     {note.schedule?.slice(0, 2).map((item, idx) => (
                       <div key={idx} className="text-xs line-clamp-1 text-foreground dark:text-white">
-                        <span className="font-medium">{item.date ? formatDate(item.date) : 'Chưa có ngày'}</span>
+                        <span className="font-medium">{item.date ? formatDate(item.date) : t('notes_no_date', 'Chưa có ngày')}</span>
                         {item.time && <span className="text-muted-foreground"> • {item.time}</span>}
                       </div>
                     ))}
                     {note.schedule && note.schedule.length > 2 && (
-                      <div className="text-xs text-muted-foreground">+{note.schedule.length - 2} lịch khác</div>
+                      <div className="text-xs text-muted-foreground">+{note.schedule.length - 2} more</div>
                     )}
                   </div>
                 </div>
@@ -873,8 +876,8 @@ useEffect(() => {
             >
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground dark:text-white">Tạo ghi chú mới</h2>
-                  <p className="text-sm text-muted-foreground">Lưu lại những điều quan trọng</p>
+                  <h2 className="text-2xl font-bold text-foreground dark:text-white">{t("notes_create_title", "Tạo ghi chú mới")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("notes_create_desc", "Lưu lại những điều quan trọng")}</p>
                 </div>
                 <button 
                   onClick={() => setIsCreating(false)}
@@ -886,13 +889,13 @@ useEffect(() => {
               <div className="space-y-4">
                 <input
                   type="text"
-                  placeholder="Tiêu đề ghi chú..."
+                  placeholder={t("notes_title_placeholder", "Tiêu đề ghi chú...")}
                   value={newNote.title}
                   onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors text-lg font-semibold"
                 />
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Loại ghi chú</label>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">{t("notes_type_label", "Loại ghi chú")}</label>
                   <div className="grid grid-cols-2 gap-2">
                     {noteTypes.map((nt) => (
                       <button
@@ -911,7 +914,7 @@ useEffect(() => {
                 </div>
                 {newNote.type === 'general' && (
                   <textarea
-                    placeholder="Viết nội dung ghi chú của bạn..."
+                    placeholder={t("notes_content_placeholder", "Viết nội dung ghi chú của bạn...")}
                     value={newNote.content}
                     onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors h-48 resize-none"
@@ -920,7 +923,7 @@ useEffect(() => {
                 {(newNote.type === 'deadline' || newNote.type === 'checklist') && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground block">
-                      {newNote.type === 'deadline' ? 'Các deadline' : 'Các mục kiểm tra'}
+                      {newNote.type === 'deadline' ? t('notes_deadlines', 'Các deadline') : t('notes_checklist_items', 'Các mục kiểm tra')}
                     </label>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {newNote.items?.map((item, idx) => (
@@ -946,7 +949,7 @@ useEffect(() => {
                                     updated[idx].title = e.target.value
                                     setNewNote({ ...newNote, items: updated })
                                   }}
-                                  placeholder="Tên công việc"
+                                  placeholder={t("notes_task_name", "Tên công việc")}
                                   className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary"
                                 />
                               </div>
@@ -970,9 +973,9 @@ useEffect(() => {
                                   }}
                                   className="bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-2 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary text-sm"
                                 >
-                                  <option value="low">Thấp</option>
-                                  <option value="medium">Bình thường</option>
-                                  <option value="high">Cao</option>
+                                  <option value="low">{t("notes_priority_low", "Thấp")}</option>
+                                  <option value="medium">{t("notes_priority_medium", "Bình thường")}</option>
+                                  <option value="high">{t("notes_priority_high", "Cao")}</option>
                                 </select>
                                 <button
                                   onClick={() => {
@@ -1028,13 +1031,13 @@ useEffect(() => {
                       }}
                       className="w-full px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
                     >
-                      {newNote.type === 'deadline' ? '+ Thêm deadline' : '+ Thêm mục'}
+                      {newNote.type === 'deadline' ? t('notes_add_deadline', '+ Thêm deadline') : t('notes_add_item', '+ Thêm mục')}
                     </button>
                   </div>
                 )}
                 {newNote.type === 'plan' && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground block">Lịch học</label>
+                    <label className="text-sm font-medium text-muted-foreground block">{t("notes_schedule_label", "Lịch học")}</label>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {newNote.schedule?.map((item, idx) => (
                         <div key={`schedule-${idx}-${item.date}-${item.time}`} className="flex gap-2 items-end">
@@ -1066,7 +1069,7 @@ useEffect(() => {
                               updated[idx].content = e.target.value
                               setNewNote({ ...newNote, schedule: updated })
                             }}
-                            placeholder="Nội dung"
+                            placeholder={t("notes_content_label", "Nội dung")}
                             className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary"
                           />
                           <button
@@ -1117,7 +1120,7 @@ useEffect(() => {
                   )}
                   <input
                     type="text"
-                    placeholder="Thêm tag mới (nhấn Enter hoặc Dấu phẩy để thêm)"
+                    placeholder={t("notes_add_tag", "Thêm tag mới (nhấn Enter hoặc Dấu phẩy để thêm)")}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ',') {
                         e.preventDefault()
@@ -1178,8 +1181,8 @@ useEffect(() => {
             >
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground dark:text-white">Chỉnh sửa ghi chú</h2>
-                  <p className="text-sm text-muted-foreground">Cập nhật nội dung của bạn</p>
+                  <h2 className="text-2xl font-bold text-foreground dark:text-white">{t("notes_edit_title", "Chỉnh sửa ghi chú")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("notes_edit_desc", "Cập nhật nội dung của bạn")}</p>
                 </div>
                 <button 
                   onClick={() => setEditingNote(null)}
@@ -1191,23 +1194,23 @@ useEffect(() => {
               <div className="space-y-4">
                 <input
                   type="text"
-                  placeholder="Tiêu đề ghi chú..."
+                  placeholder={t("notes_title_placeholder", "Tiêu đề ghi chú...")}
                   value={editingNote.title}
                   onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors text-lg font-semibold"
                 />
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Loại ghi chú</label>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">{t("notes_type_label", "Loại ghi chú")}</label>
                   <div className="px-3 py-2 rounded-lg text-sm font-medium" style={{
                     backgroundColor: noteTypes.find(nt => nt.value === editingNote.type)?.color?.split(' ')[0],
                   }}>
                     {noteTypes.find(nt => nt.value === editingNote.type)?.icon} {noteTypes.find(nt => nt.value === editingNote.type)?.label}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">Không thể thay đổi loại ghi chú khi chỉnh sửa</p>
+                  <p className="text-xs text-muted-foreground mt-2">{t("notes_type_locked", "Không thể thay đổi loại ghi chú khi chỉnh sửa")}</p>
                 </div>
                 {editingNote.type === 'general' && (
                   <textarea
-                    placeholder="Viết nội dung ghi chú của bạn..."
+                    placeholder={t("notes_content_placeholder", "Viết nội dung ghi chú của bạn...")}
                     value={editingNote.content}
                     onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors h-48 resize-none"
@@ -1216,7 +1219,7 @@ useEffect(() => {
                 {(editingNote.type === 'deadline' || editingNote.type === 'checklist') && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground block">
-                      {editingNote.type === 'deadline' ? 'Các deadline' : 'Các mục kiểm tra'}
+                      {editingNote.type === 'deadline' ? t('notes_deadlines', 'Các deadline') : t('notes_checklist_items', 'Các mục kiểm tra')}
                     </label>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {editingNote.items?.map((item, idx) => (
@@ -1232,7 +1235,7 @@ useEffect(() => {
                                     updated[idx].title = e.target.value
                                     setEditingNote({ ...editingNote, items: updated })
                                   }}
-                                  placeholder="Tên công việc"
+                                  placeholder={t("notes_task_name", "Tên công việc")}
                                   className={`flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary ${item.completed ? 'line-through text-muted-foreground' : ''}`}
                                 />
                               </div>
@@ -1256,9 +1259,9 @@ useEffect(() => {
                                   }}
                                   className="bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-2 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary text-sm"
                                 >
-                                  <option value="low">Thấp</option>
-                                  <option value="medium">Bình thường</option>
-                                  <option value="high">Cao</option>
+                                  <option value="low">{t("notes_priority_low", "Thấp")}</option>
+                                  <option value="medium">{t("notes_priority_medium", "Bình thường")}</option>
+                                  <option value="high">{t("notes_priority_high", "Cao")}</option>
                                 </select>
                                 <button
                                   onClick={() => {
@@ -1304,13 +1307,13 @@ useEffect(() => {
                       }}
                       className="w-full px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
                     >
-                      {editingNote.type === 'deadline' ? '+ Thêm deadline' : '+ Thêm mục'}
+                      {editingNote.type === 'deadline' ? t('notes_add_deadline', '+ Thêm deadline') : t('notes_add_item', '+ Thêm mục')}
                     </button>
                   </div>
                 )}
                 {editingNote.type === 'plan' && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground block">Lịch học</label>
+                    <label className="text-sm font-medium text-muted-foreground block">{t("notes_schedule_label", "Lịch học")}</label>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {editingNote.schedule?.map((item, idx) => (
                         <div key={`edit-schedule-${idx}-${item.date}-${item.time}`} className="flex gap-2 items-end">
@@ -1342,7 +1345,7 @@ useEffect(() => {
                               updated[idx].content = e.target.value
                               setEditingNote({ ...editingNote, schedule: updated })
                             }}
-                            placeholder="Nội dung"
+                            placeholder={t("notes_content_label", "Nội dung")}
                             className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary"
                           />
                           <button
@@ -1393,7 +1396,7 @@ useEffect(() => {
                   )}
                   <input
                     type="text"
-                    placeholder="Thêm tag mới (nhấn Enter hoặc Dấu phẩy để thêm)"
+                    placeholder={t("notes_add_tag", "Thêm tag mới (nhấn Enter hoặc Dấu phẩy để thêm)")}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ',') {
                         e.preventDefault()
@@ -1477,7 +1480,7 @@ useEffect(() => {
                   <button 
                     onClick={() => handleExportSingleNoteToExcel(viewingNote.id)}
                     className="p-2 hover:bg-green-500/20 rounded-lg text-green-500 dark:text-green-400 transition-all hover:scale-110"
-                    title="Xuất ghi chú này ra file Excel"
+                    title={t("notes_export_note_excel", "Xuất ghi chú này ra file Excel")}
                   >
                     <Download size={22} />
                   </button>
@@ -1487,7 +1490,7 @@ useEffect(() => {
                       setViewingNote({...viewingNote, isFavorite: !viewingNote.isFavorite})
                     }}
                     className="p-2 hover:bg-yellow-500/20 rounded-lg transition-all"
-                    title="Thêm vào yêu thích"
+                    title={t("notes_add_fav", "Thêm vào yêu thích")}
                   >
                     <Star 
                       size={22} 
@@ -1500,14 +1503,14 @@ useEffect(() => {
                       setViewingNote(null)
                     }}
                     className="p-2 hover:bg-blue-500/20 rounded-lg text-blue-500 dark:text-blue-400 transition-all hover:scale-110"
-                    title="Chỉnh sửa"
+                    title={t("notes_edit", "Chỉnh sửa")}
                   >
                     <Edit3 size={22} />
                   </button>
                   <button 
                     onClick={() => setViewingNote(null)}
                     className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-all"
-                    title="Đóng"
+                    title={t("notes_close", "Đóng")}
                   >
                     <X size={22} className="text-muted-foreground" />
                   </button>
@@ -1526,7 +1529,7 @@ useEffect(() => {
               {(viewingNote.type === 'deadline' || viewingNote.type === 'checklist') && (
                 <div className="mb-6">
                   <h3 className="font-semibold text-foreground dark:text-white mb-3">
-                    {viewingNote.type === 'deadline' ? '⏰ Các Deadline' : '☑ Các mục kiểm tra'}
+                    {viewingNote.type === 'deadline' ? '⏰ Deadlines' : '☑ Checklist'}
                   </h3>
                   <div className="space-y-2">
                     {viewingNote.items?.map((item) => (
@@ -1562,7 +1565,7 @@ useEffect(() => {
                                 item.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' :
                                 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
                               }`}>
-                                {item.priority === 'high' ? 'Cao' : item.priority === 'medium' ? 'Bình thường' : 'Thấp'}
+                                {item.priority === 'high' ? t('notes_priority_high', 'Cao') : item.priority === 'medium' ? t('notes_priority_medium', 'Bình thường') : t('notes_priority_low', 'Thấp')}
                               </span>
                             </div>
                             {item.deadline && (
@@ -1603,7 +1606,7 @@ useEffect(() => {
 
               {viewingNote.type === 'plan' && (
                 <div className="mb-6">
-                  <h3 className="font-semibold text-foreground dark:text-white mb-3">📅 Lịch học</h3>
+                  <h3 className="font-semibold text-foreground dark:text-white mb-3">📅 Schedule</h3>
                   <div className="space-y-2">
                     {viewingNote.schedule?.map((item, idx) => (
                       <div key={`view-schedule-${idx}-${item.date}-${item.time}`} className="p-4 bg-background dark:bg-slate-950/50 rounded-lg border-l-4 border-primary">
@@ -1611,7 +1614,7 @@ useEffect(() => {
                           <div className="flex items-center gap-2">
                             <Calendar size={16} className="text-primary" />
                             <span className="font-semibold text-foreground dark:text-white">
-                              {item.date ? formatDate(item.date) : 'Chưa có ngày'}
+                              {item.date ? formatDate(item.date) : t('notes_no_date', 'Chưa có ngày')}
                             </span>
                           </div>
                           {item.time && (
@@ -1653,8 +1656,8 @@ useEffect(() => {
 
               <div className="pt-6 border-t border-border dark:border-slate-800 text-xs text-muted-foreground">
                 <div className="flex items-center justify-between">
-                  <span>Tạo lúc: {formatDate(viewingNote.createdAt)}</span>
-                  <span>Cập nhật: {formatDate(viewingNote.updatedAt)}</span>
+                  <span>{t("notes_created_at", "Tạo lúc")}: {formatDate(viewingNote.createdAt)}</span>
+                  <span>{t("notes_updated_at", "Cập nhật")}: {formatDate(viewingNote.updatedAt)}</span>
                 </div>
               </div>
             </motion.div>
@@ -1758,7 +1761,7 @@ useEffect(() => {
                     <div className="inline-block animate-spin">
                       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
                     </div>
-                    <p className="mt-4 text-muted-foreground">Đang tải ghi chú yêu thích...</p>
+                    <p className="mt-4 text-muted-foreground">{t("notes_loading_fav", "Đang tải ghi chú yêu thích...")}</p>
                   </div>
                 ) : favoriteNotes.length === 0 ? (
                   <div className="text-center py-12">
@@ -1790,7 +1793,7 @@ useEffect(() => {
                               </h4>
                             </div>
                             <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                              {note.content || `${note.items?.length || 0} mục` || `${note.schedule?.length || 0} lịch`}
+                              {note.content || `${note.items?.length || 0} ${t('notes_items', 'mục')}` || `${note.schedule?.length || 0} ${t('notes_schedules', 'lịch')}`}
                             </p>
                             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                               {note.course && (
@@ -1809,14 +1812,14 @@ useEffect(() => {
                             <button
                               onClick={() => setViewingNote(note)}
                               className="p-2 hover:bg-background dark:hover:bg-slate-900 rounded-lg transition-colors"
-                              title="Xem chi tiết"
+                              title={t("notes_view_detail", "Xem chi tiết")}
                             >
                               <BookOpen size={18} className="text-primary" />
                             </button>
                             <button
                               onClick={() => handleToggleFavorite(note.id)}
                               className="p-2 hover:bg-background dark:hover:bg-slate-900 rounded-lg transition-colors"
-                              title="Bỏ khỏi yêu thích"
+                              title={t("notes_remove_fav", "Bỏ khỏi yêu thích")}
                             >
                               <Star size={18} className="text-yellow-500 fill-yellow-500" />
                             </button>

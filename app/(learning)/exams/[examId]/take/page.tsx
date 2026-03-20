@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 
@@ -68,7 +68,10 @@ function normalizeExamQuestions(raw: unknown): ExamQuestion[] {
 export default function TakeExamPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const examId = params.examId as string
+  const source = (searchParams.get("source") || "").toLowerCase()
+  const isExtractedSource = source === "extracted"
 
   const [exam, setExam] = useState<ExamData | null>(null)
   const [attemptId, setAttemptId] = useState<string>("")
@@ -81,16 +84,20 @@ export default function TakeExamPage() {
     const load = async () => {
       setLoading(true)
       try {
-        const [examData, attempt] = await Promise.all([
-          apiClient.getExamById(examId),
-          apiClient.startExam(examId),
-        ])
+        const examData = isExtractedSource
+          ? await apiClient.getExtractedExamById(examId)
+          : await apiClient.getExamById(examId)
 
         setExam({
           ...examData,
           questions: normalizeExamQuestions((examData as any)?.questions),
         })
-        setAttemptId(attempt.id)
+
+        if (!isExtractedSource) {
+          const attempt = await apiClient.startExam(examId)
+          setAttemptId(attempt.id)
+        }
+
         setTimeRemaining(Number(examData.timeLimit || 60) * 60)
       } catch (error) {
         const message = error instanceof Error ? error.message : "Không thể bắt đầu bài thi"
@@ -104,7 +111,7 @@ export default function TakeExamPage() {
     if (examId) {
       load()
     }
-  }, [examId, router])
+  }, [examId, isExtractedSource, router])
 
   useEffect(() => {
     if (!exam) return
@@ -133,7 +140,8 @@ export default function TakeExamPage() {
   const questionCount = safeQuestions.length
 
   const handleSubmit = async (autoSubmit = false) => {
-    if (!attemptId || submitting) return
+    if (submitting) return
+    if (!isExtractedSource && !attemptId) return
 
     setSubmitting(true)
     try {
@@ -142,9 +150,18 @@ export default function TakeExamPage() {
         answer,
       }))
 
-      const result = await apiClient.submitExamAttempt(attemptId, payload)
+      const result = isExtractedSource
+        ? await apiClient.submitExtractedExam(examId, payload)
+        : await apiClient.submitExamAttempt(attemptId, payload)
+
       toast.success(autoSubmit ? "Hết giờ, hệ thống đã tự nộp bài" : "Nộp bài thành công")
-      router.push(`/exams/${examId}/result?attemptId=${result.id}`)
+
+      if (isExtractedSource) {
+        sessionStorage.setItem(`extracted_result_${result.id}`, JSON.stringify(result))
+        router.push(`/exams/${examId}/result?attemptId=${result.id}&source=extracted`)
+      } else {
+        router.push(`/exams/${examId}/result?attemptId=${result.id}`)
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Không thể nộp bài"
       toast.error(message)

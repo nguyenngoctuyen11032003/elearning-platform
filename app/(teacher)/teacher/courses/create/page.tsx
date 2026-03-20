@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface Section {
   id: string
@@ -34,7 +35,12 @@ interface Quiz {
   correctAnswers?: number[]
 }
 
-const steps = ["Thông tin", "Nội dung", "Giá & Trạng thái", "Hoàn thành"]
+const steps = [
+  { key: "tc_create_step_info", fallback: "Thông tin" },
+  { key: "tc_create_step_content", fallback: "Nội dung" },
+  { key: "tc_create_step_pricing", fallback: "Giá & Trạng thái" },
+  { key: "tc_create_step_done", fallback: "Hoàn thành" },
+]
 
 interface Category {
   id: string
@@ -44,6 +50,7 @@ interface Category {
 
 export default function CreateCoursePage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [currentStep, setCurrentStep] = useState(0)
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -83,11 +90,11 @@ export default function CreateCoursePage() {
       // Validate step 0 fields before moving to next step
       if (currentStep === 0) {
         if (!formData.title.trim()) {
-          toast.error("Vui lòng nhập tên khóa học")
+          toast.error(t("tc_create_err_title_required", "Vui lòng nhập tên khóa học"))
           return
         }
         if (!formData.description.trim()) {
-          toast.error("Vui lòng nhập mô tả khóa học")
+          toast.error(t("tc_create_err_desc_required", "Vui lòng nhập mô tả khóa học"))
           return
         }
       }
@@ -98,11 +105,11 @@ export default function CreateCoursePage() {
     if (currentStep === steps.length - 2) {
       // Validate before submitting
       if (!formData.title.trim()) {
-        toast.error("Vui lòng nhập tên khóa học")
+        toast.error(t("tc_create_err_title_required", "Vui lòng nhập tên khóa học"))
         return
       }
       if (!formData.description.trim()) {
-        toast.error("Vui lòng nhập mô tả khóa học")
+        toast.error(t("tc_create_err_desc_required", "Vui lòng nhập mô tả khóa học"))
         return
       }
 
@@ -148,7 +155,7 @@ export default function CreateCoursePage() {
 
         if (!courseRes.ok) {
           const err = await courseRes.json().catch(() => ({}))
-          throw new Error(err.message || err.error || "Tạo khóa học thất bại")
+          throw new Error(err.message || err.error || t("tc_create_err_create_failed", "Tạo khóa học thất bại"))
         }
 
         const course = await courseRes.json()
@@ -227,10 +234,10 @@ export default function CreateCoursePage() {
           })
         }
 
-        toast.success("Đã tạo khóa học thành công!")
+        toast.success(t("tc_create_success", "Đã tạo khóa học thành công!"))
         setCurrentStep(currentStep + 1)
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : "Đã xảy ra lỗi"
+        const message = error instanceof Error ? error.message : t("tc_create_err_unknown", "Đã xảy ra lỗi")
         toast.error(message)
       } finally {
         setIsSubmitting(false)
@@ -745,8 +752,8 @@ export default function CreateCoursePage() {
       <div className="w-full space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground dark:text-white">Tạo khóa học mới</h1>
-          <p className="text-muted-foreground dark:text-slate-400">Hướng dẫn từng bước để tạo khóa học</p>
+          <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("tc_create_title", "Tạo khóa học mới")}</h1>
+          <p className="text-muted-foreground dark:text-slate-400">{t("tc_create_subtitle", "Hướng dẫn từng bước để tạo khóa học")}</p>
         </div>
 
         {/* Steps */}
@@ -763,7 +770,7 @@ export default function CreateCoursePage() {
                 {index < currentStep ? <Check size={20} /> : index + 1}
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-foreground dark:text-white">{step}</p>
+                <p className="text-sm font-medium text-foreground dark:text-white">{t(step.key, step.fallback)}</p>
               </div>
               {index < steps.length - 1 && (
                 <div
@@ -781,19 +788,19 @@ export default function CreateCoursePage() {
           {currentStep === 0 && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Tên khóa học</label>
+                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_course_name", "Tên khóa học")}</label>
                 <input
                   type="text"
-                  placeholder="Nhập tên khóa học"
+                  placeholder={t("tc_create_course_name_placeholder", "Nhập tên khóa học")}
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Mô tả khóa học</label>
+                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_course_desc", "Mô tả khóa học")}</label>
                 <textarea
-                  placeholder="Mô tả chi tiết về khóa học"
+                  placeholder={t("tc_create_course_desc_placeholder", "Mô tả chi tiết về khóa học")}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={5}
@@ -801,20 +808,20 @@ export default function CreateCoursePage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Danh mục</label>
+                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_category", "Danh mục")}</label>
                 <select
                   value={formData.categoryId}
                   onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                   className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
                 >
-                  <option value="">Chọn danh mục</option>
+                  <option value="">{t("tc_create_select_category", "Chọn danh mục")}</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Ảnh hình khóa học</label>
+                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_course_image", "Ảnh hình khóa học")}</label>
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <input

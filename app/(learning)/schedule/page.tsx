@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -20,6 +20,7 @@ import {
   Tag
 } from "lucide-react"
 import { toast } from "sonner"
+import { useLanguage } from "@/lib/i18n/language-context"
 import { scheduleApi } from '@/lib/api/schedule.api'
 
 interface ScheduleItem {
@@ -38,6 +39,7 @@ interface ScheduleItem {
 }
 
 export default function SchedulePage() {
+  const { t } = useLanguage()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([
     // {
@@ -136,9 +138,9 @@ export default function SchedulePage() {
 
   const getDeadlineStatus = (dateString?: string) => {
     const days = getDaysUntilDeadline(dateString)
-    if (days < 0) return { status: 'overdue', label: 'Quá hạn', color: 'bg-red-500/20 text-red-600 dark:text-red-400' }
-    if (days === 0) return { status: 'today', label: 'Hôm nay', color: 'bg-orange-500/20 text-orange-600 dark:text-orange-400' }
-    if (days === 1) return { status: 'tomorrow', label: 'Ngày mai', color: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' }
+    if (days < 0) return { status: 'overdue', label: t('sched_overdue', 'Quá hạn'), color: 'bg-red-500/20 text-red-600 dark:text-red-400' }
+    if (days === 0) return { status: 'today', label: t('sched_today', 'Hôm nay'), color: 'bg-orange-500/20 text-orange-600 dark:text-orange-400' }
+    if (days === 1) return { status: 'tomorrow', label: t('sched_tomorrow', 'Ngày mai'), color: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' }
     if (days <= 3) return { status: 'soon', label: `${days} ngày nữa`, color: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' }
     return { status: 'future', label: `${days} ngày nữa`, color: 'bg-slate-500/20 text-slate-600 dark:text-slate-400' }
   }
@@ -153,7 +155,7 @@ export default function SchedulePage() {
 
 const handleCreateItem = async () => {
   if (!newItem.title?.trim() || !newItem.course?.trim()) {
-    toast.error("Vui lòng nhập đầy đủ thông tin")
+    toast.error(t("sched_fill_all", "Vui lòng nhập đầy đủ thông tin"))
     return
   }
 
@@ -172,8 +174,8 @@ const handleCreateItem = async () => {
         duration: 5000
       })
     } else if (days < 0) {
-      toast.error(`Chưa đến ngày làm - Deadline đã quá hạn ${Math.abs(days)} ngày!`, {
-        description: 'Bạn cần hoàn thành ngay lập tức!',
+      toast.error(`${t("sched_overdue_warn", "Deadline đã quá hạn")} ${Math.abs(days)} ${t("sched_days", "ngày")}!`, {
+        description: t('sched_finish_now', 'Bạn cần hoàn thành ngay lập tức!'),
         duration: 5000
       })
     }
@@ -207,13 +209,13 @@ const handleCreateItem = async () => {
     })
 
     setIsCreating(false)
-    toast.success("Đã lưu lịch học vào hệ thống")
+    toast.success(t("sched_saved", "Đã lưu lịch học vào hệ thống"))
   } catch (e) {
-    console.error("Lỗi khi tạo lịch học:", e)
+    console.error('Create schedule error:', e)
     if (e && typeof e === 'object' && 'message' in e) {
-      toast.error("Lưu lịch học thất bại: " + (e.message || ''))
+      toast.error(t("sched_save_failed", "Lưu lịch học thất bại") + ": " + (e.message || ''))
     } else {
-      toast.error("Lưu lịch học thất bại")
+      toast.error(t("sched_save_failed", "Lưu lịch học thất bại"))
     }
   }
 }
@@ -231,7 +233,7 @@ const handleUpdateItem = async () => {
       })
     } else if (days < 0) {
       toast.error(`Deadline đã quá hạn ${Math.abs(days)} ngày!`, {
-        description: 'Bạn cần hoàn thành ngay lập tức!',
+        description: t('sched_finish_now', 'Bạn cần hoàn thành ngay lập tức!'),
         duration: 5000
       })
     }
@@ -261,13 +263,13 @@ const handleUpdateItem = async () => {
     )
 
     setEditingItem(null)
-    toast.success("Đã cập nhật thành công")
+    toast.success(t("sched_updated", "Đã cập nhật thành công"))
   } catch (e) {
-    console.error("Lỗi khi cập nhật lịch học:", e)
+    console.error('Update schedule error:', e)
     if (e && typeof e === 'object' && 'message' in e) {
-      toast.error("Cập nhật thất bại: " + (e.message || ''))
+      toast.error(t("sched_update_failed", "Cập nhật thất bại") + ": " + (e.message || ''))
     } else {
-      toast.error("Cập nhật thất bại")
+      toast.error(t("sched_update_failed", "Cập nhật thất bại"))
     }
   }
 }
@@ -277,13 +279,13 @@ const handleDeleteItem = async (id: string) => {
     await scheduleApi.remove(id)
 
     setScheduleItems(prev => prev.filter(item => item.id !== id))
-    toast.success("Đã xoá khỏi DB")
+    toast.success(t("sched_deleted", "Đã xoá thành công"))
   } catch (e) {
-    console.error("Lỗi khi xoá lịch học:", e)
+    console.error('Delete schedule error:', e)
     if (e && typeof e === 'object' && 'message' in e) {
-      toast.error("Xoá thất bại: " + (e.message || ''))
+      toast.error(t('sched_delete_failed', 'Xoá thất bại') + ': ' + (e.message || ''))
     } else {
-      toast.error("Xoá thất bại")
+      toast.error(t('sched_delete_failed', 'Xoá thất bại'))
     }
   }
 }
@@ -311,15 +313,15 @@ const handleQuickStatusChange = async (
 
     toast.success(
       nextStatus === 'in-progress'
-        ? 'Đã bắt đầu công việc'
-        : 'Đã hoàn thành 🎉'
+        ? t('sched_started', 'Đã bắt đầu công việc')
+        : t('sched_done', 'Đã hoàn thành 🎉')
     )
   } catch (e) {
-    console.error('Lỗi khi cập nhật trạng thái:', e)
+    console.error('Update status error:', e)
     if (e && typeof e === 'object' && 'message' in e) {
-      toast.error('Cập nhật trạng thái thất bại: ' + (e.message || ''))
+      toast.error(t('sched_status_update_failed', 'Cập nhật trạng thái thất bại') + ': ' + (e.message || ''))
     } else {
-      toast.error('Cập nhật trạng thái thất bại')
+      toast.error(t('sched_status_update_failed', 'Cập nhật trạng thái thất bại'))
     }
   }
 }
@@ -353,9 +355,9 @@ const handleQuickStatusChange = async (
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'todo': return 'Chưa làm'
-      case 'in-progress': return 'Đang làm'
-      case 'completed': return 'Hoàn thành'
+      case 'todo': return t('sched_todo', 'Chưa làm')
+      case 'in-progress': return t('sched_in_progress', 'Đang làm')
+      case 'completed': return t('sched_completed', 'Hoàn thành')
       default: return status
     }
   }
@@ -418,18 +420,18 @@ useEffect(() => {
           // Overdue
           else if (days < 0) {
             toast.error(`Quá Hạn ${Math.abs(days)} Ngày: ${item.title}!`, {
-              description: 'Bạn cần hoàn thiện ngay!',
+              description: t('sched_finish_now', 'Bạn cần hoàn thành ngay lập tức!'),
               duration: 5000
             })
           }
         }
       })
     } catch (error) {
-      console.error('Lỗi khi tải lịch học:', error)
+      console.error('Fetch schedule error:', error)
       if (error && typeof error === 'object' && 'message' in error) {
-        toast.error('Không tải được lịch học: ' + (error.message || ''))
+        toast.error(t('sched_load_failed', 'Không tải được lịch học') + ': ' + (error.message || ''))
       } else {
-        toast.error('Không tải được lịch học')
+        toast.error(t('sched_load_failed', 'Không tải được lịch học'))
       }
     }
   }
@@ -456,7 +458,7 @@ useEffect(() => {
               </h1>
               <p className="text-xs sm:text-sm lg:text-base text-muted-foreground dark:text-slate-400 mt-1 truncate">
                 {selectedDate ? (
-                  <>Các công việc ngày {new Date(selectedDate + 'T00:00:00').toLocaleDateString('vi-VN')} 
+                  <>{t('sched_tasks_on', 'Các công việc ngày')} {new Date(selectedDate + 'T00:00:00').toLocaleDateString('vi-VN')} 
                     <button 
                       onClick={() => setSelectedDate(null)}
                       className="ml-2 px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors inline-block"
@@ -465,7 +467,7 @@ useEffect(() => {
                     </button>
                   </>
                 ) : (
-                  'Quản lý các công việc học tập của bạn'
+                  t('sched_subtitle', 'Quản lý các công việc học tập của bạn')
                 )}
               </p>
             </div>
@@ -484,7 +486,7 @@ useEffect(() => {
         <div className="space-y-3 sm:space-y-4">
           {scheduleItems.length === 0 ? (
             <div className="flex items-center justify-center h-64 text-muted-foreground dark:text-slate-500">
-              <p className="text-base">Chưa có công việc nào</p>
+              <p className="text-base">{t("sched_no_tasks", "Chưa có công việc nào")}</p>
             </div>
           ) : (
             scheduleItems.map((item, idx) => (
@@ -499,7 +501,7 @@ useEffect(() => {
                   {/* Type Badge */}
                   <div className={`px-3 py-1.5 rounded-full text-xs sm:text-xs font-semibold flex items-center gap-1.5 flex-shrink-0 ${getTypeColor(item.type)}`}>
                     {getTypeIcon(item.type)}
-                    {item.type === 'lesson' ? 'Bài học' : item.type === 'exam' ? 'Bài thi' : 'Live session'}
+                    {item.type === 'lesson' ? t('sched_lesson', 'Bài học') : item.type === 'exam' ? t('sched_exam', 'Bài thi') : 'Live session'}
                   </div>
 
                   {/* Title & Course */}
@@ -516,7 +518,7 @@ useEffect(() => {
                   <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground dark:text-slate-400 flex-shrink-0">
                     <div className="flex items-center gap-1">
                       <Calendar size={14} />
-                      <span className="whitespace-nowrap">{item.dueDate ? new Date(item.dueDate + 'T00:00:00').toLocaleDateString('vi-VN') : 'Chưa đặt'}</span>
+                      <span className="whitespace-nowrap">{item.dueDate ? new Date(item.dueDate + 'T00:00:00').toLocaleDateString('vi-VN') : t('sched_no_date', 'Chưa đặt')}</span>
                     </div>
                     <div className="hidden sm:flex items-center gap-1">
                       <Clock size={14} />
@@ -530,7 +532,7 @@ useEffect(() => {
                     item.status === 'in-progress' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' :
                     'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                   }`}>
-                    {item.status === 'todo' ? 'Chưa làm' : item.status === 'in-progress' ? 'Đang làm' : 'Hoàn thành'}
+                    {item.status === 'todo' ? t('sched_todo', 'Chưa làm') : item.status === 'in-progress' ? t('sched_in_progress', 'Đang làm') : t('sched_completed', 'Hoàn thành')}
                   </div>
 
                   {/* Actions */}
@@ -540,8 +542,8 @@ useEffect(() => {
                         onClick={() => {
                           const daysUntil = getDaysUntilDeadline(item.dueDate)
                           if (item.status === 'todo' && daysUntil > 0) {
-                            toast.warning('Chưa đến giờ làm', {
-                              description: `Hãy quay lại vào ngày ${item.dueDate || 'đã quy định'}`,
+                            toast.warning(t('sched_not_time', 'Chưa đến giờ làm'), {
+                              description: `${t('sched_come_back', 'Hãy quay lại vào ngày')} ${item.dueDate || t('sched_assigned', 'đã quy định')}`,
                               duration: 3000
                             })
                             return
@@ -553,7 +555,7 @@ useEffect(() => {
                         }}
                         disabled={item.status === 'todo' && getDaysUntilDeadline(item.dueDate) > 0}
                         className="p-1.5 text-primary dark:text-accent hover:bg-primary/10 dark:hover:bg-primary/20 rounded transition-colors"
-                        title="Chuyển trạng thái"
+                        title={t("sched_change_status", "Chuyển trạng thái")}
                       >
                         <CheckCircle size={16} />
                       </button>
@@ -561,14 +563,14 @@ useEffect(() => {
                     <button
                       onClick={() => setEditingItem(item)}
                       className="p-1.5 text-muted-foreground hover:bg-secondary dark:hover:bg-slate-800 rounded transition-colors"
-                      title="Chỉnh sửa"
+                      title={t("sched_edit", "Chỉnh sửa")}
                     >
                       <MoreVertical size={16} />
                     </button>
                     <button
                       onClick={() => handleDeleteItem(item.id)}
                       className="p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                      title="Xóa"
+                      title={t("sched_delete", "Xóa")}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -578,10 +580,10 @@ useEffect(() => {
                 {/* Deadline Warning - if needed */}
                 {isDateNotToday(item.dueDate) && item.status !== 'completed' && (
                   <div className={`mt-3 px-3 py-1.5 rounded text-xs font-medium w-fit ${getDeadlineStatus(item.dueDate).color}`}>
-                    {getDeadlineStatus(item.dueDate).status === 'overdue' && '🔴 Quá hạn'}
-                    {getDeadlineStatus(item.dueDate).status === 'tomorrow' && '⚠️ Ngày mai'}
-                    {getDeadlineStatus(item.dueDate).status === 'soon' && '🟡 Sắp đến - ' + getDeadlineStatus(item.dueDate).label}
-                    {getDeadlineStatus(item.dueDate).status === 'future' && '✓ Chưa đến ngày làm'}
+                    {getDeadlineStatus(item.dueDate).status === 'overdue' && t('sched_overdue_badge', '🔴 Quá hạn')}
+                    {getDeadlineStatus(item.dueDate).status === 'tomorrow' && t('sched_tomorrow_badge', '⚠️ Ngày mai')}
+                    {getDeadlineStatus(item.dueDate).status === 'soon' && t('sched_soon_badge', '🟡 Sắp đến - ') + getDeadlineStatus(item.dueDate).label}
+                    {getDeadlineStatus(item.dueDate).status === 'future' && t('sched_future_badge', '✓ Chưa đến ngày làm')}
                   </div>
                 )}
               </motion.div>
@@ -619,7 +621,7 @@ useEffect(() => {
 
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
-            {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day) => (
+            {[t('sched_mon','T2'), t('sched_tue','T3'), t('sched_wed','T4'), t('sched_thu','T5'), t('sched_fri','T6'), t('sched_sat','T7'), t('sched_sun','CN')].map((day) => (
               <div key={day} className="text-center text-xs font-semibold text-muted-foreground dark:text-slate-400">
                 {day}
               </div>
@@ -665,7 +667,7 @@ useEffect(() => {
 
         {/* Your Task */}
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-3 sm:p-4 lg:p-5 shadow-lg">
-          <h3 className="text-xs sm:text-sm lg:text-base font-bold text-foreground dark:text-white mb-2 sm:mb-2 lg:mb-3">Công việc của bạn</h3>
+          <h3 className="text-xs sm:text-sm lg:text-base font-bold text-foreground dark:text-white mb-2 sm:mb-2 lg:mb-3">{t("sched_your_tasks", "Công việc của bạn")}</h3>
           <div className="flex flex-wrap gap-1.5">
             <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full text-xs font-medium">
               🎯 Sắp tới
@@ -678,7 +680,7 @@ useEffect(() => {
 
         {/* Upcoming Activity */}
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-3 sm:p-4 lg:p-5 shadow-lg max-h-[220px] overflow-hidden flex flex-col">
-          <h3 className="text-xs sm:text-sm lg:text-base font-bold text-foreground dark:text-white mb-2 sm:mb-2 lg:mb-3 flex-shrink-0">Hoạt động sắp tới</h3>
+          <h3 className="text-xs sm:text-sm lg:text-base font-bold text-foreground dark:text-white mb-2 sm:mb-2 lg:mb-3 flex-shrink-0">{t("sched_upcoming_activity", "Hoạt động sắp tới")}</h3>
           <div className="space-y-1.5 sm:space-y-2 overflow-y-auto flex-1">
             {scheduleItems
               .filter(item => item.status !== 'completed')
@@ -723,7 +725,7 @@ useEffect(() => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-5 sm:mb-6 lg:mb-8 gap-2">
-                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground dark:text-white flex-1">Thêm công việc mới</h2>
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground dark:text-white flex-1">{t("sched_add_task_title", "Thêm công việc mới")}</h2>
                 <button onClick={() => setIsCreating(false)} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg flex-shrink-0">
                   <X size={20} className="text-muted-foreground" />
                 </button>
@@ -731,57 +733,57 @@ useEffect(() => {
 
               <div className="space-y-4 sm:space-y-5 lg:space-y-6">
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Tiêu đề</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_title", "Tiêu đề")}</label>
                   <input
                     type="text"
                     value={newItem.title}
                     onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
-                    placeholder="Nhập tiêu đề công việc..."
+                    placeholder={t("sched_form_title_ph", "Nhập tiêu đề công việc...")}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Khóa học</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_course", "Khóa học")}</label>
                   <input
                     type="text"
                     value={newItem.course}
                     onChange={(e) => setNewItem({ ...newItem, course: e.target.value })}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
-                    placeholder="Tên khóa học..."
+                    placeholder={t("sched_form_course_ph", "Tên khóa học...")}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Loại</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_type", "Loại")}</label>
                     <select
                       value={newItem.type}
                       onChange={(e) => setNewItem({ ...newItem, type: e.target.value as any })}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     >
-                      <option value="lesson">Bài học</option>
-                      <option value="exam">Bài thi</option>
+                      <option value="lesson">{t("sched_lesson", "Bài học")}</option>
+                      <option value="exam">{t("sched_exam", "Bài thi")}</option>
                       <option value="live">Live session</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Trạng thái</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_status", "Trạng thái")}</label>
                     <select
                       value={newItem.status}
                       onChange={(e) => setNewItem({ ...newItem, status: e.target.value as any })}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     >
-                      <option value="todo">Chưa làm</option>
-                      <option value="in-progress">Đang làm</option>
-                      <option value="completed">Hoàn thành</option>
+                      <option value="todo">{t("sched_todo", "Chưa làm")}</option>
+                      <option value="in-progress">{t("sched_in_progress", "Đang làm")}</option>
+                      <option value="completed">{t("sched_completed", "Hoàn thành")}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Thời gian</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_time", "Thời gian")}</label>
                     <input
                       type="time"
                       value={newItem.time}
@@ -790,7 +792,7 @@ useEffect(() => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Ngày</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_date", "Ngày")}</label>
                     <input
                       type="date"
                       value={newItem.dueDate || ''}
@@ -801,23 +803,23 @@ useEffect(() => {
                 </div>
 
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Thời lượng</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_duration", "Thời lượng")}</label>
                   <input
                     type="text"
                     value={newItem.duration}
                     onChange={(e) => setNewItem({ ...newItem, duration: e.target.value })}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
-                    placeholder="VD: 45 phút"
+                    placeholder={t("sched_form_duration_ph", "VD: 45 phút")}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Mô tả (tùy chọn)</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_desc_opt", "Mô tả (tùy chọn)")}</label>
                   <textarea
                     value={newItem.description}
                     onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent h-20 resize-none text-sm"
-                    placeholder="Nhập mô tả..."
+                    placeholder={t("sched_form_desc_ph", "Nhập mô tả...")}
                   />
                 </div>
 
@@ -865,7 +867,7 @@ useEffect(() => {
             >
               <div className="bg-card dark:bg-slate-900 border-2 border-border dark:border-slate-800 rounded-t-3xl lg:rounded-2xl p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
-                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground dark:text-white flex-1">Chỉnh sửa công việc</h2>
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground dark:text-white flex-1">{t("sched_edit_title", "Chỉnh sửa công việc")}</h2>
                 <button onClick={() => setEditingItem(null)} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg flex-shrink-0">
                   <X size={20} className="text-muted-foreground" />
                 </button>
@@ -873,7 +875,7 @@ useEffect(() => {
 
                 <div className="space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Tiêu đề</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_title", "Tiêu đề")}</label>
                   <input
                     type="text"
                     value={editingItem.title}
@@ -883,7 +885,7 @@ useEffect(() => {
                 </div>
 
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Khóa học</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_course", "Khóa học")}</label>
                   <input
                     type="text"
                     value={editingItem.course}
@@ -894,34 +896,34 @@ useEffect(() => {
 
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Loại</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_type", "Loại")}</label>
                     <select
                       value={editingItem.type}
                       onChange={(e) => setEditingItem({ ...editingItem, type: e.target.value as any })}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     >
-                      <option value="lesson">Bài học</option>
-                      <option value="exam">Bài thi</option>
+                      <option value="lesson">{t("sched_lesson", "Bài học")}</option>
+                      <option value="exam">{t("sched_exam", "Bài thi")}</option>
                       <option value="live">Live session</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Trạng thái</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_status", "Trạng thái")}</label>
                     <select
                       value={editingItem.status}
                       onChange={(e) => setEditingItem({ ...editingItem, status: e.target.value as any })}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
                     >
-                      <option value="todo">Chưa làm</option>
-                      <option value="in-progress">Đang làm</option>
-                      <option value="completed">Hoàn thành</option>
+                      <option value="todo">{t("sched_todo", "Chưa làm")}</option>
+                      <option value="in-progress">{t("sched_in_progress", "Đang làm")}</option>
+                      <option value="completed">{t("sched_completed", "Hoàn thành")}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Thời gian</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_time", "Thời gian")}</label>
                     <input
                       type="time"
                       value={editingItem.time}
@@ -930,7 +932,7 @@ useEffect(() => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Ngày</label>
+                    <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_date", "Ngày")}</label>
                     <input
                       type="date"
                       value={editingItem.dueDate || ''}
@@ -941,7 +943,7 @@ useEffect(() => {
                 </div>
 
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Thời lượng</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_duration", "Thời lượng")}</label>
                   <input
                     type="text"
                     value={editingItem.duration}
@@ -951,7 +953,7 @@ useEffect(() => {
                 </div>
 
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">Mô tả (tùy chọn)</label>
+                  <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_desc_opt", "Mô tả (tùy chọn)")}</label>
                   <textarea
                     value={editingItem.description || ""}
                     onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}

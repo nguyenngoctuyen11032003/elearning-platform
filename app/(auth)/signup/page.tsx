@@ -8,9 +8,11 @@ import { LogoDisplay } from "@/components/ui/logo-display"
 import { BookOpen, Users, ArrowLeft, Sparkles, GraduationCap, Award, Brain, Rocket, CheckCircle } from "lucide-react"
 import { motion } from "framer-motion"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function SignupPage() {
   const { config } = useSystemConfig()
+  const { t } = useLanguage()
   const searchParams = useSearchParams()
   const [selectedRole, setSelectedRole] = useState<"STUDENT" | "TEACHER">(
     (searchParams.get("role")?.toUpperCase() as "STUDENT" | "TEACHER") || "STUDENT"
@@ -49,7 +51,7 @@ export default function SignupPage() {
         className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-full text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-900 hover:text-purple-600 dark:hover:text-purple-400 transition-all shadow-lg hover:shadow-xl group"
       >
         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-        <span className="text-sm font-semibold">Trang chủ</span>
+        <span className="text-sm font-semibold">{t("common_home", "Trang chủ")}</span>
       </Link>
 
       <div className="relative z-10 min-h-screen flex items-center justify-center px-3 sm:px-6 py-8 sm:py-12">
@@ -78,19 +80,19 @@ export default function SignupPage() {
                 </Link>
 
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-tight mb-4">
-                  Tham Gia Cộng Đồng<br />Học Viên Hàng Đầu
+                  {t("signup_hero_title", "Tham Gia Cộng Đồng")} <br />{t("signup_hero_title2", "Học Viên Hàng Đầu")}
                 </h2>
                 <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Đăng ký miễn phí và bắt đầu học cùng <span className="font-bold text-purple-600 dark:text-purple-400">15,000+ học viên</span> khác ngay hôm nay
+                  {t("signup_hero_desc", "Đăng ký miễn phí và bắt đầu học cùng 15,000+ học viên khác ngay hôm nay")}
                 </p>
               </motion.div>
 
               {/* Benefits */}
               <div className="space-y-4">
                 {[
-                  { icon: Rocket, title: "Bắt Đầu Miễn Phí", description: "Truy cập ngay các khóa học miễn phí" },
-                  { icon: Award, title: "Chứng Chỉ Chính Thức", description: "Nhận chứng chỉ sau khi hoàn thành" },
-                  { icon: Brain, title: "Học Theo Tốc Độ Bạn", description: "Linh hoạt thời gian và địa điểm học" }
+                  { icon: Rocket, title: t("signup_benefit_free", "Bắt Đầu Miễn Phí"), description: t("signup_benefit_free_desc", "Truy cập ngay các khóa học miễn phí") },
+                  { icon: Award, title: t("signup_benefit_cert", "Chứng Chỉ Chính Thức"), description: t("signup_benefit_cert_desc", "Nhận chứng chỉ sau khi hoàn thành") },
+                  { icon: Brain, title: t("signup_benefit_pace", "Học Theo Tốc Độ Bạn"), description: t("signup_benefit_pace_desc", "Linh hoạt thời gian và địa điểm học") }
                 ].map((benefit, idx) => (
                   <motion.div
                     key={idx}
@@ -118,9 +120,9 @@ export default function SignupPage() {
                 className="flex items-center gap-6 pt-4"
               >
                 {[
-                  { icon: CheckCircle, text: "Không cần thẻ" },
-                  { icon: CheckCircle, text: "Miễn phí mãi mãi" },
-                  { icon: CheckCircle, text: "Hủy bất kỳ lúc nào" }
+                  { icon: CheckCircle, text: t("signup_trust_no_card", "Không cần thẻ") },
+                  { icon: CheckCircle, text: t("signup_trust_free", "Miễn phí mãi mãi") },
+                  { icon: CheckCircle, text: t("signup_trust_cancel", "Hủy bất kỳ lúc nào") }
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2">
                     <item.icon size={16} className="text-green-600 dark:text-green-400" />
@@ -158,10 +160,10 @@ export default function SignupPage() {
                   className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full mb-4 font-semibold"
                 >
                   <Sparkles size={16} />
-                  <span className="text-sm">Tạo Tài Khoản Mới</span>
+                  <span className="text-sm">{t("signup_badge", "Tạo Tài Khoản Mới")}</span>
                 </motion.div>
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-2">Đăng Ký</h2>
-                <p className="text-slate-600 dark:text-slate-400">Tham gia cộng đồng học tập ICS Learning</p>
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-2">{t("signup_title", "Đăng Ký")}</h2>
+                <p className="text-slate-600 dark:text-slate-400">{t("signup_subtitle", "Tham gia cộng đồng học tập ICS Learning")}</p>
               </div>
 
               {/* Role Selection */}
@@ -169,7 +171,7 @@ export default function SignupPage() {
                 <div className="relative">
                   <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 rounded-3xl blur-xl opacity-20" />
                   <div className="relative bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl">
-                    <h3 className="text-lg font-bold mb-4 text-center text-slate-900 dark:text-white">Chọn vai trò của bạn</h3>
+                    <h3 className="text-lg font-bold mb-4 text-center text-slate-900 dark:text-white">{t("signup_choose_role", "Chọn vai trò của bạn")}</h3>
                     <div className="grid grid-cols-2 gap-4">
                       <button
                         onClick={() => setSelectedRole("STUDENT")}
@@ -180,8 +182,8 @@ export default function SignupPage() {
                         }`}
                       >
                         <BookOpen className={`w-10 h-10 mx-auto mb-3 ${selectedRole === "STUDENT" ? "text-purple-600 dark:text-purple-400" : "text-slate-400"}`} />
-                        <div className="text-sm font-bold text-slate-900 dark:text-white mb-1">Học viên</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">Tham gia các khóa học</div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white mb-1">{t("signup_role_student", "Học viên")}</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">{t("signup_role_student_desc", "Tham gia các khóa học")}</div>
                       </button>
 
                       <button
@@ -193,8 +195,8 @@ export default function SignupPage() {
                         }`}
                       >
                         <Users className={`w-10 h-10 mx-auto mb-3 ${selectedRole === "TEACHER" ? "text-purple-600 dark:text-purple-400" : "text-slate-400"}`} />
-                        <div className="text-sm font-bold text-slate-900 dark:text-white mb-1">Giảng viên</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">Tạo và quản lý khóa học</div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white mb-1">{t("signup_role_teacher", "Giảng viên")}</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">{t("signup_role_teacher_desc", "Tạo và quản lý khóa học")}</div>
                       </button>
                     </div>
                   </div>
@@ -211,9 +213,9 @@ export default function SignupPage() {
                   />
 
                   <p className="text-center text-sm text-slate-600 dark:text-slate-400 mt-6">
-                    Đã có tài khoản?{" "}
+                    {t("signup_has_account", "Đã có tài khoản?")}{" "}
                     <Link href="/login" className="font-bold text-purple-600 dark:text-purple-400 hover:underline">
-                      Đăng nhập ngay
+                      {t("signup_login_now", "Đăng nhập ngay")}
                     </Link>
                   </p>
                 </div>
@@ -221,13 +223,13 @@ export default function SignupPage() {
 
               {/* Terms */}
               <p className="text-center text-xs text-slate-500 dark:text-slate-500 leading-relaxed">
-                Bằng cách đăng ký, bạn đồng ý với{" "}
+                {t("signup_terms_agree", "Bằng cách đăng ký, bạn đồng ý với")}{" "}
                 <Link href="/terms" className="font-semibold hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
-                  Điều khoản sử dụng
+                  {t("terms_title", "Điều khoản sử dụng")}
                 </Link>{" "}
-                và{" "}
+                {t("common_and", "và")}{" "}
                 <Link href="/privacy" className="font-semibold hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
-                  Chính sách bảo mật
+                  {t("privacy_title", "Chính sách bảo mật")}
                 </Link>
               </p>
             </motion.div>

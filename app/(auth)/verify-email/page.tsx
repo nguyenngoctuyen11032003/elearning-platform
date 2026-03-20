@@ -8,6 +8,7 @@ import { CheckCircle, XCircle, ArrowLeft, Mail, RefreshCw, Sparkles, Shield, Gra
 import { apiClient } from "@/lib/api/client"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { LogoDisplay } from "@/components/ui/logo-display"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 type VerificationStatus = "loading" | "success" | "error" | "invalid"
 
@@ -18,6 +19,7 @@ function VerifyEmailContent() {
   const [message, setMessage] = useState("")
   const [isRetrying, setIsRetrying] = useState(false)
   const { config } = useSystemConfig()
+  const { t } = useLanguage()
   const token = searchParams.get("token")
 
   const verifyEmail = async (verificationToken: string) => {
@@ -25,12 +27,12 @@ function VerifyEmailContent() {
       setStatus("loading")
       const response = await apiClient.verifyEmail(verificationToken)
       setStatus("success")
-      setMessage(response.message || "Email đã được xác nhận thành công!")
+      setMessage(response.message || t("verify_success_msg", "Email đã được xác nhận thành công!"))
     } catch (error: any) {
       setStatus("error")
       setMessage(
         error?.message || 
-        "Xác nhận email thất bại. Token có thể đã hết hạn hoặc không hợp lệ."
+        t("verify_error_msg", "Xác nhận email thất bại. Token có thể đã hết hạn hoặc không hợp lệ.")
       )
     }
   }
@@ -38,7 +40,7 @@ function VerifyEmailContent() {
   useEffect(() => {
     if (!token) {
       setStatus("invalid")
-      setMessage("Token xác nhận không hợp lệ hoặc không được tìm thấy.")
+      setMessage(t("verify_invalid_token", "Token xác nhận không hợp lệ hoặc không được tìm thấy."))
       return
     }
 
@@ -86,13 +88,13 @@ function VerifyEmailContent() {
   const getTitle = () => {
     switch (status) {
       case "loading":
-        return "Đang Xác Nhận Email..."
+        return t("verify_loading", "Đang Xác Nhận Email...")
       case "success":
-        return "Xác Nhận Thành Công!"
+        return t("verify_success", "Xác Nhận Thành Công!")
       case "error":
-        return "Xác Nhận Thất Bại"
+        return t("verify_error", "Xác Nhận Thất Bại")
       case "invalid":
-        return "Token Không Hợp Lệ"
+        return t("verify_invalid", "Token Không Hợp Lệ")
     }
   }
 
@@ -109,14 +111,14 @@ function VerifyEmailContent() {
             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
             <span className="relative flex items-center gap-2 justify-center">
               <GraduationCap size={20} />
-              Đăng nhập ngay
+              {t("auth_login_now", "Đăng nhập ngay")}
             </span>
           </motion.button>
           <Link
             href="/"
             className="px-6 sm:px-8 py-3 sm:py-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-semibold transition-all text-center"
           >
-            Về trang chủ
+            {t("verify_go_home", "Về trang chủ")}
           </Link>
         </div>
       )
@@ -135,13 +137,13 @@ function VerifyEmailContent() {
             ) : (
               <RefreshCw size={20} />
             )}
-            {isRetrying ? "Đang thử lại..." : "Thử lại"}
+            {isRetrying ? t("verify_retrying", "Đang thử lại...") : t("verify_retry", "Thử lại")}
           </button>
           <Link
             href="/login"
             className="px-6 sm:px-8 py-3 sm:py-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-semibold transition-all text-center"
           >
-            Đăng nhập
+            {t("nav_login", "Đăng nhập")}
           </Link>
         </div>
       )
@@ -153,7 +155,7 @@ function VerifyEmailContent() {
           href="/signup"
           className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl"
         >
-          Đăng ký lại
+          {t("verify_signup_again", "Đăng ký lại")}
         </Link>
       </div>
     )
@@ -197,7 +199,7 @@ function VerifyEmailContent() {
         className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-full text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-900 transition-all shadow-lg hover:shadow-xl group"
       >
         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-        <span className="text-sm font-semibold">Quay lại</span>
+        <span className="text-sm font-semibold">{t("common_back", "Quay lại")}</span>
       </Link>
 
       <div className="relative z-10 min-h-screen flex items-center justify-center px-3 sm:px-6 py-8 sm:py-12">
@@ -277,16 +279,16 @@ function VerifyEmailContent() {
                 >
                   <div className="flex items-center gap-3 justify-center text-green-800 dark:text-green-200">
                     <Mail size={24} />
-                    <span className="font-black text-lg">Email Đã Được Kích Hoạt</span>
+                    <span className="font-black text-lg">{t("verify_email_activated", "Email Đã Được Kích Hoạt")}</span>
                   </div>
                   <div className="text-sm text-green-700 dark:text-green-300 space-y-3">
-                    <p className="font-semibold">Tài khoản của bạn đã sẵn sàng! 🎉</p>
+                    <p className="font-semibold">{t("verify_account_ready", "Tài khoản của bạn đã sẵn sàng!")} 🎉</p>
                     <ul className="space-y-2 text-left">
                       {[
-                        "Đăng nhập vào hệ thống",
-                        "Khám phá 1000+ khóa học",
-                        "Bắt đầu hành trình học tập",
-                        "Nhận chứng chỉ sau khi hoàn thành"
+                        t("verify_can_login", "Đăng nhập vào hệ thống"),
+                        t("verify_explore_courses", "Khám phá 1000+ khóa học"),
+                        t("verify_start_learning", "Bắt đầu hành trình học tập"),
+                        t("verify_get_cert", "Nhận chứng chỉ sau khi hoàn thành")
                       ].map((item, idx) => (
                         <li key={idx} className="flex items-center gap-2">
                           <CheckCircle size={16} className="text-green-600 dark:text-green-400" />
@@ -307,13 +309,13 @@ function VerifyEmailContent() {
                   className="bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800 rounded-2xl p-6"
                 >
                   <div className="text-sm text-red-700 dark:text-red-300">
-                    <p className="font-bold text-base mb-3">Các nguyên nhân có thể:</p>
+                    <p className="font-bold text-base mb-3">{t("verify_possible_causes", "Các nguyên nhân có thể:")}</p>
                     <ul className="space-y-2 text-left">
                       {[
-                        "Token đã hết hạn (sau 24 giờ)",
-                        "Token đã được sử dụng trước đó",
-                        "Link xác nhận bị lỗi hoặc sai",
-                        "Email đã được xác nhận rồi"
+                        t("verify_token_expired", "Token đã hết hạn (sau 24 giờ)"),
+                        t("verify_token_used", "Token đã được sử dụng trước đó"),
+                        t("verify_link_broken", "Link xác nhận bị lỗi hoặc sai"),
+                        t("verify_already_verified", "Email đã được xác nhận rồi")
                       ].map((item, idx) => (
                         <li key={idx} className="flex items-center gap-2">
                           <XCircle size={16} className="text-red-600 dark:text-red-400" />
@@ -347,14 +349,14 @@ function VerifyEmailContent() {
             <div className="flex items-center gap-3 p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl">
               <Shield size={20} className="text-blue-600 dark:text-blue-400" />
               <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">Bảo mật</div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Mã hóa 256-bit</div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">{t("auth_security", "Bảo mật")}</div>
+                <div className="text-xs text-slate-600 dark:text-slate-400">{t("auth_256bit", "Mã hóa 256-bit")}</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl">
               <Sparkles size={20} className="text-purple-600 dark:text-purple-400" />
               <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">Hỗ trợ 24/7</div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">{t("auth_support_247", "Hỗ trợ 24/7")}</div>
                 <div className="text-xs text-slate-600 dark:text-slate-400">
                   <Link href="/contact" className="hover:underline">Liên hệ</Link>
                 </div>

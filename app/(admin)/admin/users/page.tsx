@@ -5,6 +5,7 @@ import { EditUserModal } from "@/components/ui/edit-user-modal"
 import type { UserData, UpdateUserData } from "@/app/types/user"
 import { toast } from "sonner"
 import { getApiBaseUrl } from "@/lib/api/config"
+import { useLanguage } from "@/lib/i18n/language-context"
 // DropdownFilter: custom dropdown with slide-down effect
 type DropdownOption = { value: string; label: string }
 type DropdownFilterProps = {
@@ -35,7 +36,7 @@ function DropdownFilter({ options, value, onChange, className = "", width = 180 
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span>{selected?.label || "Chọn"}</span>
+        <span>{selected?.label || t("common_select", "Chọn")}</span>
         <svg className={`ml-2 w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : "rotate-0"}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div
@@ -178,6 +179,7 @@ function InfoRow({ label, value, highlight = false }: InfoRowProps) {
 }
 
 export default function AdminUsersPage() {
+  const { t } = useLanguage()
   const [searchQuery, setSearchQuery] = useState("")
   // Modal position for mobile
   const [modalPos, setModalPos] = useState<{top: number, left: number, width: number} | null>(null)
@@ -270,7 +272,7 @@ const handleAddUser = async (newUser: any) => {
     const token = localStorage.getItem("auth_token")
 
     if (!token) {
-      toast.error("Chưa đăng nhập")
+      toast.error(t("auth_not_logged_in", "Chưa đăng nhập"))
       return
     }
 
@@ -304,7 +306,7 @@ const handleAddUser = async (newUser: any) => {
     await fetchUsers()
   } catch (err) {
     console.error(err)
-    alert("Thêm người dùng thất bại")
+    alert(t("user_add_failed", "Thêm người dùng thất bại"))
   }
 }
 
@@ -320,7 +322,7 @@ const executeAction = async () => {
   const token = localStorage.getItem("auth_token")
 
   if (!token) {
-    toast.error("Chưa đăng nhập")
+    toast.error(t("auth_not_logged_in", "Chưa đăng nhập"))
     return
   }
 
@@ -340,11 +342,11 @@ const executeAction = async () => {
       if (!res.ok) {
         const err = await res.json()
         console.error(err)
-        toast.error("Xóa người dùng thất bại")
+        toast.error(t("user_delete_failed", "Xóa người dùng thất bại"))
         return
       }
 
-      toast.success("Đã xóa người dùng thành công")
+      toast.success(t("user_delete_success", "Đã xóa người dùng thành công"))
       await fetchUsers()
     } else if (action === "lock" || action === "unlock") {
       // Khóa hoặc mở khóa tài khoản
@@ -366,16 +368,16 @@ const executeAction = async () => {
       if (!res.ok) {
         const err = await res.json()
         console.error(err)
-        toast.error(action === "lock" ? "Khóa tài khoản thất bại" : "Mở khóa tài khoản thất bại")
+        toast.error(action === "lock" ? t("user_lock_failed", "Khóa tài khoản thất bại") : t("user_unlock_failed", "Mở khóa tài khoản thất bại"))
         return
       }
 
-      toast.success(action === "lock" ? "Đã khóa tài khoản" : "Đã mở khóa tài khoản")
+      toast.success(action === "lock" ? t("user_locked", "Đã khóa tài khoản") : t("user_unlocked", "Đã mở khóa tài khoản"))
       await fetchUsers()
     }
   } catch (err) {
     console.error(err)
-    toast.error("Thao tác thất bại")
+    toast.error(t("common_action_failed", "Thao tác thất bại"))
   } finally {
     setConfirmDialog({ isOpen: false, action: "" })
     setOpenMenu(null)
@@ -387,7 +389,7 @@ const handleUpdateUser = async (updatedData: any) => {
   try {
     const token = localStorage.getItem("auth_token")
     if (!token) {
-      toast.error("Chưa đăng nhập")
+      toast.error(t("auth_not_logged_in", "Chưa đăng nhập"))
       return
     }
 
@@ -409,27 +411,27 @@ const handleUpdateUser = async (updatedData: any) => {
     if (!res.ok) {
       const errorData = await res.json()
       console.error("Update error:", errorData)
-      toast.error(`Cập nhật thất bại: ${errorData.message || 'Lỗi không xác định'}`)
+      toast.error(`${t("user_update_failed", "Cập nhật thất bại")}: ${errorData.message || t("common_unknown_error", "Lỗi không xác định")}`)
       return
     }
 
     const result = await res.json()
     console.log("Update success:", result)
     
-    toast.success("Đã cập nhật người dùng thành công")
+    toast.success(t("user_update_success", "Đã cập nhật người dùng thành công"))
     await fetchUsers()
     setIsEditUserOpen(false)
     setEditUser(null)
   } catch (err) {
     console.error("Update user error:", err)
-    toast.error("Cập nhật người dùng thất bại")
+    toast.error(t("user_update_failed", "Cập nhật người dùng thất bại"))
   }
 }
 
 const formatDate = (dateString?: string) => {
-  if (!dateString) return "Chưa cập nhật"
+  if (!dateString) return t("common_not_updated", "Chưa cập nhật")
   const d = new Date(dateString)
-  if (isNaN(d.getTime())) return "Chưa cập nhật"
+  if (isNaN(d.getTime())) return t("common_not_updated", "Chưa cập nhật")
   return d.toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
@@ -454,14 +456,14 @@ const formatDate = (dateString?: string) => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Quản lý người dùng</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">Quản lý tất cả người dùng trong hệ thống</p>
+                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("user_manage_title", "Quản lý người dùng")}</h1>
+                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("user_manage_desc", "Quản lý tất cả người dùng trong hệ thống")}</p>
               </div>
               <button
                 onClick={() => setIsAddUserOpen(true)}
                 className="flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
               >
-                <Plus size={20} /> Thêm người dùng
+                <Plus size={20} /> {t("user_add", "Thêm người dùng")}
               </button>
             </div>
             {/* Stats Cards */}
@@ -469,7 +471,7 @@ const formatDate = (dateString?: string) => {
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Tổng người dùng</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("user_total", "Tổng người dùng")}</p>
                     <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalUsers}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -480,7 +482,7 @@ const formatDate = (dateString?: string) => {
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Học viên</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("user_students", "Học viên")}</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{totalStudents}</p>
                   </div>
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -491,7 +493,7 @@ const formatDate = (dateString?: string) => {
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Giảng viên</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("user_instructors", "Giảng viên")}</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{totalTeachers}</p>
                   </div>
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -502,7 +504,7 @@ const formatDate = (dateString?: string) => {
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">Quản trị viên</p>
+                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("user_admins", "Quản trị viên")}</p>
                     <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">{totalAdmins}</p>
                   </div>
                   <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -521,7 +523,7 @@ const formatDate = (dateString?: string) => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400" size={20} />
             <input
               type="text"
-              placeholder="Tìm kiếm theo tên, email hoặc số điện thoại..."
+              placeholder={t("user_search_placeholder", "Tìm kiếm theo tên, email hoặc số điện thoại...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border-2 border-border/60 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary dark:focus:border-accent transition-all duration-300 text-foreground dark:text-white placeholder:text-muted-foreground/60"
@@ -529,13 +531,13 @@ const formatDate = (dateString?: string) => {
           </div>
           {/* Filters */}
           <div className="filter-row">
-            <span className="text-sm font-semibold text-foreground dark:text-white">Lọc theo:</span>
+            <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_filter_by", "Lọc theo")}:</span>
             <DropdownFilter
               options={[
-                { value: "all", label: "Tất cả người dùng" },
-                { value: "student", label: "Học viên" },
-                { value: "teacher", label: "Giảng viên" },
-                { value: "admin", label: "Quản trị viên" },
+                { value: "all", label: t("user_all_users", "Tất cả người dùng") },
+                { value: "student", label: t("user_students", "Học viên") },
+                { value: "teacher", label: t("user_instructors", "Giảng viên") },
+                { value: "admin", label: t("user_admins", "Quản trị viên") },
               ]}
               value={selectedRole}
               onChange={(v: string) => setSelectedRole(v as "all" | "student" | "teacher" | "admin")}
@@ -543,10 +545,10 @@ const formatDate = (dateString?: string) => {
             />
             <DropdownFilter
               options={[
-                { value: "all", label: "Tất cả trạng thái" },
-                { value: "active", label: "Hoạt động" },
-                { value: "inactive", label: "Vô hiệu hóa" },
-                { value: "pending", label: "Chờ xác thực" },
+                { value: "all", label: t("user_all_status", "Tất cả trạng thái") },
+                { value: "active", label: t("user_active", "Hoạt động") },
+                { value: "inactive", label: t("user_disabled", "Vô hiệu hóa") },
+                { value: "pending", label: t("user_pending", "Chờ xác thực") },
               ]}
               value={selectedStatus}
               onChange={(v: string) => setSelectedStatus(v as "all" | "active" | "inactive" | "pending")}
@@ -562,13 +564,13 @@ const formatDate = (dateString?: string) => {
               {/* TOÀN BỘ TABLE CŨ GIỮ NGUYÊN */}
               <thead>
                 <tr className="border-b border-border dark:border-slate-800 bg-white/50 dark:bg-slate-800/50">
-                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">Người dùng</th>
-                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">Liên hệ</th>
-                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">Vai trò</th>
-                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">Khóa học</th>
-                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">Tham gia</th>
-                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">Trạng thái</th>
-                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">Hành động</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground dark:text-white">{t("pay_user", "Người dùng")}</th>
+                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("user_contact", "Liên hệ")}</th>
+                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("user_role", "Vai trò")}</th>
+                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("pay_course", "Khóa học")}</th>
+                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("user_joined", "Tham gia")}</th>
+                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("pay_status", "Trạng thái")}</th>
+                  <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("user_actions", "Hành động")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -608,7 +610,7 @@ const formatDate = (dateString?: string) => {
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 text-sm">
                         <Phone size={14} />
-                        <span className="truncate max-w-[100px]">{user.phone || "Chưa cập nhật"}</span>
+                        <span className="truncate max-w-[100px]">{user.phone || t("common_not_updated", "Chưa cập nhật")}</span>
                       </div>
                     </td>
                     <td className="py-3 px-3">
@@ -621,7 +623,7 @@ const formatDate = (dateString?: string) => {
                             : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                         }`}
                       >
-                        {user.role === "admin" ? "Quản trị" : user.role === "teacher" ? "Giảng viên" : "Học viên"}
+                        {user.role === "admin" ? t("user_admin_role", "Quản trị") : user.role === "teacher" ? t("user_instructors", "Giảng viên") : t("user_students", "Học viên")}
                       </span>
                     </td>
                     <td className="py-3 px-3 text-foreground dark:text-white text-sm">{user.courses || "-"}</td>
@@ -640,7 +642,7 @@ const formatDate = (dateString?: string) => {
                         <span className={`w-1.5 h-1.5 rounded-full ${
                           user.status === "active" ? "bg-emerald-500" : user.status === "pending" ? "bg-amber-500" : "bg-red-500"
                         }`} />
-                        {user.status === "active" ? "Hoạt động" : user.status === "pending" ? "Chờ" : "Khóa"}
+                        {user.status === "active" ? t("user_active", "Hoạt động") : user.status === "pending" ? t("user_pending_short", "Chờ") : t("user_locked", "Khóa")}
                       </span>
                     </td>
                     <td className="py-3 px-3">
@@ -675,7 +677,7 @@ const formatDate = (dateString?: string) => {
           {filteredUsers.length === 0 && (
             <div className="py-12 text-center">
               <User size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground dark:text-slate-400">Không tìm thấy người dùng nào</p>
+              <p className="text-muted-foreground dark:text-slate-400">{t("user_not_found", "Không tìm thấy người dùng nào")}</p>
             </div>
           )}
         </div>
@@ -724,30 +726,30 @@ const formatDate = (dateString?: string) => {
 
               {/* Info rows */}
               <div className="space-y-2 text-sm">
-                <InfoRow label="Số điện thoại" value={user.phone || "Chưa cập nhật"} />
+                <InfoRow label={t("user_phone", "Số điện thoại")} value={user.phone || t("common_not_updated", "Chưa cập nhật")} />
                 <InfoRow
-                  label="Vai trò"
+                  label={t("user_role", "Vai trò")}
                   value={
                     user.role === "admin"
-                      ? "Quản trị viên"
+                      ? t("user_admins", "Quản trị viên")
                       : user.role === "teacher"
-                      ? "Giảng viên"
-                      : "Học viên"
+                      ? t("user_instructors", "Giảng viên")
+                      : t("user_students", "Học viên")
                   }
                 />
-                <InfoRow label="Khóa học" value={user.courses || "Chưa cập nhật"} />
+                <InfoRow label={t("pay_course", "Khóa học")} value={user.courses || t("common_not_updated", "Chưa cập nhật")} />
                 <InfoRow
-                  label="Ngày tham gia"
-                  value={user.createdAt ? formatDate(user.createdAt) : "Chưa cập nhật"}
+                  label={t("user_join_date", "Ngày tham gia")}
+                  value={user.createdAt ? formatDate(user.createdAt) : t("common_not_updated", "Chưa cập nhật")}
                 />
                 <InfoRow
-                  label="Trạng thái"
+                  label={t("pay_status", "Trạng thái")}
                   value={
                     user.status === "active"
-                      ? "Hoạt động"
+                      ? t("user_active", "Hoạt động")
                       : user.status === "pending"
-                      ? "Chờ xác thực"
-                      : "Vô hiệu hóa"
+                      ? t("user_pending", "Chờ xác thực")
+                      : t("user_disabled", "Vô hiệu hóa")
                   }
                   highlight
                 />
@@ -773,7 +775,7 @@ const formatDate = (dateString?: string) => {
                   }}
                   className="px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-medium"
                 >
-                  Xem
+                  {t("common_view", "Xem")}
                 </button>
                 <button
                   onClick={() => {
@@ -792,7 +794,7 @@ const formatDate = (dateString?: string) => {
                   }}
                   className="px-4 py-2 rounded-lg bg-secondary text-sm font-medium"
                 >
-                  Sửa
+                  {t("common_edit", "Sửa")}
                 </button>
               </div>
             </div>
@@ -820,7 +822,7 @@ const formatDate = (dateString?: string) => {
             }}
             className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
           >
-            <Eye size={16} /> Xem chi tiết
+            <Eye size={16} /> {t("user_view_detail", "Xem chi tiết")}
           </button>
           {/* Sửa thông tin */}
           <button
@@ -833,7 +835,7 @@ const formatDate = (dateString?: string) => {
             }}
             className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
           >
-            ✏️ Sửa thông tin
+            ✏️ {t("user_edit_info", "Sửa thông tin")}
           </button>
           {/* Khóa / Mở */}
           <button
@@ -849,8 +851,8 @@ const formatDate = (dateString?: string) => {
               const user = filteredUsers.find(u => u.id === openMenu)
               if (!user) return null
               return user.status === "active"
-                ? (<><Lock size={16} /> Khóa tài khoản</>)
-                : (<><Unlock size={16} /> Mở khóa tài khoản</>)
+                ? (<><Lock size={16} /> {t("user_lock_account", "Khóa tài khoản")}</>)
+                : (<><Unlock size={16} /> {t("user_unlock_account", "Mở khóa tài khoản")}</>)
             })()}
           </button>
           {/* Xóa */}
@@ -863,7 +865,7 @@ const formatDate = (dateString?: string) => {
             }}
             className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive"
           >
-            <Trash2 size={16} /> Xóa tài khoản
+            <Trash2 size={16} /> {t("user_delete_account", "Xóa tài khoản")}
           </button>
         </div>
       )}
@@ -1379,17 +1381,17 @@ const formatDate = (dateString?: string) => {
         onConfirm={executeAction}
         title={
           confirmDialog.action === "lock"
-            ? "Khóa tài khoản"
+            ? t("user_lock_account", "Khóa tài khoản")
             : confirmDialog.action === "unlock"
-              ? "Mở khóa tài khoản"
-              : "Xóa tài khoản"
+              ? t("user_unlock_account", "Mở khóa tài khoản")
+              : t("user_delete_account", "Xóa tài khoản")
         }
         message={
           confirmDialog.action === "lock"
-            ? "Bạn có chắc chắn muốn khóa tài khoản này không?"
+            ? t("user_confirm_lock", "Bạn có chắc chắn muốn khóa tài khoản này không?")
             : confirmDialog.action === "unlock"
-              ? "Bạn có chắc chắn muốn mở khóa tài khoản này không?"
-              : "Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác."
+              ? t("user_confirm_unlock", "Bạn có chắc chắn muốn mở khóa tài khoản này không?")
+              : t("user_confirm_delete", "Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác.")
         }
         isDangerous={confirmDialog.action === "delete"}
       />

@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Eye, EyeOff, Mail, Lock, User, Phone } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { GoogleLoginButton } from "./google-login-button"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface AuthFormProps {
   type: "login" | "signup"
@@ -14,6 +15,7 @@ interface AuthFormProps {
 
 export function AuthForm({ type, role }: AuthFormProps) {
   const { login, register, loading } = useAuth()
+  const { t } = useLanguage()
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
@@ -37,16 +39,16 @@ export function AuthForm({ type, role }: AuthFormProps) {
     const newErrors: Record<string, string> = {}
 
     // Validation
-    if (!formData.email) newErrors.email = "Email là bắt buộc"
-    if (!formData.password) newErrors.password = "Mật khẩu là bắt buộc"
+    if (!formData.email) newErrors.email = t("auth_email_required", "Email là bắt buộc")
+    if (!formData.password) newErrors.password = t("auth_password_required", "Mật khẩu là bắt buộc")
     if (formData.password && formData.password.length < 6) {
-      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự"
+      newErrors.password = t("auth_password_min", "Mật khẩu phải có ít nhất 6 ký tự")
     }
 
     if (type === "signup") {
-      if (!formData.name) newErrors.name = "Tên là bắt buộc"
+      if (!formData.name) newErrors.name = t("auth_name_required", "Tên là bắt buộc")
       if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = "Mật khẩu không khớp"
+        newErrors.confirmPassword = t("auth_password_mismatch", "Mật khẩu không khớp")
       }
     }
 
@@ -71,7 +73,7 @@ export function AuthForm({ type, role }: AuthFormProps) {
         })
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Xảy ra lỗi. Vui lòng thử lại.'
+      const errorMessage = error instanceof Error ? error.message : t("auth_error_generic", "Xảy ra lỗi. Vui lòng thử lại.")
       setErrors({ submit: errorMessage })
       console.error('Auth error:', error)
     }
@@ -86,7 +88,7 @@ export function AuthForm({ type, role }: AuthFormProps) {
       )}
       {type === "signup" && (
         <div>
-          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Tên đầy đủ</label>
+          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("auth_fullname", "Tên đầy đủ")}</label>
           <div className="relative">
             <User className="absolute left-4 top-3.5 text-muted-foreground dark:text-slate-500" size={20} />
             <input
@@ -94,7 +96,7 @@ export function AuthForm({ type, role }: AuthFormProps) {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Nhập tên của bạn"
+              placeholder={t("auth_name_placeholder", "Nhập tên của bạn")}
               className={`w-full pl-12 pr-4 py-3 bg-secondary dark:bg-slate-800 border rounded-lg focus:outline-none focus:ring-2 transition-smooth text-foreground dark:text-white placeholder-muted-foreground dark:placeholder-slate-500 ${
                 errors.name
                   ? "border-destructive focus:ring-destructive"
@@ -108,7 +110,7 @@ export function AuthForm({ type, role }: AuthFormProps) {
 
       {type === "signup" && (
         <div>
-          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Số điện thoại (tuỳ chọn)</label>
+          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("auth_phone_optional", "Số điện thoại (tuỳ chọn)")}</label>
           <div className="relative">
             <Phone className="absolute left-4 top-3.5 text-muted-foreground dark:text-slate-500" size={20} />
             <input
@@ -153,7 +155,7 @@ export function AuthForm({ type, role }: AuthFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Mật khẩu</label>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t("auth_password", "Mật khẩu")}</label>
         <div className="relative group">
           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors z-10" size={20} />
           <input
@@ -190,7 +192,7 @@ export function AuthForm({ type, role }: AuthFormProps) {
 
       {type === "signup" && (
         <div>
-          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Xác nhận mật khẩu</label>
+          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("auth_confirm_password", "Xác nhận mật khẩu")}</label>
           <div className="relative">
             <Lock className="absolute left-4 top-3.5 text-muted-foreground dark:text-slate-500" size={20} />
             <input
@@ -226,11 +228,11 @@ export function AuthForm({ type, role }: AuthFormProps) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span>Đang xử lý...</span>
+              <span>{t("auth_processing", "Đang xử lý...")}</span>
             </>
           ) : (
             <>
-              <span>{type === "login" ? "Đăng nhập" : "Đăng ký"}</span>
+              <span>{type === "login" ? t("login_title", "Đăng nhập") : t("signup_title", "Đăng ký")}</span>
               <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -244,7 +246,7 @@ export function AuthForm({ type, role }: AuthFormProps) {
         <>
           <div className="relative flex items-center gap-3 my-6">
             <div className="flex-1 h-px bg-gradient-to-r from-slate-200 dark:from-slate-700 to-transparent" />
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Hoặc</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t("auth_or", "Hoặc")}</span>
             <div className="flex-1 h-px bg-gradient-to-l from-slate-200 dark:from-slate-700 to-transparent" />
           </div>
 
