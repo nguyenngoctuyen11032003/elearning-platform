@@ -141,28 +141,28 @@ export default function AdminTeacherSubscriptionPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("adm_sub_title", "Quản lý gói & truy cập giảng viên")}</h1>
-        <p className="text-muted-foreground">Plan Management, Payment Management, Revenue Dashboard</p>
+        <p className="text-muted-foreground">{t("adm_sub_desc", "Quản lý gói, thanh toán và doanh thu giảng viên")}</p>
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Total Revenue</p>
+          <p className="text-sm text-muted-foreground">{t("adm_sub_total_revenue", "Tổng doanh thu")}</p>
           <p className="text-2xl font-bold">${Number(dashboard?.totalRevenue || 0).toLocaleString("en-US")}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Monthly Revenue</p>
+          <p className="text-sm text-muted-foreground">{t("adm_sub_monthly_revenue", "Doanh thu tháng")}</p>
           <p className="text-2xl font-bold">${Number(dashboard?.monthlyRevenue || 0).toLocaleString("en-US")}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Active Users</p>
+          <p className="text-sm text-muted-foreground">{t("adm_sub_active_users", "Người dùng đang hoạt động")}</p>
           <p className="text-2xl font-bold">{dashboard?.activeUsers || 0}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Paid Users</p>
+          <p className="text-sm text-muted-foreground">{t("adm_sub_paid_users", "Người dùng trả phí")}</p>
           <p className="text-2xl font-bold">{dashboard?.paidUsers || 0}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Conversion</p>
+          <p className="text-sm text-muted-foreground">{t("adm_sub_conversion", "Tỉ lệ chuyển đổi")}</p>
           <p className="text-2xl font-bold">{dashboard?.conversionRate || 0}%</p>
         </div>
       </section>
@@ -203,7 +203,7 @@ export default function AdminTeacherSubscriptionPage() {
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-5 space-y-4">
-        <h2 className="text-xl font-semibold">Plan Management</h2>
+        <h2 className="text-xl font-semibold">{t("adm_sub_plan_management", "Quản lý gói")}</h2>
         <div className="space-y-3">
           {plans.map((plan) => (
             <div key={plan.id} className="rounded-lg border border-border p-4 space-y-3">
@@ -244,7 +244,7 @@ export default function AdminTeacherSubscriptionPage() {
 
       <section className="rounded-2xl border border-border bg-card p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold flex items-center gap-2"><CreditCard size={18} /> Payment Management</h2>
+          <h2 className="text-xl font-semibold flex items-center gap-2"><CreditCard size={18} /> {t("adm_sub_payment_management", "Quản lý thanh toán")}</h2>
           <button onClick={exportPayments} className="px-3 py-2 rounded-lg bg-primary text-white">{t("adm_sub_export", "Xuất báo cáo")}</button>
         </div>
         <div className="space-y-2">
@@ -258,7 +258,7 @@ export default function AdminTeacherSubscriptionPage() {
                 <span className="text-sm">${Number(p.amount || 0)}</span>
                 <span className={`text-xs px-2 py-1 rounded ${p.status === "paid" ? "bg-emerald-100 text-emerald-700" : p.status === "refunded" ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-700"}`}>{p.status}</span>
                 <button className="px-2 py-1 rounded bg-emerald-600 text-white text-xs" onClick={() => confirmPayment(p.id)}>{t("adm_sub_confirm_btn", "Xác nhận")}</button>
-                <button className="px-2 py-1 rounded bg-red-500 text-white text-xs" onClick={() => refundPayment(p.id)}>Refund</button>
+                <button className="px-2 py-1 rounded bg-red-500 text-white text-xs" onClick={() => refundPayment(p.id)}>{t("adm_sub_refund", "Hoàn tiền")}</button>
               </div>
             </div>
           ))}
@@ -267,17 +267,17 @@ export default function AdminTeacherSubscriptionPage() {
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-5 space-y-4">
-        <h2 className="text-xl font-semibold flex items-center gap-2"><ShieldCheck size={18} /> Instructor Access</h2>
+        <h2 className="text-xl font-semibold flex items-center gap-2"><ShieldCheck size={18} /> {t("adm_sub_instructor_access", "Quyền truy cập giảng viên")}</h2>
         <div className="space-y-2">
           {subscriptions.map((s) => (
             <div key={s.id} className="rounded-lg border border-border p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
                 <p className="font-semibold">{s.teacher?.name || s.teacher?.email}</p>
-                <p className="text-sm text-muted-foreground">Plan: {s.plan?.name} • Courses: {s.usage?.coursesCreated || 0}/{s.usage?.courseLimit || 0}</p>
+                <p className="text-sm text-muted-foreground">{t("adm_sub_plan_label", "Gói")}: {s.plan?.name} • {t("adm_sub_courses_label", "Khóa học")}: {s.usage?.coursesCreated || 0}/{s.usage?.courseLimit || 0}</p>
               </div>
               <div className="text-sm">
-                <p>Status: {s.status}</p>
-                <p>End date: {s.endDate}</p>
+                <p>{t("adm_sub_status_label", "Trạng thái")}: {s.status}</p>
+                <p>{t("adm_sub_end_date", "Ngày hết hạn")}: {s.endDate}</p>
               </div>
             </div>
           ))}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { Suspense, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { CreditCard, Wallet } from "lucide-react"
@@ -10,7 +10,7 @@ import { useLanguage } from "@/lib/i18n/language-context"
 
 type MethodType = "bank_card" | "e_wallet"
 
-export default function NewPaymentMethodPage() {
+function NewPaymentMethodPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useLanguage()
@@ -182,5 +182,19 @@ export default function NewPaymentMethodPage() {
         </Link>
       </div>
     </div>
+  )
+}
+
+export default function NewPaymentMethodPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <div className="rounded-xl border p-6 text-sm text-muted-foreground">Đang tải biểu mẫu phương thức thanh toán...</div>
+        </div>
+      }
+    >
+      <NewPaymentMethodPageContent />
+    </Suspense>
   )
 }

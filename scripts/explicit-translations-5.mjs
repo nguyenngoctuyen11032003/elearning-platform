@@ -66,6 +66,20 @@ export const explicit5 = {
   teacher_settings_tab_security: { vi: "Bảo mật", en: "Security", ja: "セキュリティ", ko: "보안", "zh-CN": "安全" },
   teacher_settings_tab_notifications: { vi: "Thông báo", en: "Notifications", ja: "通知", ko: "알림", "zh-CN": "通知" },
   teacher_settings_tab_billing: { vi: "Thanh toán & gói", en: "Billing & Subscription", ja: "請求とサブスクリプション", ko: "결제 및 구독", "zh-CN": "账单与订阅" },
+  teacher_billing_title: {
+    vi: "Thanh toán & Gói giảng viên",
+    en: "Billing & Instructor Plans",
+    ja: "請求と講師プラン",
+    ko: "결제 및 강사 요금제",
+    "zh-CN": "账单与讲师套餐"
+  },
+  teacher_billing_subtitle: {
+    vi: "Quản lý tài khoản, gói và phương thức thanh toán của bạn",
+    en: "Manage your account, plans, and payment methods",
+    ja: "アカウント、プラン、支払い方法を管理",
+    ko: "계정, 요금제 및 결제 수단을 관리",
+    "zh-CN": "管理你的账号、套餐和支付方式"
+  },
   teacher_settings_profile_title: { vi: "Hồ sơ", en: "Profile", ja: "プロフィール", ko: "프로필", "zh-CN": "个人资料" },
   teacher_settings_security_title: { vi: "Bảo mật", en: "Security", ja: "セキュリティ", ko: "보안", "zh-CN": "安全" },
   teacher_settings_notifications_title: { vi: "Thông báo", en: "Notifications", ja: "通知", ko: "알림", "zh-CN": "通知" },
@@ -94,5 +108,159 @@ export const explicit5 = {
   teacher_settings_usage_remaining: { vi: "Usage: còn {n} khóa học có thể tạo.", en: "Usage: {n} courses remaining.", ja: "使用状況: 残り{n}コース作成可能。", ko: "사용량: 남은 생성 가능 강의 {n}개", "zh-CN": "使用情况：还可创建 {n} 门课程。" },
   teacher_settings_unlimited: { vi: "Không giới hạn", en: "Unlimited", ja: "無制限", ko: "무제한", "zh-CN": "不限" },
   teacher_settings_unknown_plan: { vi: "Gói không xác định", en: "Unknown plan", ja: "不明なプラン", ko: "알 수 없는 플랜", "zh-CN": "未知套餐" },
+  language_select: {
+    vi: "Chọn ngôn ngữ",
+    en: "Select language",
+    ja: "言語を選択",
+    ko: "언어 선택",
+    "zh-CN": "选择语言"
+  },
+  adm_set_title: {
+    vi: "Cài đặt hệ thống",
+    en: "System Settings",
+    ja: "システム設定",
+    ko: "시스템 설정",
+    "zh-CN": "系统设置"
+  },
+  adm_set_payment_desc: {
+    vi: "Thông tin ngân hàng để nhận thanh toán từ học viên",
+    en: "Bank information to receive payments from students",
+    ja: "受講生からの支払いを受け取るための銀行情報",
+    ko: "수강생 결제 수령을 위한 은행 정보",
+    "zh-CN": "用于接收学员支付的银行信息"
+  },
+  adm_set_account_number: {
+    vi: "Số tài khoản",
+    en: "Account Number",
+    ja: "口座番号",
+    ko: "계좌번호",
+    "zh-CN": "账号"
+  },
+  adm_set_account_holder: {
+    vi: "Chủ tài khoản",
+    en: "Account Holder",
+    ja: "口座名義",
+    ko: "예금주",
+    "zh-CN": "账户持有人"
+  },
+  adm_set_qr_code: {
+    vi: "Mã QR thanh toán",
+    en: "Payment QR Code",
+    ja: "支払いQRコード",
+    ko: "결제 QR 코드",
+    "zh-CN": "支付二维码"
+  },
+  adm_sub_title: {
+    vi: "Quản lý gói & truy cập giảng viên",
+    en: "Manage instructor plans & access",
+    ja: "講師プランとアクセス管理",
+    ko: "강사 요금제 및 접근 관리",
+    "zh-CN": "讲师套餐与访问管理"
+  },
+  adm_sub_create_btn: {
+    vi: "Tạo gói",
+    en: "Create Plan",
+    ja: "プラン作成",
+    ko: "요금제 생성",
+    "zh-CN": "创建套餐"
+  },
+  adm_sub_create_ok: {
+    vi: "Đã tạo gói mới",
+    en: "New plan created",
+    ja: "新しいプランを作成しました",
+    ko: "새 요금제가 생성되었습니다",
+    "zh-CN": "已创建新套餐"
+  },
+  adm_sub_create_plan: {
+    vi: "Tạo gói mới",
+    en: "Create New Plan",
+    ja: "新しいプランを作成",
+    ko: "새 요금제 생성",
+    "zh-CN": "创建新套餐"
+  },
+  admin_menu_subscriptions: {
+    vi: "Gói giảng viên",
+    en: "Instructor Plans",
+    ja: "講師プラン",
+    ko: "강사 요금제",
+    "zh-CN": "讲师套餐"
+  },
+  pay_manage_desc: {
+    vi: "Theo dõi và quản lý các giao dịch thanh toán",
+    en: "Track and manage payment transactions",
+    ja: "決済取引を追跡して管理",
+    ko: "결제 거래를 추적하고 관리",
+    "zh-CN": "跟踪并管理支付交易"
+  },
+  pay_success_count: {
+    vi: "Giao dịch thành công",
+    en: "Successful transactions",
+    ja: "成功した取引",
+    ko: "성공한 거래",
+    "zh-CN": "成功交易"
+  },
+  user_manage_desc: {
+    vi: "Quản lý tất cả người dùng trong hệ thống",
+    en: "Manage all users in the system",
+    ja: "システム内のすべてのユーザーを管理",
+    ko: "시스템의 모든 사용자를 관리",
+    "zh-CN": "管理系统中的所有用户"
+  },
+  adm_courses_confirm_approve_msg: {
+    vi: "Bạn có chắc chắn muốn duyệt khóa học \"${selectedCourse?.title}\" không? Khóa học sẽ được công khai và học viên có thể đăng ký.",
+    en: "Are you sure you want to approve course \"${selectedCourse?.title}\"? The course will be published and students can enroll.",
+    ja: "コース \"${selectedCourse?.title}\" を承認してもよろしいですか？承認後、コースは公開され、受講生が登録できるようになります。",
+    ko: "\"${selectedCourse?.title}\" 코스를 승인하시겠습니까? 승인되면 코스가 공개되고 수강생이 등록할 수 있습니다.",
+    "zh-CN": "确定要审批课程 \"${selectedCourse?.title}\" 吗？审批后课程将公开，学员可以报名。"
+  },
+  discuss_confirm_delete: {
+    vi: "Bạn có chắc muốn xóa thảo luận này?",
+    en: "Are you sure you want to delete this discussion?",
+    ja: "このディスカッションを削除してもよろしいですか？",
+    ko: "이 토론을 삭제하시겠습니까?",
+    "zh-CN": "您确定要删除此讨论吗？"
+  },
+  discuss_empty: {
+    vi: "Chưa có thảo luận nào. Hãy tạo thảo luận đầu tiên!",
+    en: "No discussions yet. Create the first discussion!",
+    ja: "まだディスカッションがありません。最初のディスカッションを作成しましょう！",
+    ko: "아직 토론이 없습니다. 첫 토론을 만들어보세요!",
+    "zh-CN": "暂无讨论。快来创建第一条讨论吧！"
+  },
+  enroll_step1_desc: {
+    vi: "Vào trang \"Khóa học của tôi\" trên dashboard để bắt đầu học",
+    en: "Go to \"My Courses\" on your dashboard to start learning",
+    ja: "学習を始めるには、ダッシュボードの\"マイコース\"に移動してください",
+    ko: "학습을 시작하려면 대시보드의 \"내 강의\"로 이동하세요",
+    "zh-CN": "前往仪表板中的\"我的课程\"开始学习"
+  },
+  enroll_step2_desc: {
+    vi: "Bắt đầu với phần \"Giới thiệu\" để làm quen với kiến thức cơ bản",
+    en: "Start with the \"Introduction\" section to get familiar with the basics",
+    ja: "基本を把握するために、まず\"イントロダクション\"から始めましょう",
+    ko: "기본 내용을 익히기 위해 \"소개\" 섹션부터 시작하세요",
+    "zh-CN": "先从\"课程介绍\"部分开始，熟悉基础知识"
+  },
+  google_login_failed: {
+    vi: "Đăng nhập Google thất bại",
+    en: "Google login failed",
+    ja: "Googleログインに失敗しました",
+    ko: "Google 로그인에 실패했습니다",
+    "zh-CN": "Google 登录失败"
+  },
+  google_login_missing_info: {
+    vi: "Thiếu thông tin đăng nhập",
+    en: "Missing login information",
+    ja: "ログイン情報が不足しています",
+    ko: "로그인 정보가 누락되었습니다",
+    "zh-CN": "缺少登录信息"
+  },
+  google_login_success: {
+    vi: "Đăng nhập Google thành công!",
+    en: "Google login successful!",
+    ja: "Googleログインに成功しました！",
+    ko: "Google 로그인에 성공했습니다!",
+    "zh-CN": "Google 登录成功！"
+  },
   tc_create_err_unknown: { vi: "Đã xảy ra lỗi", en: "An error occurred", ja: "エラーが発生しました", ko: "오류가 발생했습니다", "zh-CN": "发生错误" },
 };

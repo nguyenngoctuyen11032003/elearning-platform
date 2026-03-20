@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { CheckCircle, Download, Star, Users, Clock, Award, BookOpen } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -90,7 +90,7 @@ function normalizeCourseData(rawCourse: any): CourseSuccessData {
   }
 }
 
-export default function EnrollmentSuccessPage() {
+function EnrollmentSuccessPageContent() {
   const { t } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -471,5 +471,19 @@ ${t("enroll_invoice_website", "Trang web")}: www.ics-elearning.com
         </motion.div>
       </motion.div>
     </div>
+  )
+}
+
+export default function EnrollmentSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background dark:bg-slate-950 flex items-center justify-center py-8 px-4">
+          <div className="rounded-xl border p-6 text-sm text-muted-foreground">Đang tải trang xác nhận...</div>
+        </div>
+      }
+    >
+      <EnrollmentSuccessPageContent />
+    </Suspense>
   )
 }

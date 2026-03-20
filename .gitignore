@@ -9,6 +9,10 @@
 
 # production
 /build
+/artifacts/
+dynamic-route-smoke-report.json
+route-regression-report.json
+multilang-ui-smoke-report.json
 
 # debug
 npm-debug.log*

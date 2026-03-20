@@ -33,9 +33,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { DEFAULT_SYSTEM_SETTINGS } from "../../../../lib/system-config/default-system-settings"
+import type { LanguageCode } from "@/lib/i18n/language-context"
 
 export default function AdminSettingsPage() {
-  const { t } = useLanguage()
+  const { t, language, setLanguage, supportedLanguages } = useLanguage()
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
@@ -50,13 +51,23 @@ const [settings, setSettings] = useState<SystemSettings | null>(null)
 useEffect(() => {
   console.log("CONFIG:", config)
   if (config && !settings) {
+    const normalizedLanguage = config.language === "zh" ? "zh-CN" : config.language
     setSettings({
       ...DEFAULT_SYSTEM_SETTINGS,
       ...config,
+      language: normalizedLanguage,
     })
   }
 // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [config])
+
+useEffect(() => {
+  setSettings((prev) => {
+    if (!prev) return prev
+    if (prev.language === language) return prev
+    return { ...prev, language }
+  })
+}, [language])
 
   const handleSettingChange = (key: string, value: string | boolean) => {
     setSettings((prev) => ({
@@ -99,7 +110,10 @@ const handleSave = async () => {
   try {
     setIsSaving(true)
 
-    let updatedSettings = { ...settings }
+    let updatedSettings = {
+      ...settings,
+      language: settings.language === "zh" ? "zh-CN" : settings.language,
+    }
 
     // upload logo nếu có
     if (logoFile) {
@@ -468,15 +482,19 @@ if (!settings) return null
                     <Globe size={16} /> {t("adm_set_language", "Ngôn ngữ")}
                   </label>
                   <select
-                    value={settings.language}
-                    onChange={(e) => handleSettingChange("language", e.target.value)}
+                    value={(settings.language as LanguageCode) || language}
+                    onChange={(e) => {
+                      const nextLang = (e.target.value === "zh" ? "zh-CN" : e.target.value) as LanguageCode
+                      setLanguage(nextLang)
+                      handleSettingChange("language", nextLang)
+                    }}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                   >
-                    <option value="vi">{t("adm_set_lang_vi", "Tiếng Việt")}</option>
-                    <option value="en">{t("adm_set_lang_en", "Tiếng Anh")}</option>
-                    <option value="ja">日本語</option>
-                    <option value="ko">한국어</option>
-                    <option value="zh">中文</option>
+                    {supportedLanguages.map((langOption) => (
+                      <option key={langOption.code} value={langOption.code}>
+                        {langOption.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

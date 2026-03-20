@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, CheckCircle2, CreditCard, QrCode, Wallet } from "lucide-react"
@@ -32,7 +32,7 @@ type CheckoutData = {
   qrPayload?: string
 }
 
-export default function TeacherPlanCheckoutPage() {
+function TeacherPlanCheckoutPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useLanguage()
@@ -307,5 +307,19 @@ export default function TeacherPlanCheckoutPage() {
         </div>
       ) : null}
     </div>
+  )
+}
+
+export default function TeacherPlanCheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <div className="h-64 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+        </div>
+      }
+    >
+      <TeacherPlanCheckoutPageContent />
+    </Suspense>
   )
 }

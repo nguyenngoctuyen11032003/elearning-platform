@@ -92,7 +92,9 @@ $results = foreach ($item in $routes) {
 
 $sorted = $results | Sort-Object Flow, Route
 
-$reportPath = Join-Path $PSScriptRoot '..\dynamic-route-smoke-report.json'
+$reportDir = Join-Path $PSScriptRoot '..\artifacts\reports'
+New-Item -Path $reportDir -ItemType Directory -Force | Out-Null
+$reportPath = Join-Path $reportDir 'dynamic-route-smoke-report.json'
 $sorted | ConvertTo-Json -Depth 5 | Set-Content -Path $reportPath -Encoding UTF8
 
 $passCount = ($sorted | Where-Object { $_.Result -eq 'PASS' }).Count

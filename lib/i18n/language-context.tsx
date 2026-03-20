@@ -2,15 +2,16 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { translations } from './translations'
+import { translationOverrides } from './translation-overrides'
 
 export type LanguageCode = 'vi' | 'en' | 'ja' | 'ko' | 'zh-CN'
 
-export const supportedLanguages: Array<{ code: LanguageCode; label: string }> = [
-  { code: 'vi', label: '🇻🇳 Tiếng Việt' },
-  { code: 'en', label: '🇺🇸 English' },
-  { code: 'ja', label: '🇯🇵 日本語' },
-  { code: 'ko', label: '🇰🇷 한국어' },
-  { code: 'zh-CN', label: '🇨🇳 简体中文' },
+export const supportedLanguages: Array<{ code: LanguageCode; label: string; flag: string }> = [
+  { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
+  { code: 'ko', label: '한국어', flag: '🇰🇷' },
+  { code: 'zh-CN', label: '简体中文', flag: '🇨🇳' },
 ]
 
 type LanguageContextValue = {
@@ -28,6 +29,44 @@ const defaultValue: LanguageContextValue = {
 }
 
 const LanguageContext = createContext<LanguageContextValue>(defaultValue)
+
+const VIETNAMESE_DIACRITICS = /[ăâđêôơưĂÂĐÊÔƠƯáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/u
+const HANGUL_REGEX = /[\uac00-\ud7af]/u
+const HIRAGANA_KATAKANA_REGEX = /[\u3040-\u30ff]/u
+const CJK_REGEX = /[\u4e00-\u9fff]/u
+
+function isLikelyCorrupted(text: string): boolean {
+  if (!text) return true
+  if (text.includes('�')) return true
+  if (/[A-Za-z]\?[A-Za-z]/.test(text)) return true
+  if (/ng\?n|Ch\?n|N\?u|h\? th\?ng|dang nh\?p/i.test(text)) return true
+  return false
+}
+
+function isInvalidForLanguage(text: string, lang: LanguageCode): boolean {
+  if (!text) return true
+  if (isLikelyCorrupted(text)) return true
+
+  const hasVietnamese = VIETNAMESE_DIACRITICS.test(text)
+  const hasHangul = HANGUL_REGEX.test(text)
+  const hasKana = HIRAGANA_KATAKANA_REGEX.test(text)
+  const hasCjk = CJK_REGEX.test(text)
+
+  if (lang === 'en') {
+    return hasVietnamese || hasHangul || hasKana || hasCjk
+  }
+  if (lang === 'ja') {
+    return hasVietnamese || hasHangul
+  }
+  if (lang === 'ko') {
+    return hasVietnamese || hasKana
+  }
+  if (lang === 'zh-CN') {
+    return hasVietnamese || hasHangul || hasKana
+  }
+
+  return false
+}
 
 function detectBrowserLanguage(): LanguageCode {
   if (typeof navigator === 'undefined') return 'vi'
@@ -67,10 +106,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       language,
       setLanguage,
       t: (key: string, fallback?: string) => {
-        const selected = translations[language]?.[key]
-        if (selected) return selected
-        const viFallback = translations.vi[key]
-        if (viFallback) return viFallback
+        const selected = translationOverrides[language]?.[key] || translations[language]?.[key]
+        if (selected && !isInvalidForLanguage(selected, language)) return selected
+
+        const enCandidate = translationOverrides.en?.[key] || translations.en?.[key]
+        if (language !== 'en' && enCandidate && !isInvalidForLanguage(enCandidate, 'en')) return enCandidate
+
+        const viCandidate = translationOverrides.vi?.[key] || translations.vi?.[key]
+        if (viCandidate) return viCandidate
+
         return fallback || key
       },
       supportedLanguages,

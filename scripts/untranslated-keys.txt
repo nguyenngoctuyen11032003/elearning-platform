@@ -18,13 +18,7 @@ assign_tab_graded	Đã chấm
 assign_tab_overdue	Quá hạn
 assign_tab_pending	Chưa nộp
 assign_tab_submitted	Đã nộp
-enroll_step1_desc	Vào trang "Khóa học của tôi" trên dashboard để bắt đầu học
-enroll_step2_desc	Bắt đầu với phần "Giới thiệu" để làm quen với kiến thức cơ bản
-google_login_failed	Đăng nhập Google thất bại
-google_login_missing_info	Thiếu thông tin đăng nhập
 google_login_process_error	Lỗi xử lý Google login
-google_login_success	Đăng nhập Google thành công!
-language_select	Ch?n ng�n ng?
 maintenance_admin_hint	N?u b?n l� qu?n tr? vi�n, h�y dang nh?p d? t?t ch? d? b?o tr� sau khi ki?m tra ho�n t?t.
 maintenance_message	Chúng tôi đang nâng cấp để phục vụ bạn tốt hơn. Tạm thời tất cả tài khoản học viên và giảng viên bị vô hiệu hóa cho đến khi bảo trì kết thúc.", )} </p> </div> <div className="flex flex-col sm:flex-row items-center justify-center gap-3"> <button onClick={() => window.location.reload()} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-black font-semibold shadow-lg shadow-amber-500/30 hover:bg-amber-400 transition-colors" > <RefreshCw size={18} /> {t("maintenance_retry", "Thử tải lại
 notes_add_deadline	+ Thêm deadline

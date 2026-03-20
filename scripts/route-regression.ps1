@@ -118,7 +118,8 @@ $results = foreach ($item in $routes) {
 
 $sorted = $results | Sort-Object Flow, Route
 
-$reportDir = Join-Path $PSScriptRoot '..'
+$reportDir = Join-Path $PSScriptRoot '..\artifacts\reports'
+New-Item -Path $reportDir -ItemType Directory -Force | Out-Null
 $reportPath = Join-Path $reportDir 'route-regression-report.json'
 $sorted | ConvertTo-Json -Depth 5 | Set-Content -Path $reportPath -Encoding UTF8
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, ClipboardList, Wand2, CheckCircle2 } from "lucide-react"
@@ -103,7 +103,7 @@ const parseQuestions = (value: any): BankQuestion[] => {
     .filter((q) => q.question)
 }
 
-export default function TeacherGenerateExamCreatePage() {
+function TeacherGenerateExamCreatePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const editId = searchParams.get("editId")
@@ -581,5 +581,19 @@ export default function TeacherGenerateExamCreatePage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function TeacherGenerateExamCreatePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <div className="rounded-xl border p-6 text-sm text-muted-foreground">Đang tải cấu hình trang...</div>
+        </div>
+      }
+    >
+      <TeacherGenerateExamCreatePageContent />
+    </Suspense>
   )
 }

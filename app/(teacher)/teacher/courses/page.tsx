@@ -572,6 +572,7 @@ useEffect(() => {
     <div className="flex items-start gap-3 mb-3">
       <img
         src={course.thumbnail}
+        alt={course.title || t("tc_course_thumbnail_alt", "Ảnh khóa học")}
         className="w-20 h-14 rounded-lg object-cover"
       />
 

@@ -115,7 +115,7 @@ return (
                   transition={{ delay: 0.3 }}
                   className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-tight mb-4"
                 >
-                  Chào Mừng Trở Lại!
+                  {t("login_welcome_back", "Chào Mừng Trở Lại!")}
                 </motion.h2>
                 <motion.p
                   initial={{ opacity: 0 }}
