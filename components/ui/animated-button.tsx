@@ -4,7 +4,8 @@ import type React from "react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 
-interface AnimatedButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface AnimatedButtonProps
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onDrag" | "onDragStart" | "onDragEnd"> {
   variant?: "primary" | "secondary" | "outline"
   size?: "sm" | "md" | "lg"
   children: React.ReactNode
@@ -36,7 +37,7 @@ export function AnimatedButton({
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       className={cn(baseStyles, variants[variant], sizes[size], className)}
-      {...props}
+      {...(props as any)}
     >
       <span className="relative z-10">{children}</span>
       <motion.div

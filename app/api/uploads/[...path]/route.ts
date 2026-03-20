@@ -11,7 +11,7 @@ export async function GET(
 
   try {
     const response = await fetch(`${BACKEND_URL}/uploads/${filePath}`, {
-      cache: "public",
+      cache: "force-cache",
     })
 
     if (!response.ok) {

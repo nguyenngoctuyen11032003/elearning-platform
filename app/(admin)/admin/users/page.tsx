@@ -16,6 +16,7 @@ type DropdownFilterProps = {
   width?: number
 }
 function DropdownFilter({ options, value, onChange, className = "", width = 180 }: DropdownFilterProps) {
+  const { t } = useLanguage()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   // Close dropdown when click outside

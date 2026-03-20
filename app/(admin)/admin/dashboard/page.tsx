@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import { StatCard } from "@/components/ui/stat-card"
-import { Users, BookOpen, CreditCard, TrendingUp, Star, UserCheck, Target } from "lucide-react"
+import { BookOpen, CreditCard, UserCheck, Users } from "lucide-react"
 import {
   AreaChart,
   Area,
@@ -318,7 +318,7 @@ if (loading) {
                     color: "#fff"
                   }}
                   itemStyle={{ color: "#fff" }}
-                  formatter={(value: number | undefined) => [formatCurrency(Math.round(value ?? 0)), t("adm_dash_revenue", "Doanh thu")]}
+                  formatter={(value) => [formatCurrency(Math.round(Number(value ?? 0))), t("adm_dash_revenue", "Doanh thu")]}
                 />
                 <Legend />
                 <Area
@@ -365,9 +365,9 @@ if (loading) {
                         color: "#fff"
                       }}
                       itemStyle={{ color: "#fff" }}
-                      formatter={(value: number | undefined, name: string | undefined, _props: any, index: number) => [
-                        `${value ?? 0} ${t("adm_dash_courses_unit", "khóa")} (${categoryData[index]?.percentage ?? 0}%)`,
-                        name ?? "",
+                      formatter={(value, name, _props, index) => [
+                        `${Number(value ?? 0)} ${t("adm_dash_courses_unit", "khóa")} (${categoryData[index]?.percentage ?? 0}%)`,
+                        String(name ?? ""),
                       ]}
                     />
                   </PieChart>

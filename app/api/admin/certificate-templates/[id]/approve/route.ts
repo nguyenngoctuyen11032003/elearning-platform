@@ -7,13 +7,14 @@ const API_URL =
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
     const body = await req.json();
 
-    const response = await fetch(`${API_URL}/certificates/templates/${params.id}/approve`, {
+    const response = await fetch(`${API_URL}/certificates/templates/${id}/approve`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

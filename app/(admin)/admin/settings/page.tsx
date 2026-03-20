@@ -108,6 +108,11 @@ useEffect(() => {
 
 const handleSave = async () => {
   try {
+    if (!settings) {
+      toast.error(t("adm_set_load_failed", "Không thể tải cài đặt"))
+      return
+    }
+
     setIsSaving(true)
 
     let updatedSettings = {

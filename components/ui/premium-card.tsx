@@ -4,7 +4,8 @@ import type React from "react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 
-interface PremiumCardProps extends React.HTMLAttributes<HTMLDivElement> {
+interface PremiumCardProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "onDrag" | "onDragStart" | "onDragEnd"> {
   children: React.ReactNode
   hover?: boolean
 }
@@ -18,7 +19,7 @@ export function PremiumCard({ children, hover = true, className, ...props }: Pre
         "p-6 transition-all duration-300",
         className,
       )}
-      {...props}
+      {...(props as any)}
     >
       {children}
     </motion.div>

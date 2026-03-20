@@ -206,7 +206,7 @@ export default function TeacherDashboard() {
                       border: "1px solid #334155",
                       borderRadius: "8px",
                     }}
-                    formatter={(value: number | undefined) => [`₫${formatPrice(value ?? 0)}`, ""]}
+                    formatter={(value) => [`₫${formatPrice(Number(value ?? 0))}`, ""]}
                   />
                   <Legend />
                   <Line
@@ -281,7 +281,7 @@ export default function TeacherDashboard() {
                         color: "#fff"
                       }}
                       itemStyle={{ color: "#fff" }}
-                      formatter={(value: number | undefined, name?: string) => [`${value ?? 0}`, name ?? ""]}
+                      formatter={(value, name) => [`${Number(value ?? 0)}`, String(name ?? "")]}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -325,7 +325,7 @@ export default function TeacherDashboard() {
                       borderRadius: "8px",
                       color: "#fff"
                     }}
-                    formatter={(value: number | undefined) => [`₫${formatPrice(value ?? 0)}`, ""]}
+                    formatter={(value) => [`₫${formatPrice(Number(value ?? 0))}`, ""]}
                   />
                   <Legend />
                   <Area

@@ -4,12 +4,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
     
-    const response = await fetch(`${API_URL}/api/certificates/templates/${params.id}`, {
+    const response = await fetch(`${API_URL}/api/certificates/templates/${id}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -35,13 +36,15 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
     const body = await req.json();
 
-    const response = await fetch(`${API_URL}/certificates/templates/${params.id}`, {
+    const response = await fetch(`${API_URL}/certificates/templates/${id}`, {
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
@@ -69,12 +72,14 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
 
-    const response = await fetch(`${API_URL}/certificates/templates/${params.id}`, {
+    const response = await fetch(`${API_URL}/certificates/templates/${id}`, {
+      method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
       },
