@@ -1224,6 +1224,10 @@ if (typeof window !== 'undefined' && token) {
     return this.request(`/extracted-exams/student/${id}`);
   }
 
+  async getExtractedExamAttemptDetail(examId: string, attemptId: string): Promise<any> {
+    return this.request(`/extracted-exams/${examId}/attempts/${attemptId}`);
+  }
+
   async startExam(examId: string): Promise<any> {
     return this.request(API_ENDPOINTS.EXAMS.START, {
       method: 'POST',
@@ -1238,10 +1242,10 @@ if (typeof window !== 'undefined' && token) {
     });
   }
 
-  async submitExtractedExam(examId: string, answers: Array<{ questionId: string; answer: any }>): Promise<any> {
+  async submitExtractedExam(examId: string, answers: Array<{ questionId: string; answer: any }>, variantCode?: number): Promise<any> {
     return this.request(`/extracted-exams/${examId}/submit`, {
       method: 'POST',
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({ answers, ...(variantCode ? { variantCode } : {}) }),
     });
   }
 

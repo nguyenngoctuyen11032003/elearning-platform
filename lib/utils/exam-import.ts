@@ -328,7 +328,7 @@ const finalizeWordBlock = (
 
   const answerToken = sanitizeAnswerToken(block.answerLine)
 
-  if (options.length < 2 && plainLines.length >= 2) {
+  if (options.length < 2 && plainLines.length >= 2 && looksLikeOptionReferenceToken(answerToken)) {
     // Use the answer line to determine how many options from the end of plainLines
     const answerLetters = answerToken.match(/[A-F]/gi) || []
     const maxLetterIdx = answerLetters.reduce((max, l) => {

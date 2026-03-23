@@ -58,6 +58,32 @@ interface CertificateTemplate {
   status?: string
 }
 
+const OPTION_IMAGE_TOKEN_REGEX = /^\[\[IMG:(data:image\/[^\]]+)\]\]\s*([\s\S]*)$/
+
+const parseOptionPayload = (raw: string): { text: string; image?: string } => {
+  const value = String(raw || "").trim()
+  const match = value.match(OPTION_IMAGE_TOKEN_REGEX)
+  if (!match) {
+    return { text: value }
+  }
+  return {
+    image: match[1],
+    text: String(match[2] || "").trim(),
+  }
+}
+
+const serializeOptionPayload = (payload: { text: string; image?: string }): string => {
+  const text = String(payload.text || "").trim()
+  const image = payload.image?.trim()
+  if (!image) return text
+  return `[[IMG:${image}]] ${text}`.trim()
+}
+
+const optionComparableText = (raw: string): string => {
+  const payload = parseOptionPayload(raw)
+  return payload.text || raw || ""
+}
+
 const IMAGE_MARKER_REGEX = /\[\[IMAGE:img_\d+\]\]|\[image\]|\(image\)/i
 const MATH_TOKEN_REGEX = /(\d\s*[x×*]\s*10\^?-?\d+|10\^?-?\d+|[=+\-×÷*/^√∑∫π]|\bfrac\b|\blog\b|\bsin\b|\bcos\b|\btan\b)/i
 const FORMULA_PROMPT_REGEX = /(without using a calculator|solve|calculate|compute|evaluate|find|tính|giải|rút gọn|chứng minh)/i
@@ -98,14 +124,9 @@ export default function CreateExamPage() {
     courseId: "",
     type: "practice" as "practice" | "official",
     certificateTemplateId: "",
-    timeLimit: 60,
     passingScore: 70,
     maxAttempts: 3,
-    shuffleQuestions: true,
-    shuffleAnswers: false,
     showCorrectAnswers: true,
-    availableFrom: "",
-    availableUntil: "",
   })
 
   const [questions, setQuestions] = useState<Question[]>([])
@@ -124,7 +145,11 @@ export default function CreateExamPage() {
       const token = String(answer || "").trim()
       if (!token) return ""
 
-      const same = options.find((option) => option.toLowerCase() === token.toLowerCase())
+      const same = options.find((option) => {
+        const raw = String(option || "")
+        const comparable = optionComparableText(raw)
+        return raw.toLowerCase() === token.toLowerCase() || comparable.toLowerCase() === token.toLowerCase()
+      })
       if (same) return same
 
       const letterMatch = token.match(/^[A-F]$/i)
@@ -139,19 +164,6 @@ export default function CreateExamPage() {
         if (numeric >= 0 && numeric < options.length) return options[numeric]
       }
       return same || token
-    }
-
-    const toChoiceSelector = (answer: any, options: string[]) => {
-      const mapped = mapAnswerToOption(answer, options)
-      const selectedIndex = options.findIndex(
-        (option) => option.trim().toLowerCase() === String(mapped || "").trim().toLowerCase()
-      )
-
-      if (selectedIndex >= 0) {
-        return String.fromCharCode(65 + selectedIndex)
-      }
-
-      return String(answer || "").trim()
     }
 
     return rawQuestions
@@ -171,7 +183,7 @@ export default function CreateExamPage() {
         const correctAnswer = type === "fill_in"
           ? String(q?.correctAnswer || "").trim()
           : type === "multiple_choice"
-          ? toChoiceSelector(q?.correctAnswer ?? "", options)
+          ? mapAnswerToOption(q?.correctAnswer ?? "", options)
           : mapAnswerToOption(q?.correctAnswer ?? "", options)
 
         return {
@@ -281,11 +293,6 @@ export default function CreateExamPage() {
       if (!formData.courseId) newErrors.courseId = t("exam_err_course", "Vui lòng chọn khóa học")
       if (formData.type === "official" && !formData.certificateTemplateId) {
         newErrors.certificateTemplateId = t("exam_err_cert", "Bài thi thật phải chọn chứng chỉ")
-      }
-      if (formData.availableFrom && formData.availableUntil) {
-        if (formData.availableUntil <= formData.availableFrom) {
-          newErrors.availableUntil = t("exam_err_time", "Thời gian kết thúc phải sau thời gian bắt đầu")
-        }
       }
     }
 
@@ -409,29 +416,6 @@ export default function CreateExamPage() {
         questions: normalizedQuestions,
       }
 
-      // Convert datetime strings to ISO format or null
-      if (examData.availableFrom) {
-        try {
-          // Input format from datetime-local input: "2026-03-17T10:30"
-          // Convert to full ISO string: "2026-03-17T10:30:00.000Z"
-          examData.availableFrom = new Date(examData.availableFrom).toISOString()
-        } catch {
-          examData.availableFrom = null
-        }
-      } else {
-        examData.availableFrom = null
-      }
-
-      if (examData.availableUntil) {
-        try {
-          examData.availableUntil = new Date(examData.availableUntil).toISOString()
-        } catch {
-          examData.availableUntil = null
-        }
-      } else {
-        examData.availableUntil = null
-      }
-
       if (formData.type !== "official") {
         delete examData.certificateTemplateId
       }
@@ -450,19 +434,10 @@ export default function CreateExamPage() {
         throw new Error(errorPayload?.details?.message || errorPayload?.error || t("exam_err_create", "Tạo bài thi thất bại"))
       }
 
-      const createdPayload = await response.json().catch(() => ({}))
-      const createdExamId =
-        (createdPayload as any)?.id ||
-        (createdPayload as any)?.data?.id ||
-        (createdPayload as any)?.exam?.id ||
-        (createdPayload as any)?.data?.exam?.id
+      await response.json().catch(() => ({}))
 
       toast.success(asDraft ? t("exam_saved_draft", "Đã lưu bài thi nháp") : t("exam_published", "Đã tạo và xuất bản bài thi"))
-      if (createdExamId) {
-        router.push(`/teacher/exams/${createdExamId}/edit`)
-      } else {
-        router.push("/teacher/exams")
-      }
+      router.push("/teacher/exams")
     } catch (error) {
       console.error("Error creating exam:", error)
       const message = error instanceof Error ? error.message : t("exam_err_create", "Tạo bài thi thất bại")
@@ -580,36 +555,6 @@ export default function CreateExamPage() {
                 {errors.courseId && <p className="text-red-500 text-sm mt-1">{errors.courseId}</p>}
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    {t("exam_available_from", "Thời gian mở bài thi")}
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={formData.availableFrom}
-                    onChange={(e) => setFormData({ ...formData, availableFrom: e.target.value })}
-                    className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    {t("exam_available_until", "Thời gian đóng bài thi")}
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={formData.availableUntil}
-                    onChange={(e) => setFormData({ ...formData, availableUntil: e.target.value })}
-                    className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white ${
-                      errors.availableUntil ? "border-red-500" : "border-border dark:border-slate-700"
-                    }`}
-                  />
-                  {errors.availableUntil && (
-                    <p className="text-red-500 text-sm mt-1">{errors.availableUntil}</p>
-                  )}
-                </div>
-              </div>
-
               {/* Exam Type */}
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
@@ -692,20 +637,7 @@ export default function CreateExamPage() {
               )}
 
               {/* Settings */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    {t("exam_time_limit", "Thời gian (phút)")}
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.timeLimit}
-                    onChange={(e) => setFormData({ ...formData, timeLimit: parseInt(e.target.value) || 60 })}
-                    min={5}
-                    max={240}
-                    className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-                  />
-                </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
                     {t("exam_passing_score", "Điểm đạt (%)")}
@@ -731,26 +663,6 @@ export default function CreateExamPage() {
                     max={10}
                     className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
                   />
-                </div>
-                <div className="flex flex-col justify-end gap-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.shuffleQuestions}
-                      onChange={(e) => setFormData({ ...formData, shuffleQuestions: e.target.checked })}
-                      className="w-5 h-5 rounded border-border dark:border-slate-700"
-                    />
-                    <span className="text-sm text-foreground dark:text-white">{t("exam_shuffle_questions", "Tráo câu hỏi")}</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.shuffleAnswers}
-                      onChange={(e) => setFormData({ ...formData, shuffleAnswers: e.target.checked })}
-                      className="w-5 h-5 rounded border-border dark:border-slate-700"
-                    />
-                    <span className="text-sm text-foreground dark:text-white">{t("exam_shuffle_answers", "Tráo đáp án")}</span>
-                  </label>
                 </div>
               </div>
             </div>
@@ -940,36 +852,128 @@ export default function CreateExamPage() {
                             </label>
                             <div className="space-y-2">
                               {question.options.map((option, optIndex) => (
-                                <div key={optIndex} className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    name={`correct_${question.id}`}
-                                    checked={question.correctAnswer === option && option !== ""}
-                                    onChange={() => updateQuestion(question.id, { correctAnswer: option })}
-                                    className="w-4 h-4"
-                                  />
-                                  <input
-                                    type="text"
-                                    value={option}
-                                    onChange={(e) => {
-                                      const newOptions = [...question.options]
-                                      newOptions[optIndex] = e.target.value
-                                      updateQuestion(question.id, { options: newOptions })
-                                    }}
-                                    className="flex-1 px-4 py-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg text-foreground dark:text-white"
-                                    placeholder={`${t("exam_answer_label", "Đáp án")} ${String.fromCharCode(65 + optIndex)}`}
-                                  />
-                                  {question.options.length > 2 && (
-                                    <button
-                                      onClick={() => {
-                                        const newOptions = question.options.filter((_, i) => i !== optIndex)
-                                        updateQuestion(question.id, { options: newOptions })
-                                      }}
-                                      className="p-2 hover:bg-red-500/10 rounded-lg text-red-500"
-                                    >
-                                      <X size={16} />
-                                    </button>
-                                  )}
+                                <div key={optIndex} className="space-y-2 rounded-lg border border-border/60 dark:border-slate-700/60 p-2">
+                                  {(() => {
+                                    const payload = parseOptionPayload(option)
+                                    const currentText = payload.text
+                                    const currentImage = payload.image
+
+                                    return (
+                                      <>
+                                        <div className="flex items-center gap-2">
+                                          <input
+                                            type="radio"
+                                            name={`correct_${question.id}`}
+                                            checked={question.correctAnswer === option && option !== ""}
+                                            onChange={() => updateQuestion(question.id, { correctAnswer: option })}
+                                            className="w-4 h-4"
+                                          />
+                                          <input
+                                            type="text"
+                                            value={currentText}
+                                            onChange={(e) => {
+                                              const nextOption = serializeOptionPayload({
+                                                text: e.target.value,
+                                                image: currentImage,
+                                              })
+                                              const newOptions = [...question.options]
+                                              const prevOption = newOptions[optIndex]
+                                              newOptions[optIndex] = nextOption
+                                              const nextUpdate: Partial<Question> = { options: newOptions }
+                                              if (question.correctAnswer === prevOption) {
+                                                nextUpdate.correctAnswer = nextOption
+                                              }
+                                              updateQuestion(question.id, nextUpdate)
+                                            }}
+                                            className="flex-1 px-4 py-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg text-foreground dark:text-white"
+                                            placeholder={`${t("exam_answer_label", "Đáp án")} ${String.fromCharCode(65 + optIndex)}`}
+                                          />
+                                          {question.options.length > 2 && (
+                                            <button
+                                              onClick={() => {
+                                                const newOptions = question.options.filter((_, i) => i !== optIndex)
+                                                updateQuestion(question.id, { options: newOptions })
+                                              }}
+                                              className="p-2 hover:bg-red-500/10 rounded-lg text-red-500"
+                                            >
+                                              <X size={16} />
+                                            </button>
+                                          )}
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                          <input
+                                            id={`option-image-${question.id}-${optIndex}`}
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={async (e) => {
+                                              const file = e.target.files?.[0]
+                                              e.currentTarget.value = ""
+                                              if (!file) return
+                                              try {
+                                                const dataUrl = await readFileAsDataUrl(file)
+                                                if (!dataUrl) {
+                                                  throw new Error(t("exam_err_read_content", "Không đọc được nội dung ảnh"))
+                                                }
+                                                const nextOption = serializeOptionPayload({ text: currentText, image: dataUrl })
+                                                const newOptions = [...question.options]
+                                                const prevOption = newOptions[optIndex]
+                                                newOptions[optIndex] = nextOption
+                                                const nextUpdate: Partial<Question> = { options: newOptions }
+                                                if (question.correctAnswer === prevOption) {
+                                                  nextUpdate.correctAnswer = nextOption
+                                                }
+                                                updateQuestion(question.id, nextUpdate)
+                                                toast.success(t("exam_image_added", "Đã thêm ảnh cho câu hỏi"))
+                                              } catch (err) {
+                                                const msg = err instanceof Error ? err.message : t("exam_err_add_image", "Không thể thêm ảnh")
+                                                toast.error(msg)
+                                              }
+                                            }}
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const el = document.getElementById(`option-image-${question.id}-${optIndex}`) as HTMLInputElement | null
+                                              el?.click()
+                                            }}
+                                            className="px-3 py-1.5 border border-border dark:border-slate-700 rounded-lg text-xs font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors flex items-center gap-1"
+                                          >
+                                            <Upload size={14} />
+                                            {currentImage ? t("exam_change_image", "Đổi ảnh") : t("exam_add_image", "Thêm ảnh")}
+                                          </button>
+                                          {currentImage && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const nextOption = serializeOptionPayload({ text: currentText, image: undefined })
+                                                const newOptions = [...question.options]
+                                                const prevOption = newOptions[optIndex]
+                                                newOptions[optIndex] = nextOption
+                                                const nextUpdate: Partial<Question> = { options: newOptions }
+                                                if (question.correctAnswer === prevOption) {
+                                                  nextUpdate.correctAnswer = nextOption
+                                                }
+                                                updateQuestion(question.id, nextUpdate)
+                                              }}
+                                              className="px-3 py-1.5 border border-border dark:border-slate-700 rounded-lg text-xs font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+                                            >
+                                              {t("exam_remove_image", "Xóa ảnh")}
+                                            </button>
+                                          )}
+                                        </div>
+
+                                        {currentImage && (
+                                          <img
+                                            src={currentImage}
+                                            alt={`Ảnh đáp án ${String.fromCharCode(65 + optIndex)}`}
+                                            className="max-h-40 max-w-full rounded-lg border border-border dark:border-slate-700"
+                                          />
+                                        )}
+                                      </>
+                                    )
+                                  })()}
                                 </div>
                               ))}
                               {question.options.length < 6 && (
@@ -1075,17 +1079,13 @@ export default function CreateExamPage() {
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
             <h2 className="text-xl font-semibold text-foreground dark:text-white">{t("exam_preview_title", "Xem trước bài thi")}</h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("exam_type", "Loại bài thi")}</p>
                 <p className="text-foreground dark:text-white font-medium flex items-center gap-2 mt-1">
                   {formData.type === "official" ? <Award size={16} className="text-purple-500" /> : <ClipboardList size={16} className="text-blue-500" />}
                   {formData.type === "official" ? t("exam_type_official", "Thi thật") : t("exam_type_practice", "Thi thử")}
                 </p>
-              </div>
-              <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("exam_time", "Thời gian")}</p>
-                <p className="text-foreground dark:text-white font-medium mt-1">{formData.timeLimit} {t("exam_minutes", "phút")}</p>
               </div>
               <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("exam_num_questions", "Số câu hỏi")}</p>
@@ -1540,6 +1540,7 @@ function ImportQuestionsModal({
                   <li>• Đáp án đúng ghi ở dòng "Answer:" hoặc "Đáp án:"</li>
                   <li>• Giải thích bắt đầu bằng "Giải thích:"</li>  
                   <li>• Với PDF: chỉ đọc text, ảnh/công thức nhúng có thể không import được</li>
+                  <li>• Nếu ảnh nằm ở đáp án và PDF không tự nhận, dùng nút "Thêm ảnh" ngay tại từng đáp án sau khi import</li>
                   <li>• Khuyến cáo sử dụng file docx để giữ được chất lượng và đầy đủ định dạng.</li>
                 </>
               )}

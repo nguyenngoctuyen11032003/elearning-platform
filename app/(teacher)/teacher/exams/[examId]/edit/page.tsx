@@ -102,14 +102,9 @@ export default function EditExamPage() {
     courseId: "",
     type: "practice" as "practice" | "official",
     certificateTemplateId: "",
-    timeLimit: 60,
     passingScore: 70,
     maxAttempts: 3,
-    shuffleQuestions: true,
-    shuffleAnswers: false,
     showCorrectAnswers: true,
-    availableFrom: "",
-    availableUntil: "",
   })
 
   const [questions, setQuestions] = useState<Question[]>([])
@@ -371,18 +366,9 @@ export default function EditExamPage() {
         courseId: data.courseId || "",
         type: String(data.type || "practice").toLowerCase() as "practice" | "official",
         certificateTemplateId: data.certificateTemplateId || "",
-        timeLimit: data.timeLimit || 60,
         passingScore: data.passingScore || 70,
         maxAttempts: data.maxAttempts || 3,
-        shuffleQuestions: data.shuffleQuestions ?? true,
-        shuffleAnswers: data.shuffleAnswers ?? false,
         showCorrectAnswers: data.showCorrectAnswers ?? true,
-        availableFrom: data.availableFrom
-          ? new Date(data.availableFrom).toISOString().slice(0, 16)
-          : "",
-        availableUntil: data.availableUntil
-          ? new Date(data.availableUntil).toISOString().slice(0, 16)
-          : "",
       })
       setQuestions(normalizedQuestions)
       setHasLegacyQuestionPayload(rawQuestions.length > 0 && normalizedQuestions.length === 0)
@@ -409,11 +395,6 @@ export default function EditExamPage() {
       if (!formData.courseId) newErrors.courseId = "Vui lòng chọn khóa học"
       if (formData.type === "official" && !formData.certificateTemplateId) {
         newErrors.certificateTemplateId = "Bài thi thật phải chọn chứng chỉ"
-      }
-      if (formData.availableFrom && formData.availableUntil) {
-        if (new Date(formData.availableUntil) <= new Date(formData.availableFrom)) {
-          newErrors.availableUntil = "Thời gian kết thúc phải sau thời gian bắt đầu"
-        }
       }
     }
 
@@ -567,21 +548,7 @@ export default function EditExamPage() {
 
     setIsSubmitting(true)
     try {
-      const normalizedQuestions = normalizeQuestions(questions).map((question) => {
-        if (question.type !== "multiple_choice") return question
-
-        const answerText = String(question.correctAnswer || "").trim().toLowerCase()
-        const selectedIndex = question.options.findIndex(
-          (option) => String(option || "").trim().toLowerCase() === answerText
-        )
-
-        if (selectedIndex < 0) return question
-
-        return {
-          ...question,
-          correctAnswer: String.fromCharCode(65 + selectedIndex),
-        }
-      })
+      const normalizedQuestions = normalizeQuestions(questions)
       console.log('[handleSubmit] questions.length:', questions.length)
       console.log('[handleSubmit] questions sample (first 2):', questions.slice(0, 2))
       console.log('[handleSubmit] normalizedQuestions.length:', normalizedQuestions.length)
@@ -591,29 +558,6 @@ export default function EditExamPage() {
         ...formData,
         status: asDraft ? "draft" : "approved",
         questions: normalizedQuestions,
-      }
-
-      // Convert datetime strings to ISO format or null
-      if (examData.availableFrom) {
-        try {
-          // Input format from datetime-local input: "2026-03-17T10:30"
-          // Convert to full ISO string: "2026-03-17T10:30:00.000Z"
-          examData.availableFrom = new Date(examData.availableFrom).toISOString()
-        } catch {
-          examData.availableFrom = null
-        }
-      } else {
-        examData.availableFrom = null
-      }
-
-      if (examData.availableUntil) {
-        try {
-          examData.availableUntil = new Date(examData.availableUntil).toISOString()
-        } catch {
-          examData.availableUntil = null
-        }
-      } else {
-        examData.availableUntil = null
       }
 
       console.log('[handleSubmit] examData.questions will be sent, count:', normalizedQuestions.length)
@@ -774,36 +718,6 @@ export default function EditExamPage() {
                 {errors.courseId && <p className="text-red-500 text-sm mt-1">{errors.courseId}</p>}
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    Thời gian mở bài thi
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={formData.availableFrom}
-                    onChange={(e) => setFormData({ ...formData, availableFrom: e.target.value })}
-                    className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    Thời gian đóng bài thi
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={formData.availableUntil}
-                    onChange={(e) => setFormData({ ...formData, availableUntil: e.target.value })}
-                    className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white ${
-                      errors.availableUntil ? "border-red-500" : "border-border dark:border-slate-700"
-                    }`}
-                  />
-                  {errors.availableUntil && (
-                    <p className="text-red-500 text-sm mt-1">{errors.availableUntil}</p>
-                  )}
-                </div>
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
                   Loại bài thi <span className="text-red-500">*</span>
@@ -883,18 +797,7 @@ export default function EditExamPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Thời gian (phút)</label>
-                  <input
-                    type="number"
-                    value={formData.timeLimit}
-                    onChange={(e) => setFormData({ ...formData, timeLimit: parseInt(e.target.value) || 60 })}
-                    min={5}
-                    max={240}
-                    className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-                  />
-                </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Điểm đạt (%)</label>
                   <input
@@ -916,26 +819,6 @@ export default function EditExamPage() {
                     max={10}
                     className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
                   />
-                </div>
-                <div className="flex flex-col justify-end gap-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.shuffleQuestions}
-                      onChange={(e) => setFormData({ ...formData, shuffleQuestions: e.target.checked })}
-                      className="w-5 h-5 rounded border-border dark:border-slate-700"
-                    />
-                    <span className="text-sm text-foreground dark:text-white">Tráo câu hỏi</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.shuffleAnswers}
-                      onChange={(e) => setFormData({ ...formData, shuffleAnswers: e.target.checked })}
-                      className="w-5 h-5 rounded border-border dark:border-slate-700"
-                    />
-                    <span className="text-sm text-foreground dark:text-white">Tráo đáp án</span>
-                  </label>
                 </div>
               </div>
             </div>
@@ -1245,17 +1128,13 @@ export default function EditExamPage() {
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
             <h2 className="text-xl font-semibold text-foreground dark:text-white">Xem trước bài thi</h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
                 <p className="text-sm text-muted-foreground dark:text-slate-400">Loại bài thi</p>
                 <p className="text-foreground dark:text-white font-medium flex items-center gap-2 mt-1">
                   {formData.type === "official" ? <Award size={16} className="text-purple-500" /> : <ClipboardList size={16} className="text-blue-500" />}
                   {formData.type === "official" ? "Thi thật" : "Thi thử"}
                 </p>
-              </div>
-              <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Thời gian</p>
-                <p className="text-foreground dark:text-white font-medium mt-1">{formData.timeLimit} phút</p>
               </div>
               <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
                 <p className="text-sm text-muted-foreground dark:text-slate-400">Số câu hỏi</p>
@@ -1296,14 +1175,6 @@ export default function EditExamPage() {
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
-                  <span className="text-muted-foreground dark:text-slate-400">Tráo câu hỏi</span>
-                  <span className="text-foreground dark:text-white font-medium">{formData.shuffleQuestions ? "Có" : "Không"}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
-                  <span className="text-muted-foreground dark:text-slate-400">Tráo đáp án</span>
-                  <span className="text-foreground dark:text-white font-medium">{formData.shuffleAnswers ? "Có" : "Không"}</span>
-                </div>
               </div>
             </div>
 

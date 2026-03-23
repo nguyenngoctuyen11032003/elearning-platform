@@ -66,6 +66,28 @@ const normalizeType = (value: any): BankQuestion["type"] => {
   return "multiple_choice"
 }
 
+const normalizeMcqCorrectAnswer = (raw: any, options: string[]): string => {
+  const token = String(raw || "").trim()
+  if (!token) return options[0] || ""
+
+  const same = options.find((option) => option.toLowerCase() === token.toLowerCase())
+  if (same) return same
+
+  const letterMatch = token.match(/^[A-F]$/i)
+  if (letterMatch) {
+    const index = letterMatch[0].toUpperCase().charCodeAt(0) - 65
+    return options[index] || options[0] || ""
+  }
+
+  const numeric = /^\d+$/.test(token) ? Number.parseInt(token, 10) : Number.NaN
+  if (!Number.isNaN(numeric)) {
+    if (numeric >= 1 && numeric <= options.length) return options[numeric - 1]
+    if (numeric >= 0 && numeric < options.length) return options[numeric]
+  }
+
+  return token
+}
+
 const parseQuestions = (value: any): BankQuestion[] => {
   let data = value
   while (typeof data === "string") {
@@ -95,6 +117,8 @@ const parseQuestions = (value: any): BankQuestion[] => {
         options: type === "true_false" ? ["Đúng", "Sai"] : options,
         correctAnswer: Array.isArray(item?.correctAnswer)
           ? item.correctAnswer.map((ans: any) => String(ans || "").trim()).filter(Boolean)
+          : type === "multiple_choice"
+          ? normalizeMcqCorrectAnswer(item?.correctAnswer, options)
           : String(item?.correctAnswer || "").trim(),
         points: Number(item?.points) > 0 ? Number(item.points) : 1,
         explanation: typeof item?.explanation === "string" ? item.explanation.trim() : "",
@@ -124,12 +148,17 @@ function TeacherGenerateExamCreatePageContent() {
   const [timeLimit, setTimeLimit] = useState(60)
   const [passingScore, setPassingScore] = useState(70)
   const [maxAttempts, setMaxAttempts] = useState(3)
+  const [availableFrom, setAvailableFrom] = useState("")
+  const [availableUntil, setAvailableUntil] = useState("")
+  const [shuffleQuestions, setShuffleQuestions] = useState(true)
+  const [shuffleAnswers, setShuffleAnswers] = useState(false)
 
   const [questionCount, setQuestionCount] = useState(20)
   const [easyCount, setEasyCount] = useState(0)
   const [mediumCount, setMediumCount] = useState(0)
   const [hardCount, setHardCount] = useState(0)
   const [numExamVariants, setNumExamVariants] = useState(1)
+  const [variantCount, setVariantCount] = useState(1)
   const [examVariants, setExamVariants] = useState<BankQuestion[][]>([])
 
   useEffect(() => {
@@ -216,6 +245,19 @@ function TeacherGenerateExamCreatePageContent() {
         setTimeLimit(loadedTimeLimit)
         setPassingScore(Number(data?.passingScore) > 0 ? Number(data.passingScore) : 70)
         setMaxAttempts(Number(data?.maxAttempts) > 0 ? Number(data.maxAttempts) : 3)
+        setAvailableFrom(
+          data?.availableFrom
+            ? new Date(data.availableFrom).toISOString().slice(0, 16)
+            : "",
+        )
+        setAvailableUntil(
+          data?.availableUntil
+            ? new Date(data.availableUntil).toISOString().slice(0, 16)
+            : "",
+        )
+        setShuffleQuestions(data?.shuffleQuestions ?? true)
+        setShuffleAnswers(data?.shuffleAnswers ?? false)
+        setVariantCount(Math.max(1, Number(data?.variantCount) || 1))
         setQuestionCount(existingQuestions.length > 0 ? existingQuestions.length : 20)
         setGeneratedQuestions(existingQuestions)
       } catch (error) {
@@ -361,6 +403,10 @@ function TeacherGenerateExamCreatePageContent() {
       toast.error("Bài thi thật cần chọn chứng chỉ")
       return
     }
+    if (availableFrom && availableUntil && new Date(availableUntil) <= new Date(availableFrom)) {
+      toast.error("Thời gian đóng bài phải sau thời gian mở bài")
+      return
+    }
 
     try {
       setIsSubmitting(true)
@@ -381,11 +427,19 @@ function TeacherGenerateExamCreatePageContent() {
           timeLimit,
           passingScore,
           maxAttempts,
-          shuffleQuestions: true,
-          shuffleAnswers: false,
+          shuffleQuestions,
+          shuffleAnswers,
           showCorrectAnswers: true,
+          variantCount: Math.max(1, variantCount),
           questions: variant,
         }
+
+        examData.availableFrom = availableFrom
+          ? new Date(availableFrom).toISOString()
+          : null
+        examData.availableUntil = availableUntil
+          ? new Date(availableUntil).toISOString()
+          : null
 
         if (type === "official") {
           examData.certificateTemplateId = certificateTemplateId
@@ -467,12 +521,52 @@ function TeacherGenerateExamCreatePageContent() {
                   <input type="text" value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value) || 60)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập thời gian (phút)" />
                 </div>
                 <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Mở bài thi lúc</label>
+                  <input
+                    type="datetime-local"
+                    value={availableFrom}
+                    onChange={(e) => setAvailableFrom(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 bg-background"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Đóng bài thi lúc</label>
+                  <input
+                    type="datetime-local"
+                    value={availableUntil}
+                    onChange={(e) => setAvailableUntil(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 bg-background"
+                  />
+                </div>
+                <div>
                   <label className="block text-xs text-muted-foreground mb-1">Điểm đạt (%)</label>
                   <input type="text" value={passingScore} onChange={(e) => setPassingScore(Number(e.target.value) || 70)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập điểm đạt %" />
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Số lần thi tối đa</label>
                   <input type="text" value={maxAttempts} onChange={(e) => setMaxAttempts(Number(e.target.value) || 3)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập số lần thi" />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Số mã đề ngẫu nhiên <span className="text-xs text-blue-500">(hệ thống phân công tự động)</span></label>
+                  <input type="number" min={1} max={20} value={variantCount} onChange={(e) => setVariantCount(Math.max(1, Number(e.target.value) || 1))} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="1 = không phân mã đề" />
+                </div>
+                <div className="md:col-span-2 flex items-center gap-5 rounded-lg border px-3 py-2">
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={shuffleQuestions}
+                      onChange={(e) => setShuffleQuestions(e.target.checked)}
+                    />
+                    <span>Tráo câu hỏi</span>
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={shuffleAnswers}
+                      onChange={(e) => setShuffleAnswers(e.target.checked)}
+                    />
+                    <span>Tráo đáp án</span>
+                  </label>
                 </div>
               </div>
 
