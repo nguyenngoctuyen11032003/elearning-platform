@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { DropdownFilter } from "@/components/ui/dropdown-filter"
 
 interface Exam {
   id: string
@@ -431,26 +432,28 @@ export default function AdminExamsPage() {
               className="w-full pl-10 pr-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </div>
-          <select
+          <DropdownFilter
+            options={[
+              { value: "all", label: t("adm_exam_filter_all_status", "Tất cả trạng thái") },
+              { value: "pending", label: t("adm_exam_status_pending", "Chờ duyệt") },
+              { value: "approved", label: t("adm_exam_status_approved", "Đã duyệt") },
+              { value: "rejected", label: t("adm_exam_status_rejected", "Từ chối") },
+              { value: "draft", label: t("adm_exam_status_draft", "Nháp") }
+            ]}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-          >
-            <option value="all">{t("adm_exam_filter_all_status", "Tất cả trạng thái")}</option>
-            <option value="pending">{t("adm_exam_status_pending", "Chờ duyệt")}</option>
-            <option value="approved">{t("adm_exam_status_approved", "Đã duyệt")}</option>
-            <option value="rejected">{t("adm_exam_status_rejected", "Từ chối")}</option>
-            <option value="draft">{t("adm_exam_status_draft", "Nháp")}</option>
-          </select>
-          <select
+            onChange={setStatusFilter}
+            width={200}
+          />
+          <DropdownFilter
+            options={[
+              { value: "all", label: t("adm_exam_filter_all_type", "Tất cả loại") },
+              { value: "practice", label: t("adm_exam_type_practice", "Thi thử") },
+              { value: "official", label: t("adm_exam_type_official", "Thi thật") }
+            ]}
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-          >
-            <option value="all">{t("adm_exam_filter_all_type", "Tất cả loại")}</option>
-            <option value="practice">{t("adm_exam_type_practice", "Thi thử")}</option>
-            <option value="official">{t("adm_exam_type_official", "Thi thật")}</option>
-          </select>
+            onChange={setTypeFilter}
+            width={200}
+          />
         </div>
 
         {/* Exams Table (Desktop only - xl+) */}

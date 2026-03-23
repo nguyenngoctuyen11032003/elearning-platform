@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { Plus, Edit, Trash2, Save, X, Search, BookOpen, TrendingUp, FolderOpen, MoreVertical, ImagePlus } from "lucide-react"
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { DropdownFilter } from "@/components/ui/dropdown-filter"
 
 interface Category {
   id: string
@@ -346,17 +347,21 @@ useEffect(() => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_icon_label", "Icon (tuỳ chọn)")}</label>
-                    <select
+                    <DropdownFilter
+                      options={iconOptions.map(icon => ({ value: icon, label: icon }))}
                       value={newCategory.icon}
-                      onChange={(e) => {
-                        setImageFile(null) // Reset file khi chọn icon
+                      onChange={(value) => {
+                        setImageFile(null)
                         setNewCategory({
                           ...newCategory,
-                          icon: e.target.value,
+                          icon: value,
                           image: undefined
                         })
                       }}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 text-xl"
+                      width={300}
+                      placeholder={t("adm_cat_no_icon", "Không chọn icon")}
+                    />
+                  </div>
                     >
                       <option value="">{t("adm_cat_no_icon", "Không chọn icon")}</option>
                       {iconOptions.map((icon) => (
@@ -465,31 +470,26 @@ useEffect(() => {
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold">{t("adm_cat_icon", "Icon")}</label>
 
-                    <select
+                    <DropdownFilter
+                      options={iconOptions.map(icon => ({ value: icon, label: icon }))}
                       value={category.icon || ""}
-                      onChange={(e) => {
-                        setEditImageFile(null) // Reset file ảnh khi chọn icon
+                      onChange={(value) => {
+                        setEditImageFile(null)
                         setCategories(
                           categories.map((c) =>
                             c.id === category.id
                               ? {
                                   ...c,
-                                  icon: e.target.value,
-                                  image: undefined, // chọn icon thì xoá ảnh
+                                  icon: value,
+                                  image: undefined,
                                 }
                               : c
                           )
                         )
                       }}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-2 border border-border dark:border-slate-800 text-base"
-                    >
-                      <option value="">{t("adm_cat_no_icon", "Không chọn icon")}</option>
-                      {iconOptions.map((icon) => (
-                        <option key={icon} value={icon}>
-                          {icon}
-                        </option>
-                      ))}
-                    </select>
+                      width={300}
+                      placeholder={t("adm_cat_no_icon", "Không chọn icon")}
+                    />
                   </div>
 
                   {/* IMAGE */}

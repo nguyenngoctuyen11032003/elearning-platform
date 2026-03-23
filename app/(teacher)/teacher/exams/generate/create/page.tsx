@@ -6,7 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, ClipboardList, Wand2, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/authfetch"
+<<<<<<< Updated upstream
 import { useLanguage } from "@/lib/i18n/language-context"
+=======
+import { DropdownFilter } from "@/components/ui/dropdown-filter"
+>>>>>>> Stashed changes
 
 type Difficulty = "easy" | "medium" | "hard"
 
@@ -325,6 +329,8 @@ function TeacherGenerateExamCreatePageContent() {
     }
   }, [availableCertificates, certificateTemplateId])
 
+
+
   const toggleExam = (examId: string) => {
     setSelectedExamIds((prev) => (prev.includes(examId) ? prev.filter((id) => id !== examId) : [...prev, examId]))
   }
@@ -357,26 +363,25 @@ function TeacherGenerateExamCreatePageContent() {
 
     const variants: BankQuestion[][] = []
 
-    for (let variantIndex = 0; variantIndex < numExamVariants; variantIndex++) {
-      const easyPool = shuffle(filteredQuestions.filter((q) => (q.difficulty || "medium") === "easy"))
-      const mediumPool = shuffle(filteredQuestions.filter((q) => (q.difficulty || "medium") === "medium"))
-      const hardPool = shuffle(filteredQuestions.filter((q) => (q.difficulty || "medium") === "hard"))
+    // Only create one set of questions, backend will handle variant generation
+    const easyPool = shuffle(filteredQuestions.filter((q) => (q.difficulty || "medium") === "easy"))
+    const mediumPool = shuffle(filteredQuestions.filter((q) => (q.difficulty || "medium") === "medium"))
+    const hardPool = shuffle(filteredQuestions.filter((q) => (q.difficulty || "medium") === "hard"))
 
-      const selected: BankQuestion[] = []
-      selected.push(...easyPool.slice(0, easyCount))
-      selected.push(...mediumPool.slice(0, mediumCount))
-      selected.push(...hardPool.slice(0, hardCount))
+    const selected: BankQuestion[] = []
+    selected.push(...easyPool.slice(0, easyCount))
+    selected.push(...mediumPool.slice(0, mediumCount))
+    selected.push(...hardPool.slice(0, hardCount))
 
-      const used = new Set(selected.map((q) => `${q.type}|${q.question.trim().toLowerCase()}`))
-      const remainderPool = shuffle(filteredQuestions).filter(
-        (q) => !used.has(`${q.type}|${q.question.trim().toLowerCase()}`)
-      )
+    const used = new Set(selected.map((q) => `${q.type}|${q.question.trim().toLowerCase()}`))
+    const remainderPool = shuffle(filteredQuestions).filter(
+      (q) => !used.has(`${q.type}|${q.question.trim().toLowerCase()}`)
+    )
 
-      const remaining = Math.max(0, questionCount - selected.length)
-      selected.push(...remainderPool.slice(0, remaining))
+    const remaining = Math.max(0, questionCount - selected.length)
+    selected.push(...remainderPool.slice(0, remaining))
 
-      variants.push(shuffle(selected))
-    }
+    variants.push(shuffle(selected))
 
     setExamVariants(variants)
     setGeneratedQuestions(variants[0] || [])
@@ -418,37 +423,41 @@ function TeacherGenerateExamCreatePageContent() {
 
     try {
       setIsSubmitting(true)
-      const variantsToCreate = examVariants.length > 0 ? examVariants : [generatedQuestions]
-      const variantNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+      
+      // Only create one exam with variantCount
+      const examData: any = {
+        title: title.trim(),
+        description: description.trim(),
+        courseId: selectedCourseId,
+        type,
+        status: "approved",
+        timeLimit,
+        passingScore,
+        maxAttempts,
+        shuffleQuestions,
+        shuffleAnswers,
+        showCorrectAnswers: true,
+        variantCount: Math.max(1, numExamVariants),
+        questions: generatedQuestions,
+      }
 
-      for (let i = 0; i < variantsToCreate.length; i++) {
-        const variant = variantsToCreate[i]
-        const variantSuffix = numExamVariants > 1 ? ` - Đề ${variantNames[i]}` : ""
-        const examTitle = title.trim() + variantSuffix
+      examData.availableFrom = availableFrom
+        ? new Date(availableFrom).toISOString()
+        : null
+      examData.availableUntil = availableUntil
+        ? new Date(availableUntil).toISOString()
+        : null
 
-        const examData: any = {
-          title: examTitle,
-          description: description.trim(),
-          courseId: selectedCourseId,
-          type,
-          status: "approved",
-          timeLimit,
-          passingScore,
-          maxAttempts,
-          shuffleQuestions,
-          shuffleAnswers,
-          showCorrectAnswers: true,
-          variantCount: Math.max(1, variantCount),
-          questions: variant,
-        }
+      if (type === "official") {
+        examData.certificateTemplateId = certificateTemplateId
+      }
 
-        examData.availableFrom = availableFrom
-          ? new Date(availableFrom).toISOString()
-          : null
-        examData.availableUntil = availableUntil
-          ? new Date(availableUntil).toISOString()
-          : null
+      const response = await authFetch(isEditMode ? `/extracted-exams/${editId}` : "/extracted-exams", {
+        method: isEditMode ? "PATCH" : "POST",
+        body: JSON.stringify(examData),
+      })
 
+<<<<<<< Updated upstream
         if (type === "official") {
           examData.certificateTemplateId = certificateTemplateId
         }
@@ -469,6 +478,16 @@ function TeacherGenerateExamCreatePageContent() {
         : numExamVariants > 1
         ? t("tch_exgc_success_publish_multi", "Đã tạo và xuất bản {n} mã đề").replace("{n}", String(numExamVariants))
         : t("tch_exgc_success_publish", "Đã tạo và xuất bản đề thi")
+=======
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}))
+        throw new Error(errorPayload?.details?.message || errorPayload?.error || `Tạo đề thi ${title.trim()} thất bại`)
+      }
+
+      const successMessage = isEditMode 
+        ? "Đã cập nhật cấu hình đề thi" 
+        : `Đã tạo và xuất bản đề thi với ${numExamVariants} mã đề`
+>>>>>>> Stashed changes
       
       toast.success(successMessage)
       router.push("/teacher/exams/generate")
@@ -504,6 +523,7 @@ function TeacherGenerateExamCreatePageContent() {
             <div className="rounded-2xl border bg-card p-5 space-y-4">
               <h2 className="font-semibold flex items-center gap-2"><ClipboardList size={18} /> {t("tch_exgc_section_config", "Cấu hình đề thi")}</h2>
               <div className="grid gap-4 md:grid-cols-2">
+<<<<<<< Updated upstream
                 <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("tch_exgc_input_title", "Tiêu đề đề thi")} className="border rounded-lg px-3 py-2 bg-background" />
                 <select value={selectedCourseId} onChange={(e) => setSelectedCourseId(e.target.value)} className="border rounded-lg px-3 py-2 bg-background">
                   <option value="">{t("tch_exgc_course_placeholder", "Chọn khóa học")}</option>
@@ -516,17 +536,53 @@ function TeacherGenerateExamCreatePageContent() {
                   <option value="official">{t("tch_exgc_type_official", "Thi thật")}</option>
                 </select>
                 <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("tch_exgc_input_desc", "Mô tả ngắn")} className="border rounded-lg px-3 py-2 bg-background" />
+=======
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Tiêu đề đề thi</label>
+                  <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nhập tiêu đề đề thi" className="w-full border rounded-lg px-3 py-2 bg-background" />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Chọn khóa học</label>
+                  <DropdownFilter
+                    options={courseOptions.map(course => ({ value: course.id, label: course.title }))}
+                    value={selectedCourseId}
+                    onChange={setSelectedCourseId}
+                    placeholder="Chọn khóa học"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Loại bài thi</label>
+                  <DropdownFilter
+                    options={[
+                      { value: "practice", label: "Thi thử" },
+                      { value: "official", label: "Thi thật" }
+                    ]}
+                    value={type}
+                    onChange={(value) => setType(value as "practice" | "official")}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Thời gian làm bài (phút)</label>
+                  <input type="text" value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value) || 60)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập thời gian (phút)" />
+                </div>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả ngắn" rows={2} className="border rounded-lg px-3 py-2 bg-background md:col-span-2" />
+>>>>>>> Stashed changes
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_question_count", "Số câu hỏi cần tạo")}</label>
                   <input type="text" value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder={t("tch_exgc_placeholder_question_count", "Nhập số câu hỏi")} />
                 </div>
                 <div>
+<<<<<<< Updated upstream
                   <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_variant", "Số mã đề")}</label>
                   <input type="text" value={numExamVariants} onChange={(e) => setNumExamVariants(Number(e.target.value) || 1)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder={t("tch_exgc_placeholder_variant", "Nhập số mã đề (tối đa 26)")} />
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_time", "Thời gian làm bài (phút)")}</label>
                   <input type="text" value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value) || 60)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder={t("tch_exgc_placeholder_time", "Nhập thời gian (phút)")} />
+=======
+                  <label className="block text-xs text-muted-foreground mb-1">Số mã đề</label>
+                  <input type="number" min={1} max={26} value={numExamVariants} onChange={(e) => setNumExamVariants(Math.max(1, Number(e.target.value) || 1))} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="1 - 26" />
+>>>>>>> Stashed changes
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_available_from", "Mở bài thi lúc")}</label>
@@ -555,10 +611,13 @@ function TeacherGenerateExamCreatePageContent() {
                   <input type="number" min={1} max={10} value={maxAttempts} onChange={(e) => setMaxAttempts(Math.max(1, Number(e.target.value) || 3))} className="w-full border-2 border-blue-500 rounded-lg px-3 py-2 bg-background font-semibold focus:outline-none focus:border-blue-600" placeholder={t("tch_exgc_placeholder_max_attempt", "Nhập số lần (1-10)")} />
                   <p className="text-xs text-muted-foreground mt-1">{t("tch_exgc_hint_max_attempt", "Số lần thi tối đa: {n}").replace("{n}", String(maxAttempts))}</p>
                 </div>
+<<<<<<< Updated upstream
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_variant_auto", "Số mã đề ngẫu nhiên")} <span className="text-xs text-blue-500">{t("tch_exgc_label_variant_note", "(hệ thống phân công tự động)")}</span></label>
                   <input type="number" min={1} max={20} value={variantCount} onChange={(e) => setVariantCount(Math.max(1, Number(e.target.value) || 1))} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder={t("tch_exgc_placeholder_variant_auto", "1 = không phân mã đề")} />
                 </div>
+=======
+>>>>>>> Stashed changes
                 <div className="md:col-span-2 flex items-center gap-5 rounded-lg border px-3 py-2">
                   <label className="inline-flex items-center gap-2 text-sm">
                     <input
@@ -580,8 +639,10 @@ function TeacherGenerateExamCreatePageContent() {
               </div>
 
               {type === "official" && (
-                <select
+                <DropdownFilter
+                  options={availableCertificates.map((cert) => ({ value: cert.id, label: cert.title }))}
                   value={certificateTemplateId}
+<<<<<<< Updated upstream
                   onChange={(e) => setCertificateTemplateId(e.target.value)}
                   className="w-full border rounded-lg px-3 py-2 bg-background"
                 >
@@ -590,6 +651,11 @@ function TeacherGenerateExamCreatePageContent() {
                     <option key={cert.id} value={cert.id}>{cert.title}</option>
                   ))}
                 </select>
+=======
+                  onChange={setCertificateTemplateId}
+                  placeholder="Chọn chứng chỉ cho bài thi thật"
+                />
+>>>>>>> Stashed changes
               )}
             </div>
 

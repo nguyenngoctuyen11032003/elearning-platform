@@ -25,6 +25,7 @@ import { toast } from "sonner"
 import { parseExamQuestionsFileWithReport, type ExamImportReport } from "@/lib/utils/exam-import"
 import { TeacherExamsNavbar } from "@/components/teacher-exams-navbar"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { DropdownFilter } from "@/components/ui/dropdown-filter"
 
 // Generate unique ID without uuid dependency
 const generateId = () => {
@@ -540,130 +541,14 @@ export default function CreateExamPage() {
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
                   {t("exam_course", "Khóa học")} <span className="text-red-500">*</span>
                 </label>
-                <select
+                <DropdownFilter
+                  options={courses.map(course => ({ value: course.id, label: course.title }))}
                   value={formData.courseId}
-                  onChange={(e) => setFormData({ ...formData, courseId: e.target.value, certificateTemplateId: "" })}
-                  className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
-                    errors.courseId ? "border-red-500" : "border-border dark:border-slate-700"
-                  }`}
-                >
-                  <option value="">{t("exam_select_course", "Chọn khóa học")}</option>
-                  {courses.map(course => (
-                    <option key={course.id} value={course.id}>{course.title}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({ ...formData, courseId: value, certificateTemplateId: "" })}
+                  width={300}
+                  placeholder={t("exam_select_course", "Chọn khóa học")}
+                />
                 {errors.courseId && <p className="text-red-500 text-sm mt-1">{errors.courseId}</p>}
-              </div>
-
-              {/* Exam Type */}
-              <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                  {t("exam_type", "Loại bài thi")} <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, type: "practice", certificateTemplateId: "" })}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      formData.type === "practice"
-                        ? "border-blue-500 bg-blue-500/10"
-                        : "border-border dark:border-slate-700 hover:border-blue-500/50"
-                    }`}
-                  >
-                    <ClipboardList size={24} className={formData.type === "practice" ? "text-blue-500" : "text-muted-foreground"} />
-                    <p className={`font-semibold mt-2 ${formData.type === "practice" ? "text-blue-500" : "text-foreground dark:text-white"}`}>
-                      {t("exam_type_practice", "Thi thử")}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">{t("exam_practice_desc", "Để luyện tập, không cấp chứng chỉ")}</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, type: "official" })}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      formData.type === "official"
-                        ? "border-purple-500 bg-purple-500/10"
-                        : "border-border dark:border-slate-700 hover:border-purple-500/50"
-                    }`}
-                  >
-                    <Award size={24} className={formData.type === "official" ? "text-purple-500" : "text-muted-foreground"} />
-                    <p className={`font-semibold mt-2 ${formData.type === "official" ? "text-purple-500" : "text-foreground dark:text-white"}`}>
-                      {t("exam_type_official", "Thi thật")}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">{t("exam_official_desc", "Để cấp chứng chỉ khi đạt")}</p>
-                  </button>
-                </div>
-              </div>
-
-              {/* Certificate Template (only for official exams) */}
-              {formData.type === "official" && (
-                <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    {t("exam_certificate", "Chứng chỉ")} <span className="text-red-500">*</span>
-                  </label>
-                  {!formData.courseId ? (
-                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-                      <p className="text-yellow-500 text-sm flex items-center gap-2">
-                        <AlertCircle size={16} />
-                        {t("exam_select_course_first", "Vui lòng chọn khóa học trước để xem danh sách chứng chỉ")}
-                      </p>
-                    </div>
-                  ) : isLoadingTemplates ? (
-                    <div className="p-4 bg-slate-100/80 dark:bg-slate-800/60 border border-border dark:border-slate-700 rounded-xl">
-                      <p className="text-sm text-muted-foreground">{t("exam_loading_certs", "Đang tải chứng chỉ...")}</p>
-                    </div>
-                  ) : availableCertificates.length === 0 ? (
-                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-                      <p className="text-yellow-500 text-sm flex items-center gap-2">
-                        <AlertCircle size={16} />
-                        {t("exam_no_certs", "Không có chứng chỉ nào cho khóa học này. Vui lòng tạo chứng chỉ trước.")}
-                      </p>
-                    </div>
-                  ) : (
-                    <select
-                      value={formData.certificateTemplateId}
-                      onChange={(e) => setFormData({ ...formData, certificateTemplateId: e.target.value })}
-                      className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
-                        errors.certificateTemplateId ? "border-red-500" : "border-border dark:border-slate-700"
-                      }`}
-                    >
-                      <option value="">{t("exam_select_cert", "Chọn chứng chỉ")}</option>
-                      {availableCertificates.map(cert => (
-                        <option key={cert.id} value={cert.id}>{cert.title}</option>
-                      ))}
-                    </select>
-                  )}
-                  {errors.certificateTemplateId && <p className="text-red-500 text-sm mt-1">{errors.certificateTemplateId}</p>}
-                </div>
-              )}
-
-              {/* Settings */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    {t("exam_passing_score", "Điểm đạt (%)")}
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.passingScore}
-                    onChange={(e) => setFormData({ ...formData, passingScore: parseInt(e.target.value) || 70 })}
-                    min={0}
-                    max={100}
-                    className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    {t("exam_max_attempts", "Số lần thi")}
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.maxAttempts}
-                    onChange={(e) => setFormData({ ...formData, maxAttempts: parseInt(e.target.value) || 3 })}
-                    min={1}
-                    max={10}
-                    className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-                  />
-                </div>
               </div>
             </div>
           </div>
