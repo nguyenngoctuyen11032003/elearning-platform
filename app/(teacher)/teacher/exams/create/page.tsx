@@ -764,7 +764,7 @@ export default function CreateExamPage() {
                         {question.needsAssetReview && (
                           <span
                             className="inline-flex items-center justify-center"
-                            title="Câu này cần bổ sung ảnh/tài liệu (không tự import được)"
+                            title={t("exam_asset_issue_tooltip", "Câu này cần bổ sung ảnh/tài liệu (không tự import được)")}
                           >
                             <AlertCircle size={18} className="text-amber-500" />
                           </span>
@@ -838,7 +838,7 @@ export default function CreateExamPage() {
                           {question.image && (
                             <img
                               src={question.image}
-                              alt={`Ảnh minh họa câu ${index + 1}`}
+                              alt={t("exam_question_image_alt", "Ảnh minh họa câu {n}").replace("{n}", String(index + 1))}
                               className="mt-2 max-h-56 max-w-full rounded-lg border border-border dark:border-slate-700"
                             />
                           )}
@@ -967,7 +967,7 @@ export default function CreateExamPage() {
                                         {currentImage && (
                                           <img
                                             src={currentImage}
-                                            alt={`Ảnh đáp án ${String.fromCharCode(65 + optIndex)}`}
+                                            alt={t("exam_option_image_alt", "Ảnh đáp án {label}").replace("{label}", String.fromCharCode(65 + optIndex))}
                                             className="max-h-40 max-w-full rounded-lg border border-border dark:border-slate-700"
                                           />
                                         )}
@@ -1263,15 +1263,15 @@ function ImportQuestionsModal({
       const reasons: string[] = []
 
       if (extraSet.has(number)) {
-        reasons.push("Câu có nhiều ảnh/tài liệu (chỉ lấy ảnh đầu)")
+        reasons.push(t("exam_asset_reason_extra_images", "Câu có nhiều ảnh/tài liệu (chỉ lấy ảnh đầu)"))
       }
 
       if (extracted > 0 && !q.image) {
-        reasons.push("PDF có ảnh/tài liệu nhưng không gắn được vào câu")
+        reasons.push(t("exam_asset_reason_missing_image", "PDF có ảnh/tài liệu nhưng không gắn được vào câu"))
       }
 
       if (isLikelyFormulaLoss(q.question)) {
-        reasons.push("Nghi ngờ mất công thức/ảnh khi đọc")
+        reasons.push(t("exam_asset_reason_formula_loss", "Nghi ngờ mất công thức/ảnh khi đọc"))
       }
 
       if (reasons.length > 0) {
@@ -1356,16 +1356,16 @@ function ImportQuestionsModal({
       }
       if (isPdf && !hasImportedImage) {
         if ((importReport?.extractedImageCount ?? report.extractedImageCount) > 0) {
-          toast.warning("PDF có ảnh/công thức nhưng chưa tự gắn vào câu hỏi. Bạn có thể dùng nút 'Thêm ảnh' ở từng câu để bổ sung.")
+          toast.warning(t("exam_pdf_image_warning", "PDF có ảnh/công thức nhưng chưa tự gắn vào câu hỏi. Bạn có thể dùng nút 'Thêm ảnh' ở từng câu để bổ sung."))
         } else {
-          toast.warning("PDF không trích xuất được ảnh/công thức. Bạn có thể dùng nút 'Thêm ảnh' ở từng câu để bổ sung hoặc dùng DOCX.")
+          toast.warning(t("exam_pdf_no_extract", "PDF không trích xuất được ảnh/công thức. Bạn có thể dùng nút 'Thêm ảnh' ở từng câu để bổ sung hoặc dùng DOCX."))
         }
       }
       if (isPdf && report.questionsWithExtraImages.length > 0) {
-        toast.warning(`Một số câu có nhiều hơn 1 ảnh (chỉ lấy ảnh đầu). Câu: ${report.questionsWithExtraImages.join(", ")}`)
+        toast.warning(t("exam_pdf_extra_images", "Một số câu có nhiều hơn 1 ảnh (chỉ lấy ảnh đầu). Câu: {list}").replace("{list}", report.questionsWithExtraImages.join(", ")))
       }
       if (isPdf && hasLikelyFormulaLoss) {
-        toast.warning("Phát hiện câu hỏi có thể bị mất công thức/ảnh khi đọc PDF. Vui lòng kiểm tra lại nội dung sau import.")
+        toast.warning(t("exam_pdf_formula_loss", "Phát hiện câu hỏi có thể bị mất công thức/ảnh khi đọc PDF. Vui lòng kiểm tra lại nội dung sau import."))
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : t("exam_err_read_file", "Không thể đọc file đề thi")
@@ -1405,13 +1405,13 @@ function ImportQuestionsModal({
             </div>
 
             <div className="p-6 space-y-3 overflow-y-auto max-h-[60vh]">
-              <div className="flex gap-2 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-600" />
-                <div>
-                  <p className="font-medium">Phát hiện {assetIssues.length} câu cần xử lý</p>
-                  <p className="mt-1">Bạn có thể import trước, sau đó dùng nút “Thêm ảnh” ở từng câu để bổ sung.</p>
+                <div className="flex gap-2 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-600" />
+                  <div>
+                    <p className="font-medium">{t("exam_asset_issues_found", "Phát hiện {n} câu cần xử lý").replace("{n}", String(assetIssues.length))}</p>
+                    <p className="mt-1">{t("exam_asset_issues_import_hint", "Bạn có thể import trước, sau đó dùng nút \"Thêm ảnh\" ở từng câu để bổ sung.")}</p>
+                  </div>
                 </div>
-              </div>
 
               <div className="space-y-2">
                 {assetIssues.map((issue) => (
@@ -1421,7 +1421,7 @@ function ImportQuestionsModal({
                         {issue.number}
                       </span>
                       <div className="flex-1">
-                        <p className="text-sm text-foreground dark:text-white">{issue.preview || "(Không có nội dung)"}</p>
+                        <p className="text-sm text-foreground dark:text-white">{issue.preview || t("exam_asset_issue_no_content", "(Không có nội dung)")}</p>
                         <p className="text-xs text-muted-foreground mt-1">{issue.reasons.join("; ")}</p>
                       </div>
                     </div>
@@ -1459,9 +1459,16 @@ function ImportQuestionsModal({
               <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-600" />
               <div>
                 <p className="font-medium">{t("exam_import_report", "Báo cáo import PDF")}</p>
-                <p className="mt-1">Trích xuất {importReport.extractedImageCount} ảnh/công thức, gắn vào {importReport.importedImageCount} câu.</p>
+                <p className="mt-1">
+                  {t("exam_import_report_extracted", "Trích xuất {extracted} ảnh/công thức, gắn vào {imported} câu.")
+                    .replace("{extracted}", String(importReport.extractedImageCount))
+                    .replace("{imported}", String(importReport.importedImageCount))}
+                </p>
                 {importReport.questionsWithExtraImages.length > 0 && (
-                  <p className="mt-1">Câu có ảnh bổ sung chưa import (chỉ lấy ảnh đầu): {importReport.questionsWithExtraImages.join(", ")}</p>
+                  <p className="mt-1">
+                    {t("exam_import_report_extra_images", "Câu có ảnh bổ sung chưa import (chỉ lấy ảnh đầu): {list}")
+                      .replace("{list}", importReport.questionsWithExtraImages.join(", "))}
+                  </p>
                 )}
               </div>
             </div>
@@ -1527,21 +1534,21 @@ function ImportQuestionsModal({
             <ul className="text-sm text-blue-400 space-y-1">
               {importType === "excel" ? (
                 <>
-                  <li>• Cột A: Câu hỏi</li>
-                  <li>• Cột B-E: Đáp án A, B, C, D</li>
-                  <li>• Cột F: Đáp án đúng (A, B, C hoặc D)</li>
-                  <li>• Cột G: Điểm</li>
-                  <li>• Cột H: Giải thích (tùy chọn)</li>
+                  <li>• {t("exam_format_excel_col_a", "Cột A: Câu hỏi")}</li>
+                  <li>• {t("exam_format_excel_col_b", "Cột B-E: Đáp án A, B, C, D")}</li>
+                  <li>• {t("exam_format_excel_col_f", "Cột F: Đáp án đúng (A, B, C hoặc D)")}</li>
+                  <li>• {t("exam_format_excel_col_g", "Cột G: Điểm")}</li>
+                  <li>• {t("exam_format_excel_col_h", "Cột H: Giải thích (tùy chọn)")}</li>
                 </>
               ) : (
                 <>
-                  <li>• Mỗi câu hỏi bắt đầu bằng "Câu [số]:"</li>
-                  <li>• Đáp án được đánh dấu A., B., C., D.</li>
-                  <li>• Đáp án đúng ghi ở dòng "Answer:" hoặc "Đáp án:"</li>
-                  <li>• Giải thích bắt đầu bằng "Giải thích:"</li>  
-                  <li>• Với PDF: chỉ đọc text, ảnh/công thức nhúng có thể không import được</li>
-                  <li>• Nếu ảnh nằm ở đáp án và PDF không tự nhận, dùng nút "Thêm ảnh" ngay tại từng đáp án sau khi import</li>
-                  <li>• Khuyến cáo sử dụng file docx để giữ được chất lượng và đầy đủ định dạng.</li>
+                  <li>• {t("exam_format_word_rule1", "Mỗi câu hỏi bắt đầu bằng \"Câu [số]:\"")}</li>
+                  <li>• {t("exam_format_word_rule2", "Đáp án được đánh dấu A., B., C., D.")}</li>
+                  <li>• {t("exam_format_word_rule3", "Đáp án đúng ghi ở dòng \"Answer:\" hoặc \"Đáp án:\"")}</li>
+                  <li>• {t("exam_format_word_rule4", "Giải thích bắt đầu bằng \"Giải thích:\"")}</li>  
+                  <li>• {t("exam_format_word_rule5", "Với PDF: chỉ đọc text, ảnh/công thức nhúng có thể không import được")}</li>
+                  <li>• {t("exam_format_word_rule6", "Nếu ảnh nằm ở đáp án và PDF không tự nhận, dùng nút \"Thêm ảnh\" ngay tại từng đáp án sau khi import")}</li>
+                  <li>• {t("exam_format_word_rule7", "Khuyến cáo sử dụng file docx để giữ được chất lượng và đầy đủ định dạng.")}</li>
                 </>
               )}
             </ul>

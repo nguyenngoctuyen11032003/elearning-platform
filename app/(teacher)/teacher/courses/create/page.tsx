@@ -68,6 +68,7 @@ export default function CreateCoursePage() {
   const [currentSectionId, setCurrentSectionId] = useState<string | null>(null)
   const [currentLessonId, setCurrentLessonId] = useState<string | null>(null)
   const [showLessonModal, setShowLessonModal] = useState(false)
+  const thumbnailInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
   const documentInputRef = useRef<HTMLInputElement>(null)
   const [draggedVideoZone, setDraggedVideoZone] = useState(false)
@@ -258,7 +259,7 @@ export default function CreateCoursePage() {
   const addSection = () => {
     const newSection: Section = {
       id: Date.now().toString(),
-      title: `Phần ${sections.length + 1}`,
+      title: t("tc_create_section_default", "Phần {n}").replace("{n}", String(sections.length + 1)),
       lessons: [],
     }
     setSections([...sections, newSection])
@@ -281,7 +282,7 @@ export default function CreateCoursePage() {
         if (s.id === sectionId) {
           const newLesson: Lesson = {
             id: newLessonId,
-            title: `Bài học ${s.lessons.length + 1}`,
+            title: t("tc_create_lesson_default", "Bài học {n}").replace("{n}", String(s.lessons.length + 1)),
             description: "",
             quizzes: [],
           }
@@ -321,7 +322,7 @@ export default function CreateCoursePage() {
     )
   }
 
-  const buildOptions = (count: number) => Array.from({ length: count }, (_, i) => `Tùy chọn ${i + 1}`)
+  const buildOptions = (count: number) => Array.from({ length: count }, (_, i) => t("tc_create_option_default", "Tùy chọn {n}").replace("{n}", String(i + 1)))
 
   const normalizeOptionCount = (options: string[], count: number) => {
     if (options.length === count) return options
@@ -351,7 +352,7 @@ export default function CreateCoursePage() {
     })
 
     if (!response.ok) {
-      throw new Error("Không thể tải ảnh câu hỏi lên server")
+      throw new Error(t("tc_create_upload_image_fail", "Không thể tải ảnh câu hỏi lên server"))
     }
 
     const result = await response.json().catch(() => ({}))
@@ -383,7 +384,7 @@ export default function CreateCoursePage() {
         })
         if (!response.ok) {
           const err = await response.json().catch(() => ({}))
-          throw new Error(err?.error || "Không đọc được file Word")
+          throw new Error(err?.error || t("tc_create_err_word_read", "Không đọc được file Word"))
         }
 
         const result = await response.json()
@@ -542,7 +543,7 @@ export default function CreateCoursePage() {
       )
 
       if (quizzesWithUploadedImages.length === 0) {
-        toast.error("Không có câu hỏi hợp lệ để import")
+        toast.error(t("tc_create_import_no_valid", "Không có câu hỏi hợp lệ để import"))
         return
       }
 
@@ -558,9 +559,9 @@ export default function CreateCoursePage() {
         }),
       )
 
-      toast.success(`Đã import ${quizzesWithUploadedImages.length} câu hỏi`)
+      toast.success(t("tc_create_import_success", "Đã import {count} câu hỏi").replace("{count}", String(quizzesWithUploadedImages.length)))
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Import câu hỏi thất bại"
+      const message = error instanceof Error ? error.message : t("tc_create_import_failed", "Import câu hỏi thất bại")
       toast.error(message)
     }
   }
@@ -575,7 +576,7 @@ export default function CreateCoursePage() {
               if (l.id === lessonId) {
                 const newQuiz: Quiz = {
                   id: Date.now().toString(),
-                  question: "Câu hỏi mới",
+                  question: t("tc_create_quiz_new", "Câu hỏi mới"),
                   type: "multiple-choice",
                   options: buildOptions(4),
                   correctAnswer: 0,
@@ -605,7 +606,10 @@ export default function CreateCoursePage() {
 
                 if (updates.type && updates.type !== currentQuiz?.type) {
                   if (updates.type === "true-false") {
-                    nextQuiz.options = ["Đúng", "Sai"]
+                    nextQuiz.options = [
+                      t("tc_create_true_label", "Đúng"),
+                      t("tc_create_false_label", "Sai"),
+                    ]
                     nextQuiz.correctAnswer = 0
                     nextQuiz.correctAnswers = []
                   } else if (updates.type === "multiple-select") {
@@ -671,12 +675,12 @@ export default function CreateCoursePage() {
         const result = await res.json()
         const url = result?.data?.url || result?.url
         if (url) updateLesson(sectionId, lessonId, { videoUrl: url })
-        else toast.error("Upload video thất bại: không nhận được URL")
+        else toast.error(t("tc_create_video_upload_no_url", "Upload video thất bại: không nhận được URL"))
       } else {
-        toast.error("Upload video thất bại")
+        toast.error(t("tc_create_video_upload_fail", "Upload video thất bại"))
       }
     } catch {
-      toast.error("Không thể upload video")
+      toast.error(t("tc_create_video_upload_error", "Không thể upload video"))
     } finally {
       setUploadingLessonId(null)
     }
@@ -707,14 +711,14 @@ export default function CreateCoursePage() {
             documentUrl: url,
             documentFileName: file.name
           })
-          toast.success("Tài liệu đã tải lên thành công!")
+          toast.success(t("tc_create_doc_upload_success", "Tài liệu đã tải lên thành công!"))
         }
-        else toast.error("Upload tài liệu thất bại: không nhận được URL")
+        else toast.error(t("tc_create_doc_upload_no_url", "Upload tài liệu thất bại: không nhận được URL"))
       } else {
-        toast.error("Upload tài liệu thất bại")
+        toast.error(t("tc_create_doc_upload_fail", "Upload tài liệu thất bại"))
       }
     } catch {
-      toast.error("Không thể upload tài liệu")
+      toast.error(t("tc_create_doc_upload_error", "Không thể upload tài liệu"))
     } finally {
       setUploadingDocLessonId(null)
     }
@@ -825,6 +829,7 @@ export default function CreateCoursePage() {
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <input
+                      ref={thumbnailInputRef}
                       type="file"
                       accept="image/*"
                       onChange={(e) => {
@@ -838,8 +843,18 @@ export default function CreateCoursePage() {
                           reader.readAsDataURL(file)
                         }
                       }}
-                      className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white cursor-pointer"
+                      className="hidden"
                     />
+                    <button
+                      type="button"
+                      onClick={() => thumbnailInputRef.current?.click()}
+                      className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
+                    >
+                      {formData.thumbnail?.name || t("tc_create_choose_file", "Chọn tệp")}
+                    </button>
+                    <p className="mt-2 text-xs text-muted-foreground dark:text-slate-400">
+                      {formData.thumbnail ? formData.thumbnail.name : t("tc_create_no_file_selected", "Chưa có tệp nào được chọn")}
+                    </p>
                   </div>
                   {thumbnailPreview && (
                     <button
@@ -849,7 +864,7 @@ export default function CreateCoursePage() {
                         setFormData({ ...formData, thumbnail: null })
                       }}
                       className="p-3 bg-destructive/20 hover:bg-destructive/30 text-destructive rounded-lg transition-smooth"
-                      title="Xóa ảnh"
+                      title={t("tc_create_remove_image", "Xóa ảnh")}
                     >
                       <X size={20} />
                     </button>
@@ -857,28 +872,28 @@ export default function CreateCoursePage() {
                 </div>
                 {thumbnailPreview && (
                   <div className="mt-4 max-w-xs">
-                    <p className="text-xs text-muted-foreground dark:text-slate-400 mb-2">Xem trước:</p>
+                    <p className="text-xs text-muted-foreground dark:text-slate-400 mb-2">{t("tc_create_preview", "Xem trước:")}</p>
                     <div className="rounded-2xl overflow-hidden border border-border dark:border-slate-800 bg-card dark:bg-slate-900/60 shadow-lg">
                       <div className="relative h-48 w-full overflow-hidden bg-secondary dark:bg-slate-800">
                         <img
                           src={thumbnailPreview}
-                          alt="Xem trước ảnh khóa học"
+                          alt={t("tc_create_course_image_preview", "Xem trước ảnh khóa học")}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       <div className="p-4 space-y-3">
                         <h3 className="text-foreground dark:text-white font-semibold line-clamp-2">
-                          {formData.title || "Tên khóa học"}
+                          {formData.title || t("tc_create_course_name", "Tên khóa học")}
                         </h3>
                         <p className="text-sm text-muted-foreground dark:text-slate-400">
-                          {formData.categoryId || "Danh mục"}
+                          {formData.categoryId || t("tc_create_category", "Danh mục")}
                         </p>
                         <div className="flex justify-between items-center pt-2 border-t border-border dark:border-slate-800">
                           <span className="text-primary dark:text-accent font-bold">
-                            {formData.price === 0 ? "Miễn phí" : `₫${formData.price.toLocaleString("vi-VN")}`}
+                            {formData.price === 0 ? t("tc_create_free", "Miễn phí") : `₫${formData.price.toLocaleString("vi-VN")}`}
                           </span>
                           <button className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 rounded-full transition-smooth">
-                            Xem
+                            {t("tc_create_preview_action", "Xem")}
                           </button>
                         </div>
                       </div>
@@ -956,17 +971,17 @@ export default function CreateCoursePage() {
                               <div className="mt-2 ml-2 p-3 bg-secondary/30 dark:bg-slate-900/30 rounded-lg border border-border/50 dark:border-slate-800/50">
                                 {lesson.videoFile && (
                                   <div className="text-sm text-muted-foreground dark:text-slate-400 mb-2">
-                                    <span className="font-medium">Video:</span> {lesson.videoFile.name}
+                                    <span className="font-medium">{t("tc_create_video_label", "Video:")}</span> {lesson.videoFile.name}
                                   </div>
                                 )}
                                 {(lesson.documentFile || lesson.documentUrl) && (
                                   <div className="text-sm text-muted-foreground dark:text-slate-400 mb-2">
-                                    <span className="font-medium">Tài liệu:</span> {lesson.documentFileName || lesson.documentFile?.name || "Tài liệu đã tải"}
+                                    <span className="font-medium">{t("tc_create_document_short_label", "Tài liệu:")}</span> {lesson.documentFileName || lesson.documentFile?.name || t("tc_create_document_uploaded", "Tài liệu đã tải")}
                                   </div>
                                 )}
                                 {lesson.quizzes.length > 0 && (
                                   <div className="text-sm text-muted-foreground dark:text-slate-400">
-                                    <span className="font-medium">Quiz:</span> {lesson.quizzes.length} câu hỏi
+                                    <span className="font-medium">{t("tc_create_quiz_label", "Quiz:")}</span> {lesson.quizzes.length} {t("tc_create_question_count", "câu hỏi")}
                                     <div className="mt-1 space-y-1">
                                       {lesson.quizzes.map((q, idx) => (
                                         <div key={q.id} className="text-xs ml-2 text-muted-foreground/75 dark:text-slate-500">
@@ -997,7 +1012,7 @@ export default function CreateCoursePage() {
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                   <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
                     <div className="flex items-center justify-between p-8 border-b border-border dark:border-slate-700 sticky top-0 bg-card dark:bg-slate-900">
-                      <h4 className="text-lg font-semibold text-foreground dark:text-white">Chỉnh sửa bài học</h4>
+                      <h4 className="text-lg font-semibold text-foreground dark:text-white">{t("tc_create_edit_lesson", "Chỉnh sửa bài học")}</h4>
                       <button
                         onClick={() => setShowLessonModal(false)}
                         className="p-1 text-muted-foreground dark:text-slate-400 hover:bg-secondary dark:hover:bg-slate-800 rounded transition-smooth"
@@ -1009,7 +1024,7 @@ export default function CreateCoursePage() {
                     <div className="p-8 space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                          Tên bài học
+                          {t("tc_create_lesson_name", "Tên bài học")}
                         </label>
                         <input
                           type="text"
@@ -1020,7 +1035,7 @@ export default function CreateCoursePage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                          Mô tả bài học
+                          {t("tc_create_lesson_desc", "Mô tả bài học")}
                         </label>
                         <textarea
                           value={currentLesson.description}
@@ -1033,7 +1048,7 @@ export default function CreateCoursePage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                          Tải video
+                          {t("tc_create_upload_video", "Tải video")}
                         </label>
                         <div
                           onDragOver={(e) => {
@@ -1053,14 +1068,14 @@ export default function CreateCoursePage() {
                           {uploadingLessonId === currentLessonId ? (
                             <>
                               <Loader2 size={20} className="animate-spin mx-auto text-primary dark:text-accent" />
-                              <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">Đang tải lên...</p>
+                              <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">{t("tc_create_uploading", "Đang tải lên...")}</p>
                             </>
                           ) : currentLesson?.videoUrl ? (
                             <>
                               <p className="text-foreground dark:text-white font-medium text-green-600 dark:text-green-400">
-                                ✓ {currentLesson.videoFile?.name || "Video đã tải lên"}
+                                ✓ {currentLesson.videoFile?.name || t("tc_create_video_uploaded", "Video đã tải lên")}
                               </p>
-                              <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">Đã lưu trên server</p>
+                              <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">{t("tc_create_saved_on_server", "Đã lưu trên server")}</p>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
@@ -1068,7 +1083,7 @@ export default function CreateCoursePage() {
                                 }}
                                 className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
                               >
-                                Xóa tệp
+                                {t("tc_create_delete_file", "Xóa tệp")}
                               </button>
                             </>
                           ) : currentLesson?.videoFile ? (
@@ -1086,13 +1101,13 @@ export default function CreateCoursePage() {
                                 }}
                                 className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
                               >
-                                Xóa tệp
+                                {t("tc_create_delete_file", "Xóa tệp")}
                               </button>
                             </>
                           ) : (
                             <>
-                              <p className="text-foreground dark:text-white font-medium">Kéo thả video vào đây</p>
-                              <p className="text-sm text-muted-foreground dark:text-slate-400">Hoặc nhấn để chọn tệp</p>
+                              <p className="text-foreground dark:text-white font-medium">{t("tc_create_drag_video", "Kéo thả video vào đây")}</p>
+                              <p className="text-sm text-muted-foreground dark:text-slate-400">{t("tc_create_click_to_choose", "Hoặc nhấn để chọn tệp")}</p>
                             </>
                           )}
                         </div>
@@ -1109,7 +1124,7 @@ export default function CreateCoursePage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                          Tài liệu bổ sung
+                          {t("tc_create_document_label", "Tài liệu bổ sung")}
                         </label>
                         <div
                           onDragOver={(e) => {
@@ -1129,14 +1144,14 @@ export default function CreateCoursePage() {
                           {uploadingDocLessonId === currentLessonId ? (
                             <>
                               <Loader2 size={20} className="animate-spin mx-auto text-primary dark:text-accent" />
-                              <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">Đang tải lên...</p>
+                              <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">{t("tc_create_uploading", "Đang tải lên...")}</p>
                             </>
                           ) : currentLesson?.documentUrl ? (
                             <>
                               <p className="text-foreground dark:text-white font-medium text-green-600 dark:text-green-400">
-                                ✓ {currentLesson.documentFileName || "Tài liệu đã tải lên"}
+                                ✓ {currentLesson.documentFileName || t("tc_create_document_uploaded", "Tài liệu đã tải lên")}
                               </p>
-                              <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">Đã lưu trên server</p>
+                              <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">{t("tc_create_saved_on_server", "Đã lưu trên server")}</p>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
@@ -1144,7 +1159,7 @@ export default function CreateCoursePage() {
                                 }}
                                 className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
                               >
-                                Xóa tệp
+                                {t("tc_create_delete_file", "Xóa tệp")}
                               </button>
                             </>
                           ) : currentLesson?.documentFile ? (
@@ -1162,13 +1177,13 @@ export default function CreateCoursePage() {
                                 }}
                                 className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
                               >
-                                Xóa tệp
+                                {t("tc_create_delete_file", "Xóa tệp")}
                               </button>
                             </>
                           ) : (
                             <>
-                              <p className="text-foreground dark:text-white font-medium">Kéo thả tài liệu vào đây</p>
-                              <p className="text-sm text-muted-foreground dark:text-slate-400">PDF, Word, PowerPoint...</p>
+                              <p className="text-foreground dark:text-white font-medium">{t("tc_create_drag_document", "Kéo thả tài liệu vào đây")}</p>
+                              <p className="text-sm text-muted-foreground dark:text-slate-400">{t("tc_create_document_types", "PDF, Word, PowerPoint...")}</p>
                             </>
                           )}
                         </div>
@@ -1187,11 +1202,11 @@ export default function CreateCoursePage() {
                       {/* Quiz Section */}
                       <div className="mt-6 pt-6 border-t border-border dark:border-slate-700">
                         <div className="flex items-center justify-between mb-4">
-                          <h5 className="font-semibold text-foreground dark:text-white">Quiz cho bài học này</h5>
+                          <h5 className="font-semibold text-foreground dark:text-white">{t("tc_create_quiz_title", "Quiz cho bài học này")}</h5>
                           <div className="flex items-center gap-2">
                             <label className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-500/20 dark:hover:bg-blue-500/30 transition-smooth cursor-pointer">
                               <Upload size={16} />
-                              Nhập từ file
+                              {t("tc_create_import_from_file", "Nhập từ file")}
                               <input
                                 type="file"
                                 accept=".xlsx,.xls,.csv,.docx"
@@ -1210,13 +1225,13 @@ export default function CreateCoursePage() {
                               className="flex items-center gap-2 px-3 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-sm font-medium hover:bg-primary/20 dark:hover:bg-primary/30 transition-smooth"
                             >
                               <Plus size={16} />
-                              Thêm câu hỏi
+                              {t("tc_create_add_question", "Thêm câu hỏi")}
                             </button>
                           </div>
                         </div>
 
                         {currentLesson.quizzes.length === 0 ? (
-                          <p className="text-sm text-muted-foreground dark:text-slate-400">Chưa có câu hỏi nào</p>
+                          <p className="text-sm text-muted-foreground dark:text-slate-400">{t("tc_create_no_questions", "Chưa có câu hỏi nào")}</p>
                         ) : (
                           <div className="space-y-3">
                             {currentLesson.quizzes.map((quiz) => (
@@ -1235,7 +1250,7 @@ export default function CreateCoursePage() {
                                     ref={(el) => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px" } }}
                                     rows={1}
                                     className="flex-1 px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-sm resize-none overflow-hidden leading-snug"
-                                    placeholder="Nhập câu hỏi..."
+                                    placeholder={t("tc_create_question_placeholder", "Nhập câu hỏi...")}
                                   />
                                   <button
                                     onClick={() => deleteQuiz(currentSectionId!, currentLessonId!, quiz.id)}
@@ -1254,9 +1269,9 @@ export default function CreateCoursePage() {
                                     }
                                     className="px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
                                   >
-                                    <option value="multiple-choice">1 đáp án</option>
-                                    <option value="multiple-select">Nhiều đáp án</option>
-                                    <option value="true-false">Đúng/Sai</option>
+                                    <option value="multiple-choice">{t("tc_create_type_single", "1 đáp án")}</option>
+                                    <option value="multiple-select">{t("tc_create_type_multiple", "Nhiều đáp án")}</option>
+                                    <option value="true-false">{t("tc_create_type_true_false", "Đúng/Sai")}</option>
                                   </select>
                                   {quiz.type !== "true-false" && (
                                     <select
@@ -1277,7 +1292,7 @@ export default function CreateCoursePage() {
                                       className="px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
                                     >
                                       {[2, 3, 4, 5, 6].map((count) => (
-                                        <option key={count} value={count}>{count} đáp án</option>
+                                        <option key={count} value={count}>{t("tc_create_option_count", "{count} đáp án").replace("{count}", String(count))}</option>
                                       ))}
                                     </select>
                                   )}
@@ -1347,16 +1362,16 @@ export default function CreateCoursePage() {
                         onClick={() => setShowLessonModal(false)}
                         className="px-6 py-2 border border-border dark:border-slate-800 rounded-lg font-medium text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
                       >
-                        Đóng
+                        {t("common_close", "Đóng")}
                       </button>
                       <button
                         onClick={() => {
-                          toast.success("Đã lưu thay đổi bài học!")
+                          toast.success(t("tc_create_lesson_saved", "Đã lưu thay đổi bài học!"))
                           setShowLessonModal(false)
                         }}
                         className="px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth"
                       >
-                        Lưu thay đổi
+                        {t("tc_create_save_changes", "Lưu thay đổi")}
                       </button>
                     </div>
                   </div>

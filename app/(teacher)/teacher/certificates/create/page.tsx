@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth/auth-context"
 import { authFetch } from "@/lib/authfetch"
 import { toast } from "sonner"
+import { useLanguage } from "@/lib/i18n/language-context"
 import {
   ArrowLeft,
   Save,
@@ -63,148 +64,191 @@ interface CertificateTemplate extends CertificateData {
   course?: Course
 }
 
-// 10 Professional Template Designs with Unique Styles
-const templateStyles = [
+const templateStyleConfigs = [
   {
     id: "classic",
-    name: "Cổ điển Sang trọng",
+    nameKey: "tch_cert_tpl_classic_name",
+    descKey: "tch_cert_tpl_classic_desc",
+    fallbackName: "Cổ điển Sang trọng",
+    fallbackDesc: "Viền kép vàng cổ điển với góc trang trí hoa văn",
     icon: Award,
     colors: { bg: "#1a1a2e", border: "#d4af37", text: "#ffffff" },
     borderStyle: "double",
     borderWidth: "6px",
     cornerStyle: "decorative",
-    description: "Viền kép vàng cổ điển với góc trang trí hoa văn"
   },
   {
     id: "modern",
-    name: "Hiện đại Tối giản",
+    nameKey: "tch_cert_tpl_modern_name",
+    descKey: "tch_cert_tpl_modern_desc",
+    fallbackName: "Hiện đại Tối giản",
+    fallbackDesc: "Viền đơn hiện đại với góc bo tròn tinh tế",
     icon: Hexagon,
     colors: { bg: "#0f172a", border: "#3b82f6", text: "#e0f2fe" },
     borderStyle: "solid",
     borderWidth: "4px",
     cornerStyle: "rounded",
-    description: "Viền đơn hiện đại với góc bo tròn tinh tế"
   },
   {
     id: "elegant",
-    name: "Thanh lịch Tím",
+    nameKey: "tch_cert_tpl_elegant_name",
+    descKey: "tch_cert_tpl_elegant_desc",
+    fallbackName: "Thanh lịch Tím",
+    fallbackDesc: "Viền tím hoàng gia với họa tiết góc cầu kỳ",
     icon: Crown,
     colors: { bg: "#1e1b4b", border: "#a855f7", text: "#f3e8ff" },
     borderStyle: "solid",
     borderWidth: "5px",
     cornerStyle: "ornate",
-    description: "Viền tím hoàng gia với họa tiết góc cầu kỳ"
   },
   {
     id: "professional",
-    name: "Chuyên nghiệp Xanh",
+    nameKey: "tch_cert_tpl_professional_name",
+    descKey: "tch_cert_tpl_professional_desc",
+    fallbackName: "Chuyên nghiệp Xanh",
+    fallbackDesc: "Viền kép xanh lá với góc huy hiệu chuyên nghiệp",
     icon: GraduationCap,
     colors: { bg: "#0c0a09", border: "#10b981", text: "#d1fae5" },
     borderStyle: "double",
     borderWidth: "5px",
     cornerStyle: "badge",
-    description: "Viền kép xanh lá với góc huy hiệu chuyên nghiệp"
   },
   {
     id: "luxury",
-    name: "Xa hoa Vàng Đồng",
+    nameKey: "tch_cert_tpl_luxury_name",
+    descKey: "tch_cert_tpl_luxury_desc",
+    fallbackName: "Xa hoa Vàng Đồng",
+    fallbackDesc: "Viền nổi vàng đồng với góc kim cương xa hoa",
     icon: Gem,
     colors: { bg: "#18181b", border: "#f59e0b", text: "#fef3c7" },
     borderStyle: "groove",
     borderWidth: "8px",
     cornerStyle: "luxury",
-    description: "Viền nổi vàng đồng với góc kim cương xa hoa"
   },
   {
     id: "tech",
-    name: "Công nghệ Cyber",
+    nameKey: "tch_cert_tpl_tech_name",
+    descKey: "tch_cert_tpl_tech_desc",
+    fallbackName: "Công nghệ Cyber",
+    fallbackDesc: "Viền cyber xanh neon với góc công nghệ hiện đại",
     icon: Zap,
     colors: { bg: "#020617", border: "#06b6d4", text: "#cffafe" },
     borderStyle: "solid",
     borderWidth: "3px",
     cornerStyle: "tech",
-    description: "Viền cyber xanh neon với góc công nghệ hiện đại"
   },
   {
     id: "creative",
-    name: "Sáng tạo Gradient",
+    nameKey: "tch_cert_tpl_creative_name",
+    descKey: "tch_cert_tpl_creative_desc",
+    fallbackName: "Sáng tạo Gradient",
+    fallbackDesc: "Viền đứt nét gradient với góc nghệ thuật",
     icon: Sparkles,
     colors: { bg: "#0c0a09", border: "#ec4899", text: "#fdf2f8" },
     borderStyle: "dashed",
     borderWidth: "4px",
     cornerStyle: "artistic",
-    description: "Viền đứt nét gradient với góc nghệ thuật"
   },
   {
     id: "corporate",
-    name: "Doanh nghiệp Navy",
+    nameKey: "tch_cert_tpl_corporate_name",
+    descKey: "tch_cert_tpl_corporate_desc",
+    fallbackName: "Doanh nghiệp Navy",
+    fallbackDesc: "Viền navy chắc chắn với góc vuông chính thống",
     icon: Briefcase,
     colors: { bg: "#0a0f1e", border: "#1e40af", text: "#dbeafe" },
     borderStyle: "solid",
     borderWidth: "6px",
     cornerStyle: "square",
-    description: "Viền navy chắc chắn với góc vuông chính thống"
   },
   {
     id: "academic",
-    name: "Học thuật Đại học",
+    nameKey: "tch_cert_tpl_academic_name",
+    descKey: "tch_cert_tpl_academic_desc",
+    fallbackName: "Học thuật Đại học",
+    fallbackDesc: "Viền kép đỏ truyền thống với góc học viện",
     icon: Trophy,
     colors: { bg: "#450a0a", border: "#dc2626", text: "#fef2f2" },
     borderStyle: "double",
     borderWidth: "7px",
     cornerStyle: "classic",
-    description: "Viền kép đỏ truyền thống với góc học viện"
   },
   {
     id: "minimalist",
-    name: "Tối giản Monochrome",
+    nameKey: "tch_cert_tpl_minimalist_name",
+    descKey: "tch_cert_tpl_minimalist_desc",
+    fallbackName: "Tối giản Monochrome",
+    fallbackDesc: "Viền mỏng tối giản với góc sạch sẽ tinh tế",
     icon: Target,
     colors: { bg: "#ffffff", border: "#374151", text: "#1f2937" },
     borderStyle: "solid",
     borderWidth: "2px",
     cornerStyle: "minimal",
-    description: "Viền mỏng tối giản với góc sạch sẽ tinh tế"
   },
   {
     id: "gradient",
-    name: "Gradient Hoàng hôn",
+    nameKey: "tch_cert_tpl_gradient_name",
+    descKey: "tch_cert_tpl_gradient_desc",
+    fallbackName: "Gradient Hoàng hôn",
+    fallbackDesc: "Viền nổi gradient vàng cam hiệu ứng hoàng hôn",
     icon: Sparkles,
     colors: { bg: "#1e1b4b", border: "#f97316", text: "#fef3c7" },
     borderStyle: "ridge",
     borderWidth: "5px",
     cornerStyle: "modern",
-    description: "Viền nổi gradient vàng cam hiệu ứng hoàng hôn"
   },
   {
     id: "ocean",
-    name: "Đại dương Xanh biển",
+    nameKey: "tch_cert_tpl_ocean_name",
+    descKey: "tch_cert_tpl_ocean_desc",
+    fallbackName: "Đại dương Xanh biển",
+    fallbackDesc: "Viền rãnh xanh biển với phong cách đại dương",
     icon: Shield,
     colors: { bg: "#0c4a6e", border: "#0ea5e9", text: "#e0f2fe" },
     borderStyle: "groove",
     borderWidth: "6px",
     cornerStyle: "wave",
-    description: "Viền rãnh xanh biển với phong cách đại dương"
   }
 ]
 
-const badgeStyles = [
-  { id: "star", name: "Ngôi sao", icon: Star },
-  { id: "award", name: "Huy chương", icon: Award },
-  { id: "crown", name: "Vương miện", icon: Crown },
-  { id: "hexagon", name: "Lục giác", icon: Hexagon },
-  { id: "shield", name: "Khiên", icon: Shield },
-  { id: "trophy", name: "Cúp", icon: Trophy },
+const badgeStyleConfigs = [
+  { id: "star", labelKey: "tch_cert_badge_star", fallbackLabel: "Ngôi sao", icon: Star },
+  { id: "award", labelKey: "tch_cert_badge_award", fallbackLabel: "Huy chương", icon: Award },
+  { id: "crown", labelKey: "tch_cert_badge_crown", fallbackLabel: "Vương miện", icon: Crown },
+  { id: "hexagon", labelKey: "tch_cert_badge_hexagon", fallbackLabel: "Lục giác", icon: Hexagon },
+  { id: "shield", labelKey: "tch_cert_badge_shield", fallbackLabel: "Khiên", icon: Shield },
+  { id: "trophy", labelKey: "tch_cert_badge_trophy", fallbackLabel: "Cúp", icon: Trophy },
 ]
 
-const statusLabelMap: Record<string, { label: string; className: string }> = {
-  draft: { label: "Nháp", className: "bg-gray-500/10 text-gray-500" },
-  pending: { label: "Chờ duyệt", className: "bg-yellow-500/10 text-yellow-500" },
-  approved: { label: "Đã duyệt", className: "bg-green-500/10 text-green-500" },
-  rejected: { label: "Từ chối", className: "bg-red-500/10 text-red-500" },
+const statusConfigs: Record<string, { labelKey: string; fallback: string; className: string }> = {
+  draft: { labelKey: "tch_cert_status_draft", fallback: "Nháp", className: "bg-gray-500/10 text-gray-500" },
+  pending: { labelKey: "tch_cert_status_pending", fallback: "Chờ duyệt", className: "bg-yellow-500/10 text-yellow-500" },
+  approved: { labelKey: "tch_cert_status_approved", fallback: "Đã duyệt", className: "bg-green-500/10 text-green-500" },
+  rejected: { labelKey: "tch_cert_status_rejected", fallback: "Từ chối", className: "bg-red-500/10 text-red-500" },
 }
+
+const validityOptionsConfig = [
+  { value: "Vĩnh viễn", labelKey: "tch_cert_valid_forever", fallback: "Vĩnh viễn" },
+  { value: "1 năm", labelKey: "tch_cert_valid_1y", fallback: "1 năm" },
+  { value: "2 năm", labelKey: "tch_cert_valid_2y", fallback: "2 năm" },
+  { value: "3 năm", labelKey: "tch_cert_valid_3y", fallback: "3 năm" },
+  { value: "5 năm", labelKey: "tch_cert_valid_5y", fallback: "5 năm" },
+]
+
+const borderStyleOptionsConfig = [
+  { value: "solid", labelKey: "tch_cert_border_solid", fallback: "Đơn giản" },
+  { value: "double", labelKey: "tch_cert_border_double", fallback: "Kép cổ điển" },
+  { value: "ridge", labelKey: "tch_cert_border_ridge", fallback: "Nổi 3D" },
+  { value: "groove", labelKey: "tch_cert_border_groove", fallback: "Rãnh 3D" },
+  { value: "inset", labelKey: "tch_cert_border_inset", fallback: "Chìm sâu" },
+  { value: "outset", labelKey: "tch_cert_border_outset", fallback: "Nổi cao" },
+  { value: "dashed", labelKey: "tch_cert_border_dashed", fallback: "Đứt nét" },
+  { value: "dotted", labelKey: "tch_cert_border_dotted", fallback: "Chấm tròn" },
+]
 
 export default function CreateCertificatePage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
@@ -212,6 +256,59 @@ export default function CreateCertificatePage() {
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
   const [templatesError, setTemplatesError] = useState<string | null>(null)
+
+  const translatedTemplateStyles = useMemo(
+    () => templateStyleConfigs.map((style) => ({
+      ...style,
+      name: t(style.nameKey, style.fallbackName),
+      description: t(style.descKey, style.fallbackDesc),
+    })),
+    [t]
+  )
+
+  const translatedBadgeStyles = useMemo(
+    () => badgeStyleConfigs.map((badge) => ({
+      ...badge,
+      label: t(badge.labelKey, badge.fallbackLabel),
+    })),
+    [t]
+  )
+
+  const statusLabelMap = useMemo(
+    () =>
+      Object.entries(statusConfigs).reduce((acc, [key, value]) => {
+        acc[key] = { label: t(value.labelKey, value.fallback), className: value.className }
+        return acc
+      }, {} as Record<string, { label: string; className: string }>),
+    [t]
+  )
+
+  const validityOptions = useMemo(
+    () =>
+      validityOptionsConfig.map((option) => ({
+        ...option,
+        label: t(option.labelKey, option.fallback),
+      })),
+    [t]
+  )
+
+  const borderStyleOptions = useMemo(
+    () =>
+      borderStyleOptionsConfig.map((option) => ({
+        ...option,
+        label: t(option.labelKey, option.fallback),
+      })),
+    [t]
+  )
+
+  const uploadTypeLabels = useMemo(
+    () => ({
+      logo: t("tch_cert_upload_type_logo", "logo"),
+      background: t("tch_cert_upload_type_background", "ảnh nền"),
+      signature: t("tch_cert_upload_type_signature", "chữ ký"),
+    }),
+    [t]
+  )
 
   const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
 
@@ -296,7 +393,7 @@ export default function CreateCertificatePage() {
       try {
         const token = getAuthToken()
         if (!token) {
-          setTemplatesError("Vui lòng đăng nhập để xem mẫu chứng chỉ.")
+          setTemplatesError(t("tch_cert_templates_error_login", "Vui lòng đăng nhập để xem mẫu chứng chỉ."))
           setTemplates([])
           return
         }
@@ -313,7 +410,7 @@ export default function CreateCertificatePage() {
       } catch (error) {
         console.error("Error fetching templates:", error)
         setTemplates([])
-        setTemplatesError("Không thể tải mẫu chứng chỉ từ hệ thống.")
+        setTemplatesError(t("tch_cert_templates_error_generic", "Không thể tải mẫu chứng chỉ từ hệ thống."))
       } finally {
         setIsLoadingTemplates(false)
       }
@@ -324,7 +421,7 @@ export default function CreateCertificatePage() {
   }, [])
 
   const selectTemplate = (templateId: string) => {
-    const template = templateStyles.find(t => t.id === templateId)
+    const template = templateStyleConfigs.find(tpl => tpl.id === templateId)
     if (template) {
       setFormData({
         ...formData,
@@ -375,7 +472,12 @@ export default function CreateCertificatePage() {
       return uploadedUrl
     } catch (error) {
       console.error('Upload error:', error)
-      alert(`Lỗi khi tải lên ${type === 'logo' ? 'logo' : type === 'background' ? 'ảnh nền' : 'chữ ký'}`)
+      alert(
+        t("tch_cert_upload_error", "Lỗi khi tải lên {type}").replace(
+          "{type}",
+          uploadTypeLabels[type]
+        )
+      )
     } finally {
       if (type === 'logo') setUploadingLogo(false)
       else if (type === 'background') setUploadingBackground(false)
@@ -454,10 +556,10 @@ export default function CreateCertificatePage() {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
-    if (!formData.title.trim()) newErrors.title = "Vui lòng nhập tên chứng chỉ"
-    if (!formData.courseId) newErrors.courseId = "Vui lòng chọn khóa học"
+    if (!formData.title.trim()) newErrors.title = t("tch_cert_error_title_required", "Vui lòng nhập tên chứng chỉ")
+    if (!formData.courseId) newErrors.courseId = t("tch_cert_error_course_required", "Vui lòng chọn khóa học")
     if (formData.courseId && !isUuid(formData.courseId)) {
-      newErrors.courseId = "Khóa học không hợp lệ, vui lòng tải lại"
+      newErrors.courseId = t("tch_cert_error_course_invalid", "Khóa học không hợp lệ, vui lòng tải lại")
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -491,22 +593,27 @@ export default function CreateCertificatePage() {
         
         localStorage.removeItem("certificate_template_draft")
         localStorage.removeItem("certificate_template_edit_id")
-        toast.success(asDraft ? "Đã lưu nháp thành công!" : "Đã gửi duyệt thành công!")
+        toast.success(
+          asDraft
+            ? t("tch_cert_toast_save_draft_success", "Đã lưu nháp thành công!")
+            : t("tch_cert_toast_submit_success", "Đã gửi duyệt thành công!")
+        )
         router.push("/teacher/certificates")
       } else {
-        const errorMsg = responseData?.error?.message || responseData?.message || "Không thể lưu mẫu chứng chỉ"
+        const errorMsg = responseData?.error?.message || responseData?.message || t("tch_cert_toast_save_error", "Không thể lưu mẫu chứng chỉ")
         console.error("❌ Submit failed:", responseData)
         toast.error(errorMsg)
       }
     } catch (error) {
       console.error("Error:", error)
-      toast.error("Đã xảy ra lỗi khi lưu mẫu chứng chỉ")
+      toast.error(t("tch_cert_toast_unknown_error", "Đã xảy ra lỗi khi lưu mẫu chứng chỉ"))
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const selectedCourse = courses.find(c => c.id === formData.courseId)
+  const validityLabel = validityOptions.find((option) => option.value === formData.validityPeriod)?.label || validityOptions[0]?.label || formData.validityPeriod
 
   return (
     <div className="p-6 md:p-8 min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -523,9 +630,9 @@ export default function CreateCertificatePage() {
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent flex items-center gap-3">
                 <Sparkles className="text-yellow-500 animate-pulse" size={32} />
-                Thiết kế Chứng chỉ
+                {t("tch_cert_header_title", "Thiết kế Chứng chỉ")}
               </h1>
-              <p className="text-muted-foreground mt-1">Tạo mẫu chứng chỉ chuyên nghiệp với 10 thiết kế cao cấp</p>
+              <p className="text-muted-foreground mt-1">{t("tch_cert_header_subtitle", "Tạo mẫu chứng chỉ chuyên nghiệp với 10 thiết kế cao cấp")}</p>
             </div>
           </div>
           <div className="flex gap-3">
@@ -535,7 +642,7 @@ export default function CreateCertificatePage() {
               className="px-6 py-3 border-2 border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-all flex items-center gap-2 hover:scale-105 shadow-sm"
             >
               <Save size={20} />
-              Lưu nháp
+              {t("tch_cert_save_draft", "Lưu nháp")}
             </button>
             <button
               onClick={() => handleSubmit(false)}
@@ -543,7 +650,7 @@ export default function CreateCertificatePage() {
               className="px-6 py-3 bg-gradient-to-r from-primary via-purple-600 to-pink-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-primary/50 transition-all flex items-center gap-2 hover:scale-105"
             >
               <Send size={20} />
-              {isSubmitting ? "Đang gửi..." : "Gửi duyệt"}
+              {isSubmitting ? t("tch_cert_submitting", "Đang gửi...") : t("tch_cert_submit", "Gửi duyệt")}
             </button>
           </div>
         </div>
@@ -556,7 +663,7 @@ export default function CreateCertificatePage() {
                 <div className="p-2 bg-blue-500/10 rounded-xl">
                   <Eye size={24} className="text-blue-500" />
                 </div>
-                Xem trước chứng chỉ
+                {t("tch_cert_preview_title", "Xem trước chứng chỉ")}
               </h2>
             </div>
 
@@ -617,7 +724,7 @@ export default function CreateCertificatePage() {
                           letterSpacing: '0.25em'
                         }}
                       >
-                        CHỨNG CHỈ HOÀN THÀNH
+                        {t("tch_cert_preview_heading", "CHỨNG CHỈ HOÀN THÀNH")}
                       </h3>
                       <div className="w-24 h-px mx-auto" style={{ backgroundColor: formData.borderColor }} />
                     </div>
@@ -656,7 +763,7 @@ export default function CreateCertificatePage() {
 
                     {/* Presented To */}
                     <p className="text-sm mb-4 opacity-70" style={{ color: formData.textColor }}>
-                      Chứng nhận rằng
+                      {t("tch_cert_preview_certifies", "Chứng nhận rằng")}
                     </p>
 
                     {/* Student Name */}
@@ -668,14 +775,14 @@ export default function CreateCertificatePage() {
                           fontStyle: 'italic'
                         }}
                       >
-                        [Tên học viên]
+                        {t("tch_cert_preview_student_placeholder", "[Tên học viên]")}
                       </p>
                       <div className="w-56 h-0.5 mx-auto" style={{ backgroundColor: formData.borderColor }} />
                     </div>
 
                     {/* Description */}
                     <p className="text-base mb-4 max-w-lg mx-auto opacity-80 leading-relaxed" style={{ color: formData.textColor }}>
-                      {formData.description || "Đã hoàn thành xuất sắc khóa học"}
+                      {formData.description || t("tch_cert_preview_description_placeholder", "Đã hoàn thành xuất sắc khóa học")}
                     </p>
 
                     {/* Course Name */}
@@ -686,7 +793,7 @@ export default function CreateCertificatePage() {
                           color: formData.borderColor
                         }}
                       >
-                        {selectedCourse?.title || "[Tên khóa học]"}
+                        {selectedCourse?.title || t("tch_cert_preview_course_placeholder", "[Tên khóa học]")}
                       </p>
                     </div>
                   </div>
@@ -706,16 +813,16 @@ export default function CreateCertificatePage() {
                             <div className="w-full h-0.5" style={{ backgroundColor: formData.borderColor }} />
                           )}
                         </div>
-                        <p className="text-sm font-semibold mb-1" style={{ color: formData.textColor }}>Chữ ký</p>
-                        <p className="text-xs opacity-60" style={{ color: formData.textColor }}>Giảng viên</p>
+                        <p className="text-sm font-semibold mb-1" style={{ color: formData.textColor }}>{t("tch_cert_preview_signature", "Chữ ký")}</p>
+                        <p className="text-xs opacity-60" style={{ color: formData.textColor }}>{t("tch_cert_preview_instructor", "Giảng viên")}</p>
                       </div>
                       
                       <div className="text-center">
                         <div className="w-32 h-16 mb-3 mx-auto flex items-end justify-center">
                           <div className="w-full h-0.5" style={{ backgroundColor: formData.borderColor }} />
                         </div>
-                        <p className="text-sm font-semibold mb-1" style={{ color: formData.textColor }}>Ngày cấp</p>
-                        <p className="text-xs opacity-60" style={{ color: formData.textColor }}>[DD/MM/YYYY]</p>
+                        <p className="text-sm font-semibold mb-1" style={{ color: formData.textColor }}>{t("tch_cert_preview_issue_date", "Ngày cấp")}</p>
+                        <p className="text-xs opacity-60" style={{ color: formData.textColor }}>{t("tch_cert_preview_date_placeholder", "[DD/MM/YYYY]")}</p>
                       </div>
                     </div>
                   </div>
@@ -730,7 +837,7 @@ export default function CreateCertificatePage() {
                     border: `1.5px solid ${formData.borderColor}`
                   }}
                 >
-                  {typeof formData.validityPeriod === 'string' && ['Vĩnh viễn', '1 năm', '2 năm', '3 năm', '5 năm'].includes(formData.validityPeriod) ? formData.validityPeriod : 'Vĩnh viễn'}
+                  {validityLabel}
                 </div>
               </div>
             </div>
@@ -740,9 +847,9 @@ export default function CreateCertificatePage() {
               <div className="flex items-start gap-4">
                 <CheckCircle size={24} className="text-blue-500 flex-shrink-0 mt-1" />
                 <div>
-                  <p className="font-semibold text-foreground dark:text-white mb-1">Gửi duyệt để sử dụng</p>
+                  <p className="font-semibold text-foreground dark:text-white mb-1">{t("tch_cert_info_title", "Gửi duyệt để sử dụng")}</p>
                   <p className="text-sm text-muted-foreground dark:text-slate-400">
-                    Chứng chỉ sẽ được gửi để Admin duyệt. Sau khi được duyệt, bạn có thể sử dụng cho các bài thi thật và cấp cho học viên.
+                    {t("tch_cert_info_body", "Chứng chỉ sẽ được gửi để Admin duyệt. Sau khi được duyệt, bạn có thể sử dụng cho các bài thi thật và cấp cho học viên.")}
                   </p>
                 </div>
               </div>
@@ -754,14 +861,14 @@ export default function CreateCertificatePage() {
                 <div className="p-2 bg-yellow-500/10 rounded-xl">
                   <Sparkles size={24} className="text-yellow-500" />
                 </div>
-                Tùy chỉnh màu sắc
+                {t("tch_cert_colors_title", "Tùy chỉnh màu sắc")}
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                  { key: 'backgroundColor', label: 'Màu nền', icon: '🎨' },
-                  { key: 'borderColor', label: 'Màu viền', icon: '🖼️' },
-                  { key: 'textColor', label: 'Màu chữ', icon: '✍️' }
+                  { key: 'backgroundColor', label: t("tch_cert_color_background", "Màu nền"), icon: '🎨' },
+                  { key: 'borderColor', label: t("tch_cert_color_border", "Màu viền"), icon: '🖼️' },
+                  { key: 'textColor', label: t("tch_cert_color_text", "Màu chữ"), icon: '✍️' }
                 ].map((item) => (
                   <div key={item.key} className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 border-2 border-border/50 dark:border-slate-700/50 hover:border-primary/40 transition-all">
                     <label className="flex items-center gap-2 text-sm font-bold text-foreground dark:text-white mb-4">
@@ -792,11 +899,11 @@ export default function CreateCertificatePage() {
                 <div className="p-2 bg-amber-500/10 rounded-xl">
                   <Award size={24} className="text-amber-500" />
                 </div>
-                Biểu tượng huy hiệu
+                {t("tch_cert_badge_title", "Biểu tượng huy hiệu")}
               </h2>
 
               <div className="grid grid-cols-3 gap-4">
-                {badgeStyles.map((badge) => {
+                {translatedBadgeStyles.map((badge) => {
                   const Icon = badge.icon
                   return (
                     <button
@@ -810,7 +917,7 @@ export default function CreateCertificatePage() {
                     >
                       <Icon size={32} className={`${formData.badgeStyle === badge.id ? "text-amber-500" : "text-muted-foreground"} group-hover:scale-110 transition-transform`} />
                       <span className={`text-sm font-semibold ${formData.badgeStyle === badge.id ? "text-amber-500" : "text-muted-foreground"}`}>
-                        {badge.name}
+                        {badge.label}
                       </span>
                     </button>
                   )
@@ -824,7 +931,7 @@ export default function CreateCertificatePage() {
                 <div className="p-2 bg-green-500/10 rounded-xl">
                   <ImageIcon size={24} className="text-green-500" />
                 </div>
-                Tải lên tài liệu
+                {t("tch_cert_upload_title", "Tải lên tài liệu")}
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -832,8 +939,8 @@ export default function CreateCertificatePage() {
                 <div className="md:col-span-1">
                   <label className="block text-sm font-bold text-foreground dark:text-white mb-3 flex items-center gap-2">
                     <span className="text-xl">🏢</span>
-                    Logo
-                    <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">Bắt buộc</span>
+                    {t("tch_cert_upload_logo_label", "Logo")}
+                    <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">{t("tch_cert_upload_required", "Bắt buộc")}</span>
                   </label>
                   <input
                     type="file"
@@ -880,9 +987,9 @@ export default function CreateCertificatePage() {
                         </div>
                       )}
                       <p className="text-sm font-semibold text-foreground dark:text-white mb-1">
-                        {formData.logoUrl ? 'Đã tải lên' : 'Logo'}
+                        {formData.logoUrl ? t("tch_cert_upload_uploaded", "Đã tải lên") : t("tch_cert_upload_logo_label", "Logo")}
                       </p>
-                      <p className="text-xs text-muted-foreground">PNG, JPG (Max 2MB)</p>
+                      <p className="text-xs text-muted-foreground">{t("tch_cert_upload_logo_helper", "PNG, JPG (Tối đa 2MB)")}</p>
                     </div>
                   </label>
                 </div>
@@ -891,7 +998,7 @@ export default function CreateCertificatePage() {
                 <div className="md:col-span-1">
                   <label className="block text-sm font-bold text-foreground dark:text-white mb-3 flex items-center gap-2">
                     <span className="text-xl">🖼️</span>
-                    Ảnh nền
+                    {t("tch_cert_upload_background_label", "Ảnh nền")}
                   </label>
                   <input
                     type="file"
@@ -938,9 +1045,9 @@ export default function CreateCertificatePage() {
                         </div>
                       )}
                       <p className="text-sm font-semibold text-foreground dark:text-white mb-1">
-                        {formData.templateImageUrl ? 'Đã tải lên' : 'Ảnh nền'}
+                        {formData.templateImageUrl ? t("tch_cert_upload_uploaded", "Đã tải lên") : t("tch_cert_upload_background_label", "Ảnh nền")}
                       </p>
-                      <p className="text-xs text-muted-foreground">PNG, JPG (Max 5MB)</p>
+                      <p className="text-xs text-muted-foreground">{t("tch_cert_upload_background_helper", "PNG, JPG (Tối đa 5MB)")}</p>
                     </div>
                   </label>
                 </div>
@@ -949,7 +1056,7 @@ export default function CreateCertificatePage() {
                 <div className="md:col-span-1">
                   <label className="block text-sm font-bold text-foreground dark:text-white mb-3 flex items-center gap-2">
                     <span className="text-xl">✍️</span>
-                    Chữ ký
+                    {t("tch_cert_upload_signature_label", "Chữ ký")}
                   </label>
                   <input
                     type="file"
@@ -996,9 +1103,9 @@ export default function CreateCertificatePage() {
                         </div>
                       )}
                       <p className="text-sm font-semibold text-foreground dark:text-white mb-1">
-                        {formData.signatureUrl ? 'Đã tải lên' : 'Chữ ký'}
+                        {formData.signatureUrl ? t("tch_cert_upload_uploaded", "Đã tải lên") : t("tch_cert_upload_signature_label", "Chữ ký")}
                       </p>
-                      <p className="text-xs text-muted-foreground">PNG (Max 1MB)</p>
+                      <p className="text-xs text-muted-foreground">{t("tch_cert_upload_signature_helper", "PNG (Tối đa 1MB)")}</p>
                     </div>
                   </label>
                 </div>
@@ -1007,7 +1114,7 @@ export default function CreateCertificatePage() {
               <div className="mt-5 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
                 <p className="text-sm text-blue-600 dark:text-blue-400 flex items-center gap-2">
                   <CheckCircle size={16} />
-                  <span><strong>Lưu ý:</strong> Logo sẽ xuất hiện góc trên trái chứng chỉ. Ảnh nền sẽ làm nền cho toàn bộ chứng chỉ.</span>
+                  <span><strong>{t("tch_cert_upload_note", "Lưu ý:")}</strong> {t("tch_cert_upload_note_body", "Logo sẽ xuất hiện góc trên trái chứng chỉ. Ảnh nền sẽ làm nền cho toàn bộ chứng chỉ.")}</span>
                 </p>
               </div>
             </div>
@@ -1022,14 +1129,14 @@ export default function CreateCertificatePage() {
                   <div className="p-2 bg-emerald-500/10 rounded-xl">
                     <Award size={24} className="text-emerald-500" />
                   </div>
-                  Mẫu chứng chỉ đã có
+                  {t("tch_cert_existing_title", "Mẫu chứng chỉ đã có")}
                 </h2>
               </div>
 
               {isLoadingTemplates && (
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  Đang tải mẫu chứng chỉ...
+                  {t("tch_cert_loading_templates", "Đang tải mẫu chứng chỉ...")}
                 </div>
               )}
 
@@ -1041,7 +1148,7 @@ export default function CreateCertificatePage() {
               )}
 
               {!isLoadingTemplates && !templatesError && templates.length === 0 && (
-                <p className="text-sm text-muted-foreground">Chưa có mẫu chứng chỉ nào được lưu.</p>
+                <p className="text-sm text-muted-foreground">{t("tch_cert_no_templates", "Chưa có mẫu chứng chỉ nào được lưu.")}</p>
               )}
 
               {!isLoadingTemplates && !templatesError && (
@@ -1060,8 +1167,8 @@ export default function CreateCertificatePage() {
                         <Sparkles size={20} className="text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-foreground dark:text-white">Tự tạo mẫu mới</p>
-                        <p className="text-xs text-muted-foreground">Bắt đầu từ trang trống</p>
+                        <p className="text-sm font-semibold text-foreground dark:text-white">{t("tch_cert_new_template", "Tự tạo mẫu mới")}</p>
+                        <p className="text-xs text-muted-foreground">{t("tch_cert_new_template_desc", "Bắt đầu từ trang trống")}</p>
                       </div>
                     </div>
                   </button>
@@ -1119,7 +1226,7 @@ export default function CreateCertificatePage() {
                                   className="text-[6px] font-semibold tracking-[0.2em] uppercase"
                                   style={{ color: template.borderColor || "#d4af37" }}
                                 >
-                                  Chung chi
+                                  {t("tch_cert_card_cert_label", "Chứng chỉ").toUpperCase()}
                                 </span>
                               </div>
 
@@ -1143,10 +1250,10 @@ export default function CreateCertificatePage() {
                                 {template.title}
                               </h4>
                               <p className="text-[6px] opacity-70 mt-0.5" style={{ color: "#ffffff" }}>
-                                Chứng nhận
+                                {t("tch_cert_card_certify_label", "Chứng nhận")}
                               </p>
                               <p className="text-[7px] font-semibold italic" style={{ color: "#ffffff" }}>
-                                [Tên học viên]
+                                {t("tch_cert_card_student_placeholder", "[Tên học viên]")}
                               </p>
                               <div
                                 className="w-10 h-px my-1"
@@ -1157,16 +1264,16 @@ export default function CreateCertificatePage() {
                                 className="text-[6px] font-semibold mt-1 line-clamp-1"
                                 style={{ color: template.borderColor || "#d4af37" }}
                               >
-                                {template.course?.title || "[Tên khóa học]"}
+                                {template.course?.title || t("tch_cert_card_course_placeholder", "[Tên khóa học]")}
                               </p>
                             </div>
                           </div>
                           <div className="flex-1">
                             <p className="font-semibold text-foreground dark:text-white line-clamp-2">
-                              {template.title || "Chứng chỉ chưa đặt tên"}
+                              {template.title || t("tch_cert_card_untitled", "Chứng chỉ chưa đặt tên")}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                              {template.course?.title || selectedCourse?.title || "Chưa gắn khóa học"}
+                              {template.course?.title || selectedCourse?.title || t("tch_cert_card_no_course", "Chưa gắn khóa học")}
                             </p>
                             <div className="flex items-center gap-2 mt-3 flex-wrap">
                               {statusInfo && (
@@ -1181,7 +1288,7 @@ export default function CreateCertificatePage() {
                               )}
                               {isActive && (
                                 <span className="text-xs px-2 py-1 rounded-full font-medium bg-primary/10 text-primary">
-                                  Đang chỉnh sửa
+                                  {t("tch_cert_status_editing", "Đang chỉnh sửa")}
                                 </span>
                               )}
                             </div>
@@ -1194,7 +1301,7 @@ export default function CreateCertificatePage() {
                             onClick={() => applyTemplateAsCopy(template)}
                             className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition"
                           >
-                            Dùng mẫu
+                            {t("tch_cert_use_template", "Dùng mẫu")}
                           </button>
                           {isOwner && (
                             <button
@@ -1202,7 +1309,7 @@ export default function CreateCertificatePage() {
                               onClick={() => editTemplate(template)}
                               className="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition"
                             >
-                              Chỉnh sửa
+                              {t("tch_cert_edit_template", "Chỉnh sửa")}
                             </button>
                           )}
                         </div>
@@ -1219,13 +1326,13 @@ export default function CreateCertificatePage() {
                 <div className="p-2 bg-primary/10 rounded-xl">
                   <Type size={24} className="text-primary" />
                 </div>
-                Thông tin cơ bản
+                {t("tch_cert_basic_title", "Thông tin cơ bản")}
               </h2>
 
               <div className="space-y-5">
                 <div>
                   <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">
-                    Tên chứng chỉ <span className="text-red-500">*</span>
+                    {t("tch_cert_label_name", "Tên chứng chỉ")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -1234,14 +1341,14 @@ export default function CreateCertificatePage() {
                     className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 rounded-xl text-foreground dark:text-white transition-all focus:ring-4 focus:ring-primary/20 ${
                       errors.title ? "border-red-500" : "border-border dark:border-slate-700 focus:border-primary"
                     }`}
-                    placeholder="VD: Chứng chỉ Next.js Master"
+                    placeholder={t("tch_cert_placeholder_name", "VD: Chứng chỉ Next.js Master")}
                   />
                   {errors.title && <p className="text-red-500 text-sm mt-2 flex items-center gap-1"><AlertCircle size={14}/>{errors.title}</p>}
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">
-                    Khóa học <span className="text-red-500">*</span>
+                    {t("tch_cert_label_course", "Khóa học")} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.courseId}
@@ -1254,13 +1361,13 @@ export default function CreateCertificatePage() {
                       errors.courseId ? "border-red-500" : "border-border dark:border-slate-700 focus:border-primary"
                     }`}
                   >
-                    <option value="">Chọn khóa học</option>
+                    <option value="">{t("tch_cert_option_select_course", "Chọn khóa học")}</option>
                     {courses && courses.length > 0 ? (
                       courses.map(course => (
                         <option key={course.id} value={course.id}>{course.title}</option>
                       ))
                     ) : (
-                      <option disabled>Không có khóa học nào</option>
+                      <option disabled>{t("tch_cert_option_no_courses", "Không có khóa học nào")}</option>
                     )}
                   </select>
                   {errors.courseId && <p className="text-red-500 text-sm mt-2 flex items-center gap-1"><AlertCircle size={14}/>{errors.courseId}</p>}
@@ -1268,46 +1375,39 @@ export default function CreateCertificatePage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">Thời hạn hiệu lực</label>
+                    <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">{t("tch_cert_label_validity", "Thời hạn hiệu lực")}</label>
                     <select
-                      value={typeof formData.validityPeriod === 'string' && ['Vĩnh viễn', '1 năm', '2 năm', '3 năm', '5 năm'].includes(formData.validityPeriod) ? formData.validityPeriod : 'Vĩnh viễn'}
+                      value={typeof formData.validityPeriod === 'string' && validityOptions.some((option) => option.value === formData.validityPeriod) ? formData.validityPeriod : validityOptions[0]?.value}
                       onChange={(e) => setFormData({ ...formData, validityPeriod: e.target.value })}
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all"
                     >
-                      <option value="Vĩnh viễn">Vĩnh viễn</option>
-                      <option value="1 năm">1 năm</option>
-                      <option value="2 năm">2 năm</option>
-                      <option value="3 năm">3 năm</option>
-                      <option value="5 năm">5 năm</option>
+                      {validityOptions.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">Kiểu viền</label>
+                    <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">{t("tch_cert_label_border_style", "Kiểu viền")}</label>
                     <select
                       value={formData.borderStyle}
                       onChange={(e) => setFormData({ ...formData, borderStyle: e.target.value })}
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all"
                     >
-                      <option value="solid">Đơn giản</option>
-                      <option value="double">Kép cổ điển</option>
-                      <option value="ridge">Nổi 3D</option>
-                      <option value="groove">Rãnh 3D</option>
-                      <option value="inset">Chìm sâu</option>
-                      <option value="outset">Nổi cao</option>
-                      <option value="dashed">Đứt nét</option>
-                      <option value="dotted">Chấm tòn</option>
+                      {borderStyleOptions.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">Mô tả</label>
+                  <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">{t("tch_cert_label_description", "Mô tả")}</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all"
-                    placeholder="Mô tả ngắn về chứng chỉ..."
+                    placeholder={t("tch_cert_placeholder_description", "Mô tả ngắn về chứng chỉ...")}
                   />
                 </div>
               </div>
@@ -1319,11 +1419,11 @@ export default function CreateCertificatePage() {
                 <div className="p-2 bg-purple-500/10 rounded-xl">
                   <Palette size={24} className="text-purple-500" />
                 </div>
-                10 Mẫu thiết kế cao cấp
+                {t("tch_cert_templates_title", "10 Mẫu thiết kế cao cấp")}
               </h2>
 
               <div className="grid grid-cols-2 gap-4">
-                {templateStyles.map((template) => {
+                {translatedTemplateStyles.map((template) => {
                   const Icon = template.icon
                   return (
                     <button

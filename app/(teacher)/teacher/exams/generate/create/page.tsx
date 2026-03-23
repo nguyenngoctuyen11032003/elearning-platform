@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, ClipboardList, Wand2, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/authfetch"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 type Difficulty = "easy" | "medium" | "hard"
 
@@ -128,6 +129,7 @@ const parseQuestions = (value: any): BankQuestion[] => {
 }
 
 function TeacherGenerateExamCreatePageContent() {
+  const { t } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const editId = searchParams.get("editId")
@@ -174,7 +176,7 @@ function TeacherGenerateExamCreatePageContent() {
         ])
 
         if (!examResponse.ok) {
-          throw new Error("Không thể tải ngân hàng đề thi")
+          throw new Error(t("tch_exgc_err_load_bank", "Không thể tải ngân hàng đề thi"))
         }
 
         const examPayload = await examResponse.json()
@@ -212,7 +214,7 @@ function TeacherGenerateExamCreatePageContent() {
           setTemplates(templateList)
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Không thể tải dữ liệu"
+        const message = error instanceof Error ? error.message : t("tch_exgc_err_load", "Không thể tải dữ liệu")
         toast.error(message)
       } finally {
         setIsLoading(false)
@@ -229,7 +231,7 @@ function TeacherGenerateExamCreatePageContent() {
       try {
         const response = await authFetch(`/extracted-exams/${editId}`)
         if (!response.ok) {
-          throw new Error("Không thể tải dữ liệu đề thi cần sửa")
+          throw new Error(t("tch_exgc_err_load_edit", "Không thể tải dữ liệu đề thi cần sửa"))
         }
 
         const payload = await response.json().catch(() => ({}))
@@ -261,7 +263,7 @@ function TeacherGenerateExamCreatePageContent() {
         setQuestionCount(existingQuestions.length > 0 ? existingQuestions.length : 20)
         setGeneratedQuestions(existingQuestions)
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Không thể tải đề thi"
+        const message = error instanceof Error ? error.message : t("tch_exgc_err_load_exam", "Không thể tải đề thi")
         toast.error(message)
       }
     }
@@ -301,14 +303,16 @@ function TeacherGenerateExamCreatePageContent() {
 
   const chapterOptions = useMemo(() => {
     const set = new Set<string>()
-    allQuestions.forEach((question) => set.add(question.chapter || "Chưa phân chương"))
+    const noChapter = t("tch_exgc_no_chapter", "Chưa phân chương")
+    allQuestions.forEach((question) => set.add(question.chapter || noChapter))
     return Array.from(set)
-  }, [allQuestions])
+  }, [allQuestions, t])
 
   const filteredQuestions = useMemo(() => {
     if (selectedChapters.length === 0) return allQuestions
-    return allQuestions.filter((question) => selectedChapters.includes(question.chapter || "Chưa phân chương"))
-  }, [allQuestions, selectedChapters])
+    const noChapter = t("tch_exgc_no_chapter", "Chưa phân chương")
+    return allQuestions.filter((question) => selectedChapters.includes(question.chapter || noChapter))
+  }, [allQuestions, selectedChapters, t])
 
   const availableCertificates = useMemo(() => {
     if (!selectedCourseId) return []
@@ -331,23 +335,23 @@ function TeacherGenerateExamCreatePageContent() {
 
   const generateExamQuestions = () => {
     if (!selectedCourseId) {
-      toast.error("Vui lòng chọn khóa học trước khi sinh đề")
+      toast.error(t("tch_exgc_err_course", "Vui lòng chọn khóa học trước khi sinh đề"))
       return
     }
 
     if (selectedExamIds.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một ngân hàng đề thi")
+      toast.error(t("tch_exgc_err_select_exam", "Vui lòng chọn ít nhất một ngân hàng đề thi"))
       return
     }
 
     if (filteredQuestions.length === 0) {
-      toast.error("Không có câu hỏi phù hợp với bộ lọc hiện tại")
+      toast.error(t("tch_exgc_err_no_question", "Không có câu hỏi phù hợp với bộ lọc hiện tại"))
       return
     }
 
     const requestedByDifficulty = easyCount + mediumCount + hardCount
     if (requestedByDifficulty > questionCount) {
-      toast.error("Tổng số câu theo độ khó không được vượt quá tổng số câu")
+      toast.error(t("tch_exgc_err_difficulty_over", "Tổng số câu theo độ khó không được vượt quá tổng số câu"))
       return
     }
 
@@ -378,33 +382,37 @@ function TeacherGenerateExamCreatePageContent() {
     setGeneratedQuestions(variants[0] || [])
 
     if (variants[0].length < questionCount) {
-      toast.warning(`Chỉ tìm được ${variants[0].length}/${questionCount} câu hỏi phù hợp`)
+      toast.warning(t("tch_exgc_warn_not_enough", "Chỉ tìm được {found}/{total} câu hỏi phù hợp")
+        .replace("{found}", String(variants[0].length))
+        .replace("{total}", String(questionCount)))
     } else if (numExamVariants > 1) {
-      toast.success(`Đã tạo ${numExamVariants} mã đề, mỗi mã gồm ${variants[0].length} câu hỏi`)
+      toast.success(t("tch_exgc_success_multi", "Đã tạo {n} mã đề, mỗi mã gồm {q} câu hỏi")
+        .replace("{n}", String(numExamVariants))
+        .replace("{q}", String(variants[0].length)))
     } else {
-      toast.success(`Đã tạo bộ đề gồm ${variants[0].length} câu hỏi`)
+      toast.success(t("tch_exgc_success_single", "Đã tạo bộ đề gồm {q} câu hỏi").replace("{q}", String(variants[0].length)))
     }
   }
 
   const handleCreateExam = async () => {
     if (!title.trim()) {
-      toast.error("Vui lòng nhập tiêu đề đề thi")
+      toast.error(t("tch_exgc_err_title", "Vui lòng nhập tiêu đề đề thi"))
       return
     }
     if (!selectedCourseId) {
-      toast.error("Vui lòng chọn khóa học")
+      toast.error(t("tch_exgc_err_course_required", "Vui lòng chọn khóa học"))
       return
     }
     if (generatedQuestions.length === 0) {
-      toast.error("Vui lòng tạo bộ câu hỏi trước khi xuất bản")
+      toast.error(t("tch_exgc_err_generate_first", "Vui lòng tạo bộ câu hỏi trước khi xuất bản"))
       return
     }
     if (type === "official" && !certificateTemplateId) {
-      toast.error("Bài thi thật cần chọn chứng chỉ")
+      toast.error(t("tch_exgc_err_cert_required", "Bài thi thật cần chọn chứng chỉ"))
       return
     }
     if (availableFrom && availableUntil && new Date(availableUntil) <= new Date(availableFrom)) {
-      toast.error("Thời gian đóng bài phải sau thời gian mở bài")
+      toast.error(t("tch_exgc_err_time", "Thời gian đóng bài phải sau thời gian mở bài"))
       return
     }
 
@@ -452,20 +460,20 @@ function TeacherGenerateExamCreatePageContent() {
 
         if (!response.ok) {
           const errorPayload = await response.json().catch(() => ({}))
-          throw new Error(errorPayload?.details?.message || errorPayload?.error || `Tạo đề thi ${examTitle} thất bại`)
+          throw new Error(errorPayload?.details?.message || errorPayload?.error || t("tch_exgc_err_create_fail", "Tạo đề thi {title} thất bại").replace("{title}", examTitle))
         }
       }
 
       const successMessage = isEditMode 
-        ? "Đã cập nhật cấu hình đề thi" 
+        ? t("tch_exgc_success_update", "Đã cập nhật cấu hình đề thi")
         : numExamVariants > 1
-        ? `Đã tạo và xuất bản ${numExamVariants} mã đề`
-        : "Đã tạo và xuất bản đề thi"
+        ? t("tch_exgc_success_publish_multi", "Đã tạo và xuất bản {n} mã đề").replace("{n}", String(numExamVariants))
+        : t("tch_exgc_success_publish", "Đã tạo và xuất bản đề thi")
       
       toast.success(successMessage)
       router.push("/teacher/exams/generate")
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Tạo đề thi thất bại"
+      const message = error instanceof Error ? error.message : t("tch_exgc_err_create", "Tạo đề thi thất bại")
       toast.error(message)
     } finally {
       setIsSubmitting(false)
@@ -479,49 +487,49 @@ function TeacherGenerateExamCreatePageContent() {
           <ArrowLeft size={18} />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">{isEditMode ? "Sửa Cấu Hình Đề Thi" : "Tạo Bài Thi Cá Nhân"}</h1>
+          <h1 className="text-2xl font-bold">{isEditMode ? t("tch_exgc_title_edit", "Sửa Cấu Hình Đề Thi") : t("tch_exgc_title_create", "Tạo Bài Thi Cá Nhân")}</h1>
           <p className="text-sm text-muted-foreground">
             {isEditMode
-              ? "Cập nhật cấu hình đề thi cá nhân cho học sinh"
-              : "Tạo đề thi cá nhân cho học sinh từ ngân hàng câu hỏi (Extracted Exam)"}
+              ? t("tch_exgc_sub_edit", "Cập nhật cấu hình đề thi cá nhân cho học sinh")
+              : t("tch_exgc_sub_create", "Tạo đề thi cá nhân cho học sinh từ ngân hàng câu hỏi (Extracted Exam)")}
           </p>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="rounded-xl border p-6 text-sm text-muted-foreground">Đang tải dữ liệu ngân hàng đề thi...</div>
+        <div className="rounded-xl border p-6 text-sm text-muted-foreground">{t("tch_exgc_loading_bank", "Đang tải dữ liệu ngân hàng đề thi...")}</div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
             <div className="rounded-2xl border bg-card p-5 space-y-4">
-              <h2 className="font-semibold flex items-center gap-2"><ClipboardList size={18} /> Cấu hình đề thi</h2>
+              <h2 className="font-semibold flex items-center gap-2"><ClipboardList size={18} /> {t("tch_exgc_section_config", "Cấu hình đề thi")}</h2>
               <div className="grid gap-4 md:grid-cols-2">
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tiêu đề đề thi" className="border rounded-lg px-3 py-2 bg-background" />
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("tch_exgc_input_title", "Tiêu đề đề thi")} className="border rounded-lg px-3 py-2 bg-background" />
                 <select value={selectedCourseId} onChange={(e) => setSelectedCourseId(e.target.value)} className="border rounded-lg px-3 py-2 bg-background">
-                  <option value="">Chọn khóa học</option>
+                  <option value="">{t("tch_exgc_course_placeholder", "Chọn khóa học")}</option>
                   {courseOptions.map((course) => (
                     <option key={course.id} value={course.id}>{course.title}</option>
                   ))}
                 </select>
                 <select value={type} onChange={(e) => setType(e.target.value as "practice" | "official")} className="border rounded-lg px-3 py-2 bg-background">
-                  <option value="practice">Thi thử</option>
-                  <option value="official">Thi thật</option>
+                  <option value="practice">{t("tch_exgc_type_practice", "Thi thử")}</option>
+                  <option value="official">{t("tch_exgc_type_official", "Thi thật")}</option>
                 </select>
-                <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả ngắn" className="border rounded-lg px-3 py-2 bg-background" />
+                <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("tch_exgc_input_desc", "Mô tả ngắn")} className="border rounded-lg px-3 py-2 bg-background" />
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số câu hỏi cần tạo</label>
-                  <input type="text" value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập số câu hỏi" />
+                  <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_question_count", "Số câu hỏi cần tạo")}</label>
+                  <input type="text" value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder={t("tch_exgc_placeholder_question_count", "Nhập số câu hỏi")} />
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số mã đề</label>
-                  <input type="text" value={numExamVariants} onChange={(e) => setNumExamVariants(Number(e.target.value) || 1)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập số mã đề (tối đa 26)" />
+                  <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_variant", "Số mã đề")}</label>
+                  <input type="text" value={numExamVariants} onChange={(e) => setNumExamVariants(Number(e.target.value) || 1)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder={t("tch_exgc_placeholder_variant", "Nhập số mã đề (tối đa 26)")} />
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Thời gian làm bài (phút)</label>
-                  <input type="text" value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value) || 60)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập thời gian (phút)" />
+                  <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_time", "Thời gian làm bài (phút)")}</label>
+                  <input type="text" value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value) || 60)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder={t("tch_exgc_placeholder_time", "Nhập thời gian (phút)")} />
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Mở bài thi lúc</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_available_from", "Mở bài thi lúc")}</label>
                   <input
                     type="datetime-local"
                     value={availableFrom}
@@ -530,7 +538,7 @@ function TeacherGenerateExamCreatePageContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Đóng bài thi lúc</label>
+                  <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_available_until", "Đóng bài thi lúc")}</label>
                   <input
                     type="datetime-local"
                     value={availableUntil}
@@ -539,17 +547,17 @@ function TeacherGenerateExamCreatePageContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Điểm đạt (%)</label>
-                  <input type="text" value={passingScore} onChange={(e) => setPassingScore(Number(e.target.value) || 70)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập điểm đạt %" />
+                  <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_passing", "Điểm đạt (%)")}</label>
+                  <input type="text" value={passingScore} onChange={(e) => setPassingScore(Number(e.target.value) || 70)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder={t("tch_exgc_placeholder_passing", "Nhập điểm đạt %")} />
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số lần thi tối đa</label>
-                  <input type="number" min={1} max={10} value={maxAttempts} onChange={(e) => setMaxAttempts(Math.max(1, Number(e.target.value) || 3))} className="w-full border-2 border-blue-500 rounded-lg px-3 py-2 bg-background font-semibold focus:outline-none focus:border-blue-600" placeholder="Nhập số lần (1-10)" />
-                  <p className="text-xs text-muted-foreground mt-1">Số lần thi tối đa: {maxAttempts}</p>
+                  <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_max_attempt", "Số lần thi tối đa")}</label>
+                  <input type="number" min={1} max={10} value={maxAttempts} onChange={(e) => setMaxAttempts(Math.max(1, Number(e.target.value) || 3))} className="w-full border-2 border-blue-500 rounded-lg px-3 py-2 bg-background font-semibold focus:outline-none focus:border-blue-600" placeholder={t("tch_exgc_placeholder_max_attempt", "Nhập số lần (1-10)")} />
+                  <p className="text-xs text-muted-foreground mt-1">{t("tch_exgc_hint_max_attempt", "Số lần thi tối đa: {n}").replace("{n}", String(maxAttempts))}</p>
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số mã đề ngẫu nhiên <span className="text-xs text-blue-500">(hệ thống phân công tự động)</span></label>
-                  <input type="number" min={1} max={20} value={variantCount} onChange={(e) => setVariantCount(Math.max(1, Number(e.target.value) || 1))} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="1 = không phân mã đề" />
+                  <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_variant_auto", "Số mã đề ngẫu nhiên")} <span className="text-xs text-blue-500">{t("tch_exgc_label_variant_note", "(hệ thống phân công tự động)")}</span></label>
+                  <input type="number" min={1} max={20} value={variantCount} onChange={(e) => setVariantCount(Math.max(1, Number(e.target.value) || 1))} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder={t("tch_exgc_placeholder_variant_auto", "1 = không phân mã đề")} />
                 </div>
                 <div className="md:col-span-2 flex items-center gap-5 rounded-lg border px-3 py-2">
                   <label className="inline-flex items-center gap-2 text-sm">
@@ -558,7 +566,7 @@ function TeacherGenerateExamCreatePageContent() {
                       checked={shuffleQuestions}
                       onChange={(e) => setShuffleQuestions(e.target.checked)}
                     />
-                    <span>Tráo câu hỏi</span>
+                    <span>{t("tch_exgc_shuffle_questions", "Tráo câu hỏi")}</span>
                   </label>
                   <label className="inline-flex items-center gap-2 text-sm">
                     <input
@@ -566,7 +574,7 @@ function TeacherGenerateExamCreatePageContent() {
                       checked={shuffleAnswers}
                       onChange={(e) => setShuffleAnswers(e.target.checked)}
                     />
-                    <span>Tráo đáp án</span>
+                    <span>{t("tch_exgc_shuffle_answers", "Tráo đáp án")}</span>
                   </label>
                 </div>
               </div>
@@ -577,7 +585,7 @@ function TeacherGenerateExamCreatePageContent() {
                   onChange={(e) => setCertificateTemplateId(e.target.value)}
                   className="w-full border rounded-lg px-3 py-2 bg-background"
                 >
-                  <option value="">Chọn chứng chỉ cho bài thi thật</option>
+                  <option value="">{t("tch_exgc_cert_placeholder", "Chọn chứng chỉ cho bài thi thật")}</option>
                   {availableCertificates.map((cert) => (
                     <option key={cert.id} value={cert.id}>{cert.title}</option>
                   ))}
@@ -586,19 +594,19 @@ function TeacherGenerateExamCreatePageContent() {
             </div>
 
             <div className="rounded-2xl border bg-card p-5 space-y-4">
-              <h2 className="font-semibold">Chọn ngân hàng nguồn</h2>
+              <h2 className="font-semibold">{t("tch_exgc_section_source", "Chọn ngân hàng nguồn")}</h2>
               <div className="grid gap-2 md:grid-cols-2 max-h-56 overflow-y-auto">
                 {filteredExams.map((exam) => (
                   <label key={exam.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
                     <input type="checkbox" checked={selectedExamIds.includes(exam.id)} onChange={() => toggleExam(exam.id)} />
-                    <span>{exam.title} ({exam.questions.length} câu)</span>
+                    <span>{exam.title} ({exam.questions.length} {t("tch_exgc_unit_question", "câu")})</span>
                   </label>
                 ))}
               </div>
             </div>
 
             <div className="rounded-2xl border bg-card p-5 space-y-4">
-              <h2 className="font-semibold">Chọn chương và độ khó</h2>
+              <h2 className="font-semibold">{t("tch_exgc_section_chapter", "Chọn chương và độ khó")}</h2>
               <div className="grid gap-2 md:grid-cols-3 max-h-44 overflow-y-auto">
                 {chapterOptions.map((chapter) => (
                   <label key={chapter} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
@@ -610,16 +618,16 @@ function TeacherGenerateExamCreatePageContent() {
 
               <div className="grid gap-3 md:grid-cols-3">
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số câu dễ</label>
-                  <input type="text" value={easyCount} onChange={(e) => setEasyCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập số câu dễ" />
+                  <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_easy", "Số câu dễ")}</label>
+                  <input type="text" value={easyCount} onChange={(e) => setEasyCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder={t("tch_exgc_placeholder_easy", "Nhập số câu dễ")} />
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số câu trung bình</label>
-                  <input type="text" value={mediumCount} onChange={(e) => setMediumCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập số câu trung bình" />
+                  <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_medium", "Số câu trung bình")}</label>
+                  <input type="text" value={mediumCount} onChange={(e) => setMediumCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder={t("tch_exgc_placeholder_medium", "Nhập số câu trung bình")} />
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số câu khó</label>
-                  <input type="text" value={hardCount} onChange={(e) => setHardCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập số câu khó" />
+                  <label className="block text-xs text-muted-foreground mb-1">{t("tch_exgc_label_hard", "Số câu khó")}</label>
+                  <input type="text" value={hardCount} onChange={(e) => setHardCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder={t("tch_exgc_placeholder_hard", "Nhập số câu khó")} />
                 </div>
               </div>
 
@@ -627,46 +635,53 @@ function TeacherGenerateExamCreatePageContent() {
                 onClick={generateExamQuestions}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90"
               >
-                <Wand2 size={16} /> Sinh bộ câu hỏi
+                <Wand2 size={16} /> {t("tch_exgc_btn_generate", "Sinh bộ câu hỏi")}
               </button>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="rounded-2xl border bg-card p-5">
-              <h3 className="font-semibold mb-2">Kết quả sinh đề</h3>
+              <h3 className="font-semibold mb-2">{t("tch_exgc_section_result", "Kết quả sinh đề")}</h3>
               {examVariants.length > 0 ? (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    Đã tạo <span className="font-semibold text-foreground">{examVariants.length} mã đề</span>, mỗi mã có <span className="font-semibold text-foreground">{generatedQuestions.length} câu hỏi</span>.
+                    {t("tch_exgc_result_created", "Đã tạo {variant} mã đề, mỗi mã có {question} câu hỏi.")
+                      .replace("{variant}", String(examVariants.length))
+                      .replace("{question}", String(generatedQuestions.length))}
                   </p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Đề: {Array.from({ length: examVariants.length }, (_, i) => String.fromCharCode(65 + i)).join(", ")}
+                    {t("tch_exgc_result_variants", "Đề: {list}").replace(
+                      "{list}",
+                      Array.from({ length: examVariants.length }, (_, i) => String.fromCharCode(65 + i)).join(", ")
+                    )}
                   </p>
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">Đã chọn {generatedQuestions.length} câu hỏi.</p>
+                <p className="text-sm text-muted-foreground">{t("tch_exgc_result_empty", "Đã chọn {n} câu hỏi.").replace("{n}", String(generatedQuestions.length))}</p>
               )}
               <button
                 onClick={handleCreateExam}
                 disabled={isSubmitting || generatedQuestions.length === 0}
                 className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
               >
-                <CheckCircle2 size={16} /> {isSubmitting ? (isEditMode ? "Đang lưu..." : "Đang tạo...") : (isEditMode ? "Lưu cập nhật" : "Tạo đề thi")}
+                <CheckCircle2 size={16} /> {isSubmitting
+                  ? (isEditMode ? t("tch_exgc_btn_saving", "Đang lưu...") : t("tch_exgc_btn_creating", "Đang tạo..."))
+                  : (isEditMode ? t("tch_exgc_btn_save_update", "Lưu cập nhật") : t("tch_exgc_btn_create", "Tạo đề thi"))}
               </button>
             </div>
 
             <div className="rounded-2xl border bg-card p-5 max-h-[440px] overflow-y-auto">
-              <h3 className="font-semibold mb-3">Danh sách câu hỏi</h3>
+              <h3 className="font-semibold mb-3">{t("tch_exgc_section_questions", "Danh sách câu hỏi")}</h3>
               <div className="space-y-3">
                 {generatedQuestions.length === 0 && (
-                  <p className="text-sm text-muted-foreground">Chưa có câu hỏi, hãy bấm "Sinh bộ câu hỏi".</p>
+                  <p className="text-sm text-muted-foreground">{t("tch_exgc_questions_empty", "Chưa có câu hỏi, hãy bấm \"Sinh bộ câu hỏi\".")}</p>
                 )}
                 {generatedQuestions.map((question, index) => (
                   <div key={`${question.id}-${index}`} className="rounded-lg border p-3">
-                    <p className="text-sm font-medium">Câu {index + 1}. {question.question}</p>
+                    <p className="text-sm font-medium">{t("tch_exgc_question_label", "Câu {n}.").replace("{n}", String(index + 1))} {question.question}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {(question.chapter || "Chưa phân chương")} • {(question.difficulty || "medium")}
+                      {(question.chapter || t("tch_exgc_no_chapter", "Chưa phân chương"))} • {(question.difficulty || "medium")}
                     </p>
                   </div>
                 ))}
@@ -680,11 +695,12 @@ function TeacherGenerateExamCreatePageContent() {
 }
 
 export default function TeacherGenerateExamCreatePage() {
+  const { t } = useLanguage()
   return (
     <Suspense
       fallback={
         <div className="space-y-6">
-          <div className="rounded-xl border p-6 text-sm text-muted-foreground">Đang tải cấu hình trang...</div>
+          <div className="rounded-xl border p-6 text-sm text-muted-foreground">{t("tch_exgc_loading_page", "Đang tải cấu hình trang...")}</div>
         </div>
       }
     >
