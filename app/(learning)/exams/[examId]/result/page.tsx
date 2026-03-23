@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 
@@ -13,6 +13,8 @@ interface AttemptResult {
   earnedPoints: number
   totalPoints: number
   certificateId?: string
+  totalAttempts?: number
+  remainingAttempts?: number
   exam?: {
     id: string
     title: string
@@ -120,12 +122,30 @@ const formatAnswer = (value: string | string[] | undefined): string => {
 
 export default function ExamResultPage() {
   const searchParams = useSearchParams()
+  const params = useParams()
   const attemptId = searchParams.get("attemptId") || ""
   const source = (searchParams.get("source") || "").toLowerCase()
   const isExtractedSource = source === "extracted"
+  const examId = (params?.examId as string) || ""
 
   const [result, setResult] = useState<AttemptResult | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Prevent back navigation
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault()
+      window.history.pushState(null, "", window.location.href)
+      toast.error("Không thể quay lại từ trang kết quả")
+    }
+
+    window.history.pushState(null, "", window.location.href)
+    window.addEventListener("popstate", handlePopState)
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState)
+    }
+  }, [])
 
   useEffect(() => {
     const load = async () => {
@@ -200,8 +220,15 @@ export default function ExamResultPage() {
         )}
       </div>
 
-      <div className="flex gap-3">
-        <Link href="/exams" className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primary/90">Danh sách bài thi</Link>
+      <div className="flex gap-3 flex-wrap">
+        {isExtractedSource && examId && (result?.remainingAttempts ?? 0) > 0 && (
+          <Link href={`/exams/${examId}/take`} className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
+            Làm lại bài thi ({result.remainingAttempts} lần còn lại)
+          </Link>
+        )}
+        <Link href="/exams" className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primary/90">
+          Danh sách bài thi
+        </Link>
       </div>
 
       {reviewQuestions.length > 0 && (

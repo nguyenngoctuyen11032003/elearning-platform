@@ -544,7 +544,8 @@ function TeacherGenerateExamCreatePageContent() {
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Số lần thi tối đa</label>
-                  <input type="text" value={maxAttempts} onChange={(e) => setMaxAttempts(Number(e.target.value) || 3)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập số lần thi" />
+                  <input type="number" min={1} max={10} value={maxAttempts} onChange={(e) => setMaxAttempts(Math.max(1, Number(e.target.value) || 3))} className="w-full border-2 border-blue-500 rounded-lg px-3 py-2 bg-background font-semibold focus:outline-none focus:border-blue-600" placeholder="Nhập số lần (1-10)" />
+                  <p className="text-xs text-muted-foreground mt-1">Số lần thi tối đa: {maxAttempts}</p>
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Số mã đề ngẫu nhiên <span className="text-xs text-blue-500">(hệ thống phân công tự động)</span></label>
