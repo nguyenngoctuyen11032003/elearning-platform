@@ -34,7 +34,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { DEFAULT_SYSTEM_SETTINGS } from "../../../../lib/system-config/default-system-settings"
 import type { LanguageCode } from "@/lib/i18n/language-context"
-import { DropdownFilter } from "@/components/ui/dropdown-filter"
 
 export default function AdminSettingsPage() {
   const { t, language, setLanguage, supportedLanguages } = useLanguage()
@@ -485,16 +484,6 @@ if (!settings) return null
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
                     <Globe size={16} /> {t("adm_set_language", "Ngôn ngữ")}
                   </label>
-                  <DropdownFilter
-                    options={supportedLanguages.map(langOption => ({ value: langOption.code, label: langOption.label }))}
-                    value={(settings.language as LanguageCode) || language}
-                    onChange={(value) => {
-                      const nextLang = value as LanguageCode
-                      setLanguage(nextLang)
-                      handleSettingChange("language", nextLang)
-                    }}
-                    width={300}
-                  />
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">

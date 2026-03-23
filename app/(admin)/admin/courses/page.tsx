@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
-import { DropdownFilter } from "@/components/ui/dropdown-filter"
 
 interface Course {
   id: string
@@ -778,18 +777,17 @@ export default function AdminCoursesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_cat_label", "Danh mục")}</label>
-                  <DropdownFilter
-                    options={[
-                      { value: "Lập trình", label: t("adm_courses_cat_programming", "Lập trình") },
-                      { value: "Thiết kế", label: t("adm_courses_cat_design", "Thiết kế") },
-                      { value: "AI & Data", label: "AI & Data" },
-                      { value: "Kinh doanh", label: t("adm_courses_cat_business", "Kinh doanh") },
-                      { value: "Ngoại ngữ", label: t("adm_courses_cat_language", "Ngoại ngữ") }
-                    ]}
+                  <select
                     value={selectedCourse.category}
-                    onChange={(value) => setSelectedCourse({ ...selectedCourse, category: value })}
-                    width={300}
-                  />
+                    onChange={(e) => setSelectedCourse({ ...selectedCourse, category: e.target.value })}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="Lập trình">{t("adm_courses_cat_programming", "Lập trình")}</option>
+                    <option value="Thiết kế">{t("adm_courses_cat_design", "Thiết kế")}</option>
+                    <option value="AI & Data">AI & Data</option>
+                    <option value="Kinh doanh">{t("adm_courses_cat_business", "Kinh doanh")}</option>
+                    <option value="Ngoại ngữ">{t("adm_courses_cat_language", "Ngoại ngữ")}</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_price_vnd", "Giá (VND)")}</label>
@@ -803,16 +801,15 @@ export default function AdminCoursesPage() {
               </div>
               <div>
                 <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_status_label", "Trạng thái")}</label>
-                <DropdownFilter
-                  options={[
-                    { value: "pending", label: t("adm_courses_pending", "Chờ duyệt") },
-                    { value: "published", label: t("adm_courses_approved_label", "Đã duyệt") },
-                    { value: "rejected", label: t("adm_courses_rejected_label", "Từ chối") }
-                  ]}
+                <select
                   value={selectedCourse.status}
-                  onChange={(value) => setSelectedCourse({ ...selectedCourse, status: value as Course["status"] })}
-                  width={300}
-                />
+                  onChange={(e) => setSelectedCourse({ ...selectedCourse, status: e.target.value as Course["status"] })}
+                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="pending">{t("adm_courses_pending", "Chờ duyệt")}</option>
+                  <option value="published">{t("adm_courses_approved_label", "Đã duyệt")}</option>
+                  <option value="rejected">{t("adm_courses_rejected_label", "Từ chối")}</option>
+                </select>
               </div>
 
               <button
