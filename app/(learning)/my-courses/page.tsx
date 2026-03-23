@@ -325,14 +325,14 @@ export default function MyCoursesPage() {
                                       className="w-full flex items-center gap-3 px-4 py-2 hover:bg-secondary dark:hover:bg-slate-700 transition-colors text-sm text-foreground dark:text-white border-t border-border dark:border-slate-700"
                                     >
                                       <Share2 size={16} />
-                                      Chia sẻ
+                                      {t("mycourses_share", "Chia sẻ")}
                                     </button>
                                     <button
                                       onClick={() => handleRemoveCourse(enrollment.id)}
                                       className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm text-red-600 dark:text-red-400 border-t border-border dark:border-slate-700"
                                     >
                                       <Trash2 size={16} />
-                                      Xóa
+                                      {t("mycourses_delete", "Xóa")}
                                     </button>
                                   </motion.div>
                                 )}
@@ -371,16 +371,16 @@ export default function MyCoursesPage() {
                               </div>
                               <div>
                                 <p className="text-xs font-medium text-foreground dark:text-white">
-                                  {enrollment.course.teacher?.name?.split(" ")[0] || "Giảng viên"}
+                                  {enrollment.course.teacher?.name?.split(" ")[0] || t("mycourses_teacher", "Giảng viên")}
                                 </p>
-                                <p className="text-xs text-muted-foreground dark:text-slate-400">Giảng viên</p>
+                                <p className="text-xs text-muted-foreground dark:text-slate-400">{t("mycourses_teacher", "Giảng viên")}</p>
                               </div>
                             </div>
                             <Link
                               href={`/player/${enrollment.courseId}`}
                               className="flex items-center gap-1 text-primary dark:text-accent hover:gap-2 transition-all text-xs font-medium whitespace-nowrap"
                             >
-                              Tiếp tục
+                              {t("mycourses_continue", "Tiếp tục")}
                               <ChevronRight size={14} />
                             </Link>
                           </div>
@@ -426,7 +426,7 @@ export default function MyCoursesPage() {
                         {stats.completed}
                       </text>
                       <text x="50" y="60" textAnchor="middle" className="text-xs fill-muted-foreground dark:fill-slate-400" fontSize="10">
-                        Hoàn thành
+                        {t("mycourses_completed", "Hoàn thành")}
                       </text>
                     </svg>
                   </div>
@@ -459,7 +459,7 @@ export default function MyCoursesPage() {
                             {enrollment.course.title}
                           </p>
                           <p className="text-xs text-muted-foreground dark:text-slate-400">
-                            {enrollment.course.teacher?.name?.split(" ")[0] || "Giảng viên"}
+                            {enrollment.course.teacher?.name?.split(" ")[0] || t("mycourses_teacher", "Giảng viên")}
                           </p>
                         </div>
                         <ChevronRight size={14} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -480,7 +480,7 @@ export default function MyCoursesPage() {
                   className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-white/90 transition-all w-full text-sm md:text-base"
                 >
                   <BookOpen size={16} className="md:w-[18px] md:h-[18px]" />
-                  Khám phá khóa học
+                  {t("mycourses_discover_courses", "Khám phá khóa học")}
                 </Link>
               </div>
             </motion.div>

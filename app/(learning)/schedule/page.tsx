@@ -39,7 +39,8 @@ interface ScheduleItem {
 }
 
 export default function SchedulePage() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const currentLocale = language === 'en' ? 'en-US' : 'vi-VN'
   const [currentDate, setCurrentDate] = useState(new Date())
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([
     // {
@@ -454,16 +455,16 @@ useEffect(() => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6 lg:mb-8">
             <div className="min-w-0 flex-1">
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                Lịch học hàng ngày
+                {t('sched_title', 'Lịch học hàng ngày')}
               </h1>
               <p className="text-xs sm:text-sm lg:text-base text-muted-foreground dark:text-slate-400 mt-1 truncate">
                 {selectedDate ? (
-                  <>{t('sched_tasks_on', 'Các công việc ngày')} {new Date(selectedDate + 'T00:00:00').toLocaleDateString('vi-VN')} 
+                  <>{t('sched_tasks_on', 'Các công việc ngày')} {new Date(selectedDate + 'T00:00:00').toLocaleDateString(currentLocale)} 
                     <button 
                       onClick={() => setSelectedDate(null)}
                       className="ml-2 px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors inline-block"
                     >
-                      Xóa lọc
+                      {t('sched_clear_filter', 'Xóa lọc')}
                     </button>
                   </>
                 ) : (
@@ -476,8 +477,8 @@ useEffect(() => {
               className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg whitespace-nowrap flex-shrink-0 text-sm sm:text-base"
             >
               <Plus size={18} />
-              <span className="hidden sm:inline">Thêm công việc</span>
-              <span className="sm:hidden">Thêm</span>
+              <span className="hidden sm:inline">{t('sched_add_task', 'Thêm công việc')}</span>
+              <span className="sm:hidden">{t('common_add', 'Thêm')}</span>
             </button>
           </div>
         </motion.div>
@@ -501,7 +502,7 @@ useEffect(() => {
                   {/* Type Badge */}
                   <div className={`px-3 py-1.5 rounded-full text-xs sm:text-xs font-semibold flex items-center gap-1.5 flex-shrink-0 ${getTypeColor(item.type)}`}>
                     {getTypeIcon(item.type)}
-                    {item.type === 'lesson' ? t('sched_lesson', 'Bài học') : item.type === 'exam' ? t('sched_exam', 'Bài thi') : 'Live session'}
+                    {item.type === 'lesson' ? t('sched_lesson', 'Bài học') : item.type === 'exam' ? t('sched_exam', 'Bài thi') : t('sched_live_session', 'Live session')}
                   </div>
 
                   {/* Title & Course */}
@@ -518,7 +519,7 @@ useEffect(() => {
                   <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground dark:text-slate-400 flex-shrink-0">
                     <div className="flex items-center gap-1">
                       <Calendar size={14} />
-                      <span className="whitespace-nowrap">{item.dueDate ? new Date(item.dueDate + 'T00:00:00').toLocaleDateString('vi-VN') : t('sched_no_date', 'Chưa đặt')}</span>
+                      <span className="whitespace-nowrap">{item.dueDate ? new Date(item.dueDate + 'T00:00:00').toLocaleDateString(currentLocale) : t('sched_no_date', 'Chưa đặt')}</span>
                     </div>
                     <div className="hidden sm:flex items-center gap-1">
                       <Clock size={14} />
@@ -609,7 +610,7 @@ useEffect(() => {
               <ChevronLeft size={20} className="text-foreground dark:text-white" />
             </button>
             <h2 className="text-sm sm:text-base lg:text-lg font-bold text-foreground dark:text-white truncate">
-              Tháng {currentDate.getMonth() + 1} năm {currentDate.getFullYear()}
+              {new Intl.DateTimeFormat(currentLocale, { month: 'long', year: 'numeric' }).format(currentDate)}
             </h2>
             <button 
               onClick={nextMonth}
@@ -653,7 +654,7 @@ useEffect(() => {
                       ? 'bg-blue-500 text-white shadow-lg ring-2 ring-blue-300'
                       : 'text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800'
                   }`}
-                  title={`${itemsOnDay} công việc`}
+                  title={`${itemsOnDay} ${t('sched_tasks_unit', 'công việc')}`}
                 >
                   {day}
                   {itemsOnDay > 0 && (
@@ -670,10 +671,10 @@ useEffect(() => {
           <h3 className="text-xs sm:text-sm lg:text-base font-bold text-foreground dark:text-white mb-2 sm:mb-2 lg:mb-3">{t("sched_your_tasks", "Công việc của bạn")}</h3>
           <div className="flex flex-wrap gap-1.5">
             <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full text-xs font-medium">
-              🎯 Sắp tới
+              {t('sched_tag_upcoming', '🎯 Sắp tới')}
             </span>
             <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
-              🚀 Sản phẩm
+              {t('sched_tag_productivity', '🚀 Sản phẩm')}
             </span>
           </div>
         </div>
@@ -764,7 +765,7 @@ useEffect(() => {
                     >
                       <option value="lesson">{t("sched_lesson", "Bài học")}</option>
                       <option value="exam">{t("sched_exam", "Bài thi")}</option>
-                      <option value="live">Live session</option>
+                      <option value="live">{t('sched_live_session', 'Live session')}</option>
                     </select>
                   </div>
                   <div>
@@ -828,14 +829,14 @@ useEffect(() => {
                     onClick={() => setIsCreating(false)}
                     className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors text-sm"
                   >
-                    Hủy
+                    {t('common_cancel', 'Hủy')}
                   </button>
                   <button
                     onClick={handleCreateItem}
                     className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm"
                   >
                     <Save size={16} />
-                    Lưu
+                    {t('common_save', 'Lưu')}
                   </button>
                 </div>
               </div>
@@ -904,7 +905,7 @@ useEffect(() => {
                     >
                       <option value="lesson">{t("sched_lesson", "Bài học")}</option>
                       <option value="exam">{t("sched_exam", "Bài thi")}</option>
-                      <option value="live">Live session</option>
+                      <option value="live">{t('sched_live_session', 'Live session')}</option>
                     </select>
                   </div>
                   <div>
@@ -966,14 +967,14 @@ useEffect(() => {
                     onClick={() => setEditingItem(null)}
                     className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors text-sm"
                   >
-                    Hủy
+                    {t('common_cancel', 'Hủy')}
                   </button>
                   <button
                     onClick={handleUpdateItem}
                     className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm"
                   >
                     <Save size={16} />
-                    Cập nhật
+                    {t('common_update', 'Cập nhật')}
                   </button>
                 </div>
               </div>

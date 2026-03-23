@@ -8,11 +8,11 @@ import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { SystemSettings } from "@/app/types/system-settings"
-import { useLanguage } from "@/lib/i18n/language-context"
+import { LanguageCode, useLanguage } from "@/lib/i18n/language-context"
 
 export default function StudentSettingsPage() {
   const { user } = useAuth()
-  const { t } = useLanguage()
+  const { t, setLanguage } = useLanguage()
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -55,6 +55,12 @@ const handleSave = async () => {
   }
 }
 
+const handleLanguageChange = (lang: string) => {
+  const nextLang = (lang === "en" ? "en" : "vi") as LanguageCode
+  handleSettingChange("language", nextLang)
+  setLanguage(nextLang)
+}
+
 const [settings, setSettings] = useState<SystemSettings>(config || {})
 
 if (!config) return null
@@ -71,10 +77,10 @@ if (!config) return null
       <Tabs defaultValue="notifications" className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
           <TabsTrigger value="notifications" className="text-xs md:text-sm">
-            Thông báo
+            {t("settings_tab_notifications", "Thông báo")}
           </TabsTrigger>
           <TabsTrigger value="appearance" className="text-xs md:text-sm">
-            Giao diện
+            {t("settings_tab_appearance", "Giao diện")}
           </TabsTrigger>
         </TabsList>
 
@@ -198,7 +204,7 @@ if (!config) return null
         <TabsContent value="appearance" className="space-y-6 mt-6">
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
             <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-              <Palette size={24} /> Giao diện
+              <Palette size={24} /> {t("settings_appearance_title", "Giao diện")}
             </h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
@@ -246,7 +252,7 @@ if (!config) return null
                 </div>
                 <select
                   value={settings.language}
-                  onChange={(e) => handleSettingChange("language", e.target.value)}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
                   className="bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                 >
                   <option value="vi">{t("settings_lang_vi", "Tiếng Việt")}</option>

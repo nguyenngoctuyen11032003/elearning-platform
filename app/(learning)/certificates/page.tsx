@@ -165,7 +165,7 @@ export default function CertificatesPage() {
                   <p className="text-2xl font-bold text-foreground dark:text-white">
                     {certificates.filter(c => c.courseId).map(c => c.courseId).filter((v, i, a) => a.indexOf(v) === i).length}
                   </p>
-                  <p className="text-xs text-muted-foreground">Khóa học</p>
+                  <p className="text-xs text-muted-foreground">{t("cert_courses_label", "Khóa học")}</p>
                 </div>
               </div>
             </div>
@@ -187,7 +187,7 @@ export default function CertificatesPage() {
                 {/* Certificate Preview */}
                 <div className="h-40 bg-gradient-to-br from-primary/30 to-purple-600/30 flex items-center justify-center relative overflow-hidden">
                   {cert.imageUrl ? (
-                    <img src={cert.imageUrl} alt="Chứng chỉ" className="w-full h-full object-cover" />
+                    <img src={cert.imageUrl} alt={t("cert_image_alt", "Chứng chỉ")} className="w-full h-full object-cover" />
                   ) : (
                     <Award size={64} className="text-white/50" />
                   )}
@@ -237,14 +237,14 @@ export default function CertificatesPage() {
                       className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                     >
                       <Download size={16} />
-                      Tải xuống
+                      {t("cert_download", "Tải xuống")}
                     </button>
                     <button
                       onClick={() => handleShare(cert)}
                       className="px-4 py-2 border border-border dark:border-slate-700 rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
                     >
                       <Share2 size={16} />
-                      Chia sẻ
+                      {t("cert_share", "Chia sẻ")}
                     </button>
                     {cert.courseId && (
                       <Link
@@ -252,7 +252,7 @@ export default function CertificatesPage() {
                         className="px-4 py-2 border border-border dark:border-slate-700 rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
                       >
                         <ExternalLink size={16} />
-                        Khóa học
+                        {t("cert_course_link", "Khóa học")}
                       </Link>
                     )}
                   </div>
@@ -277,7 +277,7 @@ export default function CertificatesPage() {
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
           >
             <FileText size={18} />
-            Xem danh sách bài thi
+            {t("cert_view_exam_list", "Xem danh sách bài thi")}
           </Link>
         </motion.div>
       )}

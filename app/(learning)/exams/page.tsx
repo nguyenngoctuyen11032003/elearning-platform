@@ -60,13 +60,13 @@ export default function StudentExamsPage() {
 
   const timeNotice = (exam: ExamItem) => {
     if (exam.availableFrom && now < new Date(exam.availableFrom)) {
-      return `Mở thi lúc ${new Date(exam.availableFrom).toLocaleString("vi-VN")}`
+      return `${t("exam_open_at", "Mở thi lúc")} ${new Date(exam.availableFrom).toLocaleString("vi-VN")}`
     }
     if (exam.availableUntil && now > new Date(exam.availableUntil)) {
       return t("exam_time_expired", "Đã hết thời gian làm bài")
     }
     if (exam.availableUntil) {
-      return `Đến hạn ${new Date(exam.availableUntil).toLocaleString("vi-VN")}`
+      return `${t("exam_until", "Đến hạn")} ${new Date(exam.availableUntil).toLocaleString("vi-VN")}`
     }
     return t("exam_can_start", "Có thể vào thi ngay")
   }
@@ -133,8 +133,8 @@ export default function StudentExamsPage() {
                 <p className="text-sm text-muted-foreground">{exam.course?.title || t("exam_course", "Khóa học")}</p>
                 {exam.description && <p className="text-sm text-muted-foreground">{exam.description}</p>}
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center gap-1"><Clock size={14} /> {exam.timeLimit} phút</span>
-                  <span className="inline-flex items-center gap-1"><FileText size={14} /> Đạt từ {exam.passingScore}%</span>
+                  <span className="inline-flex items-center gap-1"><Clock size={14} /> {exam.timeLimit} {t("exam_minutes", "phút")}</span>
+                  <span className="inline-flex items-center gap-1"><FileText size={14} /> {t("exam_pass_from", "Đạt từ")} {exam.passingScore}%</span>
                   <span className="inline-flex items-center gap-1"><Trophy size={14} /> {exam.type === "official" ? t("exam_official", "Thi thật") : t("exam_practice", "Thi thử")}</span>
                 </div>
                 <p className={`text-sm ${canStart(exam) ? "text-green-600" : "text-amber-600"}`}>{timeNotice(exam)}</p>
@@ -145,14 +145,14 @@ export default function StudentExamsPage() {
                   href={`/exams/${exam.id}/take?source=extracted`}
                   className="rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-primary/90"
                 >
-                  Vào thi
+                  {t("exam_enter", "Vào thi")}
                 </Link>
               ) : (
                 <button
                   disabled
                   className="rounded-lg border px-4 py-2 text-sm text-muted-foreground"
                 >
-                  Chưa thể vào thi
+                  {t("exam_not_available_yet", "Chưa thể vào thi")}
                 </button>
               )}
             </div>
@@ -161,7 +161,7 @@ export default function StudentExamsPage() {
 
         {exams.length === 0 && (
           <div className="rounded-xl border p-8 text-center text-muted-foreground">
-            Chưa có bài thi nào cho các khóa bạn đã đăng ký.
+            {t("exam_empty_enrolled", "Chưa có bài thi nào cho các khóa bạn đã đăng ký.")}
           </div>
         )}
       </div>

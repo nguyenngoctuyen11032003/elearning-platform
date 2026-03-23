@@ -39,9 +39,9 @@ interface Note {
 
 const noteTypesMeta = [
   { value: 'general', labelKey: 'notes_type_general', labelFallback: 'Ghi chú thường', color: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300', icon: '📝' },
-  { value: 'deadline', labelKey: 'notes_type_deadline', labelFallback: 'Deadline Tracker', color: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300', icon: '⏰' },
-  { value: 'checklist', labelKey: 'notes_type_checklist', labelFallback: 'Checklist', color: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-300', icon: '☑' },
-  { value: 'plan', labelKey: 'notes_type_plan', labelFallback: 'Lịch học / Plan', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300', icon: '📅' },
+  { value: 'deadline', labelKey: 'notes_type_deadline', labelFallback: 'Theo dõi deadline', color: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300', icon: '⏰' },
+  { value: 'checklist', labelKey: 'notes_type_checklist', labelFallback: 'Danh sách kiểm tra', color: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-300', icon: '☑' },
+  { value: 'plan', labelKey: 'notes_type_plan', labelFallback: 'Kế hoạch học tập', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300', icon: '📅' },
 ]
 
 export default function NotesPage() {
@@ -534,7 +534,7 @@ useEffect(() => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-              Ghi chú của tôi
+              {t("notes_title", "Ghi chú của tôi")}
             </h1>
             <p className="text-muted-foreground dark:text-slate-400 mt-1 flex items-center gap-3">
               <span className="flex items-center gap-1">
@@ -569,7 +569,7 @@ useEffect(() => {
               className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30"
             >
               <Plus size={20} />
-              Ghi chú mới
+              {t("notes_new", "Ghi chú mới")}
             </button>
           </div>
         </div>
@@ -602,7 +602,7 @@ useEffect(() => {
           transition={{ delay: 0.15 }}
           className="flex flex-wrap gap-2 items-start"
         >
-          <span className="text-sm font-medium text-muted-foreground pt-2">Tags:</span>
+          <span className="text-sm font-medium text-muted-foreground pt-2">{t("notes_tags", "Tags:")}</span>
           <div className="flex flex-wrap gap-2 flex-1">
             {allTags.map((tag, index) => (
   <div key={`${tag}-${index}`} className="relative group">
@@ -637,7 +637,7 @@ useEffect(() => {
             title={t("notes_clear_all_filters", "Xóa tất cả bộ lọc")}
           >
             <X size={20} />
-            Xóa tất cả
+            {t("notes_clear_all", "Xóa tất cả")}
           </button>
         </motion.div>
       )}
@@ -665,7 +665,7 @@ useEffect(() => {
               onClick={() => setIsCreating(true)}
               className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
             >
-              Tạo ghi chú đầu tiên
+              {t("notes_create_first", "Tạo ghi chú đầu tiên")}
             </button>
           )}
         </motion.div>
@@ -740,7 +740,7 @@ useEffect(() => {
               {(note.type === 'deadline' || note.type === 'checklist') && (
                 <div className="mb-4 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-2">
-                    <span className="font-medium">{note.items?.length || 0} {note.type === 'deadline' ? 'deadline' : t('notes_items', 'mục')}</span>
+                    <span className="font-medium">{note.items?.length || 0} {note.type === 'deadline' ? t('notes_deadline_items', 'deadline') : t('notes_items', 'mục')}</span>
                     {note.items && note.items.length > 0 && (
                       <span className="text-xs">({note.items.filter(i => i.completed).length} {t('notes_done', 'hoàn thành')})</span>
                     )}
@@ -771,7 +771,7 @@ useEffect(() => {
                       </div>
                     ))}
                     {note.items && note.items.length > 2 && (
-                      <div className="text-xs text-muted-foreground">+{note.items.length - 2} more</div>
+                      <div className="text-xs text-muted-foreground">+{note.items.length - 2} {t('notes_more', 'thêm')}</div>
                     )}
                   </div>
                 </div>
@@ -789,7 +789,7 @@ useEffect(() => {
                       </div>
                     ))}
                     {note.schedule && note.schedule.length > 2 && (
-                      <div className="text-xs text-muted-foreground">+{note.schedule.length - 2} more</div>
+                      <div className="text-xs text-muted-foreground">+{note.schedule.length - 2} {t('notes_more', 'thêm')}</div>
                     )}
                   </div>
                 </div>
@@ -1091,12 +1091,12 @@ useEffect(() => {
                       }}
                       className="w-full px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
                     >
-                      + Thêm lịch
+                      {t('notes_add_schedule', '+ Thêm lịch')}
                     </button>
                   </div>
                 )}
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Tags</label>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">{t('notes_tags_plain', 'Tags')}</label>
                   {newNote.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-3">
                       {newNote.tags.map((tag, i) => (
@@ -1145,7 +1145,7 @@ useEffect(() => {
                     onClick={() => setIsCreating(false)}
                     className="flex-1 px-4 py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-all hover:shadow-md"
                   >
-                    Hủy
+                    {t('notes_cancel', 'Hủy')}
                   </button>
                   <button 
                     onClick={handleCreateNote}
@@ -1153,7 +1153,7 @@ useEffect(() => {
                     className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-bold hover:shadow-xl shadow-lg shadow-green-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Save size={22} />
-                    Lưu ghi chú
+                    {t('notes_save', 'Lưu ghi chú')}
                   </button>
                 </div>
               </div>
@@ -1367,12 +1367,12 @@ useEffect(() => {
                       }}
                       className="w-full px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
                     >
-                      + Thêm lịch
+                      {t('notes_add_schedule', '+ Thêm lịch')}
                     </button>
                   </div>
                 )}
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Tags</label>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">{t('notes_tags_plain', 'Tags')}</label>
                   {(editingNote.tags?.length ?? 0) > 0 && (
                     <div className="flex flex-wrap gap-2 mb-3">
                       {editingNote.tags?.map((tag, i) => (
@@ -1422,7 +1422,7 @@ useEffect(() => {
                     onClick={() => setEditingNote(null)}
                     className="flex-1 px-4 py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-all hover:shadow-md"
                   >
-                    Hủy
+                    {t('notes_cancel', 'Hủy')}
                   </button>
                   <button 
                     onClick={handleUpdateNote}
@@ -1430,7 +1430,7 @@ useEffect(() => {
                     className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-xl font-bold hover:shadow-xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Edit3 size={22} />
-                    Cập nhật
+                    {t('notes_update', 'Cập nhật')}
                   </button>
                 </div>
               </div>
@@ -1529,7 +1529,7 @@ useEffect(() => {
               {(viewingNote.type === 'deadline' || viewingNote.type === 'checklist') && (
                 <div className="mb-6">
                   <h3 className="font-semibold text-foreground dark:text-white mb-3">
-                    {viewingNote.type === 'deadline' ? '⏰ Deadlines' : '☑ Checklist'}
+                    {viewingNote.type === 'deadline' ? `⏰ ${t('notes_deadlines', 'Các deadline')}` : `☑ ${t('notes_type_checklist', 'Danh sách kiểm tra')}`}
                   </h3>
                   <div className="space-y-2">
                     {viewingNote.items?.map((item) => (
@@ -1606,7 +1606,7 @@ useEffect(() => {
 
               {viewingNote.type === 'plan' && (
                 <div className="mb-6">
-                  <h3 className="font-semibold text-foreground dark:text-white mb-3">📅 Schedule</h3>
+                  <h3 className="font-semibold text-foreground dark:text-white mb-3">📅 {t('notes_schedule_label', 'Lịch học')}</h3>
                   <div className="space-y-2">
                     {viewingNote.schedule?.map((item, idx) => (
                       <div key={`view-schedule-${idx}-${item.date}-${item.time}`} className="p-4 bg-background dark:bg-slate-950/50 rounded-lg border-l-4 border-primary">
@@ -1639,7 +1639,7 @@ useEffect(() => {
                 <div className="mb-6 pt-6 border-t border-border dark:border-slate-800">
                   <p className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
                     <Tag size={14} />
-                    Tags
+                    {t('notes_tags_plain', 'Tags')}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {viewingNote.tags?.map((tag, i) => (
@@ -1686,17 +1686,17 @@ useEffect(() => {
                 <Trash2 size={24} className="text-red-500" />
               </div>
               <h3 className="text-lg font-bold text-foreground dark:text-white mb-2 text-center">
-                Xóa tag?
+                {t('notes_delete_tag_title', 'Xóa tag?')}
               </h3>
               <p className="text-sm text-muted-foreground text-center mb-6">
-                Bạn có chắc chắn muốn xóa tag <span className="font-semibold text-foreground">#{tagToDelete}</span>? Các ghi chú sử dụng tag này sẽ vẫn được giữ lại.
+                {t('notes_delete_tag_confirm', 'Bạn có chắc chắn muốn xóa tag')} <span className="font-semibold text-foreground">#{tagToDelete}</span>? {t('notes_delete_tag_keep_notes', 'Các ghi chú sử dụng tag này sẽ vẫn được giữ lại.')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setTagToDelete(null)}
                   className="flex-1 px-4 py-3 border-2 border-border dark:border-slate-700 text-foreground dark:text-white rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
                 >
-                  Hủy
+                  {t('notes_cancel', 'Hủy')}
                 </button>
                 <button 
                   onClick={() => {
@@ -1710,7 +1710,7 @@ useEffect(() => {
                   className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                 >
                   <Trash2 size={16} />
-                  Xóa
+                  {t('notes_delete', 'Xóa')}
                 </button>
               </div>
             </motion.div>
@@ -1740,10 +1740,10 @@ useEffect(() => {
                   <Star size={28} className="text-yellow-500" />
                   <div>
                     <h3 className="text-xl font-bold text-foreground dark:text-white">
-                      Ghi chú yêu thích
+                      {t('notes_favorites_title', 'Ghi chú yêu thích')}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {loadingFavorites ? 'Đang tải...' : `${favoriteNotes.length} ghi chú`}
+                      {loadingFavorites ? t('notes_loading_short', 'Đang tải...') : `${favoriteNotes.length} ${t('notes_count_label', 'ghi chú')}`}
                     </p>
                   </div>
                 </div>
@@ -1767,10 +1767,10 @@ useEffect(() => {
                   <div className="text-center py-12">
                     <Star size={48} className="mx-auto text-yellow-500/30 mb-4" />
                     <p className="text-lg text-muted-foreground">
-                      Bạn chưa có ghi chú yêu thích nào
+                      {t('notes_no_favorites', 'Bạn chưa có ghi chú yêu thích nào')}
                     </p>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Nhấp vào biểu tượng sao để thêm ghi chú vào yêu thích
+                      {t('notes_no_favorites_hint', 'Nhấp vào biểu tượng sao để thêm ghi chú vào yêu thích')}
                     </p>
                   </div>
                 ) : (

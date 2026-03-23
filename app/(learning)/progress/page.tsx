@@ -60,7 +60,7 @@ export default function ProgressPage() {
     },
     {
       id: "2",
-      title: "React Hooks & State Management",
+      title: t("prog_course_react_hooks", "React Hooks & State Management"),
       progress: 60,
       totalLessons: 30,
       completedLessons: 18,
@@ -109,7 +109,7 @@ export default function ProgressPage() {
     { icon: Star, title: t("prog_ach_highscore", "Điểm cao"), description: t("prog_ach_highscore_desc", "Đạt 90%+ trong bài thi"), unlocked: true, color: "text-purple-500" },
     { icon: Target, title: t("prog_ach_weekly", "Mục tiêu tuần"), description: t("prog_ach_weekly_desc", "Đạt mục tiêu học tập tuần"), unlocked: false, color: "text-green-500" },
     { icon: BookOpen, title: t("prog_ach_reader", "Đọc giả"), description: t("prog_ach_reader_desc", "Hoàn thành 50 bài học"), unlocked: false, color: "text-blue-500" },
-    { icon: Award, title: "Collector", description: t("prog_ach_collector_desc", "Thu thập 5 chứng chỉ"), unlocked: false, color: "text-pink-500" },
+    { icon: Award, title: t("prog_ach_collector", "Collector"), description: t("prog_ach_collector_desc", "Thu thập 5 chứng chỉ"), unlocked: false, color: "text-pink-500" },
   ]
 
   const totalHours = weeklyProgress.reduce((sum, day) => sum + day.hours, 0)
@@ -289,7 +289,7 @@ export default function ProgressPage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-foreground dark:text-white">{t("prog_active_courses", "Khóa học đang học")}</h2>
             <Link href="/my-courses" className="text-sm text-primary dark:text-accent hover:underline">
-              Xem tất cả
+              {t("prog_view_all", "Xem tất cả")}
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -332,7 +332,7 @@ export default function ProgressPage() {
                 {/* Info Section */}
                 <div className="w-full space-y-2 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground dark:text-slate-400">Progress</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("prog_progress_label", "Progress")}</span>
                     <span className="font-bold text-primary dark:text-accent">{course.progress}%</span>
                   </div>
                   <div className="flex items-center justify-between">

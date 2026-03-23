@@ -253,7 +253,7 @@ export default function StudentProfilePage() {
               {avatarPreview ? (
                 <img
                   src={avatarPreview}
-                  alt={`${user.name || 'Học viên'} Avatar`}
+                  alt={`${user.name || t('profile_student', 'Học viên')} Avatar`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -266,7 +266,7 @@ export default function StudentProfilePage() {
               ) : user.avatar && !user.avatar.includes('ui-avatars.com') ? (
                 <img
                   src={user.avatar}
-                  alt={`${user.name || 'Học viên'} Avatar`}
+                  alt={`${user.name || t('profile_student', 'Học viên')} Avatar`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -330,7 +330,7 @@ export default function StudentProfilePage() {
               <p className="text-2xl font-bold text-foreground dark:text-white">
                 {statsLoading ? "..." : userStats.coursesEnrolled}
               </p>
-              <p className="text-xs text-muted-foreground">Khóa học</p>
+              <p className="text-xs text-muted-foreground">{t("profile_stats_courses", "Khóa học")}</p>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-primary/10 dark:bg-accent/10 rounded-xl flex items-center justify-center mx-auto mb-2">
@@ -339,7 +339,7 @@ export default function StudentProfilePage() {
               <p className="text-2xl font-bold text-foreground dark:text-white">
                 {statsLoading ? "..." : userStats.certificatesEarned}
               </p>
-              <p className="text-xs text-muted-foreground">Chứng chỉ</p>
+              <p className="text-xs text-muted-foreground">{t("profile_stats_certificates", "Chứng chỉ")}</p>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-primary/10 dark:bg-accent/10 rounded-xl flex items-center justify-center mx-auto mb-2">
@@ -348,7 +348,7 @@ export default function StudentProfilePage() {
               <p className="text-2xl font-bold text-foreground dark:text-white">
                 {statsLoading ? "..." : `${userStats.totalHours}h`}
               </p>
-              <p className="text-xs text-muted-foreground">Giờ học</p>
+              <p className="text-xs text-muted-foreground">{t("profile_stats_hours", "Giờ học")}</p>
             </div>
           </div>
         </div>
@@ -359,11 +359,11 @@ export default function StudentProfilePage() {
         <TabsList className="grid w-full grid-cols-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
           <TabsTrigger value="profile" className="text-xs md:text-sm">
             <User size={16} className="mr-2" />
-            Thông tin
+            {t("profile_tab_info", "Thông tin")}
           </TabsTrigger>
           <TabsTrigger value="password" className="text-xs md:text-sm">
             <Lock size={16} className="mr-2" />
-            Mật khẩu
+            {t("profile_tab_password", "Mật khẩu")}
           </TabsTrigger>
         </TabsList>
 
@@ -466,7 +466,7 @@ export default function StudentProfilePage() {
               {/* Current Password */}
               <div>
                 <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">
-                  Mật khẩu hiện tại
+                  {t("profile_current_pwd_label", "Mật khẩu hiện tại")}
                 </label>
                 <div className="relative">
                   <input
@@ -491,7 +491,7 @@ export default function StudentProfilePage() {
               {/* New Password */}
               <div>
                 <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">
-                  Mật khẩu mới
+                  {t("profile_new_pwd_label", "Mật khẩu mới")}
                 </label>
                 <div className="relative">
                   <input
@@ -516,7 +516,7 @@ export default function StudentProfilePage() {
               {/* Confirm Password */}
               <div>
                 <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">
-                  Xác nhận mật khẩu mới
+                  {t("profile_confirm_pwd_label", "Xác nhận mật khẩu mới")}
                 </label>
                 <div className="relative">
                   <input
