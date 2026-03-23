@@ -60,9 +60,6 @@ export default function TeacherEarningsPage() {
   const localeByLanguage: Record<string, string> = {
     vi: "vi-VN",
     en: "en-US",
-    ja: "ja-JP",
-    ko: "ko-KR",
-    "zh-CN": "zh-CN",
   }
   const activeLocale = localeByLanguage[language] || "vi-VN"
 

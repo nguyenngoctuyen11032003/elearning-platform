@@ -889,7 +889,7 @@ const formatDate = (dateString?: string) => {
             <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
               {/* Header */}
               <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-foreground dark:text-white">Thông tin chi tiết người dùng</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white">{t("user_detail_title", "Thông tin chi tiết người dùng")}</h2>
                 <button
                   onClick={() => { setViewUser(null); setModalPos(null); }}
                   className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
@@ -930,7 +930,7 @@ const formatDate = (dateString?: string) => {
                           : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                       }`}
                     >
-                      {viewUser.role === "teacher" ? "Giảng viên" : "Học viên"}
+                      {viewUser.role === "teacher" ? t("user_instructors", "Giảng viên") : t("user_students", "Học viên")}
                     </span>
                     <span
                       className={`inline-block px-3 py-1 rounded-full text-xs font-medium mt-1 ml-2 ${
@@ -939,7 +939,7 @@ const formatDate = (dateString?: string) => {
                           : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400"
                       }`}
                     >
-                      {viewUser.status === "active" ? "Hoạt động" : "Không hoạt động"}
+                      {viewUser.status === "active" ? t("user_active", "Hoạt động") : t("user_disabled", "Không hoạt động")}
                     </span>
                   </div>
                 </div>
@@ -948,74 +948,74 @@ const formatDate = (dateString?: string) => {
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Mail size={16} />
-                      <span className="text-sm">Email</span>
+                      <span className="text-sm">{t("user_email_label", "Email")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">{viewUser.email || ''}</p>
                   </div>
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Phone size={16} />
-                      <span className="text-sm">Số điện thoại</span>
+                      <span className="text-sm">{t("user_phone", "Số điện thoại")}</span>
                     </div>
-                    <p className="text-foreground dark:text-white font-medium">{viewUser.phone || "Chưa cập nhật"}</p>
+                    <p className="text-foreground dark:text-white font-medium">{viewUser.phone || t("common_not_updated", "Chưa cập nhật")}</p>
                   </div>
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Calendar size={16} />
-                      <span className="text-sm">Ngày tham gia</span>
+                      <span className="text-sm">{t("user_join_date", "Ngày tham gia")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">
-                    {viewUser && viewUser.createdAt ? formatDate(viewUser.createdAt) : "Chưa cập nhật"}
+                      {viewUser && viewUser.createdAt ? formatDate(viewUser.createdAt) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
                   </div>
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Clock size={16} />
-                      <span className="text-sm">Hoạt động gần nhất</span>
+                      <span className="text-sm">{t("user_last_active", "Hoạt động gần nhất")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">
-                    {viewUser && viewUser.lastLoginAt
+                      {viewUser && viewUser.lastLoginAt
                       ? formatDate(viewUser.lastLoginAt)
                       : viewUser && viewUser.createdAt
-                        ? `${formatDate(viewUser.createdAt)} (lần đầu)`
-                        : "Chưa cập nhật"}
+                        ? `${formatDate(viewUser.createdAt)} (${t("user_first_time", "lần đầu")})`
+                        : t("common_not_updated", "Chưa cập nhật")}
                   </p>
                   </div>
                 </div>
                 {/* Address */}
                 {viewUser.address && (
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Địa chỉ</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">{t("user_address", "Địa chỉ")}</p>
                     <p className="text-foreground dark:text-white font-medium">{viewUser.address}</p>
                   </div>
                 )}
                 {/* Bio */}
                 {viewUser.bio && (
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Giới thiệu</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">{t("user_bio", "Giới thiệu")}</p>
                     <p className="text-foreground dark:text-white">{viewUser.bio}</p>
                   </div>
                 )}
                 {/* Statistics */}
                 <div>
-                  <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">Thống kê</h4>
+                  <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("user_stats", "Thống kê")}</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-center">
                       <BookOpen size={24} className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
                       <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{viewUser.courses || 0}</p>
                       <p className="text-sm text-blue-600 dark:text-blue-400">
-                        {viewUser.role === "teacher" ? "Khóa học dạy" : "Khóa học đăng ký"}
+                        {viewUser.role === "teacher" ? t("user_courses_teaching", "Khóa học dạy") : t("user_courses_enrolled", "Khóa học đăng ký")}
                       </p>
                     </div>
                     <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 text-center">
                       <Award size={24} className="mx-auto mb-2 text-green-600 dark:text-green-400" />
                       <p className="text-2xl font-bold text-green-700 dark:text-green-300">{viewUser.certificates || 0}</p>
-                      <p className="text-sm text-green-600 dark:text-green-400">Chứng chỉ</p>
+                      <p className="text-sm text-green-600 dark:text-green-400">{t("user_certificates_count", "Chứng chỉ")}</p>
                     </div>
                     <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4 text-center">
                       <Clock size={24} className="mx-auto mb-2 text-purple-600 dark:text-purple-400" />
                       <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{viewUser.totalHours || 0}h</p>
-                      <p className="text-sm text-purple-600 dark:text-purple-400">Tổng giờ học</p>
+                      <p className="text-sm text-purple-600 dark:text-purple-400">{t("user_total_hours", "Tổng giờ học")}</p>
                     </div>
                     {viewUser.role === "student" && (
                       <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 text-center">
@@ -1067,7 +1067,7 @@ const formatDate = (dateString?: string) => {
             <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
               {/* Header */}
               <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-foreground dark:text-white">Thông tin chi tiết người dùng</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white">{t("user_detail_title", "Thông tin chi tiết người dùng")}</h2>
                 <button
                   onClick={() => setViewUser(null)}
                   className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
@@ -1108,7 +1108,7 @@ const formatDate = (dateString?: string) => {
                           : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                       }`}
                     >
-                      {viewUser.role === "teacher" ? "Giảng viên" : "Học viên"}
+                      {viewUser.role === "teacher" ? t("user_instructors", "Giảng viên") : t("user_students", "Học viên")}
                     </span>
                     <span
                       className={`inline-block px-3 py-1 rounded-full text-xs font-medium mt-1 ml-2 ${
@@ -1117,7 +1117,7 @@ const formatDate = (dateString?: string) => {
                           : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400"
                       }`}
                     >
-                      {viewUser.status === "active" ? "Hoạt động" : "Không hoạt động"}
+                      {viewUser.status === "active" ? t("user_active", "Hoạt động") : t("user_disabled", "Không hoạt động")}
                     </span>
                   </div>
                 </div>
@@ -1126,16 +1126,16 @@ const formatDate = (dateString?: string) => {
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Mail size={16} />
-                      <span className="text-sm">Email</span>
+                      <span className="text-sm">{t("user_email_label", "Email")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">{viewUser.email}</p>
                   </div>
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Phone size={16} />
-                      <span className="text-sm">Số điện thoại</span>
+                      <span className="text-sm">{t("user_phone", "Số điện thoại")}</span>
                     </div>
-                    <p className="text-foreground dark:text-white font-medium">{viewUser.phone || "Chưa cập nhật"}</p>
+                    <p className="text-foreground dark:text-white font-medium">{viewUser.phone || t("common_not_updated", "Chưa cập nhật")}</p>
                   </div>
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
@@ -1143,57 +1143,57 @@ const formatDate = (dateString?: string) => {
                       <span className="text-sm">Ngày tham gia</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">
-                    {viewUser && viewUser.createdAt ? formatDate(viewUser.createdAt) : "Chưa cập nhật"}
+                    {viewUser && viewUser.createdAt ? formatDate(viewUser.createdAt) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
                   </div>
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Clock size={16} />
-                      <span className="text-sm">Hoạt động gần nhất</span>
+                      <span className="text-sm">{t("user_last_active", "Hoạt động gần nhất")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">
-                    {viewUser && viewUser.lastLoginAt
+                      {viewUser && viewUser.lastLoginAt
                       ? formatDate(viewUser.lastLoginAt)
                       : viewUser && viewUser.createdAt
-                        ? `${formatDate(viewUser.createdAt)} (lần đầu)`
-                        : "Chưa cập nhật"}
+                        ? `${formatDate(viewUser.createdAt)} (${t("user_first_time", "lần đầu")})`
+                        : t("common_not_updated", "Chưa cập nhật")}
                   </p>
                   </div>
                 </div>
                 {/* Address */}
                 {viewUser.address && (
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Địa chỉ</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">{t("user_address", "Địa chỉ")}</p>
                     <p className="text-foreground dark:text-white font-medium">{viewUser.address}</p>
                   </div>
                 )}
                 {/* Bio */}
                 {viewUser.bio && (
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">Giới thiệu</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">{t("user_bio", "Giới thiệu")}</p>
                     <p className="text-foreground dark:text-white">{viewUser.bio}</p>
                   </div>
                 )}
                 {/* Statistics */}
                 <div>
-                  <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">Thống kê</h4>
+                  <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("user_stats", "Thống kê")}</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-center">
                       <BookOpen size={24} className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
                       <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{viewUser.courses || 0}</p>
                       <p className="text-sm text-blue-600 dark:text-blue-400">
-                        {viewUser.role === "teacher" ? "Khóa học dạy" : "Khóa học đăng ký"}
+                        {viewUser.role === "teacher" ? t("user_courses_teaching", "Khóa học dạy") : t("user_courses_enrolled", "Khóa học đăng ký")}
                       </p>
                     </div>
                     <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 text-center">
                       <Award size={24} className="mx-auto mb-2 text-green-600 dark:text-green-400" />
                       <p className="text-2xl font-bold text-green-700 dark:text-green-300">{viewUser.certificates || 0}</p>
-                      <p className="text-sm text-green-600 dark:text-green-400">Chứng chỉ</p>
+                      <p className="text-sm text-green-600 dark:text-green-400">{t("user_certificates_count", "Chứng chỉ")}</p>
                     </div>
                     <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4 text-center">
                       <Clock size={24} className="mx-auto mb-2 text-purple-600 dark:text-purple-400" />
                       <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{viewUser.totalHours || 0}h</p>
-                      <p className="text-sm text-purple-600 dark:text-purple-400">Tổng giờ học</p>
+                      <p className="text-sm text-purple-600 dark:text-purple-400">{t("user_total_hours", "Tổng giờ học")}</p>
                     </div>
                     {viewUser.role === "student" && (
                       <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 text-center">

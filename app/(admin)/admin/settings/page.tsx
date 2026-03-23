@@ -51,11 +51,10 @@ const [settings, setSettings] = useState<SystemSettings | null>(null)
 useEffect(() => {
   console.log("CONFIG:", config)
   if (config && !settings) {
-    const normalizedLanguage = config.language === "zh" ? "zh-CN" : config.language
     setSettings({
       ...DEFAULT_SYSTEM_SETTINGS,
       ...config,
-      language: normalizedLanguage,
+      language: config.language,
     })
   }
 // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,7 +116,6 @@ const handleSave = async () => {
 
     let updatedSettings = {
       ...settings,
-      language: settings.language === "zh" ? "zh-CN" : settings.language,
     }
 
     // upload logo nếu có
@@ -280,7 +278,7 @@ if (!settings) return null
                     value={settings.about_ics}
                     onChange={(e) => handleSettingChange("about_ics", e.target.value)}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-32 resize-none"
-                    placeholder="Mô tả về ICS Learning..."
+                    placeholder={t("adm_set_about_placeholder", "Mô tả về ICS Learning...")}
                   />
                 </div>
               </div>
@@ -300,7 +298,7 @@ if (!settings) return null
                     value={settings.mission}
                     onChange={(e) => handleSettingChange("mission", e.target.value)}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-32 resize-none"
-                    placeholder="Sứ mệnh của ICS Learning..."
+                    placeholder={t("adm_set_mission_placeholder", "Sứ mệnh của ICS Learning...")}
                   />
                 </div>
                 <div>
@@ -311,7 +309,7 @@ if (!settings) return null
                     value={settings.vision}
                     onChange={(e) => handleSettingChange("vision", e.target.value)}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-24 resize-none"
-                    placeholder="Tầm nhìn của ICS Learning..."
+                    placeholder={t("adm_set_vision_placeholder", "Tầm nhìn của ICS Learning...")}
                   />
                 </div>
               </div>
@@ -339,7 +337,7 @@ if (!settings) return null
                 </div>
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <Phone size={16} /> Hotline
+                    <Phone size={16} /> {t("adm_set_hotline", "Hotline")}
                   </label>
                   <input
                     type="tel"
@@ -489,7 +487,7 @@ if (!settings) return null
                   <select
                     value={(settings.language as LanguageCode) || language}
                     onChange={(e) => {
-                      const nextLang = (e.target.value === "zh" ? "zh-CN" : e.target.value) as LanguageCode
+                      const nextLang = e.target.value as LanguageCode
                       setLanguage(nextLang)
                       handleSettingChange("language", nextLang)
                     }}

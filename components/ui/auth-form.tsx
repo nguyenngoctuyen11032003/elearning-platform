@@ -126,7 +126,7 @@ export function AuthForm({ type, role }: AuthFormProps) {
       )}
 
       <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Email</label>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t("auth_email_label", "Email")}</label>
         <div className="relative group">
           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors z-10" size={20} />
           <input

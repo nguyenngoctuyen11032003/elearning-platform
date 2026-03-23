@@ -7,9 +7,6 @@ const SKIP_VALUE_PATTERN = /^(https?:\/\/|\/|[A-Za-z0-9_-]{16,}|[0-9a-f]{8}-[0-9
 const LANGUAGE_TO_LOCALE: Record<LanguageCode, string> = {
   vi: "vi-VN",
   en: "en-US",
-  ja: "ja-JP",
-  ko: "ko-KR",
-  "zh-CN": "zh-CN",
 };
 
 export function getLocaleByLanguage(language: LanguageCode): string {

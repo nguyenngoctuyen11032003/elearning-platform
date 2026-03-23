@@ -5,11 +5,10 @@ type TranslateRequestBody = {
   texts?: string[];
 };
 
-const SUPPORTED_LANGS = new Set(["vi", "en", "ja", "ko", "zh-CN"]);
+const SUPPORTED_LANGS = new Set(["vi", "en"]);
 const TRANSLATION_CACHE = new Map<string, string>();
 
 function toGoogleTarget(lang: string): string {
-  if (lang === "zh-CN") return "zh-CN";
   return lang;
 }
 
