@@ -4,14 +4,11 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { translations } from './translations'
 import { translationOverrides } from './translation-overrides'
 
-export type LanguageCode = 'vi' | 'en' | 'ja' | 'ko' | 'zh-CN'
+export type LanguageCode = 'vi' | 'en'
 
 export const supportedLanguages: Array<{ code: LanguageCode; label: string; flag: string }> = [
   { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
   { code: 'en', label: 'English', flag: '🇺🇸' },
-  { code: 'ja', label: '日本語', flag: '🇯🇵' },
-  { code: 'ko', label: '한국어', flag: '🇰🇷' },
-  { code: 'zh-CN', label: '简体中文', flag: '🇨🇳' },
 ]
 
 type LanguageContextValue = {
@@ -55,15 +52,6 @@ function isInvalidForLanguage(text: string, lang: LanguageCode): boolean {
   if (lang === 'en') {
     return hasVietnamese || hasHangul || hasKana || hasCjk
   }
-  if (lang === 'ja') {
-    return hasVietnamese || hasHangul
-  }
-  if (lang === 'ko') {
-    return hasVietnamese || hasKana
-  }
-  if (lang === 'zh-CN') {
-    return hasVietnamese || hasHangul || hasKana
-  }
 
   return false
 }
@@ -72,9 +60,6 @@ function detectBrowserLanguage(): LanguageCode {
   if (typeof navigator === 'undefined') return 'vi'
   const raw = (navigator.language || '').toLowerCase()
   if (raw.startsWith('en')) return 'en'
-  if (raw.startsWith('ja')) return 'ja'
-  if (raw.startsWith('ko')) return 'ko'
-  if (raw.startsWith('zh')) return 'zh-CN'
   return 'vi'
 }
 

@@ -263,4 +263,207 @@ export const explicit5 = {
     "zh-CN": "Google 登录成功！"
   },
   tc_create_err_unknown: { vi: "Đã xảy ra lỗi", en: "An error occurred", ja: "エラーが発生しました", ko: "오류가 발생했습니다", "zh-CN": "发生错误" },
+  adm_courses_archived: { vi: "Khóa học đã lưu trữ", en: "Archived courses", ja: "アーカイブされたコース", ko: "보관된 코스", "zh-CN": "已归档课程" },
+  adm_courses_draft: { vi: "Khóa học nháp", en: "Draft courses", ja: "下書きコース", ko: "초안 코스", "zh-CN": "草稿课程" },
+  adm_prof_email_label: { vi: "Email", en: "Email", ja: "メール", ko: "이메일", "zh-CN": "邮箱" },
+  adm_set_about_placeholder: {
+    vi: "Mô tả ngắn về ICS Elearning và sứ mệnh của nền tảng",
+    en: "Short description about ICS Elearning and the platform mission",
+    ja: "ICS Elearningとプラットフォームのミッションに関する簡単な説明",
+    ko: "ICS Elearning과 플랫폼 사명에 대한 간단한 설명",
+    "zh-CN": "关于ICS Elearning及平台使命的简短描述"
+  },
+  adm_set_load_failed: {
+    vi: "Tải thông tin thất bại",
+    en: "Failed to load information",
+    ja: "情報の読み込みに失敗しました",
+    ko: "정보를 불러오지 못했습니다",
+    "zh-CN": "加载信息失败"
+  },
+  adm_set_mission_placeholder: {
+    vi: "Sứ mệnh cốt lõi của nền tảng, cách bạn tạo giá trị cho người học",
+    en: "Core mission of the platform, how you create value for learners",
+    ja: "プラットフォームの中核的な使命、学習者へ価値を提供する方法",
+    ko: "플랫폼의 핵심 미션과 학습자에게 가치를 제공하는 방식",
+    "zh-CN": "平台的核心使命以及如何为学习者创造价值"
+  },
+  adm_set_vision_placeholder: {
+    vi: "Tầm nhìn dài hạn, hướng phát triển và mục tiêu tương lai",
+    en: "Long-term vision, development direction, and future goals",
+    ja: "長期的なビジョン、成長の方向性、将来の目標",
+    ko: "장기 비전, 발전 방향 및 미래 목표",
+    "zh-CN": "长期愿景、发展方向和未来目标"
+  },
+  adm_set_hotline_label: { vi: "Hotline", en: "Hotline", ja: "ホットライン", ko: "핫라인", "zh-CN": "热线" },
+  adm_sub_active_users: { vi: "Người dùng hoạt động", en: "Active users", ja: "アクティブユーザー", ko: "활성 사용자", "zh-CN": "活跃用户" },
+  adm_sub_active_users_desc: {
+    vi: "Số người dùng đăng nhập và hoạt động trong kỳ",
+    en: "Users who signed in and were active in the period",
+    ja: "期間中にログインして活動したユーザー数",
+    ko: "기간 동안 로그인하고 활동한 사용자 수",
+    "zh-CN": "期间内登录并活跃的用户数"
+  },
+  adm_sub_avg_completion: { vi: "Tỷ lệ hoàn thành TB", en: "Avg completion rate", ja: "平均完了率", ko: "평균 완료율", "zh-CN": "平均完成率" },
+  adm_sub_avg_completion_desc: {
+    vi: "Phần trăm bài học hoàn thành trên tổng số bài",
+    en: "Percent of lessons completed over total lessons",
+    ja: "総レッスンに対する完了レッスンの割合",
+    ko: "총 레슨 대비 완료된 레슨 비율",
+    "zh-CN": "完成课程占总课程的百分比"
+  },
+  adm_sub_avg_score: { vi: "Điểm trung bình", en: "Average score", ja: "平均スコア", ko: "평균 점수", "zh-CN": "平均分" },
+  adm_sub_avg_score_desc: {
+    vi: "Điểm trung bình của các bài kiểm tra",
+    en: "Average score across exams",
+    ja: "試験全体の平均スコア",
+    ko: "시험 전체 평균 점수",
+    "zh-CN": "考试平均分"
+  },
+  adm_sub_certificate_issued: { vi: "Chứng chỉ đã cấp", en: "Certificates issued", ja: "発行済み証明書", ko: "발급된 수료증", "zh-CN": "已颁发证书" },
+  adm_sub_certificate_issued_desc: {
+    vi: "Tổng số chứng chỉ được cấp cho học viên",
+    en: "Total certificates issued to learners",
+    ja: "受講者に発行された証明書の総数",
+    ko: "학습자에게 발급된 수료증 총합",
+    "zh-CN": "颁发给学员的证书总数"
+  },
+  adm_sub_certificate_templates: { vi: "Mẫu chứng chỉ", en: "Certificate templates", ja: "証明書テンプレート", ko: "수료증 템플릿", "zh-CN": "证书模板" },
+  adm_sub_certificate_templates_desc: {
+    vi: "Số mẫu chứng chỉ khả dụng",
+    en: "Number of available certificate templates",
+    ja: "利用可能な証明書テンプレート数",
+    ko: "사용 가능한 수료증 템플릿 수",
+    "zh-CN": "可用证书模板数量"
+  },
+  adm_sub_course_ratings: { vi: "Đánh giá khóa học", en: "Course ratings", ja: "コース評価", ko: "강의 평점", "zh-CN": "课程评分" },
+  adm_sub_course_ratings_desc: {
+    vi: "Điểm đánh giá trung bình của các khóa học",
+    en: "Average rating across courses",
+    ja: "コース全体の平均評価",
+    ko: "코스 전체 평균 평점",
+    "zh-CN": "课程平均评分"
+  },
+  adm_sub_courses_created: { vi: "Khóa học đã tạo", en: "Courses created", ja: "作成されたコース", ko: "생성된 코스", "zh-CN": "已创建课程" },
+  adm_sub_courses_created_desc: {
+    vi: "Tổng số khóa học được tạo bởi giảng viên",
+    en: "Total courses created by instructors",
+    ja: "講師が作成したコースの総数",
+    ko: "강사가 만든 코스 총합",
+    "zh-CN": "讲师创建的课程总数"
+  },
+  adm_sub_exam_attempts: { vi: "Lượt làm bài thi", en: "Exam attempts", ja: "試験受験数", ko: "시험 응시 수", "zh-CN": "考试尝试次数" },
+  adm_sub_exam_attempts_desc: {
+    vi: "Tổng số lượt học viên làm bài thi",
+    en: "Total learner exam attempts",
+    ja: "受講者の試験受験総数",
+    ko: "학습자 시험 응시 총합",
+    "zh-CN": "学员考试尝试总数"
+  },
+  adm_sub_exam_pass_rate: { vi: "Tỷ lệ đỗ", en: "Pass rate", ja: "合格率", ko: "합격률", "zh-CN": "通过率" },
+  adm_sub_exam_pass_rate_desc: {
+    vi: "Tỷ lệ đỗ của các bài thi",
+    en: "Pass rate across exams",
+    ja: "試験全体の合格率",
+    ko: "시험 전체 합격률",
+    "zh-CN": "考试整体通过率"
+  },
+  adm_sub_lesson_progress: { vi: "Tiến độ bài học", en: "Lesson progress", ja: "レッスン進捗", ko: "레슨 진행도", "zh-CN": "课程进度" },
+  adm_sub_lesson_progress_desc: {
+    vi: "Tổng tiến độ hoàn thành bài học",
+    en: "Overall lesson completion progress",
+    ja: "レッスン完了の総進捗",
+    ko: "레슨 완료 전체 진행도",
+    "zh-CN": "课程完成总体进度"
+  },
+  adm_sub_lessons_published: { vi: "Bài học đã xuất bản", en: "Lessons published", ja: "公開済みレッスン", ko: "발행된 레슨", "zh-CN": "已发布课程" },
+  adm_sub_lessons_published_desc: {
+    vi: "Số bài học đã được xuất bản",
+    en: "Number of lessons published",
+    ja: "公開されたレッスン数",
+    ko: "발행된 레슨 수",
+    "zh-CN": "发布的课程数量"
+  },
+  adm_sub_new_enrollments: { vi: "Đăng ký mới", en: "New enrollments", ja: "新規登録", ko: "신규 등록", "zh-CN": "新增注册" },
+  adm_sub_new_enrollments_desc: {
+    vi: "Số lượt đăng ký mới trong kỳ",
+    en: "New enrollments during the period",
+    ja: "期間中の新規受講登録数",
+    ko: "기간 내 신규 등록 수",
+    "zh-CN": "期间内新增注册数"
+  },
+  adm_sub_pending_withdrawals: { vi: "Rút tiền chờ xử lý", en: "Pending withdrawals", ja: "出金処理待ち", ko: "출금 대기", "zh-CN": "待处理提现" },
+  adm_sub_pending_withdrawals_desc: {
+    vi: "Yêu cầu rút tiền chưa hoàn tất",
+    en: "Withdrawal requests not yet completed",
+    ja: "未完了の出金リクエスト",
+    ko: "완료되지 않은 출금 요청",
+    "zh-CN": "尚未完成的提现请求"
+  },
+  adm_sub_revenue: { vi: "Doanh thu", en: "Revenue", ja: "収益", ko: "매출", "zh-CN": "营收" },
+  adm_sub_revenue_desc: {
+    vi: "Tổng doanh thu trong kỳ",
+    en: "Total revenue in the period",
+    ja: "期間内の総収益",
+    ko: "기간 내 총 매출",
+    "zh-CN": "期间总营收"
+  },
+  adm_sub_students_active: { vi: "Học viên hoạt động", en: "Active students", ja: "アクティブ受講者", ko: "활성 학습자", "zh-CN": "活跃学员" },
+  adm_sub_students_active_desc: {
+    vi: "Học viên đăng nhập và học tập trong kỳ",
+    en: "Students who logged in and studied during the period",
+    ja: "期間中にログインして学習した受講者",
+    ko: "기간 동안 로그인해 학습한 학습자",
+    "zh-CN": "期间内登录并学习的学员"
+  },
+  adm_sub_teachers_active: { vi: "Giảng viên hoạt động", en: "Active teachers", ja: "アクティブ講師", ko: "활성 강사", "zh-CN": "活跃讲师" },
+  adm_sub_teachers_active_desc: {
+    vi: "Giảng viên tạo khóa học hoặc dạy trong kỳ",
+    en: "Teachers creating or teaching during the period",
+    ja: "期間中にコースを作成または教えている講師",
+    ko: "기간 동안 강의를 만들거나 가르친 강사",
+    "zh-CN": "期间内创建或授课的讲师"
+  },
+  auth_register_success_verify: {
+    vi: "Đăng ký thành công! Kiểm tra email của bạn để xác minh và đăng nhập.",
+    en: "Registered successfully! Check your email to verify and sign in.",
+    ja: "登録が完了しました！メールを確認して認証し、ログインしてください。",
+    ko: "회원가입 완료! 이메일을 확인해 인증 후 로그인하세요.",
+    "zh-CN": "注册成功！请查看邮箱进行验证并登录。"
+  },
+  login_welcome_back: { vi: "Chào mừng bạn quay lại", en: "Welcome back", ja: "お帰りなさい", ko: "다시 오신 것을 환영합니다", "zh-CN": "欢迎回来" },
+  tc_course_thumbnail_alt: { vi: "Ảnh thu nhỏ khóa học", en: "Course thumbnail", ja: "コースのサムネイル", ko: "코스 썸네일", "zh-CN": "课程缩略图" },
+  teachers_hero_highlight: { vi: "Giảng viên", en: "Instructors", ja: "講師", ko: "강사", "zh-CN": "讲师" },
+  teachers_card_view: { vi: "Xem khóa học", en: "View courses", ja: "コースを見る", ko: "강의 보기", "zh-CN": "查看课程" },
+  teachers_success_title: { vi: "Giảng viên thành công", en: "Successful instructors", ja: "成功した講師", ko: "성공한 강사", "zh-CN": "成功讲师" },
+  adm_set_hotline: { vi: "Hotline", en: "Hotline", ja: "ホットライン", ko: "핫라인", "zh-CN": "热线" },
+  adm_sub_conversion: { vi: "Tỷ lệ chuyển đổi", en: "Conversion rate", ja: "コンバージョン率", ko: "전환율", "zh-CN": "转化率" },
+  adm_sub_courses_label: { vi: "Khóa học", en: "Courses", ja: "コース", ko: "코스", "zh-CN": "课程" },
+  adm_sub_desc: { vi: "Theo dõi hiệu suất gói giảng viên", en: "Track instructor plan performance", ja: "講師プランのパフォーマンスを追跡", ko: "강사 요금제 성과 추적", "zh-CN": "跟踪讲师套餐表现" },
+  adm_sub_end_date: { vi: "Ngày kết thúc", en: "End date", ja: "終了日", ko: "종료일", "zh-CN": "结束日期" },
+  adm_sub_instructor_access: { vi: "Quyền truy cập giảng viên", en: "Instructor access", ja: "講師アクセス", ko: "강사 접근", "zh-CN": "讲师访问" },
+  adm_sub_monthly_revenue: { vi: "Doanh thu tháng", en: "Monthly revenue", ja: "月間収益", ko: "월간 매출", "zh-CN": "月收入" },
+  adm_sub_paid_users: { vi: "Người dùng trả phí", en: "Paid users", ja: "有料ユーザー", ko: "유료 사용자", "zh-CN": "付费用户" },
+  adm_sub_payment_management: { vi: "Quản lý thanh toán", en: "Payment management", ja: "支払い管理", ko: "결제 관리", "zh-CN": "支付管理" },
+  adm_sub_plan_label: { vi: "Gói", en: "Plan", ja: "プラン", ko: "요금제", "zh-CN": "套餐" },
+  adm_sub_plan_management: { vi: "Quản lý gói", en: "Plan management", ja: "プラン管理", ko: "요금제 관리", "zh-CN": "套餐管理" },
+  adm_sub_refund: { vi: "Hoàn tiền", en: "Refund", ja: "返金", ko: "환불", "zh-CN": "退款" },
+  adm_sub_status_label: { vi: "Trạng thái", en: "Status", ja: "ステータス", ko: "상태", "zh-CN": "状态" },
+  adm_sub_total_revenue: { vi: "Tổng doanh thu", en: "Total revenue", ja: "総収益", ko: "총 매출", "zh-CN": "总营收" },
+  teachers_how_title: { vi: "Cách bắt đầu", en: "How to start", ja: "始め方", ko: "시작 방법", "zh-CN": "开始方式" },
+  user_address: { vi: "Địa chỉ", en: "Address", ja: "住所", ko: "주소", "zh-CN": "地址" },
+  user_bio: { vi: "Tiểu sử", en: "Bio", ja: "自己紹介", ko: "소개", "zh-CN": "简介" },
+  user_certificates_count: { vi: "Chứng chỉ", en: "Certificates", ja: "証明書", ko: "수료증", "zh-CN": "证书" },
+  user_courses_enrolled: { vi: "Khóa học đã đăng ký", en: "Enrolled courses", ja: "受講中のコース", ko: "등록한 코스", "zh-CN": "已注册课程" },
+  user_courses_teaching: { vi: "Khóa học đang dạy", en: "Courses teaching", ja: "担当コース", ko: "강의 중인 코스", "zh-CN": "正在教授的课程" },
+  user_detail_title: { vi: "Chi tiết người dùng", en: "User details", ja: "ユーザー詳細", ko: "사용자 상세", "zh-CN": "用户详情" },
+  user_email_label: { vi: "Email", en: "Email", ja: "メール", ko: "이메일", "zh-CN": "邮箱" },
+  user_first_time: { vi: "lần đầu", en: "first time", ja: "初回", ko: "첫 로그인", "zh-CN": "首次登录" },
+  user_last_active: { vi: "Hoạt động gần nhất", en: "Last active", ja: "最終アクティブ", ko: "최근 활동", "zh-CN": "最近活跃" },
+  user_stats: { vi: "Thống kê", en: "Stats", ja: "統計", ko: "통계", "zh-CN": "统计" },
+  user_total_hours: { vi: "Tổng giờ học", en: "Total learning hours", ja: "総学習時間", ko: "총 학습 시간", "zh-CN": "总学习时长" },
+  auth_email_label: { vi: "Email", en: "Email", ja: "メール", ko: "이메일", "zh-CN": "邮箱" },
+  courses_price_label: { vi: "Giá", en: "Price", ja: "価格", ko: "가격", "zh-CN": "价格" },
+  courses_clear_filter: { vi: "Xóa bộ lọc", en: "Clear filters", ja: "フィルターをクリア", ko: "필터 초기화", "zh-CN": "清除筛选" },
+  courses_course_count_suffix: { vi: "khóa học", en: "courses", ja: "コース", ko: "강의", "zh-CN": "门课程" },
+  courses_no_results: { vi: "Không tìm thấy khóa học", en: "No courses found", ja: "コースが見つかりません", ko: "강의를 찾을 수 없습니다", "zh-CN": "未找到课程" },
 };

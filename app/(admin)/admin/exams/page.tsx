@@ -440,7 +440,7 @@ export default function AdminExamsPage() {
             <option value="pending">{t("adm_exam_status_pending", "Chờ duyệt")}</option>
             <option value="approved">{t("adm_exam_status_approved", "Đã duyệt")}</option>
             <option value="rejected">{t("adm_exam_status_rejected", "Từ chối")}</option>
-            <option value="draft">Nháp</option>
+            <option value="draft">{t("adm_exam_status_draft", "Nháp")}</option>
           </select>
           <select
             value={typeFilter}

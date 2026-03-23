@@ -319,7 +319,7 @@ export default function CoursesPage() {
                 {/* Price Filter */}
                 <div className="mb-6">
                   <h4 className="text-sm font-medium text-foreground dark:text-white mb-3">
-                    Giá
+                    {t("courses_price_label", "Giá")}
                   </h4>
                   <div className="space-y-2">
                     {priceRanges.map((range) => (
@@ -349,7 +349,7 @@ export default function CoursesPage() {
                   onClick={handleReset}
                   className="w-full min-h-11 py-3 text-sm font-medium text-white bg-gradient-to-r from-primary to-purple-600 hover:shadow-lg rounded-xl transition-all"
                 >
-                  Xóa bộ lọc
+                  {t("courses_clear_filter", "Xóa bộ lọc")}
                 </button>
               </div>
             </motion.div>
@@ -368,7 +368,7 @@ export default function CoursesPage() {
                     <span className="text-primary dark:text-accent">
                       {filteredCourses.length}
                     </span>{" "}
-                    khóa học
+                    {t("courses_course_count_suffix", "khóa học")}
                   </p>
                   <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">
                     Trang {currentPage} / {totalPages}
@@ -492,7 +492,7 @@ export default function CoursesPage() {
                         <Search className="text-muted-foreground" size={40} />
                       </div>
                       <h3 className="text-2xl font-bold text-foreground dark:text-white mb-2">
-                        Không tìm thấy khóa học
+                        {t("courses_no_results", "Không tìm thấy khóa học")}
                       </h3>
                       <p className="text-muted-foreground dark:text-slate-400 mb-6">
                         {t("courses_try_other", "Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác")}
@@ -501,7 +501,7 @@ export default function CoursesPage() {
                         onClick={handleReset}
                         className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl hover:shadow-lg transition-all font-medium"
                       >
-                        Xóa bộ lọc
+                        {t("courses_clear_filter", "Xóa bộ lọc")}
                       </button>
                     </div>
                   </motion.div>

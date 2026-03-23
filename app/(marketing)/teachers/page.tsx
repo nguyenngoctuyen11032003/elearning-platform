@@ -193,7 +193,7 @@ const teachers = [
           <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight">
             {t("teachers_hero_title1", "Trở thành")}{" "}
             <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Giảng viên
+              {t("teachers_hero_highlight", "Giảng viên")}
             </span>
           </h1>
 
@@ -293,7 +293,7 @@ const teachers = [
             <div className="space-y-8 ">
               <div>
                 <h2 className="text-xl md:text-7xl font-bold text-slate-900 dark:text-white mb-4">
-                  Cách bắt đầu
+                  {t("teachers_how_title", "Cách bắt đầu")}
                 </h2>
                 <p className="text-2xl md:text-xl text-slate-700 dark:text-slate-300">
                   {t("teachers_how_desc", "Chỉ 4 bước đơn giản để trở thành giảng viên")}
@@ -414,7 +414,7 @@ const teachers = [
             className="text-center mb-12"
           >
             <h2 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4">
-              Giảng viên thành công
+              {t("teachers_success_title", "Giảng viên thành công")}
             </h2>
             <p className="text-xl text-muted-foreground dark:text-slate-300">
               {t("teachers_success_desc", "Những câu chuyện truyền cảm hứng từ cộng đồng giảng viên")}
@@ -492,7 +492,7 @@ const teachers = [
                           href={`/teacher/${page * VISIBLE_COUNT + i}`}
                           className={`block text-center bg-gradient-to-r ${teacher.gradient} text-white py-3 rounded-xl font-semibold hover:opacity-90 transition`}
                         >
-                          Xem khóa học
+                          {t("teachers_card_view", "Xem khóa học")}
                         </Link>
                       </div>
                     </motion.div>

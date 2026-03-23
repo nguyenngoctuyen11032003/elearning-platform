@@ -290,7 +290,7 @@ export default function AdminProfilePage() {
                 {/* Email Field (Read-only) */}
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <Mail size={16} /> Email
+                    <Mail size={16} /> {t("adm_prof_email_label", "Email")}
                   </label>
                   <input
                     type="email"
