@@ -1041,11 +1041,11 @@ const formatDate = (dateString?: string) => {
                   >
                     {viewUser.status === "active" ? (
                       <>
-                        <Lock size={18} /> Khóa tài khoản
+                        <Lock size={18} /> {t("user_lock_account", "Khóa tài khoản")}
                       </>
                     ) : (
                       <>
-                        <Unlock size={18} /> Mở khóa tài khoản
+                        <Unlock size={18} /> {t("user_unlock_account", "Mở khóa tài khoản")}
                       </>
                     )}
                   </button>
@@ -1056,7 +1056,7 @@ const formatDate = (dateString?: string) => {
                     }}
                     className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50"
                   >
-                    <Trash2 size={18} /> Xóa tài khoản
+                    <Trash2 size={18} /> {t("user_delete_account", "Xóa tài khoản")}
                   </button>
                 </div>
               </div>
@@ -1219,11 +1219,11 @@ const formatDate = (dateString?: string) => {
                   >
                     {viewUser.status === "active" ? (
                       <>
-                        <Lock size={18} /> Khóa tài khoản
+                        <Lock size={18} /> {t("user_lock_account", "Khóa tài khoản")}
                       </>
                     ) : (
                       <>
-                        <Unlock size={18} /> Mở khóa tài khoản
+                        <Unlock size={18} /> {t("user_unlock_account", "Mở khóa tài khoản")}
                       </>
                     )}
                   </button>

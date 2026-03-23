@@ -86,7 +86,7 @@ const optionComparableText = (raw: string): string => {
 
 const IMAGE_MARKER_REGEX = /\[\[IMAGE:img_\d+\]\]|\[image\]|\(image\)/i
 const MATH_TOKEN_REGEX = /(\d\s*[x×*]\s*10\^?-?\d+|10\^?-?\d+|[=+\-×÷*/^√∑∫π]|\bfrac\b|\blog\b|\bsin\b|\bcos\b|\btan\b)/i
-const FORMULA_PROMPT_REGEX = /(without using a calculator|solve|calculate|compute|evaluate|find|tính|giải|rút gọn|chứng minh)/i
+const FORMULA_PROMPT_REGEX = /(without using a calculator|solve|calculate|compute|evaluate|find|tinh|giai|rut gon|chung minh)/i
 
 const shouldFlagAssetReview = (question: Pick<Question, "question" | "options" | "image">): boolean => {
   if (question.image) return false
@@ -177,7 +177,7 @@ export default function CreateExamPage() {
         const options = type === "multiple_choice"
           ? ensureFourOptions(rawOptions)
           : type === "true_false"
-          ? ["Đúng", "Sai"]
+          ? [t("exam_true_label", "Đúng"), t("exam_false_label", "Sai")]
           : []
 
         const correctAnswer = type === "fill_in"
@@ -328,8 +328,8 @@ export default function CreateExamPage() {
       id: generateId(),
       type,
       question: "",
-      options: type === "multiple_choice" ? ["", "", "", ""] : type === "true_false" ? ["Đúng", "Sai"] : [],
-      correctAnswer: type === "true_false" ? "Đúng" : "",
+      options: type === "multiple_choice" ? ["", "", "", ""] : type === "true_false" ? [t("exam_true_label", "Đúng"), t("exam_false_label", "Sai")] : [],
+      correctAnswer: type === "true_false" ? t("exam_true_label", "Đúng") : "",
       points: 1,
       explanation: "",
     }
@@ -507,7 +507,7 @@ export default function CreateExamPage() {
               {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                  Tiêu đề bài thi <span className="text-red-500">*</span>
+                  {t("exam_title_label", "Tiêu đề bài thi")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"

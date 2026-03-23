@@ -214,16 +214,9 @@ const [loading, setLoading] = useState(true);
 
     {/* Title */}
     <h1 className="text-5xl md:text-7xl font-bold text-foreground dark:text-white leading-tight">
-      {bgIndex === 0 ? (
-        <>
-          Về{" "}
-          <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            ICS Learning
-          </span>
-        </>
-      ) : (
-        t(heroContents[bgIndex].titleKey, heroContents[bgIndex].titleFallback)
-      )}
+      <span className={bgIndex === 0 ? "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent" : ""}>
+        {t(heroContents[bgIndex].titleKey, heroContents[bgIndex].titleFallback)}
+      </span>
     </h1>
 
     {/* Text from backend */}

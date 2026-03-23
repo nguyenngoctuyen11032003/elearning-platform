@@ -11,6 +11,7 @@ declare global {
 
 import { X, AlertCircle } from "lucide-react"
 import { useState } from "react"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface ModalProps {
   isOpen: boolean
@@ -87,6 +88,7 @@ interface AddUserModalProps {
 }
 
 export function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
+  const { t } = useLanguage()
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -101,27 +103,27 @@ export function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
     const newErrors: Record<string, string> = {}
 
     if (!formData.name.trim()) {
-      newErrors.name = "Tên không được để trống"
+      newErrors.name = t("admin_add_user_error_name_required", "Tên không được để trống")
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = "Email không được để trống"
+      newErrors.email = t("admin_add_user_error_email_required", "Email không được để trống")
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Email không hợp lệ"
+      newErrors.email = t("admin_add_user_error_email_invalid", "Email không hợp lệ")
     }
 
     if (formData.phone && !/^[0-9]{10,11}$/.test(formData.phone)) {
-      newErrors.phone = "Số điện thoại không hợp lệ (10-11 số)"
+      newErrors.phone = t("admin_add_user_error_phone_invalid", "Số điện thoại không hợp lệ (10-11 số)")
     }
 
     if (!formData.password) {
-      newErrors.password = "Mật khẩu không được để trống"
+      newErrors.password = t("admin_add_user_error_password_required", "Mật khẩu không được để trống")
     } else if (formData.password.length < 6) {
-      newErrors.password = "Mật khẩu phải ít nhất 6 ký tự"
+      newErrors.password = t("admin_add_user_error_password_min", "Mật khẩu phải ít nhất 6 ký tự")
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Mật khẩu xác nhận không khớp"
+      newErrors.confirmPassword = t("admin_add_user_error_confirm_mismatch", "Mật khẩu xác nhận không khớp")
     }
 
     setErrors(newErrors)
@@ -143,22 +145,22 @@ export function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Thêm người dùng mới" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title={t("admin_add_user_title", "Thêm người dùng mới")} size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Tên người dùng</label>
+          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_name_label", "Tên người dùng")}</label>
           <input
             type="text"
             required
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder="Nhập tên người dùng"
+            placeholder={t("admin_add_user_name_placeholder", "Nhập tên người dùng")}
           />
         </div>
 
         <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Email</label>
+          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_email_label", "Email")}</label>
           <input
             type="email"
             required
@@ -168,13 +170,13 @@ export function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
               setErrors({ ...errors, email: "" })
             }}
             className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder="Nhập email"
+            placeholder={t("admin_add_user_email_placeholder", "Nhập email")}
           />
           {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
         </div>
 
         <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Số điện thoại</label>
+          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_phone_label", "Số điện thoại")}</label>
           <input
             type="tel"
             value={formData.phone}
@@ -183,26 +185,26 @@ export function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
               setErrors({ ...errors, phone: "" })
             }}
             className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder="Nhập số điện thoại (tùy chọn)"
+            placeholder={t("admin_add_user_phone_placeholder", "Nhập số điện thoại (tùy chọn)")}
           />
           {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
         </div>
 
         <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Vai trò</label>
+          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_role_label", "Vai trò")}</label>
           <select
             value={formData.role}
             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
           >
-            <option value="student">Học viên</option>
-            <option value="teacher">Giảng viên</option>
-            <option value="admin">Quản trị viên</option>
+            <option value="student">{t("admin_add_user_role_student", "Học viên")}</option>
+            <option value="teacher">{t("admin_add_user_role_teacher", "Giảng viên")}</option>
+            <option value="admin">{t("admin_add_user_role_admin", "Quản trị viên")}</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Mật khẩu</label>
+          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_password_label", "Mật khẩu")}</label>
           <input
             type="password"
             required
@@ -212,13 +214,13 @@ export function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
               setErrors({ ...errors, password: "" })
             }}
             className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
+            placeholder={t("admin_add_user_password_placeholder", "Nhập mật khẩu (tối thiểu 6 ký tự)")}
           />
           {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
         </div>
 
         <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Xác nhận mật khẩu</label>
+          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_confirm_label", "Xác nhận mật khẩu")}</label>
           <input
             type="password"
             required
@@ -228,7 +230,7 @@ export function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
               setErrors({ ...errors, confirmPassword: "" })
             }}
             className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder="Nhập lại mật khẩu"
+            placeholder={t("admin_add_user_confirm_placeholder", "Nhập lại mật khẩu")}
           />
           {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
         </div>
@@ -239,13 +241,13 @@ export function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
             onClick={onClose}
             className="flex-1 px-4 py-2 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
           >
-            Hủy
+            {t("common_cancel", "Hủy")}
           </button>
           <button
             type="submit"
             className="flex-1 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium"
           >
-            Thêm người dùng
+            {t("admin_add_user_submit", "Thêm người dùng")}
           </button>
         </div>
       </form>

@@ -892,19 +892,19 @@ export default function CreateCoursePage() {
           {currentStep === 1 && (
             <div className="space-y-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-semibold text-foreground dark:text-white">Nội dung khóa học</h3>
+                <h3 className="text-2xl font-semibold text-foreground dark:text-white">{t("tc_create_content_title", "Nội dung khóa học")}</h3>
                 <button
                   onClick={addSection}
                   className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth"
                 >
                   <Plus size={18} />
-                  Thêm phần
+                  {t("tc_create_add_section", "Thêm phần")}
                 </button>
               </div>
 
               {sections.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground dark:text-slate-400">Chưa có phần nào. Hãy thêm phần đầu tiên!</p>
+                  <p className="text-muted-foreground dark:text-slate-400">{t("tc_create_no_section", "Chưa có phần nào. Hãy thêm phần đầu tiên!")}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -982,9 +982,9 @@ export default function CreateCoursePage() {
                         ))}
                         <button
                           onClick={() => addLesson(section.id)}
-                          className="w-full py-2 border-2 border-dashed border-border dark:border-slate-700 rounded-lg text-primary dark:text-accent hover:bg-primary/5 dark:hover:bg-primary/10 transition-smooth font-medium"
+                          className="w-full py-2 border-2 border-dashed border-border dark:border-slate-700 rounded-lg text-primary dark:text-accent hover:bg-primary/5 dark:hover.bg-primary/10 transition-smooth font-medium"
                         >
-                          + Thêm bài học
+                          {t("tc_create_add_lesson", "+ Thêm bài học")}
                         </button>
                       </div>
                     </div>
@@ -1369,7 +1369,7 @@ export default function CreateCoursePage() {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-4">
-                  Giá khóa học (VND)
+                  {t("tc_create_price_label", "Giá khóa học (VND)")}
                 </label>
                 <div className="space-y-6">
                   {/* Price Display */}
@@ -1378,7 +1378,7 @@ export default function CreateCoursePage() {
                       {formData.price.toLocaleString("vi-VN")}
                     </span>
                     <span className="text-2xl font-semibold text-foreground dark:text-white ml-2">
-                      VNĐ
+                      {t("currency_vnd", "VNĐ")}
                     </span>
                   </div>
 
@@ -1412,7 +1412,7 @@ export default function CreateCoursePage() {
                     />
 
                     <div className="text-lg font-semibold text-foreground dark:text-white">
-                      VNĐ
+                      {t("currency_vnd", "VNĐ")}
                     </div>
                   </div>
 
@@ -1426,25 +1426,25 @@ export default function CreateCoursePage() {
                       className="w-4 h-4 rounded cursor-pointer"
                     />
                     <label htmlFor="freePrice" className="text-sm font-medium text-foreground dark:text-white cursor-pointer">
-                      Miễn phí
+                      {t("tc_create_free", "Miễn phí")}
                     </label>
                   </div>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Trạng thái</label>
+                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_status", "Trạng thái")}</label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
                 >
-                  <option value="draft">Nháp</option>
-                  <option value="pending">Chờ duyệt</option>
+                  <option value="draft">{t("tc_create_status_draft", "Nháp")}</option>
+                  <option value="pending">{t("tc_create_status_pending", "Chờ duyệt")}</option>
                 </select>
               </div>
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-sm text-blue-900 dark:text-blue-200">
-                  Khi bạn chọn "Chờ duyệt", khóa học sẽ được gửi đến admin để duyệt trước khi xuất bản.
+                  {t("tc_create_pending_note", "Khi bạn chọn \"Chờ duyệt\", khóa học sẽ được gửi đến admin để duyệt trước khi xuất bản.")}
                 </p>
               </div>
             </div>
@@ -1456,12 +1456,12 @@ export default function CreateCoursePage() {
                 <Check size={40} className="text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-foreground dark:text-white mb-3">Đã tạo thành công khóa học!</h3>
+                <h3 className="text-2xl font-bold text-foreground dark:text-white mb-3">{t("tc_create_success_title", "Đã tạo thành công khóa học!")}</h3>
                 <p className="text-lg text-muted-foreground dark:text-slate-400 mb-2">
-                  Khóa học của bạn đã được tạo thành công
+                  {t("tc_create_success_desc", "Khóa học của bạn đã được tạo thành công")}
                 </p>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">
-                  Khóa học sẽ được gửi đến admin để duyệt trước khi xuất bản
+                  {t("tc_create_success_note", "Khóa học sẽ được gửi đến admin để duyệt trước khi xuất bản")}
                 </p>
               </div>
             </div>
@@ -1475,7 +1475,7 @@ export default function CreateCoursePage() {
             disabled={currentStep === 0}
             className="px-6 py-3 border border-border dark:border-slate-800 rounded-lg font-medium text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-smooth"
           >
-            Quay lại
+            {t("common_back", "Quay lại")}
           </button>
           <button
             onClick={handleNext}
@@ -1483,13 +1483,13 @@ export default function CreateCoursePage() {
             className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
-              <><Loader2 size={18} className="animate-spin" /> Đang tạo...</>
+              <><Loader2 size={18} className="animate-spin" /> {t("tc_create_creating", "Đang tạo...")}</>
             ) : currentStep === steps.length - 1 ? (
-              "Về danh sách"
+              t("tc_create_back_list", "Về danh sách")
             ) : currentStep === steps.length - 2 ? (
-              "Tạo khóa học"
+              t("tc_create_submit", "Tạo khóa học")
             ) : (
-              <>{"Tiếp tục"}<ChevronRight size={20} /></>
+              <>{t("common_continue", "Tiếp tục")}<ChevronRight size={20} /></>
             )}
           </button>
         </div>

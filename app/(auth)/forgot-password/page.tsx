@@ -12,8 +12,8 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-cyan-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
       {/* Hình nền phía sau */}
         <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40" style={{ backgroundImage: "url('/image/bg_forgot.jpg')" }} />
-        {/* Lớp phủ xám đậm */}
-        <div className="absolute inset-0 z-0 bg-gray-900 opacity-15 mix-blend-multiply pointer-events-none" />
+        {/* Lớp phủ làm sáng nhẹ để tăng độ rõ giao diện */}
+        <div className="absolute inset-0 z-0 bg-white/55 dark:bg-black/35 pointer-events-none" />
 
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
