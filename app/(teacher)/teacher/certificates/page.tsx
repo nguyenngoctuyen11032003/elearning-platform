@@ -96,7 +96,6 @@ export default function TeacherCertificatesPage() {
       
       if (response.ok) {
         const data = await response.json()
-        console.log('📋 API Response:', data)
         
         // Handle array response
         if (Array.isArray(data)) {

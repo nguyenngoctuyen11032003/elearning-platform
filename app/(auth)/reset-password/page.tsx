@@ -21,7 +21,7 @@ export default function ResetPasswordPage() {
             x: [0, 100, 0]
           }}
           transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-10 right-10 w-96 h-96 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-full blur-3xl"
+          className="absolute top-8 right-6 sm:top-10 sm:right-10 w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-full blur-3xl"
         />
         <motion.div
           animate={{ 
@@ -30,7 +30,7 @@ export default function ResetPasswordPage() {
             x: [0, -100, 0]
           }}
           transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-10 left-10 w-96 h-96 bg-gradient-to-br from-green-400/20 to-cyan-400/20 rounded-full blur-3xl"
+          className="absolute bottom-8 left-6 sm:bottom-10 sm:left-10 w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 bg-gradient-to-br from-green-400/20 to-cyan-400/20 rounded-full blur-3xl"
         />
       </div>
 
@@ -134,7 +134,7 @@ export default function ResetPasswordPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="mt-6 grid grid-cols-2 gap-4"
+            className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4"
           >
             <div className="flex items-center gap-3 p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl">
               <Shield size={20} className="text-emerald-600 dark:text-emerald-400" />
@@ -159,7 +159,7 @@ export default function ResetPasswordPage() {
             transition={{ delay: 0.7 }}
             className="text-center text-xs text-slate-500 dark:text-slate-500 mt-6 leading-relaxed"
           >
-            Bằng cách sử dụng dịch vụ, bạn đồng ý với{" "}
+            {t("auth_terms_agree", "Bằng cách sử dụng dịch vụ, bạn đồng ý với")}{" "}
             <Link href="/terms" className="font-semibold hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
               {t("auth_terms", "Điều khoản sử dụng")}
             </Link>{" "}

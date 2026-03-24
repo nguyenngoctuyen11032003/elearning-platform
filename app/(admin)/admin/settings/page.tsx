@@ -49,7 +49,6 @@ export default function AdminSettingsPage() {
 const [settings, setSettings] = useState<SystemSettings | null>(null)
 
 useEffect(() => {
-  console.log("CONFIG:", config)
   if (config && !settings) {
     setSettings({
       ...DEFAULT_SYSTEM_SETTINGS,
@@ -73,6 +72,11 @@ useEffect(() => {
       ...prev,
       [key]: value,
     }))
+  }
+
+  const handleLanguageSelect = (lang: LanguageCode) => {
+    setLanguage(lang)
+    setSettings((prev) => (prev ? { ...prev, language: lang } : prev))
   }
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -484,6 +488,21 @@ if (!settings) return null
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
                     <Globe size={16} /> {t("adm_set_language", "Ngôn ngữ")}
                   </label>
+                  <select
+                    value={settings.language}
+                    onChange={(e) => handleLanguageSelect(e.target.value as LanguageCode)}
+                    className="w-full md:w-64 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                  >
+                    {(supportedLanguages || ["en", "vi"]).map((langItem) => {
+                      const code = typeof langItem === "string" ? langItem : langItem?.code || langItem?.value || "en"
+                      const label = typeof langItem === "string" ? langItem.toUpperCase() : langItem?.label || code.toUpperCase()
+                      return (
+                        <option key={code} value={code}>
+                          {label}
+                        </option>
+                      )
+                    })}
+                  </select>
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">

@@ -138,7 +138,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
             setUser(null); // Ensure user state is cleared
-            console.log('Token verification failed, clearing auth state');
           }
         }
       } catch (error) {
@@ -240,8 +239,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!skipApi) {
       try {
         await apiClient.logout();
-      } catch (error) {
-        console.log('Logout API call failed, clearing local state anyway');
+      } catch {
       }
     }
 

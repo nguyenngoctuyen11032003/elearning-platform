@@ -6,6 +6,8 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { BarChart3, CreditCard, Plus, Save, ShieldCheck, Trash2 } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
+import { formatNumber } from "@/lib/format"
 
 const emptyPlan = {
   name: "",
@@ -147,23 +149,33 @@ export default function AdminTeacherSubscriptionPage() {
       <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground">{t("adm_sub_total_revenue", "Tổng doanh thu")}</p>
-          <p className="text-2xl font-bold">${Number(dashboard?.totalRevenue || 0).toLocaleString("en-US")}</p>
+          <p className="text-2xl font-bold">
+            <AnimatedNumber value={dashboard?.totalRevenue || 0} formatter={formatNumber} prefix="₫" />
+          </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground">{t("adm_sub_monthly_revenue", "Doanh thu tháng")}</p>
-          <p className="text-2xl font-bold">${Number(dashboard?.monthlyRevenue || 0).toLocaleString("en-US")}</p>
+          <p className="text-2xl font-bold">
+            <AnimatedNumber value={dashboard?.monthlyRevenue || 0} formatter={formatNumber} prefix="₫" />
+          </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground">{t("adm_sub_active_users", "Người dùng đang hoạt động")}</p>
-          <p className="text-2xl font-bold">{dashboard?.activeUsers || 0}</p>
+          <p className="text-2xl font-bold">
+            <AnimatedNumber value={dashboard?.activeUsers || 0} formatter={formatNumber} />
+          </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground">{t("adm_sub_paid_users", "Người dùng trả phí")}</p>
-          <p className="text-2xl font-bold">{dashboard?.paidUsers || 0}</p>
+          <p className="text-2xl font-bold">
+            <AnimatedNumber value={dashboard?.paidUsers || 0} formatter={formatNumber} />
+          </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground">{t("adm_sub_conversion", "Tỉ lệ chuyển đổi")}</p>
-          <p className="text-2xl font-bold">{dashboard?.conversionRate || 0}%</p>
+          <p className="text-2xl font-bold">
+            <AnimatedNumber value={dashboard?.conversionRate || 0} decimals={1} suffix="%" />
+          </p>
         </div>
       </section>
 

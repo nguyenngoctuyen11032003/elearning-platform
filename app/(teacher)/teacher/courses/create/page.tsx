@@ -294,7 +294,7 @@ export default function CreateCoursePage() {
               ...(lesson.videoUrl ? { videoUrl: lesson.videoUrl } : {}),
               ...(lessonDocuments.length > 0 ? { resources: lessonDocuments } : {}),
             }
-            console.log(`Creating lesson: ${lesson.title}, resources:`, lessonDocuments.length > 0 ? lessonDocuments : "none")
+            console.log(`Creating lesson: ${lesson.title}, resources:`, lesson.documentUrl ? [{ name: lesson.documentFileName || "Tài liệu", url: lesson.documentUrl, type: lesson.documentFile?.type || "document" }] : "none")
             const lessonRes = await fetch("/api/lessons", {
               method: "POST",
               headers: { ...authHeaders, "Content-Type": "application/json" },
@@ -867,8 +867,6 @@ export default function CreateCoursePage() {
       if (res.ok) {
         const result = await res.json()
         const url = result?.data?.url || result?.url
-        console.log('Document upload response:', result)
-        console.log('Document URL extracted:', url)
         if (url) {
           setSections((prev) =>
             prev.map((section) => {

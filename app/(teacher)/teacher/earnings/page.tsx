@@ -7,7 +7,7 @@ import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import { StatCard } from "@/components/ui/stat-card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
-import { formatPrice, formatCurrencyByLanguage } from "@/lib/format"
+import { formatCurrencyByLanguage, formatNumber } from "@/lib/format"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
 
@@ -33,6 +33,14 @@ const normalizeStatus = (status?: string): Payment["status"] => {
 const normalizeMethod = (method?: string) => {
   if (!method) return "OTHER"
   return method.toUpperCase()
+}
+
+const normalizeDateISO = (value?: string) => {
+  const date = value ? new Date(value) : new Date()
+  if (Number.isNaN(date.getTime())) {
+    return new Date().toISOString()
+  }
+  return date.toISOString()
 }
 
 export default function TeacherEarningsPage() {
@@ -76,7 +84,7 @@ export default function TeacherEarningsPage() {
           amount: Number(p.amount ?? 0),
           method: normalizeMethod(p.method),
           status: normalizeStatus(p.status),
-          date: new Date(p.date || new Date()).toISOString(),
+          date: normalizeDateISO(p.date),
           transactionId: p.transactionId || p.id || "",
         }))
 
@@ -149,10 +157,15 @@ export default function TeacherEarningsPage() {
     const uniqueStudents = useMemo(() => Array.from(new Set(payments.map((p) => p.student).filter(Boolean))), [payments])
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(activeLocale, {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) {
+      return t("common_not_updated", "Chưa cập nhật")
+    }
+
+    return date.toLocaleDateString(activeLocale, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     })
   }
 
@@ -273,7 +286,8 @@ export default function TeacherEarningsPage() {
                 <StatCard 
                   icon={TrendingUp} 
                   title={t("teacher_dashboard_total_revenue", "Tổng doanh thu")}
-                  value={formatCurrencyByLanguage(totalRevenue, language)} 
+                  value={totalRevenue}
+                  formatter={(val) => formatCurrencyByLanguage(val, language)} 
                   change={t("teacher_analytics_completion_trend", "Cao hơn 12% so với tháng trước")}
                 />
               </div>
@@ -281,7 +295,8 @@ export default function TeacherEarningsPage() {
                 <StatCard 
                   icon={DollarSign} 
                   title={t("teacher_earnings_month_revenue", "Doanh thu tháng này")}
-                  value={formatCurrencyByLanguage(thisMonthRevenue, language)} 
+                  value={thisMonthRevenue}
+                  formatter={(val) => formatCurrencyByLanguage(val, language)} 
                   change={t("teacher_earnings_month_compare", "+8.2% so với tháng trước")}
                 />
               </div>
@@ -289,7 +304,8 @@ export default function TeacherEarningsPage() {
                 <StatCard 
                   icon={Users} 
                   title={t("teacher_earnings_new_students_month", "Học viên mới tháng này")}
-                  value={newStudentsCount.toString()} 
+                  value={newStudentsCount}
+                  formatter={formatNumber}
                   change={t("teacher_earnings_students_compare", "+5.1% so với tháng trước")}
                 />
               </div>
@@ -330,6 +346,9 @@ export default function TeacherEarningsPage() {
                 strokeWidth={2}
                 dot={{ fill: "#2563EB" }}
                 name={t("teacher_earnings_revenue_line", "Doanh thu")}
+                isAnimationActive
+                animationDuration={900}
+                animationEasing="ease-out"
               />
               <Line
                 type="monotone"
@@ -338,6 +357,9 @@ export default function TeacherEarningsPage() {
                 strokeWidth={2}
                 dot={{ fill: "#06B6D4" }}
                 name={t("teacher_dashboard_new_students", "Học viên mới")}
+                isAnimationActive
+                animationDuration={900}
+                animationEasing="ease-out"
               />
             </LineChart>
           </ResponsiveContainer>

@@ -183,7 +183,7 @@ function VerifyEmailContent() {
             rotate: [0, 360]
           }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-          className={`absolute top-10 right-10 w-96 h-96 ${
+          className={`absolute top-8 right-6 sm:top-10 sm:right-10 w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 ${
             status === "success" 
               ? "bg-gradient-to-br from-green-400/20 to-emerald-400/20" 
               : status === "error" || status === "invalid"
@@ -344,7 +344,7 @@ function VerifyEmailContent() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
-            className="mt-6 grid grid-cols-2 gap-4"
+            className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4"
           >
             <div className="flex items-center gap-3 p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl">
               <Shield size={20} className="text-blue-600 dark:text-blue-400" />
@@ -358,7 +358,7 @@ function VerifyEmailContent() {
               <div>
                 <div className="text-xs font-bold text-slate-900 dark:text-white">{t("auth_support_247", "Hỗ trợ 24/7")}</div>
                 <div className="text-xs text-slate-600 dark:text-slate-400">
-                  <Link href="/contact" className="hover:underline">Liên hệ</Link>
+                  <Link href="/contact" className="hover:underline">{t("common_contact", "Liên hệ")}</Link>
                 </div>
               </div>
             </div>
@@ -378,7 +378,7 @@ export default function VerifyEmailPage() {
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-xl opacity-50 animate-pulse" />
             <RefreshCw className="relative w-16 h-16 animate-spin text-blue-600 dark:text-blue-400" />
           </div>
-          <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">Đang tải...</p>
+          <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">Loading...</p>
         </div>
       </div>
     }>

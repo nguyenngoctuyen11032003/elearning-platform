@@ -97,7 +97,6 @@ const socialLinks = settings
   : [];
 
 if (!settings) return null
-console.log(settings.facebook)
   return (
     <>
       <main className="min-h-screen">

@@ -6,11 +6,13 @@ import { CreditCard, Wallet, QrCode } from "lucide-react"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
 import { formatPriceInK } from "@/lib/format"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function EnrollmentPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const [paymentMethod, setPaymentMethod] = useState<"card" | "wallet" | "qr">("card")
   const [isProcessing, setIsProcessing] = useState(false)
+  const { t } = useLanguage()
 
   const course = {
     title: "Lập trình Next.js từ Cơ bản đến Nâng cao",
@@ -29,17 +31,17 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="min-h-screen bg-slate-950 py-12">
-      <div className="max-w-4xl mx-auto px-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Hoàn tất thanh toán</h1>
-          <p className="text-slate-400">Chọn phương thức thanh toán để đăng ký khóa học</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">{t("enroll_checkout_title", "Hoàn tất thanh toán")}</h1>
+          <p className="text-slate-400">{t("enroll_checkout_desc", "Chọn phương thức thanh toán để đăng ký khóa học")}</p>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Order Summary */}
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-1">
             <PremiumCard>
-              <h2 className="text-xl font-bold text-white mb-4">Tóm tắt đơn hàng</h2>
+              <h2 className="text-xl font-bold text-white mb-4">{t("enroll_order_summary", "Tóm tắt đơn hàng")}</h2>
 
               <div className="mb-6">
                 <img
@@ -52,17 +54,17 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
 
               <div className="space-y-3 py-4 border-y border-slate-800">
                 <div className="flex justify-between text-slate-300">
-                  <span>Giá khóa học</span>
+                  <span>{t("enroll_course_price", "Giá khóa học")}</span>
                   <span>{formatPriceInK(course.price)}K</span>
                 </div>
                 <div className="flex justify-between text-slate-300">
-                  <span>Giảm giá</span>
+                  <span>{t("enroll_discount", "Giảm giá")}</span>
                   <span className="text-green-400">-50K</span>
                 </div>
               </div>
 
               <div className="flex justify-between text-white font-bold text-lg mt-4">
-                <span>Tổng cộng</span>
+                <span>{t("enroll_total", "Tổng cộng")}</span>
                 <span className="text-blue-400">{formatPriceInK(course.price - 50000)}K</span>
               </div>
             </PremiumCard>
@@ -89,9 +91,9 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <CreditCard size={20} className="text-blue-400" />
-                      <h3 className="text-white font-semibold">Thẻ tín dụng / Ghi nợ</h3>
+                      <h3 className="text-white font-semibold">{t("enroll_card_title", "Thẻ tín dụng / Ghi nợ")}</h3>
                     </div>
-                    <p className="text-slate-400 text-sm">Visa, Mastercard, JCB</p>
+                    <p className="text-slate-400 text-sm">{t("enroll_card_subtitle", "Visa, Mastercard, JCB")}</p>
                   </div>
                 </div>
 
@@ -103,18 +105,18 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
                   >
                     <input
                       type="text"
-                      placeholder="Số thẻ"
+                      placeholder={t("enroll_card_number_placeholder", "Số thẻ")}
                       className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <div className="grid grid-cols-2 gap-4">
                       <input
                         type="text"
-                        placeholder="MM/YY"
+                        placeholder={t("enroll_card_exp_placeholder", "MM/YY")}
                         className="bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <input
                         type="text"
-                        placeholder="CVV"
+                        placeholder={t("enroll_card_cvv_placeholder", "CVV")}
                         className="bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -140,9 +142,9 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Wallet size={20} className="text-green-400" />
-                      <h3 className="text-white font-semibold">Ví điện tử</h3>
+                      <h3 className="text-white font-semibold">{t("enroll_wallet_title", "Ví điện tử")}</h3>
                     </div>
-                    <p className="text-slate-400 text-sm">Momo, ZaloPay, VNPay</p>
+                    <p className="text-slate-400 text-sm">{t("enroll_wallet_subtitle", "Momo, ZaloPay, VNPay")}</p>
                   </div>
                 </div>
               </PremiumCard>
@@ -165,20 +167,20 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <QrCode size={20} className="text-purple-400" />
-                      <h3 className="text-white font-semibold">Mã QR</h3>
+                      <h3 className="text-white font-semibold">{t("enroll_qr_title", "Mã QR")}</h3>
                     </div>
-                    <p className="text-slate-400 text-sm">Quét mã QR để thanh toán</p>
+                    <p className="text-slate-400 text-sm">{t("enroll_qr_subtitle", "Quét mã QR để thanh toán")}</p>
                   </div>
                 </div>
               </PremiumCard>
 
               {/* Payment Button */}
               <AnimatedButton className="w-full py-4 text-lg" onClick={handlePayment} disabled={isProcessing}>
-                {isProcessing ? "Đang xử lý..." : "Thanh toán ngay"}
+                {isProcessing ? t("enroll_processing", "Đang xử lý...") : t("enroll_pay_now", "Thanh toán ngay")}
               </AnimatedButton>
 
               <p className="text-center text-slate-400 text-sm">
-                Bằng cách nhấp "Thanh toán ngay", bạn đồng ý với Điều khoản dịch vụ
+                {t("enroll_terms_notice", "Bằng cách nhấp \"Thanh toán ngay\", bạn đồng ý với Điều khoản dịch vụ")}
               </p>
             </div>
           </motion.div>

@@ -251,7 +251,6 @@ const fetchUsers = async () => {
   }
 
   const result = await res.json()
-  console.log("📊 Total users fetched:", result.data?.data?.length || 0)
   setUserList(result.data?.data ?? [])
 }
   useEffect(() => {
@@ -395,8 +394,6 @@ const handleUpdateUser = async (updatedData: any) => {
       return
     }
 
-    console.log("Updating user:", editUser.id, "with data:", updatedData)
-
     const apiUrl = getApiBaseUrl()
     const res = await fetch(
       `${apiUrl}/users/${editUser.id}`,
@@ -417,8 +414,7 @@ const handleUpdateUser = async (updatedData: any) => {
       return
     }
 
-    const result = await res.json()
-    console.log("Update success:", result)
+    await res.json()
     
     toast.success(t("user_update_success", "Đã cập nhật người dùng thành công"))
     await fetchUsers()

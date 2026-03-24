@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { BookOpen, Clock, Award, Play, CheckCircle, BarChart3, Search, TrendingUp, Star, Grid3x3, Zap, Settings, User, MoreVertical, ChevronRight, Pin, Trash2, Share2 } from "lucide-react"
+import { BookOpen, Search, Star, MoreVertical, Pin, Trash2, Share2, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
-import { PageHero } from "@/components/ui/page-hero"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ResponsiveContainer as RespContainer } from "recharts"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
 
 interface EnrolledCourse {
   id: string
@@ -29,17 +28,13 @@ interface EnrolledCourse {
   enrolledAt: string
 }
 
-const ITEMS_PER_PAGE = 4
-
 export default function MyCoursesPage() {
-  const { user } = useAuth()
   const { t } = useLanguage()
+  const { user } = useAuth()
   const [courses, setCourses] = useState<EnrolledCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [expandCourses, setExpandCourses] = useState(false)
   const [pinnedCourses, setPinnedCourses] = useState<Set<string>>(new Set())
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -102,20 +97,13 @@ export default function MyCoursesPage() {
     return 0
   })
 
-  const totalPages = Math.ceil(filteredCourses.length / ITEMS_PER_PAGE)
-  const initialCoursesToShow = expandCourses ? filteredCourses : filteredCourses.slice(0, 4)
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-  const paginatedCourses = filteredCourses.slice(startIndex, startIndex + ITEMS_PER_PAGE)
-
   // Reset to page 1 when filter or search changes
   const handleFilterChange = (newFilter: string) => {
     setFilter(newFilter)
-    setCurrentPage(1)
   }
 
   const handleSearchChange = (term: string) => {
     setSearchTerm(term)
-    setCurrentPage(1)
   }
 
   const togglePinCourse = (courseId: string) => {
@@ -133,8 +121,7 @@ export default function MyCoursesPage() {
     setOpenMenuId(null)
   }
 
-  const handleRemoveCourse = (courseId: string) => {
-    // Implement remove course functionality
+  const handleRemoveCourse = () => {
     toast.info(t("mycourses_coming_soon", "Chức năng này sẽ được thêm sớm"))
     setOpenMenuId(null)
   }
@@ -175,18 +162,6 @@ export default function MyCoursesPage() {
       </div>
     )
   }
-
-  const activityData = [
-    { month: "Apr", value: 45 },
-    { month: "May", value: 52 },
-    { month: "Jun", value: 48 },
-    { month: "Jul", value: 71 },
-    { month: "Aug", value: 65 },
-    { month: "Sep", value: 78 },
-  ]
-
-  const runningCourses = filteredCourses
-  const suggestedCourses = courses.filter(c => c.progress === 0).slice(0, 3)
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
@@ -230,7 +205,7 @@ export default function MyCoursesPage() {
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 mb-8">
                 <div>
                   <h2 className="text-lg md:text-xl font-bold text-foreground dark:text-white mb-1 md:mb-2">{t("mycourses_active", "Khóa học đang học")}</h2>
-                  <p className="text-xs md:text-sm text-muted-foreground dark:text-slate-400">{t("mycourses_total", "Tổng cộng")} {courses.length} {t("mycourses_courses_unit", "khóa học")}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground dark:text-slate-400">{t("mycourses_total", "Tổng cộng")} <AnimatedNumber value={courses.length} /> {t("mycourses_courses_unit", "khóa học")}</p>
                 </div>
                 <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg px-3 md:px-4 py-2 text-sm md:text-base">
                   <span className="text-sm font-medium text-foreground dark:text-white">{t("mycourses_sort", "Sắp xếp theo")}</span>
@@ -328,7 +303,7 @@ export default function MyCoursesPage() {
                                       {t("mycourses_share", "Chia sẻ")}
                                     </button>
                                     <button
-                                      onClick={() => handleRemoveCourse(enrollment.id)}
+                                      onClick={() => handleRemoveCourse()}
                                       className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm text-red-600 dark:text-red-400 border-t border-border dark:border-slate-700"
                                     >
                                       <Trash2 size={16} />
@@ -490,4 +465,3 @@ export default function MyCoursesPage() {
     </div>
   )
 }
-

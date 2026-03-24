@@ -5,7 +5,6 @@ import { ChevronDown, MessageCircle, Download, FileText, CheckCircle2, Circle, P
 import { authFetch } from "@/lib/authfetch"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
-import { ScientificText } from "@/components/scientific-text"
 
 interface Lesson {
   id: string
@@ -114,6 +113,7 @@ export function LessonPlayer({
   onLessonsChange,
 }: LessonPlayerProps) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState<"notes" | "materials" | "quiz" | "writing">("notes")
   const [notes, setNotes] = useState("")
@@ -277,7 +277,7 @@ export function LessonPlayer({
     const lessonAnswers = quizAnswersByLesson[currentLesson.id] || {}
     const hasUnanswered = quizItems.some((_, idx) => (lessonAnswers[idx] || []).length === 0)
     if (hasUnanswered) {
-      toast.error("Vui lòng trả lời tất cả câu hỏi trước khi submit")
+      toast.error(t("lesson_quiz_answer_all", "Vui lòng trả lời tất cả câu hỏi trước khi submit"))
       return
     }
 
@@ -288,14 +288,14 @@ export function LessonPlayer({
       })
 
       if (!startResponse.ok) {
-        throw new Error("Không thể bắt đầu quiz")
+        throw new Error(t("lesson_quiz_start_failed", "Không thể bắt đầu quiz"))
       }
 
       const startRaw = await startResponse.json()
       const attempt = startRaw?.data ?? startRaw
       const attemptId = String(attempt?.id || "")
       if (!attemptId) {
-        throw new Error("Không lấy được attempt id")
+        throw new Error(t("lesson_quiz_attempt_missing", "Không lấy được attempt id"))
       }
 
       const answersPayload = quizItems.map((question, idx) => {
@@ -309,7 +309,7 @@ export function LessonPlayer({
       })
 
       if (!submitResponse.ok) {
-        throw new Error("Submit quiz thất bại")
+        throw new Error(t("lesson_quiz_submit_failed", "Submit quiz thất bại"))
       }
 
       const submitRaw = await submitResponse.json()
@@ -321,9 +321,9 @@ export function LessonPlayer({
         quizScore: score,
       })
 
-      toast.success(`Đã nộp quiz. Điểm: ${score.toFixed(2)}%`)
+      toast.success(`${t("lesson_quiz_submitted", "Đã nộp quiz. Điểm")}: ${score.toFixed(2)}%`)
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Không thể nộp quiz"
+      const message = error instanceof Error ? error.message : t("lesson_quiz_submit_unavailable", "Không thể nộp quiz")
       toast.error(message)
     } finally {
       setIsSubmittingQuiz(false)
@@ -349,27 +349,30 @@ export function LessonPlayer({
       quizScore: undefined,
     })
 
-    toast.success("Sẵn sàng làm lại quiz")
+    toast.success(t("lesson_quiz_retry_ready", "Sẵn sàng làm lại quiz"))
   }
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-background dark:bg-slate-950">
+    <div className="relative flex min-h-[100dvh] md:h-[calc(100vh-80px)] bg-background dark:bg-slate-950">
+      {sidebarOpen && (
+        <div className="absolute inset-0 z-20 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
       {/* Sidebar */}
       <aside
         className={`${
-          sidebarOpen ? "w-80" : "w-0"
-        } border-r border-border dark:border-slate-800 bg-card dark:bg-slate-900/70 overflow-y-auto transition-all duration-300 flex-shrink-0`}
+          sidebarOpen ? "w-[88vw] max-w-sm md:w-80" : "w-0"
+        } absolute inset-y-0 left-0 z-30 md:relative md:inset-auto md:z-auto border-r border-border dark:border-slate-800 bg-card dark:bg-slate-900/70 overflow-y-auto transition-all duration-300 flex-shrink-0 shadow-2xl md:shadow-none`}
       >
         <div className="p-4 space-y-4">
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground dark:text-slate-400 mb-2">Khóa học</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground dark:text-slate-400 mb-2">{t("lesson_course", "Khóa học")}</h3>
             <p className="text-foreground dark:text-white font-medium line-clamp-2">{courseTitle}</p>
           </div>
 
           {/* Progress Bar */}
           <div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-medium text-muted-foreground dark:text-slate-400">Tiến độ</span>
+              <span className="text-xs font-medium text-muted-foreground dark:text-slate-400">{t("lesson_progress", "Tiến độ")}</span>
               <span className="text-xs font-bold text-primary dark:text-accent">
                 {progressPercent}%
               </span>
@@ -386,7 +389,7 @@ export function LessonPlayer({
 
           {/* Lessons List */}
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-foreground dark:text-white">Nội dung khóa học</h4>
+            <h4 className="text-sm font-semibold text-foreground dark:text-white">{t("lesson_course_content", "Nội dung khóa học")}</h4>
             {lessons.map((lesson, index) => (
               <button
                 key={lesson.id}
@@ -429,14 +432,14 @@ export function LessonPlayer({
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border dark:border-slate-800 bg-card dark:bg-slate-900/50">
+        <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-border dark:border-slate-800 bg-card dark:bg-slate-900/50">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
           >
             <ChevronDown size={20} className={`transition-transform ${sidebarOpen ? "rotate-90" : ""}`} />
           </button>
-          <h2 className="text-lg font-semibold text-foreground dark:text-white flex-1 ml-4">{currentLesson?.title}</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-foreground dark:text-white flex-1 ml-3 sm:ml-4 line-clamp-1">{currentLesson?.title}</h2>
           <button
             onClick={() => setShowAIChat(!showAIChat)}
             className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
@@ -458,28 +461,28 @@ export function LessonPlayer({
                 onEnded={handleVideoEnded}
               >
                 <source src={currentLesson.videoUrl} type="video/mp4" />
-                Your browser does not support the video tag.
+                {t("lesson_video_not_supported", "Trinh duyet cua ban khong ho tro the video.")}
               </video>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-                Bài học này chưa có video
+                {t("lesson_no_video", "Bai hoc nay chua co video")}
               </div>
             )}
           </div>
 
           {/* Tabs */}
           <div className="border-b border-border dark:border-slate-800 bg-card dark:bg-slate-900/50">
-            <div className="flex">
+            <div className="flex overflow-x-auto no-scrollbar">
               {[
-                { id: "notes", label: "Ghi chú" },
-                { id: "materials", label: "Tài liệu" },
-                { id: "quiz", label: "Quiz" },
-                { id: "writing", label: "Writing" },
+                { id: "notes", label: t("lesson_tab_notes", "Ghi chu") },
+                { id: "materials", label: t("lesson_tab_materials", "Tai lieu") },
+                { id: "quiz", label: t("lesson_tab_quiz", "Quiz") },
+                { id: "writing", label: t("lesson_tab_writing", "Writing") },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-smooth ${
+                  className={`px-4 sm:px-6 py-3 sm:py-4 font-medium text-sm border-b-2 transition-smooth whitespace-nowrap ${
                     activeTab === tab.id
                       ? "border-primary dark:border-accent text-primary dark:text-accent"
                       : "border-transparent text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
@@ -492,26 +495,26 @@ export function LessonPlayer({
           </div>
 
           {/* Tab Content */}
-          <div className="p-6 max-w-4xl">
+          <div className="p-4 sm:p-6 max-w-4xl">
             {activeTab === "notes" && (
               <div className="space-y-4">
-                <h3 className="font-semibold text-foreground dark:text-white">Ghi chú cá nhân</h3>
+                <h3 className="font-semibold text-foreground dark:text-white">{t("lesson_notes_title", "Ghi chu ca nhan")}</h3>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Nhập ghi chú của bạn tại đây..."
+                  placeholder={t("lesson_notes_placeholder", "Nhap ghi chu cua ban tai day...")}
                   className="w-full h-64 p-4 bg-secondary dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white placeholder-muted-foreground dark:placeholder-slate-500"
                 />
-                <p className="text-xs text-muted-foreground dark:text-slate-400">Ghi chú sẽ được lưu tự động</p>
+                <p className="text-xs text-muted-foreground dark:text-slate-400">{t("lesson_notes_autosave", "Ghi chu se duoc luu tu dong")}</p>
               </div>
             )}
 
             {activeTab === "materials" && (
               <div className="space-y-4">
-                <h3 className="font-semibold text-foreground dark:text-white mb-4">Tài liệu đính kèm</h3>
+                <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("lesson_materials_title", "Tai lieu dinh kem")}</h3>
                 {currentRequirement?.hasMaterials && !currentRequirement.materialsDone && (
                   <p className="text-sm text-amber-600 dark:text-amber-400">
-                    Bạn cần mở tất cả tài liệu để hoàn thành bài học.
+                    {t("lesson_materials_open_all_required", "Ban can mo tat ca tai lieu de hoan thanh bai hoc")}
                   </p>
                 )}
                 {currentResources.length > 0 ? (
@@ -524,9 +527,9 @@ export function LessonPlayer({
                         <div className="flex items-center gap-3">
                           <FileText size={24} className="text-primary dark:text-accent" />
                           <div>
-                            <p className="font-medium text-foreground dark:text-white">{material.name || `Tài liệu ${i + 1}`}</p>
+                            <p className="font-medium text-foreground dark:text-white">{material.name || `${t("lesson_material_label", "Tai lieu")} ${i + 1}`}</p>
                             <p className="text-xs text-muted-foreground dark:text-slate-400">
-                              {(material.type || "Tài liệu").toUpperCase()}
+                              {(material.type || t("lesson_material_label", "Tai lieu")).toUpperCase()}
                             </p>
                           </div>
                         </div>
@@ -547,14 +550,14 @@ export function LessonPlayer({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">Bài học này chưa có tài liệu đính kèm.</p>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_no_materials", "Bai hoc nay chua co tai lieu dinh kem")}</p>
                 )}
               </div>
             )}
 
             {activeTab === "quiz" && (
               <div className="space-y-6">
-                <h3 className="font-semibold text-foreground dark:text-white">Kiểm tra bài học</h3>
+                <h3 className="font-semibold text-foreground dark:text-white">{t("lesson_quiz_section_title", "Kiem tra bai hoc")}</h3>
                 {quizItems.length > 0 ? (
                   <>
                     {!currentLesson?.quizCompleted ? (
@@ -568,12 +571,12 @@ export function LessonPlayer({
                           return (
                             <div key={`quiz-${idx}`} className="p-4 bg-secondary dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg">
                               <p className="font-medium text-foreground dark:text-white mb-2 whitespace-pre-wrap break-words leading-relaxed">
-                                Câu {idx + 1}: <ScientificText text={q.question} />
+                                Câu {idx + 1}: {q.question}
                               </p>
                               {q.image && (
                                 <img
                                   src={q.image}
-                                  alt={`Minh họa câu ${idx + 1}`}
+                                  alt={`${t("lesson_question_image_alt", "Minh hoa cau")} ${idx + 1}`}
                                   className="mb-3 max-w-full rounded-lg border border-border dark:border-slate-700"
                                 />
                               )}
@@ -626,7 +629,7 @@ export function LessonPlayer({
                             onClick={handleSubmitQuiz}
                             className="px-4 py-2 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 disabled:opacity-60"
                           >
-                            {isSubmittingQuiz ? "Đang submit..." : "Submit quiz"}
+                            {isSubmittingQuiz ? t("lesson_quiz_submitting", "Dang submit...") : t("lesson_quiz_submit", "Submit quiz")}
                           </button>
                         </div>
                       </>
@@ -637,11 +640,11 @@ export function LessonPlayer({
                             <div className="text-center space-y-2">
                               <CheckCircle2 size={48} className="text-green-500 mx-auto" />
                               <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                                Quiz đã hoàn thành
+                                {t("lesson_quiz_completed", "Quiz da hoan thanh")}
                               </p>
                               {typeof currentLesson.quizScore === "number" && (
                                 <p className="text-2xl font-bold text-foreground dark:text-white">
-                                  Điểm: {currentLesson.quizScore.toFixed(2)}%
+                                  {t("lesson_score", "Diem")}: {currentLesson.quizScore.toFixed(2)}%
                                 </p>
                               )}
                             </div>
@@ -651,27 +654,27 @@ export function LessonPlayer({
                                 onClick={() => setShowQuizDetails(true)}
                                 className="flex-1 px-4 py-2 rounded-lg bg-secondary dark:bg-slate-800 text-foreground dark:text-white font-semibold hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth"
                               >
-                                Xem chi tiết
+                                {t("lesson_quiz_view_details", "Xem chi tiet")}
                               </button>
                               <button
                                 type="button"
                                 onClick={handleReAttemptQuiz}
                                 className="flex-1 px-4 py-2 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 transition-smooth"
                               >
-                                Làm lại quiz
+                                {t("lesson_quiz_retry", "Lam lai quiz")}
                               </button>
                             </div>
                           </div>
                         ) : (
                           <div className="space-y-6">
                             <div className="flex items-center justify-between">
-                              <h3 className="font-semibold text-foreground dark:text-white">Chi tiết câu trả lời</h3>
+                              <h3 className="font-semibold text-foreground dark:text-white">{t("lesson_quiz_answer_details", "Chi tiet cau tra loi")}</h3>
                               <button
                                 type="button"
                                 onClick={() => setShowQuizDetails(false)}
                                 className="text-sm text-muted-foreground hover:text-foreground dark:hover:text-white transition-smooth"
                               >
-                                Ẩn chi tiết
+                                {t("lesson_hide_details", "An chi tiet")}
                               </button>
                             </div>
 
@@ -688,21 +691,21 @@ export function LessonPlayer({
                                 <div key={`quiz-detail-${idx}`} className="p-4 bg-secondary dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg">
                                   <div className="flex items-start gap-3 mb-3">
                                     <p className="font-medium text-foreground dark:text-white flex-1 whitespace-pre-wrap break-words leading-relaxed">
-                                      Câu {idx + 1}: <ScientificText text={q.question} />
+                                      Câu {idx + 1}: {q.question}
                                     </p>
                                     <div className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
                                       isCorrect
                                         ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                                         : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
                                     }`}>
-                                      {isCorrect ? "Đúng" : "Sai"}
+                                      {isCorrect ? t("lesson_correct", "Dung") : t("lesson_wrong", "Sai")}
                                     </div>
                                   </div>
 
                                   {q.image && (
                                     <img
                                       src={q.image}
-                                      alt={`Minh họa câu ${idx + 1}`}
+                                      alt={`${t("lesson_question_image_alt", "Minh hoa cau")} ${idx + 1}`}
                                       className="mb-3 max-w-full rounded-lg border border-border dark:border-slate-700"
                                     />
                                   )}
@@ -735,12 +738,12 @@ export function LessonPlayer({
                                           />
                                           {isCorrectOption && (
                                             <span className="text-xs font-semibold text-green-600 dark:text-green-400 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded">
-                                              Đáp án
+                                              {t("lesson_answer_label", "Dap an")}
                                             </span>
                                           )}
                                           {isSelected && !isCorrect && (
                                             <span className="text-xs font-semibold text-red-600 dark:text-red-400 px-2 py-1 bg-red-100 dark:bg-red-900/30 rounded">
-                                              Bạn chọn
+                                              {t("lesson_you_selected", "Ban chon")}
                                             </span>
                                           )}
                                         </div>
@@ -757,14 +760,14 @@ export function LessonPlayer({
                                 onClick={() => setShowQuizDetails(false)}
                                 className="flex-1 px-4 py-2 rounded-lg bg-secondary dark:bg-slate-800 text-foreground dark:text-white font-semibold hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth"
                               >
-                                Ẩn chi tiết
+                                {t("lesson_hide_details", "An chi tiet")}
                               </button>
                               <button
                                 type="button"
                                 onClick={handleReAttemptQuiz}
                                 className="flex-1 px-4 py-2 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 transition-smooth"
                               >
-                                Làm lại quiz
+                                {t("lesson_quiz_retry", "Lam lai quiz")}
                               </button>
                             </div>
                           </div>
@@ -773,35 +776,35 @@ export function LessonPlayer({
                     )}
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">Bài học này chưa có dữ liệu quiz.</p>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_no_quiz_data", "Bai hoc nay chua co du lieu quiz")}</p>
                 )}
               </div>
             )}
 
             {activeTab === "writing" && (
               <div className="space-y-6">
-                <h3 className="font-semibold text-foreground dark:text-white">Bài viết</h3>
+                <h3 className="font-semibold text-foreground dark:text-white">{t("lesson_writing_title", "Bai viet")}</h3>
                 {currentLesson?.writingAssignmentId ? (
                   <div className="rounded-lg border border-border dark:border-slate-800 p-5 bg-card dark:bg-slate-900/50 space-y-4">
                     <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground dark:text-slate-400">Hạn nộp</p>
+                      <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_due_date", "Han nop")}</p>
                       <p className="font-medium text-foreground dark:text-white">
                         {currentLesson.writingDueDate
                           ? new Date(currentLesson.writingDueDate).toLocaleString("vi-VN")
-                          : "Chưa đặt hạn nộp"}
+                          : t("lesson_no_due_date", "Chua dat han nop")}
                       </p>
                     </div>
 
                     {typeof currentLesson.writingMaxScore === "number" && (
                       <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Điểm tối đa</p>
-                        <p className="font-medium text-foreground dark:text-white">{currentLesson.writingMaxScore} điểm</p>
+                        <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_max_score", "Diem toi da")}</p>
+                        <p className="font-medium text-foreground dark:text-white">{currentLesson.writingMaxScore} {t("lesson_points", "diem")}</p>
                       </div>
                     )}
 
                     {currentLesson.writingPrompt && (
                       <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Đề bài</p>
+                        <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_prompt", "De bai")}</p>
                         <div className="rounded-lg border border-border dark:border-slate-800 bg-secondary/40 dark:bg-slate-900 p-4">
                           <p className="text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed">
                             <ScientificText text={currentLesson.writingPrompt} />
@@ -812,7 +815,7 @@ export function LessonPlayer({
 
                     {Array.isArray(currentLesson.writingCriteria) && currentLesson.writingCriteria.length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">Grading criteria</p>
+                        <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_grading_criteria", "Tieu chi cham diem")}</p>
                         <div className="overflow-x-auto rounded-xl border border-border dark:border-slate-800">
                           <table className="w-full min-w-[820px] text-sm">
                             <tbody>
@@ -824,10 +827,10 @@ export function LessonPlayer({
                                   {(criterion.levels || []).map((level, levelIndex) => (
                                     <td key={`${currentLesson.id}-${idx}-${levelIndex}`} className="px-3 py-3 text-foreground dark:text-white">
                                       <p className="whitespace-pre-wrap break-words leading-relaxed text-sm">
-                                        <ScientificText text={level.description || "Chưa có mô tả mức này."} />
+                                        {level.description || "Chưa có mô tả mức này."}
                                       </p>
                                       <p className="mt-2 text-emerald-600 dark:text-emerald-400 font-semibold italic">
-                                        {level.points} points
+                                        {level.points} {t("lesson_points", "diem")}
                                       </p>
                                     </td>
                                   ))}
@@ -840,9 +843,9 @@ export function LessonPlayer({
                     )}
 
                     {currentLesson.writingSubmitted ? (
-                      <p className="text-sm text-green-600 dark:text-green-400">Bạn đã nộp bài writing.</p>
+                      <p className="text-sm text-green-600 dark:text-green-400">{t("lesson_writing_submitted", "Ban da nop bai writing")}</p>
                     ) : (
-                      <p className="text-sm text-amber-600 dark:text-amber-400">Bạn chưa nộp bài writing.</p>
+                      <p className="text-sm text-amber-600 dark:text-amber-400">{t("lesson_writing_not_submitted", "Ban chua nop bai writing")}</p>
                     )}
 
                     <button
@@ -850,37 +853,47 @@ export function LessonPlayer({
                       onClick={() => router.push(`/assignments/${currentLesson.writingAssignmentId}`)}
                       className="w-full px-4 py-2 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 transition-smooth"
                     >
-                      {currentLesson.writingSubmitted ? "Xem bài đã nộp" : "Làm bài writing"}
+                      {currentLesson.writingSubmitted
+                        ? t("lesson_view_submitted", "Xem bai da nop")
+                        : t("lesson_do_writing", "Lam bai writing")}
                     </button>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">Bài học này chưa có bài writing.</p>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_no_writing", "Bai hoc nay chua co bai writing")}</p>
                 )}
               </div>
             )}
 
             {currentLesson && (
               <div className="mt-6 rounded-lg border border-border dark:border-slate-800 p-4 bg-card dark:bg-slate-900/50">
-                <p className="text-sm font-semibold text-foreground dark:text-white mb-2">Điều kiện hoàn thành bài học</p>
+                <p className="text-sm font-semibold text-foreground dark:text-white mb-2">{t("lesson_completion_conditions", "Dieu kien hoan thanh bai hoc")}</p>
                 <div className="space-y-2 text-sm">
                   {currentRequirement?.hasVideo && (
                     <p className={currentRequirement.videoDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}>
-                      {currentRequirement.videoDone ? "Đã xem hết video" : "Cần xem hết video"}
+                      {currentRequirement.videoDone
+                        ? t("lesson_video_done", "Da xem het video")
+                        : t("lesson_video_required", "Can xem het video")}
                     </p>
                   )}
                   {currentRequirement?.hasMaterials && (
                     <p className={currentRequirement.materialsDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}>
-                      {currentRequirement.materialsDone ? "Đã mở tất cả tài liệu" : "Cần mở tất cả tài liệu"}
+                      {currentRequirement.materialsDone
+                        ? t("lesson_materials_done", "Da mo tat ca tai lieu")
+                        : t("lesson_materials_required", "Can mo tat ca tai lieu")}
                     </p>
                   )}
                   {currentRequirement?.hasQuiz && (
                     <p className={currentRequirement.quizDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}>
-                      {currentRequirement.quizDone ? "Đã nộp quiz" : "Cần làm và nộp quiz"}
+                      {currentRequirement.quizDone
+                        ? t("lesson_quiz_done", "Da nop quiz")
+                        : t("lesson_quiz_required", "Can lam va nop quiz")}
                     </p>
                   )}
                   {currentRequirement?.hasWriting && (
                     <p className={currentRequirement.writingDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}>
-                      {currentRequirement.writingDone ? "Đã nộp bài writing" : "Cần nộp bài writing"}
+                      {currentRequirement.writingDone
+                        ? t("lesson_writing_done", "Da nop bai writing")
+                        : t("lesson_writing_required", "Can nop bai writing")}
                     </p>
                   )}
                 </div>
@@ -892,10 +905,12 @@ export function LessonPlayer({
 
       {/* AI Chat Sidebar */}
       {showAIChat && (
-        <div className="w-80 border-l border-border dark:border-slate-800 bg-card dark:bg-slate-900/70 flex flex-col">
+        <>
+          <div className="fixed inset-0 bg-black/40 z-30 xl:hidden" onClick={() => setShowAIChat(false)} />
+          <div className="fixed inset-y-0 right-0 z-40 w-[88vw] max-w-sm xl:static xl:z-auto xl:w-80 border-l border-border dark:border-slate-800 bg-card dark:bg-slate-900/70 flex flex-col">
           <div className="p-4 border-b border-border dark:border-slate-800">
             <h3 className="font-semibold text-foreground dark:text-white">ICS AI Assistant</h3>
-            <p className="text-xs text-muted-foreground dark:text-slate-400">Hỏi về bài học hiện tại</p>
+            <p className="text-xs text-muted-foreground dark:text-slate-400">{t("lesson_ai_ask_current", "Hoi ve bai hoc hien tai")}</p>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             <div className="flex gap-3">
@@ -904,7 +919,7 @@ export function LessonPlayer({
               </div>
               <div className="bg-secondary dark:bg-slate-800 rounded-lg p-3 max-w-xs">
                 <p className="text-sm text-foreground dark:text-white">
-                  Xin chào! Tôi là ICS AI Assistant. Bạn có câu hỏi gì về bài học này không?
+                  {t("lesson_ai_intro", "Xin chao! Toi la ICS AI Assistant. Ban co cau hoi gi ve bai hoc nay khong?")}
                 </p>
               </div>
             </div>
@@ -912,11 +927,12 @@ export function LessonPlayer({
           <div className="p-4 border-t border-border dark:border-slate-800">
             <input
               type="text"
-              placeholder="Nhập câu hỏi..."
+              placeholder={t("lesson_ai_placeholder", "Nhap cau hoi...")}
               className="w-full px-3 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white placeholder-muted-foreground dark:placeholder-slate-500 text-sm"
             />
           </div>
-        </div>
+          </div>
+        </>
       )}
     </div>
   )

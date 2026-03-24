@@ -7,49 +7,55 @@ import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatPrice, formatStudentCount, formatPriceInK } from "@/lib/format"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { t } = useLanguage()
   const resolvedParams = use(params)
   const [isEnrolled, setIsEnrolled] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
 
   const course = {
     id: resolvedParams.id,
-    title: "Lập trình Next.js từ Cơ bản đến Nâng cao",
+    title: t("mk_course_detail_title", "Lập trình Next.js từ Cơ bản đến Nâng cao"),
     description:
-      "Khóa học toàn diện về Next.js, bao gồm App Router, Server Components, API Routes, và deployment. Bạn sẽ học cách xây dựng các ứng dụng web hiện đại, scalable và hiệu suất cao.",
+      t("mk_course_detail_desc", "Khóa học toàn diện về Next.js, bao gồm App Router, Server Components, API Routes, và deployment. Bạn sẽ học cách xây dựng các ứng dụng web hiện đại, scalable và hiệu suất cao."),
     thumbnail: "/placeholder.jpg",
     price: 499000,
     rating: 4.8,
     reviews: 1250,
     students: 15000,
-    instructor: "Nguyễn Ngọc Tuyền",
+    instructor: t("mk_course_detail_instructor_name", "Nguyễn Ngọc Tuyền"),
     instructorImage: "/placeholder-user.jpg",
     instructorBio:
-      "Chuyên gia Next.js với 10+ năm kinh nghiệm phát triển web. Đã giúp hàng ngàn lập trình viên nâng cao kỹ năng.",
-    duration: "40 giờ",
-    level: "Trung cấp",
-    category: "Lập trình",
-    requirements: ["Kiến thức cơ bản về JavaScript", "Hiểu biết về React", "Máy tính với Node.js cài đặt"],
+      t("mk_course_detail_instructor_bio", "Chuyên gia Next.js với 10+ năm kinh nghiệm phát triển web. Đã giúp hàng ngàn lập trình viên nâng cao kỹ năng."),
+    duration: t("mk_course_detail_duration", "40 giờ"),
+    level: t("mk_course_detail_level", "Trung cấp"),
+    category: t("mk_course_detail_category", "Lập trình"),
+    requirements: [
+      t("mk_course_detail_req_1", "Kiến thức cơ bản về JavaScript"),
+      t("mk_course_detail_req_2", "Hiểu biết về React"),
+      t("mk_course_detail_req_3", "Máy tính với Node.js cài đặt"),
+    ],
     lessons: [
       {
         id: "1",
-        title: "Giới thiệu Next.js",
-        duration: "2 giờ",
+        title: t("mk_course_mock_section_intro_title", "Giới thiệu Next.js"),
+        duration: t("mk_course_mock_section_intro_duration", "2 giờ"),
         lessons: [
-          { id: "1-1", title: "Next.js là gì?", type: "video", duration: "15 phút" },
-          { id: "1-2", title: "Cài đặt môi trường", type: "video", duration: "20 phút" },
-          { id: "1-3", title: "Tạo dự án đầu tiên", type: "video", duration: "25 phút" },
+          { id: "1-1", title: t("mk_course_mock_lesson_1_1", "Next.js là gì?"), type: "video", duration: t("mk_course_mock_lesson_1_1_duration", "15 phút") },
+          { id: "1-2", title: t("mk_course_mock_lesson_1_2", "Cài đặt môi trường"), type: "video", duration: t("mk_course_mock_lesson_1_2_duration", "20 phút") },
+          { id: "1-3", title: t("mk_course_mock_lesson_1_3", "Tạo dự án đầu tiên"), type: "video", duration: t("mk_course_mock_lesson_1_3_duration", "25 phút") },
         ],
       },
       {
         id: "2",
-        title: "App Router & Routing",
-        duration: "5 giờ",
+        title: t("mk_course_mock_section_router_title", "App Router & Routing"),
+        duration: t("mk_course_mock_section_router_duration", "5 giờ"),
         lessons: [
-          { id: "2-1", title: "File-based routing", type: "video", duration: "30 phút" },
-          { id: "2-2", title: "Dynamic routes", type: "video", duration: "40 phút" },
-          { id: "2-3", title: "Nested routes", type: "video", duration: "35 phút" },
+          { id: "2-1", title: t("mk_course_mock_lesson_2_1", "File-based routing"), type: "video", duration: t("mk_course_mock_lesson_2_1_duration", "30 phút") },
+          { id: "2-2", title: t("mk_course_mock_lesson_2_2", "Dynamic routes"), type: "video", duration: t("mk_course_mock_lesson_2_2_duration", "40 phút") },
+          { id: "2-3", title: t("mk_course_mock_lesson_2_3", "Nested routes"), type: "video", duration: t("mk_course_mock_lesson_2_3_duration", "35 phút") },
         ],
       },
     ],
@@ -81,12 +87,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
               <div className="flex items-center gap-2">
                 <Star size={20} className="text-yellow-400 fill-yellow-400" />
                 <span>
-                  {course.rating} ({course.reviews} đánh giá)
+                  {course.rating} ({course.reviews} {t("mk_course_reviews_label", "đánh giá")})
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Users size={20} />
-                <span>{formatStudentCount(course.students)} học viên</span>
+                <span>{formatStudentCount(course.students)} {t("mk_course_students_label", "học viên")}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock size={20} />
@@ -104,15 +110,15 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           <div className="lg:col-span-2">
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-card dark:bg-slate-900/50 border border-border dark:border-slate-800 h-auto gap-1">
-                <TabsTrigger value="overview">Giới thiệu</TabsTrigger>
-                <TabsTrigger value="content">Nội dung</TabsTrigger>
-                <TabsTrigger value="requirements">Yêu cầu</TabsTrigger>
-                <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
+                <TabsTrigger value="overview">{t("mk_course_tab_overview", "Giới thiệu")}</TabsTrigger>
+                <TabsTrigger value="content">{t("mk_course_tab_content", "Nội dung")}</TabsTrigger>
+                <TabsTrigger value="requirements">{t("mk_course_tab_requirements", "Yêu cầu")}</TabsTrigger>
+                <TabsTrigger value="reviews">{t("mk_course_tab_reviews", "Đánh giá")}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6 mt-6">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                  <h2 className="text-2xl font-bold text-foreground mb-4">Về khóa học này</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-4">{t("mk_course_about_title", "Về khóa học này")}</h2>
                   <p className="text-muted-foreground leading-relaxed mb-6">{course.description}</p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -120,7 +126,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                       <div className="flex items-center gap-3">
                         <Award className="text-blue-400" size={24} />
                         <div>
-                          <p className="text-muted-foreground text-sm">Cấp độ</p>
+                          <p className="text-muted-foreground text-sm">{t("mk_course_level", "Cấp độ")}</p>
                           <p className="text-foreground font-semibold">{course.level}</p>
                         </div>
                       </div>
@@ -129,7 +135,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                       <div className="flex items-center gap-3">
                         <Clock className="text-cyan-400" size={24} />
                         <div>
-                          <p className="text-muted-foreground text-sm">Thời lượng</p>
+                          <p className="text-muted-foreground text-sm">{t("mk_course_duration", "Thời lượng")}</p>
                           <p className="text-foreground font-semibold">{course.duration}</p>
                         </div>
                       </div>
@@ -137,7 +143,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   </div>
 
                   <div className="course-instructor-card rounded-lg p-6">
-                    <h3 className="text-foreground font-semibold mb-4">Về giảng viên</h3>
+                    <h3 className="text-foreground font-semibold mb-4">{t("mk_course_about_instructor", "Về giảng viên")}</h3>
                     <div className="flex flex-col sm:flex-row gap-4">
                       <img
                         src={course.instructorImage || "/placeholder.svg"}
@@ -198,7 +204,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
               <TabsContent value="requirements" className="space-y-4 mt-6">
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <h3 className="text-foreground font-semibold mb-4">Yêu cầu tiên quyết</h3>
+                  <h3 className="text-foreground font-semibold mb-4">{t("mk_course_prerequisites", "Yêu cầu tiên quyết")}</h3>
                   <ul className="space-y-3">
                     {course.requirements.map((req, i) => (
                       <li key={i} className="flex items-center gap-3 text-muted-foreground">
@@ -226,7 +232,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                             />
                           ))}
                         </div>
-                        <p className="text-sm text-muted-foreground">{course.reviews} đánh giá</p>
+                        <p className="text-sm text-muted-foreground">{course.reviews} {t("mk_course_reviews_label", "đánh giá")}</p>
                       </div>
 
                       <div className="flex-1 space-y-2 w-full">
@@ -238,7 +244,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                           { stars: 1, percent: 1 },
                         ].map((rating) => (
                           <div key={rating.stars} className="flex items-center gap-3">
-                            <span className="text-sm text-muted-foreground w-12">{rating.stars} sao</span>
+                            <span className="text-sm text-muted-foreground w-12">{rating.stars} {t("mk_course_stars", "sao")}</span>
                             <div className="flex-1 h-2 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-gradient-to-r from-primary to-accent"
@@ -255,10 +261,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   {/* Write Review (if enrolled) */}
                   {isEnrolled && (
                     <PremiumCard className="mb-6">
-                      <h3 className="text-lg font-semibold text-foreground mb-4">Viết đánh giá của bạn</h3>
+                      <h3 className="text-lg font-semibold text-foreground mb-4">{t("mk_course_write_review", "Viết đánh giá của bạn")}</h3>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-muted-foreground mb-2">Đánh giá</label>
+                          <label className="block text-sm font-medium text-muted-foreground mb-2">{t("mk_course_rating", "Đánh giá")}</label>
                           <div className="flex gap-2">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <button
@@ -271,52 +277,52 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-muted-foreground mb-2">Nhận xét</label>
+                          <label className="block text-sm font-medium text-muted-foreground mb-2">{t("mk_course_comment", "Nhận xét")}</label>
                           <textarea
                             rows={4}
-                            placeholder="Chia sẻ trải nghiệm của bạn về khóa học này..."
+                            placeholder={t("mk_course_comment_placeholder", "Chia sẻ trải nghiệm của bạn về khóa học này...")}
                             className="w-full bg-background dark:bg-slate-950 text-foreground border border-border dark:border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent resize-none"
                           />
                         </div>
-                        <AnimatedButton className="w-full sm:w-auto">Gửi đánh giá</AnimatedButton>
+                        <AnimatedButton className="w-full sm:w-auto">{t("mk_course_send_review", "Gửi đánh giá")}</AnimatedButton>
                       </div>
                     </PremiumCard>
                   )}
 
                   {/* Reviews List */}
                   <div className="space-y-4">
-                    <h3 className="text-xl font-semibold text-foreground mb-4">Đánh giá từ học viên</h3>
+                    <h3 className="text-xl font-semibold text-foreground mb-4">{t("mk_course_reviews_from_students", "Đánh giá từ học viên")}</h3>
                     {[
                       {
                         name: "Nguyễn Văn A",
                         avatar: "/placeholder-user.jpg",
                         rating: 5,
-                        date: "2 ngày trước",
-                        comment: "Khóa học rất chi tiết và dễ hiểu. Giảng viên giải thích rất rõ ràng, từng bước một. Tôi đã học được rất nhiều kiến thức thực tế và có thể áp dụng ngay vào dự án của mình.",
+                        date: t("mk_course_mock_review_date_1", "2 ngày trước"),
+                        comment: t("mk_course_mock_review_comment_1", "Khóa học rất chi tiết và dễ hiểu. Giảng viên giải thích rất rõ ràng, từng bước một. Tôi đã học được rất nhiều kiến thức thực tế và có thể áp dụng ngay vào dự án của mình."),
                         helpful: 24,
                       },
                       {
                         name: "Trần Thị B",
                         avatar: "/placeholder-user.jpg",
                         rating: 5,
-                        date: "1 tuần trước",
-                        comment: "Đây là khóa học Next.js tốt nhất mà tôi từng tham gia. Nội dung được cập nhật liên tục, bài tập thực hành phong phú. Rất đáng tiền!",
+                        date: t("mk_course_mock_review_date_2", "1 tuần trước"),
+                        comment: t("mk_course_mock_review_comment_2", "Đây là khóa học Next.js tốt nhất mà tôi từng tham gia. Nội dung được cập nhật liên tục, bài tập thực hành phong phú. Rất đáng tiền!"),
                         helpful: 18,
                       },
                       {
                         name: "Lê Minh C",
                         avatar: "/placeholder-user.jpg",
                         rating: 4,
-                        date: "2 tuần trước",
-                        comment: "Khóa học tốt, nội dung phong phú. Tuy nhiên có một số phần hơi nhanh, mình phải xem lại vài lần mới hiểu hết. Nhìn chung vẫn rất hài lòng.",
+                        date: t("mk_course_mock_review_date_3", "2 tuần trước"),
+                        comment: t("mk_course_mock_review_comment_3", "Khóa học tốt, nội dung phong phú. Tuy nhiên có một số phần hơi nhanh, mình phải xem lại vài lần mới hiểu hết. Nhìn chung vẫn rất hài lòng."),
                         helpful: 12,
                       },
                       {
                         name: "Phạm Hương D",
                         avatar: "/placeholder-user.jpg",
                         rating: 5,
-                        date: "3 tuần trước",
-                        comment: "Giảng viên nhiệt tình, hỗ trợ học viên rất tốt. Các ví dụ thực tế giúp mình hiểu sâu hơn về Next.js. Cảm ơn thầy rất nhiều!",
+                        date: t("mk_course_mock_review_date_4", "3 tuần trước"),
+                        comment: t("mk_course_mock_review_comment_4", "Giảng viên nhiệt tình, hỗ trợ học viên rất tốt. Các ví dụ thực tế giúp mình hiểu sâu hơn về Next.js. Cảm ơn thầy rất nhiều!"),
                         helpful: 15,
                       },
                     ].map((review, i) => (
@@ -355,10 +361,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                               <div className="flex items-center gap-4">
                                 <button className="text-xs text-muted-foreground hover:text-primary transition flex items-center gap-1">
                                   <span>👍</span>
-                                  <span>Hữu ích ({review.helpful})</span>
+                                  <span>{t("mk_course_helpful", "Hữu ích")} ({review.helpful})</span>
                                 </button>
                                 <button className="text-xs text-muted-foreground hover:text-primary transition">
-                                  Trả lời
+                                  {t("mk_course_reply", "Trả lời")}
                                 </button>
                               </div>
                             </div>
@@ -371,7 +377,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   {/* Load More */}
                   <div className="text-center pt-4">
                     <button className="px-6 py-2 border-2 border-border hover:border-primary dark:hover:border-accent text-foreground rounded-full transition font-medium">
-                      Xem thêm đánh giá
+                      {t("mk_course_load_more_reviews", "Xem thêm đánh giá")}
                     </button>
                   </div>
                 </motion.div>
@@ -384,39 +390,39 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
             <PremiumCard className="lg:sticky lg:top-8">
               <div className="space-y-6">
                 <div>
-                  <p className="text-muted-foreground text-sm mb-2">Giá khóa học</p>
+                  <p className="text-muted-foreground text-sm mb-2">{t("mk_course_price", "Giá khóa học")}</p>
                   <p className="text-4xl font-bold text-primary">{formatPriceInK(course.price)}K</p>
                 </div>
 
                 <div className="space-y-3">
                   <AnimatedButton className="w-full" onClick={() => setIsEnrolled(true)} disabled={isEnrolled}>
-                    {isEnrolled ? "Đã đăng ký" : "Đăng ký ngay"}
+                    {isEnrolled ? t("mk_course_enrolled", "Đã đăng ký") : t("mk_course_enroll_now", "Đăng ký ngay")}
                   </AnimatedButton>
                   <button className="w-full px-6 py-3 border-2 border-border hover:border-accent text-foreground rounded-full transition">
-                    Thêm vào danh sách yêu thích
+                    {t("mk_course_add_wishlist", "Thêm vào danh sách yêu thích")}
                   </button>
                 </div>
 
                 <div className="space-y-3 pt-6 border-t border-border">
-                  <h3 className="text-foreground font-semibold">Khóa học bao gồm:</h3>
+                  <h3 className="text-foreground font-semibold">{t("mk_course_includes", "Khóa học bao gồm:")}</h3>
                   <ul className="space-y-2 text-muted-foreground text-sm">
                     <li className="flex items-center gap-2">
-                      <span className="text-primary">✓</span> 40 giờ video HD
+                      <span className="text-primary">✓</span> {t("mk_course_include_video", "40 giờ video HD")}
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-primary">✓</span> 50+ bài tập thực hành
+                      <span className="text-primary">✓</span> {t("mk_course_include_practice", "50+ bài tập thực hành")}
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-primary">✓</span> Tài liệu PDF & Code
+                      <span className="text-primary">✓</span> {t("mk_course_include_pdf", "Tài liệu PDF & Code")}
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-primary">✓</span> Chứng chỉ hoàn thành
+                      <span className="text-primary">✓</span> {t("mk_course_include_cert", "Chứng chỉ hoàn thành")}
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-primary">✓</span> Hỗ trợ 24/7
+                      <span className="text-primary">✓</span> {t("mk_course_include_support", "Hỗ trợ 24/7")}
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-primary">✓</span> Truy cập trọn đời
+                      <span className="text-primary">✓</span> {t("mk_course_include_lifetime", "Truy cập trọn đời")}
                     </li>
                   </ul>
                 </div>

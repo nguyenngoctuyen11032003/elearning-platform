@@ -145,7 +145,7 @@ export default function TermsOfServicePage() {
                   {t("terms_support_desc", "Hãy liên hệ với chúng tôi để được hỗ trợ chi tiết hơn.")}
                 </p>
                 <Link
-                  href="/lien-he"
+                  href="/contact"
                   className="inline-block mt-4 text-primary font-medium hover:underline"
                 >
                   {t("terms_support_link", "Liên hệ hỗ trợ →")}

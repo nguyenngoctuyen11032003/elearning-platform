@@ -227,7 +227,7 @@ export default function RefundPolicyPage() {
                 {t("refund_support_desc", "Đội ngũ ICS Learning luôn sẵn sàng giải đáp mọi thắc mắc.")}
               </p>
               <Link
-                href="/lien-he"
+                href="/contact"
                 className="inline-block mt-4 text-primary font-medium hover:underline"
               >
                 {t("terms_support_link", "Liên hệ hỗ trợ →")}

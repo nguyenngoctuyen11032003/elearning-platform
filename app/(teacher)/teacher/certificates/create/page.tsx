@@ -576,9 +576,7 @@ export default function CreateCertificatePage() {
         body: JSON.stringify(formData)
       })
 
-      console.log("📋 Submit response status:", response.status)
       const responseData = await response.json()
-      console.log("📋 Submit response data:", responseData)
 
       if (response.ok) {
         const template = responseData

@@ -1,38 +1,29 @@
 ﻿"use client"
 
-import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
-import { Legend } from "recharts"
 import {
-  TrendingUp,
   BookOpen,
   Clock,
   Award,
   Target,
   CheckCircle,
-  Calendar,
-  BarChart3,
   Flame,
   Trophy,
   Star,
-  ChevronRight
 } from "lucide-react"
-import { useAuth } from "@/lib/auth/auth-context"
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
 } from "@/components/ui/chart"
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
 import { PageHero } from "@/components/ui/page-hero"
 import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function ProgressPage() {
-  const { user } = useAuth()
   const { t } = useLanguage()
   
   const weeklyProgress = [
@@ -113,8 +104,6 @@ export default function ProgressPage() {
   ]
 
   const totalHours = weeklyProgress.reduce((sum, day) => sum + day.hours, 0)
-  const targetHours = weeklyProgress.reduce((sum, day) => sum + day.target, 0)
-  const maxHours = Math.max(...weeklyProgress.map(d => d.hours))
 
   const chartData = weeklyProgress.map((d) => ({
     day: d.day,
@@ -148,7 +137,9 @@ export default function ProgressPage() {
             <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
               <div>
                 <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_weekly_hours", "Giờ học tuần này")}</p>
-                <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalHours}h</p>
+                <p className="text-2xl font-bold text-foreground dark:text-white mt-1">
+                  <AnimatedNumber value={totalHours} decimals={1} suffix="h" />
+                </p>
               </div>
               <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                 <Clock size={20} className="text-primary" />
@@ -159,7 +150,9 @@ export default function ProgressPage() {
             <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
               <div>
                 <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_lessons_done", "Bài học hoàn thành")}</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">63</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                  <AnimatedNumber value={63} />
+                </p>
               </div>
               <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                 <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
@@ -170,7 +163,9 @@ export default function ProgressPage() {
             <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
               <div>
                 <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_streak", "Ngày liên tiếp")}</p>
-                <p className="text-2xl font-bold text-orange-500 dark:text-orange-400 mt-1">7</p>
+                <p className="text-2xl font-bold text-orange-500 dark:text-orange-400 mt-1">
+                  <AnimatedNumber value={7} />
+                </p>
               </div>
               <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                 <Flame size={20} className="text-orange-500 dark:text-orange-400" />
@@ -181,7 +176,9 @@ export default function ProgressPage() {
             <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
               <div>
                 <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_certs", "Chứng chỉ đạt được")}</p>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">3</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
+                  <AnimatedNumber value={3} />
+                </p>
               </div>
               <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                 <Award size={20} className="text-purple-600 dark:text-purple-400" />
@@ -223,8 +220,27 @@ export default function ProgressPage() {
                   tick={{ fontSize: 12 }}/>
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Legend wrapperStyle={{ fontSize: '15px', fontWeight: '600', paddingTop: '12px' }} />
-                <Bar dataKey="hours" name={t("prog_hours_label", "Giờ học")} fill="var(--color-hours)" radius={[20, 20, 0, 0]} barSize={45} />
-                <Line type="monotone" dataKey="target" name={t("prog_target_label", "Mục tiêu")} stroke="#ef4444" strokeWidth={2} dot={{ r: 5 }} />
+                <Bar
+                  dataKey="hours"
+                  name={t("prog_hours_label", "Giờ học")}
+                  fill="var(--color-hours)"
+                  radius={[20, 20, 0, 0]}
+                  barSize={45}
+                  isAnimationActive
+                  animationDuration={900}
+                  animationEasing="ease-out"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="target"
+                  name={t("prog_target_label", "Mục tiêu")}
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  dot={{ r: 5 }}
+                  isAnimationActive
+                  animationDuration={900}
+                  animationEasing="ease-out"
+                />
               </ComposedChart>
             </ChartContainer>
           </div>
@@ -250,6 +266,9 @@ export default function ProgressPage() {
                   outerRadius={90}
                   fill="#8884d8"
                   dataKey="value"
+                  isAnimationActive
+                  animationDuration={900}
+                  animationEasing="ease-out"
                 >
                   {courseCompletionData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

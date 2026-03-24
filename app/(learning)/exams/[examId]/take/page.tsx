@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
-import { ScientificText } from "@/components/scientific-text"
 
 interface ExamQuestion {
   id: string
@@ -290,6 +289,7 @@ export default function TakeExamPage() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useLanguage()
   const examId = params.examId as string
   const source = (searchParams.get("source") || "").toLowerCase()
   const isExtractedSource = source === "extracted"
@@ -326,7 +326,7 @@ export default function TakeExamPage() {
 
         setTimeRemaining(Number(examData.timeLimit || 60) * 60)
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Không thể bắt đầu bài thi"
+        const message = error instanceof Error ? error.message : t("exam_take_start_failed", "Không thể bắt đầu bài thi")
         toast.error(message)
         router.push("/exams")
       } finally {
@@ -337,7 +337,7 @@ export default function TakeExamPage() {
     if (examId) {
       load()
     }
-  }, [examId, isExtractedSource, router])
+  }, [examId, isExtractedSource, router, t])
 
   useEffect(() => {
     if (!exam) return
@@ -380,7 +380,11 @@ export default function TakeExamPage() {
         ? await apiClient.submitExtractedExam(examId, payload, assignedVariantCode ?? undefined)
         : await apiClient.submitExamAttempt(attemptId, payload)
 
-      toast.success(autoSubmit ? "Hết giờ, hệ thống đã tự nộp bài" : "Nộp bài thành công")
+      toast.success(
+        autoSubmit
+          ? t("exam_take_auto_submitted", "Hết giờ, hệ thống đã tự nộp bài")
+          : t("exam_take_submit_success", "Nộp bài thành công"),
+      )
 
       if (isExtractedSource) {
         sessionStorage.setItem(`extracted_result_${result.id}`, JSON.stringify(result))
@@ -389,7 +393,7 @@ export default function TakeExamPage() {
         router.push(`/exams/${examId}/result?attemptId=${result.id}`)
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Không thể nộp bài"
+      const message = error instanceof Error ? error.message : t("exam_take_submit_failed", "Không thể nộp bài")
       toast.error(message)
     } finally {
       setSubmitting(false)
@@ -397,7 +401,7 @@ export default function TakeExamPage() {
   }
 
   if (loading || !exam) {
-    return <div className="p-6">Đang tải bài thi...</div>
+    return <div className="p-6">{t("exam_take_loading", "Đang tải bài thi...")}</div>
   }
 
   return (
@@ -405,21 +409,25 @@ export default function TakeExamPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{exam.title}</h1>
-          <p className="text-sm text-muted-foreground">{questionCount} câu hỏi</p>
+          <p className="text-sm text-muted-foreground">
+            {questionCount} {t("exam_take_question_count", "câu hỏi")}
+          </p>
           {assignedVariantCode && (
             <span className="inline-block mt-1 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 text-xs font-semibold px-2 py-0.5">
-              Mã đề: {assignedVariantCode}
+              {t("exam_take_variant_code", "Mã đề")}: {assignedVariantCode}
             </span>
           )}
         </div>
-        <div className="rounded-lg border px-4 py-2 font-semibold">Thời gian còn lại: {formatTime(timeRemaining)}</div>
+        <div className="rounded-lg border px-4 py-2 font-semibold">
+          {t("exam_take_time_remaining", "Thời gian còn lại")}: {formatTime(timeRemaining)}
+        </div>
       </div>
 
       <div className="space-y-4">
         {safeQuestions.map((q, idx) => (
           <div key={q.id} className="rounded-xl border bg-card p-4">
             <p className="mb-2 font-medium whitespace-pre-wrap break-words leading-relaxed">
-              Câu {idx + 1}: <ScientificText text={q.question} />
+              Câu {idx + 1}: {q.question}
             </p>
             {q.image && (
               <img
@@ -434,7 +442,7 @@ export default function TakeExamPage() {
                 value={answers[q.id] || ""}
                 onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
                 className="w-full rounded-lg border bg-background px-3 py-2"
-                placeholder="Nhập câu trả lời"
+                placeholder={t("exam_take_answer_placeholder", "Nhập câu trả lời")}
               />
             ) : q.type === "multiple_select" ? (
               <div className="space-y-2">

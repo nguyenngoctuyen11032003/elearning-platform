@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react"
+import { AnimatedNumber } from "./rolling-number"
 
 interface StatCardProps {
   icon: LucideIcon
@@ -7,9 +8,28 @@ interface StatCardProps {
   value: string | number
   change?: string
   color?: string
+  formatter?: (value: number) => string
+  durationMs?: number
+  decimals?: number
+  prefix?: string
+  suffix?: string
+  disableAnimation?: boolean
 }
 
-export function StatCard({ icon: Icon, label, title, value, change, color }: StatCardProps) {
+export function StatCard({
+  icon: Icon,
+  label,
+  title,
+  value,
+  change,
+  color: _color,
+  formatter,
+  durationMs,
+  decimals,
+  prefix,
+  suffix,
+  disableAnimation,
+}: StatCardProps) {
   const displayTitle = label || title
 
   return (
@@ -19,7 +39,17 @@ export function StatCard({ icon: Icon, label, title, value, change, color }: Sta
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-muted-foreground dark:text-slate-300 mb-1 truncate">{displayTitle}</p>
-        <p className="text-xl font-bold text-foreground dark:text-white truncate">{value}</p>
+        <p className="text-xl font-bold text-foreground dark:text-white truncate">
+          <AnimatedNumber
+            value={value}
+            formatter={formatter}
+            durationMs={durationMs}
+            decimals={decimals}
+            prefix={prefix}
+            suffix={suffix}
+            disableAnimation={disableAnimation}
+          />
+        </p>
         {change && <p className="text-xs text-green-600 dark:text-green-400 mt-1 truncate">{change}</p>}
       </div>
     </div>

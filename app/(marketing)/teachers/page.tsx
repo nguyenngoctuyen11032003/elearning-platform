@@ -3,12 +3,13 @@
 import { Footer } from "@/components/ui/footer"
 import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button"
 import { BarChart3, Users, TrendingUp, Award, Zap, DollarSign, Sparkles, BookOpen, Video, Globe } from "lucide-react"
-import { CarouselBenefits } from "./CarouselBenefits";
+import { CarouselBenefits } from "./CarouselBenefits"
 import Link from "next/link"
-import { formatStudentCount } from "@/lib/format"
+import { formatNumber, formatStudentCount } from "@/lib/format"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { motion, AnimatePresence, type Variants } from "framer-motion"
 import { useState } from "react"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
 
 
 const containerVariants = {
@@ -59,75 +60,75 @@ const itemVariants = {
 
 export default function TeachersPage() {
 
-const teachers = [
+  const teachers = [
   {
     name: "Nguyễn Ngọc Tuyền",
     specialty: "Lập trình Web",
-    students: 5200,
-    rating: 4.9,
+      students: 5200,
+      rating: 4.9,
     image: "/image/CEO_TrungAu.jpg",
-    revenue: "₫120M",
-    courses: 12,
+      revenue: 120,
+      courses: 12,
     gradient: "from-blue-500 to-cyan-500",
   },
   {
     name: "Trần Minh Hoàng",
     specialty: "AI & Machine Learning",
-    students: 3800,
-    rating: 4.8,
+      students: 3800,
+      rating: 4.8,
     image: "/placeholder-user.jpg",
-    revenue: "₫95M",
-    courses: 8,
+      revenue: 95,
+      courses: 8,
     gradient: "from-purple-500 to-pink-500",
   },
   {
     name: "Lê Thị Hương",
     specialty: "Thiết kế UI/UX",
-    students: 4100,
-    rating: 4.9,
+      students: 4100,
+      rating: 4.9,
     image: "/placeholder-user.jpg",
-    revenue: "₫105M",
-    courses: 10,
+      revenue: 105,
+      courses: 10,
     gradient: "from-orange-500 to-red-500",
   },
   {
     name: "Nguyễn Văn A",
     specialty: "Thiết kế UI/UX",
-    students: 4100,
-    rating: 4.9,
+      students: 4100,
+      rating: 4.9,
     image: "/placeholder-user.jpg",
-    revenue: "₫105M",
-    courses: 10,
+      revenue: 105,
+      courses: 10,
     gradient: "from-green-500 to-emerald-600",
   },
   {
     name: "Nguyễn Văn B",
     specialty: "AI & Machine Learning",
-    students: 4100,
-    rating: 4.9,
+      students: 4100,
+      rating: 4.9,
     image: "/image/testGV.png",
-    revenue: "₫105M",
-    courses: 10,
+      revenue: 105,
+      courses: 10,
     gradient: "from-indigo-500 to-purple-600",
   },
   {
     name: "Nguyễn Văn C",
     specialty: "Lập trình Web",
-    students: 4100,
-    rating: 4.9,
+      students: 4100,
+      rating: 4.9,
     image: "/placeholder-user.jpg",
-    revenue: "₫105M",
-    courses: 11,
+      revenue: 105,
+      courses: 11,
     gradient: "from-teal-500 to-cyan-500",
   },
   {
     name: "Nguyễn Văn D",
     specialty: "Lập trình Web",
-    students: 4100,
-    rating: 4.9,
+      students: 4100,
+      rating: 4.9,
     image: "/placeholder-user.jpg",
-    revenue: "₫105M",
-    courses: 11,
+      revenue: 105,
+      courses: 11,
     gradient: "from-teal-500 to-cyan-500",
   },
 ]
@@ -236,17 +237,28 @@ const teachers = [
           viewport={{ once: true, amount: 0.3 }}
           className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4"
         >
-          {[
-            { label: "₫50M+", desc: t("teachers_stat_income", "Thu nhập TB/năm"), icon: DollarSign, color: "from-green-500 to-emerald-500" },
-            { label: "15K+", desc: t("teachers_stat_students", "Học viên TB/khóa"), icon: Users, color: "from-blue-500 to-cyan-500" },
-            { label: "70%", desc: t("teachers_stat_commission", "Hoa hồng cho GV"), icon: TrendingUp, color: "from-purple-500 to-pink-500" },
+          {[ 
+            { value: 50, prefix: "₫", suffix: "M+", desc: t("teachers_stat_income", "Thu nhập TB/năm"), icon: DollarSign, color: "from-green-500 to-emerald-500" },
+            { value: 15000, suffix: "+", desc: t("teachers_stat_students", "Học viên TB/khóa"), icon: Users, color: "from-blue-500 to-cyan-500" },
+            { value: 70, suffix: "%", desc: t("teachers_stat_commission", "Hoa hồng cho GV"), icon: TrendingUp, color: "from-purple-500 to-pink-500" },
             { label: "24/7", desc: t("teachers_stat_support", "Hỗ trợ tận tâm"), icon: Award, color: "from-orange-500 to-red-500" },
           ].map((stat, i) => (
             <motion.div key={i} variants={itemVariants} className="group">
               <div className="relative p-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl hover:shadow-2xl transition-all duration-300 text-center overflow-hidden">
                 <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
                 <stat.icon className={`w-10 h-10 bg-gradient-to-br ${stat.color} bg-clip-text text-transparent mx-auto mb-2`} />
-                <p className="text-3xl font-bold text-foreground dark:text-white mb-1">{stat.label}</p>
+                <p className="text-3xl font-bold text-foreground dark:text-white mb-1">
+                  {stat.value !== undefined ? (
+                    <AnimatedNumber
+                      value={stat.value}
+                      formatter={(v) => formatNumber(v)}
+                      prefix={stat.prefix}
+                      suffix={stat.suffix}
+                    />
+                  ) : (
+                    stat.label
+                  )}
+                </p>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{stat.desc}</p>
               </div>
             </motion.div>
@@ -255,7 +267,7 @@ const teachers = [
       </section>
 
       {/* Benefits Section */}
-      <section id="/benefits" className="py-20 px-4 md:px-8">
+      <section id="benefits" className="py-20 px-4 md:px-8">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-12 items-start">
           {/* Title bên trái */}
           <motion.div
@@ -374,7 +386,7 @@ const teachers = [
                   >
                     <div className="text-center">
                       <div className="text-5xl mb-2">👨‍💼</div>
-                      <p className="text-sm font-semibold text-foreground dark:text-white">Instructor</p>
+                      <p className="text-sm font-semibold text-foreground dark:text-white">{t("teachers_label_instructor", "Instructor")}</p>
                     </div>
                   </motion.div>
                   
@@ -385,7 +397,7 @@ const teachers = [
                   >
                     <div className="text-center">
                       <div className="text-5xl mb-2">✨</div>
-                      <p className="text-sm font-semibold text-white">Features</p>
+                      <p className="text-sm font-semibold text-white">{t("teachers_label_features", "Features")}</p>
                     </div>
                   </motion.div>
                 </div>
@@ -454,7 +466,7 @@ const teachers = [
                           className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                         />
                         <div className="absolute top-3 right-3 bg-white/90 px-3 py-1 rounded-full text-sm font-semibold backdrop-blur">
-                          {teacher.rating} ⭐
+                          <AnimatedNumber value={teacher.rating} decimals={1} suffix=" ⭐" />
                         </div>
                       </div>
 
@@ -469,24 +481,26 @@ const teachers = [
                           </p>
                         </div>
 
-                        <div className="grid grid-cols-3 text-center border-y py-4 text-sm">
-                          <div>
-                            <p className="font-bold">
-                              {formatStudentCount(teacher.students)}
-                            </p>
-                            <p className="text-muted-foreground">{t("teachers_card_students", "Học viên")}</p>
+                          <div className="grid grid-cols-3 text-center border-y py-4 text-sm">
+                            <div>
+                              <p className="font-bold">
+                                <AnimatedNumber value={teacher.students} formatter={formatStudentCount} />
+                              </p>
+                              <p className="text-muted-foreground">{t("teachers_card_students", "Học viên")}</p>
+                            </div>
+                            <div>
+                              <p className="font-bold">
+                                <AnimatedNumber value={teacher.courses} formatter={formatNumber} />
+                              </p>
+                              <p className="text-muted-foreground">{t("teachers_card_courses", "Khóa học")}</p>
+                            </div>
+                            <div>
+                              <p className="font-bold text-green-600">
+                                <AnimatedNumber value={teacher.revenue} formatter={formatNumber} prefix="₫" suffix="M" />
+                              </p>
+                              <p className="text-muted-foreground">{t("teachers_card_lastyear", "Năm ngoái")}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-bold">{teacher.courses}</p>
-                            <p className="text-muted-foreground">{t("teachers_card_courses", "Khóa học")}</p>
-                          </div>
-                          <div>
-                            <p className="font-bold text-green-600">
-                              {teacher.revenue}
-                            </p>
-                            <p className="text-muted-foreground">{t("teachers_card_lastyear", "Năm ngoái")}</p>
-                          </div>
-                        </div>
 
                         <Link
                           href={`/teacher/${page * VISIBLE_COUNT + i}`}

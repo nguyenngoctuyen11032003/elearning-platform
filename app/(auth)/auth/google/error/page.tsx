@@ -8,8 +8,9 @@ import { motion } from "framer-motion"
 import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function GoogleErrorPage() {
+  const { t } = useLanguage()
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">{t("common_loading", "Loading...")}</div>}>
       <GoogleErrorContent />
     </Suspense>
   )
