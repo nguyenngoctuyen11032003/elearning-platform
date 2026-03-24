@@ -536,16 +536,17 @@ export default function CreateExamPage() {
               </div>
 
               {/* Course */}
-              <div>
+              <div className="relative overflow-visible">
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
                   {t("exam_course", "Khóa học")} <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.courseId}
                   onChange={(e) => setFormData({ ...formData, courseId: e.target.value, certificateTemplateId: "" })}
-                  className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
+                  className={`relative z-30 w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
                     errors.courseId ? "border-red-500" : "border-border dark:border-slate-700"
                   }`}
+                  style={{ zIndex: 30 }}
                 >
                   <option value="">{t("exam_select_course", "Chọn khóa học")}</option>
                   {courses.map(course => (

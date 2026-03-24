@@ -20,7 +20,7 @@ import {
   Bar,
 } from "recharts"
 import { useState, useEffect } from "react"
-import { formatPrice, formatCurrency } from "@/lib/format"
+import { formatPrice, formatCurrency, formatCurrencyByLanguage } from "@/lib/format"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { apiClient } from "@/lib/api/client"
 import { format } from "date-fns/format"
@@ -49,7 +49,7 @@ type Transaction = { id: string; user: string; course: string; amount: number; s
 const pieColors = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"]
 
 export default function AdminDashboard() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [filterPeriod, setFilterPeriod] = useState("month")
 
   const [loading, setLoading] = useState(true)
@@ -515,7 +515,7 @@ if (loading) {
                   <div className="space-y-2 text-sm">
                     <TransactionInfoRow
                       label={t("adm_dash_amount", "Số tiền")}
-                      value={`₫${formatPrice(tx.amount)}`}
+                      value={formatCurrencyByLanguage(tx.amount, language)}
                       highlight
                     />
                     <TransactionInfoRow
@@ -563,7 +563,7 @@ if (loading) {
                   >
                     <td className="whitespace-nowrap py-3 px-4">{transaction.user}</td>
                     <td className="py-3 px-4 text-foreground dark:text-white">{transaction.course}</td>
-                    <td className="py-3 px-4 text-foreground dark:text-white">₫{formatPrice(transaction.amount)}</td>
+                    <td className="py-3 px-4 text-foreground dark:text-white">{formatCurrencyByLanguage(transaction.amount, language)}</td>
                     <td className="py-3 px-4">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${

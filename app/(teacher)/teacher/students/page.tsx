@@ -53,6 +53,13 @@ const formatDate = (dateString: string, locale: string) => {
   return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
+const toSafeIsoString = (value: unknown): string => {
+  if (!value) return ""
+  const date = new Date(value as string | number | Date)
+  if (Number.isNaN(date.getTime())) return ""
+  return date.toISOString()
+}
+
 export default function TeacherStudentsPage() {
   const { language, t } = useLanguage()
   const [searchTerm, setSearchTerm] = useState("")
@@ -76,23 +83,29 @@ export default function TeacherStudentsPage() {
       try {
         const res = await apiClient.getTeacherStudents()
         const rows = Array.isArray(res?.data) ? res.data : []
-        const mapped: Student[] = rows.map((s: any) => ({
-          id: s.id,
-          studentId: s.studentId || s.id,
-          name: s.name || t("teacher_students_unknown", "Không rõ"),
-          email: s.email || "",
-          phone: s.phone || "",
-          avatar: s.avatar || "/placeholder-user.jpg",
-          course: s.courseName || "",
-          courseId: s.courseId || "",
-          progress: Number(s.progress ?? 0),
-          joinDate: s.joinDate ? new Date(s.joinDate).toISOString() : "",
-          lastActive: s.lastActive ? new Date(s.lastActive).toISOString() : "",
-          status: normalizeStatus(s.status),
-          lessonsCompleted: 0,
-          totalLessons: 0,
-          quizScore: 0,
-        }))
+        const mapped: Student[] = rows.map((s: any) => {
+          // Support multiple payload shapes from backend/proxy layers.
+          const joinDateRaw = s.joinDate ?? s.enrolledAt ?? s.createdAt ?? s.enrollmentDate
+          const lastActiveRaw = s.lastActive ?? s.lastAccessedAt ?? s.updatedAt
+
+          return {
+            id: s.id,
+            studentId: s.studentId || s.id,
+            name: s.name || t("teacher_students_unknown", "Không rõ"),
+            email: s.email || "",
+            phone: s.phone || "",
+            avatar: s.avatar || "/placeholder-user.jpg",
+            course: s.courseName || "",
+            courseId: s.courseId || "",
+            progress: Number(s.progress ?? 0),
+            joinDate: toSafeIsoString(joinDateRaw) || String(joinDateRaw || ""),
+            lastActive: toSafeIsoString(lastActiveRaw) || String(lastActiveRaw || ""),
+            status: normalizeStatus(s.status),
+            lessonsCompleted: 0,
+            totalLessons: 0,
+            quizScore: 0,
+          }
+        })
         setStudents(mapped)
       } catch (error) {
         console.error("Failed to load students", error)

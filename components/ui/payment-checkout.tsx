@@ -17,6 +17,8 @@ import {
 } from "lucide-react"
 import { Button } from "./button"
 import { apiClient } from "@/lib/api/client"
+import { formatPrice, formatCurrencyByLanguage } from "@/lib/format"
+import { useLanguage } from "@/lib/i18n/language-context"
 import Image from "next/image"
 
 interface PaymentCheckoutProps {
@@ -46,6 +48,7 @@ export function PaymentCheckout({
   onSuccess,
   onCancel,
 }: PaymentCheckoutProps) {
+  const { language } = useLanguage()
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("vnpay")
   const [selectedBank, setSelectedBank] = useState<string>("")
   const [banks, setBanks] = useState<Bank[]>([])
@@ -367,19 +370,19 @@ export function PaymentCheckout({
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground dark:text-slate-400">Giá gốc</span>
                   <span className="text-foreground dark:text-white">
-                    {formatPrice(coursePrice)}
+                    {formatCurrencyByLanguage(coursePrice, language)}
                   </span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground dark:text-slate-400">Giảm giá</span>
-                    <span className="text-green-500">-{formatPrice(discountAmount)}</span>
+                    <span className="text-green-500">-{formatCurrencyByLanguage(discountAmount, language)}</span>
                   </div>
                 )}
                 <div className="flex justify-between pt-2 border-t border-border dark:border-slate-700">
                   <span className="font-semibold text-foreground dark:text-white">Tổng cộng</span>
                   <span className="font-bold text-xl text-primary dark:text-accent">
-                    {formatPrice(finalAmount)}
+                    {formatCurrencyByLanguage(finalAmount, language)}
                   </span>
                 </div>
               </div>
@@ -408,7 +411,7 @@ export function PaymentCheckout({
                       {selectedMethod === "vnpay" && <CreditCard className="w-4 h-4 mr-2" />}
                       {selectedMethod === "momo" && <QrCode className="w-4 h-4 mr-2" />}
                       {selectedMethod === "bank_transfer" && <Building2 className="w-4 h-4 mr-2" />}
-                      Thanh toán {formatPrice(finalAmount)}
+                      Thanh toán {formatCurrencyByLanguage(finalAmount, language)}
                     </>
                   )}
                 </Button>

@@ -40,6 +40,30 @@ export function formatCurrency(amount: number | string): string {
   return `₫${num.toLocaleString("vi-VN")}`;
 }
 
+export type CurrencyCode = "VND" | "USD"
+
+const DEFAULT_VND_TO_USD_RATE = 23000
+
+export function formatCurrencyByLanguage(
+  amount: number | string,
+  language: "vi" | "en" = "vi",
+  exchangeRate: number = DEFAULT_VND_TO_USD_RATE,
+): string {
+  const amountVnd = safeNumber(amount)
+
+  if (language === "en") {
+    const usd = amountVnd / exchangeRate
+    return usd.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+  }
+
+  return `₫${Math.round(amountVnd).toLocaleString("vi-VN")}`
+}
+
 /**
  * Format currency in thousands (e.g., 50000 -> 50K)
  */

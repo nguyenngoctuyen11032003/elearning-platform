@@ -624,7 +624,17 @@ if (typeof window !== 'undefined' && token) {
   }
 
   async getTeacherStudents(): Promise<any> {
-    return this.request(API_ENDPOINTS.TEACHER.STUDENTS)
+    const result = await this.request(API_ENDPOINTS.TEACHER.STUDENTS)
+
+    if (Array.isArray(result)) {
+      return { data: result, total: result.length }
+    }
+
+    if (result && typeof result === 'object' && Array.isArray((result as any).data)) {
+      return result
+    }
+
+    return { data: [], total: 0 }
   }
 
   async exportTeacherStudents(): Promise<Blob | any> {
@@ -747,16 +757,19 @@ if (typeof window !== 'undefined' && token) {
   }
 
   async addToWishlist(courseId: string): Promise<any> {
-    return this.request(API_ENDPOINTS.WISHLISTS.ADD, {
+    return this.request(API_ENDPOINTS.WISHLISTS.ADD(courseId), {
       method: 'POST',
-      body: JSON.stringify({ courseId }),
     });
   }
 
-  async removeFromWishlist(id: string): Promise<any> {
-    return this.request(API_ENDPOINTS.WISHLISTS.REMOVE(id), {
+  async removeFromWishlist(courseId: string): Promise<any> {
+    return this.request(API_ENDPOINTS.WISHLISTS.REMOVE(courseId), {
       method: 'DELETE',
     });
+  }
+
+  async checkWishlist(courseId: string): Promise<boolean> {
+    return this.request(API_ENDPOINTS.WISHLISTS.CHECK(courseId));
   }
 
   // ================== Admin Users API ==================

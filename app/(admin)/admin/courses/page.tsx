@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Edit, Trash2, Eye, Search, MoreVertical, CheckCircle, Clock, XCircle, BookOpen, Users, DollarSign, Star, X, AlertCircle, BarChart3, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/admin-modals"
-import { formatStudentCount, formatPrice } from "@/lib/format"
+import { formatStudentCount, formatPrice, formatCurrencyByLanguage } from "@/lib/format"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { authFetch } from "@/lib/authfetch"
@@ -31,7 +31,7 @@ interface Course {
 }
 
 export default function AdminCoursesPage() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [courses, setCourses] = useState<Course[]>([])
@@ -374,7 +374,7 @@ export default function AdminCoursesPage() {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white font-medium" data-label={t("adm_courses_col_price", "Giá")}>
-                      ₫{formatPrice(course.price)}
+                      {formatCurrencyByLanguage(course.price, language)}
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white" data-label={t("adm_courses_col_students", "Học viên")}>{formatStudentCount(course.students)}</td>
                     <td className="py-4 px-6" data-label={t("adm_courses_col_status", "Trạng thái")}>{getStatusBadge(course.status)}</td>
@@ -462,7 +462,7 @@ export default function AdminCoursesPage() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <p className="text-slate-400">{t("adm_courses_col_price", "Giá")}</p>
-                    <p className="font-medium">₫{formatPrice(course.price)}</p>
+                    <p className="font-medium">{formatCurrencyByLanguage(course.price, language)}</p>
                   </div>
                   <div>
                     <p className="text-slate-400">{t("adm_courses_students", "Học viên")}</p>
@@ -690,7 +690,7 @@ export default function AdminCoursesPage() {
                       <DollarSign size={16} />
                       {t("adm_courses_price_label", "Giá khóa học")}
                     </p>
-                    <p className="text-foreground dark:text-white font-semibold text-xl">₫{formatPrice(selectedCourse.price)}</p>
+                    <p className="text-foreground dark:text-white font-semibold text-xl">{formatCurrencyByLanguage(selectedCourse.price, language)}</p>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 flex items-center gap-2">

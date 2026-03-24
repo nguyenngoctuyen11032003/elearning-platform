@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
-import { formatPrice, formatNumber } from "@/lib/format"
+import { formatPrice, formatNumber, formatCurrencyByLanguage } from "@/lib/format"
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
 
@@ -457,8 +457,8 @@ export default function AdminPaymentsPage() {
       {/* GRID INFO */}
       <div className="grid grid-cols-2 gap-3 text-sm pt-2">
         <div className="flex items-center gap-2">
-          <span className="text-green-400">₫</span>
-          <span>{formatPrice(payment.amount)}</span>
+          <span className="text-green-400">{language === "vi" ? "₫" : "$"}</span>
+          <span>{formatCurrencyByLanguage(payment.amount, language)}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-blue-400">💳</span>
@@ -551,7 +551,7 @@ export default function AdminPaymentsPage() {
                 <div className="p-4">
                   <div className="bg-[#0E2236] rounded-xl p-4 text-center border border-cyan-400/20">
                     <p className="text-slate-400 text-xs">{t("pay_amount_label", "Số tiền thanh toán")}</p>
-                    <p className="text-2xl font-extrabold text-cyan-400">₫{formatPrice(payment.amount)}</p>
+                    <p className="text-2xl font-extrabold text-cyan-400">{formatCurrencyByLanguage(payment.amount, language)}</p>
                   </div>
                 </div>
 
@@ -627,7 +627,7 @@ export default function AdminPaymentsPage() {
                       {payment.teacher}
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white font-medium">
-                      ₫{formatPrice(payment.amount)}
+                      {formatCurrencyByLanguage(payment.amount, language)}
                     </td>
                     <td className="py-4 px-6">
                       <span className="px-2 py-1 bg-secondary dark:bg-slate-800 rounded text-foreground dark:text-white text-xs font-medium">
@@ -755,7 +755,7 @@ setPopupPos({
                   {/* Amount */}
                   <div className="bg-primary/10 dark:bg-accent/10 rounded-xl p-4 text-center">
                     <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("pay_amount_label", "Số tiền thanh toán")}</p>
-                    <p className="text-3xl font-bold text-primary dark:text-accent">₫{formatPrice(payment.amount)}</p>
+                    <p className="text-3xl font-bold text-primary dark:text-accent">{formatCurrencyByLanguage(payment.amount, language)}</p>
                   </div>
 
                   {/* User Info */}

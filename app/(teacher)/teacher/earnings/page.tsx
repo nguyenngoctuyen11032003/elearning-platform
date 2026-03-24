@@ -7,7 +7,7 @@ import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import { StatCard } from "@/components/ui/stat-card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
-import { formatPrice } from "@/lib/format"
+import { formatPrice, formatCurrencyByLanguage } from "@/lib/format"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
 
@@ -286,7 +286,7 @@ export default function TeacherEarningsPage() {
                 <StatCard 
                   icon={TrendingUp} 
                   title={t("teacher_dashboard_total_revenue", "Tổng doanh thu")}
-                  value={`₫${formatPrice(totalRevenue)}`} 
+                  value={formatCurrencyByLanguage(totalRevenue, language)} 
                   change={t("teacher_analytics_completion_trend", "Cao hơn 12% so với tháng trước")}
                 />
               </div>
@@ -294,7 +294,7 @@ export default function TeacherEarningsPage() {
                 <StatCard 
                   icon={DollarSign} 
                   title={t("teacher_earnings_month_revenue", "Doanh thu tháng này")}
-                  value={`₫${formatPrice(thisMonthRevenue)}`} 
+                  value={formatCurrencyByLanguage(thisMonthRevenue, language)} 
                   change={t("teacher_earnings_month_compare", "+8.2% so với tháng trước")}
                 />
               </div>
@@ -416,7 +416,7 @@ export default function TeacherEarningsPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <p className="text-xs text-muted-foreground dark:text-slate-400">{t("checkout_amount", "Số tiền")}</p>
-                      <p className="text-primary dark:text-accent font-bold">₫{formatPrice(payment.amount)}</p>
+                      <p className="text-primary dark:text-accent font-bold">{formatCurrencyByLanguage(payment.amount, language)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_earnings_method", "Phương thức")}</p>
@@ -482,7 +482,7 @@ export default function TeacherEarningsPage() {
                         {/* Amount */}
                         <div className="bg-primary/10 dark:bg-accent/10 rounded-lg p-3 text-center">
                           <p className="text-xs text-muted-foreground dark:text-slate-400">{t("checkout_amount", "Số tiền")}</p>
-                          <p className="text-2xl font-bold text-primary dark:text-accent">₫{formatPrice(selectedPayment.amount)}</p>
+                          <p className="text-2xl font-bold text-primary dark:text-accent">{formatCurrencyByLanguage(selectedPayment.amount, language)}</p>
                         </div>
 
                         {/* Student Info */}
@@ -559,7 +559,7 @@ export default function TeacherEarningsPage() {
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white">{payment.course}</td>
                     <td className="py-4 px-6 text-foreground dark:text-white font-medium">
-                      ₫{formatPrice(payment.amount)}
+                      {formatCurrencyByLanguage(payment.amount, language)}
                     </td>
                     <td className="py-4 px-6">
                       <span className="px-2 py-1 bg-secondary dark:bg-slate-800 rounded text-foreground dark:text-white text-xs font-medium">
@@ -645,7 +645,7 @@ export default function TeacherEarningsPage() {
               {/* Amount */}
               <div className="bg-primary/10 dark:bg-accent/10 rounded-xl p-4 text-center">
                 <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("checkout_amount", "Số tiền")}</p>
-                <p className="text-3xl font-bold text-primary dark:text-accent">₫{formatPrice(selectedPayment.amount)}</p>
+                <p className="text-3xl font-bold text-primary dark:text-accent">{formatCurrencyByLanguage(selectedPayment.amount, language)}</p>
               </div>
 
               {/* Student Info */}

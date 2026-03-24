@@ -109,9 +109,10 @@ export const API_ENDPOINTS = {
     TOGGLE_FAVORITE: (id: string) => `/notes/${id}/toggle-favorite`,
   },
   WISHLISTS: {
-    LIST: '/wishlists',
-    ADD: '/wishlists',
-    REMOVE: (id: string) => `/wishlists/${id}`,
+    LIST: '/wishlists/my-wishlist',
+    ADD: (courseId: string) => `/wishlists/course/${courseId}`,
+    REMOVE: (courseId: string) => `/wishlists/course/${courseId}`,
+    CHECK: (courseId: string) => `/wishlists/check/${courseId}`,
   },
   CART: {
     GET: '/cart',
