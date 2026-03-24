@@ -9,6 +9,7 @@ import { apiClient } from "@/lib/api/client"
 import { formatPrice, formatNumber, formatCurrencyByLanguage } from "@/lib/format"
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
 
 interface Payment {
   id: string
@@ -332,7 +333,7 @@ export default function AdminPaymentsPage() {
                       {t("pay_total_revenue", "Tổng doanh thu")}
                     </p>
                     <p className="text-lg sm:text-xl font-bold text-green-600 whitespace-nowrap">
-                      ₫{formatNumber(totalRevenue)}
+                      <AnimatedNumber value={totalRevenue} formatter={formatNumber} prefix="₫" />
                     </p>
                   </div>
 
@@ -345,7 +346,9 @@ export default function AdminPaymentsPage() {
                 <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg h-36 flex flex-col justify-between items-center">
                   <div className="flex flex-col items-center w-full">
                     <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">{t("pay_pending_total", "Đang chờ xử lý")}</p>
-                    <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">₫{formatNumber(pendingAmount)}</p>
+                    <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
+                      <AnimatedNumber value={pendingAmount} formatter={formatNumber} prefix="₫" />
+                    </p>
                   </div>
                   <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center mt-2">
                     <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
@@ -356,7 +359,9 @@ export default function AdminPaymentsPage() {
                 <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg h-36 flex flex-col justify-between items-center">
                   <div className="flex flex-col items-center w-full">
                     <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">{t("pay_success_count", "Giao dịch thành công")}</p>
-                    <p className="text-xl font-bold text-foreground dark:text-white mt-1">{successCount}</p>
+                    <p className="text-xl font-bold text-foreground dark:text-white mt-1">
+                      <AnimatedNumber value={successCount} formatter={formatNumber} />
+                    </p>
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mt-2">
                     <TrendingUp size={20} className="text-blue-600 dark:text-blue-400" />
@@ -367,7 +372,9 @@ export default function AdminPaymentsPage() {
                 <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg h-36 flex flex-col justify-between items-center">
                   <div className="flex flex-col items-center w-full">
                     <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">{t("pay_total_transactions", "Tổng giao dịch")}</p>
-                    <p className="text-xl font-bold text-foreground dark:text-white mt-1">{totalTransactions}</p>
+                    <p className="text-xl font-bold text-foreground dark:text-white mt-1">
+                      <AnimatedNumber value={totalTransactions} formatter={formatNumber} />
+                    </p>
                   </div>
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mt-2">
                     <CreditCard size={20} className="text-purple-600 dark:text-purple-400" />

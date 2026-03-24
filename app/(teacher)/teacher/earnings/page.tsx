@@ -7,7 +7,7 @@ import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import { StatCard } from "@/components/ui/stat-card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
-import { formatPrice, formatCurrencyByLanguage, formatNumber } from "@/lib/format"
+import { formatCurrencyByLanguage, formatNumber } from "@/lib/format"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
 

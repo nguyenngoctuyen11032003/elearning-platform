@@ -1,39 +1,29 @@
 ﻿"use client"
 
-import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
-import { Legend } from "recharts"
 import {
-  TrendingUp,
   BookOpen,
   Clock,
   Award,
   Target,
   CheckCircle,
-  Calendar,
-  BarChart3,
   Flame,
   Trophy,
   Star,
-  ChevronRight
 } from "lucide-react"
-import { useAuth } from "@/lib/auth/auth-context"
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
 } from "@/components/ui/chart"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
 import { PageHero } from "@/components/ui/page-hero"
 import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function ProgressPage() {
-  const { user } = useAuth()
   const { t } = useLanguage()
   
   const weeklyProgress = [
@@ -114,8 +104,6 @@ export default function ProgressPage() {
   ]
 
   const totalHours = weeklyProgress.reduce((sum, day) => sum + day.hours, 0)
-  const targetHours = weeklyProgress.reduce((sum, day) => sum + day.target, 0)
-  const maxHours = Math.max(...weeklyProgress.map(d => d.hours))
 
   const chartData = weeklyProgress.map((d) => ({
     day: d.day,

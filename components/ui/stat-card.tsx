@@ -22,7 +22,7 @@ export function StatCard({
   title,
   value,
   change,
-  color,
+  color: _color,
   formatter,
   durationMs,
   decimals,

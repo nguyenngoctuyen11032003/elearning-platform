@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useReducedMotion } from 'framer-motion'
 import * as RechartsPrimitive from 'recharts'
 
 import { cn } from '@/lib/utils'
@@ -15,6 +16,32 @@ export type ChartConfig = {
   } & (
     | { color?: string; theme?: never }
     | { color?: never; theme: Record<keyof typeof THEMES, string> }
+  )
+}
+
+// Shared animation defaults for Recharts elements (respect reduced motion)
+const DEFAULT_CHART_ANIMATION_DURATION = 900
+const DEFAULT_CHART_ANIMATION_EASING = 'ease-out'
+
+function useChartAnimationProps({
+  durationMs = DEFAULT_CHART_ANIMATION_DURATION,
+  easing = DEFAULT_CHART_ANIMATION_EASING,
+  disabled,
+}: {
+  durationMs?: number
+  easing?: string
+  disabled?: boolean
+} = {}) {
+  const prefersReducedMotion = useReducedMotion()
+  const isDisabled = disabled || prefersReducedMotion
+
+  return React.useMemo(
+    () => ({
+      isAnimationActive: !isDisabled,
+      animationDuration: durationMs,
+      animationEasing: easing,
+    }),
+    [durationMs, easing, isDisabled],
   )
 }
 
@@ -381,4 +408,5 @@ export {
   ChartLegend,
   ChartLegendContent,
   ChartStyle,
+  useChartAnimationProps,
 }

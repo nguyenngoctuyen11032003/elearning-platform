@@ -1,10 +1,9 @@
 ﻿"use client"
 
 import { CourseCard } from "@/components/ui/course-card"
-import { SectionTitle } from "@/components/ui/section-title"
 import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button"
 import { 
-  ArrowRight, Play, Users, Award, Zap, BookOpen, Star, TrendingUp, Sparkles,
+  ArrowRight, Play, Users, BookOpen, Star, Sparkles,
   Target, Shield, Clock, CheckCircle, Globe, Lightbulb, Trophy, HeartHandshake,
   GraduationCap, Brain, Rocket, BarChart3, MessageSquare
 } from "lucide-react"
