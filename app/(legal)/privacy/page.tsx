@@ -160,7 +160,7 @@ function SupportBox() {
           {t("privacy_support_desc", "Liên hệ đội ngũ ICS Learning nếu bạn có thắc mắc về chính sách bảo mật.")}
         </p>
         <Link
-          href="/lien-he"
+          href="/contact"
           className="text-primary mt-3 inline-block font-medium hover:underline"
         >
           {t("terms_support_link", "Liên hệ hỗ trợ →")}

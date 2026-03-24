@@ -354,12 +354,15 @@ export function LessonPlayer({
   }
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-background dark:bg-slate-950">
+    <div className="relative flex min-h-[100dvh] md:h-[calc(100vh-80px)] bg-background dark:bg-slate-950">
+      {sidebarOpen && (
+        <div className="absolute inset-0 z-20 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
       {/* Sidebar */}
       <aside
         className={`${
-          sidebarOpen ? "w-80" : "w-0"
-        } border-r border-border dark:border-slate-800 bg-card dark:bg-slate-900/70 overflow-y-auto transition-all duration-300 flex-shrink-0`}
+          sidebarOpen ? "w-[88vw] max-w-sm md:w-80" : "w-0"
+        } absolute inset-y-0 left-0 z-30 md:relative md:inset-auto md:z-auto border-r border-border dark:border-slate-800 bg-card dark:bg-slate-900/70 overflow-y-auto transition-all duration-300 flex-shrink-0 shadow-2xl md:shadow-none`}
       >
         <div className="p-4 space-y-4">
           <div>
@@ -430,14 +433,14 @@ export function LessonPlayer({
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border dark:border-slate-800 bg-card dark:bg-slate-900/50">
+        <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-border dark:border-slate-800 bg-card dark:bg-slate-900/50">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
           >
             <ChevronDown size={20} className={`transition-transform ${sidebarOpen ? "rotate-90" : ""}`} />
           </button>
-          <h2 className="text-lg font-semibold text-foreground dark:text-white flex-1 ml-4">{currentLesson?.title}</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-foreground dark:text-white flex-1 ml-3 sm:ml-4 line-clamp-1">{currentLesson?.title}</h2>
           <button
             onClick={() => setShowAIChat(!showAIChat)}
             className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
@@ -470,7 +473,7 @@ export function LessonPlayer({
 
           {/* Tabs */}
           <div className="border-b border-border dark:border-slate-800 bg-card dark:bg-slate-900/50">
-            <div className="flex">
+            <div className="flex overflow-x-auto no-scrollbar">
               {[
                 { id: "notes", label: t("lesson_tab_notes", "Ghi chu") },
                 { id: "materials", label: t("lesson_tab_materials", "Tai lieu") },
@@ -480,7 +483,7 @@ export function LessonPlayer({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-smooth ${
+                  className={`px-4 sm:px-6 py-3 sm:py-4 font-medium text-sm border-b-2 transition-smooth whitespace-nowrap ${
                     activeTab === tab.id
                       ? "border-primary dark:border-accent text-primary dark:text-accent"
                       : "border-transparent text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
@@ -493,7 +496,7 @@ export function LessonPlayer({
           </div>
 
           {/* Tab Content */}
-          <div className="p-6 max-w-4xl">
+          <div className="p-4 sm:p-6 max-w-4xl">
             {activeTab === "notes" && (
               <div className="space-y-4">
                 <h3 className="font-semibold text-foreground dark:text-white">{t("lesson_notes_title", "Ghi chu ca nhan")}</h3>

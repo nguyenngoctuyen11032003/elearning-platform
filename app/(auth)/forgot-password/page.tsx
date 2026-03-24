@@ -24,7 +24,7 @@ export default function ForgotPasswordPage() {
             rotate: [0, 180, 360]
           }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-3xl"
+          className="absolute top-10 right-8 sm:top-16 sm:right-16 w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-3xl"
         />
         <motion.div
           animate={{ 
@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
             rotate: [360, 180, 0]
           }}
           transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-20 left-20 w-96 h-96 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"
+          className="absolute bottom-10 left-8 sm:bottom-16 sm:left-16 w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"
         />
       </div>
 
@@ -115,7 +115,7 @@ export default function ForgotPasswordPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="mt-6 grid grid-cols-2 gap-4"
+            className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4"
           >
             <div className="flex items-center gap-3 p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl">
               <Mail size={20} className="text-blue-600 dark:text-blue-400" />

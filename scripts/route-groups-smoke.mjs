@@ -11,12 +11,23 @@ const CANDIDATE_BASES = [
   'http://localhost:3000',
 ].filter(Boolean)
 
-const LOCALES = ['vi', 'en']
+const DEFAULT_LOCALES = ['vi', 'en']
+const DEFAULT_GROUP_ORDER = ['admin', 'auth', 'learning', 'legal', 'marketing', 'teacher', 'enrollment']
+const LOCALES = (process.env.SMOKE_LOCALES || DEFAULT_LOCALES.join(','))
+  .split(',')
+  .map((x) => x.trim())
+  .filter(Boolean)
 const NAV_TIMEOUT_MS = Number(process.env.SMOKE_NAV_TIMEOUT_MS || 60000)
+const NAV_TIMEOUT_MAX_MS = Number(process.env.SMOKE_NAV_TIMEOUT_MAX_MS || 120000)
 const NAV_RETRIES = Number(process.env.SMOKE_NAV_RETRIES || 3)
 const INTER_ROUTE_DELAY_MS = Number(process.env.SMOKE_INTER_ROUTE_DELAY_MS || 120)
-const GROUP_ORDER = ['admin', 'auth', 'learning', 'legal', 'marketing', 'teacher', 'enrollment']
+const WAIT_UNTIL = (process.env.SMOKE_WAIT_UNTIL || 'commit').trim() || 'commit'
+const RAW_GROUP_ORDER = (process.env.SMOKE_GROUPS || DEFAULT_GROUP_ORDER.join(','))
+  .split(',')
+  .map((x) => x.trim())
+  .filter(Boolean)
 const REPORT_TAG = (process.env.SMOKE_REPORT_TAG || '').trim()
+const VERBOSE_ROUTE_LOG = process.env.SMOKE_VERBOSE_ROUTE_LOG === '1'
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -110,6 +121,8 @@ const ROUTE_GROUPS = {
   },
 }
 
+const GROUP_ORDER = RAW_GROUP_ORDER.filter((g) => ROUTE_GROUPS[g])
+
 const DYNAMIC_ROUTES = [
   { group: 'marketing', route: '/courses/a6a1fcfa-77f1-4937-a50d-860a8004bacc', expected: 'public' },
   { group: 'marketing', route: '/course/a6a1fcfa-77f1-4937-a50d-860a8004bacc', expected: 'public' },
@@ -178,6 +191,24 @@ function evaluateResult(expected, status, finalPath, route, pageErrors, requestF
   return { ok: false, note: `HTTP ${status}` }
 }
 
+function getRouteTimeoutMs(row, attempt) {
+  let timeout = NAV_TIMEOUT_MS
+
+  // Dynamic routes and protected routes tend to do more client work before navigation settles.
+  if (row.dynamic) timeout = Math.round(timeout * 1.35)
+  if (row.expected === 'protected') timeout = Math.round(timeout * 1.15)
+
+  // Heavier route families can legitimately need a bit more time on low-end machines.
+  if (/\/(courses|course|player|exams|assignments|certificates|teachers)(?:\/|$)/.test(row.route)) {
+    timeout = Math.round(timeout * 1.2)
+  }
+
+  // Gradually back off timeout on retries instead of using one static timeout.
+  timeout += attempt * 5000
+
+  return Math.min(timeout, NAV_TIMEOUT_MAX_MS)
+}
+
 function toRows() {
   const rows = []
   for (const group of GROUP_ORDER) {
@@ -220,6 +251,13 @@ function buildMarkdownReport(base, results) {
 }
 
 async function run() {
+  if (LOCALES.length === 0) {
+    throw new Error('SMOKE_LOCALES produced an empty locale list')
+  }
+  if (GROUP_ORDER.length === 0) {
+    throw new Error('SMOKE_GROUPS produced an empty/invalid group list')
+  }
+
   const base = await pickBaseUrl()
   const routes = toRows()
   const browser = await chromium.launch({ headless: true })
@@ -256,7 +294,13 @@ async function run() {
           let resp
           for (let attempt = 0; attempt < NAV_RETRIES; attempt += 1) {
             try {
-              resp = await page.goto(url, { waitUntil: 'commit', timeout: NAV_TIMEOUT_MS })
+              const routeTimeout = getRouteTimeoutMs(row, attempt)
+              if (VERBOSE_ROUTE_LOG) {
+                console.log(
+                  `ROUTE locale=${locale} group=${row.group} route=${row.route} attempt=${attempt + 1}/${NAV_RETRIES} timeout=${routeTimeout} waitUntil=${WAIT_UNTIL}`,
+                )
+              }
+              resp = await page.goto(url, { waitUntil: WAIT_UNTIL, timeout: routeTimeout })
               break
             } catch (err) {
               if (attempt === NAV_RETRIES - 1) throw err

@@ -183,7 +183,7 @@ function VerifyEmailContent() {
             rotate: [0, 360]
           }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-          className={`absolute top-10 right-10 w-96 h-96 ${
+          className={`absolute top-8 right-6 sm:top-10 sm:right-10 w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 ${
             status === "success" 
               ? "bg-gradient-to-br from-green-400/20 to-emerald-400/20" 
               : status === "error" || status === "invalid"
@@ -344,7 +344,7 @@ function VerifyEmailContent() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
-            className="mt-6 grid grid-cols-2 gap-4"
+            className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4"
           >
             <div className="flex items-center gap-3 p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl">
               <Shield size={20} className="text-blue-600 dark:text-blue-400" />
