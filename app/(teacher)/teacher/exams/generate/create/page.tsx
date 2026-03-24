@@ -485,25 +485,35 @@ function TeacherGenerateExamCreatePageContent() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
-            <div className="rounded-2xl border bg-card p-5 space-y-4">
+            <div className="rounded-2xl border bg-card p-5 space-y-4 overflow-visible">
               <h2 className="font-semibold flex items-center gap-2"><ClipboardList size={18} /> Cấu hình đề thi</h2>
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Tiêu đề đề thi</label>
                   <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nhập tiêu đề đề thi" className="w-full border rounded-lg px-3 py-2 bg-background" />
                 </div>
-                <div>
+                <div className="relative overflow-visible">
                   <label className="block text-xs text-muted-foreground mb-1">Chọn khóa học</label>
-                  <select value={selectedCourseId} onChange={(e) => setSelectedCourseId(e.target.value)} className="w-full border rounded-lg px-3 py-2 bg-background">
+                  <select
+                    value={selectedCourseId}
+                    onChange={(e) => setSelectedCourseId(e.target.value)}
+                    className="relative z-30 w-full border rounded-lg px-3 py-2 bg-background"
+                    style={{ zIndex: 30 }}
+                  >
                     <option value="">Chọn khóa học</option>
                     {courseOptions.map((course) => (
                       <option key={course.id} value={course.id}>{course.title}</option>
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="relative overflow-visible">
                   <label className="block text-xs text-muted-foreground mb-1">Loại bài thi</label>
-                  <select value={type} onChange={(e) => setType(e.target.value as "practice" | "official")} className="w-full border rounded-lg px-3 py-2 bg-background">
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value as "practice" | "official")}
+                    className="relative z-30 w-full border rounded-lg px-3 py-2 bg-background"
+                    style={{ zIndex: 30 }}
+                  >
                     <option value="practice">Thi thử</option>
                     <option value="official">Thi thật</option>
                   </select>

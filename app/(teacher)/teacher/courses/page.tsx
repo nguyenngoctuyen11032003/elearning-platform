@@ -4,7 +4,7 @@ import { Plus, Edit2, Trash2, Eye, MoreVertical, Search, BookOpen, Users, Dollar
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { formatPrice } from "@/lib/format"
+import { formatPrice, formatCurrencyByLanguage } from "@/lib/format"
 import { authFetch } from "@/lib/authfetch"
 import { createPortal } from "react-dom"
 import React from "react"
@@ -108,7 +108,7 @@ const InfoItem = ({ icon, label, value }: any) => (
 )
 export default function TeacherCoursesPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [courses, setCourses] = useState<Course[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -558,7 +558,7 @@ useEffect(() => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_price_label", "Giá:")}</span>
-                    <span className="text-sm text-foreground dark:text-white">₫{formatPrice(course.price)}</span>
+                    <span className="text-sm text-foreground dark:text-white">{formatCurrencyByLanguage(course.price, language)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_status_label", "Trạng thái:")}</span>
@@ -607,7 +607,7 @@ useEffect(() => {
       <InfoItem
         icon={<DollarSign size={14} />}
         label={t("tc_info_price", "Giá")}
-        value={`₫${formatPrice(course.price)}`}
+        value={formatCurrencyByLanguage(course.price, language)}
       />
     </div>
 
@@ -816,7 +816,7 @@ useEffect(() => {
                         <span className="text-muted-foreground dark:text-slate-400">{t("tc_no_rating", "Chưa có")}</span>
                       )}
                     </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white font-medium">₫{formatPrice(course.price)}</td>
+                    <td className="py-4 px-6 text-foreground dark:text-white font-medium">{formatCurrencyByLanguage(course.price, language)}</td>
                     <td className="py-4 px-6">{getStatusBadge(course.status)}</td>
                     <td className="py-4 px-6" data-dropdown>
                       <div className="relative inline-flex" data-dropdown>
@@ -956,7 +956,7 @@ useEffect(() => {
                 </div>
                 <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4 text-center">
                   <DollarSign size={24} className="mx-auto mb-2 text-yellow-600 dark:text-yellow-400" />
-                  <p className="text-2xl font-bold text-foreground dark:text-white">₫{formatPrice(selectedCourse.price)}</p>
+                  <p className="text-2xl font-bold text-foreground dark:text-white">{formatCurrencyByLanguage(selectedCourse.price, language)}</p>
                   <p className="text-sm text-muted-foreground dark:text-slate-400">{t("tc_info_price", "Giá")}</p>
                 </div>
               </div>

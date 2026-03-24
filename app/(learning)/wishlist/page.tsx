@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useMemo, type KeyboardEvent } from "react"
+import { useState, useMemo, useEffect, type KeyboardEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Heart, Trash2, ShoppingCart, Check } from "lucide-react"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
 import Link from "next/link"
-import { formatPrice, formatStudentCount } from "@/lib/format"
+import { formatStudentCount, formatCurrencyByLanguage } from "@/lib/format"
+import { apiClient } from "@/lib/api/client"
 import { useRouter } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/language-context"
 
@@ -24,48 +25,47 @@ interface WishlistItem {
 
 export default function WishlistPage() {
   const router = useRouter()
-  const { t } = useLanguage()
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([
-    {
-      id: "1",
-      title: "Lập trình Next.js từ cơ bản đến nâng cao",
-      teacher: "Nguyễn Ngọc Tuyền",
-      teacherId: "teacher-1",
-      teacherQR: "https:/.qrserver.com/v1/create-qr-code/?size=300x300&data=VCB-NGUYEN-NGOC-TUYEN-499000",
-      price: 499000,
-      rating: 4.9,
-      students: 1250,
-      image: "/placeholder.jpg",
-    },
-    {
-      id: "2",
-      title: "AI & Machine Learning cho người mới bắt đầu",
-      teacher: "Trần Minh Hoàng",
-      teacherId: "teacher-2",
-      teacherQR: "https:/.qrserver.com/v1/create-qr-code/?size=300x300&data=VCB-TRAN-MINH-HOANG-599000",
-      price: 599000,
-      rating: 4.8,
-      students: 892,
-      image: "/placeholder.jpg",
-    },
-    {
-      id: "3",
-      title: "Python cho Data Science",
-      teacher: "Trần Minh Hoàng",
-      teacherId: "teacher-2",
-      teacherQR: "https:/.qrserver.com/v1/create-qr-code/?size=300x300&data=VCB-TRAN-MINH-HOANG-549000",
-      price: 549000,
-      rating: 4.8,
-      students: 1456,
-      image: "/placeholder.jpg",
-    },
-  ])
+  const { t, language } = useLanguage()
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [selectedItems, setSelectedItems] = useState<string[]>([])
 
-  const removeFromWishlist = (id: string) => {
-    setWishlist(wishlist.filter((item) => item.id !== id))
-    setSelectedItems(selectedItems.filter((itemId) => itemId !== id))
+  const loadWishlist = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await apiClient.getMyWishlist()
+      const mapped = result.map((item: any) => ({
+        id: item.courseId ?? item.id,
+        title: item.course?.title ?? item.title,
+        teacher: item.course?.teacher?.name ?? item.teacher ?? "",
+        teacherId: item.course?.teacher?.id ?? item.teacherId,
+        teacherQR: item.course?.teacher?.qr ?? item.teacherQR,
+        price: item.course?.price ?? item.price ?? 0,
+        rating: item.course?.rating ?? item.rating ?? 0,
+        students: item.course?.students ?? item.students ?? 0,
+        image: item.course?.thumbnail ?? item.course?.image ?? item.image ?? "/placeholder.jpg",
+      }))
+      setWishlist(mapped)
+    } catch (err) {
+      console.error("Error loading wishlist", err)
+      setError(t("wishlist_load_error", "Không thể tải danh sách yêu thích"))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const removeFromWishlist = async (courseId: string) => {
+    try {
+      await apiClient.removeFromWishlist(courseId)
+      setWishlist((curr) => curr.filter((item) => item.id !== courseId))
+      setSelectedItems((curr) => curr.filter((item) => item !== courseId))
+    } catch (err) {
+      console.error("Error removing from wishlist", err)
+      setError(t("wishlist_remove_error", "Không thể xóa khóa học khỏi yêu thích"))
+    }
   }
 
   const toggleSelection = (id: string) => {
@@ -89,6 +89,10 @@ export default function WishlistPage() {
     [wishlist, selectedItems]
   )
 
+  useEffect(() => {
+    loadWishlist()
+  }, [])
+
   const totalPrice = selectedCourses.reduce((sum, item) => sum + item.price, 0)
 
   const handleCheckout = () => {
@@ -109,6 +113,22 @@ export default function WishlistPage() {
     )
 
     router.push("/checkout")
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <p className="text-sm text-muted-foreground dark:text-slate-400">{t("wishlist_loading", "Đang tải danh sách yêu thích...")}</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <p className="text-sm text-red-500">{error}</p>
+      </div>
+    )
   }
 
   return (
@@ -213,7 +233,7 @@ export default function WishlistPage() {
                             <div className="flex items-center justify-between pt-4 border-t border-border dark:border-slate-800">
                               <div className="flex-1">
                                 <p className="text-2xl font-bold text-primary dark:text-accent">
-                                  ₫{formatPrice(course.price)}
+                                  {formatCurrencyByLanguage(course.price, language)}
                                 </p>
                               </div>
                               <button
@@ -274,7 +294,7 @@ export default function WishlistPage() {
                           </p>
                         </div>
                         <p className="text-primary dark:text-accent font-bold flex-shrink-0">
-                          ₫{formatPrice(item.price)}
+                          {formatCurrencyByLanguage(item.price, language)}
                         </p>
                       </div>
                     ))}
@@ -282,7 +302,7 @@ export default function WishlistPage() {
                     <div className="flex justify-between text-base pt-3 border-t border-border dark:border-slate-800">
                       <span className="text-muted-foreground dark:text-slate-400">{t("wishlist_subtotal", "Tạm tính")}</span>
                       <span className="font-semibold text-foreground dark:text-white">
-                        ₫{formatPrice(totalPrice)}
+                        {formatCurrencyByLanguage(totalPrice, language)}
                       </span>
                     </div>
                   </>
@@ -307,7 +327,7 @@ export default function WishlistPage() {
                       {t("wishlist_total", "Tổng cộng")}
                     </span>
                     <span className="text-3xl font-bold text-primary dark:text-accent">
-                      ₫{formatPrice(totalPrice)}
+                      {formatCurrencyByLanguage(totalPrice, language)}
                     </span>
                   </div>
 

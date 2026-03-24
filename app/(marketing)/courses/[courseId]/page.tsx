@@ -7,11 +7,15 @@ import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
 import { Star, Heart, Share2, Users, Clock, Award, ChevronDown } from "lucide-react"
 import Link from "next/link"
-import { formatPrice, formatStudentCount } from "@/lib/format"
+import { formatPrice, formatStudentCount, formatCurrencyByLanguage } from "@/lib/format"
+import { apiClient } from "@/lib/api/client"
+import { toast } from "sonner"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const resolvedParams = use(params)
   const [isWishlisted, setIsWishlisted] = useState(false)
+  const [wishLoading, setWishLoading] = useState(false)
   const [expandedReview, setExpandedReview] = useState<string | null>(null)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null)
@@ -24,6 +28,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   const [expandedReplies, setExpandedReplies] = useState<string | null>(null)
 
   // ---- Real data ----
+  const { t, language } = useLanguage()
   const [courseData, setCourseData] = useState<any>(null)
   const [lessons, setLessons] = useState<any[]>([])
   const [pageLoading, setPageLoading] = useState(true)
@@ -54,6 +59,19 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
       }
     }
     fetchData()
+  }, [resolvedParams.courseId])
+
+  useEffect(() => {
+    const id = resolvedParams.courseId
+    const checkWishlistStatus = async () => {
+      try {
+        const result = await apiClient.checkWishlist(id)
+        setIsWishlisted(Boolean(result))
+      } catch (error) {
+        console.error("Error checking wishlist status", error)
+      }
+    }
+    checkWishlistStatus()
   }, [resolvedParams.courseId])
 
   useEffect(() => {
@@ -163,6 +181,27 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
       setNewReview({ rating: 5, comment: "" })
     } catch {
       // silent
+    }
+  }
+
+  const toggleWishlistStatus = async () => {
+    if (!course?.id) return
+    setWishLoading(true)
+    try {
+      if (isWishlisted) {
+        await apiClient.removeFromWishlist(course.id)
+        setIsWishlisted(false)
+        toast.success(t("wishlist_removed", "Đã bỏ khóa học khỏi yêu thích"))
+      } else {
+        await apiClient.addToWishlist(course.id)
+        setIsWishlisted(true)
+        toast.success(t("wishlist_added", "Đã thêm khóa học vào yêu thích"))
+      }
+    } catch (error) {
+      console.error("Wishlist toggle failed", error)
+      toast.error(t("wishlist_update_failed", "Cập nhật danh sách yêu thích thất bại"))
+    } finally {
+      setWishLoading(false)
     }
   }
 
@@ -486,7 +525,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                   {/* Price */}
                   <div>
                     <p className="text-4xl font-bold text-foreground dark:text-white">
-                      ₫{formatPrice(course.price)}
+                      {formatCurrencyByLanguage(course.price, language)}
                     </p>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">Truy cập trọn đời</p>
                   </div>
@@ -516,12 +555,13 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                   </AnimatedButton>
 
                   <button
-                    onClick={() => setIsWishlisted(!isWishlisted)}
+                    onClick={toggleWishlistStatus}
+                    disabled={wishLoading}
                     className={`w-full min-h-11 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 transition-smooth ${
                       isWishlisted
                         ? "border-red-500 bg-red-500/10 text-red-500"
                         : "border-border dark:border-slate-800 text-foreground dark:text-white hover:border-red-500 dark:hover:bg-slate-800/40"
-                    }`}
+                    } ${wishLoading ? "opacity-70 cursor-wait" : ""}`}
                   >
                     <Heart size={20} fill={isWishlisted ? "currentColor" : "none"} />
                     {isWishlisted ? "Đã thích" : "Thêm vào yêu thích"}

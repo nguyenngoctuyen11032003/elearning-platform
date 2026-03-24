@@ -18,7 +18,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
-import { formatPrice } from "@/lib/format"
+import { formatPrice, formatCurrencyByLanguage } from "@/lib/format"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
 
@@ -43,7 +43,7 @@ interface CartItem {
 
 export default function CartPage() {
   const { user } = useAuth()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedItems, setSelectedItems] = useState<string[]>([])
@@ -322,12 +322,12 @@ export default function CartPage() {
                   {/* Price */}
                   <div className="text-right flex-shrink-0">
                     <div className="text-2xl font-bold text-primary dark:text-accent">
-                      {formatPrice(item.price)}
+                      {formatCurrencyByLanguage(item.price, language)}
                     </div>
                     {item.discount > 0 && (
                       <>
                         <div className="text-sm text-muted-foreground dark:text-slate-400 line-through">
-                          {formatPrice(item.originalPrice)}
+                          {formatCurrencyByLanguage(item.originalPrice, language)}
                         </div>
                         <div className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-xs font-medium mt-1">
                           <Tag className="w-3 h-3" />
@@ -399,12 +399,12 @@ export default function CartPage() {
             <div className="space-y-3 mb-4">
               <div className="flex justify-between text-muted-foreground dark:text-slate-400">
                 <span>{t("cart_subtotal", "Tạm tính")} ({selectedItems.length} {t("cart_courses", "khóa học")})</span>
-                <span>{formatPrice(subtotal)}</span>
+                <span>{formatCurrencyByLanguage(subtotal, language)}</span>
               </div>
               {appliedCoupon && (
                 <div className="flex justify-between text-green-600 dark:text-green-400">
                   <span>{t("cart_discount", "Giảm giá")} ({appliedCoupon.discount}%)</span>
-                  <span>-{formatPrice(couponDiscount)}</span>
+                  <span>-{formatCurrencyByLanguage(couponDiscount, language)}</span>
                 </div>
               )}
             </div>
@@ -415,7 +415,7 @@ export default function CartPage() {
                   {t("cart_total", "Tổng cộng")}
                 </span>
                 <span className="text-2xl font-bold text-primary dark:text-accent">
-                  {formatPrice(total)}
+                  {formatCurrencyByLanguage(total, language)}
                 </span>
               </div>
             </div>

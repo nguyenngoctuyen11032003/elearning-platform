@@ -28,9 +28,9 @@ export function TeacherSidebar() {
   const menuItems = [
     { icon: LayoutDashboard, label: t("teacher_menu_dashboard", "Dashboard"), href: "/teacher/dashboard" },
     { icon: BookOpen, label: t("teacher_menu_courses", "Khóa học"), href: "/teacher/courses" },
+    { icon: Award, label: t("teacher_menu_certificates", "Chứng chỉ"), href: "/teacher/certificates" },
     { icon: FileText, label: t("teacher_menu_question_bank", "Ngân hàng đề thi"), href: "/teacher/exams" },
     { icon: ClipboardList, label: t("teacher_menu_exams", "Đề thi"), href: "/teacher/exams/generate" },
-    { icon: Award, label: t("teacher_menu_certificates", "Chứng chỉ"), href: "/teacher/certificates" },
     { icon: Users, label: t("teacher_menu_students", "Học viên"), href: "/teacher/students" },
     { icon: Star, label: t("teacher_menu_reviews", "Đánh giá"), href: "/teacher/reviews" },
     { icon: BarChart3, label: t("teacher_menu_analytics", "Thống kê"), href: "/teacher/analytics" },

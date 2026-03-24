@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Loader2, Ticket, CreditCard } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
-import { formatPrice } from "@/lib/format"
+import { formatPrice, formatCurrencyByLanguage } from "@/lib/format"
 import { useLanguage } from "@/lib/i18n/language-context"
 
 interface CheckoutCourse {
@@ -24,7 +24,7 @@ interface CouponPreview {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [course, setCourse] = useState<CheckoutCourse | null>(null)
   const [paymentCode, setPaymentCode] = useState("")
   const [couponPreview, setCouponPreview] = useState<CouponPreview | null>(null)
@@ -152,16 +152,16 @@ export default function CheckoutPage() {
           {course.teacher && (
             <p className="text-sm text-muted-foreground">{t("checkout_instructor", "Giảng viên")}: {course.teacher}</p>
           )}
-          <p className="text-sm text-muted-foreground">{t("checkout_original_price", "Giá gốc")}: {formatPrice(Number(course.price || 0))} VND</p>
-          <p className="text-sm text-muted-foreground">{t("checkout_discount", "Giảm giá")}: {formatPrice(discount)} VND</p>
-          <p className="text-xl font-bold text-primary">{t("checkout_total", "Cần thanh toán")}: {formatPrice(finalAmount)} VND</p>
+          <p className="text-sm text-muted-foreground">{t("checkout_original_price", "Giá gốc")}: {formatCurrencyByLanguage(Number(course.price || 0), language)}</p>
+          <p className="text-sm text-muted-foreground">{t("checkout_discount", "Giảm giá")}: {formatCurrencyByLanguage(discount, language)}</p>
+          <p className="text-xl font-bold text-primary">{t("checkout_total", "Cần thanh toán")}: {formatCurrencyByLanguage(finalAmount, language)}</p>
         </div>
       </div>
 
       <div className="rounded-2xl border bg-card p-6">
         <div className="mb-4 flex items-center gap-2 text-lg font-semibold">
           <Ticket size={18} />
-          Mã thanh toán
+          {t("checkout_code_label", "Mã thanh toán")}
         </div>
 
         <div className="flex gap-2">
