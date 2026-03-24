@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { PageHero } from "@/components/ui/page-hero"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ResponsiveContainer as RespContainer } from "recharts"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
 
 interface EnrolledCourse {
   id: string
@@ -230,7 +231,7 @@ export default function MyCoursesPage() {
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 mb-8">
                 <div>
                   <h2 className="text-lg md:text-xl font-bold text-foreground dark:text-white mb-1 md:mb-2">{t("mycourses_active", "Khóa học đang học")}</h2>
-                  <p className="text-xs md:text-sm text-muted-foreground dark:text-slate-400">{t("mycourses_total", "Tổng cộng")} {courses.length} {t("mycourses_courses_unit", "khóa học")}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground dark:text-slate-400">{t("mycourses_total", "Tổng cộng")} <AnimatedNumber value={courses.length} /> {t("mycourses_courses_unit", "khóa học")}</p>
                 </div>
                 <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg px-3 md:px-4 py-2 text-sm md:text-base">
                   <span className="text-sm font-medium text-foreground dark:text-white">{t("mycourses_sort", "Sắp xếp theo")}</span>

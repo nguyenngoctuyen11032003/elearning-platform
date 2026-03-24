@@ -12,6 +12,7 @@ import {
   BookOpen
 } from "lucide-react"
 import { StatCard } from "@/components/ui/stat-card"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { toast } from "sonner"
@@ -157,7 +158,8 @@ export default function TeacherAnalyticsPage() {
                 <StatCard 
                   icon={Users} 
                   title={t("teacher_analytics_total_students", "Tổng học viên")}
-                  value={(analytics?.totalStudents || 0).toLocaleString(activeLocale)}
+                  value={analytics?.totalStudents || 0}
+                  formatter={(val) => val.toLocaleString(activeLocale)}
                   change={`${(analytics?.studentGrowth || 0) > 0 ? '+' : ''}${analytics?.studentGrowth || 0}% ${t("teacher_analytics_vs_last_month", "so với tháng trước")}`} 
                 />
               </div>
@@ -165,7 +167,8 @@ export default function TeacherAnalyticsPage() {
                 <StatCard 
                   icon={DollarSign} 
                   title={t("teacher_analytics_total_revenue", "Tổng doanh thu")}
-                  value={formatCurrency(analytics?.totalRevenue || 0)} 
+                  value={analytics?.totalRevenue || 0}
+                  formatter={(val) => formatCurrency(val)} 
                   change={`${(analytics?.revenueGrowth || 0) > 0 ? '+' : ''}${analytics?.revenueGrowth || 0}% ${t("teacher_analytics_vs_last_month", "so với tháng trước")}`} 
                 />
               </div>
@@ -173,7 +176,8 @@ export default function TeacherAnalyticsPage() {
                 <StatCard 
                   icon={Eye} 
                   title={t("teacher_analytics_enrollments", "Lượt đăng ký")}
-                  value={(analytics?.totalViews || 0).toLocaleString(activeLocale)}
+                  value={analytics?.totalViews || 0}
+                  formatter={(val) => val.toLocaleString(activeLocale)}
                   change={t("teacher_analytics_total_enrollments", "Tổng lượt đăng ký khóa học")}
                 />
               </div>
@@ -181,7 +185,9 @@ export default function TeacherAnalyticsPage() {
                 <StatCard 
                   icon={Star} 
                   title={t("teacher_dashboard_average_rating", "Đánh giá trung bình")}
-                  value={`${analytics?.averageRating ?? 0}★`} 
+                  value={Number(analytics?.averageRating ?? 0)} 
+                  decimals={1}
+                  suffix="★"
                   change={t("teacher_analytics_from_all_students", "Từ tất cả học viên")}
                 />
               </div>
@@ -241,11 +247,15 @@ export default function TeacherAnalyticsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-background dark:bg-slate-950 rounded-xl p-4 text-center">
-                <p className="text-3xl font-bold text-foreground dark:text-white">{analytics?.totalCourses ?? 0}</p>
+                <p className="text-3xl font-bold text-foreground dark:text-white">
+                  <AnimatedNumber value={analytics?.totalCourses ?? 0} formatter={(val) => Math.round(val).toLocaleString(activeLocale)} />
+                </p>
                 <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("teacher_analytics_total_courses", "Tổng khóa học")}</p>
               </div>
               <div className="bg-background dark:bg-slate-950 rounded-xl p-4 text-center">
-                <p className="text-3xl font-bold text-green-500">{analytics?.activeCourses ?? 0}</p>
+                <p className="text-3xl font-bold text-green-500">
+                  <AnimatedNumber value={analytics?.activeCourses ?? 0} formatter={(val) => Math.round(val).toLocaleString(activeLocale)} />
+                </p>
                 <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("teacher_analytics_active_courses", "Đang hoạt động")}</p>
               </div>
             </div>

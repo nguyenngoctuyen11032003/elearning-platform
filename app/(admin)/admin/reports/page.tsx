@@ -359,16 +359,16 @@ export default function AdminReportsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <StatCard icon={DollarSign} title={t("adm_rpt_total_revenue", "Tổng doanh thu")} value={formatCurrency(totals.totalRevenue)} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
+                <StatCard icon={DollarSign} title={t("adm_rpt_total_revenue", "Tổng doanh thu")} value={totals.totalRevenue} formatter={(val) => formatCurrency(Math.round(val))} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <StatCard icon={Users} title={t("adm_rpt_total_teachers", "Tổng giáo viên")} value={formatNumber(totals.totalTeachers)} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
+                <StatCard icon={Users} title={t("adm_rpt_total_teachers", "Tổng giáo viên")} value={totals.totalTeachers} formatter={formatNumber} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <StatCard icon={TrendingUp} title={t("adm_rpt_total_students", "Tổng học viên")} value={formatNumber(totals.totalStudents)} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
+                <StatCard icon={TrendingUp} title={t("adm_rpt_total_students", "Tổng học viên")} value={totals.totalStudents} formatter={formatNumber} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <StatCard icon={BookOpen} title={t("adm_rpt_courses", "Khóa học")} value={formatNumber(totals.totalCourses)} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
+                <StatCard icon={BookOpen} title={t("adm_rpt_courses", "Khóa học")} value={totals.totalCourses} formatter={formatNumber} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
               </div>
             </div>
           </div>
@@ -397,8 +397,8 @@ export default function AdminReportsPage() {
                 <YAxis stroke="#9ca3af" />
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 <Legend />
-                <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} name={t("adm_rpt_legend_revenue", "Doanh thu")} />
-                <Line type="monotone" dataKey="orders" stroke="#16a34a" strokeWidth={2} name={t("adm_rpt_legend_orders", "Đơn hàng")} />
+                <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} name={t("adm_rpt_legend_revenue", "Doanh thu")} isAnimationActive animationDuration={900} animationEasing="ease-out" />
+                <Line type="monotone" dataKey="orders" stroke="#16a34a" strokeWidth={2} name={t("adm_rpt_legend_orders", "Đơn hàng")} isAnimationActive animationDuration={900} animationEasing="ease-out" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -427,6 +427,9 @@ export default function AdminReportsPage() {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
+                  isAnimationActive
+                  animationDuration={900}
+                  animationEasing="ease-out"
                 >
                   {categoryData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -459,7 +462,7 @@ export default function AdminReportsPage() {
                 <YAxis stroke="#9ca3af" />
                 <Tooltip formatter={(value) => formatNumber(Number(value))} />
                 <Legend />
-                <Line type="monotone" dataKey="teachers" stroke="#8b5cf6" strokeWidth={2} name={t("adm_rpt_legend_teachers", "Giáo viên")} />
+                <Line type="monotone" dataKey="teachers" stroke="#8b5cf6" strokeWidth={2} name={t("adm_rpt_legend_teachers", "Giáo viên")} isAnimationActive animationDuration={900} animationEasing="ease-out" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -484,7 +487,7 @@ export default function AdminReportsPage() {
                 <YAxis stroke="#9ca3af" />
                 <Tooltip formatter={(value) => formatNumber(Number(value))} />
                 <Legend />
-                <Bar dataKey="students" fill="#06b6d4" name={t("adm_rpt_legend_students", "Học viên")} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="students" fill="#06b6d4" name={t("adm_rpt_legend_students", "Học viên")} radius={[8, 8, 0, 0]} isAnimationActive animationDuration={900} animationEasing="ease-out" />
               </BarChart>
             </ResponsiveContainer>
           </div>

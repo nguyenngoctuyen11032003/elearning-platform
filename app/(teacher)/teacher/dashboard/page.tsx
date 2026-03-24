@@ -152,7 +152,8 @@ export default function TeacherDashboard() {
                 <StatCard
                   icon={TrendingUp}
                   title={t("teacher_dashboard_total_revenue", "Tổng doanh thu")}
-                  value={`₫${formatPrice(stats?.totalRevenue ?? 0)}`}
+                  value={Number(stats?.totalRevenue ?? 0)}
+                  formatter={(val) => `₫${formatPrice(val)}`}
                   change={`+${stats?.revenueGrowth ?? 0}% ${t("teacher_dashboard_vs_previous", "so với kỳ trước")}`}
                 />
               </div>
@@ -160,7 +161,8 @@ export default function TeacherDashboard() {
                 <StatCard
                   icon={Users}
                   title={t("teacher_dashboard_students", "Học viên")}
-                  value={formatNumber(stats?.totalStudents ?? 0)}
+                  value={stats?.totalStudents ?? 0}
+                  formatter={formatNumber}
                   change={`+${stats?.studentGrowth ?? 0}% ${t("teacher_dashboard_vs_previous", "so với kỳ trước")}`}
                 />
               </div>
@@ -168,7 +170,8 @@ export default function TeacherDashboard() {
                 <StatCard
                   icon={BookOpen}
                   title={t("teacher_dashboard_courses", "Khóa học")}
-                  value={formatNumber(stats?.totalCourses ?? 0)}
+                  value={stats?.totalCourses ?? 0}
+                  formatter={formatNumber}
                   change={t("teacher_dashboard_active_courses", "Số khóa đang hoạt động")}
                 />
               </div>
@@ -176,7 +179,9 @@ export default function TeacherDashboard() {
                 <StatCard
                   icon={Star}
                   title={t("teacher_dashboard_average_rating", "Đánh giá trung bình")}
-                  value={`${(stats?.averageRating ?? 0).toFixed(1)}★`}
+                  value={Number(stats?.averageRating ?? 0)}
+                  decimals={1}
+                  suffix="★"
                   change={`${t("teacher_dashboard_from", "Từ")} ${formatNumber(stats?.totalStudents ?? 0)} ${t("teacher_dashboard_students", "học viên")}`}
                 />
               </div>
@@ -212,6 +217,9 @@ export default function TeacherDashboard() {
                     stroke="#2563eb"
                     strokeWidth={2}
                     dot={{ fill: "#2563eb" }}
+                    isAnimationActive
+                    animationDuration={900}
+                    animationEasing="ease-out"
                     name={t("teacher_dashboard_revenue", "Doanh thu")}
                   />
                 </LineChart>
@@ -238,7 +246,15 @@ export default function TeacherDashboard() {
                     }}
                   />
                   <Legend />
-                  <Bar dataKey="students" fill="#06b6d4" name={t("teacher_dashboard_new_students", "Học viên mới")} radius={[8, 8, 0, 0]} />
+                  <Bar
+                    dataKey="students"
+                    fill="#06b6d4"
+                    name={t("teacher_dashboard_new_students", "Học viên mới")}
+                    radius={[8, 8, 0, 0]}
+                    isAnimationActive
+                    animationDuration={900}
+                    animationEasing="ease-out"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -265,6 +281,9 @@ export default function TeacherDashboard() {
                       paddingAngle={3}
                       dataKey="value"
                       labelLine={false}
+                      isAnimationActive
+                      animationDuration={900}
+                      animationEasing="ease-out"
                     >
                       {pieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color || PIE_COLORS[index % PIE_COLORS.length]} />
@@ -332,6 +351,9 @@ export default function TeacherDashboard() {
                     fillOpacity={1}
                     fill="url(#colorRevenue)"
                     name={t("teacher_dashboard_actual", "Thực tế")}
+                    isAnimationActive
+                    animationDuration={900}
+                    animationEasing="ease-out"
                   />
                   <Area
                     type="monotone"
@@ -340,6 +362,9 @@ export default function TeacherDashboard() {
                     fillOpacity={1}
                     fill="url(#colorTarget)"
                     name={t("teacher_dashboard_target", "Mục tiêu")}
+                    isAnimationActive
+                    animationDuration={900}
+                    animationEasing="ease-out"
                   />
                 </AreaChart>
               </ResponsiveContainer>

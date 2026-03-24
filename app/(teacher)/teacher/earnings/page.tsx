@@ -7,7 +7,7 @@ import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import { StatCard } from "@/components/ui/stat-card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
-import { formatPrice, formatCurrencyByLanguage } from "@/lib/format"
+import { formatPrice, formatCurrencyByLanguage, formatNumber } from "@/lib/format"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
 
@@ -286,7 +286,8 @@ export default function TeacherEarningsPage() {
                 <StatCard 
                   icon={TrendingUp} 
                   title={t("teacher_dashboard_total_revenue", "Tổng doanh thu")}
-                  value={formatCurrencyByLanguage(totalRevenue, language)} 
+                  value={totalRevenue}
+                  formatter={(val) => formatCurrencyByLanguage(val, language)} 
                   change={t("teacher_analytics_completion_trend", "Cao hơn 12% so với tháng trước")}
                 />
               </div>
@@ -294,7 +295,8 @@ export default function TeacherEarningsPage() {
                 <StatCard 
                   icon={DollarSign} 
                   title={t("teacher_earnings_month_revenue", "Doanh thu tháng này")}
-                  value={formatCurrencyByLanguage(thisMonthRevenue, language)} 
+                  value={thisMonthRevenue}
+                  formatter={(val) => formatCurrencyByLanguage(val, language)} 
                   change={t("teacher_earnings_month_compare", "+8.2% so với tháng trước")}
                 />
               </div>
@@ -302,7 +304,8 @@ export default function TeacherEarningsPage() {
                 <StatCard 
                   icon={Users} 
                   title={t("teacher_earnings_new_students_month", "Học viên mới tháng này")}
-                  value={newStudentsCount.toString()} 
+                  value={newStudentsCount}
+                  formatter={formatNumber}
                   change={t("teacher_earnings_students_compare", "+5.1% so với tháng trước")}
                 />
               </div>
@@ -343,6 +346,9 @@ export default function TeacherEarningsPage() {
                 strokeWidth={2}
                 dot={{ fill: "#2563EB" }}
                 name={t("teacher_earnings_revenue_line", "Doanh thu")}
+                isAnimationActive
+                animationDuration={900}
+                animationEasing="ease-out"
               />
               <Line
                 type="monotone"
@@ -351,6 +357,9 @@ export default function TeacherEarningsPage() {
                 strokeWidth={2}
                 dot={{ fill: "#06B6D4" }}
                 name={t("teacher_dashboard_new_students", "Học viên mới")}
+                isAnimationActive
+                animationDuration={900}
+                animationEasing="ease-out"
               />
             </LineChart>
           </ResponsiveContainer>

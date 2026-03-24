@@ -20,7 +20,7 @@ import {
   Bar,
 } from "recharts"
 import { useState, useEffect } from "react"
-import { formatPrice, formatCurrency, formatCurrencyByLanguage } from "@/lib/format"
+import { formatPrice, formatCurrency, formatCurrencyByLanguage, formatNumber } from "@/lib/format"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { apiClient } from "@/lib/api/client"
 import { format } from "date-fns/format"
@@ -262,6 +262,7 @@ if (loading) {
   icon={UserCheck}
   title={t("adm_dash_total_teachers", "Tổng giáo viên")}
   value={stats?.totalTeachers || 0}
+  formatter={formatNumber}
   change={`+${stats?.teacherGrowth || 0}% ${t("adm_dash_vs_last_month", "so với tháng trước")}`}
 />
 
@@ -269,6 +270,7 @@ if (loading) {
   icon={Users}
   title={t("adm_dash_total_students", "Tổng học viên")}
   value={stats?.totalStudents || 0}
+  formatter={formatNumber}
   change={`+${stats?.studentGrowth || 0}% ${t("adm_dash_vs_last_month", "so với tháng trước")}`}
 />
 
@@ -276,12 +278,14 @@ if (loading) {
   icon={BookOpen}
   title={t("adm_dash_total_courses", "Tổng khóa học")}
   value={stats?.totalCourses || 0}
+  formatter={formatNumber}
   change={`+${stats?.courseGrowth || 0}% ${t("adm_dash_vs_last_month", "so với tháng trước")}`}
 />
 <StatCard
   icon={CreditCard}
   title={t("adm_dash_total_revenue", "Tổng doanh thu")}
-  value={formatCurrency(Math.round(Number(stats?.totalRevenue || 0)))}
+  value={Number(stats?.totalRevenue || 0)}
+  formatter={(val) => formatCurrency(Math.round(val))}
   change={`${stats?.revenueGrowth || 0}% ${t("adm_dash_vs_30_days", "so với 30 ngày trước")}`}
 />
 
@@ -327,6 +331,9 @@ if (loading) {
                   stroke="#2563eb"
                   fillOpacity={1}
                   fill="url(#colorRevenue)"
+                  isAnimationActive
+                  animationDuration={900}
+                  animationEasing="ease-out"
                   name={t("adm_dash_revenue", "Doanh thu")}
                 />
               </AreaChart>

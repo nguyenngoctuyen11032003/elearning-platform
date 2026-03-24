@@ -21,6 +21,7 @@ import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
 
 type DashboardCourse = {
   id: string
@@ -313,28 +314,32 @@ export default function StudentDashboardPage() {
       {
         icon: BookOpen,
         label: t("userdb_active_courses", "Khóa học đang học"),
-        value: stats.activeCourses.toString(),
+        value: stats.activeCourses,
+        formatter: (val: number) => Math.round(val).toLocaleString("vi-VN"),
         sublabel: `${stats.inProgress} ${t("userdb_in_progress", "đang diễn ra")}`,
         color: "bg-blue-500",
       },
       {
         icon: TrendingUp,
         label: t("userdb_avg_progress", "Tiến độ trung bình"),
-        value: `${stats.averageProgress}%`,
+        value: stats.averageProgress,
+        suffix: "%",
         sublabel: `${stats.completedCourses} ${t("userdb_completed_count", "đã hoàn thành")}`,
         color: "bg-purple-500",
       },
       {
         icon: Award,
         label: t("userdb_certs", "Chứng chỉ đạt được"),
-        value: stats.certificates.toString(),
+        value: stats.certificates,
+        formatter: (val: number) => Math.round(val).toLocaleString("vi-VN"),
         sublabel: `${stats.completedCourses} ${t("userdb_courses_done", "khóa hoàn tất")}`,
         color: "bg-green-500",
       },
       {
         icon: Clock,
         label: t("userdb_est_hours", "Giờ học ước tính"),
-        value: formatHours(stats.totalHours, t),
+        value: stats.totalHours,
+        formatter: (val: number) => formatHours(val, t),
         sublabel: `${stats.activeCourses} ${t("userdb_enrolled", "khóa đang theo học")}`,
         color: "bg-orange-500",
       },
@@ -383,12 +388,12 @@ export default function StudentDashboardPage() {
             <div className="flex items-center gap-3 flex-wrap">
               <div className="text-center px-4 py-2 sm:px-6 sm:py-3 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl">
                 <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500 mx-auto mb-1 drop-shadow" />
-                <p className="text-xl sm:text-2xl font-bold text-white drop-shadow">{stats.streakDays}</p>
+                <p className="text-xl sm:text-2xl font-bold text-white drop-shadow"><AnimatedNumber value={stats.streakDays} /></p>
                 <p className="text-[10px] sm:text-xs text-black/70 dark:text-white/80 drop-shadow whitespace-nowrap">{t("userdb_recent_days", "Ngày gần đây")}</p>
               </div>
               <div className="text-center px-4 py-2 sm:px-6 sm:py-3 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl">
                 <Target className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 mx-auto mb-1 drop-shadow" />
-                <p className="text-xl sm:text-2xl font-bold text-white drop-shadow">{stats.weeklyGoal}%</p>
+                <p className="text-xl sm:text-2xl font-bold text-white drop-shadow"><AnimatedNumber value={stats.weeklyGoal} suffix="%" /></p>
                 <p className="text-[10px] sm:text-xs text-black/70 dark:text-white/80 drop-shadow whitespace-nowrap">{t("userdb_weekly_goal", "Mục tiêu tuần")}</p>
               </div>
             </div>
@@ -405,7 +410,9 @@ export default function StudentDashboardPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] sm:text-xs xl:text-sm text-black/70 dark:text-white/80 mb-0.5 sm:mb-1 drop-shadow">{stat.label}</p>
-                  <p className="text-lg sm:text-xl xl:text-2xl font-bold text-white drop-shadow">{stat.value}</p>
+                  <p className="text-lg sm:text-xl xl:text-2xl font-bold text-white drop-shadow">
+                    <AnimatedNumber value={stat.value} formatter={stat.formatter} suffix={stat.suffix} />
+                  </p>
                   <p className="text-[9px] sm:text-[10px] xl:text-xs text-green-600 dark:text-green-400 mt-0.5 sm:mt-1 drop-shadow">{stat.sublabel}</p>
                 </div>
               </div>

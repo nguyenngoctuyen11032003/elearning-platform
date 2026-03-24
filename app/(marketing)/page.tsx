@@ -15,6 +15,7 @@ import { apiClient } from "@/lib/api/client"
 import { motion } from "framer-motion"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { autoTranslateData } from "@/lib/i18n/dynamic-translate"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
 
 const testimonials = [
   {
@@ -342,15 +343,21 @@ export default function Home() {
                 className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 pt-8 border-t border-slate-200 dark:border-slate-800"
               >
                 <div className="text-center sm:text-left">
-                  <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">15K+</p>
+                  <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                    <AnimatedNumber value={15000} formatter={(val) => `${Math.round(val / 1000)}K+`} />
+                  </p>
                   <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">{t("home_stat_students", "Học viên")}</p>
                 </div>
                 <div className="text-center sm:text-left">
-                  <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">500+</p>
+                  <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    <AnimatedNumber value={500} formatter={(val) => `${Math.round(val)}+`} />
+                  </p>
                   <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">{t("home_stat_courses", "Khóa học")}</p>
                 </div>
                 <div className="text-center sm:text-left">
-                  <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">98%</p>
+                  <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                    <AnimatedNumber value={98} suffix="%" />
+                  </p>
                   <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">{t("home_stat_satisfied", "Hài lòng")}</p>
                 </div>
               </motion.div>
