@@ -1,6 +1,6 @@
 "use client"
 
-import { Plus, Edit2, Trash2, Eye, MoreVertical, Search, BookOpen, Users, DollarSign, Clock, CheckCircle, XCircle, Send, AlertCircle, Video, FileText } from "lucide-react"
+import { Plus, Edit2, Trash2, Eye, MoreVertical, Search, BookOpen, Users, DollarSign, Clock, CheckCircle, XCircle, Send, AlertCircle, Video, FileText, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -9,6 +9,7 @@ import { authFetch } from "@/lib/authfetch"
 import { createPortal } from "react-dom"
 import React from "react"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { ScientificText } from "@/components/scientific-text"
 interface Course {
   id: string
   title: string
@@ -54,12 +55,22 @@ interface LessonPreview {
   id: string
   title: string
   videoUrl?: string
-  documentUrl?: string
-  documentName?: string
+  documents?: Array<{ url: string; name?: string }>
   quizQuestions?: { question: string; options?: string[]; type?: string; correctAnswer?: number; correctAnswers?: number[] }[]
 }
 
-function parseFirstResource(resources: unknown): { url: string; name?: string } | null {
+interface CourseStudentProgress {
+  studentId: string
+  studentName: string
+  studentEmail: string
+  progress: number
+  scorePercentage: number | null
+  gradedAssignments: number
+  submittedAssignments: number
+  totalAssignments: number
+}
+
+function parseLessonResources(resources: unknown): Array<{ url: string; name?: string }> {
   let normalized: unknown = resources
   let attempts = 0
 
@@ -67,7 +78,7 @@ function parseFirstResource(resources: unknown): { url: string; name?: string } 
     try {
       normalized = JSON.parse(normalized)
     } catch {
-      return null
+      return []
     }
     attempts += 1
   }
@@ -78,11 +89,12 @@ function parseFirstResource(resources: unknown): { url: string; name?: string } 
     ? [normalized]
     : []
 
+  const documents: Array<{ url: string; name?: string }> = []
   for (const item of list) {
     if (item && typeof item === "object" && !Array.isArray(item)) {
       const url = (item as Record<string, unknown>).url
       if (typeof url === "string" && url) {
-        return item as { url: string; name?: string }
+        documents.push(item as { url: string; name?: string })
       }
     }
     if (Array.isArray(item)) {
@@ -90,14 +102,14 @@ function parseFirstResource(resources: unknown): { url: string; name?: string } 
         if (nested && typeof nested === "object" && !Array.isArray(nested)) {
           const url = (nested as Record<string, unknown>).url
           if (typeof url === "string" && url) {
-            return nested as { url: string; name?: string }
+            documents.push(nested as { url: string; name?: string })
           }
         }
       }
     }
   }
 
-  return null
+  return documents
 }
 const InfoItem = ({ icon, label, value }: any) => (
   <div className="bg-secondary rounded-xl p-3 text-center">
@@ -121,6 +133,14 @@ export default function TeacherCoursesPage() {
   const [menuAnchorId, setMenuAnchorId] = useState<string | null>(null)
   const [selectedCourseLessons, setSelectedCourseLessons] = useState<LessonPreview[]>([])
   const [isLessonsLoading, setIsLessonsLoading] = useState(false)
+  const [showStudentsProgressModal, setShowStudentsProgressModal] = useState(false)
+  const [studentsProgressLoading, setStudentsProgressLoading] = useState(false)
+  const [courseStudentsProgress, setCourseStudentsProgress] = useState<CourseStudentProgress[]>([])
+  const [studentsProgressSummary, setStudentsProgressSummary] = useState<{
+    averageProgress: number
+    averageScore: number
+    totalStudents: number
+  } | null>(null)
   const menuButtonRefs = React.useRef<Map<string, React.RefObject<HTMLButtonElement>>>(new Map());
 
   const normalizeList = (data: any): BackendCourse[] => {
@@ -216,15 +236,14 @@ export default function TeacherCoursesPage() {
           return acc
         }, {})
         const mapped = list.map((lesson) => {
-          const firstRes = parseFirstResource(lesson.resources)
+          const documents = parseLessonResources(lesson.resources)
           const linkedQuiz = quizByLesson[lesson.id]
           const questions = Array.isArray(linkedQuiz?.questions) ? linkedQuiz.questions : []
           return {
             id: lesson.id,
             title: lesson.title,
             videoUrl: lesson.videoUrl,
-            documentUrl: firstRes?.url,
-            documentName: firstRes?.name,
+            documents,
             quizQuestions: questions.map((q: Record<string, unknown>) => ({
               question: (q.question as string) || "",
               options: Array.isArray(q.options) ? (q.options as string[]) : undefined,
@@ -270,6 +289,8 @@ export default function TeacherCoursesPage() {
     setMenuOpenId(null)
   }
 
+  const canEditCourse = (status: Course["status"]) => status !== "approved"
+
   const handleDeleteClick = (course: Course) => {
     setSelectedCourse(course)
     setViewMode("delete")
@@ -305,6 +326,51 @@ export default function TeacherCoursesPage() {
       console.error("Error submitting course:", error)
     } finally {
       setMenuOpenId(null)
+    }
+  }
+
+  const handleViewStudentsProgress = async (course: Course) => {
+    setSelectedCourse(course)
+    setShowStudentsProgressModal(true)
+    setStudentsProgressLoading(true)
+    setCourseStudentsProgress([])
+    setStudentsProgressSummary(null)
+    setMenuOpenId(null)
+    setMenuCourse(null)
+    setMenuRect(null)
+    setMenuAnchorId(null)
+
+    try {
+      const response = await authFetch(`/teacher/courses/${course.id}/students-progress`)
+      if (!response.ok) {
+        throw new Error(t("tc_students_progress_load_failed", "Không thể tải tiến độ và điểm của học viên"))
+      }
+      const json = await response.json()
+      const payload = json?.data ?? json
+      const students = Array.isArray(payload?.students) ? payload.students : []
+      setCourseStudentsProgress(
+        students.map((item: any) => ({
+          studentId: String(item.studentId || ""),
+          studentName: String(item.studentName || "N/A"),
+          studentEmail: String(item.studentEmail || ""),
+          progress: Number(item.progress || 0),
+          scorePercentage: typeof item.scorePercentage === "number" ? Number(item.scorePercentage) : null,
+          gradedAssignments: Number(item.gradedAssignments || 0),
+          submittedAssignments: Number(item.submittedAssignments || 0),
+          totalAssignments: Number(item.totalAssignments || 0),
+        })),
+      )
+      setStudentsProgressSummary({
+        averageProgress: Number(payload?.summary?.averageProgress || 0),
+        averageScore: Number(payload?.summary?.averageScore || 0),
+        totalStudents: Number(payload?.summary?.totalStudents || students.length || 0),
+      })
+    } catch (error) {
+      console.error("Error loading students progress:", error)
+      setCourseStudentsProgress([])
+      setStudentsProgressSummary({ averageProgress: 0, averageScore: 0, totalStudents: 0 })
+    } finally {
+      setStudentsProgressLoading(false)
     }
   }
 
@@ -635,17 +701,18 @@ useEffect(() => {
                     <Video size={12} /> Video
                   </a>
                 )}
-                {lesson.documentUrl && (
+                {(lesson.documents || []).map((doc, docIdx) => (
                   <a
-                    href={lesson.documentUrl}
+                    key={`${lesson.id}-doc-${docIdx}`}
+                    href={doc.url}
                     target="_blank"
                     rel="noreferrer"
-                    download={lesson.documentName || true}
+                    download={doc.name || true}
                     className="inline-flex items-center gap-1 rounded-md bg-red-500/10 px-2 py-1 text-[11px] text-red-600"
                   >
-                    <FileText size={12} /> {lesson.documentName || t("tc_document", "Tài liệu")}
+                    <FileText size={12} /> {doc.name || t("tc_document", "Tài liệu")}
                   </a>
-                )}
+                ))}
                 {lesson.quizQuestions && lesson.quizQuestions.length > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600">
                      {lesson.quizQuestions.length} {t("tc_questions", "câu hỏi")}
@@ -657,7 +724,7 @@ useEffect(() => {
                   {lesson.quizQuestions.map((quiz, qIdx) => (
                     <div key={`${lesson.id}-quiz-${qIdx}`}>
                       <p className="text-[11px] font-semibold text-foreground">
-                        {qIdx + 1}. {quiz.question || t("tc_no_content", "(Chưa có nội dung)")}
+                        {qIdx + 1}. <ScientificText text={quiz.question || t("tc_no_content", "(Chưa có nội dung)")} />
                       </p>
                       <p className="text-[10px] text-muted-foreground">
                         {quiz.type === "true-false"
@@ -681,7 +748,9 @@ useEffect(() => {
                                   readOnly
                                   className="h-3 w-3"
                                 />
-                                <span className={isCorrect ? "font-semibold text-foreground" : undefined}>{opt}</span>
+                                <span className={isCorrect ? "font-semibold text-foreground" : undefined}>
+                                  <ScientificText text={opt} />
+                                </span>
                               </label>
                             )
                           })}
@@ -699,12 +768,14 @@ useEffect(() => {
 
     {/* Actions */}
     <div className="flex gap-2">
-      <button
-        onClick={() => handleEdit(course.id)}
-        className="flex-1 py-2 rounded-lg bg-background border text-sm"
-      >
-        {t("tc_edit", "Chỉnh sửa")}
-      </button>
+      {canEditCourse(course.status) && (
+        <button
+          onClick={() => handleEdit(course.id)}
+          className="flex-1 py-2 rounded-lg bg-background border text-sm"
+        >
+          {t("tc_edit", "Chỉnh sửa")}
+        </button>
+      )}
 
       {(course.status === "draft" || course.status === "rejected") && (
         <button
@@ -846,12 +917,33 @@ useEffect(() => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                handleEdit(course.id)
+                                handleViewStudentsProgress(course)
                               }}
                               className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
                             >
-                              <Edit2 size={16} /> {t("tc_edit", "Chỉnh sửa")}
+                              <BarChart3 size={16} /> {t("tc_view_students_progress_score", "Xem điểm & tiến độ")}
                             </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/teacher/assignments?courseId=${course.id}`)
+                                setMenuOpenId(null)
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
+                            >
+                              <FileText size={16} /> {t("tc_grade_writing", "Chấm writing")}
+                            </button>
+                            {canEditCourse(course.status) && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleEdit(course.id)
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
+                              >
+                                <Edit2 size={16} /> {t("tc_edit", "Chỉnh sửa")}
+                              </button>
+                            )}
                             {course.status === "draft" && (
                               <button
                                 onClick={(e) => {
@@ -904,7 +996,6 @@ useEffect(() => {
 
       {/* View Course Detail Modal */}
       {viewMode === "view" && selectedCourse && (
-        <div className="hidden xl:flex fixed inset-0 bg-black/60 z-[9999] items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4 p-4 border-b border-border dark:border-slate-800">
@@ -995,17 +1086,18 @@ useEffect(() => {
                               <Video size={14} /> Video
                             </a>
                           )}
-                          {lesson.documentUrl && (
+                          {(lesson.documents || []).map((doc, docIdx) => (
                             <a
-                              href={lesson.documentUrl}
+                              key={`${lesson.id}-doc-modal-${docIdx}`}
+                              href={doc.url}
                               target="_blank"
                               rel="noreferrer"
-                              download={lesson.documentName || true}
+                              download={doc.name || true}
                               className="inline-flex items-center gap-1 rounded-md bg-red-500/10 dark:bg-red-500/20 px-2 py-1 text-xs text-red-600 dark:text-red-400"
                             >
-                              <FileText size={14} /> {lesson.documentName || t("tc_document", "Tài liệu")}
+                              <FileText size={14} /> {doc.name || t("tc_document", "Tài liệu")}
                             </a>
-                          )}
+                          ))}
                         </div>
                       </div>
                     ))}
@@ -1035,13 +1127,103 @@ useEffect(() => {
             </div>
           </div>
         </div>
+      )}
+
+      {showStudentsProgressModal && selectedCourse && (
+        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-border dark:border-slate-800 sticky top-0 bg-card dark:bg-slate-900">
+              <div>
+                <h2 className="text-xl font-bold text-foreground dark:text-white">
+                  {t("tc_students_progress_title", "Tiến độ & điểm học viên")}
+                </h2>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{selectedCourse.title}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowStudentsProgressModal(false)
+                  setCourseStudentsProgress([])
+                  setStudentsProgressSummary(null)
+                }}
+                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+              >
+                <XCircle size={20} className="text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="rounded-xl border border-border dark:border-slate-800 bg-secondary/40 dark:bg-slate-800/30 p-3">
+                  <p className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_total_students", "Tổng học viên")}</p>
+                  <p className="text-xl font-bold text-foreground dark:text-white">{studentsProgressSummary?.totalStudents ?? 0}</p>
+                </div>
+                <div className="rounded-xl border border-border dark:border-slate-800 bg-secondary/40 dark:bg-slate-800/30 p-3">
+                  <p className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_avg_progress", "Tiến độ trung bình")}</p>
+                  <p className="text-xl font-bold text-foreground dark:text-white">{studentsProgressSummary?.averageProgress ?? 0}%</p>
+                </div>
+                <div className="rounded-xl border border-border dark:border-slate-800 bg-secondary/40 dark:bg-slate-800/30 p-3">
+                  <p className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_avg_writing_score", "Điểm writing trung bình")}</p>
+                  <p className="text-xl font-bold text-foreground dark:text-white">{studentsProgressSummary?.averageScore ?? 0}%</p>
+                </div>
+              </div>
+
+              {studentsProgressLoading ? (
+                <p className="text-sm text-muted-foreground dark:text-slate-400 py-8 text-center">
+                  {t("tc_loading_students_progress", "Đang tải dữ liệu học viên...")}
+                </p>
+              ) : courseStudentsProgress.length === 0 ? (
+                <p className="text-sm text-muted-foreground dark:text-slate-400 py-8 text-center">
+                  {t("tc_no_students_progress", "Chưa có dữ liệu học viên cho khóa học này")}
+                </p>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-border dark:border-slate-800">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-secondary dark:bg-slate-800/50 border-b border-border dark:border-slate-800">
+                        <th className="text-left px-4 py-3 font-semibold text-foreground dark:text-white">{t("tc_student", "Học viên")}</th>
+                        <th className="text-left px-4 py-3 font-semibold text-foreground dark:text-white">{t("tc_progress", "Tiến độ")}</th>
+                        <th className="text-left px-4 py-3 font-semibold text-foreground dark:text-white">{t("tc_writing_score", "Điểm writing")}</th>
+                        <th className="text-left px-4 py-3 font-semibold text-foreground dark:text-white">{t("tc_writing_submission", "Bài writing")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {courseStudentsProgress.map((student) => (
+                        <tr key={student.studentId} className="border-b border-border dark:border-slate-800/70 last:border-b-0">
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-foreground dark:text-white">{student.studentName}</p>
+                            <p className="text-xs text-muted-foreground dark:text-slate-400">{student.studentEmail}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="w-36">
+                              <div className="h-2 rounded-full bg-secondary dark:bg-slate-800 overflow-hidden">
+                                <div
+                                  className="h-full bg-primary rounded-full"
+                                  style={{ width: `${Math.max(0, Math.min(100, student.progress))}%` }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">{student.progress}%</p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-foreground dark:text-white font-medium">
+                            {typeof student.scorePercentage === "number" ? `${student.scorePercentage}%` : t("tc_not_graded_yet", "Chưa có điểm")}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground dark:text-slate-400">
+                            {student.submittedAssignments}/{student.totalAssignments} • {t("tc_graded_short", "Đã chấm")}: {student.gradedAssignments}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
       {/* Delete Confirmation Modal */}
       {viewMode === "delete" && selectedCourse && (
-        <div className="hidden xl:flex fixed inset-0 bg-black/0 z-[9999] items-center justify-center p-4">
-        <div className="xl:flex inset-0 bg-black/0 z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
           <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full">
             <div className="p-6 text-center">
               <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1068,8 +1250,7 @@ useEffect(() => {
             </div>
           </div>
         </div>
-        </div>
-      )}    
+      )}
 {menuCourse && menuRect && typeof window !== "undefined" &&
   (() => {
     // Find the card element
@@ -1102,13 +1283,33 @@ useEffect(() => {
           </button>
           <button
             onClick={() => {
-              handleEdit(menuCourse.id)
+              handleViewStudentsProgress(menuCourse)
               setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
             }}
             className="w-full px-4 py-4 flex items-center gap-3 hover:bg-secondary"
           >
-            <Edit2 size={18} /> {t("tc_edit", "Chỉnh sửa")}
+            <BarChart3 size={18} /> {t("tc_view_students_progress_score", "Xem điểm & tiến độ")}
           </button>
+          <button
+            onClick={() => {
+              router.push(`/teacher/assignments?courseId=${menuCourse.id}`)
+              setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
+            }}
+            className="w-full px-4 py-4 flex items-center gap-3 hover:bg-secondary"
+          >
+            <FileText size={18} /> {t("tc_grade_writing", "Chấm writing")}
+          </button>
+          {canEditCourse(menuCourse.status) && (
+            <button
+              onClick={() => {
+                handleEdit(menuCourse.id)
+                setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
+              }}
+              className="w-full px-4 py-4 flex items-center gap-3 hover:bg-secondary"
+            >
+              <Edit2 size={18} /> {t("tc_edit", "Chỉnh sửa")}
+            </button>
+          )}
           {(menuCourse.status === "draft" || menuCourse.status === "rejected") && (
             <button
               onClick={() => {

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
+import { ScientificText } from "@/components/scientific-text"
 
 interface ExamQuestion {
   id: string
@@ -418,7 +419,7 @@ export default function TakeExamPage() {
         {safeQuestions.map((q, idx) => (
           <div key={q.id} className="rounded-xl border bg-card p-4">
             <p className="mb-2 font-medium whitespace-pre-wrap break-words leading-relaxed">
-              Câu {idx + 1}: {q.question}
+              Câu {idx + 1}: <ScientificText text={q.question} />
             </p>
             {q.image && (
               <img
@@ -459,7 +460,13 @@ export default function TakeExamPage() {
                       {String.fromCharCode(65 + optIdx)}
                     </span>
                     <div className="min-w-0">
-                      {optionPayload.text && <span className="whitespace-pre-wrap break-words">{optionPayload.text}</span>}
+                      {optionPayload.text && (
+                        <ScientificText
+                          as="span"
+                          className="whitespace-pre-wrap break-words"
+                          text={optionPayload.text}
+                        />
+                      )}
                       {optionPayload.image && (
                         <img
                           src={optionPayload.image}
@@ -488,7 +495,13 @@ export default function TakeExamPage() {
                       {String.fromCharCode(65 + optIdx)}
                     </span>
                     <div className="min-w-0">
-                      {optionPayload.text && <span className="whitespace-pre-wrap break-words">{optionPayload.text}</span>}
+                      {optionPayload.text && (
+                        <ScientificText
+                          as="span"
+                          className="whitespace-pre-wrap break-words"
+                          text={optionPayload.text}
+                        />
+                      )}
                       {optionPayload.image && (
                         <img
                           src={optionPayload.image}

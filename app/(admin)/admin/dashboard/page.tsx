@@ -20,7 +20,7 @@ import {
   Bar,
 } from "recharts"
 import { useState, useEffect } from "react"
-import { formatPrice, formatCurrency, formatCurrencyByLanguage } from "@/lib/format"
+import { formatPrice, formatCurrency, formatCurrencyByLanguage, formatDateSafe } from "@/lib/format"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { apiClient } from "@/lib/api/client"
 import { format } from "date-fns/format"
@@ -64,7 +64,17 @@ function buildRevenueChart(transactions: { createdAt: string; amount: number }[]
   const revenueMap = new Map<string, number>()
 
   transactions.forEach((tx) => {
-    const day = format(new Date(tx.createdAt), "d MMM") // ví dụ: 29 Jan
+    let day = 'Unknown'
+    if (tx.createdAt) {
+      try {
+        const date = new Date(tx.createdAt);
+        if (!isNaN(date.getTime())) {
+          day = format(date, "d MMM"); // ví dụ: 29 Jan
+        }
+      } catch {
+        day = 'Unknown';
+      }
+    }
     const amount = Number(tx.amount)
 
     revenueMap.set(day, (revenueMap.get(day) || 0) + amount)
@@ -141,13 +151,24 @@ useEffect(() => {
       /* ================== GROWTH CHART ================== */
       setGrowthData(
         Array.isArray(dashboard.growthChart)
-          ? dashboard.growthChart.map((item: any) => ({
-              month: item.month?.length === 7
-                ? format(new Date(`${item.month}-01`), "MM/yyyy")
-                : item.month,
-              teachers: Number(item.teachers ?? 0),
-              students: Number(item.students ?? 0),
-            }))
+          ? dashboard.growthChart.map((item: any) => {
+              let month = item.month || '';
+              if (item.month?.length === 7 && item.month) {
+                try {
+                  const date = new Date(`${item.month}-01`);
+                  if (!isNaN(date.getTime())) {
+                    month = format(date, "MM/yyyy");
+                  }
+                } catch {
+                  month = item.month;
+                }
+              }
+              return {
+                month,
+                teachers: Number(item.teachers ?? 0),
+                students: Number(item.students ?? 0),
+              };
+            })
           : []
       )
 

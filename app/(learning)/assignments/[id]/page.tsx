@@ -25,10 +25,15 @@ interface MySubmission {
   status?: string;
   score?: number;
   feedback?: string;
-  attachments?: string[];
+  attachments?: Array<string | SubmissionAttachment>;
   gradingDetails?: string;
   submittedAt?: string;
   gradedAt?: string;
+}
+
+interface SubmissionAttachment {
+  url: string;
+  name?: string;
 }
 
 interface WritingLevel {
@@ -117,6 +122,38 @@ function parseGradingDetails(value?: string): GradingDetailItem[] {
   }
 }
 
+function normalizeSubmissionAttachments(
+  attachments: unknown,
+): SubmissionAttachment[] {
+  if (!Array.isArray(attachments)) return [];
+
+  return attachments
+    .map((item) => {
+      if (typeof item === 'string') {
+        const url = item.trim();
+        if (!url) return null;
+        return { url };
+      }
+
+      if (!item || typeof item !== 'object') return null;
+      const typed = item as Record<string, unknown>;
+      const url = String(typed.url || '').trim();
+      if (!url) return null;
+
+      const name = String(typed.name || typed.filename || '').trim();
+      return name ? { url, name } : { url };
+    })
+    .filter(
+      (item): item is SubmissionAttachment =>
+        Boolean(item && typeof item.url === 'string' && item.url.length > 0),
+    );
+}
+
+function getAttachmentLabel(attachment: SubmissionAttachment): string {
+  if (attachment.name) return attachment.name;
+  return attachment.url.split('/').pop() || attachment.url;
+}
+
 function formatTimeRemaining(dueAt?: Date | null, submittedAt?: Date | null, t?: (key: string, fallback: string) => string): string {
   const tr = t || ((k: string, f: string) => f);
   if (!dueAt) return tr('asgn_no_time_limit', 'Không giới hạn thời gian');
@@ -153,7 +190,7 @@ export default function StudentAssignmentDetailPage() {
   const [assignment, setAssignment] = useState<AssignmentDetail | null>(null);
   const [mySubmission, setMySubmission] = useState<MySubmission | null>(null);
   const [content, setContent] = useState('');
-  const [attachments, setAttachments] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<SubmissionAttachment[]>([]);
 
   const criteria = useMemo(
     () => parseCriteria(assignment?.instructions, assignment?.maxScore ?? 100),
@@ -191,14 +228,14 @@ export default function StudentAssignmentDetailPage() {
       const normalizedSubmission = mySubmissionData
         ? {
             ...mySubmissionData,
-            attachments: Array.isArray(mySubmissionData.attachments) ? mySubmissionData.attachments : [],
+            attachments: normalizeSubmissionAttachments(mySubmissionData.attachments),
           }
         : null;
       setMySubmission(normalizedSubmission);
       if (normalizedSubmission?.content) {
         setContent(String(normalizedSubmission.content));
       }
-      setAttachments(Array.isArray(normalizedSubmission?.attachments) ? normalizedSubmission.attachments : []);
+      setAttachments(normalizedSubmission?.attachments || []);
     } catch (error) {
       console.error('Failed to load assignment detail:', error);
       toast.error(t('asgn_load_detail_failed', 'Unable to load writing assignment details'));
@@ -216,7 +253,7 @@ export default function StudentAssignmentDetailPage() {
     try {
       setUploading(true);
       const uploaded = await apiClient.uploadDocument(file);
-      setAttachments((prev) => [...prev, uploaded.url]);
+      setAttachments((prev) => [...prev, { url: uploaded.url, name: file.name }]);
       toast.success(t('asgn_upload_success', 'File uploaded successfully'));
     } catch (error) {
       const message = error instanceof Error ? error.message : t('asgn_upload_failed', 'Unable to upload file');
@@ -351,15 +388,15 @@ export default function StudentAssignmentDetailPage() {
                     <td className="px-4 py-4 font-semibold text-foreground">File submissions</td>
                     <td className="px-4 py-4">
                       <div className="space-y-2">
-                        {attachments.map((url) => (
+                        {attachments.map((attachment) => (
                           <a
-                            key={url}
-                            href={url}
+                            key={`${attachment.url}-${attachment.name || ''}`}
+                            href={attachment.url}
                             target="_blank"
                             rel="noreferrer"
                             className="block text-pink-500 hover:underline"
                           >
-                            {url.split('/').pop() || url}
+                            {getAttachmentLabel(attachment)}
                           </a>
                         ))}
                       </div>
@@ -401,7 +438,7 @@ export default function StudentAssignmentDetailPage() {
         <div className="rounded-2xl border border-border bg-card p-5 md:p-6 space-y-4">
           <div className="flex items-center gap-2">
             <FileText size={18} className="text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Bài làm của bạn</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('asgn_your_submission', 'Bài làm của bạn')}</h2>
           </div>
 
           <textarea
@@ -431,15 +468,25 @@ export default function StudentAssignmentDetailPage() {
               {uploading && <p className="text-xs text-muted-foreground">Đang upload file...</p>}
               {attachments.length > 0 && (
                 <div className="space-y-2">
-                  {attachments.map((url) => (
-                    <div key={url} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
-                      <a href={url} target="_blank" rel="noreferrer" className="truncate text-sm text-blue-600 hover:underline">
-                        {url.split('/').pop() || url}
+                  {attachments.map((attachment) => (
+                    <div key={`${attachment.url}-${attachment.name || ''}`} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                      <a href={attachment.url} target="_blank" rel="noreferrer" className="truncate text-sm text-blue-600 hover:underline">
+                        {getAttachmentLabel(attachment)}
                       </a>
                       <button
                         type="button"
                         className="text-xs text-red-500"
-                        onClick={() => setAttachments((prev) => prev.filter((item) => item !== url))}
+                        onClick={() =>
+                          setAttachments((prev) =>
+                            prev.filter(
+                              (item) =>
+                                !(
+                                  item.url === attachment.url &&
+                                  (item.name || '') === (attachment.name || '')
+                                ),
+                            ),
+                          )
+                        }
                       >
                         {t('asgn_delete', 'Xóa')}
                       </button>

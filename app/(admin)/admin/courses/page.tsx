@@ -94,7 +94,7 @@ export default function AdminCoursesPage() {
       (statusFilter === "all" || course.status === statusFilter),
   )
 
-  const canModerateCourse = (status: Course["status"]) => status === "pending" || status === "draft"
+  const canModerateCourse = (status: Course["status"]) => status === "pending"
 
   // Stats
   const totalCourses = courses.length
@@ -306,7 +306,6 @@ export default function AdminCoursesPage() {
           <div className="flex gap-2 flex-wrap">
             {[
               { value: "all", label: t("adm_courses_all", "Tất cả") },
-              { value: "draft", label: t("adm_courses_draft", "Nháp") },
               { value: "pending", label: t("adm_courses_pending", "Chờ duyệt") },
               { value: "published", label: t("adm_courses_approved_label", "Đã duyệt") },
               { value: "rejected", label: t("adm_courses_rejected_label", "Từ chối") },
@@ -381,28 +380,13 @@ export default function AdminCoursesPage() {
                     <td className="py-4 px-6 text-muted-foreground dark:text-slate-400" data-label={t("adm_courses_col_date", "Ngày tạo")}>{formatDate(course.createdAt)}</td>
                     <td className="py-4 px-6 relative">
                       <div className="flex items-center gap-2">
-                        {canModerateCourse(course.status) && (
-                          <button
-                            onClick={() => handleCourseAction("approve", course.id, course)}
-                            className="px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-700 dark:text-green-400 rounded-lg transition-colors text-sm font-medium"
-                          >
-                            {t("adm_courses_approve", "Duyệt khóa học")}
-                          </button>
-                        )}
-                        {canModerateCourse(course.status) && (
-                          <button
-                            onClick={() => handleCourseAction("reject", course.id, course)}
-                            className="px-3 py-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 rounded-lg transition-colors text-sm font-medium"
-                          >
-                            {t("adm_courses_rejected_label", "Từ chối")}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleCourseAction("view", course.id, course)}
-                          className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary dark:text-accent rounded-lg transition-colors text-sm font-medium"
+                        <Link
+                          href={`/admin/courses/${course.id}`}
+                          className="p-2 hover:bg-blue-500/20 dark:hover:bg-blue-500/20 rounded-lg transition-smooth text-blue-600 dark:text-blue-400"
+                          title={t("adm_courses_view_details", "Xem chi tiết khóa học")}
                         >
-                          {t("adm_courses_preview", "Xem trước")}
-                        </button>
+                          <Eye size={18} />
+                        </Link>
                         <button
                           onClick={e => {
                             const rect = e.currentTarget.getBoundingClientRect();
@@ -479,28 +463,14 @@ export default function AdminCoursesPage() {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  {canModerateCourse(course.status) && (
-                    <button
-                      className="flex-1 bg-green-500/20 text-green-300 py-2 rounded-lg"
-                      onClick={() => handleCourseAction("approve", course.id, course)}
-                    >
-                      {t("adm_courses_approve", "Duyệt khóa học")}
-                    </button>
-                  )}
-                  {canModerateCourse(course.status) && (
-                    <button
-                      className="flex-1 bg-yellow-500/20 text-yellow-300 py-2 rounded-lg"
-                      onClick={() => handleCourseAction("reject", course.id, course)}
-                    >
-                      {t("adm_courses_rejected_label", "Từ chối")}
-                    </button>
-                  )}
-                  <button
-                    className="flex-1 bg-primary/20 text-primary py-2 rounded-lg"
-                    onClick={() => handleCourseAction("view", course.id, course)}
+                  <Link
+                    href={`/admin/courses/${course.id}`}
+                    className="flex-1 bg-blue-500/20 text-blue-300 py-2 rounded-lg flex items-center justify-center gap-1"
+                    title={t("adm_courses_view_details", "Xem chi tiết khóa học")}
                   >
-                    {t("adm_courses_preview", "Xem trước")}
-                  </button>
+                    <Eye size={16} />
+                    {t("adm_courses_view_details", "Chi tiết")}
+                  </Link>
                   <button
                     className="p-2 bg-slate-700 rounded-lg"
                     onClick={e => {
@@ -541,17 +511,6 @@ export default function AdminCoursesPage() {
           >
             <Eye size={16} /> <span className="font-medium">{t("adm_courses_full_detail", "Chi tiết đầy đủ")}</span>
           </Link>
-          <button
-            onClick={() => {
-              const course = filteredCourses.find(c => c.id === openMenu);
-              if (course) handleCourseAction("edit", course.id, course);
-              setOpenMenu(null);
-              setMenuPos(null);
-            }}
-            className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white border-t border-border dark:border-slate-800"
-          >
-            <Edit size={16} /> <span className="font-medium">{t("adm_courses_edit", "Chỉnh sửa")}</span>
-          </button>
           {(() => {
             const course = filteredCourses.find(c => c.id === openMenu);
             if (course && canModerateCourse(course.status)) return <>
@@ -707,7 +666,7 @@ export default function AdminCoursesPage() {
               </div>
 
               {/* Actions */}
-              {(selectedCourse.status === "pending" || selectedCourse.status === "draft") && (
+              {selectedCourse.status === "pending" && (
                 <div className="flex gap-3 pt-4 border-t border-border dark:border-slate-800">
                   <button
                     onClick={() => {
@@ -885,8 +844,8 @@ export default function AdminCoursesPage() {
         title={confirmDialog.action === "approve" ? t("adm_courses_approve", "Duyệt khóa học") : t("adm_courses_delete", "Xóa khóa học")}
         message={
           confirmDialog.action === "approve"
-            ? t("adm_courses_confirm_approve_msg", `Bạn có chắc chắn muốn duyệt khóa học "${selectedCourse?.title}" không? Khóa học sẽ được công khai và học viên có thể đăng ký.`)
-            : t("adm_courses_confirm_delete_msg", `Bạn có chắc chắn muốn xóa khóa học "${selectedCourse?.title}" không? Hành động này không thể hoàn tác.`)
+            ? `Bạn có chắc chắn muốn duyệt khóa học "${selectedCourse?.title || ''}" không? ${t("adm_courses_confirm_approve_msg_end", "Khóa học sẽ được công khai và học viên có thể đăng ký.")}`
+            : `Bạn có chắc chắn muốn xóa khóa học "${selectedCourse?.title || ''}" không? ${t("adm_courses_confirm_delete_msg_end", "Hành động này không thể hoàn tác.")}`
         }
         isDangerous={confirmDialog.action === "delete"}
       />

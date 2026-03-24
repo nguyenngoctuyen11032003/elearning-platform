@@ -23,6 +23,7 @@ import {
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { autoTranslateData } from "@/lib/i18n/dynamic-translate"
+import { ScientificText } from "@/components/scientific-text"
 
 interface Question {
   id: string
@@ -899,7 +900,7 @@ export default function AdminExamDetailPage() {
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex flex-col gap-2">
                           <h3 className="text-lg font-semibold text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed">
-                            {getVisibleQuestionText(question)}
+                            <ScientificText text={getVisibleQuestionText(question)} />
                           </h3>
                           {/* Render ảnh nếu có */}
                           {question.image && (
@@ -944,7 +945,7 @@ export default function AdminExamDetailPage() {
                                 <span
                                   className={`${isOptionCorrect(question, option, optionIndex) ? "text-foreground dark:text-white font-medium" : "text-muted-foreground dark:text-slate-400"} whitespace-pre-wrap break-words leading-relaxed`}
                                 >
-                                  {normalizeUploadedText(option)}
+                                  <ScientificText text={normalizeUploadedText(option)} />
                               </span>
                               {isOptionCorrect(question, option, optionIndex) && (
                                 <CheckCircle size={18} className="ml-auto text-green-500" />
@@ -959,8 +960,8 @@ export default function AdminExamDetailPage() {
                           <p className="mb-1 text-sm font-semibold text-green-700 dark:text-green-300">{t("adm_examd_fill_answer", "Đáp án điền khuyết")}</p>
                           <p className="text-sm text-green-700 dark:text-green-200">
                             {Array.isArray(question.correctAnswer)
-                              ? question.correctAnswer.map((item) => normalizeUploadedText(String(item))).join(", ")
-                              : normalizeUploadedText(String(question.correctAnswer || ""))}
+                              ? <ScientificText text={question.correctAnswer.map((item) => normalizeUploadedText(String(item))).join(", ")} />
+                              : <ScientificText text={normalizeUploadedText(String(question.correctAnswer || ""))} />}
                           </p>
                         </div>
                       )}
@@ -970,8 +971,8 @@ export default function AdminExamDetailPage() {
                           <p className="mb-1 text-sm font-semibold text-amber-700 dark:text-amber-300">{t("adm_examd_correct_answer", "Đáp án đúng")}</p>
                           <p className="text-sm text-amber-700 dark:text-amber-200 whitespace-pre-wrap break-words leading-relaxed">
                             {Array.isArray(question.correctAnswer)
-                              ? question.correctAnswer.map((item) => normalizeUploadedText(String(item))).join(", ")
-                              : normalizeUploadedText(String(question.correctAnswer || ""))}
+                              ? <ScientificText text={question.correctAnswer.map((item) => normalizeUploadedText(String(item))).join(", ")} />
+                              : <ScientificText text={normalizeUploadedText(String(question.correctAnswer || ""))} />}
                           </p>
                         </div>
                       )}
@@ -983,7 +984,7 @@ export default function AdminExamDetailPage() {
                             <div>
                               <p className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-1">{t("adm_examd_explanation", "Giải thích")}</p>
                               <p className="text-sm text-blue-600 dark:text-blue-300 whitespace-pre-wrap break-words leading-relaxed">
-                                {normalizeUploadedText(question.explanation)}
+                                <ScientificText text={normalizeUploadedText(question.explanation)} />
                               </p>
                             </div>
                           </div>

@@ -14,6 +14,18 @@ import {
 } from './types';
 
 class ApiClient {
+  private shouldBypassLessonContentTranslation(endpoint: string): boolean {
+    const normalized = endpoint.toLowerCase();
+    const lessonDataEndpointPatterns = [
+      /\/lessons(?:\/|$)/,
+      /\/assignments(?:\/|$)/,
+      /\/quizzes(?:\/|$)/,
+      /\/lesson-progress(?:\/|$)/,
+    ];
+
+    return lessonDataEndpointPatterns.some((pattern) => pattern.test(normalized));
+  }
+
   private async localizeDynamicResponse<T>(endpoint: string, payload: T): Promise<T> {
     const language = getCurrentLanguage();
 
@@ -21,6 +33,9 @@ class ApiClient {
 
     // Keep auth payloads untouched to avoid changing backend message contracts.
     if (/\/auth\b/i.test(endpoint)) return payload;
+
+    // Keep lesson-related payloads untouched so submission/grading text remains in original language.
+    if (this.shouldBypassLessonContentTranslation(endpoint)) return payload;
 
     try {
       return await autoTranslateData(payload, language);
@@ -1409,7 +1424,20 @@ if (typeof window !== 'undefined' && token) {
     });
   }
 
-  async submitAssignment(id: string, data: { content: string; attachments?: string[] }): Promise<any> {
+  async submitAssignment(
+    id: string,
+    data: {
+      content: string;
+      attachments?: Array<
+        | string
+        | {
+            url: string;
+            name?: string;
+            filename?: string;
+          }
+      >;
+    },
+  ): Promise<any> {
     return this.request(API_ENDPOINTS.ASSIGNMENTS.SUBMIT(id), {
       method: 'POST',
       body: JSON.stringify(data),

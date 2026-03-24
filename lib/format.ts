@@ -70,3 +70,22 @@ export function formatCurrencyByLanguage(
 export function formatPriceInK(price: number): string {
   return (price / 1000).toLocaleString("vi-VN");
 }
+
+/**
+ * Safe date formatting with optional support
+ * Returns empty string if date is null/undefined or invalid
+ */
+export function formatDateSafe(
+  date: string | Date | null | undefined,
+  formatStr: string,
+  options?: any
+): string {
+  if (!date) return '';
+  
+  try {
+    const { format } = require('date-fns');
+    return format(new Date(date), formatStr, options);
+  } catch {
+    return '';
+  }
+}

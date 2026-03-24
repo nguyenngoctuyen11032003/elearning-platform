@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner"
 import { parseExamQuestionsFileWithReport, type ExamImportReport } from "@/lib/utils/exam-import"
 import { TeacherExamsNavbar } from "@/components/teacher-exams-navbar"
+import { ScientificText } from "@/components/scientific-text"
 import { useLanguage } from "@/lib/i18n/language-context"
 
 // Generate unique ID without uuid dependency
@@ -969,14 +970,7 @@ export default function CreateExamPage() {
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
             <h2 className="text-xl font-semibold text-foreground dark:text-white">{t("exam_preview_title", "Xem trước bài thi")}</h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("exam_type", "Loại bài thi")}</p>
-                <p className="text-foreground dark:text-white font-medium flex items-center gap-2 mt-1">
-                  {formData.type === "official" ? <Award size={16} className="text-purple-500" /> : <ClipboardList size={16} className="text-blue-500" />}
-                  {formData.type === "official" ? t("exam_type_official", "Thi thật") : t("exam_type_practice", "Thi thử")}
-                </p>
-              </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("exam_num_questions", "Số câu hỏi")}</p>
                 <p className="text-foreground dark:text-white font-medium mt-1">{questions.length} {t("exam_questions_unit", "câu")}</p>
@@ -1029,7 +1023,11 @@ export default function CreateExamPage() {
                       {index + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed">{q.question || t("exam_empty_question", "Câu hỏi trống")}</p>
+                        <ScientificText
+                          as="p"
+                          className="text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed"
+                          text={q.question || t("exam_empty_question", "Câu hỏi trống")}
+                        />
                         {q.image && (
                           <img
                             src={q.image}
@@ -1041,11 +1039,11 @@ export default function CreateExamPage() {
                       <span className="text-sm text-muted-foreground whitespace-nowrap">{q.points} {t("exam_points", "điểm")}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {t("exam_correct_answer", "Đáp án đúng")}: {Array.isArray(q.correctAnswer) ? q.correctAnswer.join(", ") : String(q.correctAnswer || t("exam_no_answer_yet", "(chưa có)"))}
+                      {t("exam_correct_answer", "Đáp án đúng")}: <ScientificText text={Array.isArray(q.correctAnswer) ? q.correctAnswer.join(", ") : String(q.correctAnswer || t("exam_no_answer_yet", "(chưa có)"))} />
                     </p>
                     {q.explanation && (
                       <p className="text-xs text-blue-600 dark:text-blue-300 whitespace-pre-wrap break-words leading-relaxed">
-                        {t("exam_explanation_label", "Giải thích")}: {q.explanation}
+                        {t("exam_explanation_label", "Giải thích")}: <ScientificText text={q.explanation} />
                       </p>
                     )}
                   </div>

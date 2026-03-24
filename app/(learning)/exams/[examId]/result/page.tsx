@@ -5,6 +5,8 @@ import Link from "next/link"
 import { useSearchParams, useParams } from "next/navigation"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
+import { ScientificText } from "@/components/scientific-text"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface AttemptResult {
   id: string
@@ -120,7 +122,6 @@ const formatAnswer = (value: string | string[] | undefined): string => {
   return value || "(chưa có)"
 }
 
-import { useLanguage } from "@/lib/i18n/language-context"
 export default function ExamResultPage() {
   const { t } = useLanguage()
   const searchParams = useSearchParams()
@@ -240,7 +241,7 @@ export default function ExamResultPage() {
             {reviewQuestions.map((question, index) => (
               <div key={question.id} className="rounded-xl border p-4 space-y-3">
                 <p className="font-medium whitespace-pre-wrap break-words leading-relaxed">
-                  Câu {index + 1}: {question.question}
+                  Câu {index + 1}: <ScientificText text={question.question} />
                 </p>
 
                 {question.image && (
@@ -255,20 +256,20 @@ export default function ExamResultPage() {
                   <div className="space-y-1 text-sm text-muted-foreground">
                     {question.options.map((option, optionIndex) => (
                       <p key={`${question.id}-${optionIndex}`} className="whitespace-pre-wrap break-words">
-                        {String.fromCharCode(65 + optionIndex)}. {option}
+                        {String.fromCharCode(65 + optionIndex)}. <ScientificText text={option} />
                       </p>
                     ))}
                   </div>
                 )}
 
                 <div className="text-sm space-y-1">
-                  <p>Câu trả lời của bạn: <b>{formatAnswer(question.userAnswer)}</b></p>
-                  <p>Đáp án đúng: <b>{formatAnswer(question.correctAnswer)}</b></p>
+                  <p>Câu trả lời của bạn: <b><ScientificText text={formatAnswer(question.userAnswer)} /></b></p>
+                  <p>Đáp án đúng: <b><ScientificText text={formatAnswer(question.correctAnswer)} /></b></p>
                 </div>
 
                 {question.explanation && (
                   <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-700 whitespace-pre-wrap break-words leading-relaxed">
-                    Giải thích: {question.explanation}
+                    Giải thích: <ScientificText text={question.explanation} />
                   </div>
                 )}
               </div>

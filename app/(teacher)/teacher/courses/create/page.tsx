@@ -6,11 +6,28 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { authFetch } from "@/lib/authfetch"
 
 interface Section {
   id: string
   title: string
   lessons: Lesson[]
+}
+
+interface LessonDocument {
+  url: string
+  name: string
+  type?: string
+}
+
+interface WritingLevel {
+  description: string
+  points: number
+}
+
+interface WritingCriterion {
+  title: string
+  levels: WritingLevel[]
 }
 
 interface Lesson {
@@ -22,6 +39,13 @@ interface Lesson {
   documentFile?: File
   documentUrl?: string
   documentFileName?: string
+  extraDocuments?: LessonDocument[]
+  writingTitle?: string
+  writingPrompt?: string
+  writingDueDate?: string
+  writingMaxScore?: number
+  writingCriteria?: WritingCriterion[]
+  writingCriteriaText?: string
   quizzes: Quiz[]
 }
 
@@ -41,6 +65,57 @@ const steps = [
   { key: "tc_create_step_pricing", fallback: "Giá & Trạng thái" },
   { key: "tc_create_step_done", fallback: "Hoàn thành" },
 ]
+
+const RUBRIC_LEVEL_COUNT = 5
+
+function defaultRubricPoints(maxScore: number = 100): number[] {
+  const ratios = [1, 0.8, 0.5, 0.3, 0]
+  return ratios.map((ratio) => Math.round(maxScore * ratio))
+}
+
+function createDefaultWritingCriteria(maxScore: number = 100, tFunc?: (key: string, fallback: string) => string): WritingCriterion[] {
+  const points = defaultRubricPoints(maxScore)
+  const tr = tFunc || ((_, fallback) => fallback)
+  const levelTemplate = [
+    tr("rubric_level_excellent", "Mức xuất sắc"),
+    tr("rubric_level_good", "Mức tốt"),
+    tr("rubric_level_fair", "Mức khá"),
+    tr("rubric_level_pass", "Mức đạt"),
+    tr("rubric_level_fail", "Chưa đạt"),
+  ]
+  const criterionTemplate = [
+    tr("rubric_criterion_content", "Nội dung"),
+    tr("rubric_criterion_argument", "Lập luận"),
+    tr("rubric_criterion_language", "Ngôn ngữ"),
+  ]
+
+  return criterionTemplate.map((title) => ({
+    title,
+    levels: levelTemplate.map((description, index) => ({
+      description,
+      points: points[index] ?? 0,
+    })),
+  }))
+}
+
+function buildWritingInstructions(criteria: WritingCriterion[]): string {
+  const cleanedRubric = criteria
+    .map((criterion) => ({
+      title: String(criterion.title || "").trim(),
+      levels: Array.isArray(criterion.levels)
+        ? criterion.levels.slice(0, RUBRIC_LEVEL_COUNT).map((level) => ({
+            description: String(level?.description || "").trim(),
+            points: Number.isFinite(Number(level?.points)) ? Number(level?.points) : 0,
+          }))
+        : [],
+    }))
+    .filter((criterion) => criterion.title)
+
+  return JSON.stringify({
+    gradingCriteria: cleanedRubric.map((item) => item.title),
+    gradingRubric: cleanedRubric,
+  })
+}
 
 interface Category {
   id: string
@@ -75,6 +150,8 @@ export default function CreateCoursePage() {
   const [draggedDocumentZone, setDraggedDocumentZone] = useState(false)
   const [uploadingLessonId, setUploadingLessonId] = useState<string | null>(null)
   const [uploadingDocLessonId, setUploadingDocLessonId] = useState<string | null>(null)
+  const [deletingCriteriaByLesson, setDeletingCriteriaByLesson] = useState<Record<string, boolean>>({})
+  const [selectedCriteriaToDelete, setSelectedCriteriaToDelete] = useState<Record<string, Set<number>>>({})
 
   useEffect(() => {
     fetch("/api/categories")
@@ -148,11 +225,33 @@ export default function CreateCoursePage() {
           ...(thumbnailUrl ? { thumbnail: thumbnailUrl } : {}),
         }
 
-        const courseRes = await fetch("/api/courses", {
-          method: "POST",
-          headers: { ...authHeaders, "Content-Type": "application/json" },
-          body: JSON.stringify(coursePayload),
-        })
+        const createCourseWithRetry = async () => {
+          const firstRes = await fetch("/api/courses", {
+            method: "POST",
+            headers: { ...authHeaders, "Content-Type": "application/json" },
+            body: JSON.stringify(coursePayload),
+          })
+
+          if (firstRes.status !== 409) {
+            return firstRes
+          }
+
+          // Fallback for environments where backend still enforces unique slug strictly.
+          const fallbackSlug = `${String(formData.title || "khoa-hoc")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")}-${Date.now()}`
+
+          return fetch("/api/courses", {
+            method: "POST",
+            headers: { ...authHeaders, "Content-Type": "application/json" },
+            body: JSON.stringify({ ...coursePayload, slug: fallbackSlug }),
+          })
+        }
+
+        const courseRes = await createCourseWithRetry()
 
         if (!courseRes.ok) {
           const err = await courseRes.json().catch(() => ({}))
@@ -169,6 +268,20 @@ export default function CreateCoursePage() {
         for (const section of sections) {
           for (let i = 0; i < section.lessons.length; i++) {
             const lesson = section.lessons[i]
+            const lessonDocuments = [
+              ...(lesson.documentUrl
+                ? [{
+                    name: lesson.documentFileName || "Tài liệu",
+                    url: lesson.documentUrl,
+                    type: lesson.documentFile?.type || "document",
+                  }]
+                : []),
+              ...((lesson.extraDocuments || []).map((item) => ({
+                name: item.name || "Tài liệu",
+                url: item.url,
+                type: item.type || "document",
+              }))),
+            ]
             const lessonPayload = {
               title: lesson.title,
               description: lesson.description || lesson.title,
@@ -179,9 +292,9 @@ export default function CreateCoursePage() {
               sectionTitle: section.title,
               order: i,
               ...(lesson.videoUrl ? { videoUrl: lesson.videoUrl } : {}),
-              ...(lesson.documentUrl ? { resources: [{ name: lesson.documentFileName || "Tài liệu", url: lesson.documentUrl, type: lesson.documentFile?.type || "document" }] } : {}),
+              ...(lessonDocuments.length > 0 ? { resources: lessonDocuments } : {}),
             }
-            console.log(`Creating lesson: ${lesson.title}, resources:`, lesson.documentUrl ? [{ name: lesson.documentFileName || "Tài liệu", url: lesson.documentUrl, type: lesson.documentFile?.type || "document" }] : "none")
+            console.log(`Creating lesson: ${lesson.title}, resources:`, lessonDocuments.length > 0 ? lessonDocuments : "none")
             const lessonRes = await fetch("/api/lessons", {
               method: "POST",
               headers: { ...authHeaders, "Content-Type": "application/json" },
@@ -196,6 +309,32 @@ export default function CreateCoursePage() {
             const lessonJson = await lessonRes.json().catch(() => ({}))
             const lessonData = lessonJson?.data ?? lessonJson
             const createdLessonId = lessonData?.id
+
+            if (createdLessonId && hasWritingContent(lesson)) {
+              const dueDate = lesson.writingDueDate
+                ? new Date(lesson.writingDueDate).toISOString()
+                : undefined
+              const assignmentPayload = {
+                title: lesson.writingTitle?.trim() || `Writing - ${lesson.title}`,
+                description: lesson.writingPrompt || lesson.description || lesson.title,
+                courseId,
+                lessonId: createdLessonId,
+                maxScore: Number(lesson.writingMaxScore || 100),
+                dueDate,
+                status: "published",
+                instructions: buildWritingInstructions(lesson.writingCriteria || []),
+              }
+
+              const assignmentRes = await authFetch("/assignments", {
+                method: "POST",
+                body: JSON.stringify(assignmentPayload),
+              })
+
+              if (!assignmentRes.ok) {
+                const err = await assignmentRes.json().catch(() => ({}))
+                throw new Error(err.message || err.error || t("tc_create_writing_create_failed", "Không thể tạo phần writing cho bài học"))
+              }
+            }
 
             if (createdLessonId && lesson.quizzes.length > 0) {
               const quizPayload = {
@@ -284,6 +423,12 @@ export default function CreateCoursePage() {
             id: newLessonId,
             title: t("tc_create_lesson_default", "Bài học {n}").replace("{n}", String(s.lessons.length + 1)),
             description: "",
+            writingTitle: "",
+            writingPrompt: "",
+            writingDueDate: "",
+            writingMaxScore: 100,
+            writingCriteria: [],
+            writingCriteriaText: "",
             quizzes: [],
           }
           return { ...s, lessons: [...s.lessons, newLesson] }
@@ -330,6 +475,22 @@ export default function CreateCoursePage() {
     return [...options, ...buildOptions(count - options.length)]
   }
 
+  const parseWritingCriteriaText = (raw: string): string[] => {
+    return String(raw || "")
+      .split(/\r?\n|;/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+
+  const hasWritingContent = (lesson: Lesson): boolean => {
+    return Boolean(
+      String(lesson.writingTitle || "").trim() ||
+      String(lesson.writingPrompt || "").trim() ||
+      String(lesson.writingDueDate || "").trim() ||
+      (lesson.writingCriteria || []).length > 0,
+    )
+  }
+
   const uploadQuizImageFromDataUrl = async (dataUrl: string): Promise<string> => {
     if (!dataUrl.startsWith("data:image/")) return dataUrl
 
@@ -363,6 +524,7 @@ export default function CreateCoursePage() {
     try {
       const data = await file.arrayBuffer()
       let questions: Array<{ question: string; options: string[]; correctAnswerIndex?: number; correctAnswerIndexes?: number[]; image?: string }> = []
+      let foundQuestionPattern = false
 
       const isWord =
         file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
@@ -404,6 +566,7 @@ export default function CreateCoursePage() {
         for (const line of lines) {
           const isQuestionLine = /^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/.test(line)
           if (isQuestionLine) {
+            foundQuestionPattern = true
             if (curBlock) blocks.push(curBlock)
             curBlock = {
               questionText: line.replace(/^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/, "").trim(),
@@ -500,6 +663,7 @@ export default function CreateCoursePage() {
             if (marked && correctIndex === -1) correctIndex = options.length - 1
           }
           if (options.length >= 2) {
+            foundQuestionPattern = true
             questions.push({
               question,
               options: normalizeOptionCount(options, Math.min(options.length, 6)),
@@ -542,8 +706,8 @@ export default function CreateCoursePage() {
         }),
       )
 
-      if (quizzesWithUploadedImages.length === 0) {
-        toast.error(t("tc_create_import_no_valid", "Không có câu hỏi hợp lệ để import"))
+      if (!foundQuestionPattern || quizzesWithUploadedImages.length === 0) {
+        toast.error(t("tc_create_import_invalid_format", "File không đúng định dạng câu hỏi. Vui lòng kiểm tra mẫu import."))
         return
       }
 
@@ -690,7 +854,6 @@ export default function CreateCoursePage() {
     if (!currentSectionId || !currentLessonId) return
     const sectionId = currentSectionId
     const lessonId = currentLessonId
-    updateLesson(sectionId, lessonId, { documentFile: file })
     setUploadingDocLessonId(lessonId)
     try {
       const token = localStorage.getItem("auth_token")
@@ -707,10 +870,38 @@ export default function CreateCoursePage() {
         console.log('Document upload response:', result)
         console.log('Document URL extracted:', url)
         if (url) {
-          updateLesson(sectionId, lessonId, { 
-            documentUrl: url,
-            documentFileName: file.name
-          })
+          setSections((prev) =>
+            prev.map((section) => {
+              if (section.id !== sectionId) return section
+              return {
+                ...section,
+                lessons: section.lessons.map((lesson) => {
+                  if (lesson.id !== lessonId) return lesson
+
+                  if (!lesson.documentUrl) {
+                    return {
+                      ...lesson,
+                      documentFile: file,
+                      documentUrl: url,
+                      documentFileName: file.name,
+                    }
+                  }
+
+                  return {
+                    ...lesson,
+                    extraDocuments: [
+                      ...(lesson.extraDocuments || []),
+                      {
+                        url,
+                        name: file.name,
+                        type: file.type || "document",
+                      },
+                    ],
+                  }
+                }),
+              }
+            }),
+          )
           toast.success(t("tc_create_doc_upload_success", "Tài liệu đã tải lên thành công!"))
         }
         else toast.error(t("tc_create_doc_upload_no_url", "Upload tài liệu thất bại: không nhận được URL"))
@@ -741,10 +932,11 @@ export default function CreateCoursePage() {
     setDraggedDocumentZone(false)
     const files = e.dataTransfer.files
     if (files.length > 0) {
-      const file = files[0]
-      if (file.type === 'application/pdf' || file.type.includes('word') || file.type.includes('powerpoint') || file.type.includes('presentation')) {
-        handleDocumentUpload(file)
-      }
+      Array.from(files).forEach((file) => {
+        if (file.type === 'application/pdf' || file.type.includes('word') || file.type.includes('powerpoint') || file.type.includes('presentation') || file.type.includes('excel') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+          handleDocumentUpload(file)
+        }
+      })
     }
   }
 
@@ -967,16 +1159,19 @@ export default function CreateCoursePage() {
                             </div>
                             
                             {/* Lesson Details */}
-                            {(lesson.videoFile || lesson.documentFile || lesson.documentUrl || lesson.quizzes.length > 0) && (
+                            {(lesson.videoFile || lesson.documentFile || lesson.documentUrl || (lesson.extraDocuments && lesson.extraDocuments.length > 0) || lesson.quizzes.length > 0) && (
                               <div className="mt-2 ml-2 p-3 bg-secondary/30 dark:bg-slate-900/30 rounded-lg border border-border/50 dark:border-slate-800/50">
                                 {lesson.videoFile && (
                                   <div className="text-sm text-muted-foreground dark:text-slate-400 mb-2">
                                     <span className="font-medium">{t("tc_create_video_label", "Video:")}</span> {lesson.videoFile.name}
                                   </div>
                                 )}
-                                {(lesson.documentFile || lesson.documentUrl) && (
+                                {(lesson.documentFile || lesson.documentUrl || (lesson.extraDocuments && lesson.extraDocuments.length > 0)) && (
                                   <div className="text-sm text-muted-foreground dark:text-slate-400 mb-2">
-                                    <span className="font-medium">{t("tc_create_document_short_label", "Tài liệu:")}</span> {lesson.documentFileName || lesson.documentFile?.name || t("tc_create_document_uploaded", "Tài liệu đã tải")}
+                                    <span className="font-medium">{t("tc_create_document_short_label", "Tài liệu:")}</span>{" "}
+                                    {[lesson.documentFileName || lesson.documentFile?.name, ...(lesson.extraDocuments || []).map((item) => item.name)]
+                                      .filter(Boolean)
+                                      .join(", ") || t("tc_create_document_uploaded", "Tài liệu đã tải")}
                                   </div>
                                 )}
                                 {lesson.quizzes.length > 0 && (
@@ -989,6 +1184,11 @@ export default function CreateCoursePage() {
                                         </div>
                                       ))}
                                     </div>
+                                  </div>
+                                )}
+                                {hasWritingContent(lesson) && (
+                                  <div className="text-sm text-muted-foreground dark:text-slate-400">
+                                    <span className="font-medium">{t("tc_create_writing_label", "Writing:")}</span> {t("tc_create_writing_enabled", "Đã cấu hình")}
                                   </div>
                                 )}
                               </div>
@@ -1146,44 +1346,19 @@ export default function CreateCoursePage() {
                               <Loader2 size={20} className="animate-spin mx-auto text-primary dark:text-accent" />
                               <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">{t("tc_create_uploading", "Đang tải lên...")}</p>
                             </>
-                          ) : currentLesson?.documentUrl ? (
-                            <>
-                              <p className="text-foreground dark:text-white font-medium text-green-600 dark:text-green-400">
-                                ✓ {currentLesson.documentFileName || t("tc_create_document_uploaded", "Tài liệu đã tải lên")}
-                              </p>
-                              <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">{t("tc_create_saved_on_server", "Đã lưu trên server")}</p>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateLesson(currentSectionId!, currentLessonId!, { documentFile: undefined, documentUrl: undefined, documentFileName: undefined })
-                                }}
-                                className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
-                              >
-                                {t("tc_create_delete_file", "Xóa tệp")}
-                              </button>
-                            </>
-                          ) : currentLesson?.documentFile ? (
-                            <>
-                              <p className="text-foreground dark:text-white font-medium">
-                                {currentLesson.documentFile.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
-                                {(currentLesson.documentFile.size / (1024 * 1024)).toFixed(2)} MB
-                              </p>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateLesson(currentSectionId!, currentLessonId!, { documentFile: undefined, documentUrl: undefined, documentFileName: undefined })
-                                }}
-                                className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
-                              >
-                                {t("tc_create_delete_file", "Xóa tệp")}
-                              </button>
-                            </>
                           ) : (
                             <>
                               <p className="text-foreground dark:text-white font-medium">{t("tc_create_drag_document", "Kéo thả tài liệu vào đây")}</p>
                               <p className="text-sm text-muted-foreground dark:text-slate-400">{t("tc_create_document_types", "PDF, Word, PowerPoint...")}</p>
+                              {(currentLesson?.documentUrl || (currentLesson?.extraDocuments && currentLesson.extraDocuments.length > 0)) && (
+                                <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                                  {t("tc_create_docs_uploaded_count", "Đã tải lên {count} tài liệu")
+                                    .replace(
+                                      "{count}",
+                                      String((currentLesson.documentUrl ? 1 : 0) + (currentLesson.extraDocuments?.length || 0)),
+                                    )}
+                                </p>
+                              )}
                             </>
                           )}
                         </div>
@@ -1191,12 +1366,357 @@ export default function CreateCoursePage() {
                           ref={documentInputRef}
                           type="file"
                           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                          multiple
                           onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) handleDocumentUpload(file)
+                            const files = e.target.files
+                            if (files?.length) {
+                              Array.from(files).forEach((file) => handleDocumentUpload(file))
+                            }
                           }}
                           className="hidden"
                         />
+                        {(currentLesson?.documentUrl || (currentLesson?.extraDocuments && currentLesson.extraDocuments.length > 0)) && (
+                          <div className="mt-3 space-y-2">
+                            {currentLesson.documentUrl && (
+                              <div className="flex items-center justify-between rounded-md border border-border dark:border-slate-800 bg-background dark:bg-slate-950 px-3 py-2">
+                                <p className="text-sm text-foreground dark:text-white truncate pr-3">
+                                  {currentLesson.documentFileName || t("tc_create_document_uploaded", "Tài liệu đã tải lên")}
+                                </p>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    updateLesson(currentSectionId!, currentLessonId!, { documentFile: undefined, documentUrl: undefined, documentFileName: undefined })
+                                  }}
+                                  className="text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
+                                >
+                                  {t("tc_create_delete_file", "Xóa tệp")}
+                                </button>
+                              </div>
+                            )}
+                            {(currentLesson.extraDocuments || []).map((doc, idx) => (
+                              <div key={`${doc.url}-${idx}`} className="flex items-center justify-between rounded-md border border-border dark:border-slate-800 bg-background dark:bg-slate-950 px-3 py-2">
+                                <p className="text-sm text-foreground dark:text-white truncate pr-3">{doc.name}</p>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    updateLesson(currentSectionId!, currentLessonId!, {
+                                      extraDocuments: (currentLesson.extraDocuments || []).filter((_, itemIdx) => itemIdx !== idx),
+                                    })
+                                  }}
+                                  className="text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
+                                >
+                                  {t("tc_create_delete_file", "Xóa tệp")}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-6 pt-6 border-t border-border dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-4 gap-3">
+                          <h5 className="font-semibold text-foreground dark:text-white">
+                            {t("tc_create_writing_section_title", "Cấu hình Writing cho bài học này")}
+                          </h5>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const writingEnabled = Boolean(
+                                String(currentLesson.writingPrompt || "").trim() ||
+                                String(currentLesson.writingDueDate || "").trim() ||
+                                (currentLesson.writingCriteria || []).length > 0,
+                              )
+
+                              if (writingEnabled) {
+                                updateLesson(currentSectionId!, currentLessonId!, {
+                                  writingTitle: "",
+                                  writingDueDate: "",
+                                  writingPrompt: "",
+                                  writingCriteria: [],
+                                  writingMaxScore: 100,
+                                })
+                              } else {
+                                const maxScore = currentLesson.writingMaxScore || 100
+                                updateLesson(currentSectionId!, currentLessonId!, {
+                                  writingCriteria: createDefaultWritingCriteria(maxScore, t),
+                                  writingMaxScore: maxScore,
+                                })
+                              }
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 hover:bg-fuchsia-500/20 transition-smooth"
+                          >
+                            {(currentLesson.writingPrompt || currentLesson.writingCriteria?.length)
+                              ? t("tc_create_writing_disable", "Tắt Writing")
+                              : t("tc_create_writing_enable", "Bật Writing")}
+                          </button>
+                        </div>
+
+                        {(currentLesson.writingPrompt || (currentLesson.writingCriteria || []).length > 0 || currentLesson.writingDueDate) && (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                              {t("tc_create_writing_title", "Tên bài tập writing")}
+                            </label>
+                            <input
+                              value={currentLesson.writingTitle || ""}
+                              onChange={(e) => updateLesson(currentSectionId!, currentLessonId!, { writingTitle: e.target.value })}
+                              className="w-full px-4 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white"
+                              placeholder={t("tc_create_writing_title_placeholder", "Ví dụ: Essay tuần 1")}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                              {t("tc_create_writing_prompt", "Đề bài writing")}
+                            </label>
+                            <textarea
+                              value={currentLesson.writingPrompt || ""}
+                              onChange={(e) => updateLesson(currentSectionId!, currentLessonId!, { writingPrompt: e.target.value })}
+                              rows={3}
+                              className="w-full px-4 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white"
+                              placeholder={t("tc_create_writing_prompt_placeholder", "Nhập đề bài viết...")}
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                                {t("tc_create_writing_due_date", "Hạn nộp")}
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={currentLesson.writingDueDate || ""}
+                                onChange={(e) => updateLesson(currentSectionId!, currentLessonId!, { writingDueDate: e.target.value })}
+                                className="w-full px-4 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                                {t("tc_create_writing_max_score", "Điểm tối đa")}
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                max={1000}
+                                value={currentLesson.writingMaxScore || 100}
+                                onChange={(e) => {
+                                  const nextMaxScore = Math.max(1, Number(e.target.value || 100))
+                                  const points = defaultRubricPoints(nextMaxScore)
+                                  updateLesson(currentSectionId!, currentLessonId!, {
+                                    writingMaxScore: nextMaxScore,
+                                    writingCriteria: (currentLesson?.writingCriteria || []).map((criterion) => ({
+                                      ...criterion,
+                                      levels: (criterion.levels || []).map((level, levelIndex) => ({
+                                        ...level,
+                                        points: points[levelIndex] ?? 0,
+                                      })),
+                                    })),
+                                  })
+                                }}
+                                className="w-full px-4 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                              {t("tc_create_writing_criteria", "Grading criteria dạng rubric")}
+                            </label>
+                            <div className="space-y-3">
+                              <p className="text-xs text-muted-foreground dark:text-slate-400">
+                                {t("tc_create_writing_criteria_hint", "Mỗi dòng là một tiêu chí, mỗi cột là một mức đánh giá (kèm điểm). Bạn có thể sửa tên tiêu chí, mô tả từng mức và điểm.")}
+                              </p>
+                              <div className="overflow-x-auto rounded-lg border border-border dark:border-slate-800">
+                                <table className="w-full min-w-[980px] text-sm">
+                                  <thead className="bg-secondary dark:bg-slate-900/80">
+                                    <tr>
+                                      {deletingCriteriaByLesson[currentLessonId!] && (
+                                        <th className="px-2 py-2 text-center font-semibold text-foreground dark:text-white w-8"></th>
+                                      )}
+                                      <th className="px-3 py-2 text-left font-semibold text-foreground dark:text-white w-[220px]">
+                                        {t("tc_create_criterion", "Tiêu chí")}
+                                      </th>
+                                      {[1, 2, 3, 4, 5].map((level) => (
+                                        <th key={`header-${level}`} className="px-3 py-2 text-left font-semibold text-foreground dark:text-white">
+                                          {t("tc_create_level", "Level")} {level}
+                                        </th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {(currentLesson?.writingCriteria || []).map((criterion, criterionIndex) => (
+                                      <tr key={`criterion-${criterionIndex}`} className="border-t border-border dark:border-slate-800 align-top">
+                                        {deletingCriteriaByLesson[currentLessonId!] && (
+                                          <td className="px-2 py-2 text-center">
+                                            <input
+                                              type="checkbox"
+                                              checked={selectedCriteriaToDelete[currentLessonId!]?.has(criterionIndex) ?? false}
+                                              onChange={(e) => {
+                                                setSelectedCriteriaToDelete((prev) => {
+                                                  const current = new Set(prev[currentLessonId!] || [])
+                                                  if (e.target.checked) {
+                                                    current.add(criterionIndex)
+                                                  } else {
+                                                    current.delete(criterionIndex)
+                                                  }
+                                                  return {
+                                                    ...prev,
+                                                    [currentLessonId!]: current,
+                                                  }
+                                                })
+                                              }}
+                                              className="w-4 h-4"
+                                            />
+                                          </td>
+                                        )}
+                                        <td className="px-2 py-2">
+                                          <input
+                                            value={criterion.title}
+                                            onChange={(e) =>
+                                              updateLesson(currentSectionId!, currentLessonId!, {
+                                                writingCriteria: (currentLesson?.writingCriteria || []).map((item, itemIndex) =>
+                                                  itemIndex === criterionIndex ? { ...item, title: e.target.value } : item,
+                                                ),
+                                              })
+                                            }
+                                            disabled={deletingCriteriaByLesson[currentLessonId!]}
+                                            className="w-full px-2 py-1.5 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-sm text-foreground dark:text-white disabled:opacity-60"
+                                            placeholder={t("tc_create_criterion_name", "Tên tiêu chí")}
+                                          />
+                                        </td>
+                                        {criterion.levels.map((level, levelIndex) => (
+                                          <td key={`${criterionIndex}-${levelIndex}`} className="px-2 py-2">
+                                            <div className="space-y-2">
+                                              <textarea
+                                                value={level.description}
+                                                onChange={(e) =>
+                                                  updateLesson(currentSectionId!, currentLessonId!, {
+                                                    writingCriteria: (currentLesson?.writingCriteria || []).map((item, itemIndex) =>
+                                                      itemIndex === criterionIndex
+                                                        ? {
+                                                            ...item,
+                                                            levels: item.levels.map((l, lIndex) =>
+                                                              lIndex === levelIndex ? { ...l, description: e.target.value } : l,
+                                                            ),
+                                                          }
+                                                        : item,
+                                                    ),
+                                                  })
+                                                }
+                                                disabled={deletingCriteriaByLesson[currentLessonId!]}
+                                                rows={3}
+                                                className="w-full px-2 py-1.5 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-xs text-foreground dark:text-white disabled:opacity-60"
+                                                placeholder={t("tc_create_level_desc", "Mô tả")}
+                                              />
+                                              <div className="flex items-center gap-2">
+                                                <input
+                                                  type="number"
+                                                  min={0}
+                                                  value={level.points}
+                                                  onChange={(e) =>
+                                                    updateLesson(currentSectionId!, currentLessonId!, {
+                                                      writingCriteria: (currentLesson?.writingCriteria || []).map((item, itemIndex) =>
+                                                        itemIndex === criterionIndex
+                                                          ? {
+                                                              ...item,
+                                                              levels: item.levels.map((l, lIndex) =>
+                                                                lIndex === levelIndex
+                                                                  ? { ...l, points: Math.max(0, Number(e.target.value || 0)) }
+                                                                  : l,
+                                                              ),
+                                                            }
+                                                          : item,
+                                                      ),
+                                                    })
+                                                  }
+                                                  disabled={deletingCriteriaByLesson[currentLessonId!]}
+                                                  className="w-24 px-2 py-1 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-xs text-foreground dark:text-white disabled:opacity-60"
+                                                />
+                                                <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_create_points", "điểm")}</span>
+                                              </div>
+                                            </div>
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (deletingCriteriaByLesson[currentLessonId!]) {
+                                      const selected = selectedCriteriaToDelete[currentLessonId!] || new Set()
+                                      if (selected.size > 0) {
+                                        updateLesson(currentSectionId!, currentLessonId!, {
+                                          writingCriteria: (currentLesson?.writingCriteria || []).filter(
+                                            (_, index) => !selected.has(index),
+                                          ),
+                                        })
+                                        setSelectedCriteriaToDelete((prev) => {
+                                          const next = { ...prev }
+                                          delete next[currentLessonId!]
+                                          return next
+                                        })
+                                      }
+                                      setDeletingCriteriaByLesson((prev) => ({
+                                        ...prev,
+                                        [currentLessonId!]: false,
+                                      }))
+                                    } else {
+                                      setDeletingCriteriaByLesson((prev) => ({
+                                        ...prev,
+                                        [currentLessonId!]: true,
+                                      }))
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-smooth"
+                                >
+                                  {deletingCriteriaByLesson[currentLessonId!]
+                                    ? t("tc_create_delete_criteria_count", `Xóa ${selectedCriteriaToDelete[currentLessonId!]?.size || 0} tiêu chí`)
+                                    : t("tc_create_delete_criteria", "Xóa tiêu chí")}
+                                </button>
+                                {deletingCriteriaByLesson[currentLessonId!] && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDeletingCriteriaByLesson((prev) => ({
+                                        ...prev,
+                                        [currentLessonId!]: false,
+                                      }))
+                                      setSelectedCriteriaToDelete((prev) => {
+                                        const next = { ...prev }
+                                        delete next[currentLessonId!]
+                                        return next
+                                      })
+                                    }}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary dark:bg-slate-800 text-foreground dark:text-white hover:bg-secondary/80 transition-smooth"
+                                  >
+                                    {t("tc_create_cancel", "Hủy")}
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const points = defaultRubricPoints(currentLesson?.writingMaxScore || 100)
+                                    updateLesson(currentSectionId!, currentLessonId!, {
+                                      writingCriteria: [
+                                        ...(currentLesson?.writingCriteria || []),
+                                        {
+                                          title: `Tiêu chí ${(currentLesson?.writingCriteria || []).length + 1}`,
+                                          levels: points.map((point) => ({ description: "", points: point })),
+                                        },
+                                      ],
+                                    })
+                                  }}
+                                  disabled={deletingCriteriaByLesson[currentLessonId!]}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary dark:text-accent hover:bg-primary/20 transition-smooth disabled:opacity-60"
+                                >
+                                  + {t("tc_create_add_criteria", "Thêm tiêu chí")}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        )}
                       </div>
 
                       {/* Quiz Section */}

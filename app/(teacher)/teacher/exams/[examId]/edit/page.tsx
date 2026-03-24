@@ -26,6 +26,7 @@ import { parseExamQuestionsFileWithReport, type ExamImportReport } from "@/lib/u
 import { TeacherExamsNavbar } from "@/components/teacher-exams-navbar"
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { ScientificText } from "@/components/scientific-text"
 
 // Generate unique ID
 const generateId = () => {
@@ -1200,7 +1201,11 @@ export default function EditExamPage() {
                               <AlertCircle size={14} className="text-amber-400" />
                             </span>
                           )}
-                          <p className="text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed">{q.question || "Câu hỏi trống"}</p>
+                          <ScientificText
+                            as="p"
+                            className="text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed"
+                            text={q.question || "Câu hỏi trống"}
+                          />
                         </div>
                         {q.image && (
                           <img
@@ -1213,11 +1218,11 @@ export default function EditExamPage() {
                       <span className="text-sm text-muted-foreground whitespace-nowrap">{q.points} điểm</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Đáp án đúng: {Array.isArray(q.correctAnswer) ? q.correctAnswer.join(", ") : String(q.correctAnswer || "(chưa có)")}
+                      Đáp án đúng: <ScientificText text={Array.isArray(q.correctAnswer) ? q.correctAnswer.join(", ") : String(q.correctAnswer || "(chưa có)")} />
                     </p>
                     {q.explanation && (
                       <p className="text-xs text-blue-600 dark:text-blue-300 whitespace-pre-wrap break-words leading-relaxed">
-                        Giải thích: {q.explanation}
+                        Giải thích: <ScientificText text={q.explanation} />
                       </p>
                     )}
                   </div>

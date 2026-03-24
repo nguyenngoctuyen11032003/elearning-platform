@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { authFetch } from "@/lib/authfetch"
 import { CheckCircle, Clock, FileText, Loader2, MoreVertical, Pencil, Plus, Search, ShieldCheck, Trash2, Users, XCircle } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { ScientificText } from "@/components/scientific-text"
 import * as XLSX from "xlsx"
 
 type Exam = {
@@ -71,6 +72,22 @@ const parseQuestionsCount = (value: any): number => {
   }
   if (Array.isArray(data)) return data.length
   return Number(data?.length) || 0
+}
+
+const normalizeUploadedText = (value?: string) => {
+  if (!value) return ""
+  let text = value
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\n")
+
+  if (typeof window !== "undefined") {
+    const textarea = document.createElement("textarea")
+    textarea.innerHTML = text
+    text = textarea.value
+  }
+
+  return text
 }
 
 interface ExamCardProps {
@@ -210,19 +227,23 @@ function ExamCard({ exam, onEdit, onViewAttempts, onDelete, t }: ExamCardProps) 
                     <div key={question.id || idx} className="rounded-lg border p-4 space-y-2">
                       <div className="flex items-start gap-2">
                         <span className="font-semibold text-primary shrink-0">Câu {idx + 1}:</span>
-                        <p className="text-sm whitespace-pre-wrap">{question.question || "—"}</p>
+                        <ScientificText
+                          as="p"
+                          className="text-sm whitespace-pre-wrap"
+                          text={normalizeUploadedText(question.question) || "—"}
+                        />
                       </div>
                       {question.options && question.options.length > 0 && (
                         <div className="pl-8 space-y-1">
                           {question.options.map((option: string, optIdx: number) => (
                             <div key={optIdx} className="text-sm text-muted-foreground">
-                              {String.fromCharCode(65 + optIdx)}. {option}
+                              {String.fromCharCode(65 + optIdx)}. <ScientificText text={normalizeUploadedText(option)} />
                             </div>
                           ))}
                         </div>
                       )}
                       <div className="pl-8 text-xs text-green-600">
-                        Đáp án: {Array.isArray(question.correctAnswer) ? question.correctAnswer.join(", ") : question.correctAnswer}
+                        Đáp án: <ScientificText text={Array.isArray(question.correctAnswer) ? question.correctAnswer.join(", ") : question.correctAnswer} />
                       </div>
                     </div>
                   ))}
@@ -663,15 +684,23 @@ export default function TeacherExamsListPage() {
                         >
                           <div className="flex items-start gap-2 mb-2">
                             <span className="text-xs font-semibold text-muted-foreground mt-0.5 shrink-0">Câu {idx + 1}.</span>
-                            <p className="text-sm font-medium whitespace-pre-wrap">{qr.question}</p>
+                            <ScientificText
+                              as="p"
+                              className="text-sm font-medium whitespace-pre-wrap"
+                              text={normalizeUploadedText(qr.question)}
+                            />
                             <span className={`ml-auto shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${qr.isCorrect ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-500"}`}>
                               {qr.isCorrect ? "Đúng" : "Sai"}
                             </span>
                           </div>
                           <div className="text-xs space-y-1 pl-5">
-                            <div><span className="text-muted-foreground">Học sinh chọn: </span><span className="font-medium">{Array.isArray(qr.userAnswer) ? qr.userAnswer.join(", ") : (qr.userAnswer ?? "—")}</span></div>
-                            <div><span className="text-muted-foreground">Đáp án đúng: </span><span className="font-medium text-green-600">{Array.isArray(qr.correctAnswer) ? qr.correctAnswer.join(", ") : (qr.correctAnswer ?? "—")}</span></div>
-                            {qr.explanation && <div className="text-muted-foreground italic">Giải thích: {qr.explanation}</div>}
+                            <div><span className="text-muted-foreground">Học sinh chọn: </span><span className="font-medium"><ScientificText text={Array.isArray(qr.userAnswer) ? qr.userAnswer.join(", ") : (qr.userAnswer ?? "—")} /></span></div>
+                            <div><span className="text-muted-foreground">Đáp án đúng: </span><span className="font-medium text-green-600"><ScientificText text={Array.isArray(qr.correctAnswer) ? qr.correctAnswer.join(", ") : (qr.correctAnswer ?? "—")} /></span></div>
+                            {qr.explanation && (
+                              <div className="text-muted-foreground italic">
+                                Giải thích: <ScientificText text={normalizeUploadedText(qr.explanation)} />
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}

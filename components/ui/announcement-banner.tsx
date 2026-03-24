@@ -8,6 +8,7 @@ import { Info, AlertTriangle, AlertCircle, Megaphone, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { formatDateSafe } from '@/lib/format';
 
 export type AnnouncementPriority = 'info' | 'warning' | 'critical';
 
@@ -130,7 +131,18 @@ export function AnnouncementBanner({
             )}
             <span>•</span>
             <span>
-              {format(new Date(createdAt), "dd/MM/yyyy 'lúc' HH:mm", { locale: vi })}
+              {createdAt
+                ? (() => {
+                    try {
+                      const date = new Date(createdAt);
+                      return isNaN(date.getTime())
+                        ? '-'
+                        : format(date, "dd/MM/yyyy 'lúc' HH:mm", { locale: vi });
+                    } catch {
+                      return '-';
+                    }
+                  })()
+                : '-'}
             </span>
           </div>
         </div>
@@ -194,7 +206,18 @@ export function AnnouncementBannerCompact({
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {courseTitle && <span>{courseTitle}</span>}
           {courseTitle && <span>•</span>}
-          <span>{format(new Date(createdAt), 'dd/MM/yyyy', { locale: vi })}</span>
+          <span>
+            {createdAt
+              ? (() => {
+                  try {
+                    const date = new Date(createdAt);
+                    return isNaN(date.getTime()) ? '-' : format(date, 'dd/MM/yyyy', { locale: vi });
+                  } catch {
+                    return '-';
+                  }
+                })()
+              : '-'}
+          </span>
         </div>
       </div>
     </div>

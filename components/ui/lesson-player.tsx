@@ -5,6 +5,7 @@ import { ChevronDown, MessageCircle, Download, FileText, CheckCircle2, Circle, P
 import { authFetch } from "@/lib/authfetch"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { ScientificText } from "@/components/scientific-text"
 
 interface Lesson {
   id: string
@@ -567,7 +568,7 @@ export function LessonPlayer({
                           return (
                             <div key={`quiz-${idx}`} className="p-4 bg-secondary dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg">
                               <p className="font-medium text-foreground dark:text-white mb-2 whitespace-pre-wrap break-words leading-relaxed">
-                                Câu {idx + 1}: {q.question}
+                                Câu {idx + 1}: <ScientificText text={q.question} />
                               </p>
                               {q.image && (
                                 <img
@@ -606,7 +607,11 @@ export function LessonPlayer({
                                     <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-secondary dark:bg-slate-700 text-xs font-semibold text-foreground dark:text-white">
                                       {String.fromCharCode(65 + optionIdx)}
                                     </span>
-                                    <span className="text-foreground dark:text-white whitespace-pre-wrap break-words">{option}</span>
+                                    <ScientificText
+                                      as="span"
+                                      className="text-foreground dark:text-white whitespace-pre-wrap break-words"
+                                      text={option}
+                                    />
                                   </label>
                                 ))}
                               </div>
@@ -683,7 +688,7 @@ export function LessonPlayer({
                                 <div key={`quiz-detail-${idx}`} className="p-4 bg-secondary dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg">
                                   <div className="flex items-start gap-3 mb-3">
                                     <p className="font-medium text-foreground dark:text-white flex-1 whitespace-pre-wrap break-words leading-relaxed">
-                                      Câu {idx + 1}: {q.question}
+                                      Câu {idx + 1}: <ScientificText text={q.question} />
                                     </p>
                                     <div className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
                                       isCorrect
@@ -723,9 +728,11 @@ export function LessonPlayer({
                                           <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-secondary dark:bg-slate-700 text-xs font-semibold text-foreground dark:text-white">
                                             {String.fromCharCode(65 + optionIdx)}
                                           </span>
-                                          <span className="flex-1 text-foreground dark:text-white whitespace-pre-wrap break-words">
-                                            {option}
-                                          </span>
+                                          <ScientificText
+                                            as="span"
+                                            className="flex-1 text-foreground dark:text-white whitespace-pre-wrap break-words"
+                                            text={option}
+                                          />
                                           {isCorrectOption && (
                                             <span className="text-xs font-semibold text-green-600 dark:text-green-400 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded">
                                               Đáp án
@@ -797,7 +804,7 @@ export function LessonPlayer({
                         <p className="text-sm text-muted-foreground dark:text-slate-400">Đề bài</p>
                         <div className="rounded-lg border border-border dark:border-slate-800 bg-secondary/40 dark:bg-slate-900 p-4">
                           <p className="text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed">
-                            {currentLesson.writingPrompt}
+                            <ScientificText text={currentLesson.writingPrompt} />
                           </p>
                         </div>
                       </div>
@@ -817,7 +824,7 @@ export function LessonPlayer({
                                   {(criterion.levels || []).map((level, levelIndex) => (
                                     <td key={`${currentLesson.id}-${idx}-${levelIndex}`} className="px-3 py-3 text-foreground dark:text-white">
                                       <p className="whitespace-pre-wrap break-words leading-relaxed text-sm">
-                                        {level.description || "Chưa có mô tả mức này."}
+                                        <ScientificText text={level.description || "Chưa có mô tả mức này."} />
                                       </p>
                                       <p className="mt-2 text-emerald-600 dark:text-emerald-400 font-semibold italic">
                                         {level.points} points

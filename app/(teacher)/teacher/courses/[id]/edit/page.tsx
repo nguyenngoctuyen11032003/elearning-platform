@@ -200,16 +200,21 @@ function defaultRubricPoints(maxScore: number = 100): number[] {
   return ratios.map((ratio) => Math.round(maxScore * ratio))
 }
 
-function createDefaultWritingCriteria(maxScore: number = 100): WritingCriterion[] {
+function createDefaultWritingCriteria(maxScore: number = 100, tFunc?: (key: string, fallback: string) => string): WritingCriterion[] {
   const points = defaultRubricPoints(maxScore)
+  const tr = tFunc || ((_, fallback) => fallback)
   const levelTemplate = [
-    "Mức xuất sắc",
-    "Mức tốt",
-    "Mức khá",
-    "Mức đạt",
-    "Chưa đạt",
+    tr("rubric_level_excellent", "Mức xuất sắc"),
+    tr("rubric_level_good", "Mức tốt"),
+    tr("rubric_level_fair", "Mức khá"),
+    tr("rubric_level_pass", "Mức đạt"),
+    tr("rubric_level_fail", "Chưa đạt"),
   ]
-  const criterionTemplate = ["Nội dung", "Lập luận", "Ngôn ngữ"]
+  const criterionTemplate = [
+    tr("rubric_criterion_content", "Nội dung"),
+    tr("rubric_criterion_argument", "Lập luận"),
+    tr("rubric_criterion_language", "Ngôn ngữ"),
+  ]
 
   return criterionTemplate.map((title) => ({
     title,
@@ -2134,7 +2139,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                 } else {
                                   const maxScore = lesson.writingMaxScore || 100
                                   updateLesson(section.id, lesson.id, {
-                                    writingCriteria: createDefaultWritingCriteria(maxScore),
+                                    writingCriteria: createDefaultWritingCriteria(maxScore, tr),
                                     writingMaxScore: maxScore,
                                   })
                                 }

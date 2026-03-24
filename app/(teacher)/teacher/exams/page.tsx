@@ -608,10 +608,6 @@ export default function TeacherExamsPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_exam_type", "Loại bài thi")}</p>
-                    <div className="mt-1">{getTypeBadge(selectedExam.type)}</div>
-                  </div>
-                  <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
                     <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_status", "Trạng thái")}</p>
                     <div className="mt-1">{getStatusBadge(selectedExam.status)}</div>
                   </div>

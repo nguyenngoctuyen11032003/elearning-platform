@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -38,11 +38,10 @@ import {
   MoreVertical,
   Edit,
   Trash2,
-  Eye,
-  Users,
   CheckCircle2,
   Clock,
   Calendar as CalendarIcon,
+  ChevronDown,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,10 +49,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { apiClient } from '@/lib/api/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { enUS, vi } from 'date-fns/locale';
+import { useLanguage } from '@/lib/i18n/language-context';
+import { getCurrentClientLanguage, localizeMessage } from '@/lib/i18n/message-localizer';
 
 interface Assignment {
   id: string;
@@ -80,22 +82,43 @@ interface Submission {
   attachments?: string[];
   score?: number;
   feedback?: string;
-  status: 'pending' | 'graded';
+  status: 'not_submitted' | 'submitted' | 'late' | 'graded';
+}
+
+interface LessonGroup {
+  key: string;
+  lessonId?: string;
+  lessonTitle: string;
+  assignments: Assignment[];
+}
+
+interface SubmissionRow extends Submission {
+  assignmentId: string;
+  assignmentTitle: string;
+  assignmentMaxScore: number;
+  assignment: Assignment;
 }
 
 export default function TeacherAssignmentsPage() {
   const router = useRouter();
+  const { language } = useLanguage();
+  const tr = (viText: string, enText: string) => (language === 'en' ? enText : viText);
+  const dateLocale = language === 'en' ? enUS : vi;
+  const searchParams = useSearchParams();
+  const presetCourseId = searchParams.get('courseId') || 'all';
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [lessons, setLessons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCourse, setSelectedCourse] = useState<string>('all');
+  const [selectedCourse, setSelectedCourse] = useState<string>(presetCourseId);
+  const [submissionStatusFilter, setSubmissionStatusFilter] = useState<'all' | 'graded' | 'pending'>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showSubmissionsDialog, setShowSubmissionsDialog] = useState(false);
   const [showGradeDialog, setShowGradeDialog] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [submissionsByAssignment, setSubmissionsByAssignment] = useState<Record<string, Submission[]>>({});
+  const [loadingLessonMap, setLoadingLessonMap] = useState<Record<string, boolean>>({});
+  const [openLessonMap, setOpenLessonMap] = useState<Record<string, boolean>>({});
 
   // Create/Edit form
   const [formData, setFormData] = useState({
@@ -118,10 +141,55 @@ export default function TeacherAssignmentsPage() {
   });
   const [grading, setGrading] = useState(false);
 
+  const getSafeDate = (value: string | null | undefined): Date | null => {
+    if (!value) return null;
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? null : date;
+  };
+
+  const lessonGroups = useMemo<LessonGroup[]>(() => {
+    const map = new Map<string, LessonGroup>();
+
+    assignments.forEach((assignment) => {
+      const lessonId = assignment.lessonId || '';
+      const key = lessonId || `__no_lesson__${assignment.courseId}`;
+      
+      // Try to find matching lesson from lessons list to get accurate title
+      let lessonTitle = assignment.lessonTitle;
+      if (lessonId && lessons.length > 0) {
+        const matchingLesson = lessons.find((l) => l.id === lessonId);
+        if (matchingLesson) {
+          lessonTitle = matchingLesson.title;
+        }
+      }
+      
+      lessonTitle = lessonTitle || tr('Chưa gán bài học', 'Unassigned lesson');
+
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          lessonId: assignment.lessonId,
+          lessonTitle,
+          assignments: [],
+        });
+      }
+
+      map.get(key)?.assignments.push(assignment);
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.lessonTitle.localeCompare(b.lessonTitle));
+  }, [assignments, lessons, tr]);
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadData();
   }, [selectedCourse]);
+
+  useEffect(() => {
+    if (presetCourseId && presetCourseId !== selectedCourse) {
+      setSelectedCourse(presetCourseId);
+    }
+  }, [presetCourseId, selectedCourse]);
 
   const loadData = async () => {
     try {
@@ -132,12 +200,28 @@ export default function TeacherAssignmentsPage() {
       ]);
 
       setAssignments(assignmentsData);
+      setSubmissionsByAssignment({});
+      setOpenLessonMap({});
+      setLoadingLessonMap({});
       setCourses(Array.isArray(coursesData) ? coursesData : ((coursesData as any)?.data || []));
+
+      // Load lessons for the selected course
+      if (selectedCourse !== 'all') {
+        try {
+          const lessonsData = await apiClient.getLessonsByCourse(selectedCourse);
+          setLessons(Array.isArray(lessonsData) ? lessonsData : ((lessonsData as any)?.data || []));
+        } catch (error) {
+          console.error('Error loading lessons:', error);
+          setLessons([]);
+        }
+      } else {
+        setLessons([]);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể tải dữ liệu',
+        title: tr('Lỗi', 'Error'),
+        description: tr('Không thể tải dữ liệu', 'Unable to load data'),
         variant: 'destructive',
       });
     } finally {
@@ -157,8 +241,8 @@ export default function TeacherAssignmentsPage() {
   const handleCreate = async () => {
     if (!formData.title.trim() || !formData.courseId || !formData.dueDate) {
       toast({
-        title: 'Lỗi',
-        description: 'Vui lòng điền đầy đủ thông tin',
+        title: tr('Lỗi', 'Error'),
+        description: tr('Vui lòng điền đầy đủ thông tin', 'Please fill in all required fields'),
         variant: 'destructive',
       });
       return;
@@ -171,15 +255,18 @@ export default function TeacherAssignmentsPage() {
         lessonId: formData.lessonId || undefined,
       });
 
-      toast({ title: 'Đã tạo bài tập mới' });
+      toast({ title: tr('Đã tạo bài tập mới', 'Assignment created') });
       setShowCreateDialog(false);
       resetForm();
       loadData();
     } catch (error) {
       console.error('Error creating assignment:', error);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể tạo bài tập',
+        title: tr('Lỗi', 'Error'),
+        description:
+          error instanceof Error
+            ? localizeMessage(error.message, getCurrentClientLanguage())
+            : tr('Không thể tạo bài tập', 'Unable to create assignment'),
         variant: 'destructive',
       });
     } finally {
@@ -188,10 +275,21 @@ export default function TeacherAssignmentsPage() {
   };
 
   const handleEdit = (assignment: Assignment) => {
+    let formattedDueDate = '';
+    if (assignment.dueDate) {
+      try {
+        const date = new Date(assignment.dueDate);
+        if (!isNaN(date.getTime())) {
+          formattedDueDate = format(date, "yyyy-MM-dd'T'HH:mm");
+        }
+      } catch {
+        formattedDueDate = '';
+      }
+    }
     setFormData({
       title: assignment.title,
       description: assignment.description,
-      dueDate: format(new Date(assignment.dueDate), "yyyy-MM-dd'T'HH:mm"),
+      dueDate: formattedDueDate,
       maxScore: assignment.maxScore,
       courseId: assignment.courseId,
       lessonId: assignment.lessonId || '',
@@ -215,15 +313,18 @@ export default function TeacherAssignmentsPage() {
         lessonId: formData.lessonId || undefined,
       });
 
-      toast({ title: 'Đã cập nhật bài tập' });
+      toast({ title: tr('Đã cập nhật bài tập', 'Assignment updated') });
       setShowCreateDialog(false);
       resetForm();
       loadData();
     } catch (error) {
       console.error('Error updating assignment:', error);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể cập nhật bài tập',
+        title: tr('Lỗi', 'Error'),
+        description:
+          error instanceof Error
+            ? localizeMessage(error.message, getCurrentClientLanguage())
+            : tr('Không thể cập nhật bài tập', 'Unable to update assignment'),
         variant: 'destructive',
       });
     } finally {
@@ -232,39 +333,83 @@ export default function TeacherAssignmentsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Bạn có chắc muốn xóa bài tập này?')) return;
+    if (!confirm(tr('Bạn có chắc muốn xóa bài tập này?', 'Are you sure you want to delete this assignment?'))) return;
 
     try {
       await apiClient.deleteAssignment(id);
-      toast({ title: 'Đã xóa bài tập' });
+      toast({ title: tr('Đã xóa bài tập', 'Assignment deleted') });
       loadData();
     } catch (error) {
       console.error('Error deleting assignment:', error);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể xóa bài tập',
+        title: tr('Lỗi', 'Error'),
+        description:
+          error instanceof Error
+            ? localizeMessage(error.message, getCurrentClientLanguage())
+            : tr('Không thể xóa bài tập', 'Unable to delete assignment'),
         variant: 'destructive',
       });
     }
   };
 
-  const handleViewSubmissions = async (assignment: Assignment) => {
+  const loadSubmissionsForAssignment = async (assignmentId: string): Promise<Submission[]> => {
     try {
-      setSelectedAssignment(assignment);
-      const data = await apiClient.getAssignmentSubmissions(assignment.id);
-      setSubmissions(data);
-      setShowSubmissionsDialog(true);
+      const data = await apiClient.getAssignmentSubmissions(assignmentId);
+      const normalized = Array.isArray(data) ? data : [];
+      setSubmissionsByAssignment((prev) => ({ ...prev, [assignmentId]: normalized }));
+      return normalized;
     } catch (error) {
       console.error('Error loading submissions:', error);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể tải danh sách bài nộp',
+        title: tr('Lỗi', 'Error'),
+        description:
+          error instanceof Error
+            ? localizeMessage(error.message, getCurrentClientLanguage())
+            : tr('Không thể tải danh sách bài nộp', 'Unable to load submissions'),
         variant: 'destructive',
       });
+      setSubmissionsByAssignment((prev) => ({ ...prev, [assignmentId]: [] }));
+      return [];
     }
   };
 
-  const handleGrade = (submission: Submission) => {
+  const handleToggleLesson = async (group: LessonGroup) => {
+    const isOpening = !openLessonMap[group.key];
+    setOpenLessonMap((prev) => ({ ...prev, [group.key]: isOpening }));
+
+    if (!isOpening) return;
+
+    const assignmentIdsToLoad = group.assignments
+      .map((item) => item.id)
+      .filter((id) => submissionsByAssignment[id] === undefined);
+
+    if (assignmentIdsToLoad.length === 0) return;
+
+    setLoadingLessonMap((prev) => ({ ...prev, [group.key]: true }));
+    await Promise.all(assignmentIdsToLoad.map((id) => loadSubmissionsForAssignment(id)));
+    setLoadingLessonMap((prev) => ({ ...prev, [group.key]: false }));
+  };
+
+  const getFilteredRowsForLesson = (group: LessonGroup): SubmissionRow[] => {
+    const rows = group.assignments.flatMap((assignment) => {
+      const assignmentSubmissions = submissionsByAssignment[assignment.id] || [];
+      return assignmentSubmissions.map((submission) => ({
+        ...submission,
+        assignmentId: assignment.id,
+        assignmentTitle: assignment.title,
+        assignmentMaxScore: assignment.maxScore,
+        assignment,
+      }));
+    });
+
+    if (submissionStatusFilter === 'all') return rows;
+    if (submissionStatusFilter === 'graded') return rows.filter((item) => item.status === 'graded');
+    if (submissionStatusFilter === 'pending') return rows.filter((item) => item.status !== 'graded');
+    return rows;
+  };
+
+  const handleGrade = (submission: Submission, assignment: Assignment) => {
+    setSelectedAssignment(assignment);
     setSelectedSubmission(submission);
     setGradeData({
       score: submission.score || 0,
@@ -279,14 +424,20 @@ export default function TeacherAssignmentsPage() {
     try {
       setGrading(true);
       await apiClient.gradeSubmission(selectedSubmission.id, gradeData);
-      toast({ title: 'Đã chấm điểm' });
+      toast({ title: tr('Đã chấm điểm', 'Graded successfully') });
       setShowGradeDialog(false);
-      handleViewSubmissions(selectedAssignment!);
+      if (selectedAssignment) {
+        await loadSubmissionsForAssignment(selectedAssignment.id);
+      }
+      await loadData();
     } catch (error) {
       console.error('Error grading submission:', error);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể chấm điểm',
+        title: tr('Lỗi', 'Error'),
+        description:
+          error instanceof Error
+            ? localizeMessage(error.message, getCurrentClientLanguage())
+            : tr('Không thể chấm điểm', 'Unable to grade submission'),
         variant: 'destructive',
       });
     } finally {
@@ -326,12 +477,15 @@ export default function TeacherAssignmentsPage() {
         ...prev,
         attachments: [...prev.attachments, result.url],
       }));
-      toast({ title: 'Tải file lên thành công' });
+      toast({ title: tr('Tải file lên thành công', 'File uploaded successfully') });
     } catch (error) {
       console.error('Error uploading assignment attachment:', error);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể tải file lên',
+        title: tr('Lỗi', 'Error'),
+        description:
+          error instanceof Error
+            ? localizeMessage(error.message, getCurrentClientLanguage())
+            : tr('Không thể tải file lên', 'Unable to upload file'),
         variant: 'destructive',
       });
     } finally {
@@ -351,9 +505,9 @@ export default function TeacherAssignmentsPage() {
       <div className="w-full space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Quản lý bài tập</h1>
+          <h1 className="text-3xl font-bold">{tr('Quản lý bài tập', 'Assignment management')}</h1>
           <p className="text-muted-foreground mt-1">
-            Tạo và quản lý bài tập cho học viên
+            {tr('Tạo và quản lý bài tập cho học viên', 'Create and manage assignments for students')}
           </p>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={(open) => {
@@ -363,19 +517,19 @@ export default function TeacherAssignmentsPage() {
           <DialogTrigger asChild>
             <Button className="gap-2">
               <FilePlus className="h-4 w-4" />
-              Tạo bài tập mới
+              {tr('Tạo bài tập mới', 'Create assignment')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{isEditing ? 'Chỉnh sửa bài tập' : 'Tạo bài tập mới'}</DialogTitle>
+              <DialogTitle>{isEditing ? tr('Chỉnh sửa bài tập', 'Edit assignment') : tr('Tạo bài tập mới', 'Create assignment')}</DialogTitle>
               <DialogDescription>
-                {isEditing ? 'Cập nhật thông tin bài tập' : 'Điền thông tin bài tập cho học viên'}
+                {isEditing ? tr('Cập nhật thông tin bài tập', 'Update assignment information') : tr('Điền thông tin bài tập cho học viên', 'Fill assignment information for students')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Tiêu đề *</Label>
+                <Label htmlFor="title">{tr('Tiêu đề', 'Title')} *</Label>
                 <Input
                   id="title"
                   value={formData.title}
@@ -383,7 +537,7 @@ export default function TeacherAssignmentsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Mô tả</Label>
+                <Label htmlFor="description">{tr('Mô tả', 'Description')}</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
@@ -393,11 +547,11 @@ export default function TeacherAssignmentsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="course">Khóa học *</Label>
+                  <Label htmlFor="course">{tr('Khóa học', 'Course')} *</Label>
                   <Select value={formData.courseId?? ""}
                    onValueChange={handleCourseChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn khóa học" />
+                      <SelectValue placeholder={tr('Chọn khóa học', 'Select course')} />
                     </SelectTrigger>
                     <SelectContent>
                       {courses.map((course) => (
@@ -409,14 +563,14 @@ export default function TeacherAssignmentsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lesson">Bài học (tùy chọn)</Label>
+                  <Label htmlFor="lesson">{tr('Bài học (tùy chọn)', 'Lesson (optional)')}</Label>
                   <Select
                     value={formData.lessonId}
                     onValueChange={(value) => setFormData({ ...formData, lessonId: value })}
                     disabled={!formData.courseId}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn bài học" />
+                      <SelectValue placeholder={tr('Chọn bài học', 'Select lesson')} />
                     </SelectTrigger>
                     <SelectContent>
                       {lessons.map((lesson) => (
@@ -430,7 +584,7 @@ export default function TeacherAssignmentsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="dueDate">Hạn nộp *</Label>
+                  <Label htmlFor="dueDate">{tr('Hạn nộp', 'Due date')} *</Label>
                   <Input
                     id="dueDate"
                     type="datetime-local"
@@ -439,7 +593,7 @@ export default function TeacherAssignmentsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="maxScore">Điểm tối đa *</Label>
+                  <Label htmlFor="maxScore">{tr('Điểm tối đa', 'Max score')} *</Label>
                   <Input
                     id="maxScore"
                     type="number"
@@ -451,7 +605,7 @@ export default function TeacherAssignmentsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Tài liệu đính kèm (Word, PDF, Excel...)</Label>
+                <Label>{tr('Tài liệu đính kèm (Word, PDF, Excel...)', 'Attachments (Word, PDF, Excel...)')}</Label>
                 <Input
                   type="file"
                   accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
@@ -465,7 +619,7 @@ export default function TeacherAssignmentsPage() {
                   }}
                 />
                 {uploadingAttachment && (
-                  <p className="text-xs text-muted-foreground">Đang tải file lên...</p>
+                  <p className="text-xs text-muted-foreground">{tr('Đang tải file lên...', 'Uploading file...')}</p>
                 )}
                 {formData.attachments.length > 0 && (
                   <div className="space-y-2">
@@ -490,215 +644,240 @@ export default function TeacherAssignmentsPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={saving}>
-                Hủy
+                {tr('Hủy', 'Cancel')}
               </Button>
               <Button onClick={isEditing ? handleUpdate : handleCreate} disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {saving ? 'Đang lưu...' : isEditing ? 'Cập nhật' : 'Tạo bài tập'}
+                {saving ? tr('Đang lưu...', 'Saving...') : isEditing ? tr('Cập nhật', 'Update') : tr('Tạo bài tập', 'Create')}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Filter */}
-      <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-        <SelectTrigger className="w-[240px]">
-          <SelectValue placeholder="Lọc theo khóa học" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Tất cả khóa học</SelectItem>
-          {courses.map((course) => (
-            <SelectItem key={course.id} value={course.id}>
-              {course.title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+          <SelectTrigger className="w-[240px]">
+            <SelectValue placeholder={tr('Lọc theo khóa học', 'Filter by course')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{tr('Tất cả khóa học', 'All courses')}</SelectItem>
+            {courses.map((course) => (
+              <SelectItem key={course.id} value={course.id}>
+                {course.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      {/* Assignments Table */}
+        <Select
+          value={submissionStatusFilter}
+          onValueChange={(value: 'all' | 'graded' | 'pending') => setSubmissionStatusFilter(value)}
+        >
+          <SelectTrigger className="w-[260px]">
+            <SelectValue placeholder={tr('Lọc theo trạng thái chấm', 'Filter by grading status')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{tr('Tất cả bài nộp', 'All submissions')}</SelectItem>
+            <SelectItem value="pending">{tr('Chưa chấm', 'Pending')}</SelectItem>
+            <SelectItem value="graded">{tr('Đã chấm', 'Graded')}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Lesson Groups */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      ) : assignments.length === 0 ? (
+      ) : lessonGroups.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <FilePlus className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground">
-              Chưa có bài tập nào. Hãy tạo bài tập đầu tiên!
+              {tr('Chưa có bài tập nào. Hãy tạo bài tập đầu tiên!', 'No assignments yet. Create your first assignment!')}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tiêu đề</TableHead>
-                <TableHead>Khóa học</TableHead>
-                <TableHead>Hạn nộp</TableHead>
-                <TableHead>Điểm</TableHead>
-                <TableHead>Bài nộp</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {assignments.map((assignment) => {
-                const dueDate = new Date(assignment.dueDate);
-                const isOverdue = dueDate < new Date();
-                return (
-                  <TableRow key={assignment.id}>
-                    <TableCell className="font-medium">{assignment.title}</TableCell>
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <div className="text-sm">{assignment.courseTitle}</div>
-                        {assignment.lessonTitle && (
-                          <div className="text-xs text-muted-foreground">
-                            {assignment.lessonTitle}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <CalendarIcon className="h-3 w-3" />
-                        <span className={isOverdue ? 'text-red-600' : ''}>
-                          {format(dueDate, 'dd/MM/yyyy HH:mm')}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{assignment.maxScore}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">
-                          {assignment.submissionsCount || 0} bài nộp
-                        </Badge>
-                        {(assignment.gradedCount || 0) > 0 && (
-                          <Badge variant="default" className="bg-green-600">
-                            {assignment.gradedCount} đã chấm
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewSubmissions(assignment)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Xem bài nộp
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => router.push(`/teacher/assignments/${assignment.id}/grade`)}>
-                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                            Xem chi tiết chấm
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(assignment)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Chỉnh sửa
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(assignment.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Xóa
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Card>
-      )}
+        <div className="space-y-4">
+          {lessonGroups.map((group) => {
+            const isOpen = Boolean(openLessonMap[group.key]);
+            const isLessonLoading = Boolean(loadingLessonMap[group.key]);
+            const rows = getFilteredRowsForLesson(group);
+            const gradedCount = rows.filter((item) => item.status === 'graded').length;
+            const pendingCount = rows.filter((item) => item.status !== 'graded').length;
 
-      {/* Submissions Dialog */}
-      <Dialog open={showSubmissionsDialog} onOpenChange={setShowSubmissionsDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Bài nộp - {selectedAssignment?.title}</DialogTitle>
-            <DialogDescription>
-              Xem và chấm điểm bài nộp của học viên
-            </DialogDescription>
-          </DialogHeader>
-          {submissions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Chưa có học viên nào nộp bài
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Học viên</TableHead>
-                  <TableHead>Thời gian nộp</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Điểm</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {submissions.map((submission) => (
-                  <TableRow key={submission.id}>
-                    <TableCell className="font-medium">{submission.studentName}</TableCell>
-                    <TableCell>
-                      {format(new Date(submission.submittedAt), 'dd/MM/yyyy HH:mm')}
-                    </TableCell>
-                    <TableCell>
-                      {submission.status === 'graded' ? (
-                        <Badge className="gap-1 bg-green-600">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Đã chấm
+            return (
+              <Card key={group.key}>
+                <Collapsible open={isOpen} onOpenChange={() => handleToggleLesson(group)}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between px-6 py-4 text-left hover:bg-muted/30"
+                    >
+                      <div className="space-y-1">
+                        <div className="text-base font-semibold">{group.lessonTitle}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {group.assignments.length} {tr('bài tập', 'assignments')}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">{rows.length} {tr('bài nộp', 'submissions')}</Badge>
+                        <Badge variant="outline" className="border-amber-500 text-amber-600">
+                          {pendingCount} {tr('chưa chấm', 'pending')}
                         </Badge>
+                        <Badge variant="outline" className="border-green-600 text-green-600">
+                          {gradedCount} {tr('đã chấm', 'graded')}
+                        </Badge>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                      </div>
+                    </button>
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent>
+                    <CardContent>
+                      {isLessonLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : rows.length === 0 ? (
+                        <div className="py-6 text-sm text-muted-foreground">
+                          {tr('Không có bài nộp phù hợp bộ lọc trong lesson này', 'No submissions match the current filter in this lesson')}
+                        </div>
                       ) : (
-                        <Badge variant="secondary" className="gap-1">
-                          <Clock className="h-3 w-3" />
-                          Chờ chấm
-                        </Badge>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>{tr('Học viên', 'Student')}</TableHead>
+                              <TableHead>{tr('Bài tập', 'Assignment')}</TableHead>
+                              <TableHead>{tr('Hạn nộp', 'Due date')}</TableHead>
+                              <TableHead>{tr('Thời gian nộp', 'Submitted at')}</TableHead>
+                              <TableHead>{tr('Trạng thái', 'Status')}</TableHead>
+                              <TableHead>{tr('Điểm', 'Score')}</TableHead>
+                              <TableHead>{tr('Chấm nhanh', 'Quick grade')}</TableHead>
+                              <TableHead className="text-right">{tr('Thao tác', 'Actions')}</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {rows.map((row) => {
+                              const dueDate = getSafeDate(row.assignment.dueDate);
+                              const submittedAt = getSafeDate(row.submittedAt);
+                              const isOverdue = dueDate ? dueDate < new Date() : false;
+
+                              return (
+                                <TableRow key={row.id}>
+                                  <TableCell className="font-medium">
+                                    <div className="flex flex-col">
+                                      <span>{row.studentName}</span>
+                                      {(row as any).studentEmail && (
+                                        <span className="text-xs text-muted-foreground">{(row as any).studentEmail}</span>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{row.assignmentTitle}</TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-1">
+                                      <CalendarIcon className="h-3 w-3" />
+                                      <span className={isOverdue ? 'text-red-600' : ''}>
+                                        {dueDate
+                                          ? format(dueDate, 'dd/MM/yyyy HH:mm', { locale: dateLocale })
+                                          : '-'}
+                                      </span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    {submittedAt
+                                      ? format(submittedAt, 'dd/MM/yyyy HH:mm', { locale: dateLocale })
+                                      : row.status !== 'not_submitted'
+                                        ? tr('Đã nộp (không có timestamp)', 'Submitted (no timestamp)')
+                                        : tr('Chưa nộp', 'Not submitted')}
+                                  </TableCell>
+                                  <TableCell>
+                                    {row.status === 'graded' ? (
+                                      <Badge className="gap-1 bg-green-600">
+                                        <CheckCircle2 className="h-3 w-3" />
+                                        {tr('Đã chấm', 'Graded')}
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        {tr('Chưa chấm', 'Pending')}
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {row.score !== undefined
+                                      ? `${row.score}/${row.assignmentMaxScore}`
+                                      : '-'}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Button size="sm" onClick={() => handleGrade(row, row.assignment)}>
+                                      {row.status === 'graded'
+                                        ? tr('Xem/Sửa điểm', 'View/Edit grade')
+                                        : tr('Chấm điểm', 'Grade')}
+                                    </Button>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                          <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => router.push(`/teacher/assignments/${row.assignmentId}/grade`)}>
+                                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                                          {tr('Xem chi tiết chấm', 'View grading details')}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleEdit(row.assignment)}>
+                                          <Edit className="mr-2 h-4 w-4" />
+                                          {tr('Chỉnh sửa', 'Edit')}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleDelete(row.assignmentId)}
+                                          className="text-destructive"
+                                        >
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          {tr('Xóa', 'Delete')}
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      {submission.score !== undefined
-                        ? `${submission.score}/${selectedAssignment?.maxScore}`
-                        : '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button size="sm" onClick={() => handleGrade(submission)}>
-                        {submission.status === 'graded' ? 'Xem/Sửa điểm' : 'Chấm điểm'}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </DialogContent>
-      </Dialog>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Grading Dialog */}
       <Dialog open={showGradeDialog} onOpenChange={setShowGradeDialog}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Chấm điểm bài nộp</DialogTitle>
+            <DialogTitle>{tr('Chấm điểm bài nộp', 'Grade submission')}</DialogTitle>
             <DialogDescription>
-              Học viên: {selectedSubmission?.studentName}
+              {tr('Học viên', 'Student')}: {selectedSubmission?.studentName}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Nội dung bài nộp</Label>
+              <Label>{tr('Nội dung bài nộp', 'Submission content')}</Label>
               <div className="p-4 border rounded-md bg-muted/50">
                 <p className="whitespace-pre-wrap text-sm">{selectedSubmission?.content}</p>
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="score">Điểm (Tối đa: {selectedAssignment?.maxScore})</Label>
+              <Label htmlFor="score">{tr('Điểm', 'Score')} ({tr('Tối đa', 'Max')}: {selectedAssignment?.maxScore})</Label>
               <Input
                 id="score"
                 type="number"
@@ -709,23 +888,23 @@ export default function TeacherAssignmentsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="feedback">Nhận xét</Label>
+              <Label htmlFor="feedback">{tr('Nhận xét', 'Feedback')}</Label>
               <Textarea
                 id="feedback"
                 value={gradeData.feedback}
                 onChange={(e) => setGradeData({ ...gradeData, feedback: e.target.value })}
                 rows={4}
-                placeholder="Nhập nhận xét cho học viên..."
+                placeholder={tr('Nhập nhận xét cho học viên...', 'Enter feedback for the student...')}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowGradeDialog(false)} disabled={grading}>
-              Hủy
+              {tr('Hủy', 'Cancel')}
             </Button>
             <Button onClick={handleSubmitGrade} disabled={grading}>
               {grading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {grading ? 'Đang lưu...' : 'Lưu điểm'}
+              {grading ? tr('Đang lưu...', 'Saving...') : tr('Lưu điểm', 'Save grade')}
             </Button>
           </DialogFooter>
         </DialogContent>

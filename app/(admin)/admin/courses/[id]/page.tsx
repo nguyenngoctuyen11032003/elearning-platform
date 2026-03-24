@@ -25,6 +25,7 @@ import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { ScientificText } from "@/components/scientific-text"
 
 interface Lesson {
   id: string
@@ -260,6 +261,9 @@ export default function AdminCourseDetailPage() {
         const courseJson = await courseRes.json()
         // Unwrap {success, data} envelope
         const c = courseJson?.data ?? courseJson
+        if (c?.status === "draft") {
+          throw new Error("Draft course is not available for admin review")
+        }
         const lessonsJson = lessonsRes.ok ? await lessonsRes.json() : []
         // Unwrap lessons: {success, data: {data: [...]} } or {success, data: [...]}
         const lessonsUnwrapped = lessonsJson?.data ?? lessonsJson
@@ -705,7 +709,7 @@ export default function AdminCourseDetailPage() {
                                     {lesson.quizQuestions.map((quiz, idx) => (
                                       <div key={`${lesson.id}-q-${idx}`}>
                                         <p className="text-xs font-semibold text-foreground whitespace-pre-wrap break-words leading-relaxed">
-                                          {idx + 1}. {normalizeUploadedText(quiz.question) || t("adm_cd_no_content", "(Chưa có nội dung)")}
+                                          {idx + 1}. <ScientificText text={normalizeUploadedText(quiz.question) || t("adm_cd_no_content", "(Chưa có nội dung)")} />
                                         </p>
                                         {quiz.image && (
                                           <img
@@ -742,7 +746,7 @@ export default function AdminCourseDetailPage() {
                                                   <span
                                                     className={`${isCorrect ? "font-semibold text-foreground" : ""} whitespace-pre-wrap break-words leading-relaxed`}
                                                   >
-                                                    {normalizeUploadedText(opt)}
+                                                    <ScientificText text={normalizeUploadedText(opt)} />
                                                   </span>
                                                 </label>
                                               )
@@ -751,12 +755,12 @@ export default function AdminCourseDetailPage() {
                                         )}
                                         {quiz.type === "fill_in" && quiz.correctAnswerText && (
                                           <p className="mt-2 text-xs text-emerald-700">
-                                            <strong>{t("adm_cd_fill_answer", "Đáp án điền khuyết")}:</strong> {normalizeUploadedText(quiz.correctAnswerText)}
+                                            <strong>{t("adm_cd_fill_answer", "Đáp án điền khuyết")}:</strong> <ScientificText text={normalizeUploadedText(quiz.correctAnswerText)} />
                                           </p>
                                         )}
                                         {quiz.explanation && (
                                           <p className="mt-1 text-xs text-blue-700 whitespace-pre-wrap break-words leading-relaxed">
-                                            <strong>{t("adm_cd_explanation", "Giải thích")}:</strong> {normalizeUploadedText(quiz.explanation)}
+                                            <strong>{t("adm_cd_explanation", "Giải thích")}:</strong> <ScientificText text={normalizeUploadedText(quiz.explanation)} />
                                           </p>
                                         )}
                                       </div>
@@ -777,7 +781,7 @@ export default function AdminCourseDetailPage() {
                                     )}
                                     {lesson.writingPrompt && (
                                       <p className="text-xs text-foreground whitespace-pre-wrap break-words leading-relaxed">
-                                        {normalizeUploadedText(lesson.writingPrompt)}
+                                        <ScientificText text={normalizeUploadedText(lesson.writingPrompt)} />
                                       </p>
                                     )}
                                     {Array.isArray(lesson.writingCriteria) && lesson.writingCriteria.length > 0 && (
