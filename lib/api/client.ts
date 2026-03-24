@@ -203,7 +203,16 @@ class ApiClient {
         );
       }
       if (error instanceof Error) {
-        throw new Error(localizeMessage(error.message, getCurrentClientLanguage()));
+        const message = error.message || '';
+        if (/max client connections reached/i.test(message)) {
+          throw new Error(
+            localizeMessage(
+              'Server is busy. Please retry in a few seconds.',
+              getCurrentClientLanguage(),
+            ),
+          );
+        }
+        throw new Error(localizeMessage(message, getCurrentClientLanguage()));
       }
       throw new Error(localizeMessage('An unexpected error occurred', getCurrentClientLanguage()));
     } finally {
