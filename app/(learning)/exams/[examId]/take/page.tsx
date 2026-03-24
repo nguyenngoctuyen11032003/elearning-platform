@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
+import { useLanguage } from "@/lib/i18n/language-context"
+import { ScientificText } from "@/components/scientific-text"
 
 interface ExamQuestion {
   id: string

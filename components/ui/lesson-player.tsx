@@ -5,6 +5,8 @@ import { ChevronDown, MessageCircle, Download, FileText, CheckCircle2, Circle, P
 import { authFetch } from "@/lib/authfetch"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { useLanguage } from "@/lib/i18n/language-context"
+import { ScientificText } from "@/components/scientific-text"
 
 interface Lesson {
   id: string

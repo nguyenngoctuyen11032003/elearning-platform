@@ -20,7 +20,7 @@ import {
   Bar,
 } from "recharts"
 import { useState, useEffect } from "react"
-import { formatPrice, formatCurrency, formatCurrencyByLanguage } from "@/lib/format"
+import { formatPrice, formatNumber, formatCurrency, formatCurrencyByLanguage } from "@/lib/format"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { apiClient } from "@/lib/api/client"
 import { format } from "date-fns/format"
