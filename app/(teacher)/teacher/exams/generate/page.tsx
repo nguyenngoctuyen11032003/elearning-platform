@@ -106,7 +106,7 @@ export default function TeacherExamsListPage() {
     setAttemptDetailLoading(true)
     try {
       const res = await authFetch(`/extracted-exams/${attemptHistoryExam.id}/attempts/${attempt.id}`)
-      if (!res.ok) throw new Error("Không thể tải chi tiết")
+      if (!res.ok) throw new Error(t("tch_exg_detail_load_fail", "Unable to load attempt detail"))
       const data = await res.json().catch(() => null)
       setSelectedAttempt(data)
     } catch {

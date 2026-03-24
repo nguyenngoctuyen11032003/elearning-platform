@@ -68,7 +68,7 @@ interface IssuedCertificate {
 }
 
 export default function AdminCertificatesPage() {
-      const { t } = useLanguage()
+  const { t, language } = useLanguage()
       // Helper to set anchor for modal
       const openAnchoredModal = (cardId: string) => {
         const card = cardRefs.current[cardId]
@@ -222,7 +222,7 @@ export default function AdminCertificatesPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Reject failed")
+        throw new Error(t("adm_cert_reject_err", "Failed to reject certificate. Please try again."))
       }
 
       await fetchCertificates()
@@ -246,7 +246,7 @@ export default function AdminCertificatesPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Approve failed")
+        throw new Error(t("adm_cert_approve_err", "Failed to approve certificate. Please try again."))
       }
 
       await fetchCertificates()
@@ -268,7 +268,7 @@ const formatDate = (date?: string) => {
   const d = new Date(date)
   return isNaN(d.getTime())
     ? "—"
-    : d.toLocaleDateString("vi-VN")
+    : d.toLocaleDateString(language === "en" ? "en-US" : "vi-VN")
 }
 
   const availableExams = approveTarget
@@ -975,7 +975,5 @@ const formatDate = (date?: string) => {
   )
 }
 
-function setDetailPopoverStyle(arg0: { top: any; left: any; width: any } | null) {
-  throw new Error("Function not implemented.")
-}
+function setDetailPopoverStyle(_arg0: { top: any; left: any; width: any } | null) {}
 

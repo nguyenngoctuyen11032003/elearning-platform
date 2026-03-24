@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Bell, CreditCard } from "lucide-react"
+import { Bell, CreditCard, Globe, Moon, Palette, Sun } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { useRouter } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
 
 interface PlanItem {
   id: string
@@ -20,9 +21,11 @@ interface PlanItem {
 
 export default function TeacherSettingsPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, setLanguage } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(true)
+  const [selectedLanguage, setSelectedLanguage] = useState<"vi" | "en">("vi")
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
     courseNotifications: true,
@@ -54,6 +57,12 @@ export default function TeacherSettingsPage() {
     loadData()
   }, [])
 
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains("dark")
+    setIsDarkMode(isDark)
+    setSelectedLanguage(document.documentElement.lang === "en" ? "en" : "vi")
+  }, [])
+
   const currentPlanId = subscriptionData?.subscription?.plan?.id
   const usage = subscriptionData?.usage || { coursesCreated: 0, courseLimit: 2, remainingCourses: 2 }
   const billingHistory = Array.isArray(subscriptionData?.billingHistory) ? subscriptionData.billingHistory : []
@@ -75,10 +84,16 @@ export default function TeacherSettingsPage() {
       toast.success(t("teacher_settings_cancelled_plan", "Đã hủy gói trả phí và chuyển về gói Free"))
       await loadData()
     } catch (error: any) {
-      toast.error(error?.message || t("teacher_settings_cancel_failed", "Không thể hủy gói"))
+      toast.error(localizeMessage(error?.message || t("teacher_settings_cancel_failed", "Cannot cancel plan"), getCurrentClientLanguage()))
     } finally {
       setCancelling(false)
     }
+  }
+
+  const handleLanguageChange = (lang: string) => {
+    const nextLang = lang === "en" ? "en" : "vi"
+    setSelectedLanguage(nextLang)
+    setLanguage(nextLang)
   }
 
   if (loading) {
@@ -92,7 +107,7 @@ export default function TeacherSettingsPage() {
         <p className="text-muted-foreground">{t("teacher_billing_subtitle", "Quản lý tài khoản, gói và phương thức thanh toán của bạn")}</p>
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
           <h2 className="text-xl font-semibold flex items-center gap-2"><Bell size={20} /> {t("teacher_settings_notifications_title", "Notifications")}</h2>
           {[
@@ -124,13 +139,11 @@ export default function TeacherSettingsPage() {
           ))}
           <p className="text-sm text-muted-foreground">{t("teacher_settings_notif_hint", "Thiết lập này lưu trên giao diện giảng viên hiện tại.")}</p>
         </div>
-      </div>
 
-      <div className="space-y-4">
         <div className="rounded-2xl border border-border bg-card p-6 space-y-3">
           <h2 className="text-xl font-semibold flex items-center gap-2"><CreditCard size={20} /> {t("teacher_settings_current_plan", "Current Plan")}</h2>
           <p>
-            {t("teacher_settings_current_plan_label", "Gói hiện tại")}: <strong>{subscriptionData?.subscription?.plan?.name || "Free"}</strong>
+            {t("teacher_settings_current_plan_label", "Gói hiện tại")}: <strong>{subscriptionData?.subscription?.plan?.name || t("common_free", "Free")}</strong>
           </p>
           <p>
             {t("teacher_settings_course_limit", "Hạn mức khóa học")}: <strong>{usage.coursesCreated}</strong> / <strong>{usage.courseLimit}</strong>
@@ -140,6 +153,72 @@ export default function TeacherSettingsPage() {
           </div>
           <p className="text-sm text-muted-foreground">{t("teacher_settings_usage_remaining", "Usage: còn {n} khóa học có thể tạo.").replace("{n}", String(usage.remainingCourses))}</p>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-6">
+        <h2 className="text-xl font-semibold flex items-center gap-2"><Palette size={20} /> {t("teacher_settings_appearance_title", "Appearance")}</h2>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
+            <div className="flex items-center gap-3">
+              {isDarkMode ? (
+                <Moon size={20} className="text-primary dark:text-accent" />
+              ) : (
+                <Sun size={20} className="text-yellow-500" />
+              )}
+              <div>
+                <p className="text-foreground dark:text-white font-semibold">{t("teacher_settings_dark_mode", "Dark mode")}</p>
+                <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("teacher_settings_dark_mode_desc", "Bật/tắt chế độ tối cho giao diện giảng viên")}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setIsDarkMode(!isDarkMode)
+                if (!isDarkMode) {
+                  document.documentElement.classList.add("dark")
+                } else {
+                  document.documentElement.classList.remove("dark")
+                }
+              }}
+              className={`w-12 h-6 rounded-full transition-all ${
+                isDarkMode ? "bg-primary" : "bg-slate-400"
+              }`}
+            >
+              <div
+                className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                  isDarkMode ? "translate-x-6" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Globe size={20} className="text-primary dark:text-accent" />
+              <div>
+                <p className="text-foreground dark:text-white font-semibold">{t("teacher_settings_language", "Language")}</p>
+                <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("teacher_settings_language_desc", "Chọn ngôn ngữ hiển thị")}</p>
+              </div>
+            </div>
+            <select
+              value={selectedLanguage}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              className="bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="vi">{t("teacher_settings_lang_vi", "Tiếng Việt")}</option>
+              <option value="en">{t("teacher_settings_lang_en", "English")}</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-sm text-blue-900 dark:text-blue-200">
+            {t("teacher_settings_appearance_hint", "Giao diện sẽ được áp dụng ngay cho toàn bộ trang giảng viên.")}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
 
         <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
           <h3 className="text-lg font-semibold">{t("teacher_settings_upgrade_plan", "Upgrade Plan")}</h3>

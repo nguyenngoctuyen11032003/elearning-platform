@@ -171,12 +171,12 @@ export default function StudentAssignmentDetailPage() {
   const isGraded = mySubmission?.status === 'graded';
 
   const submissionStatusText = !submitted
-    ? 'No submissions have been made yet'
+    ? t('asgn_no_submission_yet', 'No submissions have been made yet')
     : mySubmission?.status === 'graded'
-      ? 'Submitted for grading'
+      ? t('asgn_status_submitted_for_grading', 'Submitted for grading')
       : mySubmission?.status === 'late'
-        ? 'Submitted late'
-        : 'Draft (not submitted)';
+        ? t('asgn_status_submitted_late', 'Submitted late')
+        : t('asgn_status_draft_not_submitted', 'Draft (not submitted)');
 
   const loadData = async () => {
     if (!assignmentId) return;
@@ -201,7 +201,7 @@ export default function StudentAssignmentDetailPage() {
       setAttachments(Array.isArray(normalizedSubmission?.attachments) ? normalizedSubmission.attachments : []);
     } catch (error) {
       console.error('Failed to load assignment detail:', error);
-      toast.error('Không thể tải chi tiết bài writing');
+      toast.error(t('asgn_load_detail_failed', 'Unable to load writing assignment details'));
     } finally {
       setLoading(false);
     }
@@ -217,9 +217,9 @@ export default function StudentAssignmentDetailPage() {
       setUploading(true);
       const uploaded = await apiClient.uploadDocument(file);
       setAttachments((prev) => [...prev, uploaded.url]);
-      toast.success('Đã tải file lên');
+      toast.success(t('asgn_upload_success', 'File uploaded successfully'));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Không thể upload file';
+      const message = error instanceof Error ? error.message : t('asgn_upload_failed', 'Unable to upload file');
       toast.error(message);
     } finally {
       setUploading(false);
@@ -229,7 +229,7 @@ export default function StudentAssignmentDetailPage() {
   const handleSubmit = async () => {
     if (!assignmentId) return;
     if (!content.trim() && attachments.length === 0) {
-      toast.error('Vui lòng nhập nội dung hoặc đính kèm ít nhất 1 file');
+      toast.error(t('asgn_submit_require_content_or_file', 'Please enter content or attach at least one file'));
       return;
     }
 
@@ -239,10 +239,10 @@ export default function StudentAssignmentDetailPage() {
         content: content.trim(),
         attachments,
       });
-      toast.success('Nộp bài thành công');
+      toast.success(t('asgn_submit_success', 'Submission successful'));
       await loadData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Không thể nộp bài';
+      const message = error instanceof Error ? error.message : t('asgn_submit_failed', 'Unable to submit assignment');
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -260,7 +260,7 @@ export default function StudentAssignmentDetailPage() {
   if (!assignment) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        Không tìm thấy bài writing.
+        {t('asgn_not_found', 'Writing assignment not found.')}
       </div>
     );
   }
@@ -272,7 +272,7 @@ export default function StudentAssignmentDetailPage() {
           onClick={() => router.back()}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-smooth"
         >
-          <ArrowLeft size={16} /> Quay lại
+          <ArrowLeft size={16} /> {t('common_back', 'Back')}
         </button>
 
         <div className="rounded-2xl border border-border bg-card p-5 md:p-6 space-y-5">
@@ -287,18 +287,18 @@ export default function StudentAssignmentDetailPage() {
             </div>
             {submitted ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                <CheckCircle2 size={14} /> Đã nộp
+                <CheckCircle2 size={14} /> {t('asgn_submitted_badge', 'Submitted')}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
-                <CalendarClock size={14} /> Chưa nộp
+                <CalendarClock size={14} /> {t('asgn_not_submitted_badge', 'Not submitted')}
               </span>
             )}
           </div>
 
           {Array.isArray(assignment.attachments) && assignment.attachments.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Tài liệu giảng viên đính kèm</p>
+              <p className="text-sm font-semibold text-foreground">{t('asgn_teacher_attachments', 'Instructor attachments')}</p>
               <div className="space-y-2">
                 {assignment.attachments.map((url) => (
                   <a

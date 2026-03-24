@@ -8,6 +8,59 @@ import { toast } from 'sonner';
 
 type AuthUser = Omit<User, 'status' | 'createdAt' | 'updatedAt'>;
 
+type AuthI18nKey =
+  | 'auth_login_success'
+  | 'auth_login_failed'
+  | 'auth_account_locked'
+  | 'auth_account_disabled'
+  | 'auth_invalid_credentials'
+  | 'auth_account_not_found'
+  | 'auth_account_inactive'
+  | 'auth_network_error'
+  | 'auth_register_success_verify'
+  | 'auth_register_failed'
+  | 'auth_logout_success';
+
+const AUTH_MESSAGES: Record<'vi' | 'en', Record<AuthI18nKey, string>> = {
+  vi: {
+    auth_login_success: 'Đăng nhập thành công!',
+    auth_login_failed: 'Đăng nhập thất bại',
+    auth_account_locked: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với đội ngũ hỗ trợ để được kích hoạt lại.',
+    auth_account_disabled: 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ với đội ngũ hỗ trợ để được kích hoạt lại.',
+    auth_invalid_credentials: 'Email hoặc mật khẩu không chính xác. Vui lòng thử lại.',
+    auth_account_not_found: 'Tài khoản không tồn tại. Vui lòng đăng ký.',
+    auth_account_inactive: 'Tài khoản của bạn chưa được kích hoạt. Vui lòng kiểm tra email.',
+    auth_network_error: 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.',
+    auth_register_success_verify: 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực.',
+    auth_register_failed: 'Đăng ký thất bại',
+    auth_logout_success: 'Đã đăng xuất thành công',
+  },
+  en: {
+    auth_login_success: 'Login successful!',
+    auth_login_failed: 'Login failed',
+    auth_account_locked: 'Your account has been locked. Please contact support to reactivate it.',
+    auth_account_disabled: 'Your account has been disabled. Please contact support to reactivate it.',
+    auth_invalid_credentials: 'Incorrect email or password. Please try again.',
+    auth_account_not_found: 'Account not found. Please sign up first.',
+    auth_account_inactive: 'Your account has not been activated yet. Please check your email.',
+    auth_network_error: 'Unable to connect to the server. Please check your network connection.',
+    auth_register_success_verify: 'Sign up successful! Please check your email to verify.',
+    auth_register_failed: 'Sign up failed',
+    auth_logout_success: 'Logged out successfully',
+  },
+};
+
+function getCurrentLanguage(): 'vi' | 'en' {
+  if (typeof window === 'undefined') return 'vi';
+  const stored = localStorage.getItem('ics_lang');
+  return stored === 'en' ? 'en' : 'vi';
+}
+
+function tAuth(key: AuthI18nKey): string {
+  const lang = getCurrentLanguage();
+  return AUTH_MESSAGES[lang][key];
+}
+
 type LogoutOptions = {
   redirect?: string | null;
   message?: string;
@@ -108,7 +161,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const response = await apiClient.login(data);
       setUser(response.user);
       
-      toast.success('Đăng nhập thành công!');
+      toast.success(tAuth('auth_login_success'));
       
       // Redirect based on role
       switch (response.user.role) {
@@ -124,7 +177,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           break;
       }
     } catch (error) {
-      let message = 'Đăng nhập thất bại';
+      let message = tAuth('auth_login_failed');
 
       if (error instanceof Error) {
         const errorMsg = error.message;
@@ -142,17 +195,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const errorMsgLower = errorMsg.toLowerCase();
           
           if (errorMsgLower.includes('locked')) {
-            message = 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với đội ngũ hỗ trợ để được kích hoạt lại.';
+            message = tAuth('auth_account_locked');
           } else if (errorMsgLower.includes('disabled') || errorMsgLower.includes('deactivated')) {
-            message = 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ với đội ngũ hỗ trợ để được kích hoạt lại.';
+            message = tAuth('auth_account_disabled');
           } else if (errorMsgLower.includes('invalid') || errorMsgLower.includes('credentials')) {
-            message = 'Email hoặc mật khẩu không chính xác. Vui lòng thử lại.';
+            message = tAuth('auth_invalid_credentials');
           } else if (errorMsgLower.includes('not found')) {
-            message = 'Tài khoản không tồn tại. Vui lòng đăng ký.';
+            message = tAuth('auth_account_not_found');
           } else if (errorMsgLower.includes('inactive') || errorMsgLower.includes('pending')) {
-            message = 'Tài khoản của bạn chưa được kích hoạt. Vui lòng kiểm tra email.';
+            message = tAuth('auth_account_inactive');
           } else if (errorMsgLower.includes('kết nối') || errorMsgLower.includes('network')) {
-            message = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+            message = tAuth('auth_network_error');
           } else {
             message = error.message;
           }
@@ -170,10 +223,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(true);
       await apiClient.register(data);
 
-      toast.success('Đăng ký thành công! Vui lòng kiểm tra email để xác thực.');
+      toast.success(tAuth('auth_register_success_verify'));
       router.push('/login?registered=1');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Đăng ký thất bại';
+      const message = error instanceof Error ? error.message : tAuth('auth_register_failed');
       toast.error(message);
       throw error;
     } finally {
@@ -209,7 +262,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async () => {
     await forceLogout({
-      message: 'Đã đăng xuất thành công',
+      message: tAuth('auth_logout_success'),
       toastType: 'success',
       skipApi: false,
       redirect: '/',

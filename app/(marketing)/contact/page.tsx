@@ -48,7 +48,7 @@ export default function ContactPage() {
         alert(t("contact_thank_you", "Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất."))
         setFormData({ name: "", email: "", phone: "", subject: "", message: "" })
       } else {
-        throw new Error('Failed to send message')
+        throw new Error(t("contact_send_failed", "Failed to send message"))
       }
     } catch (error) {
       console.error('Contact form error:', error)

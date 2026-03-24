@@ -86,6 +86,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.documentElement.lang = language
+    document.documentElement.setAttribute('data-lang', language)
+  }, [language])
+
   const value = useMemo<LanguageContextValue>(() => {
     return {
       language,

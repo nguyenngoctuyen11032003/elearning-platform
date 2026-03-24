@@ -377,10 +377,14 @@ export function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmText = "Xác nhận",
-  cancelText = "Hủy",
+  confirmText,
+  cancelText,
   isDangerous = false,
 }: ConfirmDialogProps) {
+  const { t } = useLanguage()
+  const resolvedConfirmText = confirmText ?? t("common_confirm", "Xác nhận")
+  const resolvedCancelText = cancelText ?? t("common_cancel", "Hủy")
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
       <div className="space-y-4">
@@ -394,7 +398,7 @@ export function ConfirmDialog({
             onClick={onClose}
             className="flex-1 px-4 py-2 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
           >
-            {cancelText}
+            {resolvedCancelText}
           </button>
           <button
             onClick={() => {
@@ -405,7 +409,7 @@ export function ConfirmDialog({
               isDangerous ? "bg-destructive hover:bg-destructive/90" : "bg-gradient-to-r from-primary to-accent"
             }`}
           >
-            {confirmText}
+            {resolvedConfirmText}
           </button>
         </div>
       </div>

@@ -7,6 +7,8 @@ import { apiClient } from "@/lib/api/client"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
+import { useLanguage } from "@/lib/i18n/language-context"
+import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
 
 interface Section {
   id: string
@@ -423,6 +425,8 @@ function buildQuizQuestionsPayload(
 
 export default function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const { language } = useLanguage()
+  const tr = (vi: string, en: string) => (language === "en" ? en : vi)
   const resolvedParams = use(params)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -502,7 +506,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     })
 
     if (!response.ok) {
-      throw new Error("Không thể tải ảnh câu hỏi lên server")
+      throw new Error(tr("Không thể tải ảnh câu hỏi lên server", "Unable to upload question image to server"))
     }
 
     const result = await response.json()
@@ -535,7 +539,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
         if (!response.ok) {
           const errorData = await response.json()
-          throw new Error(errorData.error || "Failed to parse Word document")
+          throw new Error(localizeMessage(errorData.error || tr("Không thể phân tích file Word", "Failed to parse Word document"), getCurrentClientLanguage()))
         }
 
         const result = await response.json()
@@ -833,7 +837,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       console.log("Total imported quizzes created:", quizzesWithUploadedImages.length)
 
       if (quizzesWithUploadedImages.length === 0) {
-        toast.error("Không có câu hỏi hợp lệ để import. Vui lòng kiểm tra định dạng file.")
+        toast.error(tr("Không có câu hỏi hợp lệ để import. Vui lòng kiểm tra định dạng file.", "No valid questions to import. Please check the file format."))
         return
       }
 
@@ -866,12 +870,16 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         console.log("BRANCH: No state update - addToNew=false and no lessonId")
       }
 
-      toast.success(`Đã import ${quizzesWithUploadedImages.length} câu hỏi. Đáp án đã được tự động chọn.`)
+      toast.success(
+        language === "en"
+          ? `Imported ${quizzesWithUploadedImages.length} questions. Answers were selected automatically.`
+          : `Đã import ${quizzesWithUploadedImages.length} câu hỏi. Đáp án đã được tự động chọn.`
+      )
     } catch (error) {
       console.error("Error importing quizzes:", error)
-      const errorMessage = error instanceof Error ? error.message : "Không biết"
+      const errorMessage = error instanceof Error ? localizeMessage(error.message, getCurrentClientLanguage()) : tr("Không rõ", "Unknown")
       console.error("Full error:", error)
-      toast.error("Lỗi khi import file: " + errorMessage)
+      toast.error((language === "en" ? "Import error: " : "Lỗi khi import file: ") + errorMessage)
     }
   }
 
@@ -996,7 +1004,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         }
       } catch (error) {
         console.error("Error loading course:", error)
-        toast.error("Không thể tải thông tin khóa học")
+        toast.error(tr("Không thể tải thông tin khóa học", "Unable to load course information"))
       } finally {
         setIsLoading(false)
       }
@@ -1054,7 +1062,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
   const handleAddLessonSubmit = () => {
     if (!newLessonData.title.trim()) {
-      alert("Vui lòng nhập tên bài giảng")
+      alert(tr("Vui lòng nhập tên bài giảng", "Please enter lesson title"))
       return
     }
 
@@ -1364,12 +1372,12 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           })
           if (!uploadRes.ok) {
             const err = await uploadRes.json().catch(() => ({}))
-            throw new Error(err?.message || err?.error || "Không thể tải ảnh lên")
+            throw new Error(localizeMessage(err?.message || err?.error || tr("Không thể tải ảnh lên", "Unable to upload image"), getCurrentClientLanguage()))
           }
           const uploadJson = await uploadRes.json().catch(() => ({}))
           const uploadedUrl = uploadJson?.data?.url ?? uploadJson?.url
           if (!uploadedUrl) {
-            throw new Error("Upload ảnh thành công nhưng không nhận được URL")
+            throw new Error(tr("Upload ảnh thành công nhưng không nhận được URL", "Image upload succeeded but URL was not returned"))
           }
           nextThumbnail = uploadedUrl
         }
@@ -1676,9 +1684,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         }
       }
 
-      toast.success("Đã lưu khóa học thành công!")
+      toast.success(tr("Đã lưu khóa học thành công!", "Course saved successfully!"))
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Đã xảy ra lỗi"
+      const message = error instanceof Error ? localizeMessage(error.message, getCurrentClientLanguage()) : tr("Đã xảy ra lỗi", "An error occurred")
       toast.error(message)
     } finally {
       setIsSaving(false)
@@ -1693,11 +1701,11 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         method: "PATCH",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
-      if (!res.ok) throw new Error("Đã xảy ra lỗi")
+      if (!res.ok) throw new Error(tr("Đã xảy ra lỗi", "An error occurred"))
       setCourseStatus("pending")
-      toast.success("Đã gửi khóa học để xét duyệt!")
+      toast.success(tr("Đã gửi khóa học để xét duyệt!", "Course submitted for review!"))
     } catch {
-      toast.error("Gửi duyệt thất bại")
+      toast.error(tr("Gửi duyệt thất bại", "Submit for review failed"))
     } finally {
       setIsSubmitting(false)
     }
@@ -1736,24 +1744,24 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             })
             if (!patchRes.ok) {
               console.error("[VideoUpload] auto-save thất bại:", await patchRes.json().catch(() => ({})))
-              toast.warning("Video đã upload nhưng lưu vào DB thất bại, hãy nhấn Lưu khóa học")
+              toast.warning(tr("Video đã upload nhưng lưu vào DB thất bại, hãy nhấn Lưu khóa học", "Video uploaded but failed to save to DB. Please click Save course."))
             } else {
-              toast.success("Upload video thành công!")
+              toast.success(tr("Upload video thành công!", "Video uploaded successfully!"))
             }
           } else {
-            toast.success("Upload video thành công!")
+            toast.success(tr("Upload video thành công!", "Video uploaded successfully!"))
           }
         } else {
           console.error("[VideoUpload] res.ok nhưng không tìm thấy url trong response:", result)
-          toast.error("Upload thành công nhưng không nhận được URL video")
+          toast.error(tr("Upload thành công nhưng không nhận được URL video", "Upload succeeded but no video URL was returned"))
         }
       } else {
         const err = await res.json().catch(() => ({}))
-        toast.error(`Upload video thất bại: ${err?.error?.message || err?.message || res.status}`)
+        toast.error(`${tr("Upload video thất bại", "Video upload failed")}: ${localizeMessage(err?.error?.message || err?.message || String(res.status), getCurrentClientLanguage())}`)
       }
     } catch (e) {
       console.error("[VideoUpload] exception:", e)
-      toast.error("Không thể upload video")
+      toast.error(tr("Không thể upload video", "Unable to upload video"))
     } finally {
       setUploadingVideoIds(prev => { const s = new Set(prev); s.delete(lessonId); return s })
     }
@@ -1792,25 +1800,25 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             })
             if (!patchRes.ok) {
               console.error("[DocumentUpload] auto-save thất bại:", await patchRes.json().catch(() => ({})))
-              toast.warning(`Tài liệu đã upload nhưng lưu vào DB thất bại, hãy nhấn Lưu khóa học`)
+              toast.warning(tr("Tài liệu đã upload nhưng lưu vào DB thất bại, hãy nhấn Lưu khóa học", "Document uploaded but failed to save to DB. Please click Save course."))
             } else {
-              toast.success(`Tài liệu "${file.name}" đã được lưu!`)
+              toast.success(language === "en" ? `Document "${file.name}" has been saved!` : `Tài liệu "${file.name}" đã được lưu!`)
             }
           } else {
-            toast.success(`Tài liệu "${file.name}" đã tải lên!`)
+            toast.success(language === "en" ? `Document "${file.name}" uploaded successfully!` : `Tài liệu "${file.name}" đã tải lên!`)
           }
         } else {
           console.error("[DocumentUpload] res.ok nhưng không tìm thấy url trong response:", result)
-          toast.error("Upload thành công nhưng không nhận được URL tài liệu")
+          toast.error(tr("Upload thành công nhưng không nhận được URL tài liệu", "Upload succeeded but no document URL was returned"))
         }
       } else {
         const err = await res.json().catch(() => ({}))
         console.error("[DocumentUpload] upload thất bại:", err)
-        toast.error(`Upload tài liệu thất bại: ${err?.error?.message || err?.message || res.status}`)
+        toast.error(`${tr("Upload tài liệu thất bại", "Document upload failed")}: ${localizeMessage(err?.error?.message || err?.message || String(res.status), getCurrentClientLanguage())}`)
       }
     } catch (e) {
       console.error("[DocumentUpload] exception:", e)
-      toast.error("Không thể upload tài liệu")
+      toast.error(tr("Không thể upload tài liệu", "Unable to upload document"))
     } finally {
       setUploadingDocIds(prev => { const s = new Set(prev); s.delete(lessonId); return s })
     }
@@ -1844,8 +1852,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           {/* Header */}
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground dark:text-white">Chỉnh sửa khóa học</h1>
-              <p className="text-muted-foreground dark:text-slate-400">Cập nhật thông tin và nội dung khóa học</p>
+              <h1 className="text-3xl font-bold text-foreground dark:text-white">{tr("Chỉnh sửa khóa học", "Edit course")}</h1>
+              <p className="text-muted-foreground dark:text-slate-400">{tr("Cập nhật thông tin và nội dung khóa học", "Update course information and content")}</p>
             </div>
             {courseStatus === "draft" && (
               <button
@@ -1854,23 +1862,23 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                 className="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-smooth disabled:opacity-60"
               >
                 {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                Gửi duyệt
+                {tr("Gửi duyệt", "Submit for review")}
               </button>
             )}
             {courseStatus === "pending" && (
-              <span className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-lg text-sm font-medium">Chờ duyệt</span>
+              <span className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-lg text-sm font-medium">{tr("Chờ duyệt", "Pending review")}</span>
             )}
             {courseStatus === "published" && (
-              <span className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-medium">Đã xuất bản</span>
+              <span className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-medium">{tr("Đã xuất bản", "Published")}</span>
             )}
           </div>
 
           {/* Course Info */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-            <h2 className="text-xl font-bold text-foreground dark:text-white">Thông tin khóa học</h2>
+            <h2 className="text-xl font-bold text-foreground dark:text-white">{tr("Thông tin khóa học", "Course information")}</h2>
 
             <div>
-              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Tiêu đề</label>
+              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{tr("Tiêu đề", "Title")}</label>
               <input
                 type="text"
                 value={course.title}
@@ -1880,7 +1888,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             </div>
 
             <div>
-              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Mô tả</label>
+              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{tr("Mô tả", "Description")}</label>
               <textarea
                 value={course.description}
                 onChange={(e) => setCourse({ ...course, description: e.target.value })}
@@ -1890,13 +1898,13 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Danh mục</label>
+                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{tr("Danh mục", "Category")}</label>
                 <select
                   value={course.categoryId}
                   onChange={(e) => setCourse({ ...course, categoryId: e.target.value })}
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                 >
-                  <option value="">Chọn danh mục</option>
+                  <option value="">{tr("Chọn danh mục", "Select category")}</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
@@ -1905,24 +1913,36 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             </div>
 
             <div>
-              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Ảnh khóa học</label>
+              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{tr("Ảnh khóa học", "Course thumbnail")}</label>
               <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    setThumbnailFile(file)
-                    setThumbnailDirty(true)
-                    const reader = new FileReader()
-                    reader.onloadend = () => {
-                      setThumbnailPreview(reader.result as string)
-                    }
-                    reader.readAsDataURL(file)
-                  }}
-                  className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                />
+                <div className="flex-1">
+                  <input
+                    id="course-thumbnail-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      setThumbnailFile(file)
+                      setThumbnailDirty(true)
+                      const reader = new FileReader()
+                      reader.onloadend = () => {
+                        setThumbnailPreview(reader.result as string)
+                      }
+                      reader.readAsDataURL(file)
+                    }}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="course-thumbnail-input"
+                    className="inline-flex w-full items-center justify-center rounded-lg border border-border dark:border-slate-800 bg-background dark:bg-slate-950 px-4 py-2 text-sm text-foreground dark:text-white cursor-pointer hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
+                  >
+                    {tr("Chọn ảnh khóa học", "Choose course thumbnail")}
+                  </label>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {thumbnailFile?.name || tr("Chưa có tệp nào được chọn", "No file selected")}
+                  </p>
+                </div>
                 {(thumbnailPreview || course.thumbnail !== "/placeholder.jpg") && (
                   <button
                     type="button"
@@ -1945,7 +1965,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                     <div className="relative h-40 w-full overflow-hidden bg-secondary dark:bg-slate-800">
                       <img
                         src={thumbnailPreview || course.thumbnail}
-                        alt="Ảnh khóa học"
+                        alt={tr("Ảnh khóa học", "Course thumbnail")}
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -1956,7 +1976,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
             <div className="space-y-4">
               <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-3">Giá khóa học</label>
+                <label className="block text-foreground dark:text-white text-sm font-semibold mb-3">{tr("Giá khóa học", "Course price")}</label>
                 <div className="text-center mb-4">
                   <span className="text-3xl font-bold text-primary dark:text-accent">
                     {course.price.toLocaleString("vi-VN")}
@@ -1986,11 +2006,11 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           {/* Lessons */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-3 sm:p-6 space-y-4 sm:space-y-6">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg sm:text-xl font-bold text-foreground dark:text-white">Bài giảng</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-foreground dark:text-white">{tr("Bài giảng", "Lessons")}</h2>
               <button
                 onClick={addSection}
                 className="px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-smooth flex items-center gap-1 text-sm sm:text-base whitespace-nowrap">
-                <Plus size={16} /> <span>Thêm phần mới</span>
+                <Plus size={16} /> <span>{tr("Thêm phần mới", "Add section")}</span>
               </button>
             </div>
 
@@ -2003,13 +2023,13 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                       value={section.title}
                       onChange={(e) => updateSection(section.id, e.target.value)}
                       className="flex-1 bg-transparent font-semibold text-foreground dark:text-white focus:outline-none text-sm sm:text-base"
-                      placeholder="Tên phần..."
+                      placeholder={tr("Tên phần...", "Section title...")}
                     />
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => addLesson(section.id)}
                         className="flex-1 sm:flex-none px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-xs sm:text-sm font-medium hover:bg-primary/20 transition-smooth flex items-center justify-center gap-1 whitespace-nowrap">
-                        <Plus size={13} /> Thêm bài học
+                        <Plus size={13} /> {tr("Thêm bài học", "Add lesson")}
                       </button>
                       <button
                         onClick={() => deleteSection(section.id)}
@@ -2185,7 +2205,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                 </label>
                                 <div className="space-y-3">
                                   <p className="text-xs text-muted-foreground dark:text-slate-400">
-                                    Mỗi dòng là 1 tiêu chí, mỗi cột là 1 mức đánh giá (kèm điểm). Bạn có thể sửa tên tiêu chí, mô tả từng mức và điểm.
+                                    {tr("Mỗi dòng là 1 tiêu chí, mỗi cột là 1 mức đánh giá (kèm điểm). Bạn có thể sửa tên tiêu chí, mô tả từng mức và điểm.", "Each row is a criterion and each column is a rating level (with points). You can edit criterion names, level descriptions, and points.")}
                                   </p>
                                   <div className="overflow-x-auto rounded-lg border border-border dark:border-slate-800">
                                     <table className="w-full min-w-[980px] text-sm">
@@ -2194,10 +2214,10 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                           {deletingCriteriaByLesson[lesson.id] && (
                                             <th className="px-2 py-2 text-center font-semibold text-foreground dark:text-white w-8"></th>
                                           )}
-                                          <th className="px-3 py-2 text-left font-semibold text-foreground dark:text-white w-[220px]">Tiêu chí</th>
+                                          <th className="px-3 py-2 text-left font-semibold text-foreground dark:text-white w-[220px]">{tr("Tiêu chí", "Criterion")}</th>
                                           {[1, 2, 3, 4, 5].map((level) => (
                                             <th key={`${lesson.id}-header-${level}`} className="px-3 py-2 text-left font-semibold text-foreground dark:text-white">
-                                              Mức {level}
+                                              {tr("Mức", "Level")} {level}
                                             </th>
                                           ))}
                                         </tr>
@@ -2240,7 +2260,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                                 }
                                                 disabled={deletingCriteriaByLesson[lesson.id]}
                                                 className="w-full px-2 py-1.5 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-sm text-foreground dark:text-white disabled:opacity-60"
-                                                placeholder="Tên tiêu chí"
+                                                placeholder={tr("Tên tiêu chí", "Criterion name")}
                                               />
                                             </td>
                                             {criterion.levels.map((level, levelIndex) => (
@@ -2265,7 +2285,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                                     disabled={deletingCriteriaByLesson[lesson.id]}
                                                     rows={4}
                                                     className="w-full px-2 py-1.5 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-xs text-foreground dark:text-white disabled:opacity-60"
-                                                    placeholder={`Mô tả mức ${levelIndex + 1}`}
+                                                    placeholder={language === "en" ? `Level ${levelIndex + 1} description` : `Mô tả mức ${levelIndex + 1}`}
                                                   />
                                                   <div className="flex items-center gap-2">
                                                     <input
@@ -2291,7 +2311,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                                       disabled={deletingCriteriaByLesson[lesson.id]}
                                                       className="w-24 px-2 py-1 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-xs text-foreground dark:text-white disabled:opacity-60"
                                                     />
-                                                    <span className="text-xs text-muted-foreground dark:text-slate-400">điểm</span>
+                                                      <span className="text-xs text-muted-foreground dark:text-slate-400">{tr("điểm", "points")}</span>
                                                   </div>
                                                 </div>
                                               </td>
@@ -2333,8 +2353,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                       className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-smooth"
                                     >
                                       {deletingCriteriaByLesson[lesson.id] 
-                                        ? `Xóa ${selectedCriteriaToDelete[lesson.id]?.size || 0} tiêu chí` 
-                                        : "Xóa tiêu chí"}
+                                        ? tr(`Xóa ${selectedCriteriaToDelete[lesson.id]?.size || 0} tiêu chí`, `Delete ${selectedCriteriaToDelete[lesson.id]?.size || 0} criteria`) 
+                                        : tr("Xóa tiêu chí", "Delete criteria")}
                                     </button>
                                     {deletingCriteriaByLesson[lesson.id] && (
                                       <button
@@ -2352,7 +2372,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                         }}
                                         className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary dark:bg-slate-800 text-foreground dark:text-white hover:bg-secondary/80 transition-smooth"
                                       >
-                                        Hủy
+                                        {tr("Hủy", "Cancel")}
                                       </button>
                                     )}
                                     <button
@@ -2372,7 +2392,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                       disabled={deletingCriteriaByLesson[lesson.id]}
                                       className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary dark:text-accent hover:bg-primary/20 transition-smooth disabled:opacity-60"
                                     >
-                                      + Thêm tiêu chí
+                                      + {tr("Thêm tiêu chí", "Add criteria")}
                                     </button>
                                   </div>
                                 </div>
@@ -2384,7 +2404,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                         {/* Video Upload */}
                         <div>
                           <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                            Video bài học
+                            {tr("Video bài học", "Lesson video")}
                           </label>
                           {lesson.videoUrl && (
                             <div className="mb-3 rounded-lg overflow-hidden bg-black aspect-video">
@@ -2405,14 +2425,14 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                             {uploadingVideoIds.has(lesson.id) ? (
                               <div className="flex flex-col items-center gap-2">
                                 <Loader2 size={24} className="animate-spin text-primary dark:text-accent" />
-                                <p className="text-sm text-muted-foreground">Đang tải lên...</p>
+                                <p className="text-sm text-muted-foreground">{tr("Đang tải lên...", "Uploading...")}</p>
                               </div>
                             ) : lesson.videoUrl ? (
-                              <p className="text-sm text-green-600 dark:text-green-400 font-medium">✓ Video đã tải lên — nhấn để thay thế</p>
+                              <p className="text-sm text-green-600 dark:text-green-400 font-medium">{tr("✓ Video đã tải lên — nhấn để thay thế", "✓ Video uploaded - click to replace")}</p>
                             ) : (
                               <>
                                 <Video size={28} className="mx-auto text-muted-foreground mb-1" />
-                                <p className="text-sm text-foreground dark:text-white">{lesson.videoFile ? lesson.videoFile.name : 'Kéo thả hoặc nhấn để chọn video'}</p>
+                                <p className="text-sm text-foreground dark:text-white">{lesson.videoFile ? lesson.videoFile.name : tr("Kéo thả hoặc nhấn để chọn video", "Drag and drop or click to choose a video")}</p>
                               </>
                             )}
                           </div>
@@ -2421,14 +2441,14 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                           />
                           {lesson.videoUrl && (
                             <button onClick={() => updateLesson(section.id, lesson.id, { videoUrl: undefined, videoFile: undefined })}
-                              className="mt-2 text-xs text-destructive hover:underline">Xóa video</button>
+                              className="mt-2 text-xs text-destructive hover:underline">{tr("Xóa video", "Delete video")}</button>
                           )}
                         </div>
 
                         {/* Document Upload */}
                         <div>
                           <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                            Tài liệu bổ sung
+                            {tr("Tài liệu bổ sung", "Additional documents")}
                           </label>
                           {lesson.documentUrl && (
                             <div className="mb-3 flex items-center gap-3 p-3 bg-secondary dark:bg-slate-800 rounded-lg border border-border dark:border-slate-700">
@@ -2436,7 +2456,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                               <a href={lesson.documentUrl} target="_blank" rel="noreferrer"
                                 className="text-sm text-primary dark:text-accent hover:underline truncate flex-1"
                                 onClick={(e) => e.stopPropagation()}>
-                                {lesson.documentName || 'Xem tài liệu'}
+                                {lesson.documentName || tr("Xem tài liệu", "View document")}
                               </a>
                             </div>
                           )}
@@ -2454,14 +2474,14 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                             {uploadingDocIds.has(lesson.id) ? (
                               <div className="flex flex-col items-center gap-2">
                                 <Loader2 size={24} className="animate-spin text-primary dark:text-accent" />
-                                <p className="text-sm text-muted-foreground">Đang tải lên...</p>
+                                <p className="text-sm text-muted-foreground">{tr("Đang tải lên...", "Uploading...")}</p>
                               </div>
                             ) : lesson.documentUrl ? (
-                              <p className="text-sm text-green-600 dark:text-green-400 font-medium">✓ Tài liệu đã tải lên — nhấn để thay thế</p>
+                              <p className="text-sm text-green-600 dark:text-green-400 font-medium">{tr("✓ Tài liệu đã tải lên — nhấn để thay thế", "✓ Document uploaded - click to replace")}</p>
                             ) : (
                               <>
                                 <FileText size={28} className="mx-auto text-muted-foreground mb-1" />
-                                <p className="text-sm text-foreground dark:text-white">{lesson.documentFile ? lesson.documentFile.name : 'Kéo thả hoặc nhấn để chọn tài liệu (PDF, Word...)'}</p>
+                                <p className="text-sm text-foreground dark:text-white">{lesson.documentFile ? lesson.documentFile.name : tr("Kéo thả hoặc nhấn để chọn tài liệu (PDF, Word...)", "Drag and drop or click to choose a document (PDF, Word...)")}</p>
                               </>
                             )}
                           </div>
@@ -2470,7 +2490,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                           />
                           {lesson.documentUrl && (
                             <button onClick={() => updateLesson(section.id, lesson.id, { documentUrl: undefined, documentFile: undefined, documentName: undefined })}
-                              className="mt-2 text-xs text-destructive hover:underline">Xóa tài liệu</button>
+                              className="mt-2 text-xs text-destructive hover:underline">{tr("Xóa tài liệu", "Delete document")}</button>
                           )}
                         </div>
 
@@ -2478,10 +2498,10 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                         <div className="border-t border-border dark:border-slate-800 pt-4">
                           <div className="flex items-center justify-between gap-2 mb-3">
                             <div className="flex items-center gap-2">
-                              <h5 className="font-semibold text-foreground dark:text-white text-sm sm:text-base">Câu hỏi cho bài học này</h5>
+                              <h5 className="font-semibold text-foreground dark:text-white text-sm sm:text-base">{tr("Câu hỏi cho bài học này", "Questions for this lesson")}</h5>
                               {lesson.quizzes.length > 0 && (
                                 <span className="text-xs bg-primary/20 text-primary dark:bg-primary/30 dark:text-accent px-2 py-1 rounded-full">
-                                  {lesson.quizzes.length} câu
+                                  {language === "en" ? `${lesson.quizzes.length} questions` : `${lesson.quizzes.length} câu`}
                                 </span>
                               )}
                             </div>
@@ -2491,11 +2511,11 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                 className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-xs sm:text-sm font-medium hover:bg-primary/20 dark:hover:bg-primary/30 transition-smooth whitespace-nowrap"
                               >
                                 <Plus size={13} />
-                                Thêm câu hỏi
+                                {tr("Thêm câu hỏi", "Add question")}
                               </button>
                               <label className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-500/20 dark:hover:bg-blue-500/30 transition-smooth whitespace-nowrap cursor-pointer">
                                 <Upload size={13} />
-                                <span>Nhập từ file</span>
+                                <span>{tr("Nhập từ file", "Import from file")}</span>
                                 <input
                                   type="file"
                                   accept=".xlsx,.xls,.csv,.docx"
@@ -2515,7 +2535,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                           </div>
 
                           {lesson.quizzes.length === 0 ? (
-                            <p className="text-sm text-muted-foreground dark:text-slate-400">Chưa có câu hỏi nào</p>
+                            <p className="text-sm text-muted-foreground dark:text-slate-400">{tr("Chưa có câu hỏi nào", "No questions yet")}</p>
                           ) : (
                             <div className="space-y-3">
                               {lesson.quizzes.map((quiz, qIndex) => (
@@ -2533,7 +2553,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                           ref={(el) => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px" } }}
                                           rows={1}
                                           className="w-full px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-xs sm:text-sm resize-none overflow-hidden leading-snug"
-                                          placeholder="Nhập câu hỏi..."
+                                          placeholder={tr("Nhập câu hỏi...", "Enter question...")}
                                         />
                                         
                                         {/* Image Upload for Quiz */}
@@ -2552,7 +2572,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                           {!quiz.image && (
                                             <label className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-secondary dark:bg-slate-800 text-muted-foreground dark:text-slate-400 rounded cursor-pointer hover:bg-border dark:hover:bg-slate-700 transition-colors border border-border dark:border-slate-700">
                                               <ImageIcon size={10} />
-                                              <span>Thêm ảnh</span>
+                                              <span>{tr("Thêm ảnh", "Add image")}</span>
                                               <input 
                                                 type="file" 
                                                 accept="image/*" 
@@ -2576,7 +2596,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                     <button
                                       onClick={() => deleteQuiz(lesson.id, quiz.id)}
                                       className="hidden sm:flex flex-shrink-0 p-1.5 bg-red-500 text-white hover:bg-red-600 rounded transition-colors"
-                                      title="Xóa câu hỏi"
+                                      title={tr("Xóa câu hỏi", "Delete question")}
                                     >
                                       <Trash2 size={16} />
                                     </button>
@@ -2585,9 +2605,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                     <button
                                       onClick={() => deleteQuiz(lesson.id, quiz.id)}
                                       className="w-full p-1.5 bg-red-500 text-white hover:bg-red-600 rounded transition-colors text-xs font-medium"
-                                      title="Xóa câu hỏi"
+                                      title={tr("Xóa câu hỏi", "Delete question")}
                                     >
-                                      Xóa câu hỏi
+                                      {tr("Xóa câu hỏi", "Delete question")}
                                     </button>
                                   </div>
                                   <div className="mb-1.5 flex flex-wrap items-center gap-1">
@@ -2596,9 +2616,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                       onChange={(e) => updateQuiz(lesson.id, quiz.id, { type: e.target.value as Quiz["type"] })}
                                       className="flex-1 min-w-[90px] px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
                                     >
-                                      <option value="multiple-choice">1 đáp án</option>
-                                      <option value="multiple-select">Nhiều đáp án</option>
-                                      <option value="true-false">Đúng/Sai</option>
+                                      <option value="multiple-choice">{tr("1 đáp án", "Single answer")}</option>
+                                      <option value="multiple-select">{tr("Nhiều đáp án", "Multiple answers")}</option>
+                                      <option value="true-false">{tr("Đúng/Sai", "True/False")}</option>
                                     </select>
                                     {quiz.type !== "true-false" && (
                                       <select
@@ -2619,7 +2639,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                         className="flex-1 min-w-[75px] px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
                                       >
                                         {[2, 3, 4, 5, 6].map((count) => (
-                                          <option key={count} value={count}>{count} đáp án</option>
+                                          <option key={count} value={count}>{language === "en" ? `${count} options` : `${count} đáp án`}</option>
                                         ))}
                                       </select>
                                     )}
@@ -2683,7 +2703,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   })}
                   {section.lessons.length === 0 && (
                     <p className="text-sm text-muted-foreground dark:text-slate-400 text-center py-4">
-                      Chưa có bài học nào trong phần này
+                      {tr("Chưa có bài học nào trong phần này", "No lessons in this section yet")}
                     </p>
                   )}
                   </div>
@@ -2691,7 +2711,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               ))}
               {sections.length === 0 && (
                 <p className="text-sm text-muted-foreground dark:text-slate-400 text-center py-8">
-                  Chưa có phần nào. Nhấn &quot;Thêm phần mới&quot; để bắt đầu.
+                  {tr("Chưa có phần nào. Nhấn \"Thêm phần mới\" để bắt đầu.", "No sections yet. Click \"Add section\" to get started.")}
                 </p>
               )}
             </div>
@@ -2703,7 +2723,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             disabled={isSaving}
             className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-60">
             {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-            {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+            {isSaving ? tr("Đang lưu...", "Saving...") : tr("Lưu thay đổi", "Save changes")}
           </button>
 
           {/* Add Lesson Modal */}

@@ -47,6 +47,14 @@ const normalizeMethod = (method?: string) => {
   return method.toUpperCase()
 }
 
+const normalizeDateISO = (value?: string) => {
+  const date = value ? new Date(value) : new Date()
+  if (Number.isNaN(date.getTime())) {
+    return new Date().toISOString()
+  }
+  return date.toISOString()
+}
+
 export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [stats, setStats] = useState<PaymentStats>({
@@ -74,7 +82,7 @@ export default function AdminPaymentsPage() {
   const [exportTeacher, setExportTeacher] = useState<string>("all")
   const [exportDateFrom, setExportDateFrom] = useState<string>("")
   const [exportDateTo, setExportDateTo] = useState<string>("")
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
 
   const loadPayments = async () => {
     setLoading(true)
@@ -92,7 +100,7 @@ export default function AdminPaymentsPage() {
             const student = p.student || {}
             const course = p.course || {}
             const teacher = course.teacher || {}
-            const paidAt = p.paidAt || p.createdAt || new Date()
+            const paidAt = p.paidAt || p.createdAt
 
             return {
               id: p.id || p.transactionId,
@@ -107,7 +115,7 @@ export default function AdminPaymentsPage() {
               amount: Number(p.finalAmount ?? p.amount ?? 0),
               method: normalizeMethod(p.paymentMethod),
               status: normalizeStatus(p.status),
-              date: new Date(paidAt).toISOString(),
+              date: normalizeDateISO(paidAt),
               source: "course",
             }
           })
@@ -127,7 +135,7 @@ export default function AdminPaymentsPage() {
             amount: Number(p.amount ?? 0),
             method: normalizeMethod(p.paymentMethod),
             status: normalizeStatus(p.status),
-            date: new Date(p.paidAt || p.createdAt || new Date()).toISOString(),
+            date: normalizeDateISO(p.paidAt || p.createdAt),
             source: "subscription",
           }))
         : []
@@ -204,10 +212,15 @@ export default function AdminPaymentsPage() {
   const totalTransactions = stats.totalTransactions || payments.length
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) {
+      return t("common_not_updated", "Chưa cập nhật")
+    }
+
+    return date.toLocaleDateString(language === "en" ? "en-US" : "vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     })
   }
 
