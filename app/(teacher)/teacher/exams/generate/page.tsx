@@ -20,6 +20,8 @@ type Exam = {
   questionsCount?: number
   attemptCount?: number
   timeLimit?: number
+  variantCount?: number
+  variants?: Array<{ code: number; questions: any[] }>
 }
 
 type ExtractedExamAttempt = {
@@ -69,6 +71,169 @@ const parseQuestionsCount = (value: any): number => {
   }
   if (Array.isArray(data)) return data.length
   return Number(data?.length) || 0
+}
+
+interface ExamCardProps {
+  exam: Exam
+  onEdit: (examId: string) => void
+  onViewAttempts: (exam: Exam) => void
+  onDelete: (examId: string, title: string) => void
+  t: (key: string, defaultValue: string) => string
+}
+
+function ExamCard({ exam, onEdit, onViewAttempts, onDelete, t }: ExamCardProps) {
+  const [selectedVariant, setSelectedVariant] = useState<number | null>(null)
+  const [variantMenuOpen, setVariantMenuOpen] = useState(false)
+  const [variantQuestionsOpen, setVariantQuestionsOpen] = useState(false)
+  const [viewingVariantCode, setViewingVariantCode] = useState<number | null>(null)
+  
+  const hasVariants = exam.variants && exam.variants.length > 1
+  const variants = (exam.variants || []).sort((a, b) => a.code - b.code)
+  const currentVariant = variants.find(v => v.code === viewingVariantCode)
+  
+  const handleViewVariantQuestions = (code: number) => {
+    setViewingVariantCode(code)
+    setVariantQuestionsOpen(true)
+    setVariantMenuOpen(false)
+  }
+  
+  return (
+    <>
+      <div className="rounded-xl border bg-card p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-foreground truncate">{exam.title}</h3>
+            <div className="flex flex-wrap gap-2 items-center mt-2">
+              <span className="text-xs text-muted-foreground">{exam.courseName || "—"}</span>
+              <div className="inline-flex gap-1">
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${exam.type === "official" ? "bg-purple-500/10 text-purple-600" : "bg-blue-500/10 text-blue-600"}`}>
+                  {exam.type === "official" ? "Thi thật" : "Thi thử"}
+                </span>
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  exam.status === "approved" ? "bg-green-500/10 text-green-600" :
+                  exam.status === "draft" ? "bg-gray-500/10 text-gray-600" :
+                  exam.status === "pending" ? "bg-amber-500/10 text-amber-600" :
+                  "bg-red-500/10 text-red-600"
+                }`}>
+                  {exam.status === "approved" ? "Đã duyệt" : exam.status === "draft" ? "Nháp" : exam.status === "pending" ? "Chờ duyệt" : "Từ chối"}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <button
+              onClick={() => onEdit(exam.id)}
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-secondary"
+              title="Sửa cấu hình đề thi"
+            >
+              <Pencil size={16} />
+            </button>
+            <button
+              onClick={() => onViewAttempts(exam)}
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-secondary"
+              title="Xem học sinh đã làm"
+            >
+              <Users size={16} />
+            </button>
+            <button
+              onClick={() => onDelete(exam.id, exam.title)}
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-secondary text-red-500"
+              title="Xóa đề thi"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t">
+          <div className="flex gap-4">
+            <span>📝 {exam.questionsCount ?? "—"} câu</span>
+            <span>📊 {exam.attemptCount ?? 0} lần thi</span>
+          </div>
+        </div>
+      </div>
+      
+      {hasVariants && (
+        <div className="relative -mt-2 mx-4 mb-3 z-40">
+          <button
+            onClick={() => setVariantMenuOpen(!variantMenuOpen)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-secondary text-sm bg-card"
+          >
+            <span className="font-medium">Mã đề {selectedVariant !== null ? selectedVariant : "— Chọn"}</span>
+            <span className={`text-xs transition-transform ${variantMenuOpen ? "rotate-180" : ""}`}>▼</span>
+          </button>
+          
+          {variantMenuOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-card border rounded-lg shadow-xl z-[60] border-t-0">
+              {variants.map((variant) => (
+                <div key={variant.code} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-secondary first:rounded-t-lg last:rounded-b-lg">
+                  <span>Mã đề {variant.code}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewVariantQuestions(variant.code)
+                    }}
+                    className="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-secondary"
+                    title="Xem/sửa câu hỏi"
+                  >
+                    <MoreVertical size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      
+      {variantQuestionsOpen && currentVariant && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 p-4" onClick={() => setVariantQuestionsOpen(false)}>
+          <div className="w-full max-w-3xl rounded-2xl border bg-card shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b px-5 py-4">
+              <div>
+                <h3 className="text-lg font-semibold">{exam.title}</h3>
+                <p className="text-sm text-muted-foreground">Mã đề {currentVariant.code} - {currentVariant.questions?.length || 0} câu hỏi</p>
+              </div>
+              <button
+                className="rounded-lg border px-3 py-1 text-sm hover:bg-secondary"
+                onClick={() => setVariantQuestionsOpen(false)}
+              >
+                Đóng
+              </button>
+            </div>
+            
+            <div className="max-h-[60vh] overflow-auto p-5">
+              {!currentVariant.questions || currentVariant.questions.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">Không có câu hỏi</div>
+              ) : (
+                <div className="space-y-4">
+                  {currentVariant.questions.map((question: any, idx: number) => (
+                    <div key={question.id || idx} className="rounded-lg border p-4 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold text-primary shrink-0">Câu {idx + 1}:</span>
+                        <p className="text-sm whitespace-pre-wrap">{question.question || "—"}</p>
+                      </div>
+                      {question.options && question.options.length > 0 && (
+                        <div className="pl-8 space-y-1">
+                          {question.options.map((option: string, optIdx: number) => (
+                            <div key={optIdx} className="text-sm text-muted-foreground">
+                              {String.fromCharCode(65 + optIdx)}. {option}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="pl-8 text-xs text-green-600">
+                        Đáp án: {Array.isArray(question.correctAnswer) ? question.correctAnswer.join(", ") : question.correctAnswer}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
 
 export default function TeacherExamsListPage() {
@@ -161,6 +326,8 @@ export default function TeacherExamsListPage() {
           status: String(item.status || "draft").toLowerCase() as Exam["status"],
           questionsCount: item.questionsCount || parseQuestionsCount(item.questions),
           attemptCount: item.attemptCount || 0,
+          variantCount: item.variantCount || 1,
+          variants: Array.isArray(item.variants) ? item.variants : [],
         }))
         setExams(list)
       } catch {
@@ -205,7 +372,8 @@ export default function TeacherExamsListPage() {
 
   const handleDelete = async (examId: string, examTitle: string) => {
     setOpenMenuId(null)
-    const ok = window.confirm(t("tch_exg_confirm_del", `Bạn có chắc muốn xóa đề thi "${examTitle}"?`))
+    const message = `Bạn có chắc muốn xóa đề thi "${examTitle}"?`
+    const ok = window.confirm(message)
     if (!ok) return
 
     try {
@@ -357,50 +525,25 @@ export default function TeacherExamsListPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-muted-foreground">
-                <th className="py-2 pr-3">{t("tch_exg_th_title", "Tiêu đề")}</th>
-                <th className="py-2 pr-3">{t("tch_exg_th_course", "Khóa học")}</th>
-                <th className="py-2 pr-3">{t("tch_exg_th_type", "Loại")}</th>
-                <th className="py-2 pr-3">{t("tch_exg_th_status", "Trạng thái")}</th>
-                <th className="py-2 pr-3">{t("tch_exg_th_questions", "Câu hỏi")}</th>
-                <th className="py-2 pr-3">{t("tch_exg_th_attempts", "Lượt thi")}</th>
-                <th className="py-2 pr-3">{t("tch_exg_th_action", "Thao tác")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={7} className="py-6 text-center text-muted-foreground"><Loader2 className="animate-spin inline-block mr-2" size={16} /> {t("tch_exg_loading", "Đang tải...")}</td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">{t("tch_exg_empty", "Chưa có đề thi nào")}</td></tr>
-              ) : (
-                filtered.map((exam) => (
-                  <tr key={exam.id} className="border-t">
-                    <td className="py-3 pr-3 font-medium text-foreground">{exam.title}</td>
-                    <td className="py-3 pr-3 text-muted-foreground">{exam.courseName || "—"}</td>
-                    <td className="py-3 pr-3"><TypeBadge type={exam.type} /></td>
-                    <td className="py-3 pr-3"><StatusBadge status={exam.status} /></td>
-                    <td className="py-3 pr-3">{exam.questionsCount ?? "—"}</td>
-                    <td className="py-3 pr-3">{exam.attemptCount ?? 0}</td>
-                    <td className="py-3 pr-3">
-                      <div data-exam-menu>
-                        <button
-                          ref={menuButtonRef}
-                          onClick={(e) => handleMenuToggle(exam.id, e.currentTarget)}
-                          className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-secondary"
-                          title={t("tch_exg_th_action", "Thao tác")}
-                        >
-                          <MoreVertical size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          {isLoading ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <Loader2 className="animate-spin inline-block mr-2" size={16} /> {t("tch_exg_loading", "Đang tải...")}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">{t("tch_exg_empty", "Chưa có đề thi nào")}</div>
+          ) : (
+            filtered.map((exam) => (
+              <ExamCard
+                key={exam.id}
+                exam={exam}
+                onEdit={handleEdit}
+                onViewAttempts={handleViewAttempts}
+                onDelete={handleDelete}
+                t={t}
+              />
+            ))
+          )}
         </div>
       </div>
 

@@ -484,21 +484,6 @@ if (!settings) return null
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
                     <Globe size={16} /> {t("adm_set_language", "Ngôn ngữ")}
                   </label>
-                  <select
-                    value={(settings.language as LanguageCode) || language}
-                    onChange={(e) => {
-                      const nextLang = e.target.value as LanguageCode
-                      setLanguage(nextLang)
-                      handleSettingChange("language", nextLang)
-                    }}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  >
-                    {supportedLanguages.map((langOption) => (
-                      <option key={langOption.code} value={langOption.code}>
-                        {langOption.label}
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
