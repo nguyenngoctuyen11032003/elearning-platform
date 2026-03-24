@@ -54,7 +54,6 @@ class ApiClient {
 
   constructor() {
     this.baseURL = getApiBaseUrl();
-    console.log('API Client initialized with base URL:', this.baseURL);
   }
 
   private async request<T>(
@@ -62,43 +61,40 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+    const method = (options.method || 'GET').toUpperCase();
+    const isFormData = options.body instanceof FormData;
     const headers: Record<string, string> = {
-  ...(options.headers as Record<string, string>),
-}
-
-if (!(options.body instanceof FormData)) {
-  headers['Content-Type'] = 'application/json'
-}
-    const config: RequestInit = {
-      cache: "no-store",
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
+      ...((options.headers as Record<string, string>) || {}),
     };
+
+    if (!isFormData && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     // Add auth token if available
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('auth_token');
       const language = localStorage.getItem('ics_lang') || 'vi';
-      config.headers = {
-        ...config.headers,
-        'X-Client-Language': language,
-      };
+      headers['X-Client-Language'] = language;
       if (token) {
-        config.headers = {
-          ...config.headers,
-          Authorization: `Bearer ${token}`,
-        };
+        headers.Authorization = `Bearer ${token}`;
       }
     }
 
+    const hasExternalSignal = Boolean(options.signal);
+    const controller = hasExternalSignal ? null : new AbortController();
+    const timeoutMs = method === 'GET' ? 15000 : 25000;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    const config: RequestInit = {
+      ...options,
+      cache: 'no-store',
+      headers,
+      signal: options.signal || controller?.signal,
+    };
+
     try {
-      const response = await fetch(url, {
-      ...config,
-      cache: "no-store"
-    });
+      const response = await fetch(url, config);
       
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
@@ -173,6 +169,15 @@ if (!(options.body instanceof FormData)) {
       const text = await response.text();
       return this.localizeDynamicResponse(endpoint, (text ? { data: text } : {}) as any);
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        const language = getCurrentClientLanguage();
+        throw new Error(
+          language === 'en'
+            ? 'Request timeout. Please try again.'
+            : 'Yeu cau qua thoi gian cho phep. Vui long thu lai.'
+        );
+      }
+
       // Handle network errors gracefully
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
         const isGetRequest = config.method === 'GET' || !config.method;
@@ -201,6 +206,10 @@ if (!(options.body instanceof FormData)) {
         throw new Error(localizeMessage(error.message, getCurrentClientLanguage()));
       }
       throw new Error(localizeMessage('An unexpected error occurred', getCurrentClientLanguage()));
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     }
   }
 

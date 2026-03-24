@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, use, useEffect } from "react"
+import { useState, use, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Footer } from "@/components/ui/footer"
 import { AnimatedButton } from "@/components/ui/animated-button"
@@ -11,8 +11,10 @@ import { formatPrice, formatStudentCount, formatCurrencyByLanguage } from "@/lib
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { useRouter } from "next/navigation"
 
 export default function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
+  const router = useRouter()
   const resolvedParams = use(params)
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [wishLoading, setWishLoading] = useState(false)
@@ -32,15 +34,17 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   const [courseData, setCourseData] = useState<any>(null)
   const [lessons, setLessons] = useState<any[]>([])
   const [pageLoading, setPageLoading] = useState(true)
+  const activeLocale = language === "en" ? "en-US" : "vi-VN"
 
   useEffect(() => {
     const id = resolvedParams.courseId
+    const controller = new AbortController()
     const fetchData = async () => {
       try {
         setPageLoading(true)
         const [courseRes, lessonsRes] = await Promise.all([
-          fetch(`/api/courses/${id}`, { cache: "no-store" }),
-          fetch(`/api/lessons/course/${id}`, { cache: "no-store" }),
+          fetch(`/api/courses/${id}`, { cache: "no-store", signal: controller.signal }),
+          fetch(`/api/lessons/course/${id}`, { cache: "no-store", signal: controller.signal }),
         ])
         if (courseRes.ok) {
           const j = await courseRes.json()
@@ -53,12 +57,15 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
           setLessons(Array.isArray(d) ? [...d].sort((a: any, b: any) => a.order - b.order) : [])
         }
       } catch (e) {
-        console.error(e)
+        if (!(e instanceof DOMException && e.name === "AbortError")) {
+          console.error(e)
+        }
       } finally {
         setPageLoading(false)
       }
     }
     fetchData()
+    return () => controller.abort()
   }, [resolvedParams.courseId])
 
   useEffect(() => {
@@ -76,11 +83,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
   useEffect(() => {
     const id = resolvedParams.courseId
+    const controller = new AbortController()
     const loadReviews = async () => {
       setReviewsLoading(true)
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
-        const res = await fetch(`/api/reviews/course/${id}`)
+        const res = await fetch(`/api/reviews/course/${id}`, { signal: controller.signal })
         if (res.ok) {
           const j = await res.json()
           // TransformInterceptor wraps as { success, data: { data: [...], total, ... } }
@@ -106,13 +114,17 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
             }
           }
         }
-      } catch {
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return
+        }
         // silent
       } finally {
         setReviewsLoading(false)
       }
     }
     loadReviews()
+    return () => controller.abort()
   }, [resolvedParams.courseId])
 
   const handleSubmitReview = async () => {
@@ -122,7 +134,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     try {
       const token = localStorage.getItem("auth_token")
       if (!token) {
-        setReviewError("Bạn cần đăng nhập để đánh giá khóa học.")
+        setReviewError(t("mk_course_login_to_review", "Bạn cần đăng nhập để đánh giá khóa học."))
         return
       }
       if (myReview) {
@@ -134,7 +146,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
         })
         const data = await res.json()
         if (!res.ok) {
-          setReviewError(data?.message || data?.data?.message || "Không thể cập nhật đánh giá.")
+          setReviewError(data?.message || data?.data?.message || t("mk_course_review_update_failed", "Không thể cập nhật đánh giá."))
         } else {
           const updated = { ...myReview, ...(data?.data ?? data) }
           setMyReview(updated)
@@ -153,7 +165,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
         })
         const data = await res.json()
         if (!res.ok) {
-          setReviewError(data?.message || data?.data?.message || "Không thể gửi đánh giá.")
+          setReviewError(data?.message || data?.data?.message || t("mk_course_review_submit_failed", "Không thể gửi đánh giá."))
         } else {
           const created = data?.data ?? data
           setMyReview(created)
@@ -161,7 +173,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
         }
       }
     } catch {
-      setReviewError("Đã có lỗi xảy ra khi gửi đánh giá.")
+      setReviewError(t("mk_course_review_submit_failed_generic", "Đã có lỗi xảy ra khi gửi đánh giá."))
     } finally {
       setReviewSubmitting(false)
     }
@@ -205,21 +217,35 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     }
   }
 
-  const levelLabel: Record<string, string> = { beginner: "Cơ bản", intermediate: "Trung cấp", advanced: "Nâng cao" }
+  const levelLabel: Record<string, string> = {
+    beginner: t("mk_course_level_beginner", "Cơ bản"),
+    intermediate: t("mk_course_level_intermediate", "Trung cấp"),
+    advanced: t("mk_course_level_advanced", "Nâng cao"),
+  }
   const course = {
     id: courseData?.id ?? resolvedParams.courseId,
-    title: courseData?.title ?? "Đang tải...",
+    title: courseData?.title ?? t("common_loading", "Đang tải..."),
     teacher: courseData?.teacher?.name ?? "",
     teacherAvatar: courseData?.teacher?.avatar ?? "/placeholder-user.jpg",
     price: parseFloat(courseData?.price ?? "0") || 0,
     discountPrice: parseFloat(courseData?.discountPrice ?? "0") || 0,
     rating: parseFloat(courseData?.rating ?? "0") || 0,
     students: courseData?.enrollmentCount ?? 0,
-    duration: courseData?.duration ? `${Math.floor(courseData.duration / 60)} phút` : "—",
+    duration: courseData?.duration ? `${Math.floor(courseData.duration / 60)} ${t("mk_course_minutes", "phút")}` : "—",
     level: levelLabel[courseData?.level] ?? "—",
     image: courseData?.thumbnail ?? "/image/python.png",
     description: courseData?.description ?? "",
   }
+
+  const sidebarFeatures = useMemo(
+    () => [
+      t("mk_course_feature_lifetime", "Truy cập trọn đời"),
+      t("mk_course_feature_materials", "Tài liệu học tập"),
+      t("mk_course_feature_certificate", "Chứng chỉ hoàn thành"),
+      t("mk_course_feature_support", "Hỗ trợ 24/7"),
+    ],
+    [t],
+  )
 
   return (
     <div className="min-h-screen bg-background dark:bg-slate-950 flex flex-col">
@@ -251,10 +277,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                 {/* Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                   {[
-                    { icon: Star, label: "Đánh giá", value: `${course.rating}/5` },
-                    { icon: Users, label: "Học viên", value: formatStudentCount(course.students) },
-                    { icon: Clock, label: "Thời lượng", value: course.duration },
-                    { icon: Award, label: "Cấp độ", value: course.level },
+                    { icon: Star, label: t("mk_course_rating", "Đánh giá"), value: `${course.rating}/5` },
+                    { icon: Users, label: t("mk_course_students", "Học viên"), value: formatStudentCount(course.students) },
+                    { icon: Clock, label: t("mk_course_duration", "Thời lượng"), value: course.duration },
+                    { icon: Award, label: t("mk_course_level", "Cấp độ"), value: course.level },
                   ].map((stat, idx) => (
                     <div
                       key={idx}
@@ -274,9 +300,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                       src={course.teacherAvatar}
                       alt={course.teacher}
                       className="w-16 h-16 rounded-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div>
-                      <p className="text-sm text-muted-foreground dark:text-slate-400">Giảng viên</p>
+                      <p className="text-sm text-muted-foreground dark:text-slate-400">{t("teachers_label_instructor", "Giảng viên")}</p>
                       <p className="font-semibold text-foreground dark:text-white text-lg">{course.teacher}</p>
                     </div>
                   </div>
@@ -284,25 +312,25 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
                 {/* Course Content */}
                 <div className="mb-8">
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-6">Nội dung khóa học</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-6">{t("mk_course_content", "Nội dung khóa học")}</h2>
                   <div className="space-y-3">
                     {pageLoading ? (
                       [...Array(5)].map((_, i) => (
                         <div key={i} className="animate-pulse bg-card dark:bg-slate-900/60 rounded-lg h-16 border border-border dark:border-slate-800" />
                       ))
                     ) : lessons.length === 0 ? (
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm py-4">Khóa học chưa có bài học nào.</p>
+                      <p className="text-muted-foreground dark:text-slate-400 text-sm py-4">{t("mk_course_no_lessons", "Khóa học chưa có bài học nào.")}</p>
                     ) : (
                       lessons.map((lesson: any, idx: number) => {
                         const typeConfig: Record<string, { icon: string; color: string; label: string }> = {
-                          video:      { icon: "▶",  color: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",     label: "Video" },
-                          article:    { icon: "📄",  color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",   label: "Bài đọc" },
-                          quiz:       { icon: "❓",  color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400", label: "Quiz" },
-                          assignment: { icon: "📝",  color: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", label: "Bài tập" },
-                          resource:   { icon: "📦",  color: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",       label: "Tài nguyên" },
+                          video:      { icon: "▶",  color: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",     label: t("mk_course_lesson_type_video", "Video") },
+                          article:    { icon: "📄",  color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",   label: t("mk_course_lesson_type_article", "Bài đọc") },
+                          quiz:       { icon: "❓",  color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400", label: t("mk_course_lesson_type_quiz", "Quiz") },
+                          assignment: { icon: "📝",  color: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", label: t("mk_course_lesson_type_assignment", "Bài tập") },
+                          resource:   { icon: "📦",  color: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",       label: t("mk_course_lesson_type_resource", "Tài nguyên") },
                         }
                         const tc = typeConfig[lesson.type] ?? typeConfig.video
-                        const durationMin = lesson.duration > 0 ? `${Math.floor(lesson.duration / 60)} phút` : null
+                        const durationMin = lesson.duration > 0 ? `${Math.floor(lesson.duration / 60)} ${t("mk_course_minutes", "phút")}` : null
                         return (
                           <div key={lesson.id}>
                             <div
@@ -319,7 +347,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                     <p className="font-medium text-foreground dark:text-white text-sm">{lesson.title}</p>
                                     {lesson.isFree && (
                                       <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-medium">
-                                        Xem thử miễn phí
+                                        {t("mk_course_preview_free", "Xem thử miễn phí")}
                                       </span>
                                     )}
                                   </div>
@@ -353,7 +381,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                   )}
                                   {lesson.resources && Array.isArray(lesson.resources) && lesson.resources.length > 0 && (
                                     <div>
-                                      <p className="text-xs font-medium text-foreground dark:text-white mb-2">📦 {lesson.resources.length} tài nguyên:</p>
+                                      <p className="text-xs font-medium text-foreground dark:text-white mb-2">📦 {lesson.resources.length} {t("mk_course_resources", "tài nguyên")}:</p>
                                       <div className="space-y-1">
                                         {lesson.resources.map((r: any, ri: number) => (
                                           <p key={ri} className="text-xs text-slate-600 dark:text-slate-400">
@@ -364,7 +392,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                     </div>
                                   )}
                                   {!lesson.description && !lesson.content && (!lesson.resources || lesson.resources.length === 0) && (
-                                    <p className="text-xs text-muted-foreground dark:text-slate-500 italic">Chưa có mô tả cho bài học này.</p>
+                                    <p className="text-xs text-muted-foreground dark:text-slate-500 italic">{t("mk_course_lesson_no_desc", "Chưa có mô tả cho bài học này.")}</p>
                                   )}
                                 </motion.div>
                               )}
@@ -378,27 +406,27 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
                 {/* Reviews */}
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-6">Đánh giá từ học viên</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-6">{t("mk_course_reviews_from_students", "Đánh giá từ học viên")}</h2>
                   
                   {/* Write / Edit Review Section */}
                   <div className="mb-8">
                     <PremiumCard>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-foreground dark:text-white">
-                          {myReview ? "Đánh giá của bạn" : "Ghi đánh giá của bạn"}
+                          {myReview ? t("mk_course_your_review", "Đánh giá của bạn") : t("mk_course_write_your_review", "Ghi đánh giá của bạn")}
                         </h3>
                         {myReview && (
                           <button
                             onClick={handleDeleteReview}
                             className="text-xs text-red-500 hover:text-red-600 hover:underline"
                           >
-                            Xóa đánh giá
+                            {t("mk_course_delete_review", "Xóa đánh giá")}
                           </button>
                         )}
                       </div>
                       <div className="space-y-4">
                         <div>
-                          <label className="text-sm text-muted-foreground dark:text-slate-400 mb-2 block">Đánh giá</label>
+                          <label className="text-sm text-muted-foreground dark:text-slate-400 mb-2 block">{t("mk_course_rating", "Đánh giá")}</label>
                           <div className="flex gap-2">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <button
@@ -419,7 +447,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                           </div>
                         </div>
                         <textarea
-                          placeholder="Chia sẻ trải nghiệm của bạn về khóa học này..."
+                          placeholder={t("mk_course_comment_placeholder", "Chia sẻ trải nghiệm của bạn về khóa học này...")}
                           value={newReview.comment}
                           onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
                           className="w-full px-4 py-2 rounded-lg bg-background dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white placeholder-slate-500 focus:outline-none focus:border-primary dark:focus:border-accent"
@@ -433,7 +461,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                           disabled={reviewSubmitting}
                           className="px-6 py-2 bg-primary dark:bg-accent text-white rounded-lg hover:opacity-90 transition-smooth disabled:opacity-60"
                         >
-                          {reviewSubmitting ? "Đang lưu..." : myReview ? "Cập nhật đánh giá" : "Gửi đánh giá"}
+                          {reviewSubmitting
+                            ? t("mk_course_saving", "Đang lưu...")
+                            : myReview
+                              ? t("mk_course_update_review", "Cập nhật đánh giá")
+                              : t("mk_course_send_review", "Gửi đánh giá")}
                         </button>
                       </div>
                     </PremiumCard>
@@ -446,14 +478,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                         <div key={i} className="animate-pulse bg-card dark:bg-slate-900/60 rounded-lg h-28 border border-border dark:border-slate-800" />
                       ))
                     ) : reviews.length === 0 ? (
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm py-4">Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá!</p>
+                      <p className="text-muted-foreground dark:text-slate-400 text-sm py-4">{t("mk_course_no_reviews", "Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá!")}</p>
                     ) : (
                       reviews.map((review) => (
                         <div key={review.id}>
                           <PremiumCard>
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
-                                <p className="font-semibold text-foreground dark:text-white">{review.student?.name || "Ẩn danh"}</p>
+                                <p className="font-semibold text-foreground dark:text-white">{review.student?.name || t("mk_course_anonymous", "Ẩn danh")}</p>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                                   <div className="flex gap-1">
                                     {[...Array(5)].map((_, i) => (
@@ -469,10 +501,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                     ))}
                                   </div>
                                   <span className="text-sm text-muted-foreground dark:text-slate-400">
-                                    {new Date(review.createdAt).toLocaleDateString("vi-VN")}
+                                    {new Date(review.createdAt).toLocaleDateString(activeLocale)}
                                   </span>
                                   {review.isVerifiedPurchase && (
-                                    <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full">Đã mua</span>
+                                    <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full">{t("mk_course_verified_purchase", "Đã mua")}</span>
                                   )}
                                 </div>
                               </div>
@@ -485,7 +517,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                   onClick={() => setExpandedReplies(expandedReplies === review.id ? null : review.id)}
                                   className="text-sm text-primary dark:text-accent hover:underline transition-smooth"
                                 >
-                                  {expandedReplies === review.id ? "Ẩn phản hồi" : "Phản hồi từ giảng viên (1)"}
+                                  {expandedReplies === review.id ? t("mk_course_hide_reply", "Ẩn phản hồi") : t("mk_course_teacher_reply", "Phản hồi từ giảng viên (1)")}
                                 </button>
                                 <AnimatePresence>
                                   {expandedReplies === review.id && (
@@ -498,11 +530,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                     >
                                       <div className="bg-slate-50 dark:bg-slate-800/60 rounded-lg p-3 ml-0 sm:ml-4 border border-border dark:border-slate-700"
                                       >
-                                        <p className="font-semibold text-sm text-foreground dark:text-white mb-1">Giảng viên</p>
+                                        <p className="font-semibold text-sm text-foreground dark:text-white mb-1">{t("teachers_label_instructor", "Giảng viên")}</p>
                                         <p className="text-sm text-muted-foreground dark:text-slate-300">{review.teacherReply}</p>
                                         {review.repliedAt && (
                                           <span className="text-xs text-muted-foreground dark:text-slate-400 mt-1 block">
-                                            {new Date(review.repliedAt).toLocaleDateString("vi-VN")}
+                                            {new Date(review.repliedAt).toLocaleDateString(activeLocale)}
                                           </span>
                                         )}
                                       </div>
@@ -527,7 +559,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                     <p className="text-4xl font-bold text-foreground dark:text-white">
                       {formatCurrencyByLanguage(course.price, language)}
                     </p>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">Truy cập trọn đời</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">{t("mk_course_feature_lifetime", "Truy cập trọn đời")}</p>
                   </div>
 
                   {/* Buttons */}
@@ -548,10 +580,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                         level: course.level,
                       }
                       localStorage.setItem("checkoutCourse", JSON.stringify(checkoutData))
-                      window.location.href = "/checkout"
+                      router.push("/checkout")
                     }}
                   >
-                    Ghi danh ngay
+                    {t("mk_course_enroll_now_cta", "Ghi danh ngay")}
                   </AnimatedButton>
 
                   <button
@@ -564,17 +596,17 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                     } ${wishLoading ? "opacity-70 cursor-wait" : ""}`}
                   >
                     <Heart size={20} fill={isWishlisted ? "currentColor" : "none"} />
-                    {isWishlisted ? "Đã thích" : "Thêm vào yêu thích"}
+                    {isWishlisted ? t("mk_course_liked", "Đã thích") : t("mk_course_add_favorite", "Thêm vào yêu thích")}
                   </button>
 
                   <button className="w-full min-h-11 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 border-border dark:border-slate-800 text-foreground dark:text-white hover:border-primary dark:hover:border-accent dark:hover:bg-slate-800/40 transition-smooth">
                     <Share2 size={20} />
-                    Chia sẻ
+                    {t("mk_course_share", "Chia sẻ")}
                   </button>
 
                   {/* Features */}
                   <div className="border-t border-border dark:border-slate-800 pt-6 space-y-3">
-                    {["Truy cập trọn đời", "Tài liệu học tập", "Chứng chỉ hoàn thành", "Hỗ trợ 24/7"].map(
+                    {sidebarFeatures.map(
                       (feature, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           <div className="w-5 h-5 rounded-full bg-primary dark:bg-accent flex items-center justify-center">
