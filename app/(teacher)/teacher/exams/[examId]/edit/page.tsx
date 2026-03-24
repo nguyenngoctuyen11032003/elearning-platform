@@ -25,6 +25,7 @@ import { toast } from "sonner"
 import { parseExamQuestionsFileWithReport, type ExamImportReport } from "@/lib/utils/exam-import"
 import { TeacherExamsNavbar } from "@/components/teacher-exams-navbar"
 import { authFetch } from "@/lib/authfetch"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 // Generate unique ID
 const generateId = () => {
@@ -81,6 +82,8 @@ const needsFormulaAssetReview = (question: Pick<Question, "question" | "options"
 }
 
 export default function EditExamPage() {
+  const { language } = useLanguage()
+  const tr = (vi: string, en: string) => (language === "en" ? en : vi)
   const router = useRouter()
   const params = useParams()
   const examId = params.examId as string
@@ -336,7 +339,7 @@ export default function EditExamPage() {
       // Fetch regular exam from exam bank (not extracted exams)
       const response = await authFetch(`/exams/${examId}`)
       if (!response.ok) {
-        throw new Error("Failed to fetch exam from exam bank")
+        throw new Error(tr("Không thể tải bài thi từ ngân hàng đề", "Failed to fetch exam from exam bank"))
       }
 
       const payload = await response.json()
@@ -509,11 +512,11 @@ export default function EditExamPage() {
     if (!file) return
     try {
       const dataUrl = await readFileAsDataUrl(file)
-      if (!dataUrl) throw new Error("Không đọc được nội dung ảnh")
+      if (!dataUrl) throw new Error(tr("Không đọc được nội dung ảnh", "Cannot read image content"))
       updateQuestion(questionId, { image: dataUrl, needsAssetReview: false })
-      toast.success("Đã thêm ảnh cho câu hỏi")
+      toast.success(tr("Đã thêm ảnh cho câu hỏi", "Image added to question"))
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Không thể thêm ảnh"
+      const msg = err instanceof Error ? err.message : tr("Không thể thêm ảnh", "Unable to add image")
       toast.error(msg)
     }
   }
@@ -563,7 +566,7 @@ export default function EditExamPage() {
       console.log('[handleSubmit] examData.questions will be sent, count:', normalizedQuestions.length)
 
       if (!asDraft && normalizedQuestions.length === 0) {
-        throw new Error("Bài thi chưa có câu hỏi hợp lệ. Vui lòng nhập lại đề trước khi gửi duyệt")
+        throw new Error(tr("Bài thi chưa có câu hỏi hợp lệ. Vui lòng nhập lại đề trước khi gửi duyệt", "The exam has no valid questions. Please update questions before submitting for review"))
       }
 
       if (formData.type !== "official") {
@@ -585,19 +588,19 @@ export default function EditExamPage() {
           errorPayload?.details?.message ||
           (Array.isArray(errorPayload?.message) ? errorPayload.message[0] : errorPayload?.message) ||
           errorPayload?.error ||
-          "Cập nhật bài thi ngân hàng thất bại"
+          tr("Cập nhật bài thi ngân hàng thất bại", "Failed to update exam bank")
         throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg))
       }
 
       if (hasLegacyQuestionPayload && normalizedQuestions.length === 0) {
-        toast.warning("Đã lưu cập nhật thông tin. Dữ liệu câu hỏi cũ bị lỗi, vui lòng nhập lại đề để đảm bảo nội dung")
+        toast.warning(tr("Đã lưu cập nhật thông tin. Dữ liệu câu hỏi cũ bị lỗi, vui lòng nhập lại đề để đảm bảo nội dung", "Information was saved, but legacy question data is invalid. Please re-enter questions to ensure content integrity"))
       }
 
-      toast.success(asDraft ? "Đã lưu cập nhật ngân hàng đề thi" : "Đã cập nhật và xuất bản ngân hàng đề thi")
+      toast.success(asDraft ? tr("Đã lưu cập nhật ngân hàng đề thi", "Exam bank update saved") : tr("Đã cập nhật và xuất bản ngân hàng đề thi", "Exam bank updated and published"))
       router.push("/teacher/exams")
     } catch (error) {
       console.error("Error updating exam:", error)
-      const message = error instanceof Error ? error.message : "Cập nhật bài thi thất bại"
+      const message = error instanceof Error ? error.message : tr("Cập nhật bài thi thất bại", "Failed to update exam")
       toast.error(message)
     } finally {
       setIsSubmitting(false)
@@ -1452,23 +1455,23 @@ function ImportQuestionsModal({
       }
 
       if (mapped.length === 0) {
-        toast.error("Không tìm thấy câu hỏi hợp lệ trong file")
+        toast.error(tr("Không tìm thấy câu hỏi hợp lệ trong file", "No valid questions found in file"))
       }
       if (isPdf && !hasImportedImage) {
         if (report.extractedImageCount > 0) {
-          toast.warning("PDF có ảnh/công thức nhưng chưa tự gắn vào câu hỏi. Bạn có thể dùng nút 'Thêm ảnh' ở từng câu để bổ sung.")
+          toast.warning(tr("PDF có ảnh/công thức nhưng chưa tự gắn vào câu hỏi. Bạn có thể dùng nút 'Thêm ảnh' ở từng câu để bổ sung.", "PDF contains images/formulas but they were not auto-attached to questions. You can use 'Add image' on each question to complete."))
         } else {
-          toast.warning("PDF không trích xuất được ảnh/công thức. Bạn có thể dùng nút 'Thêm ảnh' ở từng câu để bổ sung hoặc dùng DOCX.")
+          toast.warning(tr("PDF không trích xuất được ảnh/công thức. Bạn có thể dùng nút 'Thêm ảnh' ở từng câu để bổ sung hoặc dùng DOCX.", "PDF image/formula extraction failed. You can use 'Add image' on each question or use DOCX."))
         }
       }
       if (isPdf && report.questionsWithExtraImages.length > 0) {
         toast.warning(`Một số câu có nhiều hơn 1 ảnh (chỉ lấy ảnh đầu). Câu: ${report.questionsWithExtraImages.join(", ")}`)
       }
       if (isPdf && hasLikelyFormulaLoss) {
-        toast.warning("Phát hiện câu hỏi có thể bị mất công thức/ảnh khi đọc PDF. Vui lòng kiểm tra lại nội dung sau import.")
+        toast.warning(tr("Phát hiện câu hỏi có thể bị mất công thức/ảnh khi đọc PDF. Vui lòng kiểm tra lại nội dung sau import.", "Some questions may have lost formulas/images during PDF parsing. Please review content after import."))
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Không thể đọc file đề thi"
+      const message = error instanceof Error ? error.message : tr("Không thể đọc file đề thi", "Unable to read exam file")
       toast.error(message)
       setPreviewQuestions([])
       setImportReport(null)

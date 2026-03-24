@@ -38,7 +38,9 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse document.xml paragraph by paragraph, preserving image positions
     const docFile = zip.file("word/document.xml")
-    if (!docFile) throw new Error("document.xml not found in Word file")
+    if (!docFile) {
+      return NextResponse.json({ error: "Invalid Word file structure" }, { status: 400 })
+    }
 
     const docXml = await docFile.async("text")
 

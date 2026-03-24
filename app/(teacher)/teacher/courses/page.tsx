@@ -167,7 +167,7 @@ export default function TeacherCoursesPage() {
       try {
         const response = await authFetch("/courses/my-courses")
         if (!response.ok) {
-          throw new Error("Failed to fetch courses")
+          throw new Error(t("tc_fetch_courses_failed", "Failed to fetch courses"))
         }
 
         const data = await response.json()
@@ -198,7 +198,7 @@ export default function TeacherCoursesPage() {
           authFetch(`/quizzes/course/${selectedCourse.id}`),
         ])
         if (!res.ok) {
-          throw new Error("Failed to fetch lessons")
+          throw new Error(t("tc_fetch_lessons_failed", "Failed to fetch lessons"))
         }
         const json = await res.json()
         const list = normalizeLessonList(json)
@@ -282,7 +282,7 @@ export default function TeacherCoursesPage() {
       const res = await authFetch(`/courses/${selectedCourse.id}`, {
         method: "DELETE",
       })
-      if (!res.ok) throw new Error("Delete failed")
+      if (!res.ok) throw new Error(t("tc_delete_failed", "Delete failed"))
       setCourses(courses.filter(course => course.id !== selectedCourse.id))
     } catch (error) {
       console.error("Error deleting course:", error)
@@ -297,7 +297,7 @@ export default function TeacherCoursesPage() {
       const res = await authFetch(`/courses/${courseId}/submit`, {
         method: "PATCH",
       })
-      if (!res.ok) throw new Error("Submit failed")
+      if (!res.ok) throw new Error(t("tc_submit_failed", "Submit failed"))
       setCourses(courses.map(c =>
         c.id === courseId ? { ...c, status: "pending" as const } : c
       ))

@@ -997,6 +997,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+[data-sonner-toaster],
+[data-sonner-toast],
+[data-sonner-toast] * {
+  font-family: var(--font-roboto), 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-roboto), 'Roboto', sans-serif;
   letter-spacing: -0.02em;

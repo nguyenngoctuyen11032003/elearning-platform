@@ -377,7 +377,7 @@ export default function TeacherProfilePage() {
                     placeholder={t("tch_prof_ph_bio", "Giới thiệu về bản thân, kinh nghiệm giảng dạy, chuyên môn...")}
                   />
                   <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
-                    Giới thiệu này sẽ hiển thị trên trang hồ sơ công khai của bạn
+                    {t("tch_prof_bio_public_hint", "Giới thiệu này sẽ hiển thị trên trang hồ sơ công khai của bạn")}
                   </p>
                 </div>
 
@@ -388,7 +388,7 @@ export default function TeacherProfilePage() {
                   className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Save size={20} />
-                  {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                  {saving ? t("tch_prof_saving", "Đang lưu...") : t("tch_prof_save_changes", "Lưu thay đổi")}
                 </button>
               </form>
             </div>

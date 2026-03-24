@@ -1,5 +1,6 @@
 import { API_ENDPOINTS, getApiBaseUrl } from './config';
 import { autoTranslateData, getCurrentLanguage } from '../i18n/dynamic-translate';
+import { getCurrentClientLanguage, localizeMessage } from '../i18n/message-localizer';
 import { 
   LoginRequest, 
   LoginResponse, 
@@ -151,7 +152,7 @@ if (!(options.body instanceof FormData)) {
           return [] as T;
         }
         
-        throw new Error(errorMessage);
+        throw new Error(localizeMessage(errorMessage, getCurrentClientLanguage()));
       }
 
       // Check if response has content before parsing JSON
@@ -189,19 +190,17 @@ if (!(options.body instanceof FormData)) {
           return (Array.isArray((endpoint as any)) ? [] : {}) as T;
         }
         
+        const language = getCurrentClientLanguage();
         throw new Error(
-          `❌ Không thể kết nối đến API server tại ${this.baseURL}.\n\n` +
-          `⚠️ Vui lòng:\n` +
-          `1. Đảm bảo backend API đang chạy trên ${this.baseURL}\n` +
-          `2. Kiểm tra console của backend để xem có lỗi gì không\n` +
-          `3. Đảm bảo database đã được khởi tạo\n` +
-          `4. Tải lại trang (F5) sau khi khởi động backend`
+          language === 'en'
+            ? `Cannot connect to API server at ${this.baseURL}. Please make sure backend is running and try again.`
+            : `Khong the ket noi den API server tai ${this.baseURL}. Vui long dam bao backend dang chay va thu lai.`
         );
       }
       if (error instanceof Error) {
-        throw error;
+        throw new Error(localizeMessage(error.message, getCurrentClientLanguage()));
       }
-      throw new Error('An unexpected error occurred');
+      throw new Error(localizeMessage('An unexpected error occurred', getCurrentClientLanguage()));
     }
   }
 

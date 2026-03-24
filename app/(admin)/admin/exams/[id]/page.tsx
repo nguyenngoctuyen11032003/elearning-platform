@@ -459,7 +459,7 @@ export default function AdminExamDetailPage() {
         method: "POST",
         headers: getAuthHeaders(),
       })
-      if (!res.ok) throw new Error("Failed")
+      if (!res.ok) throw new Error(t("adm_examd_approve_fail", "Failed to approve exam"))
       showToast("success", t("adm_examd_approve_ok", "Đã duyệt bài thi thành công"))
       await fetchExamDetail()
     } catch {
@@ -478,7 +478,7 @@ export default function AdminExamDetailPage() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ reason: rejectionReason.trim() }),
       })
-      if (!res.ok) throw new Error("Failed")
+      if (!res.ok) throw new Error(t("adm_examd_reject_fail", "Failed to reject exam"))
       showToast("success", t("adm_examd_reject_ok", "Đã từ chối bài thi"))
       setRejectDialog(false)
       setRejectionReason("")
@@ -498,7 +498,7 @@ export default function AdminExamDetailPage() {
         method: "DELETE",
         headers: getAuthHeaders(),
       })
-      if (!res.ok) throw new Error("Failed")
+      if (!res.ok) throw new Error(t("adm_examd_delete_fail", "Failed to delete exam"))
       showToast("success", t("adm_examd_delete_ok", "Đã xóa bài thi"))
       setTimeout(() => router.push("/admin/exams"), 1000)
     } catch {

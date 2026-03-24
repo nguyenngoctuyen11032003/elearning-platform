@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { X, User, Mail, Phone, MapPin, Calendar, Shield, Loader2 } from "lucide-react"
 import type { UpdateUserData, UserData } from "@/app/types/user"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface EditUserModalProps {
   user: UserData | null
@@ -11,6 +12,7 @@ interface EditUserModalProps {
 }
 
 export function EditUserModal({ onClose, user, onSubmit }: EditUserModalProps) {
+  const { t, language } = useLanguage()
   const [formData, setFormData] = useState<UpdateUserData>({})
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -34,11 +36,11 @@ export function EditUserModal({ onClose, user, onSubmit }: EditUserModalProps) {
     const newErrors: Record<string, string> = {}
 
     if (!formData.name?.trim()) {
-      newErrors.name = "Tên không được để trống"
+      newErrors.name = t("user_name_required", "Tên không được để trống")
     }
 
     if (formData.phone && !/^[0-9]{10,11}$/.test(formData.phone)) {
-      newErrors.phone = "Số điện thoại không hợp lệ"
+      newErrors.phone = t("user_phone_invalid", "Số điện thoại không hợp lệ")
     }
 
     // dateOfBirth is optional, no validation needed
@@ -79,6 +81,11 @@ const handleSubmit = async (e: React.FormEvent) => {
 
 if (!user) return null
 
+  const createdAtDate = new Date(user.createdAt)
+  const createdAtLabel = Number.isNaN(createdAtDate.getTime())
+    ? t("common_not_updated", "Chưa cập nhật")
+    : createdAtDate.toLocaleDateString(language === "en" ? "en-US" : "vi-VN")
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
@@ -113,7 +120,7 @@ if (!user) return null
             </div>
             <div>
               <h3 className="text-xl font-semibold text-foreground dark:text-white">
-                Chỉnh sửa người dùng
+                {t("user_edit_title", "Chỉnh sửa người dùng")}
               </h3>
               <p className="text-sm text-muted-foreground dark:text-slate-400">
                 {user.email}
@@ -134,7 +141,7 @@ if (!user) return null
             {/* Name */}
             <div>
               <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
-                Họ và tên *
+                {t("user_full_name_required", "Họ và tên *")}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -147,7 +154,7 @@ if (!user) return null
                       ? "border-red-500 dark:border-red-500"
                       : "border-border dark:border-slate-700"
                   } bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary`}
-                  placeholder="Nhập họ và tên"
+                  placeholder={t("user_full_name_placeholder", "Nhập họ và tên")}
                 />
               </div>
               {errors.name && (
@@ -158,7 +165,7 @@ if (!user) return null
             {/* Phone */}
             <div>
               <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
-                Số điện thoại
+                {t("user_phone", "Số điện thoại")}
               </label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -171,7 +178,7 @@ if (!user) return null
                       ? "border-red-500 dark:border-red-500"
                       : "border-border dark:border-slate-700"
                   } bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary`}
-                  placeholder="Nhập số điện thoại"
+                  placeholder={t("user_phone_placeholder", "Nhập số điện thoại")}
                 />
               </div>
               {errors.phone && (
@@ -185,32 +192,32 @@ if (!user) return null
             {/* Role */}
             <div>
               <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
-                Vai trò
+                {t("user_role", "Vai trò")}
               </label>
               <select
                 value={formData.role || "student"}
                 onChange={(e) => handleChange("role", e.target.value)}
                 className="w-full px-4 py-2.5 rounded-lg border border-border dark:border-slate-700 bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="student">Học viên</option>
-                <option value="teacher">Giảng viên</option>
-                <option value="admin">Quản trị viên</option>
+                <option value="student">{t("user_students", "Học viên")}</option>
+                <option value="teacher">{t("user_instructors", "Giảng viên")}</option>
+                <option value="admin">{t("user_admins", "Quản trị viên")}</option>
               </select>
             </div>
 
             {/* Status */}
             <div>
               <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
-                Trạng thái
+                {t("pay_status", "Trạng thái")}
               </label>
               <select
                 value={formData.status || "pending"}
                 onChange={(e) => handleChange("status", e.target.value)}
                 className="w-full px-4 py-2.5 rounded-lg border border-border dark:border-slate-700 bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="active">Hoạt động</option>
-                <option value="inactive">Vô hiệu hóa</option>
-                <option value="pending">Chờ xác thực</option>
+                <option value="active">{t("user_active", "Hoạt động")}</option>
+                <option value="inactive">{t("user_disabled", "Vô hiệu hóa")}</option>
+                <option value="pending">{t("user_pending", "Chờ xác thực")}</option>
               </select>
             </div>
           </div>
@@ -218,7 +225,7 @@ if (!user) return null
           {/* Date of Birth */}
           <div>
             <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
-              Ngày sinh
+              {t("user_date_of_birth", "Ngày sinh")}
             </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -234,7 +241,7 @@ if (!user) return null
           {/* Address */}
           <div>
             <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
-              Địa chỉ
+              {t("user_address", "Địa chỉ")}
             </label>
             <div className="relative">
               <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
@@ -243,7 +250,7 @@ if (!user) return null
                 value={formData.address || ""}
                 onChange={(e) => handleChange("address", e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border dark:border-slate-700 bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Nhập địa chỉ"
+                placeholder={t("user_address_placeholder", "Nhập địa chỉ")}
               />
             </div>
           </div>
@@ -251,14 +258,14 @@ if (!user) return null
           {/* Bio */}
           <div>
             <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
-              Giới thiệu
+              {t("user_bio", "Giới thiệu")}
             </label>
             <textarea
               value={formData.bio || ""}
               onChange={(e) => handleChange("bio", e.target.value)}
               rows={4}
               className="w-full px-4 py-2.5 rounded-lg border border-border dark:border-slate-700 bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              placeholder="Mô tả ngắn về người dùng..."
+              placeholder={t("user_bio_placeholder", "Mô tả ngắn về người dùng...")}
             />
           </div>
 
@@ -267,19 +274,19 @@ if (!user) return null
             <div className="flex items-center gap-2 mb-2">
               <Shield className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground dark:text-slate-400">
-                Thông tin hệ thống
+                {t("user_system_info", "Thông tin hệ thống")}
               </span>
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-muted-foreground dark:text-slate-500">ID:</span>{" "}
+                <span className="text-muted-foreground dark:text-slate-500">{t("common_id", "ID")}:</span>{" "}
                 <span className="text-foreground dark:text-white font-medium">{String(user.id).slice(0, 8)
 }...</span>
               </div>
               <div>
-                <span className="text-muted-foreground dark:text-slate-500">Ngày tạo:</span>{" "}
+                <span className="text-muted-foreground dark:text-slate-500">{t("user_created_at", "Ngày tạo")}:</span>{" "}
                 <span className="text-foreground dark:text-white">
-                  {new Date(user.createdAt).toLocaleDateString("vi-VN")}
+                  {createdAtLabel}
                 </span>
               </div>
             </div>
@@ -292,7 +299,7 @@ if (!user) return null
               onClick={onClose}
               className="flex-1 px-4 py-2.5 rounded-lg border border-border dark:border-slate-700 hover:bg-secondary dark:hover:bg-slate-800 transition-colors text-foreground dark:text-white font-medium"
             >
-              Hủy
+              {t("common_cancel", "Hủy")}
             </button>
             <button
               type="submit"
@@ -302,10 +309,10 @@ if (!user) return null
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Đang lưu...
+                  {t("user_saving", "Đang lưu...")}
                 </>
               ) : (
-                "Lưu thay đổi"
+                t("user_save_changes", "Lưu thay đổi")
               )}
             </button>
           </div>

@@ -49,7 +49,7 @@ function mapCertificate(raw: any): Certificate {
 }
 
 export default function CertificatesPage() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -62,7 +62,7 @@ export default function CertificatesPage() {
         const res = await fetch("/api/certificates/my-certificates", {
           headers: { Authorization: `Bearer ${token}` },
         })
-        if (!res.ok) throw new Error("Failed")
+        if (!res.ok) throw new Error(t("cert_list_load_failed", "Failed to load certificates"))
         const payload = await res.json()
         const raw: any[] = Array.isArray(payload)
           ? payload
@@ -81,7 +81,7 @@ export default function CertificatesPage() {
 
   const formatDate = (dateStr: string) => {
     try {
-      return new Date(dateStr).toLocaleDateString("vi-VN", {
+      return new Date(dateStr).toLocaleDateString(language === "en" ? "en-US" : "vi-VN", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -92,9 +92,9 @@ export default function CertificatesPage() {
   }
 
   const getInstructorName = (cert: Certificate) => {
-    const t = cert.course?.teacher
-    if (!t) return ""
-    return t.name || [t.firstName, t.lastName].filter(Boolean).join(" ") || "Giảng viên"
+    const teacher = cert.course?.teacher
+    if (!teacher) return ""
+    return teacher.name || [teacher.firstName, teacher.lastName].filter(Boolean).join(" ") || t("cert_instructor", "Instructor")
   }
 
   const handleDownload = (cert: Certificate) => {
@@ -107,7 +107,7 @@ export default function CertificatesPage() {
       await navigator.clipboard.writeText(url)
       alert(t("cert_copied", "Đã sao chép link chứng chỉ!"))
     } catch {
-      alert(`Link chứng chỉ: ${url}`)
+      alert(`${t("cert_link_prefix", "Certificate link")}: ${url}`)
     }
   }
 

@@ -401,7 +401,7 @@ export default function CreateCertificatePage() {
         const response = await authFetch('/certificates/templates/my')
 
         if (!response.ok) {
-          throw new Error("Failed to fetch templates")
+          throw new Error(t("tch_cert_templates_fetch_failed", "Failed to fetch templates"))
         }
 
         const data = await response.json()
@@ -448,13 +448,13 @@ export default function CreateCertificatePage() {
       })
 
       if (!response.ok) {
-        throw new Error('Upload failed')
+        throw new Error(t("tch_cert_upload_failed", "Upload failed"))
       }
 
       const result = await response.json()
       const uploadedUrl = result?.url || result?.data?.url || ""
       if (!uploadedUrl) {
-        throw new Error('Upload failed')
+        throw new Error(t("tch_cert_upload_failed", "Upload failed"))
       }
       
       // Update form data with uploaded file URL

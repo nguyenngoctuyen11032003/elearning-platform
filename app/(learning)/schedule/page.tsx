@@ -142,8 +142,8 @@ export default function SchedulePage() {
     if (days < 0) return { status: 'overdue', label: t('sched_overdue', 'Quá hạn'), color: 'bg-red-500/20 text-red-600 dark:text-red-400' }
     if (days === 0) return { status: 'today', label: t('sched_today', 'Hôm nay'), color: 'bg-orange-500/20 text-orange-600 dark:text-orange-400' }
     if (days === 1) return { status: 'tomorrow', label: t('sched_tomorrow', 'Ngày mai'), color: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' }
-    if (days <= 3) return { status: 'soon', label: `${days} ngày nữa`, color: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' }
-    return { status: 'future', label: `${days} ngày nữa`, color: 'bg-slate-500/20 text-slate-600 dark:text-slate-400' }
+    if (days <= 3) return { status: 'soon', label: `${days} ${t('sched_days', 'ngày')}`, color: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' }
+    return { status: 'future', label: `${days} ${t('sched_days', 'ngày')}`, color: 'bg-slate-500/20 text-slate-600 dark:text-slate-400' }
   }
 
   const prevMonth = () => {
@@ -170,8 +170,8 @@ const handleCreateItem = async () => {
   if (isDateNotToday(dueDate)) {
     const days = getDaysUntilDeadline(dueDate)
     if (days > 0) {
-      toast.warning(`Công việc chưa đến ngày làm (${days} ngày nữa)`, {
-        description: `Hạn chót: ${dueDate}. Hãy hoàn thành đúng hẹn!`,
+      toast.warning(`${t('sched_not_time', 'Chưa đến giờ làm')} (${days} ${t('sched_days', 'ngày')})`, {
+        description: `${t('sched_come_back', 'Hãy quay lại vào ngày')} ${dueDate}. ${t('sched_future_badge', '✓ Chưa đến ngày làm')}`,
         duration: 5000
       })
     } else if (days < 0) {
@@ -228,12 +228,12 @@ const handleUpdateItem = async () => {
   if (isDateNotToday(editingItem.dueDate)) {
     const days = getDaysUntilDeadline(editingItem.dueDate)
     if (days > 0) {
-      toast.warning(`Công việc chưa đến ngày làm (${days} ngày nữa)`, {
-        description: `Hạn chót: ${editingItem.dueDate}. Hãy hoàn thành đúng hẹn!`,
+      toast.warning(`${t('sched_not_time', 'Chưa đến giờ làm')} (${days} ${t('sched_days', 'ngày')})`, {
+        description: `${t('sched_come_back', 'Hãy quay lại vào ngày')} ${editingItem.dueDate}. ${t('sched_future_badge', '✓ Chưa đến ngày làm')}`,
         duration: 5000
       })
     } else if (days < 0) {
-      toast.error(`Deadline đã quá hạn ${Math.abs(days)} ngày!`, {
+      toast.error(`${t('sched_overdue_warn', 'Deadline đã quá hạn')} ${Math.abs(days)} ${t('sched_days', 'ngày')}!`, {
         description: t('sched_finish_now', 'Bạn cần hoàn thành ngay lập tức!'),
         duration: 5000
       })
@@ -399,28 +399,28 @@ useEffect(() => {
           
           // Deadline is today
           if (days === 0) {
-            toast.error(`DEADLINE Hôm nay: ${item.title}!`, {
-              description: `Thời gian: ${item.time}, Khóa học: ${item.course}`,
+            toast.error(`${t('sched_today', 'Hôm nay')}: ${item.title}!`, {
+              description: `${t('sched_form_time', 'Thời gian')}: ${item.time}, ${t('sched_form_course', 'Khóa học')}: ${item.course}`,
               duration: 4000
             })
           }
           // Deadline is tomorrow
           else if (days === 1) {
-            toast.warning(`Deadline ngày mai: ${item.title}`, {
-              description: `Hoàn thành vào lúc ${item.time}`,
+            toast.warning(`${t('sched_tomorrow', 'Ngày mai')}: ${item.title}`, {
+              description: `${t('sched_form_time', 'Thời gian')}: ${item.time}`,
               duration: 4000
             })
           }
           // Deadline in 2-3 days
           else if (days > 0 && days <= 3) {
-            toast.info(`${item.title} - ${days} ngày nữa`, {
-              description: `Deadline: ${item.dueDate}. Sắp hết thời hạn!`,
+            toast.info(`${item.title} - ${days} ${t('sched_days', 'ngày')}`, {
+              description: `${t('sched_come_back', 'Hãy quay lại vào ngày')} ${item.dueDate}. ${t('sched_soon_badge', '🟡 Sắp đến -')}`,
               duration: 4000
             })
           }
           // Overdue
           else if (days < 0) {
-            toast.error(`Quá Hạn ${Math.abs(days)} Ngày: ${item.title}!`, {
+            toast.error(`${t('sched_overdue', 'Quá hạn')} ${Math.abs(days)} ${t('sched_days', 'ngày')}: ${item.title}!`, {
               description: t('sched_finish_now', 'Bạn cần hoàn thành ngay lập tức!'),
               duration: 5000
             })

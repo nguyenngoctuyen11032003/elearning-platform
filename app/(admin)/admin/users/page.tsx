@@ -6,6 +6,7 @@ import type { UserData, UpdateUserData } from "@/app/types/user"
 import { toast } from "sonner"
 import { getApiBaseUrl } from "@/lib/api/config"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
 // DropdownFilter: custom dropdown with slide-down effect
 type DropdownOption = { value: string; label: string }
 type DropdownFilterProps = {
@@ -180,7 +181,7 @@ function InfoRow({ label, value, highlight = false }: InfoRowProps) {
 }
 
 export default function AdminUsersPage() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [searchQuery, setSearchQuery] = useState("")
   // Modal position for mobile
   const [modalPos, setModalPos] = useState<{top: number, left: number, width: number} | null>(null)
@@ -296,11 +297,11 @@ const handleAddUser = async (newUser: any) => {
     if (!res.ok) {
       const err = await res.json()
       console.error(err)
-      toast.error(err.message || "Thêm người dùng thất bại")
+      toast.error(localizeMessage(err.message || t("user_add_failed", "Add user failed"), getCurrentClientLanguage()))
       return
     }
 
-    toast.success("Đã thêm người dùng thành công! Email đăng nhập và mật khẩu đã được gửi tới người dùng.", {
+    toast.success(t("user_add_success_with_credentials", "User added successfully. Login credentials have been sent to the user."), {
       duration: 5000,
     })
     setIsAddUserOpen(false)
@@ -412,7 +413,7 @@ const handleUpdateUser = async (updatedData: any) => {
     if (!res.ok) {
       const errorData = await res.json()
       console.error("Update error:", errorData)
-      toast.error(`${t("user_update_failed", "Cập nhật thất bại")}: ${errorData.message || t("common_unknown_error", "Lỗi không xác định")}`)
+      toast.error(`${t("user_update_failed", "Update failed")}: ${localizeMessage(errorData.message || t("common_unknown_error", "Unknown error"), getCurrentClientLanguage())}`)
       return
     }
 
@@ -433,7 +434,7 @@ const formatDate = (dateString?: string) => {
   if (!dateString) return t("common_not_updated", "Chưa cập nhật")
   const d = new Date(dateString)
   if (isNaN(d.getTime())) return t("common_not_updated", "Chưa cập nhật")
-  return d.toLocaleDateString("vi-VN", {
+  return d.toLocaleDateString(language === "en" ? "en-US" : "vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -1021,7 +1022,7 @@ const formatDate = (dateString?: string) => {
                       <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 text-center">
                         <BookOpen size={24} className="mx-auto mb-2 text-orange-600 dark:text-orange-400" />
                         <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{viewUser.completedCourses || 0}</p>
-                        <p className="text-sm text-orange-600 dark:text-orange-400">Hoàn thành</p>
+                        <p className="text-sm text-orange-600 dark:text-orange-400">{t("user_completed", "Hoàn thành")}</p>
                       </div>
                     )}
                   </div>
@@ -1234,7 +1235,7 @@ const formatDate = (dateString?: string) => {
                     }}
                     className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50"
                   >
-                    <Trash2 size={18} /> Xóa tài khoản
+                    <Trash2 size={18} /> {t("user_delete_account", "Xóa tài khoản")}
                   </button>
                 </div>
               </div>
@@ -1260,7 +1261,7 @@ const formatDate = (dateString?: string) => {
             {/* Header */}
             <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-5 flex items-center justify-between">
               <h2 className="text-lg font-bold text-foreground dark:text-white">
-                Sửa thông tin người dùng
+                {t("user_edit_info", "Sửa thông tin")}
               </h2>
               <button
                 onClick={() => {
@@ -1293,7 +1294,7 @@ const formatDate = (dateString?: string) => {
               className="p-5 space-y-4 text-sm"
             >
               <div>
-                <label className="block mb-1 font-medium">Họ tên</label>
+                <label className="block mb-1 font-medium">{t("auth_fullname", "Tên đầy đủ")}</label>
                 <input
                   name="name"
                   defaultValue={editUser.name}
@@ -1302,7 +1303,7 @@ const formatDate = (dateString?: string) => {
               </div>
 
               <div>
-                <label className="block mb-1 font-medium">Số điện thoại</label>
+                <label className="block mb-1 font-medium">{t("user_phone", "Số điện thoại")}</label>
                 <input
                   name="phone"
                   defaultValue={editUser.phone || ""}
@@ -1311,28 +1312,28 @@ const formatDate = (dateString?: string) => {
               </div>
 
               <div>
-                <label className="block mb-1 font-medium">Vai trò</label>
+                <label className="block mb-1 font-medium">{t("user_role", "Vai trò")}</label>
                 <select
                   name="role"
                   defaultValue={editUser.role}
                   className="w-full rounded-lg border px-3 py-2 bg-background"
                 >
-                  <option value="student">Học viên</option>
-                  <option value="teacher">Giảng viên</option>
-                  <option value="admin">Quản trị viên</option>
+                  <option value="student">{t("user_students", "Học viên")}</option>
+                  <option value="teacher">{t("user_instructors", "Giảng viên")}</option>
+                  <option value="admin">{t("user_admins", "Quản trị viên")}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block mb-1 font-medium">Trạng thái</label>
+                <label className="block mb-1 font-medium">{t("pay_status", "Trạng thái")}</label>
                 <select
                   name="status"
                   defaultValue={editUser.status}
                   className="w-full rounded-lg border px-3 py-2 bg-background"
                 >
-                  <option value="active">Hoạt động</option>
-                  <option value="inactive">Vô hiệu hóa</option>
-                  <option value="pending">Chờ xác thực</option>
+                  <option value="active">{t("user_active", "Hoạt động")}</option>
+                  <option value="inactive">{t("user_disabled", "Vô hiệu hóa")}</option>
+                  <option value="pending">{t("user_pending", "Chờ xác thực")}</option>
                 </select>
               </div>
 
@@ -1341,7 +1342,7 @@ const formatDate = (dateString?: string) => {
                   type="submit"
                   className="flex-1 py-2 rounded-lg bg-primary text-white font-medium"
                 >
-                  Lưu thay đổi
+                  {t("user_save_changes", "Lưu thay đổi")}
                 </button>
                 <button
                   type="button"
@@ -1351,7 +1352,7 @@ const formatDate = (dateString?: string) => {
                   }}
                   className="flex-1 py-2 rounded-lg bg-secondary"
                 >
-                  Hủy
+                  {t("common_cancel", "Hủy")}
                 </button>
               </div>
             </form>

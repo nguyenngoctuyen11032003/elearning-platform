@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle2, CreditCard, QrCode, Wallet } from "lucide-reac
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
 
 type Plan = {
   id: string
@@ -66,7 +67,7 @@ function TeacherPlanCheckoutPageContent() {
       const defaultMethod = savedMethods.find((m: SavedMethod) => m.isDefault) || savedMethods[0]
       setSelectedMethodId(defaultMethod?.id || "")
     } catch (error: any) {
-      toast.error(error?.message || "Không thể tải dữ liệu thanh toán")
+      toast.error(localizeMessage(error?.message || t("payment_load_failed", "Unable to load payment data"), getCurrentClientLanguage()))
     } finally {
       setLoading(false)
     }
@@ -88,11 +89,11 @@ function TeacherPlanCheckoutPageContent() {
 
   const createCheckoutByMethod = async () => {
     if (!selectedPlanId) {
-      toast.error("Vui lòng chọn gói")
+      toast.error(t("checkout_select_plan_required", "Please select a plan"))
       return
     }
     if (!selectedMethodId) {
-      toast.error("Vui lòng chọn phương thức")
+      toast.error(t("checkout_select_method_required", "Please select a payment method"))
       return
     }
 
@@ -113,9 +114,9 @@ function TeacherPlanCheckoutPageContent() {
         }
       }
 
-      toast.success("Đã tạo giao dịch, vui lòng xác nhận sau khi thanh toán")
+      toast.success(t("checkout_transaction_created", "Transaction created. Please confirm after payment."))
     } catch (error: any) {
-      toast.error(error?.message || "Không thể tạo giao dịch")
+      toast.error(localizeMessage(error?.message || t("checkout_create_failed", "Unable to create transaction"), getCurrentClientLanguage()))
     } finally {
       setProcessing(false)
     }
@@ -123,7 +124,7 @@ function TeacherPlanCheckoutPageContent() {
 
   const createQrCheckout = async () => {
     if (!selectedPlanId) {
-      toast.error("Vui lòng chọn gói")
+      toast.error(t("checkout_select_plan_required", "Please select a plan"))
       return
     }
 
@@ -134,9 +135,9 @@ function TeacherPlanCheckoutPageContent() {
         paymentChannel: "qr",
       })
       setCheckout(data)
-      toast.success("Mã QR đã được tạo")
+      toast.success(t("checkout_qr_created", "QR code has been generated"))
     } catch (error: any) {
-      toast.error(error?.message || "Không thể tạo mã QR")
+      toast.error(localizeMessage(error?.message || t("checkout_qr_failed", "Unable to generate QR code"), getCurrentClientLanguage()))
     } finally {
       setProcessing(false)
     }
@@ -144,7 +145,7 @@ function TeacherPlanCheckoutPageContent() {
 
   const confirmPaid = async () => {
     if (!checkout?.transactionId) {
-      toast.error("Không tìm thấy giao dịch")
+      toast.error(t("checkout_transaction_not_found", "Transaction not found"))
       return
     }
 
@@ -154,7 +155,7 @@ function TeacherPlanCheckoutPageContent() {
       toast.success(t("checkout_success", "Thanh toán thành công và gói đã được kích hoạt."))
       router.push("/teacher/settings?tab=billing")
     } catch (error: any) {
-      toast.error(error?.message || "Không thể xác nhận giao dịch")
+      toast.error(localizeMessage(error?.message || t("checkout_confirm_failed", "Unable to confirm transaction"), getCurrentClientLanguage()))
     } finally {
       setConfirming(false)
     }
@@ -164,9 +165,9 @@ function TeacherPlanCheckoutPageContent() {
     try {
       await apiClient.setDefaultTeacherPaymentMethod(id)
       await loadData()
-      toast.success("Đã cập nhật phương thức mặc định")
+      toast.success(t("payment_set_default_success", "Default payment method updated"))
     } catch (error: any) {
-      toast.error(error?.message || "Không thể cập nhật phương thức mặc định")
+      toast.error(localizeMessage(error?.message || t("payment_set_default_failed", "Unable to update default payment method"), getCurrentClientLanguage()))
     }
   }
 
@@ -196,7 +197,7 @@ function TeacherPlanCheckoutPageContent() {
           >
             {plans.map((plan) => (
               <option key={plan.id} value={plan.id}>
-                {plan.name} - ${Number(plan.price || 0)} / {plan.durationMonths} month
+                {plan.name} - ${Number(plan.price || 0)} / {plan.durationMonths} {t("common_month", "month")}
               </option>
             ))}
           </select>
@@ -254,7 +255,7 @@ function TeacherPlanCheckoutPageContent() {
                   onClick={() => setDefaultMethod(method.id)}
                   className="rounded-md border border-border px-2 py-1 text-xs"
                 >
-                  {method.isDefault ? "Default" : t("payment_set_default", "Đặt làm mặc định")}
+                  {method.isDefault ? t("common_default", "Default") : t("payment_set_default", "Đặt làm mặc định")}
                 </button>
               </label>
             ))}
@@ -266,7 +267,7 @@ function TeacherPlanCheckoutPageContent() {
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
             {selectedMethod?.type === "e_wallet" ? <Wallet size={16} /> : <CreditCard size={16} />}
-            {processing ? "Processing..." : t("checkout_pay_now", "Thanh toán ngay")}
+            {processing ? t("common_processing", "Processing...") : t("checkout_pay_now", "Thanh toán ngay")}
           </button>
         </div>
       )}
@@ -302,7 +303,7 @@ function TeacherPlanCheckoutPageContent() {
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
             <CheckCircle2 size={16} />
-            {confirming ? "Confirming..." : t("checkout_confirm_paid", "Tôi đã thanh toán thành công")}
+            {confirming ? t("checkout_confirming", "Confirming...") : t("checkout_confirm_paid", "Tôi đã thanh toán thành công")}
           </button>
         </div>
       ) : null}

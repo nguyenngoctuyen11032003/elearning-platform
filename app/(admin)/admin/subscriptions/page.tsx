@@ -172,7 +172,7 @@ export default function AdminTeacherSubscriptionPage() {
         <div className="grid md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">{t("adm_sub_plan_name", "Tên gói")}</label>
-            <input className="w-full rounded-lg border border-border px-3 py-2 bg-background" placeholder="Ví dụ: Basic, Pro..." value={newPlan.name} onChange={(e) => setNewPlan((p: any) => ({ ...p, name: e.target.value }))} />
+            <input className="w-full rounded-lg border border-border px-3 py-2 bg-background" placeholder={t("adm_sub_plan_name_placeholder", "Ví dụ: Basic, Pro...")} value={newPlan.name} onChange={(e) => setNewPlan((p: any) => ({ ...p, name: e.target.value }))} />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">{t("adm_sub_price", "Giá (VND)")}</label>
@@ -197,7 +197,7 @@ export default function AdminTeacherSubscriptionPage() {
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">{t("adm_sub_features", "Tính năng (mỗi dòng một tính năng)")}</label>
-          <textarea className="w-full rounded-lg border border-border px-3 py-2 bg-background min-h-20" placeholder="Ví dụ:&#10;Hỗ trợ email 24/7&#10;Thống kê chi tiết&#10;Certificate custom" value={newPlan.features} onChange={(e) => setNewPlan((p: any) => ({ ...p, features: e.target.value }))} />
+          <textarea className="w-full rounded-lg border border-border px-3 py-2 bg-background min-h-20" placeholder={t("adm_sub_features_placeholder", "Ví dụ:\nHỗ trợ email 24/7\nThống kê chi tiết\nCertificate custom")} value={newPlan.features} onChange={(e) => setNewPlan((p: any) => ({ ...p, features: e.target.value }))} />
         </div>
         <button onClick={createPlan} disabled={creating} className="px-4 py-2 rounded-lg bg-primary text-white disabled:opacity-50">{creating ? t("adm_sub_creating", "Đang tạo...") : t("adm_sub_create_btn", "Tạo gói")}</button>
       </section>

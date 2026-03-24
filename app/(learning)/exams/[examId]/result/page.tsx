@@ -120,7 +120,9 @@ const formatAnswer = (value: string | string[] | undefined): string => {
   return value || "(chưa có)"
 }
 
+import { useLanguage } from "@/lib/i18n/language-context"
 export default function ExamResultPage() {
+  const { t } = useLanguage()
   const searchParams = useSearchParams()
   const params = useParams()
   const attemptId = searchParams.get("attemptId") || ""
@@ -136,7 +138,7 @@ export default function ExamResultPage() {
     const handlePopState = (e: PopStateEvent) => {
       e.preventDefault()
       window.history.pushState(null, "", window.location.href)
-      toast.error("Không thể quay lại từ trang kết quả")
+      toast.error(t("exam_result_back_blocked", "Cannot go back from the result page"))
     }
 
     window.history.pushState(null, "", window.location.href)
@@ -159,7 +161,7 @@ export default function ExamResultPage() {
         if (isExtractedSource) {
           const raw = sessionStorage.getItem(`extracted_result_${attemptId}`)
           if (!raw) {
-            throw new Error("Không tìm thấy kết quả bài thi extracted")
+            throw new Error(t("exam_result_extracted_missing", "Extracted exam result was not found"))
           }
           const data = JSON.parse(raw)
           setResult(data)
@@ -168,7 +170,7 @@ export default function ExamResultPage() {
           setResult(data)
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Không thể tải kết quả"
+        const message = error instanceof Error ? error.message : t("exam_result_load_failed", "Unable to load result")
         toast.error(message)
       } finally {
         setLoading(false)
@@ -179,14 +181,14 @@ export default function ExamResultPage() {
   }, [attemptId, isExtractedSource])
 
   if (loading) {
-    return <div className="p-6">Đang tải kết quả...</div>
+    return <div className="p-6">{t("exam_result_loading", "Loading result...")}</div>
   }
 
   if (!result) {
     return (
       <div className="p-6">
-        <p className="mb-3">Không tìm thấy kết quả bài thi.</p>
-        <Link href="/exams" className="text-primary hover:underline">Quay lại danh sách bài thi</Link>
+        <p className="mb-3">{t("exam_result_not_found", "Exam result not found.")}</p>
+        <Link href="/exams" className="text-primary hover:underline">{t("exam_result_back_to_list", "Back to exam list")}</Link>
       </div>
     )
   }

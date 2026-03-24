@@ -127,7 +127,7 @@ export default function AdminExamsPage() {
       })
 
       if (!res.ok) {
-        throw new Error("Failed to fetch certificate templates")
+        throw new Error(t("adm_exam_templates_load_fail", "Failed to fetch certificate templates"))
       }
 
       const payload = await res.json()
@@ -148,7 +148,7 @@ export default function AdminExamsPage() {
       })
 
       if (!res.ok) {
-        throw new Error("Failed to fetch exams")
+        throw new Error(t("adm_exam_list_load_fail", "Failed to fetch exams"))
       }
 
       const payload = await res.json()
@@ -232,7 +232,7 @@ export default function AdminExamsPage() {
       })
 
       if (!res.ok) {
-        throw new Error("Failed to approve exam")
+        throw new Error(t("adm_exam_approve_fail", "Failed to approve exam"))
       }
 
       await fetchExams()
@@ -256,7 +256,7 @@ export default function AdminExamsPage() {
       })
 
       if (!res.ok) {
-        throw new Error("Failed to reject exam")
+        throw new Error(t("adm_exam_reject_fail", "Failed to reject exam"))
       }
 
       await fetchExams()
@@ -277,7 +277,7 @@ export default function AdminExamsPage() {
       })
 
       if (!res.ok) {
-        throw new Error("Failed to delete exam")
+        throw new Error(t("adm_exam_delete_fail", "Failed to delete exam"))
       }
 
       await fetchExams()
