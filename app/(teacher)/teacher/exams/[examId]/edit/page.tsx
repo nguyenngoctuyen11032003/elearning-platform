@@ -552,18 +552,12 @@ export default function EditExamPage() {
     setIsSubmitting(true)
     try {
       const normalizedQuestions = normalizeQuestions(questions)
-      console.log('[handleSubmit] questions.length:', questions.length)
-      console.log('[handleSubmit] questions sample (first 2):', questions.slice(0, 2))
-      console.log('[handleSubmit] normalizedQuestions.length:', normalizedQuestions.length)
-      console.log('[handleSubmit] normalizedQuestions sample (first 2):', normalizedQuestions.slice(0, 2))
       
       const examData: any = {
         ...formData,
         status: asDraft ? "draft" : "approved",
         questions: normalizedQuestions,
       }
-
-      console.log('[handleSubmit] examData.questions will be sent, count:', normalizedQuestions.length)
 
       if (!asDraft && normalizedQuestions.length === 0) {
         throw new Error(tr("Bài thi chưa có câu hỏi hợp lệ. Vui lòng nhập lại đề trước khi gửi duyệt", "The exam has no valid questions. Please update questions before submitting for review"))
@@ -572,8 +566,6 @@ export default function EditExamPage() {
       if (formData.type !== "official") {
         delete examData.certificateTemplateId
       }
-
-      console.log('[handleSubmit] Final examData to send:', examData)
 
       // Update regular exam in exam bank (not extracted exams)
       const response = await authFetch(`/exams/${examId}`, {
@@ -633,17 +625,17 @@ export default function EditExamPage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">Chỉnh Sửa Ngân Hàng Đề Thi</h1>
-            <p className="text-muted-foreground dark:text-slate-400">Cập nhật ngân hàng câu hỏi cho khóa học của bạn</p>
+            <h1 className="text-3xl font-bold text-foreground dark:text-white">{tr("Chỉnh Sửa Ngân Hàng Đề Thi", "Edit Question Bank")}</h1>
+            <p className="text-muted-foreground dark:text-slate-400">{tr("Cập nhật ngân hàng câu hỏi cho khóa học của bạn", "Update question bank for your course")}</p>
           </div>
         </div>
 
         {/* Progress Steps */}
         <div className="flex items-center justify-center gap-4">
           {[
-            { step: 1, label: "Thông tin cơ bản" },
-            { step: 2, label: "Câu hỏi" },
-            { step: 3, label: "Xem trước" },
+            { step: 1, label: tr("Thông tin cơ bản", "Basic info") },
+            { step: 2, label: tr("Câu hỏi", "Questions") },
+            { step: 3, label: tr("Xem trước", "Preview") },
           ].map((item, index) => (
             <div key={item.step} className="flex items-center">
               <div
@@ -672,12 +664,12 @@ export default function EditExamPage() {
         {/* Step 1: Basic Info */}
         {currentStep === 1 && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-            <h2 className="text-xl font-semibold text-foreground dark:text-white">Thông tin cơ bản</h2>
+            <h2 className="text-xl font-semibold text-foreground dark:text-white">{tr("Thông tin cơ bản", "Basic info")}</h2>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                  Tiêu đề bài thi <span className="text-red-500">*</span>
+                  {tr("Tiêu đề bài thi", "Exam title")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -686,13 +678,13 @@ export default function EditExamPage() {
                   className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
                     errors.title ? "border-red-500" : "border-border dark:border-slate-700"
                   }`}
-                  placeholder="VD: Bài thi cuối khóa Next.js"
+                  placeholder={tr("VD: Bài thi cuối khóa Next.js", "Example: Next.js Final Exam")}
                 />
                 {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Mô tả</label>
+                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{tr("Mô tả", "Description")}</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}

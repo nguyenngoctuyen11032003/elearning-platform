@@ -35,6 +35,14 @@ const normalizeMethod = (method?: string) => {
   return method.toUpperCase()
 }
 
+const normalizeDateISO = (value?: string) => {
+  const date = value ? new Date(value) : new Date()
+  if (Number.isNaN(date.getTime())) {
+    return new Date().toISOString()
+  }
+  return date.toISOString()
+}
+
 export default function TeacherEarningsPage() {
   const { language, t } = useLanguage()
   const [payments, setPayments] = useState<Payment[]>([])
@@ -76,7 +84,7 @@ export default function TeacherEarningsPage() {
           amount: Number(p.amount ?? 0),
           method: normalizeMethod(p.method),
           status: normalizeStatus(p.status),
-          date: new Date(p.date || new Date()).toISOString(),
+          date: normalizeDateISO(p.date),
           transactionId: p.transactionId || p.id || "",
         }))
 
@@ -149,10 +157,15 @@ export default function TeacherEarningsPage() {
     const uniqueStudents = useMemo(() => Array.from(new Set(payments.map((p) => p.student).filter(Boolean))), [payments])
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(activeLocale, {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) {
+      return t("common_not_updated", "Chưa cập nhật")
+    }
+
+    return date.toLocaleDateString(activeLocale, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     })
   }
 

@@ -7,8 +7,10 @@ import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatPrice, formatStudentCount, formatPriceInK } from "@/lib/format"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { t } = useLanguage()
   const resolvedParams = use(params)
   const [isEnrolled, setIsEnrolled] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
@@ -255,10 +257,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   {/* Write Review (if enrolled) */}
                   {isEnrolled && (
                     <PremiumCard className="mb-6">
-                      <h3 className="text-lg font-semibold text-foreground mb-4">Viết đánh giá của bạn</h3>
+                      <h3 className="text-lg font-semibold text-foreground mb-4">{t("mk_course_write_review", "Viết đánh giá của bạn")}</h3>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-muted-foreground mb-2">Đánh giá</label>
+                          <label className="block text-sm font-medium text-muted-foreground mb-2">{t("mk_course_rating", "Đánh giá")}</label>
                           <div className="flex gap-2">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <button
@@ -271,14 +273,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-muted-foreground mb-2">Nhận xét</label>
+                          <label className="block text-sm font-medium text-muted-foreground mb-2">{t("mk_course_comment", "Nhận xét")}</label>
                           <textarea
                             rows={4}
-                            placeholder="Chia sẻ trải nghiệm của bạn về khóa học này..."
+                            placeholder={t("mk_course_comment_placeholder", "Chia sẻ trải nghiệm của bạn về khóa học này...")}
                             className="w-full bg-background dark:bg-slate-950 text-foreground border border-border dark:border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent resize-none"
                           />
                         </div>
-                        <AnimatedButton className="w-full sm:w-auto">Gửi đánh giá</AnimatedButton>
+                        <AnimatedButton className="w-full sm:w-auto">{t("mk_course_send_review", "Gửi đánh giá")}</AnimatedButton>
                       </div>
                     </PremiumCard>
                   )}
@@ -390,7 +392,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
                 <div className="space-y-3">
                   <AnimatedButton className="w-full" onClick={() => setIsEnrolled(true)} disabled={isEnrolled}>
-                    {isEnrolled ? "Đã đăng ký" : "Đăng ký ngay"}
+                    {isEnrolled ? t("mk_course_enrolled", "Đã đăng ký") : t("mk_course_enroll_now", "Đăng ký ngay")}
                   </AnimatedButton>
                   <button className="w-full px-6 py-3 border-2 border-border hover:border-accent text-foreground rounded-full transition">
                     Thêm vào danh sách yêu thích

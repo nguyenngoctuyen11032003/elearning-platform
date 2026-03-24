@@ -358,7 +358,7 @@ function VerifyEmailContent() {
               <div>
                 <div className="text-xs font-bold text-slate-900 dark:text-white">{t("auth_support_247", "Hỗ trợ 24/7")}</div>
                 <div className="text-xs text-slate-600 dark:text-slate-400">
-                  <Link href="/contact" className="hover:underline">Liên hệ</Link>
+                  <Link href="/contact" className="hover:underline">{t("common_contact", "Liên hệ")}</Link>
                 </div>
               </div>
             </div>
@@ -378,7 +378,7 @@ export default function VerifyEmailPage() {
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-xl opacity-50 animate-pulse" />
             <RefreshCw className="relative w-16 h-16 animate-spin text-blue-600 dark:text-blue-400" />
           </div>
-          <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">Đang tải...</p>
+          <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">Loading...</p>
         </div>
       </div>
     }>

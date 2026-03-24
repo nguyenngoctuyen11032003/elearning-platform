@@ -49,7 +49,6 @@ export default function AdminSettingsPage() {
 const [settings, setSettings] = useState<SystemSettings | null>(null)
 
 useEffect(() => {
-  console.log("CONFIG:", config)
   if (config && !settings) {
     setSettings({
       ...DEFAULT_SYSTEM_SETTINGS,

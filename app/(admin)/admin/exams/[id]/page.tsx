@@ -522,11 +522,7 @@ export default function AdminExamDetailPage() {
       }
 
       const payload = await res.json()
-      // Log payload để kiểm tra dữ liệu câu hỏi
-      console.log("[ExamDetail] Payload from backend:", payload)
       const item = payload?.data ?? payload
-      // Log trường questions
-      console.log("[ExamDetail] item.questions:", item?.questions)
       setExam(mapExam(item))
       setUsingMockData(false)
     } catch (error) {

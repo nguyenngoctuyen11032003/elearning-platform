@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth/auth-context"
 import { StudentSidebar, SidebarProvider, MobileMenuToggle } from "@/components/ui/student-sidebar"
 import { GraduationCap } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { DashboardShellLayout } from "@/components/ui/dashboard-shell-layout"
 
 export default function LearningLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth()
@@ -45,15 +46,13 @@ export default function LearningLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <SidebarProvider>
-      {/* Mobile toggle outside animated container */}
-      <MobileMenuToggle />
-      <div className="flex min-h-screen bg-background dark:bg-slate-950 animate-page-enter">
-        <StudentSidebar />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden w-full">
-          <div className="p-4 md:p-6 lg:p-8 w-full min-h-screen pb-20 dashboard-shell stagger-scope stagger-learning stagger-items">{children}</div>
-        </main>
-      </div>
-    </SidebarProvider>
+    <DashboardShellLayout
+      SidebarProvider={SidebarProvider}
+      MobileMenuToggle={MobileMenuToggle}
+      Sidebar={StudentSidebar}
+      scopeClass="stagger-learning"
+    >
+      {children}
+    </DashboardShellLayout>
   )
 }

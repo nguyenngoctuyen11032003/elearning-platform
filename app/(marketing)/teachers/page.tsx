@@ -255,7 +255,7 @@ const teachers = [
       </section>
 
       {/* Benefits Section */}
-      <section id="/benefits" className="py-20 px-4 md:px-8">
+      <section id="benefits" className="py-20 px-4 md:px-8">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-12 items-start">
           {/* Title bên trái */}
           <motion.div
@@ -374,7 +374,7 @@ const teachers = [
                   >
                     <div className="text-center">
                       <div className="text-5xl mb-2">👨‍💼</div>
-                      <p className="text-sm font-semibold text-foreground dark:text-white">Instructor</p>
+                      <p className="text-sm font-semibold text-foreground dark:text-white">{t("teachers_label_instructor", "Instructor")}</p>
                     </div>
                   </motion.div>
                   
@@ -385,7 +385,7 @@ const teachers = [
                   >
                     <div className="text-center">
                       <div className="text-5xl mb-2">✨</div>
-                      <p className="text-sm font-semibold text-white">Features</p>
+                      <p className="text-sm font-semibold text-white">{t("teachers_label_features", "Features")}</p>
                     </div>
                   </motion.div>
                 </div>

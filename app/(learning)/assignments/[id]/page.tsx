@@ -401,20 +401,20 @@ export default function StudentAssignmentDetailPage() {
         <div className="rounded-2xl border border-border bg-card p-5 md:p-6 space-y-4">
           <div className="flex items-center gap-2">
             <FileText size={18} className="text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Bài làm của bạn</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t("asgn_your_submission", "Bài làm của bạn")}</h2>
           </div>
 
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Nhập nội dung bài viết..."
+            placeholder={t("asgn_content_placeholder", "Nhập nội dung bài viết...")}
             className="w-full min-h-[220px] rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             disabled={submitted && mySubmission?.status !== 'not_submitted'}
           />
 
           {!submitted && (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Đính kèm file nộp bài</label>
+              <label className="text-sm font-medium text-foreground">{t("asgn_attach_submission_file", "Đính kèm file nộp bài")}</label>
               <input
                 type="file"
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
@@ -428,7 +428,7 @@ export default function StudentAssignmentDetailPage() {
                 }}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
               />
-              {uploading && <p className="text-xs text-muted-foreground">Đang upload file...</p>}
+              {uploading && <p className="text-xs text-muted-foreground">{t("asgn_uploading_file", "Đang upload file...")}</p>}
               {attachments.length > 0 && (
                 <div className="space-y-2">
                   {attachments.map((url) => (

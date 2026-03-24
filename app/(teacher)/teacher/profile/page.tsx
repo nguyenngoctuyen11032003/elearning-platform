@@ -94,8 +94,7 @@ export default function TeacherProfilePage() {
       // Upload avatar if a new one is selected
       if (selectedFile) {
         try {
-          const response = await apiClient.uploadAvatar(selectedFile)
-          console.log('Avatar uploaded successfully:', response)
+          await apiClient.uploadAvatar(selectedFile)
           // Refresh user data to get new avatar URL
           // You might want to call a refresh function here
         } catch (error) {

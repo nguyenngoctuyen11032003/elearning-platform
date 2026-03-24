@@ -2,8 +2,6 @@
 
 import { useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useAuth } from '@/lib/auth/auth-context'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useLanguage } from '@/lib/i18n/language-context'
 
@@ -20,7 +18,9 @@ export function GoogleAuthCallback() {
     // Kiểm tra nếu có lỗi từ backend
     if (error) {
       const errorMessage = message || t("google_login_failed", 'Đăng nhập Google thất bại')
-      toast.error(decodeURIComponent(errorMessage))
+      toast.error(decodeURIComponent(errorMessage), {
+        description: t("google_login_check_again", "Vui lòng kiểm tra lại thông tin và thử lại"),
+      })
       setTimeout(() => {
         window.location.href = '/login'
       }, 2000)
@@ -51,7 +51,7 @@ export function GoogleAuthCallback() {
       toast.error(t("google_login_missing_info", 'Thiếu thông tin đăng nhập'))
       window.location.href = '/login'
     }
-  }, [searchParams])
+  }, [searchParams, t])
 
   const getRedirectUrl = (role: string): string => {
     switch (role) {

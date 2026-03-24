@@ -545,20 +545,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         const result = await response.json()
         const text = result.text
         const imageDataMap: Record<string, string> = result.images || {}
-        console.log("[import] API returned images:", Object.keys(imageDataMap).length, "keys:", Object.keys(imageDataMap))
         const lines = text.split(/\r?\n/).map((l: string) => l.trim()).filter((l: string) => l)
         const imageMarkerLines = lines.filter((l: string) => l.startsWith("[[IMAGE:"))
-        console.log("[import] Image marker lines in text:", imageMarkerLines)
-        
-        console.log("Word document lines:", lines.length)
-        
-        // Only log first 20 lines
-        if (lines.length > 0) {
-          console.log("===== FIRST 3 LINES =====")
-          for (let j = 0; j < Math.min(3, lines.length); j++) {
-            console.log(`Line ${j}: "${lines[j]}"`)
-          }
-        }
         
         // Pass 1: group lines into per-question blocks
         interface WordBlock {
@@ -668,20 +656,13 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               correctAnswerIndexes: correctIndexes.length > 1 ? correctIndexes : undefined,
               image,
             })
-            console.log(`Saved question: "${questionText.substring(0, 50)}" with ${opts.length} options`)
-          } else if (questionText) {
-            console.log(`Skipped question: "${questionText.substring(0, 50)}" - only ${opts.length} option(s)`)
           }
         }
-
-        console.log("Total questions parsed from Word:", questions.length)
       } else if (isExcel) {
         // Parse Excel file
         const workbook = XLSX.read(data, { type: "array" })
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
         const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as string[][]
-
-        console.log("Excel rows:", rows.length)
 
         for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
           const row = rows[rowIdx]
@@ -781,11 +762,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               correctAnswerIndexes: correctIndexes.length > 1 ? correctIndexes : undefined,
               image
             })
-            console.log(`Excel: Added question "${question}" with ${options.length} options`)
           }
         }
-        
-        console.log("Total questions parsed from Excel:", questions.length)
       }
 
       // Convert parsed questions to Quiz objects
@@ -814,10 +792,6 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           correctAnswers: type === "multiple-select" ? (q.correctAnswerIndexes || []) : [],
           image: q.image,
         }
-        if (idx < 3) {
-          // Log first 3 quizzes in detail
-          console.log(`Quiz ${idx + 1}: "${newQuiz.question}" | ${newQuiz.options.length} options:`, newQuiz.options)
-        }
         return newQuiz
       })
 
@@ -834,40 +808,28 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         }),
       )
 
-      console.log("Total imported quizzes created:", quizzesWithUploadedImages.length)
-
       if (quizzesWithUploadedImages.length === 0) {
         toast.error(tr("Không có câu hỏi hợp lệ để import. Vui lòng kiểm tra định dạng file.", "No valid questions to import. Please check the file format."))
         return
       }
 
-      console.log("Before state update - addToNew:", addToNew, "lessonId:", lessonId)
-
       // Add to new lesson quizzes or existing lesson quizzes
       if (addToNew) {
-        console.log("BRANCH: addToNew=true, updating newLessonQuizzes")
         setNewLessonQuizzes((prev) => {
-          const next = [...prev, ...quizzesWithUploadedImages]
-          console.log("State before update:", prev.length)
-          console.log("State after setNewLessonQuizzes, new length:", next.length)
-          return next
+          return [...prev, ...quizzesWithUploadedImages]
         })
       } else if (lessonId) {
-        console.log("BRANCH: addToNew=false, lessonId provided, updating lesson quizzes for lesson:", lessonId)
         setSections(
           sections.map((s) => ({
             ...s,
             lessons: s.lessons.map((l) => {
               if (l.id === lessonId) {
-                console.log("Found lesson, updating with", quizzesWithUploadedImages.length, "quizzes")
                 return { ...l, quizzes: [...l.quizzes, ...quizzesWithUploadedImages] }
               }
               return l
             }),
           }))
         )
-      } else {
-        console.log("BRANCH: No state update - addToNew=false and no lessonId")
       }
 
       toast.success(
