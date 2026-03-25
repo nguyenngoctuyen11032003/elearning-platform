@@ -10,6 +10,7 @@ import { formatStudentCount, formatCurrencyByLanguage } from "@/lib/format"
 import { apiClient } from "@/lib/api/client"
 import { useRouter } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { toast } from "sonner"
 
 interface WishlistItem {
   id: string
@@ -90,12 +91,40 @@ export default function WishlistPage() {
   )
 
   useEffect(() => {
+    try {
+      const rawUser = localStorage.getItem("user")
+      const rawRole = localStorage.getItem("userRole")
+      const parsedRole = rawUser ? JSON.parse(rawUser)?.role : null
+      const role = parsedRole || rawRole
+      if (role === "admin") {
+        toast.error(t("wishlist_admin_forbidden", "Admin không thể vào trang yêu thích"))
+        router.replace("/courses")
+        return
+      }
+    } catch {
+      // ignore invalid local storage shape
+    }
+
     loadWishlist()
-  }, [])
+  }, [router, t])
 
   const totalPrice = selectedCourses.reduce((sum, item) => sum + item.price, 0)
 
   const handleCheckout = () => {
+    try {
+      const rawUser = localStorage.getItem("user")
+      const rawRole = localStorage.getItem("userRole")
+      const parsedRole = rawUser ? JSON.parse(rawUser)?.role : null
+      const role = parsedRole || rawRole
+      if (role === "admin") {
+        toast.error(t("wishlist_admin_forbidden", "Admin không thể vào trang yêu thích"))
+        router.replace("/courses")
+        return
+      }
+    } catch {
+      // ignore invalid local storage shape
+    }
+
     if (selectedCourses.length === 0) {
       alert(t("wishlist_select_one", "Vui lòng chọn ít nhất 1 khóa học để thanh toán"))
       return

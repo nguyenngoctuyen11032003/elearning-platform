@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { toast } from "sonner"
 import {
   ArrowLeft,
   Clock,
@@ -15,8 +16,9 @@ import {
   Trophy
 } from "lucide-react"
 import { PremiumCard } from "@/components/ui/premium-card"
+import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
-import { autoTranslateData, getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
+import { getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
 
 interface ExamAttempt {
   id: string
@@ -24,8 +26,8 @@ interface ExamAttempt {
   score: number
   passed: boolean
   timeSpent: number
-  correctAnswers: number
-  totalQuestions: number
+  earnedPoints: number
+  totalPoints: number
   completedAt: string
 }
 
@@ -37,66 +39,52 @@ interface ExamInfo {
   maxAttempts: number
 }
 
-// Mock data
-const mockExamInfo: ExamInfo = {
-  id: "1",
-  title: "Bài thi cuối khóa Next.js",
-  courseName: "Lập trình Next.js từ cơ bản đến nâng cao",
-  passingScore: 70,
-  maxAttempts: 2
-}
-
-const mockAttempts: ExamAttempt[] = [
-  {
-    id: "attempt-1",
-    attemptNumber: 1,
-    score: 65,
-    passed: false,
-    timeSpent: 4200,
-    correctAnswers: 32,
-    totalQuestions: 50,
-    completedAt: "2025-01-10T10:30:00"
-  },
-  {
-    id: "attempt-2",
-    attemptNumber: 2,
-    score: 85,
-    passed: true,
-    timeSpent: 4520,
-    correctAnswers: 42,
-    totalQuestions: 50,
-    completedAt: "2025-01-15T14:45:00"
-  },
-]
-
 export default function ExamHistoryPage() {
   const params = useParams()
   const examId = params.examId as string
-  const { language } = useLanguage()
-  const [examInfo, setExamInfo] = useState<ExamInfo>(mockExamInfo)
-  const [attempts, setAttempts] = useState<ExamAttempt[]>(mockAttempts)
+  const { language, t } = useLanguage()
+  const [loading, setLoading] = useState(true)
+  const [examInfo, setExamInfo] = useState<ExamInfo | null>(null)
+  const [attempts, setAttempts] = useState<ExamAttempt[]>([])
 
   useEffect(() => {
-    let active = true
+    const load = async () => {
+      setLoading(true)
+      try {
+        const payload = await apiClient.getMyExtractedExamAttempts(examId)
+        const exam = payload?.exam
+        const rows = Array.isArray(payload?.attempts) ? payload.attempts : []
 
-    const localize = async () => {
-      const [localizedExamInfo, localizedAttempts] = await Promise.all([
-        autoTranslateData(mockExamInfo, language),
-        autoTranslateData(mockAttempts, language),
-      ])
+        setExamInfo({
+          id: String(exam?.id || examId),
+          title: String(exam?.title || t("exam_title", "Bài thi")),
+          courseName: String(exam?.courseName || t("exam_course", "Khóa học")),
+          passingScore: Number(exam?.passingScore || 0),
+          maxAttempts: Number(exam?.maxAttempts || 0),
+        })
 
-      if (!active) return
-      setExamInfo(localizedExamInfo)
-      setAttempts(localizedAttempts)
+        setAttempts(
+          rows.map((item: any, index: number) => ({
+            id: String(item?.id || `attempt-${index}`),
+            attemptNumber: Number(item?.attemptNumber || index + 1),
+            score: Number(item?.score || 0),
+            passed: Boolean(item?.passed),
+            timeSpent: Number(item?.timeSpent || 0),
+            earnedPoints: Number(item?.earnedPoints || 0),
+            totalPoints: Number(item?.totalPoints || 0),
+            completedAt: String(item?.completedAt || item?.submittedAt || item?.createdAt || ""),
+          })),
+        )
+      } catch (error) {
+        const message = error instanceof Error ? error.message : t("exam_load_error", "Không thể tải danh sách bài thi")
+        toast.error(message)
+      } finally {
+        setLoading(false)
+      }
     }
 
-    localize()
-
-    return () => {
-      active = false
-    }
-  }, [language])
-
+    load()
+  }, [examId, t])
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600)
     const mins = Math.floor((seconds % 3600) / 60)
@@ -121,6 +109,19 @@ export default function ExamHistoryPage() {
   const bestAttempt = attempts.reduce((best, current) =>
     current.score > (best?.score || 0) ? current : best
   , attempts[0])
+
+  if (loading) {
+    return <div className="p-6">{t("exam_loading", "Đang tải danh sách bài thi...")}</div>
+  }
+
+  if (!examInfo) {
+    return (
+      <div className="p-6">
+        <p className="mb-3">{t("exam_not_found", "Không tìm thấy bài thi")}</p>
+        <Link href="/exams" className="text-primary hover:underline">{t("exam_result_back_to_list", "Back to exam list")}</Link>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -234,9 +235,9 @@ export default function ExamHistoryPage() {
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-semibold text-foreground dark:text-white">
-                      {attempt.correctAnswers}/{attempt.totalQuestions}
+                      {attempt.earnedPoints}/{attempt.totalPoints}
                     </p>
-                    <p className="text-xs text-muted-foreground">Đúng</p>
+                    <p className="text-xs text-muted-foreground">Điểm số</p>
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-semibold text-foreground dark:text-white flex items-center gap-1">
@@ -246,7 +247,7 @@ export default function ExamHistoryPage() {
                     <p className="text-xs text-muted-foreground">Thời gian</p>
                   </div>
                   <Link
-                    href={`/exams/${examId}/result?attemptId=${attempt.id}`}
+                    href={`/exams/${examId}/result?attemptId=${attempt.id}&source=extracted`}
                     className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
                   >
                     <Eye size={16} />

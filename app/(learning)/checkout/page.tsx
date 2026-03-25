@@ -32,6 +32,20 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
+    try {
+      const rawUser = localStorage.getItem("user")
+      const rawRole = localStorage.getItem("userRole")
+      const parsedRole = rawUser ? JSON.parse(rawUser)?.role : null
+      const role = parsedRole || rawRole
+      if (role === "admin") {
+        toast.error(t("checkout_admin_forbidden", "Admin không thể thanh toán khóa học"))
+        router.replace("/courses")
+        return
+      }
+    } catch {
+      // ignore invalid local storage shape
+    }
+
     const singleCourse = localStorage.getItem("checkoutCourse")
     if (singleCourse) {
       try {
@@ -54,7 +68,7 @@ export default function CheckoutPage() {
     } catch {
       // ignore invalid localStorage shape
     }
-  }, [])
+  }, [router, t])
 
   const discount = useMemo(() => {
     if (!couponPreview?.valid) return 0

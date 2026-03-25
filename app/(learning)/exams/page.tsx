@@ -20,8 +20,13 @@ interface ExamItem {
   course?: { id: string; title: string }
 }
 
+interface ExamAttemptsSummary {
+  count: number
+}
+
 export default function StudentExamsPage() {
   const [exams, setExams] = useState<ExamItem[]>([])
+  const [attemptsByExam, setAttemptsByExam] = useState<Record<string, ExamAttemptsSummary>>({})
   const { t } = useLanguage()
   const [loading, setLoading] = useState(true)
 
@@ -30,7 +35,22 @@ export default function StudentExamsPage() {
       setLoading(true)
       try {
         const list = await apiClient.getAvailableExtractedExams()
-        setExams(Array.isArray(list) ? list : [])
+        const normalized = Array.isArray(list) ? list : []
+        setExams(normalized)
+
+        const historyEntries = await Promise.all(
+          normalized.map(async (exam) => {
+            try {
+              const payload = await apiClient.getMyExtractedExamAttempts(exam.id)
+              const attempts = Array.isArray(payload?.attempts) ? payload.attempts : []
+              return [exam.id, { count: attempts.length }] as const
+            } catch {
+              return [exam.id, { count: 0 }] as const
+            }
+          }),
+        )
+
+        setAttemptsByExam(Object.fromEntries(historyEntries))
       } catch (error) {
         const message = error instanceof Error ? error.message : t("exam_load_error", "Không thể tải danh sách bài thi")
         toast.error(message)
@@ -43,6 +63,8 @@ export default function StudentExamsPage() {
   }, [])
 
   const now = new Date()
+
+  const getAttemptCount = (examId: string) => attemptsByExam[examId]?.count || 0
 
   const stats = useMemo(() => {
     return {
@@ -57,6 +79,15 @@ export default function StudentExamsPage() {
     if (exam.availableUntil && now > new Date(exam.availableUntil)) return false
     return true
   }
+
+  const isExpired = (exam: ExamItem) => {
+    if (!exam.availableUntil) return false
+    return now > new Date(exam.availableUntil)
+  }
+
+  const hasRemainingAttempts = (exam: ExamItem) => getAttemptCount(exam.id) < Number(exam.maxAttempts || 0)
+
+  const hasHistory = (exam: ExamItem) => getAttemptCount(exam.id) > 0
 
   const timeNotice = (exam: ExamItem) => {
     if (exam.availableFrom && now < new Date(exam.availableFrom)) {
@@ -136,17 +167,32 @@ export default function StudentExamsPage() {
                   <span className="inline-flex items-center gap-1"><Clock size={14} /> {exam.timeLimit} {t("exam_minutes", "phút")}</span>
                   <span className="inline-flex items-center gap-1"><FileText size={14} /> {t("exam_pass_from", "Đạt từ")} {exam.passingScore}%</span>
                   <span className="inline-flex items-center gap-1"><Trophy size={14} /> {exam.type === "official" ? t("exam_official", "Thi thật") : t("exam_practice", "Thi thử")}</span>
+                  <span className="inline-flex items-center gap-1"><ClipboardList size={14} /> {t("exam_attempts", "Lượt thi")}: {getAttemptCount(exam.id)}/{exam.maxAttempts}</span>
                 </div>
                 <p className={`text-sm ${canStart(exam) ? "text-green-600" : "text-amber-600"}`}>{timeNotice(exam)}</p>
               </div>
 
-              {canStart(exam) ? (
+              {canStart(exam) && hasRemainingAttempts(exam) ? (
                 <Link
                   href={`/exams/${exam.id}/take?source=extracted`}
                   className="rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-primary/90"
                 >
                   {t("exam_enter", "Vào thi")}
                 </Link>
+              ) : hasHistory(exam) || !hasRemainingAttempts(exam) ? (
+                <Link
+                  href={`/exams/${exam.id}/history`}
+                  className="rounded-lg border border-primary px-4 py-2 text-center text-sm font-medium text-primary hover:bg-primary/5"
+                >
+                  {t("exam_history", "Lịch sử")}
+                </Link>
+              ) : isExpired(exam) ? (
+                <button
+                  disabled
+                  className="rounded-lg border px-4 py-2 text-sm text-muted-foreground"
+                >
+                  {t("exam_no_history", "Bạn không có lịch sử thi")}
+                </button>
               ) : (
                 <button
                   disabled

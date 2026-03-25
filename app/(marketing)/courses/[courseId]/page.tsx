@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation"
 export default function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const router = useRouter()
   const resolvedParams = use(params)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [wishLoading, setWishLoading] = useState(false)
   const [expandedReview, setExpandedReview] = useState<string | null>(null)
@@ -35,6 +36,19 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   const [lessons, setLessons] = useState<any[]>([])
   const [pageLoading, setPageLoading] = useState(true)
   const activeLocale = language === "en" ? "en-US" : "vi-VN"
+
+  useEffect(() => {
+    try {
+      const rawUser = localStorage.getItem("user")
+      const rawRole = localStorage.getItem("userRole")
+      const parsedRole = rawUser ? JSON.parse(rawUser)?.role : null
+      setUserRole(parsedRole || rawRole || null)
+    } catch {
+      setUserRole(localStorage.getItem("userRole"))
+    }
+  }, [])
+
+  const isAdmin = userRole === "admin"
 
   useEffect(() => {
     const id = resolvedParams.courseId
@@ -70,6 +84,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
   useEffect(() => {
     const id = resolvedParams.courseId
+    if (isAdmin) {
+      setIsWishlisted(false)
+      return
+    }
     const checkWishlistStatus = async () => {
       try {
         const result = await apiClient.checkWishlist(id)
@@ -79,7 +97,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
       }
     }
     checkWishlistStatus()
-  }, [resolvedParams.courseId])
+  }, [resolvedParams.courseId, isAdmin])
 
   useEffect(() => {
     const id = resolvedParams.courseId
@@ -198,6 +216,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
   const toggleWishlistStatus = async () => {
     if (!course?.id) return
+    if (isAdmin) {
+      toast.error(t("mk_course_admin_view_only", "Admin chỉ có quyền xem khóa học"))
+      return
+    }
     setWishLoading(true)
     try {
       if (isWishlisted) {
@@ -563,41 +585,51 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                   </div>
 
                   {/* Buttons */}
-                  <AnimatedButton
-                    className="w-full"
-                    onClick={() => {
-                      const checkoutData = {
-                        id: course.id,
-                        title: course.title,
-                        teacher: course.teacher,
-                        teacherId: courseData?.teacherId ?? course.id,
-                        price: course.price,
-                        rating: course.rating,
-                        students: course.students,
-                        image: course.image,
-                        description: course.description,
-                        duration: course.duration,
-                        level: course.level,
-                      }
-                      localStorage.setItem("checkoutCourse", JSON.stringify(checkoutData))
-                      router.push("/checkout")
-                    }}
-                  >
-                    {t("mk_course_enroll_now_cta", "Ghi danh ngay")}
-                  </AnimatedButton>
+                  {!isAdmin && (
+                    <>
+                      <AnimatedButton
+                        className="w-full"
+                        onClick={() => {
+                          const checkoutData = {
+                            id: course.id,
+                            title: course.title,
+                            teacher: course.teacher,
+                            teacherId: courseData?.teacherId ?? course.id,
+                            price: course.price,
+                            rating: course.rating,
+                            students: course.students,
+                            image: course.image,
+                            description: course.description,
+                            duration: course.duration,
+                            level: course.level,
+                          }
+                          localStorage.setItem("checkoutCourse", JSON.stringify(checkoutData))
+                          router.push("/checkout")
+                        }}
+                      >
+                        {t("mk_course_enroll_now_cta", "Ghi danh ngay")}
+                      </AnimatedButton>
 
-                  <button
-                    onClick={toggleWishlistStatus}
-                    disabled={wishLoading}
-                    className={`w-full min-h-11 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 transition-smooth ${
-                      isWishlisted
-                        ? "border-red-500 bg-red-500/10 text-red-500"
-                        : "border-border dark:border-slate-800 text-foreground dark:text-white hover:border-red-500 dark:hover:bg-slate-800/40"
-                    } ${wishLoading ? "opacity-70 cursor-wait" : ""}`}
-                  >
-                    <Heart size={20} fill={isWishlisted ? "currentColor" : "none"} />
-                    {isWishlisted ? t("mk_course_liked", "Đã thích") : t("mk_course_add_favorite", "Thêm vào yêu thích")}
-                  </button>
+                      <button
+                        onClick={toggleWishlistStatus}
+                        disabled={wishLoading}
+                        className={`w-full min-h-11 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 transition-smooth ${
+                          isWishlisted
+                            ? "border-red-500 bg-red-500/10 text-red-500"
+                            : "border-border dark:border-slate-800 text-foreground dark:text-white hover:border-red-500 dark:hover:bg-slate-800/40"
+                        } ${wishLoading ? "opacity-70 cursor-wait" : ""}`}
+                      >
+                        <Heart size={20} fill={isWishlisted ? "currentColor" : "none"} />
+                        {isWishlisted ? t("mk_course_liked", "Đã thích") : t("mk_course_add_favorite", "Thêm vào yêu thích")}
+                      </button>
+                    </>
+                  )}
+
+                  {isAdmin && (
+                    <div className="w-full rounded-lg border border-border px-4 py-3 text-sm text-muted-foreground dark:border-slate-800 dark:text-slate-300">
+                      {t("mk_course_admin_view_only", "Admin chỉ có quyền xem khóa học")}
+                    </div>
+                  )}
 
                   <button className="w-full min-h-11 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 border-border dark:border-slate-800 text-foreground dark:text-white hover:border-primary dark:hover:border-accent dark:hover:bg-slate-800/40 transition-smooth">
                     <Share2 size={20} />

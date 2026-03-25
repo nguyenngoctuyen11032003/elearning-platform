@@ -1182,8 +1182,21 @@ function ImportQuestionsModal({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     if (selectedFile) {
-      setFile(selectedFile)
       const lowerName = selectedFile.name.toLowerCase()
+      const supportedExtensions = [".xlsx", ".xls", ".csv", ".docx", ".doc", ".pdf"]
+      const hasValidExtension = supportedExtensions.some(ext => lowerName.endsWith(ext))
+      
+      if (!hasValidExtension) {
+        toast.error(t(
+          "exam_unsupported_file_format",
+          `Định dạng file không được hỗ trợ. Vui lòng sỗ dụng: ${supportedExtensions.join(", ")}`,
+          `Unsupported file format. Please use: ${supportedExtensions.join(", ")}`
+        ) || `Định dạng file không được hỗ trợ. Vui lòng sỗ dụng: ${supportedExtensions.join(", ")}`)
+        e.target.value = ""
+        return
+      }
+      
+      setFile(selectedFile)
       const detectedType = lowerName.endsWith(".docx") || lowerName.endsWith(".doc") || lowerName.endsWith(".pdf") ? "word" : "excel"
       setImportType(detectedType)
       processFile(selectedFile, detectedType)
@@ -1240,7 +1253,12 @@ function ImportQuestionsModal({
       }
 
       if (mapped.length === 0) {
-        toast.error(t("exam_no_valid_questions", "Không tìm thấy câu hỏi hợp lệ trong file"))
+        toast.error(t(
+          "exam_no_valid_questions",
+          "File không chứa câu hỏi hợp lệ theo định dạng yêu cầu. Vui lòng kiểm tra file hoặc thử file khác.",
+          "File contains no valid questions in the required format. Please check your file or try another file."
+        ))
+        return
       }
       if (isPdf && !hasImportedImage) {
         if ((importReport?.extractedImageCount ?? report.extractedImageCount) > 0) {

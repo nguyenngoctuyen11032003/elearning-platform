@@ -1273,6 +1273,14 @@ if (typeof window !== 'undefined' && token) {
     return this.request(`/extracted-exams/${examId}/attempts/${attemptId}`);
   }
 
+  async getMyExtractedExamAttempts(examId: string): Promise<any> {
+    return this.request(`/extracted-exams/${examId}/my-attempts`);
+  }
+
+  async getMyExtractedExamAttemptDetail(examId: string, attemptId: string): Promise<any> {
+    return this.request(`/extracted-exams/${examId}/my-attempts/${attemptId}`);
+  }
+
   async startExam(examId: string): Promise<any> {
     return this.request(API_ENDPOINTS.EXAMS.START, {
       method: 'POST',

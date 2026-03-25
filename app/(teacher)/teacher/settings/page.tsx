@@ -64,6 +64,8 @@ export default function TeacherSettingsPage() {
   }, [])
 
   const currentPlanId = subscriptionData?.subscription?.plan?.id
+  const currentPlanName = String(subscriptionData?.subscription?.plan?.name || "Free")
+  const isFreePlan = currentPlanName.toLowerCase() === "free" || Number(subscriptionData?.subscription?.plan?.price || 0) === 0
   const usage = subscriptionData?.usage || { coursesCreated: 0, courseLimit: 2, remainingCourses: 2 }
   const billingHistory = Array.isArray(subscriptionData?.billingHistory) ? subscriptionData.billingHistory : []
 
@@ -78,6 +80,11 @@ export default function TeacherSettingsPage() {
   }
 
   const cancelSubscription = async () => {
+    if (isFreePlan) {
+      toast.info(t("teacher_settings_already_free", "Bạn đang ở gói Free"))
+      return
+    }
+
     setCancelling(true)
     try {
       await apiClient.cancelTeacherSubscription("Cancelled by teacher")
@@ -282,10 +289,14 @@ export default function TeacherSettingsPage() {
           <h3 className="text-lg font-semibold">{t("teacher_settings_cancel_subscription", "Cancel Subscription")}</h3>
           <button
             onClick={cancelSubscription}
-            disabled={cancelling}
+            disabled={cancelling || isFreePlan}
             className="px-4 py-2 rounded-lg bg-destructive text-white disabled:opacity-50"
           >
-            {cancelling ? t("teacher_settings_cancelling", "Đang hủy...") : t("teacher_settings_cancel_subscription", "Cancel Subscription")}
+            {cancelling
+              ? t("teacher_settings_cancelling", "Đang hủy...")
+              : isFreePlan
+              ? t("teacher_settings_already_free", "Bạn đang ở gói Free")
+              : t("teacher_settings_cancel_subscription", "Cancel Subscription")}
           </button>
         </div>
       </div>

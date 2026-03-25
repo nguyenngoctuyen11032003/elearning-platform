@@ -52,14 +52,6 @@ interface Course {
   title: string
 }
 
-interface CertificateTemplate {
-  id: string
-  title: string
-  courseId: string
-  courseName?: string
-  status?: string
-}
-
 const IMAGE_MARKER_REGEX = /\[\[IMAGE:img_\d+\]\]|\[image\]|\(image\)/i
 const MATH_TOKEN_REGEX = /(\d\s*[x×*]\s*10\^?-?\d+|10\^?-?\d+|[=+\-×÷*/^√∑∫π]|\bfrac\b|\blog\b|\bsin\b|\bcos\b|\btan\b)/i
 const FORMULA_PROMPT_REGEX = /(without using a calculator|solve|calculate|compute|evaluate|find|tính|giải|rút gọn|chứng minh)/i
@@ -97,18 +89,11 @@ export default function EditExamPage() {
   const [pendingAction, setPendingAction] = useState<{ type: "import" | "multiple_choice" | "true_false" | "fill_in" } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [courses, setCourses] = useState<Course[]>([])
-  const [templates, setTemplates] = useState<CertificateTemplate[]>([])
-  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     courseId: "",
-    type: "practice" as "practice" | "official",
-    certificateTemplateId: "",
-    passingScore: 70,
-    maxAttempts: 3,
-    showCorrectAnswers: true,
   })
 
   const [questions, setQuestions] = useState<Question[]>([])
@@ -383,12 +368,6 @@ export default function EditExamPage() {
     }
   }
 
-  const availableCertificates = templates.filter(
-    (cert) =>
-      cert.status === "approved" &&
-      cert.courseId === formData.courseId
-  )
-
   const reviewIssueCount = questions.filter((q) => q.needsAssetReview).length
 
   const validateStep = (step: number): boolean => {
@@ -397,9 +376,6 @@ export default function EditExamPage() {
     if (step === 1) {
       if (!formData.title.trim()) newErrors.title = "Vui lòng nhập tiêu đề bài thi"
       if (!formData.courseId) newErrors.courseId = "Vui lòng chọn khóa học"
-      if (formData.type === "official" && !formData.certificateTemplateId) {
-        newErrors.certificateTemplateId = "Bài thi thật phải chọn chứng chỉ"
-      }
     }
 
     if (step === 2) {
@@ -564,10 +540,6 @@ export default function EditExamPage() {
         throw new Error(tr("Bài thi chưa có câu hỏi hợp lệ. Vui lòng nhập lại đề trước khi gửi duyệt", "The exam has no valid questions. Please update questions before submitting for review"))
       }
 
-      if (formData.type !== "official") {
-        delete examData.certificateTemplateId
-      }
-
       // Update regular exam in exam bank (not extracted exams)
       const response = await authFetch(`/exams/${examId}`, {
         method: "PATCH",
@@ -701,7 +673,7 @@ export default function EditExamPage() {
                 </label>
                 <select
                   value={formData.courseId}
-                  onChange={(e) => setFormData({ ...formData, courseId: e.target.value, certificateTemplateId: "" })}
+                  onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
                   className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
                     errors.courseId ? "border-red-500" : "border-border dark:border-slate-700"
                   }`}
@@ -712,110 +684,6 @@ export default function EditExamPage() {
                   ))}
                 </select>
                 {errors.courseId && <p className="text-red-500 text-sm mt-1">{errors.courseId}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                  Loại bài thi <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, type: "practice", certificateTemplateId: "" })}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      formData.type === "practice"
-                        ? "border-blue-500 bg-blue-500/10"
-                        : "border-border dark:border-slate-700 hover:border-blue-500/50"
-                    }`}
-                  >
-                    <ClipboardList size={24} className={formData.type === "practice" ? "text-blue-500" : "text-muted-foreground"} />
-                    <p className={`font-semibold mt-2 ${formData.type === "practice" ? "text-blue-500" : "text-foreground dark:text-white"}`}>
-                      Thi thử
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">Luyện tập, không cấp chứng chỉ</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, type: "official" })}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      formData.type === "official"
-                        ? "border-purple-500 bg-purple-500/10"
-                        : "border-border dark:border-slate-700 hover:border-purple-500/50"
-                    }`}
-                  >
-                    <Award size={24} className={formData.type === "official" ? "text-purple-500" : "text-muted-foreground"} />
-                    <p className={`font-semibold mt-2 ${formData.type === "official" ? "text-purple-500" : "text-foreground dark:text-white"}`}>
-                      Thi thật
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">Cấp chứng chỉ khi đạt</p>
-                  </button>
-                </div>
-              </div>
-
-              {formData.type === "official" && (
-                <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                    Chứng chỉ <span className="text-red-500">*</span>
-                  </label>
-                  {!formData.courseId ? (
-                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-                      <p className="text-yellow-500 text-sm flex items-center gap-2">
-                        <AlertCircle size={16} />
-                        Vui lòng chọn khóa học trước
-                      </p>
-                    </div>
-                  ) : isLoadingTemplates ? (
-                    <div className="p-4 bg-slate-100/80 dark:bg-slate-800/60 border border-border dark:border-slate-700 rounded-xl">
-                      <p className="text-sm text-muted-foreground">Đang tải chứng chỉ...</p>
-                    </div>
-                  ) : availableCertificates.length === 0 ? (
-                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-                      <p className="text-yellow-500 text-sm flex items-center gap-2">
-                        <AlertCircle size={16} />
-                        Không có chứng chỉ nào. Vui lòng tạo chứng chỉ trước.
-                      </p>
-                    </div>
-                  ) : (
-                    <select
-                      value={formData.certificateTemplateId}
-                      onChange={(e) => setFormData({ ...formData, certificateTemplateId: e.target.value })}
-                      className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white ${
-                        errors.certificateTemplateId ? "border-red-500" : "border-border dark:border-slate-700"
-                      }`}
-                    >
-                      <option value="">Chọn chứng chỉ</option>
-                      {availableCertificates.map(cert => (
-                        <option key={cert.id} value={cert.id}>{cert.title}</option>
-                      ))}
-                    </select>
-                  )}
-                  {errors.certificateTemplateId && <p className="text-red-500 text-sm mt-1">{errors.certificateTemplateId}</p>}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Điểm đạt (%)</label>
-                  <input
-                    type="number"
-                    value={formData.passingScore}
-                    onChange={(e) => setFormData({ ...formData, passingScore: parseInt(e.target.value) || 70 })}
-                    min={0}
-                    max={100}
-                    className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Số lần thi</label>
-                  <input
-                    type="number"
-                    value={formData.maxAttempts}
-                    onChange={(e) => setFormData({ ...formData, maxAttempts: parseInt(e.target.value) || 3 })}
-                    min={1}
-                    max={10}
-                    className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-                  />
-                </div>
               </div>
             </div>
           </div>
@@ -1394,8 +1262,20 @@ function ImportQuestionsModal({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     if (selectedFile) {
-      setFile(selectedFile)
       const lowerName = selectedFile.name.toLowerCase()
+      const supportedExtensions = [".xlsx", ".xls", ".csv", ".docx", ".doc", ".pdf"]
+      const hasValidExtension = supportedExtensions.some(ext => lowerName.endsWith(ext))
+      
+      if (!hasValidExtension) {
+        toast.error(tr(
+          `Định dạng file không được hỗ trợ. Vui lòng sử dụng: ${supportedExtensions.join(", ")}`,
+          `Unsupported file format. Please use: ${supportedExtensions.join(", ")}`
+        ))
+        e.target.value = ""
+        return
+      }
+      
+      setFile(selectedFile)
       const detectedType = lowerName.endsWith(".docx") || lowerName.endsWith(".doc") || lowerName.endsWith(".pdf") ? "word" : "excel"
       setImportType(detectedType)
       processFile(selectedFile, detectedType)
@@ -1452,7 +1332,11 @@ function ImportQuestionsModal({
       }
 
       if (mapped.length === 0) {
-        toast.error(tr("Không tìm thấy câu hỏi hợp lệ trong file", "No valid questions found in file"))
+        toast.error(tr(
+          "File không chứa câu hỏi hợp lệ theo định dạng yêu cầu. Vui lòng kiểm tra file hoặc thử file khác.",
+          "File contains no valid questions in the required format. Please check your file or try another file."
+        ))
+        return
       }
       if (isPdf && !hasImportedImage) {
         if (report.extractedImageCount > 0) {

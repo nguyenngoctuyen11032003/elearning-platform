@@ -5,7 +5,7 @@
   "scripts": {
     "build": "next build",
     "clean": "node -e \"const fs=require('fs');['.next','out','artifacts/reports'].forEach(p=>fs.rmSync(p,{recursive:true,force:true}))\"",
-    "dev": "next dev -H 0.0.0.0",
+    "dev": "node dev.mjs",
     "lint": "eslint .",
     "test": "echo \"No tests configured; skipping.\" && exit 0",
     "start": "next start"

@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import * as XLSX from "xlsx"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { authFetch } from "@/lib/authfetch"
+import { apiClient } from "@/lib/api/client"
 
 interface Section {
   id: string
@@ -18,6 +19,11 @@ interface LessonDocument {
   url: string
   name: string
   type?: string
+}
+
+interface LessonVideoItem {
+  url: string
+  name: string
 }
 
 interface WritingLevel {
@@ -36,6 +42,8 @@ interface Lesson {
   description: string
   videoFile?: File
   videoUrl?: string
+  videoFileName?: string
+  extraVideos?: LessonVideoItem[]
   documentFile?: File
   documentUrl?: string
   documentFileName?: string
@@ -123,6 +131,76 @@ interface Category {
   slug: string
 }
 
+interface SubscriptionUsage {
+  coursesCreated: number
+  courseLimit: number
+  remainingCourses: number
+}
+
+interface SubscriptionSnapshot {
+  planName: string
+  usage: SubscriptionUsage
+  latestPaymentStatus: string | null
+  latestPaymentAt: string | null
+}
+
+function extractFileNameFromUrl(url: string): string {
+  try {
+    const withoutQuery = url.split("?")[0]
+    const withoutHash = withoutQuery.split("#")[0]
+    const parts = withoutHash.split("/")
+    return decodeURIComponent(parts[parts.length - 1] || "").trim().toLowerCase()
+  } catch {
+    return ""
+  }
+}
+
+function normalizeAssetUrl(url?: string): string {
+  if (!url) return ""
+  const trimmed = url.trim()
+  if (!trimmed) return ""
+
+  try {
+    const parsed = new URL(trimmed, "http://localhost")
+    const pathname = decodeURIComponent(parsed.pathname || "").trim().toLowerCase()
+    return pathname || trimmed.toLowerCase()
+  } catch {
+    return trimmed.toLowerCase()
+  }
+}
+
+function getAssetKey(url?: string, name?: string): string {
+  const normalizedUrl = normalizeAssetUrl(url)
+  const normalizedName = (name || "").trim().toLowerCase()
+  const filenameFromUrl = extractFileNameFromUrl(url || "")
+  return `${normalizedUrl}::${normalizedName || filenameFromUrl}`
+}
+
+function getLessonDocuments(lesson?: Lesson): LessonDocument[] {
+  if (!lesson) return []
+
+  const primary = lesson.documentUrl
+    ? [{
+        url: lesson.documentUrl,
+        name: lesson.documentFileName || "Tài liệu",
+        type: lesson.documentFile?.type || "document",
+      }]
+    : []
+
+  const extra = Array.isArray(lesson.extraDocuments) ? lesson.extraDocuments : []
+  const merged = [...primary, ...extra].filter((item) => !!item?.url)
+
+  const dedup = new Map<string, LessonDocument>()
+  for (const item of merged) {
+    const key = getAssetKey(item.url, item.name)
+    if (!dedup.has(key)) {
+      dedup.set(key, item)
+    }
+  }
+
+  return Array.from(dedup.values())
+}
+
 export default function CreateCoursePage() {
   const router = useRouter()
   const { t } = useLanguage()
@@ -152,6 +230,7 @@ export default function CreateCoursePage() {
   const [uploadingDocLessonId, setUploadingDocLessonId] = useState<string | null>(null)
   const [deletingCriteriaByLesson, setDeletingCriteriaByLesson] = useState<Record<string, boolean>>({})
   const [selectedCriteriaToDelete, setSelectedCriteriaToDelete] = useState<Record<string, Set<number>>>({})
+  const [subscriptionSnapshot, setSubscriptionSnapshot] = useState<SubscriptionSnapshot | null>(null)
 
   useEffect(() => {
     fetch("/api/categories")
@@ -161,6 +240,41 @@ export default function CreateCoursePage() {
         setCategories(list)
       })
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    const loadSubscription = async () => {
+      try {
+        const payload = await apiClient.getTeacherSubscription()
+        const usageRaw = payload?.usage || {}
+        const billingHistory = Array.isArray(payload?.billingHistory) ? payload.billingHistory : []
+        const latestPayment = billingHistory[0] || null
+
+        if (!active) return
+
+        setSubscriptionSnapshot({
+          planName: String(payload?.subscription?.plan?.name || "Free"),
+          usage: {
+            coursesCreated: Number(usageRaw.coursesCreated || 0),
+            courseLimit: Number(usageRaw.courseLimit || 2),
+            remainingCourses: Number(usageRaw.remainingCourses || 0),
+          },
+          latestPaymentStatus: latestPayment?.status ? String(latestPayment.status) : null,
+          latestPaymentAt: latestPayment?.paidAt ? String(latestPayment.paidAt) : latestPayment?.createdAt ? String(latestPayment.createdAt) : null,
+        })
+      } catch {
+        if (active) {
+          setSubscriptionSnapshot(null)
+        }
+      }
+    }
+
+    loadSubscription()
+    return () => {
+      active = false
+    }
   }, [])
 
   const handleNext = async () => {
@@ -226,36 +340,43 @@ export default function CreateCoursePage() {
         }
 
         const createCourseWithRetry = async () => {
-          const firstRes = await fetch("/api/courses", {
-            method: "POST",
-            headers: { ...authHeaders, "Content-Type": "application/json" },
-            body: JSON.stringify(coursePayload),
-          })
+          let attempt = 0
+          let response: Response | null = null
 
-          if (firstRes.status !== 409) {
-            return firstRes
+          while (attempt < 5) {
+            const suffix = `${Date.now()}-${Math.floor(Math.random() * 10000)}`
+            const fallbackSlug = `${String(formData.title || "khoa-hoc")
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9\s-]/g, "")
+              .replace(/\s+/g, "-")
+              .replace(/-+/g, "-")}-${suffix}`
+
+            response = await fetch("/api/courses", {
+              method: "POST",
+              headers: { ...authHeaders, "Content-Type": "application/json" },
+              body: JSON.stringify(attempt === 0 ? coursePayload : { ...coursePayload, slug: fallbackSlug }),
+            })
+
+            if (response.status !== 409) {
+              return response
+            }
+
+            attempt += 1
           }
 
-          // Fallback for environments where backend still enforces unique slug strictly.
-          const fallbackSlug = `${String(formData.title || "khoa-hoc")
-            .trim()
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, "")
-            .replace(/\s+/g, "-")
-            .replace(/-+/g, "-")}-${Date.now()}`
-
-          return fetch("/api/courses", {
-            method: "POST",
-            headers: { ...authHeaders, "Content-Type": "application/json" },
-            body: JSON.stringify({ ...coursePayload, slug: fallbackSlug }),
-          })
+          return response as Response
         }
 
         const courseRes = await createCourseWithRetry()
 
         if (!courseRes.ok) {
           const err = await courseRes.json().catch(() => ({}))
-          throw new Error(err.message || err.error || t("tc_create_err_create_failed", "Tạo khóa học thất bại"))
+          const serverMessage = err.message || err.error || t("tc_create_err_create_failed", "Tạo khóa học thất bại")
+          const readableMessage = courseRes.status === 403
+            ? t("tc_create_limit_reached", "Bạn đã chạm giới hạn khóa học của gói hiện tại. Vui lòng nâng cấp hoặc gia hạn gói.")
+            : serverMessage
+          throw new Error(readableMessage)
         }
 
         const course = await courseRes.json()
@@ -268,6 +389,11 @@ export default function CreateCoursePage() {
         for (const section of sections) {
           for (let i = 0; i < section.lessons.length; i++) {
             const lesson = section.lessons[i]
+            const lessonVideos = (lesson.extraVideos || []).map((item) => ({
+              name: item.name || "Video uploaded",
+              url: item.url,
+              type: "video",
+            }))
             const lessonDocuments = [
               ...(lesson.documentUrl
                 ? [{
@@ -281,6 +407,7 @@ export default function CreateCoursePage() {
                 url: item.url,
                 type: item.type || "document",
               }))),
+              ...lessonVideos,
             ]
             const lessonPayload = {
               title: lesson.title,
@@ -379,6 +506,24 @@ export default function CreateCoursePage() {
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : t("tc_create_err_unknown", "Đã xảy ra lỗi")
         toast.error(message)
+        try {
+          const latest = await apiClient.getTeacherSubscription()
+          const usageRaw = latest?.usage || {}
+          const billingHistory = Array.isArray(latest?.billingHistory) ? latest.billingHistory : []
+          const latestPayment = billingHistory[0] || null
+          setSubscriptionSnapshot({
+            planName: String(latest?.subscription?.plan?.name || "Free"),
+            usage: {
+              coursesCreated: Number(usageRaw.coursesCreated || 0),
+              courseLimit: Number(usageRaw.courseLimit || 2),
+              remainingCourses: Number(usageRaw.remainingCourses || 0),
+            },
+            latestPaymentStatus: latestPayment?.status ? String(latestPayment.status) : null,
+            latestPaymentAt: latestPayment?.paidAt ? String(latestPayment.paidAt) : latestPayment?.createdAt ? String(latestPayment.createdAt) : null,
+          })
+        } catch {
+          // Ignore subscription refresh errors here; primary error already shown to user.
+        }
       } finally {
         setIsSubmitting(false)
       }
@@ -393,6 +538,15 @@ export default function CreateCoursePage() {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1)
     }
+  }
+
+  const paymentStatusLabel = (status?: string | null) => {
+    if (!status) return t("tc_create_payment_unknown", "Chưa có giao dịch mới")
+    if (status === "paid") return t("tc_create_payment_paid", "Đã thanh toán thành công")
+    if (status === "pending") return t("tc_create_payment_pending", "Đang chờ xác nhận")
+    if (status === "refunded") return t("tc_create_payment_refunded", "Đã hoàn tiền")
+    if (status === "failed") return t("tc_create_payment_failed", "Thanh toán thất bại")
+    return status
   }
 
   const addSection = () => {
@@ -436,6 +590,20 @@ export default function CreateCoursePage() {
         return s
       }),
     )
+              {subscriptionSnapshot ? (
+                <div className="rounded-2xl border border-border bg-card p-4 md:p-5">
+                  <p className="text-sm text-muted-foreground">{t("tc_create_plan_current", "Gói giảng viên hiện tại")}</p>
+                  <p className="text-base font-semibold mt-1">{subscriptionSnapshot.planName}</p>
+                  <p className="text-sm mt-2 text-muted-foreground">
+                    {t("tc_create_plan_usage", "Sử dụng khóa học")}: {subscriptionSnapshot.usage.coursesCreated}/{subscriptionSnapshot.usage.courseLimit} • {t("tc_create_plan_remaining", "Còn lại")}: {subscriptionSnapshot.usage.remainingCourses}
+                  </p>
+                  <p className="text-sm mt-1 text-muted-foreground">
+                    {t("tc_create_latest_payment", "Giao dịch gần nhất")}: {paymentStatusLabel(subscriptionSnapshot.latestPaymentStatus)}
+                    {subscriptionSnapshot.latestPaymentAt ? ` • ${new Date(subscriptionSnapshot.latestPaymentAt).toLocaleString("vi-VN")}` : ""}
+                  </p>
+                </div>
+              ) : null}
+
     // Open modal immediately for the new lesson
     setCurrentSectionId(sectionId)
     setCurrentLessonId(newLessonId)
@@ -838,7 +1006,39 @@ export default function CreateCoursePage() {
       if (res.ok) {
         const result = await res.json()
         const url = result?.data?.url || result?.url
-        if (url) updateLesson(sectionId, lessonId, { videoUrl: url })
+        if (url) {
+          setSections((prev) =>
+            prev.map((section) => {
+              if (section.id !== sectionId) return section
+              return {
+                ...section,
+                lessons: section.lessons.map((lesson) => {
+                  if (lesson.id !== lessonId) return lesson
+
+                  if (!lesson.videoUrl) {
+                    return {
+                      ...lesson,
+                      videoUrl: url,
+                      videoFileName: file.name || extractFileNameFromUrl(url) || "Video uploaded",
+                    }
+                  }
+
+                  return {
+                    ...lesson,
+                    extraVideos: [
+                      ...(lesson.extraVideos || []).filter(
+                        (item) =>
+                          getAssetKey(item.url, item.name) !==
+                          getAssetKey(url, file.name),
+                      ),
+                      { url, name: file.name || extractFileNameFromUrl(url) || "Video uploaded" },
+                    ],
+                  }
+                }),
+              }
+            }),
+          )
+        }
         else toast.error(t("tc_create_video_upload_no_url", "Upload video thất bại: không nhận được URL"))
       } else {
         toast.error(t("tc_create_video_upload_fail", "Upload video thất bại"))
@@ -888,10 +1088,14 @@ export default function CreateCoursePage() {
                   return {
                     ...lesson,
                     extraDocuments: [
-                      ...(lesson.extraDocuments || []),
+                      ...(lesson.extraDocuments || []).filter(
+                        (item) =>
+                          getAssetKey(item.url, item.name) !==
+                          getAssetKey(url, file.name),
+                      ),
                       {
                         url,
-                        name: file.name,
+                        name: file.name || extractFileNameFromUrl(url) || "Tài liệu",
                         type: file.type || "document",
                       },
                     ],
@@ -1157,11 +1361,12 @@ export default function CreateCoursePage() {
                             </div>
                             
                             {/* Lesson Details */}
-                            {(lesson.videoFile || lesson.documentFile || lesson.documentUrl || (lesson.extraDocuments && lesson.extraDocuments.length > 0) || lesson.quizzes.length > 0) && (
+                            {(getLessonVideos(lesson).length > 0 || lesson.documentFile || lesson.documentUrl || (lesson.extraDocuments && lesson.extraDocuments.length > 0) || lesson.quizzes.length > 0) && (
                               <div className="mt-2 ml-2 p-3 bg-secondary/30 dark:bg-slate-900/30 rounded-lg border border-border/50 dark:border-slate-800/50">
-                                {lesson.videoFile && (
+                                {getLessonVideos(lesson).length > 0 && (
                                   <div className="text-sm text-muted-foreground dark:text-slate-400 mb-2">
-                                    <span className="font-medium">{t("tc_create_video_label", "Video:")}</span> {lesson.videoFile.name}
+                                    <span className="font-medium">{t("tc_create_video_label", "Video:")}</span>{" "}
+                                    {getLessonVideos(lesson).map((item) => item.name).join(", ")}
                                   </div>
                                 )}
                                 {(lesson.documentFile || lesson.documentUrl || (lesson.extraDocuments && lesson.extraDocuments.length > 0)) && (
@@ -1268,23 +1473,7 @@ export default function CreateCoursePage() {
                               <Loader2 size={20} className="animate-spin mx-auto text-primary dark:text-accent" />
                               <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">{t("tc_create_uploading", "Đang tải lên...")}</p>
                             </>
-                          ) : currentLesson?.videoUrl ? (
-                            <>
-                              <p className="text-foreground dark:text-white font-medium text-green-600 dark:text-green-400">
-                                ✓ {currentLesson.videoFile?.name || t("tc_create_video_uploaded", "Video đã tải lên")}
-                              </p>
-                              <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">{t("tc_create_saved_on_server", "Đã lưu trên server")}</p>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateLesson(currentSectionId!, currentLessonId!, { videoFile: undefined, videoUrl: undefined })
-                                }}
-                                className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
-                              >
-                                {t("tc_create_delete_file", "Xóa tệp")}
-                              </button>
-                            </>
-                          ) : currentLesson?.videoFile ? (
+                          ) : currentLesson?.videoFile && getLessonVideos(currentLesson).length === 0 ? (
                             <>
                               <p className="text-foreground dark:text-white font-medium">
                                 {currentLesson.videoFile.name}
@@ -1292,20 +1481,16 @@ export default function CreateCoursePage() {
                               <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
                                 {(currentLesson.videoFile.size / (1024 * 1024)).toFixed(2)} MB
                               </p>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateLesson(currentSectionId!, currentLessonId!, { videoFile: undefined, videoUrl: undefined })
-                                }}
-                                className="mt-2 text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
-                              >
-                                {t("tc_create_delete_file", "Xóa tệp")}
-                              </button>
                             </>
                           ) : (
                             <>
                               <p className="text-foreground dark:text-white font-medium">{t("tc_create_drag_video", "Kéo thả video vào đây")}</p>
                               <p className="text-sm text-muted-foreground dark:text-slate-400">{t("tc_create_click_to_choose", "Hoặc nhấn để chọn tệp")}</p>
+                              {getLessonVideos(currentLesson).length > 0 && (
+                                <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                                  {getLessonVideos(currentLesson).length} {t("video_uploaded_count", "video đã tải lên")}
+                                </p>
+                              )}
                             </>
                           )}
                         </div>
@@ -1319,6 +1504,39 @@ export default function CreateCoursePage() {
                           }}
                           className="hidden"
                         />
+                        {getLessonVideos(currentLesson).length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {getLessonVideos(currentLesson).map((video, idx) => (
+                              <div key={`${video.url}-${idx}`} className="flex items-center justify-between gap-3 rounded-md border border-border dark:border-slate-800 bg-background dark:bg-slate-950 px-3 py-2">
+                                <a
+                                  href={video.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-sm text-primary dark:text-accent hover:underline break-all"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {video.name}
+                                </a>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    const videos = getLessonVideos(currentLesson).filter((_, itemIdx) => itemIdx !== idx)
+                                    const [firstVideo, ...extraVideos] = videos
+                                    updateLesson(currentSectionId!, currentLessonId!, {
+                                      videoFile: undefined,
+                                      videoUrl: firstVideo?.url,
+                                      videoFileName: firstVideo?.name,
+                                      extraVideos,
+                                    })
+                                  }}
+                                  className="text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
+                                >
+                                  {t("tc_create_delete_file", "Xóa tệp")}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
@@ -1373,32 +1591,29 @@ export default function CreateCoursePage() {
                           }}
                           className="hidden"
                         />
-                        {(currentLesson?.documentUrl || (currentLesson?.extraDocuments && currentLesson.extraDocuments.length > 0)) && (
+                        {getLessonDocuments(currentLesson).length > 0 && (
                           <div className="mt-3 space-y-2">
-                            {currentLesson.documentUrl && (
-                              <div className="flex items-center justify-between rounded-md border border-border dark:border-slate-800 bg-background dark:bg-slate-950 px-3 py-2">
-                                <p className="text-sm text-foreground dark:text-white truncate pr-3">
-                                  {currentLesson.documentFileName || t("tc_create_document_uploaded", "Tài liệu đã tải lên")}
-                                </p>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    updateLesson(currentSectionId!, currentLessonId!, { documentFile: undefined, documentUrl: undefined, documentFileName: undefined })
-                                  }}
-                                  className="text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
+                            {getLessonDocuments(currentLesson).map((doc, idx) => (
+                              <div key={`${doc.url}-${idx}`} className="flex items-center justify-between gap-3 rounded-md border border-border dark:border-slate-800 bg-background dark:bg-slate-950 px-3 py-2">
+                                <a
+                                  href={doc.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-sm text-primary dark:text-accent hover:underline break-all"
+                                  onClick={(e) => e.stopPropagation()}
                                 >
-                                  {t("tc_create_delete_file", "Xóa tệp")}
-                                </button>
-                              </div>
-                            )}
-                            {(currentLesson.extraDocuments || []).map((doc, idx) => (
-                              <div key={`${doc.url}-${idx}`} className="flex items-center justify-between rounded-md border border-border dark:border-slate-800 bg-background dark:bg-slate-950 px-3 py-2">
-                                <p className="text-sm text-foreground dark:text-white truncate pr-3">{doc.name}</p>
+                                  {doc.name || t("tc_create_document_uploaded", "Tài liệu đã tải lên")}
+                                </a>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation()
+                                    const docs = getLessonDocuments(currentLesson).filter((_, itemIdx) => itemIdx !== idx)
+                                    const [firstDoc, ...extraDocs] = docs
                                     updateLesson(currentSectionId!, currentLessonId!, {
-                                      extraDocuments: (currentLesson.extraDocuments || []).filter((_, itemIdx) => itemIdx !== idx),
+                                      documentFile: undefined,
+                                      documentUrl: firstDoc?.url,
+                                      documentFileName: firstDoc?.name,
+                                      extraDocuments: extraDocs,
                                     })
                                   }}
                                   className="text-xs text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-smooth"
@@ -2029,4 +2244,28 @@ export default function CreateCoursePage() {
       </div>
     </div>
   )
+}
+
+function getLessonVideos(lesson?: Lesson): LessonVideoItem[] {
+  if (!lesson) return []
+
+  const primary = lesson.videoUrl
+    ? [{
+        url: lesson.videoUrl,
+        name: lesson.videoFileName || lesson.videoFile?.name || "Video uploaded",
+      }]
+    : []
+
+  const extra = Array.isArray(lesson.extraVideos) ? lesson.extraVideos : []
+  const merged = [...primary, ...extra].filter((item) => !!item?.url)
+
+  const dedup = new Map<string, LessonVideoItem>()
+  for (const item of merged) {
+    const key = getAssetKey(item.url, item.name)
+    if (!dedup.has(key)) {
+      dedup.set(key, item)
+    }
+  }
+
+  return Array.from(dedup.values())
 }

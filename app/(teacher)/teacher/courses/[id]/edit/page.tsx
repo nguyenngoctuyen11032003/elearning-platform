@@ -16,6 +16,12 @@ interface Section {
   lessons: Lesson[]
 }
 
+interface LessonDocument {
+  url: string
+  name: string
+  type?: string
+}
+
 interface Lesson {
   id: string
   title: string
@@ -25,6 +31,7 @@ interface Lesson {
   documentFile?: File
   documentUrl?: string
   documentName?: string
+  extraDocuments?: LessonDocument[]
   quizId?: string
   quizzes: Quiz[]
   assignmentId?: string
@@ -59,8 +66,8 @@ interface Category {
   name: string
 }
 
-// Safely extract the first valid resource object from varied shapes (stringified JSON, object, array)
-function parseFirstResource(resources: unknown): { url: string; name?: string } | null {
+// Normalize lesson resources from varied backend shapes into a flat document list.
+function parseLessonResources(resources: unknown): LessonDocument[] {
   let normalized: unknown = resources
 
   if (typeof normalized === "string") {
@@ -71,32 +78,59 @@ function parseFirstResource(resources: unknown): { url: string; name?: string } 
     }
   }
 
-  const list = Array.isArray(normalized)
+  const rawList = Array.isArray(normalized)
     ? normalized
     : normalized && typeof normalized === "object"
-    ? [normalized]
+      ? [normalized]
+      : []
+
+  const flattened = rawList.flatMap((item) => (Array.isArray(item) ? item : [item]))
+  const docs: LessonDocument[] = []
+
+  for (const item of flattened) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue
+    const record = item as Record<string, unknown>
+    const url = typeof record.url === "string" ? record.url.trim() : ""
+    if (!url) continue
+    const name =
+      typeof record.name === "string" && record.name.trim()
+        ? record.name.trim()
+        : "Tai lieu"
+    docs.push({
+      url,
+      name,
+      type: typeof record.type === "string" ? record.type : undefined,
+    })
+  }
+
+  return docs
+}
+
+function buildLessonResources(lesson: Lesson): LessonDocument[] {
+  const primary = lesson.documentUrl
+    ? [{
+        url: lesson.documentUrl,
+        name: lesson.documentName || lesson.documentFile?.name || "Tai lieu",
+        type: lesson.documentFile?.type || "document",
+      }]
     : []
 
-  for (const item of list) {
-    if (item && typeof item === "object" && !Array.isArray(item)) {
-      const url = (item as Record<string, unknown>).url
-      if (typeof url === "string" && url) {
-        return item as { url: string; name?: string }
-      }
-    }
-    if (Array.isArray(item)) {
-      for (const nested of item) {
-        if (nested && typeof nested === "object" && !Array.isArray(nested)) {
-          const url = (nested as Record<string, unknown>).url
-          if (typeof url === "string" && url) {
-            return nested as { url: string; name?: string }
-          }
-        }
-      }
+  const extra = Array.isArray(lesson.extraDocuments)
+    ? lesson.extraDocuments.filter((item) => !!item?.url)
+    : []
+
+  const dedup = new Map<string, LessonDocument>()
+  for (const item of [...primary, ...extra]) {
+    if (!dedup.has(item.url)) {
+      dedup.set(item.url, {
+        url: item.url,
+        name: item.name || "Tai lieu",
+        type: item.type || "document",
+      })
     }
   }
 
-  return null
+  return Array.from(dedup.values())
 }
 
 function parseQuizQuestions(rawQuestions: unknown): Array<{
@@ -931,7 +965,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             lessons: lsns
               .sort((a: { order?: number }, b: { order?: number }) => (a.order || 0) - (b.order || 0))
               .map((l: { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[]; type?: string }) => {
-                const firstRes = parseFirstResource(l.resources)
+                const resources = parseLessonResources(l.resources)
+                const [firstRes, ...extraResources] = resources
                 const linkedQuiz = quizByLesson[l.id]
                 const linkedAssignment = assignmentByLesson[l.id]
                 const questions = Array.isArray(linkedQuiz?.questions) ? linkedQuiz.questions : []
@@ -952,6 +987,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   videoUrl: l.videoUrl,
                   documentUrl: firstRes?.url,
                   documentName: firstRes?.name,
+                  extraDocuments: extraResources,
                   assignmentId: linkedAssignment?.id,
                   writingDueDate: toDateTimeLocal(linkedAssignment?.dueDate),
                   writingPrompt: linkedAssignment?.description || "",
@@ -1381,6 +1417,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         for (const [lIdx, lesson] of section.lessons.entries()) {
           const isNewLesson = !/^[0-9a-f-]{36}$/.test(lesson.id)
           if (isNewLesson) {
+            const lessonResources = buildLessonResources(lesson)
             const createRes = await fetch("/api/lessons", {
               method: "POST",
               headers: authHeaders,
@@ -1393,6 +1430,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                 isPublished: false,
                 sectionTitle: section.title,
                 order: lIdx,
+                ...(lesson.videoUrl ? { videoUrl: lesson.videoUrl } : {}),
+                resources: lessonResources,
               }),
             })
             if (createRes.ok) {
@@ -1447,6 +1486,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               }
             }
           } else {
+            const lessonResources = buildLessonResources(lesson)
             const patchRes = await fetch(`/api/lessons/${lesson.id}`, {
               method: "PATCH",
               headers: authHeaders,
@@ -1458,9 +1498,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                 order: lIdx,
                 ...(lesson.videoUrl ? { videoUrl: lesson.videoUrl } : {}),
                 // Always send resources to overwrite stale/malformed data in DB
-                resources: lesson.documentUrl
-                  ? [{ name: lesson.documentName || lesson.documentFile?.name || "Tài liệu", url: lesson.documentUrl }]
-                  : [],
+                resources: lessonResources,
               }),
             })
             if (!patchRes.ok) {
@@ -1618,7 +1656,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             lessons: (lsns as { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[]; order?: number; type?: string }[])
               .sort((a, b) => (a.order || 0) - (b.order || 0))
               .map(l => {
-                const firstRes = parseFirstResource(l.resources)
+                const resources = parseLessonResources(l.resources)
+                const [firstRes, ...extraResources] = resources
                 const linkedQuiz = quizByLesson[l.id]
                 const linkedAssignment = assignmentByLesson[l.id]
                 const questions = parseQuizQuestions(linkedQuiz?.questions)
@@ -1639,6 +1678,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   videoUrl: l.videoUrl,
                   documentUrl: firstRes?.url,
                   documentName: firstRes?.name,
+                  extraDocuments: extraResources,
                   assignmentId: linkedAssignment?.id,
                   writingDueDate: toDateTimeLocal(linkedAssignment?.dueDate),
                   writingPrompt: linkedAssignment?.description || "",
@@ -1742,6 +1782,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     })))
     try {
       const token = localStorage.getItem("auth_token")
+      const lessonState = sections.flatMap((s) => s.lessons).find((l) => l.id === lessonId)
       const formData = new FormData()
       formData.append("file", file)
       const res = await fetch("/api/upload/document", {
@@ -1753,9 +1794,38 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         const result = await res.json()
         const url = result?.data?.url ?? result?.url ?? null
         if (url) {
+          const existingResources = lessonState ? buildLessonResources(lessonState) : []
+          const nextResources = (() => {
+            const merged = [...existingResources, { url, name: file.name, type: file.type || "document" }]
+            const dedup = new Map<string, LessonDocument>()
+            for (const item of merged) {
+              if (!item?.url || dedup.has(item.url)) continue
+              dedup.set(item.url, item)
+            }
+            return Array.from(dedup.values())
+          })()
+
           setSections(prev => prev.map(s => ({
             ...s,
-            lessons: s.lessons.map(l => l.id === lessonId ? { ...l, documentUrl: url, documentName: file.name } : l)
+            lessons: s.lessons.map((l) => {
+              if (l.id !== lessonId) return l
+
+              if (!l.documentUrl) {
+                return {
+                  ...l,
+                  documentUrl: url,
+                  documentName: file.name,
+                }
+              }
+
+              return {
+                ...l,
+                extraDocuments: [
+                  ...(l.extraDocuments || []).filter((item) => item.url !== url),
+                  { url, name: file.name, type: file.type || "document" },
+                ],
+              }
+            }),
           })))
           // Auto-save to DB immediately for existing lessons (UUID)
           const isExistingLesson = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lessonId)
@@ -1763,7 +1833,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             const patchRes = await fetch(`/api/lessons/${lessonId}`, {
               method: "PATCH",
               headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ resources: [{ name: file.name, url }] }),
+              body: JSON.stringify({ resources: nextResources }),
             })
             if (!patchRes.ok) {
               console.error("[DocumentUpload] auto-save thất bại:", await patchRes.json().catch(() => ({})))
@@ -1802,9 +1872,26 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   const handleDocumentDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDraggedDocumentZone(false)
-    const file = e.dataTransfer.files?.[0]
-    if (file && (file.type === 'application/pdf' || file.name.endsWith('.pdf')) && currentLessonId) {
-      handleDocumentUpload(currentLessonId, file)
+    const files = e.dataTransfer.files
+    if (files?.length && currentLessonId) {
+      Array.from(files).forEach((file) => {
+        if (
+          file.type === "application/pdf" ||
+          file.type.includes("word") ||
+          file.type.includes("powerpoint") ||
+          file.type.includes("presentation") ||
+          file.type.includes("excel") ||
+          file.name.endsWith(".pdf") ||
+          file.name.endsWith(".doc") ||
+          file.name.endsWith(".docx") ||
+          file.name.endsWith(".ppt") ||
+          file.name.endsWith(".pptx") ||
+          file.name.endsWith(".xls") ||
+          file.name.endsWith(".xlsx")
+        ) {
+          handleDocumentUpload(currentLessonId, file)
+        }
+      })
     }
   }
 
@@ -2036,15 +2123,18 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                             </p>
                           )}
                           {/* Content Preview Badges */}
+                          {(() => {
+                            const lessonDocuments = buildLessonResources(lesson)
+                            return (
                           <div className="flex flex-wrap gap-1 mt-1.5">
                             {lesson.videoUrl && (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded text-xs font-medium">
                                 <Video size={10} /> Video
                               </span>
                             )}
-                            {lesson.documentUrl && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded text-xs font-medium max-w-[130px]">
-                                <span className="truncate">📄 {lesson.documentName || 'Tài liệu'}</span>
+                            {lessonDocuments.length > 0 && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded text-xs font-medium">
+                                📄 {lessonDocuments.length} {tr("tài liệu", "documents")}
                               </span>
                             )}
                             {lesson.quizzes.length > 0 && (
@@ -2058,6 +2148,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                               </span>
                             )}
                           </div>
+                            )
+                          })()}
                         </div>
                       </div>
                       <button 
@@ -2417,14 +2509,34 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                           <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
                             {tr("Tài liệu bổ sung", "Additional documents")}
                           </label>
-                          {lesson.documentUrl && (
-                            <div className="mb-3 flex items-center gap-3 p-3 bg-secondary dark:bg-slate-800 rounded-lg border border-border dark:border-slate-700">
-                              <FileText size={20} className="text-primary dark:text-accent flex-shrink-0" />
-                              <a href={lesson.documentUrl} target="_blank" rel="noreferrer"
-                                className="text-sm text-primary dark:text-accent hover:underline truncate flex-1"
-                                onClick={(e) => e.stopPropagation()}>
-                                {lesson.documentName || tr("Xem tài liệu", "View document")}
-                              </a>
+                          {buildLessonResources(lesson).length > 0 && (
+                            <div className="mb-3 space-y-2">
+                              {buildLessonResources(lesson).map((doc, index) => (
+                                <div key={`${doc.url}-${index}`} className="flex items-center gap-3 p-3 bg-secondary dark:bg-slate-800 rounded-lg border border-border dark:border-slate-700">
+                                  <FileText size={20} className="text-primary dark:text-accent flex-shrink-0" />
+                                  <a href={doc.url} target="_blank" rel="noreferrer"
+                                    className="text-sm text-primary dark:text-accent hover:underline truncate flex-1"
+                                    onClick={(e) => e.stopPropagation()}>
+                                    {doc.name || tr("Xem tài liệu", "View document")}
+                                  </a>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      const docs = buildLessonResources(lesson).filter((_, itemIdx) => itemIdx !== index)
+                                      const [firstDoc, ...extraDocs] = docs
+                                      updateLesson(section.id, lesson.id, {
+                                        documentUrl: firstDoc?.url,
+                                        documentName: firstDoc?.name,
+                                        documentFile: undefined,
+                                        extraDocuments: extraDocs,
+                                      })
+                                    }}
+                                    className="text-xs text-destructive hover:underline"
+                                  >
+                                    {tr("Xóa", "Delete")}
+                                  </button>
+                                </div>
+                              ))}
                             </div>
                           )}
                           <div
@@ -2432,8 +2544,10 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                             onDragLeave={() => setDraggedDocumentZone(false)}
                             onDrop={(e) => {
                               e.preventDefault(); setDraggedDocumentZone(false)
-                              const file = e.dataTransfer.files?.[0]
-                              if (file) handleDocumentUpload(lesson.id, file)
+                              const files = e.dataTransfer.files
+                              if (files?.length) {
+                                Array.from(files).forEach((file) => handleDocumentUpload(lesson.id, file))
+                              }
                             }}
                             onClick={() => { const inp = document.getElementById(`doc-inp-${lesson.id}`) as HTMLInputElement; inp?.click() }}
                             className={`border-2 border-dashed rounded-lg p-5 text-center transition-smooth cursor-pointer ${draggedDocumentZone ? 'border-primary bg-primary/5' : 'border-border dark:border-slate-700 hover:border-primary'}`}
@@ -2443,7 +2557,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                 <Loader2 size={24} className="animate-spin text-primary dark:text-accent" />
                                 <p className="text-sm text-muted-foreground">{tr("Đang tải lên...", "Uploading...")}</p>
                               </div>
-                            ) : lesson.documentUrl ? (
+                            ) : buildLessonResources(lesson).length > 0 ? (
                               <p className="text-sm text-green-600 dark:text-green-400 font-medium">{tr("✓ Tài liệu đã tải lên — nhấn để thay thế", "✓ Document uploaded - click to replace")}</p>
                             ) : (
                               <>
@@ -2452,12 +2566,27 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                               </>
                             )}
                           </div>
-                          <input id={`doc-inp-${lesson.id}`} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" className="hidden"
-                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleDocumentUpload(lesson.id, f); e.target.value = '' }}
+                          <input id={`doc-inp-${lesson.id}`} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" multiple className="hidden"
+                            onChange={(e) => {
+                              const files = e.target.files
+                              if (files?.length) {
+                                Array.from(files).forEach((file) => handleDocumentUpload(lesson.id, file))
+                              }
+                              e.target.value = ''
+                            }}
                           />
-                          {lesson.documentUrl && (
-                            <button onClick={() => updateLesson(section.id, lesson.id, { documentUrl: undefined, documentFile: undefined, documentName: undefined })}
-                              className="mt-2 text-xs text-destructive hover:underline">{tr("Xóa tài liệu", "Delete document")}</button>
+                          {buildLessonResources(lesson).length > 0 && (
+                            <button
+                              onClick={() => updateLesson(section.id, lesson.id, {
+                                documentUrl: undefined,
+                                documentFile: undefined,
+                                documentName: undefined,
+                                extraDocuments: [],
+                              })}
+                              className="mt-2 text-xs text-destructive hover:underline"
+                            >
+                              {tr("Xóa toàn bộ tài liệu", "Delete all documents")}
+                            </button>
                           )}
                         </div>
 

@@ -161,11 +161,15 @@ export default function ExamResultPage() {
       try {
         if (isExtractedSource) {
           const raw = sessionStorage.getItem(`extracted_result_${attemptId}`)
-          if (!raw) {
+          if (raw) {
+            const data = JSON.parse(raw)
+            setResult(data)
+          } else if (examId) {
+            const data = await apiClient.getMyExtractedExamAttemptDetail(examId, attemptId)
+            setResult(data)
+          } else {
             throw new Error(t("exam_result_extracted_missing", "Extracted exam result was not found"))
           }
-          const data = JSON.parse(raw)
-          setResult(data)
         } else {
           const data = await apiClient.getAttemptResult(attemptId)
           setResult(data)

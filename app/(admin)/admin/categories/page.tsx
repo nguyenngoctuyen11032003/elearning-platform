@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { Plus, Edit, Trash2, Save, X, Search, BookOpen, TrendingUp, FolderOpen, MoreVertical, ImagePlus } from "lucide-react"
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { useRouter } from "next/navigation"
 
 interface Category {
   id: string
@@ -17,6 +18,7 @@ interface Category {
 }
 export default function AdminCategoriesPage() {
   const { t } = useLanguage()
+  const router = useRouter()
   // const [categories, setCategories] = useState<Category[]>([
   //   { id: "1", name: "Lập trình", description: "Các khóa học về lập trình web, mobile, và phần mềm", courses: 45, students: 2340, color: "#2563eb", icon: "💻", createdAt: "2024-01-15" },
   //   { id: "2", name: "Thiết kế", description: "UI/UX Design, Graphic Design, Motion Graphics", courses: 32, students: 1890, color: "#06b6d4", icon: "🎨", createdAt: "2024-01-20" },
@@ -240,34 +242,35 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen w-full">
-      <div className="w-full space-y-8">
+      <div className="w-full max-w-[1400px] mx-auto space-y-6 lg:space-y-8">
         {/* Header with Stats */}
-        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/Categories2.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div className="relative overflow-hidden p-5 md:p-7 rounded-3xl animate-fadeIn border border-white/25 dark:border-white/10" style={{ backgroundImage: "url('/image/Categories2.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
-          <div className="absolute inset-0 bg-black/15 dark:bg-black/45 rounded-3xl"></div>
+          <div className="absolute inset-0 bg-black/20 dark:bg-black/55 rounded-3xl"></div>
           
-          <div className="relative z-10 space-y-8">
+          <div className="relative z-10 space-y-5 md:space-y-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
-              <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("adm_cat_title", "Quản lý danh mục")}</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("adm_cat_subtitle", "Phân loại và tổ chức các khóa học")}</p>
+            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+              <div className="rounded-2xl bg-white/15 backdrop-blur-sm px-4 py-4 md:px-5 md:py-4 max-w-2xl border border-white/30">
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-1.5 drop-shadow-lg leading-tight">{t("adm_cat_title", "Quản lý danh mục")}</h1>
+                <p className="text-white/90 drop-shadow text-sm md:text-base">{t("adm_cat_subtitle", "Phân loại và tổ chức các khóa học")}</p>
               </div>
               <button
                 onClick={() => setIsAdding(true)}
-                className="flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
+                className="flex items-center justify-center gap-2 bg-white text-primary px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-full sm:w-fit backdrop-blur-sm"
               >
                 <Plus size={20} />
                 {t("adm_cat_add_btn", "Thêm danh mục")}
               </button>
+            </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <div className="group flex items-center justify-between p-6 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className="group flex items-center justify-between p-5 h-full bg-white/82 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer">
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_cat_total", "Tổng danh mục")}</p>
-                    <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalCategories}</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white mt-1.5">{totalCategories}</p>
                   </div>
                   <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <FolderOpen size={28} className="text-blue-600 dark:text-blue-400" />
@@ -275,10 +278,10 @@ useEffect(() => {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <div className="group flex items-center justify-between p-6 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className="group flex items-center justify-between p-5 h-full bg-white/82 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer">
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_cat_total_courses", "Tổng khóa học")}</p>
-                    <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalCourses}</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white mt-1.5">{totalCourses}</p>
                   </div>
                   <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <BookOpen size={28} className="text-green-600 dark:text-green-400" />
@@ -286,10 +289,10 @@ useEffect(() => {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <div className="group flex items-center justify-between p-6 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className="group flex items-center justify-between p-5 h-full bg-white/82 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer">
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_cat_total_students", "Tổng học viên")}</p>
-                    <p className="text-3xl font-bold text-foreground dark:text-white mt-2">{totalStudents.toLocaleString('en-US')}</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white mt-1.5">{totalStudents.toLocaleString('en-US')}</p>
                   </div>
                   <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <TrendingUp size={28} className="text-purple-600 dark:text-purple-400" />
@@ -301,14 +304,14 @@ useEffect(() => {
         </div>
 
         {/* Search */}
-        <div className="relative">
+        <div className="relative max-w-3xl">
           <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
           <input
             type="text"
             placeholder={t("adm_cat_search", "Tìm kiếm danh mục theo tên hoặc mô tả...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+            className="w-full pl-12 pr-4 py-3.5 bg-card/95 dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
           />
         </div>
 
@@ -437,11 +440,16 @@ useEffect(() => {
         )}
 
         {/* Categories Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 items-stretch">
           {filteredCategories.map((category) => (
             <div
               key={category.id}
-              className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 group"
+              className="h-full flex flex-col bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 group"
+              onClick={() => {
+                if (editingId !== category.id) {
+                  router.push(`/admin/categories/${category.id}`)
+                }
+              }}
             >
               {editingId === category.id ? (
                 <div className="p-6 space-y-4">
@@ -558,14 +566,14 @@ useEffect(() => {
                 <>
                   {/* Header with gradient */}
                   <div
-                    className="h-3"
+                    className="h-2.5"
                     style={{ backgroundColor: category.color }}
                   />
-                  <div className="p-6">
+                  <div className="p-6 flex flex-col h-full">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center"
+                          className="w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center shrink-0"
                           style={{ backgroundColor: `${category.color || '#2563eb'}20` }}
                         >
                           {category.image ? (
@@ -579,13 +587,16 @@ useEffect(() => {
                           )}
                         </div>
                         <div>
-                          <h3 className="text-foreground dark:text-white font-bold text-lg truncate max-w-[150px]">{category.name}</h3>
-                          <p className="text-muted-foreground dark:text-slate-400 text-sm">{category.courses} {t("adm_cat_courses_unit", "khóa học")}</p>
+                          <h3 className="text-foreground dark:text-white font-bold text-lg truncate max-w-[180px]">{category.name}</h3>
+                          <p className="text-muted-foreground dark:text-slate-400 text-sm mt-0.5">{category.courses} {t("adm_cat_courses_unit", "khóa học")}</p>
                         </div>
                       </div>
                       <div className="relative">
                         <button
-                          onClick={() => setOpenMenu(openMenu === category.id ? null : category.id)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpenMenu(openMenu === category.id ? null : category.id)
+                          }}
                           className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
                         >
                           <MoreVertical size={18} className="text-muted-foreground" />
@@ -593,7 +604,8 @@ useEffect(() => {
                         {openMenu === category.id && (
                           <div className="absolute right-0 top-full mt-1 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-10 min-w-36">
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation()
                                 setEditingId(category.id)
                                 setOpenMenu(null)
                               }}
@@ -602,7 +614,10 @@ useEffect(() => {
                               <Edit size={14} /> {t("adm_cat_edit", "Chỉnh sửa")}
                             </button>
                             <button
-                              onClick={() => handleDelete(category.id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDelete(category.id)
+                              }}
                               className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive text-sm"
                             >
                               <Trash2 size={14} /> {t("adm_cat_delete", "Xóa")}
@@ -612,20 +627,29 @@ useEffect(() => {
                       </div>
                     </div>
 
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm mb-4 line-clamp-2">
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm mb-4 line-clamp-3 min-h-[72px]">
                       {category.description}
                     </p>
 
-                    <div className="grid grid-cols-2 gap-3 pt-4 border-t border-border dark:border-slate-800">
+                    <div className="mt-auto grid grid-cols-2 gap-3 pt-4 border-t border-border dark:border-slate-800">
                       <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3 text-center">
-                        <p className="text-foreground dark:text-white font-bold">{category.courses}</p>
+                        <p className="text-foreground dark:text-white font-bold text-2xl leading-none">{category.courses}</p>
                         <p className="text-muted-foreground dark:text-slate-400 text-xs">{t("adm_cat_courses", "Khóa học")}</p>
                       </div>
                       <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3 text-center">
-                        <p className="text-foreground dark:text-white font-bold">{(category.students ?? 0).toLocaleString('en-US')}</p>
+                        <p className="text-foreground dark:text-white font-bold text-2xl leading-none">{(category.students ?? 0).toLocaleString('en-US')}</p>
                         <p className="text-muted-foreground dark:text-slate-400 text-xs">{t("adm_cat_students", "Học viên")}</p>
                       </div>
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/admin/categories/${category.id}`)
+                      }}
+                      className="mt-4 w-full px-4 py-2.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-smooth text-sm font-semibold"
+                    >
+                      {t("adm_cat_view_courses", "Xem danh sách khóa học")}
+                    </button>
                   </div>
                 </>
               )}
@@ -670,7 +694,6 @@ useEffect(() => {
           </div>
         </div>
       )}
-      </div>
     </div>
   )
 }

@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Star } from "lucide-react"
 import { motion } from "framer-motion"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useLanguage } from "@/lib/i18n/language-context"
 
 interface CourseCardProps {
@@ -21,6 +21,19 @@ export function CourseCard({ id, title, teacher, price, rating, image, students 
   const { t } = useLanguage()
   const [showTooltip, setShowTooltip] = useState(false)
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
+  const [courseHref, setCourseHref] = useState(`/courses/${id}`)
+
+  useEffect(() => {
+    try {
+      const rawUser = localStorage.getItem("user")
+      const rawRole = localStorage.getItem("userRole")
+      const parsedRole = rawUser ? JSON.parse(rawUser)?.role : null
+      const role = parsedRole || rawRole
+      setCourseHref(role === "admin" ? `/admin/courses/${id}` : `/courses/${id}`)
+    } catch {
+      setCourseHref(`/courses/${id}`)
+    }
+  }, [id])
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -43,7 +56,7 @@ export function CourseCard({ id, title, teacher, price, rating, image, students 
         viewport={{ once: true }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
-        <Link href={`/courses/${id}`}>
+        <Link href={courseHref}>
           <motion.div 
             whileHover={{ y: -8, scale: 1.01 }}
             transition={{ type: "spring", stiffness: 260, damping: 22 }}

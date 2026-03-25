@@ -312,14 +312,11 @@ function TeacherGenerateExamCreatePageContent() {
 
   const availableCertificates = useMemo(() => {
     if (!selectedCourseId) return []
-    return templates.filter((cert) => cert.status === "approved" && cert.courseId === selectedCourseId)
+    return templates.filter((cert) => {
+      const status = String(cert.status || "").toLowerCase()
+      return status === "approved" && String(cert.courseId) === String(selectedCourseId)
+    })
   }, [templates, selectedCourseId])
-
-  useEffect(() => {
-    if (!availableCertificates.find((cert) => cert.id === certificateTemplateId)) {
-      setCertificateTemplateId("")
-    }
-  }, [availableCertificates, certificateTemplateId])
 
 
 
@@ -496,7 +493,10 @@ function TeacherGenerateExamCreatePageContent() {
                   <label className="block text-xs text-muted-foreground mb-1">Chọn khóa học</label>
                   <select
                     value={selectedCourseId}
-                    onChange={(e) => setSelectedCourseId(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedCourseId(e.target.value)
+                      setCertificateTemplateId("")
+                    }}
                     className="relative z-30 w-full border rounded-lg px-3 py-2 bg-background"
                     style={{ zIndex: 30 }}
                   >
@@ -510,7 +510,13 @@ function TeacherGenerateExamCreatePageContent() {
                   <label className="block text-xs text-muted-foreground mb-1">Loại bài thi</label>
                   <select
                     value={type}
-                    onChange={(e) => setType(e.target.value as "practice" | "official")}
+                    onChange={(e) => {
+                      const nextType = e.target.value as "practice" | "official"
+                      setType(nextType)
+                      if (nextType === "practice") {
+                        setCertificateTemplateId("")
+                      }
+                    }}
                     className="relative z-30 w-full border rounded-lg px-3 py-2 bg-background"
                     style={{ zIndex: 30 }}
                   >
@@ -585,6 +591,9 @@ function TeacherGenerateExamCreatePageContent() {
                   className="w-full border rounded-lg px-3 py-2 bg-background"
                 >
                   <option value="">Chọn chứng chỉ cho bài thi thật</option>
+                  {certificateTemplateId && !availableCertificates.some((cert) => cert.id === certificateTemplateId) && (
+                    <option value={certificateTemplateId}>Chứng chỉ đã chọn (không còn trong danh sách hiện tại)</option>
+                  )}
                   {availableCertificates.map((cert) => (
                     <option key={cert.id} value={cert.id}>{cert.title}</option>
                   ))}
