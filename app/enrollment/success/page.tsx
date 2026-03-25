@@ -8,6 +8,7 @@ import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { generateInvoicePdf } from "@/lib/utils/invoice-pdf"
 
 interface CourseSuccessData {
   id: string
@@ -165,79 +166,29 @@ function EnrollmentSuccessPageContent() {
     router.push("/my-courses")
   }
 
-  const handleDownloadInvoice = () => {
-    const invoiceData = {
-      invoiceNumber: `INV-${Date.now()}`,
-      date: new Date().toLocaleDateString("vi-VN"),
-      course: course.title,
-      teacher: course.teacher,
-      price: course.price,
-      tax: Math.round(course.price * 0.1),
-      total: course.price + Math.round(course.price * 0.1),
+  const handleDownloadInvoice = async () => {
+    try {
+      const subtotal = Number(course.price || 0)
+      const tax = Math.round(subtotal * 0.1)
+      const total = subtotal + tax
+
+      await generateInvoicePdf({
+        invoiceNumber: `INV-${Date.now()}`,
+        issueDate: new Date().toLocaleDateString("vi-VN"),
+        customerName: "Hoc vien / Student",
+        customerEmail: "N/A",
+        courseTitle: course.title,
+        instructorName: course.teacher,
+        paymentMethod: "Online",
+        paymentStatus: "completed",
+        subtotal,
+        discount: 0,
+        tax,
+        total,
+      })
+    } catch (error) {
+      console.error("Error generating invoice:", error)
     }
-
-    const invoiceText = `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                        ${t("enroll_invoice_title", "HÓA ĐƠN KHÓA HỌC")}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-${t("enroll_invoice_company", "Công ty")}: ICS E-Learning Platform
-${t("enroll_invoice_address", "Địa chỉ")}: ${t("enroll_invoice_address_val", "Hà Nội, Việt Nam")}
-Hotline: 1800-1234
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${t("enroll_invoice_detail", "CHI TIẾT HÓA ĐƠN")}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-${t("enroll_invoice_number", "Số hóa đơn")}:    ${invoiceData.invoiceNumber}
-${t("enroll_invoice_date", "Ngày phát hành")}: ${invoiceData.date}
-${t("enroll_invoice_status", "Trạng thái")}:     ${t("enroll_invoice_active", "ĐANG HỮU LỰC")}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${t("enroll_invoice_course_info", "THÔNG TIN KHÓA HỌC")}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-${t("enroll_invoice_course_name", "Tên khóa học")}:   ${invoiceData.course}
-${t("enroll_invoice_instructor", "Giảng viên")}:     ${invoiceData.teacher}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${t("enroll_invoice_payment_detail", "CHI TIẾT THANH TOÁN")}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-${t("enroll_invoice_course_price", "Giá khóa học")}:   ${invoiceData.price.toLocaleString()} ₫
-${t("enroll_invoice_vat", "Thuế VAT (10%)")}:  ${invoiceData.tax.toLocaleString()} ₫
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${t("enroll_invoice_total", "TỔNG CỘNG")}:      ${invoiceData.total.toLocaleString()} ₫
-
-${t("enroll_invoice_payment_method", "Phương thức thanh toán")}: ${t("enroll_invoice_online", "Thanh toán trực tuyến (Online)")}
-${t("enroll_invoice_status", "Trạng thái")}:             ✓ ${t("enroll_invoice_paid", "Đã thanh toán")}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${t("enroll_invoice_terms", "ĐIỀU KHOẢN VÀ ĐIỀU KIỆN")}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✓ ${t("enroll_invoice_term1", "Bạn có quyền truy cập khóa học trọn đời")}
-✓ ${t("enroll_invoice_term2", "Hỗ trợ cập nhật nội dung khóa học miễn phí")}
-✓ ${t("enroll_invoice_term3", "Có thể tải toàn bộ tài liệu và video")}
-✓ ${t("enroll_invoice_term4", "Nhận chứng chỉ hoàn thành khóa học")}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-${t("enroll_invoice_thanks", "Cảm ơn bạn đã tin tưởng ICS E-Learning Platform!")}
-
-${t("enroll_invoice_support", "Để hỗ trợ")}: support@ics-elearning.com
-${t("enroll_invoice_website", "Trang web")}: www.ics-elearning.com
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    `.trim()
-
-    const element = document.createElement("a")
-    const file = new Blob([invoiceText], { type: "text/plain;charset=utf-8" })
-    element.href = URL.createObjectURL(file)
-    element.download = `invoice-${course.id}-${Date.now()}.txt`
-    document.body.appendChild(element)
-    element.click()
-    document.body.removeChild(element)
   }
 
   const isSuccess = paymentStatus !== "pending"

@@ -83,6 +83,11 @@ interface QuizLessonMeta {
   score?: number
 }
 
+interface EnrollmentProgressSnapshot {
+  enrollmentId: string
+  progressByLessonId: Map<string, any>
+}
+
 function unwrapData<T>(raw: any, fallback: T): T {
   if (raw && typeof raw === "object" && "data" in raw) {
     return raw.data as T
@@ -329,14 +334,59 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
     return byLessonId
   }
 
-  const buildEnrollmentProgress = async (courseId: string): Promise<Map<string, any>> => {
+  const computeLessonCompleted = (lesson: Pick<
+    PlayerLesson,
+    | "videoUrl"
+    | "resources"
+    | "quizId"
+    | "quizQuestions"
+    | "quizCompleted"
+    | "videoCompleted"
+    | "materialsCompleted"
+    | "writingAssignmentId"
+    | "writingSubmitted"
+  >): boolean => {
+    const hasVideo = Boolean(lesson.videoUrl)
+    const hasMaterials = Array.isArray(lesson.resources) && lesson.resources.length > 0
+    const hasQuiz = Boolean(lesson.quizId && Array.isArray(lesson.quizQuestions) && lesson.quizQuestions.length > 0)
+    const hasWriting = Boolean(lesson.writingAssignmentId)
+
+    const videoDone = hasVideo ? Boolean(lesson.videoCompleted) : true
+    const materialsDone = hasMaterials ? Boolean(lesson.materialsCompleted) : true
+    const quizDone = hasQuiz ? Boolean(lesson.quizCompleted) : true
+    const writingDone = hasWriting ? Boolean(lesson.writingSubmitted) : true
+
+    return videoDone && materialsDone && quizDone && writingDone
+  }
+
+  const syncDerivedCompletion = async (
+    enrollmentId: string,
+    builtLessons: PlayerLesson[],
+    progressByLessonId: Map<string, any>,
+  ) => {
+    const lessonsToPersist = builtLessons.filter(
+      (lesson) => lesson.completed && !Boolean(progressByLessonId.get(lesson.id)?.isCompleted),
+    )
+
+    if (lessonsToPersist.length === 0) return
+
+    await Promise.all(
+      lessonsToPersist.map((lesson) =>
+        authFetch(`/lesson-progress/${enrollmentId}/${lesson.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ isCompleted: true, progress: 100 }),
+        }).catch(() => null),
+      ),
+    )
+  }
+
+  const buildEnrollmentProgress = async (courseId: string): Promise<EnrollmentProgressSnapshot> => {
     const progressByLessonId = new Map<string, any>()
 
     try {
       const enrollmentsResponse = await authFetch("/enrollments/my-courses")
       if (!enrollmentsResponse.ok) {
-        setEnrollmentId("")
-        return progressByLessonId
+        return { enrollmentId: "", progressByLessonId }
       }
 
       const enrollmentsRaw = await enrollmentsResponse.json()
@@ -346,15 +396,13 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
       )
 
       if (!targetEnrollment?.id) {
-        setEnrollmentId("")
-        return progressByLessonId
+        return { enrollmentId: "", progressByLessonId }
       }
 
       const currentEnrollmentId = String(targetEnrollment.id)
-      setEnrollmentId(currentEnrollmentId)
 
       const progressResponse = await authFetch(`/lesson-progress/enrollment/${currentEnrollmentId}`)
-      if (!progressResponse.ok) return progressByLessonId
+      if (!progressResponse.ok) return { enrollmentId: currentEnrollmentId, progressByLessonId }
 
       const progressRaw = await progressResponse.json()
       const progressEntries = unwrapArray<any>(progressRaw)
@@ -363,11 +411,11 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
           progressByLessonId.set(String(entry.lessonId), entry)
         }
       })
-    } catch {
-      setEnrollmentId("")
-    }
 
-    return progressByLessonId
+      return { enrollmentId: currentEnrollmentId, progressByLessonId }
+    } catch {
+      return { enrollmentId: "", progressByLessonId }
+    }
   }
 
   const buildWritingMeta = async (courseId: string): Promise<Record<string, WritingLessonMeta>> => {
@@ -428,7 +476,26 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
         const progress = progressByLessonId.get(lesson.id)
         const quizMeta = quizMetaByLessonId[lesson.id]
         const writingMeta = writingMetaByLessonId[lesson.id]
-        const completed = Boolean(progress?.isCompleted)
+        const progressCompleted = Boolean(progress?.isCompleted)
+
+        const quizCompleted = progressCompleted || Boolean(quizMeta?.completed)
+        const videoCompleted = progressCompleted
+        const materialsCompleted = progressCompleted || resources.length === 0
+        const writingSubmitted = Boolean(writingMeta?.submitted)
+
+        const completed =
+          progressCompleted ||
+          computeLessonCompleted({
+            videoUrl: lesson.videoUrl,
+            resources,
+            quizId: quizMeta?.quizId,
+            quizQuestions: quizMeta?.questions || [],
+            quizCompleted,
+            videoCompleted,
+            materialsCompleted,
+            writingAssignmentId: writingMeta?.assignmentId,
+            writingSubmitted,
+          })
 
         return {
           id: lesson.id,
@@ -437,10 +504,10 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
           duration: formatDuration(lesson.duration),
           completed,
           quizId: quizMeta?.quizId,
-          quizCompleted: completed || Boolean(quizMeta?.completed),
+          quizCompleted,
           quizScore: quizMeta?.score,
-          videoCompleted: completed,
-          materialsCompleted: completed || resources.length === 0,
+          videoCompleted,
+          materialsCompleted,
           videoUrl: lesson.videoUrl,
           resources,
           content: lesson.content,
@@ -451,7 +518,7 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
           writingPrompt: writingMeta?.prompt,
           writingCriteria: writingMeta?.criteria || [],
           writingMaxScore: writingMeta?.maxScore,
-          writingSubmitted: writingMeta?.submitted,
+          writingSubmitted,
         }
       })
   }
@@ -470,12 +537,14 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
           if (allLessons.length > 0) {
             setCurrentLessonId(allLessons[0].id)
           }
-          const [courseRes, quizMetaByLessonId, writingMetaByLessonId, progressByLessonId] = await Promise.all([
+          const [courseRes, quizMetaByLessonId, writingMetaByLessonId, enrollmentProgress] = await Promise.all([
             fetch(`/api/courses/${startId}`, { headers: getAuth() }),
             buildQuizMeta(startId),
             buildWritingMeta(startId),
             buildEnrollmentProgress(startId),
           ])
+
+          setEnrollmentId(enrollmentProgress.enrollmentId)
 
           if (courseRes.ok) {
             const courseData = await courseRes.json()
@@ -483,7 +552,21 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
             setCourseTitle(String(course?.title || "Khóa học"))
           }
 
-          setLessons(buildLessons(allLessons, quizMetaByLessonId, writingMetaByLessonId, progressByLessonId))
+          const builtLessons = buildLessons(
+            allLessons,
+            quizMetaByLessonId,
+            writingMetaByLessonId,
+            enrollmentProgress.progressByLessonId,
+          )
+          setLessons(builtLessons)
+
+          if (enrollmentProgress.enrollmentId) {
+            await syncDerivedCompletion(
+              enrollmentProgress.enrollmentId,
+              builtLessons,
+              enrollmentProgress.progressByLessonId,
+            )
+          }
           return
         }
 
@@ -493,13 +576,15 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
         const lessonData = await lessonRes.json()
         const lesson = unwrapData<ApiLesson>(lessonData, {} as ApiLesson)
 
-        const [courseLessonsRes2, courseRes, quizMetaByLessonId, writingMetaByLessonId, progressByLessonId] = await Promise.all([
+        const [courseLessonsRes2, courseRes, quizMetaByLessonId, writingMetaByLessonId, enrollmentProgress] = await Promise.all([
           fetch(`/api/lessons/course/${lesson.courseId}`, { headers: getAuth() }),
           fetch(`/api/courses/${lesson.courseId}`, { headers: getAuth() }),
           buildQuizMeta(lesson.courseId),
           buildWritingMeta(lesson.courseId),
           buildEnrollmentProgress(lesson.courseId),
         ])
+
+        setEnrollmentId(enrollmentProgress.enrollmentId)
 
         if (courseRes.ok) {
           const courseData = await courseRes.json()
@@ -510,7 +595,21 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
         if (courseLessonsRes2.ok) {
           const rawData = await courseLessonsRes2.json()
           const allLessons = unwrapArray<ApiLesson>(rawData)
-          setLessons(buildLessons(allLessons, quizMetaByLessonId, writingMetaByLessonId, progressByLessonId))
+          const builtLessons = buildLessons(
+            allLessons,
+            quizMetaByLessonId,
+            writingMetaByLessonId,
+            enrollmentProgress.progressByLessonId,
+          )
+          setLessons(builtLessons)
+
+          if (enrollmentProgress.enrollmentId) {
+            await syncDerivedCompletion(
+              enrollmentProgress.enrollmentId,
+              builtLessons,
+              enrollmentProgress.progressByLessonId,
+            )
+          }
         }
       } finally {
         setIsLoading(false)

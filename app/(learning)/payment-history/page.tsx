@@ -9,6 +9,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { autoTranslateData, getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
+import { generateInvoicePdf } from "@/lib/utils/invoice-pdf"
 
 interface PaymentHistory {
   id: string
@@ -185,70 +186,24 @@ export default function PaymentHistoryPage() {
 
   const handleDownloadInvoice = async (payment: PaymentHistory) => {
     try {
-      const jsPDF = (await import('jspdf')).default
-      const doc = new jsPDF()
-      
-      doc.setFontSize(24)
-      doc.setTextColor(59, 130, 246)
-      doc.text('ICS E-LEARNING', 105, 20, { align: 'center' })
-      
-      doc.setFontSize(18)
-      doc.setTextColor(0, 0, 0)
-      doc.text('HOA DON THANH TOAN', 105, 35, { align: 'center' })
-      
-      doc.setFontSize(11)
-      doc.setTextColor(100, 100, 100)
-      doc.text(`Ma giao dich: ${payment.transactionId}`, 20, 55)
-      doc.text(`Ngay: ${formatDate(payment.enrolledAt)}`, 20, 65)
-      
-      doc.setDrawColor(200, 200, 200)
-      doc.line(20, 75, 190, 75)
-      
-      doc.setFontSize(12)
-      doc.setTextColor(0, 0, 0)
-      doc.text('THONG TIN KHACH HANG', 20, 90)
-      doc.setFontSize(10)
-      doc.setTextColor(60, 60, 60)
-      doc.text(`Ho ten: ${user?.name || 'N/A'}`, 20, 100)
-      doc.text(`Email: ${user?.email || 'N/A'}`, 20, 110)
-      
-      doc.setFontSize(12)
-      doc.setTextColor(0, 0, 0)
-      doc.text('THONG TIN KHOA HOC', 20, 130)
-      doc.setFontSize(10)
-      doc.setTextColor(60, 60, 60)
-      const splitTitle = doc.splitTextToSize(payment.courseTitle, 170)
-      doc.text(splitTitle, 20, 140)
-      
-      const yPos = 140 + (splitTitle.length * 7) + 20
-      doc.line(20, yPos - 10, 190, yPos - 10)
-      
-      doc.text(`So tien goc:`, 20, yPos)
-      doc.text(`${formatCurrency(payment.amount)}`, 190, yPos, { align: 'right' })
-      
-      if (payment.discountAmount && payment.discountAmount > 0) {
-        doc.text(`Giam gia:`, 20, yPos + 10)
-        doc.text(`-${formatCurrency(payment.discountAmount)}`, 190, yPos + 10, { align: 'right' })
-      }
-      
-      doc.line(20, yPos + 20, 190, yPos + 20)
-      
-      doc.setFontSize(12)
-      doc.setTextColor(0, 0, 0)
-      doc.text(`TONG CONG:`, 20, yPos + 35)
-      doc.text(`${formatCurrency(payment.finalAmount)}`, 190, yPos + 35, { align: 'right' })
-      
-      doc.setFontSize(10)
-      doc.setTextColor(60, 60, 60)
-      doc.text(`Phuong thuc thanh toan: ${payment.paymentMethod}`, 20, yPos + 50)
-      doc.text(`Trang thai: ${payment.status === 'completed' ? 'Thanh cong' : 'Dang xu ly'}`, 20, yPos + 60)
-      
-      doc.setFontSize(9)
-      doc.setTextColor(150, 150, 150)
-      doc.text('Cam on ban da tin tuong va su dung dich vu cua ICS E-Learning!', 105, 280, { align: 'center' })
-      doc.text('Hotline: 1900 6868 | Email: support@icslearning.vn', 105, 287, { align: 'center' })
-      
-      doc.save(`invoice-${payment.transactionId}.pdf`)
+      const issueDate = new Date(payment.enrolledAt).toLocaleDateString("vi-VN")
+      const discount = Number(payment.discountAmount || 0)
+      const subtotal = Number(payment.amount || payment.finalAmount || 0)
+      const tax = Math.max(0, Number(payment.finalAmount || 0) - subtotal + discount)
+
+      await generateInvoicePdf({
+        invoiceNumber: payment.transactionId,
+        issueDate,
+        customerName: user?.name || "N/A",
+        customerEmail: user?.email || "N/A",
+        courseTitle: payment.courseTitle,
+        paymentMethod: payment.paymentMethod,
+        paymentStatus: payment.status,
+        subtotal,
+        discount,
+        tax,
+        total: Number(payment.finalAmount || 0),
+      })
     } catch (error) {
       console.error('Error generating invoice:', error)
     }

@@ -39,29 +39,29 @@ export default function MyCoursesPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const fetchEnrollments = async () => {
-      if (!user?.id) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        const enrollments = await apiClient.getMyEnrollments()
-        setCourses(Array.isArray(enrollments) ? enrollments : [])
-      } catch (error) {
-        console.error("Error fetching enrollments:", error)
-        setCourses([])
-        // Don't show error toast if it's just empty data
-        if (error instanceof Error && !error.message.includes('status: 404')) {
-          toast.error(t("mycourses_load_error", "Không thể tải danh sách khóa học"))
-        }
-      } finally {
-        setLoading(false)
-      }
+  const fetchEnrollments = async () => {
+    if (!user?.id) {
+      setLoading(false)
+      return
     }
 
+    try {
+      setLoading(true)
+      const enrollments = await apiClient.getMyEnrollments()
+      setCourses(Array.isArray(enrollments) ? enrollments : [])
+    } catch (error) {
+      console.error("Error fetching enrollments:", error)
+      setCourses([])
+      // Don't show error toast if it's just empty data
+      if (error instanceof Error && !error.message.includes('status: 404')) {
+        toast.error(t("mycourses_load_error", "Không thể tải danh sách khóa học"))
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchEnrollments()
   }, [user?.id])
 
@@ -76,6 +76,27 @@ export default function MyCoursesPage() {
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
+
+  // Refetch enrollments when page becomes visible (user returns from player/other pages)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchEnrollments()
+      }
+    }
+
+    const handleFocus = () => {
+      fetchEnrollments()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [user?.id, t])
 
   const filteredCourses = courses.filter(enrollment => {
     const matchesFilter =

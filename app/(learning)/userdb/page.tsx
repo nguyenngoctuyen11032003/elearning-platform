@@ -131,19 +131,18 @@ export default function StudentDashboardPage() {
     else setGreeting(t("userdb_evening", "Chào buổi tối"))
   }, [])
 
-  useEffect(() => {
+  const loadData = async () => {
     if (!user?.id) {
       setLoading(false)
       return
     }
 
-    const loadData = async () => {
+    try {
       setLoading(true)
-      try {
-        const [enrollmentsResponse, certificates] = await Promise.all([
-          apiClient.getMyEnrollments(),
-          apiClient.getMyCertificates(),
-        ])
+      const [enrollmentsResponse, certificates] = await Promise.all([
+        apiClient.getMyEnrollments(),
+        apiClient.getMyCertificates(),
+      ])
 
         const enrollments = Array.isArray(enrollmentsResponse)
           ? enrollmentsResponse
@@ -306,8 +305,31 @@ export default function StudentDashboardPage() {
       }
     }
 
+  useEffect(() => {
+    setLoading(true)
     loadData()
   }, [user?.id])
+
+  // Refetch data when page becomes visible (user returns from other page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadData()
+      }
+    }
+
+    const handleFocus = () => {
+      loadData()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [user?.id, t])
 
   const statCards = useMemo(
     () => [
