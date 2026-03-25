@@ -41,6 +41,8 @@ import {
   Clock,
   Calendar as CalendarIcon,
   ChevronDown,
+  FileText,
+  AlertCircle,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -167,6 +169,16 @@ export default function TeacherAssignmentsPage() {
 
     return Array.from(map.values()).sort((a, b) => a.lessonTitle.localeCompare(b.lessonTitle));
   }, [assignments, lessons, tr]);
+
+  // Stats calculation
+  const totalAssignments = assignments.length;
+  const totalSubmissions = Object.values(submissionsByAssignment).flat().length;
+  const pendingSubmissions = Object.values(submissionsByAssignment)
+    .flat()
+    .filter((sub) => sub.status !== 'graded').length;
+  const gradedSubmissions = Object.values(submissionsByAssignment)
+    .flat()
+    .filter((sub) => sub.status === 'graded').length;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -394,22 +406,61 @@ export default function TeacherAssignmentsPage() {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-6">
-      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{tr('Quản lý bài tập', 'Assignment management')}</h1>
-          <p className="text-muted-foreground mt-1">
-            {tr('Tạo và quản lý bài tập cho học viên', 'Create and manage assignments for students')}
-          </p>
+          <div>
+            <h1 className="text-3xl font-bold">{tr('Quản lý bài tập', 'Assignment management')}</h1>
+            <p className="text-muted-foreground mt-1">
+              {tr('Tạo và quản lý bài tập cho học viên', 'Create and manage assignments for students')}
+            </p>
+          </div>
         </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="group flex items-center justify-between p-5 h-full bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+            <div>
+              <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">{tr('Tổng bài tập', 'Total assignments')}</p>
+              <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalAssignments}</p>
+            </div>
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all">
+              <FileText size={20} className="text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+          <div className="group flex items-center justify-between p-5 h-full bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+            <div>
+              <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">{tr('Tổng bài nộp', 'Total submissions')}</p>
+              <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalSubmissions}</p>
+            </div>
+            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all">
+              <FilePlus size={20} className="text-purple-600 dark:text-purple-400" />
+            </div>
+          </div>
+          <div className="group flex items-center justify-between p-5 h-full bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+            <div>
+              <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">{tr('Chưa chấm', 'Pending')}</p>
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingSubmissions}</p>
+            </div>
+            <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all">
+              <AlertCircle size={20} className="text-yellow-600 dark:text-yellow-400" />
+            </div>
+          </div>
+          <div className="group flex items-center justify-between p-5 h-full bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+            <div>
+              <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">{tr('Đã chấm', 'Graded')}</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{gradedSubmissions}</p>
+            </div>
+            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all">
+              <CheckCircle2 size={20} className="text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </div>
+
         <Dialog open={showCreateDialog} onOpenChange={(open) => {
           setShowCreateDialog(open);
           if (!open) resetForm();
         }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <FilePlus className="h-4 w-4" />
-              {tr('Tạo bài tập mới', 'Create assignment')}
-            </Button>
+          <DialogTrigger asChild style={{ display: 'none' }}>
+            <div />
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
@@ -444,7 +495,7 @@ export default function TeacherAssignmentsPage() {
                     <SelectTrigger>
                       <SelectValue placeholder={tr('Chọn khóa học', 'Select course')} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent side="bottom">
                       {courses.map((course) => (
                         <SelectItem key={course.id} value={course.id}>
                           {course.title}
@@ -463,7 +514,7 @@ export default function TeacherAssignmentsPage() {
                     <SelectTrigger>
                       <SelectValue placeholder={tr('Chọn bài học', 'Select lesson')} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent side="bottom">
                       {lessons.map((lesson) => (
                         <SelectItem key={lesson.id} value={lesson.id}>
                           {lesson.title}
@@ -544,22 +595,18 @@ export default function TeacherAssignmentsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
 
-      {/* Filters */}
+        {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <Select value={selectedCourse} onValueChange={setSelectedCourse}>
           <SelectTrigger className="w-[240px]">
-            <SelectValue 
-              placeholder={tr('Lọc theo khóa học', 'Filter by course')}
-            >
-              {selectedCourse === 'all' 
-                ? tr('Tất cả khóa học', 'All courses')
-                : courses.find(c => c.id === selectedCourse)?.title || selectedCourse
-              }
-            </SelectValue>
+            {selectedCourse === 'all' ? (
+              <span>{tr('Tất cả khóa học', 'All courses')}</span>
+            ) : (
+              <span>{courses.find(c => c.id === selectedCourse)?.title || tr('Lọc theo khóa học', 'Filter by course')}</span>
+            )}
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent side="bottom">
             <SelectItem value="all">{tr('Tất cả khóa học', 'All courses')}</SelectItem>
             {courses.map((course) => (
               <SelectItem key={course.id} value={course.id}>
@@ -576,7 +623,7 @@ export default function TeacherAssignmentsPage() {
           <SelectTrigger className="w-[260px]">
             <SelectValue placeholder={tr('Lọc theo trạng thái chấm', 'Filter by grading status')} />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent side="bottom">
             <SelectItem value="all">{tr('Tất cả bài nộp', 'All submissions')}</SelectItem>
             <SelectItem value="pending">{tr('Chưa chấm', 'Pending')}</SelectItem>
             <SelectItem value="graded">{tr('Đã chấm', 'Graded')}</SelectItem>
