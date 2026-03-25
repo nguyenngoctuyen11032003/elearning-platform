@@ -36,7 +36,6 @@ import {
   FilePlus,
   Loader2,
   MoreVertical,
-  Edit,
   Trash2,
   CheckCircle2,
   Clock,
@@ -113,9 +112,6 @@ export default function TeacherAssignmentsPage() {
   const [selectedCourse, setSelectedCourse] = useState<string>(presetCourseId);
   const [submissionStatusFilter, setSubmissionStatusFilter] = useState<'all' | 'graded' | 'pending'>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showGradeDialog, setShowGradeDialog] = useState(false);
-  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [submissionsByAssignment, setSubmissionsByAssignment] = useState<Record<string, Submission[]>>({});
   const [loadingLessonMap, setLoadingLessonMap] = useState<Record<string, boolean>>({});
   const [openLessonMap, setOpenLessonMap] = useState<Record<string, boolean>>({});
@@ -130,16 +126,8 @@ export default function TeacherAssignmentsPage() {
     lessonId: '',
     attachments: [] as string[],
   });
-  const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
-
-  // Grading form
-  const [gradeData, setGradeData] = useState({
-    score: 0,
-    feedback: '',
-  });
-  const [grading, setGrading] = useState(false);
 
   const getSafeDate = (value: string | null | undefined): Date | null => {
     if (!value) return null;
@@ -274,64 +262,6 @@ export default function TeacherAssignmentsPage() {
     }
   };
 
-  const handleEdit = (assignment: Assignment) => {
-    let formattedDueDate = '';
-    if (assignment.dueDate) {
-      try {
-        const date = new Date(assignment.dueDate);
-        if (!isNaN(date.getTime())) {
-          formattedDueDate = format(date, "yyyy-MM-dd'T'HH:mm");
-        }
-      } catch {
-        formattedDueDate = '';
-      }
-    }
-    setFormData({
-      title: assignment.title,
-      description: assignment.description,
-      dueDate: formattedDueDate,
-      maxScore: assignment.maxScore,
-      courseId: assignment.courseId,
-      lessonId: assignment.lessonId || '',
-      attachments: Array.isArray(assignment.attachments) ? assignment.attachments : [],
-    });
-    setSelectedAssignment(assignment);
-    setIsEditing(true);
-    setShowCreateDialog(true);
-    if (assignment.courseId) {
-      loadLessons(assignment.courseId);
-    }
-  };
-
-  const handleUpdate = async () => {
-    if (!selectedAssignment) return;
-
-    try {
-      setSaving(true);
-      await apiClient.updateAssignment(selectedAssignment.id, {
-        ...formData,
-        lessonId: formData.lessonId || undefined,
-      });
-
-      toast({ title: tr('Đã cập nhật bài tập', 'Assignment updated') });
-      setShowCreateDialog(false);
-      resetForm();
-      loadData();
-    } catch (error) {
-      console.error('Error updating assignment:', error);
-      toast({
-        title: tr('Lỗi', 'Error'),
-        description:
-          error instanceof Error
-            ? localizeMessage(error.message, getCurrentClientLanguage())
-            : tr('Không thể cập nhật bài tập', 'Unable to update assignment'),
-        variant: 'destructive',
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
     if (!confirm(tr('Bạn có chắc muốn xóa bài tập này?', 'Are you sure you want to delete this assignment?'))) return;
 
@@ -408,43 +338,6 @@ export default function TeacherAssignmentsPage() {
     return rows;
   };
 
-  const handleGrade = (submission: Submission, assignment: Assignment) => {
-    setSelectedAssignment(assignment);
-    setSelectedSubmission(submission);
-    setGradeData({
-      score: submission.score || 0,
-      feedback: submission.feedback || '',
-    });
-    setShowGradeDialog(true);
-  };
-
-  const handleSubmitGrade = async () => {
-    if (!selectedSubmission) return;
-
-    try {
-      setGrading(true);
-      await apiClient.gradeSubmission(selectedSubmission.id, gradeData);
-      toast({ title: tr('Đã chấm điểm', 'Graded successfully') });
-      setShowGradeDialog(false);
-      if (selectedAssignment) {
-        await loadSubmissionsForAssignment(selectedAssignment.id);
-      }
-      await loadData();
-    } catch (error) {
-      console.error('Error grading submission:', error);
-      toast({
-        title: tr('Lỗi', 'Error'),
-        description:
-          error instanceof Error
-            ? localizeMessage(error.message, getCurrentClientLanguage())
-            : tr('Không thể chấm điểm', 'Unable to grade submission'),
-        variant: 'destructive',
-      });
-    } finally {
-      setGrading(false);
-    }
-  };
-
   const resetForm = () => {
     setFormData({
       title: '',
@@ -455,8 +348,6 @@ export default function TeacherAssignmentsPage() {
       lessonId: '',
       attachments: [],
     });
-    setSelectedAssignment(null);
-    setIsEditing(false);
     setLessons([]);
   };
 
@@ -522,9 +413,9 @@ export default function TeacherAssignmentsPage() {
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{isEditing ? tr('Chỉnh sửa bài tập', 'Edit assignment') : tr('Tạo bài tập mới', 'Create assignment')}</DialogTitle>
+              <DialogTitle>{tr('Tạo bài tập mới', 'Create assignment')}</DialogTitle>
               <DialogDescription>
-                {isEditing ? tr('Cập nhật thông tin bài tập', 'Update assignment information') : tr('Điền thông tin bài tập cho học viên', 'Fill assignment information for students')}
+                {tr('Điền thông tin bài tập cho học viên', 'Fill assignment information for students')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -646,9 +537,9 @@ export default function TeacherAssignmentsPage() {
               <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={saving}>
                 {tr('Hủy', 'Cancel')}
               </Button>
-              <Button onClick={isEditing ? handleUpdate : handleCreate} disabled={saving}>
+              <Button onClick={handleCreate} disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {saving ? tr('Đang lưu...', 'Saving...') : isEditing ? tr('Cập nhật', 'Update') : tr('Tạo bài tập', 'Create')}
+                {saving ? tr('Đang lưu...', 'Saving...') : tr('Tạo bài tập', 'Create')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -659,7 +550,14 @@ export default function TeacherAssignmentsPage() {
       <div className="flex flex-wrap gap-3">
         <Select value={selectedCourse} onValueChange={setSelectedCourse}>
           <SelectTrigger className="w-[240px]">
-            <SelectValue placeholder={tr('Lọc theo khóa học', 'Filter by course')} />
+            <SelectValue 
+              placeholder={tr('Lọc theo khóa học', 'Filter by course')}
+            >
+              {selectedCourse === 'all' 
+                ? tr('Tất cả khóa học', 'All courses')
+                : courses.find(c => c.id === selectedCourse)?.title || selectedCourse
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{tr('Tất cả khóa học', 'All courses')}</SelectItem>
@@ -756,7 +654,6 @@ export default function TeacherAssignmentsPage() {
                               <TableHead>{tr('Thời gian nộp', 'Submitted at')}</TableHead>
                               <TableHead>{tr('Trạng thái', 'Status')}</TableHead>
                               <TableHead>{tr('Điểm', 'Score')}</TableHead>
-                              <TableHead>{tr('Chấm nhanh', 'Quick grade')}</TableHead>
                               <TableHead className="text-right">{tr('Thao tác', 'Actions')}</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -812,13 +709,6 @@ export default function TeacherAssignmentsPage() {
                                       ? `${row.score}/${row.assignmentMaxScore}`
                                       : '-'}
                                   </TableCell>
-                                  <TableCell>
-                                    <Button size="sm" onClick={() => handleGrade(row, row.assignment)}>
-                                      {row.status === 'graded'
-                                        ? tr('Xem/Sửa điểm', 'View/Edit grade')
-                                        : tr('Chấm điểm', 'Grade')}
-                                    </Button>
-                                  </TableCell>
                                   <TableCell className="text-right">
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
@@ -827,13 +717,9 @@ export default function TeacherAssignmentsPage() {
                                         </Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => router.push(`/teacher/assignments/${row.assignmentId}/grade`)}>
+                                        <DropdownMenuItem onClick={() => router.push(`/teacher/assignments/${row.assignmentId}/grade${selectedCourse !== 'all' ? `?courseId=${selectedCourse}` : ''}`)}>
                                           <CheckCircle2 className="mr-2 h-4 w-4" />
                                           {tr('Xem chi tiết chấm', 'View grading details')}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleEdit(row.assignment)}>
-                                          <Edit className="mr-2 h-4 w-4" />
-                                          {tr('Chỉnh sửa', 'Edit')}
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                           onClick={() => handleDelete(row.assignmentId)}
@@ -859,56 +745,6 @@ export default function TeacherAssignmentsPage() {
           })}
         </div>
       )}
-
-      {/* Grading Dialog */}
-      <Dialog open={showGradeDialog} onOpenChange={setShowGradeDialog}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{tr('Chấm điểm bài nộp', 'Grade submission')}</DialogTitle>
-            <DialogDescription>
-              {tr('Học viên', 'Student')}: {selectedSubmission?.studentName}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>{tr('Nội dung bài nộp', 'Submission content')}</Label>
-              <div className="p-4 border rounded-md bg-muted/50">
-                <p className="whitespace-pre-wrap text-sm">{selectedSubmission?.content}</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="score">{tr('Điểm', 'Score')} ({tr('Tối đa', 'Max')}: {selectedAssignment?.maxScore})</Label>
-              <Input
-                id="score"
-                type="number"
-                min="0"
-                max={selectedAssignment?.maxScore}
-                value={gradeData.score}
-                onChange={(e) => setGradeData({ ...gradeData, score: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="feedback">{tr('Nhận xét', 'Feedback')}</Label>
-              <Textarea
-                id="feedback"
-                value={gradeData.feedback}
-                onChange={(e) => setGradeData({ ...gradeData, feedback: e.target.value })}
-                rows={4}
-                placeholder={tr('Nhập nhận xét cho học viên...', 'Enter feedback for the student...')}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowGradeDialog(false)} disabled={grading}>
-              {tr('Hủy', 'Cancel')}
-            </Button>
-            <Button onClick={handleSubmitGrade} disabled={grading}>
-              {grading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {grading ? tr('Đang lưu...', 'Saving...') : tr('Lưu điểm', 'Save grade')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       </div>
     </div>
   );

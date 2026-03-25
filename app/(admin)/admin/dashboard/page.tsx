@@ -48,6 +48,69 @@ type Transaction = { id: string; user: string; course: string; amount: number; s
 
 const pieColors = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"]
 
+function formatSafeLocalDate(...values: unknown[]): string {
+  const parseCandidateDate = (value: unknown): Date | null => {
+    if (value == null || value === '') return null
+
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value
+    }
+
+    if (typeof value === 'number') {
+      const ms = value < 1e12 ? value * 1000 : value
+      const byNumber = new Date(ms)
+      return Number.isNaN(byNumber.getTime()) ? null : byNumber
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim().replace(/^"|"$/g, '')
+      if (!trimmed) return null
+
+      // Handle PostgreSQL timestamp format explicitly:
+      // YYYY-MM-DD HH:mm:ss(.SSS)
+      const pgMatch = trimmed.match(
+        /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?)?$/,
+      )
+      if (pgMatch) {
+        const [, y, m, d, hh = '0', mm = '0', ss = '0', sss = '0'] = pgMatch
+        const ms = sss.padEnd(3, '0').slice(0, 3)
+        const byParts = new Date(
+          Number(y),
+          Number(m) - 1,
+          Number(d),
+          Number(hh),
+          Number(mm),
+          Number(ss),
+          Number(ms),
+        )
+        if (!Number.isNaN(byParts.getTime())) return byParts
+      }
+
+      const direct = new Date(trimmed)
+      if (!Number.isNaN(direct.getTime())) return direct
+
+      // PostgreSQL often returns "YYYY-MM-DD HH:mm:ss(.SSS)" without timezone.
+      const normalized = trimmed.replace(' ', 'T')
+      const isoLike = /[zZ]|[+-]\d{2}:?\d{2}$/.test(normalized)
+        ? normalized
+        : `${normalized}Z`
+      const fromNormalized = new Date(isoLike)
+      if (!Number.isNaN(fromNormalized.getTime())) return fromNormalized
+    }
+
+    return null
+  }
+
+  for (const value of values) {
+    const parsed = parseCandidateDate(value)
+    if (parsed) {
+      return parsed.toLocaleDateString("vi-VN")
+    }
+  }
+
+  return "--/--/----"
+}
+
 export default function AdminDashboard() {
   const { t, language } = useLanguage()
   const [filterPeriod, setFilterPeriod] = useState("month")
@@ -197,11 +260,24 @@ useEffect(() => {
               : item.status === "pending"
                 ? "pending"
                 : "failed",
-          date: new Date(item.createdAt).toLocaleDateString("vi-VN"),
+          date:
+            (typeof item.dateDisplay === "string" && item.dateDisplay.trim()) ||
+            formatSafeLocalDate(
+              item.paidAt,
+              item.createdAt,
+              item.updatedAt,
+              item.date,
+            ),
         }))
       )
     } catch (err) {
-      console.error("Dashboard error:", err)
+      console.warn("Dashboard temporarily unavailable:", err)
+      setStats(null)
+      setRevenueData([])
+      setRecentTransactions([])
+      setWeeklyStats([])
+      setGrowthData([])
+      setCategoryData([])
     } finally {
       setLoading(false)
     }

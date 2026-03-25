@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'sonner';
@@ -165,7 +165,9 @@ export default function TeacherAssignmentGradingPage() {
   const tr = (vi: string, en: string) => (language === 'en' ? en : vi);
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const assignmentId = String(params?.id || '');
+  const courseIdParam = searchParams.get('courseId');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -201,6 +203,12 @@ export default function TeacherAssignmentGradingPage() {
     () => selectedRows.reduce((sum, row) => sum + row.points, 0),
     [selectedRows],
   );
+
+  const averageScore = useMemo(() => {
+    if (selectedRows.length === 0) return 0;
+    const raw = totalScore / selectedRows.length;
+    return Number(raw.toFixed(1));
+  }, [selectedRows.length, totalScore]);
 
   const allCriteriaSelected =
     criteria.length > 0 && selectedRows.every((row) => row.selectedLevelIndex >= 0);
@@ -290,7 +298,7 @@ export default function TeacherAssignmentGradingPage() {
       points: row.points,
     }));
 
-    const score = Math.min(totalScore, assignment.maxScore || totalScore);
+    const score = Math.min(averageScore, assignment.maxScore || averageScore);
 
     setSaving(true);
     try {
@@ -322,11 +330,21 @@ export default function TeacherAssignmentGradingPage() {
     );
   }
 
+  const handleBackToList = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    const target = courseIdParam ? `/teacher/assignments?courseId=${courseIdParam}` : '/teacher/assignments';
+    router.push(target);
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8 bg-background">
       <div className="max-w-7xl mx-auto space-y-5">
         <button
-          onClick={() => router.push('/teacher/assignments')}
+          onClick={handleBackToList}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-smooth"
         >
           <ArrowLeft size={16} /> {tr('Quay lại danh sách bài tập', 'Back to assignment list')}
@@ -463,7 +481,7 @@ export default function TeacherAssignmentGradingPage() {
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-foreground">{tr('Tổng điểm', 'Overall')}</p>
                     <p className="text-lg font-bold text-green-700">
-                      {Math.min(totalScore, assignment?.maxScore ?? totalScore)} / {assignment?.maxScore ?? 100}
+                      {Math.min(averageScore, assignment?.maxScore ?? averageScore)} / {assignment?.maxScore ?? 100}
                     </p>
                   </div>
                   <div className="space-y-2">

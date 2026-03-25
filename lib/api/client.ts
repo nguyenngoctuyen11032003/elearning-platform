@@ -14,6 +14,17 @@ import {
 } from './types';
 
 class ApiClient {
+  private isServerBusyMessage(message: string): boolean {
+    return [
+      /max client connections reached/i,
+      /max clients reached/i,
+      /maxclientsinsessionmode/i,
+      /pool_size/i,
+      /too many clients/i,
+      /remaining connection slots are reserved/i,
+    ].some((pattern) => pattern.test(message));
+  }
+
   private shouldBypassLessonContentTranslation(endpoint: string): boolean {
     const normalized = endpoint.toLowerCase();
     const lessonDataEndpointPatterns = [
@@ -219,7 +230,7 @@ class ApiClient {
       }
       if (error instanceof Error) {
         const message = error.message || '';
-        if (/max client connections reached/i.test(message)) {
+        if (this.isServerBusyMessage(message)) {
           throw new Error(
             localizeMessage(
               'Server is busy. Please retry in a few seconds.',

@@ -26,6 +26,7 @@ interface Lesson {
   id: string
   title: string
   description: string
+  writingTitle?: string
   videoFile?: File
   videoUrl?: string
   documentFile?: File
@@ -64,6 +65,16 @@ interface Quiz {
 interface Category {
   id: string
   name: string
+}
+
+interface NewLessonDraft {
+  title: string
+  description: string
+  writingTitle: string
+  writingPrompt: string
+  writingDueDate: string
+  writingMaxScore: number
+  writingCriteria: WritingCriterion[]
 }
 
 // Normalize lesson resources from varied backend shapes into a flat document list.
@@ -491,7 +502,16 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   const [expandedLessonId, setExpandedLessonId] = useState<string | null>(null)
   const [showAddLessonModal, setShowAddLessonModal] = useState(false)
   const [addLessonSectionId, setAddLessonSectionId] = useState<string | null>(null)
-  const [newLessonData, setNewLessonData] = useState({ title: "", description: "" })
+  const createEmptyNewLessonDraft = (): NewLessonDraft => ({
+    title: "",
+    description: "",
+    writingTitle: "",
+    writingPrompt: "",
+    writingDueDate: "",
+    writingMaxScore: 100,
+    writingCriteria: [],
+  })
+  const [newLessonData, setNewLessonData] = useState<NewLessonDraft>(createEmptyNewLessonDraft())
   const [newLessonFiles, setNewLessonFiles] = useState<File[]>([])
   const [newLessonQuizzes, setNewLessonQuizzes] = useState<Quiz[]>([])
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({})
@@ -989,6 +1009,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   documentName: firstRes?.name,
                   extraDocuments: extraResources,
                   assignmentId: linkedAssignment?.id,
+                  writingTitle: linkedAssignment?.title || "",
                   writingDueDate: toDateTimeLocal(linkedAssignment?.dueDate),
                   writingPrompt: linkedAssignment?.description || "",
                   writingCriteria: parseWritingCriteria(linkedAssignment?.instructions, linkedAssignment?.maxScore || 100),
@@ -1057,7 +1078,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     const top = scrollY + viewportHeight / 2 - modalHeight / 2
     setModalTop(top)
     setAddLessonSectionId(sectionId)
-    setNewLessonData({ title: "", description: "" })
+    setNewLessonData(createEmptyNewLessonDraft())
     setNewLessonFiles([])
     setNewLessonQuizzes([])
     setShowAddLessonModal(true)
@@ -1086,6 +1107,11 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               id: newLessonId,
               title: newLessonData.title,
               description: newLessonData.description,
+              writingTitle: newLessonData.writingTitle,
+              writingPrompt: newLessonData.writingPrompt,
+              writingDueDate: newLessonData.writingDueDate,
+              writingMaxScore: newLessonData.writingMaxScore,
+              writingCriteria: newLessonData.writingCriteria,
               quizzes: quizSnapshot,
             }
             return { ...s, lessons: [...s.lessons, newLesson] }
@@ -1104,7 +1130,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
       // Reset and close modal
       setShowAddLessonModal(false)
-      setNewLessonData({ title: "", description: "" })
+      setNewLessonData(createEmptyNewLessonDraft())
       setNewLessonFiles([])
       setNewLessonQuizzes([])
     }
@@ -1440,6 +1466,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               const createdLessonId = lessonData?.id
 
               const writingEnabled = Boolean(
+                String(lesson.writingTitle || "").trim() ||
                 String(lesson.writingPrompt || "").trim() ||
                   String(lesson.writingDueDate || "").trim() ||
                   (lesson.writingCriteria || []).length > 0,
@@ -1447,7 +1474,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
               if (createdLessonId && writingEnabled) {
                 const assignmentPayload = {
-                  title: lesson.title,
+                  title: lesson.writingTitle?.trim() || `Writing - ${lesson.title}`,
                   description: lesson.writingPrompt || lesson.description || "",
                   courseId: resolvedParams.id,
                   lessonId: createdLessonId,
@@ -1508,6 +1535,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             }
 
             const writingEnabled = Boolean(
+              String(lesson.writingTitle || "").trim() ||
               String(lesson.writingPrompt || "").trim() ||
                 String(lesson.writingDueDate || "").trim() ||
                 (lesson.writingCriteria || []).length > 0,
@@ -1516,7 +1544,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
             if (writingEnabled) {
               const assignmentPayload = {
-                title: lesson.title,
+                title: lesson.writingTitle?.trim() || `Writing - ${lesson.title}`,
                 description: lesson.writingPrompt || lesson.description || "",
                 courseId: resolvedParams.id,
                 lessonId: lesson.id,
@@ -1680,6 +1708,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   documentName: firstRes?.name,
                   extraDocuments: extraResources,
                   assignmentId: linkedAssignment?.id,
+                  writingTitle: linkedAssignment?.title || "",
                   writingDueDate: toDateTimeLocal(linkedAssignment?.dueDate),
                   writingPrompt: linkedAssignment?.description || "",
                   writingCriteria: parseWritingCriteria(linkedAssignment?.instructions, linkedAssignment?.maxScore || 100),
@@ -2142,7 +2171,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                {lesson.quizzes.length} câu hỏi
                               </span>
                             )}
-                            {(lesson.assignmentId || lesson.writingPrompt || (lesson.writingCriteria || []).length > 0 || lesson.writingDueDate) && (
+                            {(lesson.assignmentId || lesson.writingTitle || lesson.writingPrompt || (lesson.writingCriteria || []).length > 0 || lesson.writingDueDate) && (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-fuchsia-500/10 dark:bg-fuchsia-500/20 text-fuchsia-600 dark:text-fuchsia-400 rounded text-xs font-medium">
                                 Writing
                               </span>
@@ -2177,6 +2206,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                               onClick={() => {
                                 const writingEnabled = Boolean(
                                   lesson.assignmentId ||
+                                    String(lesson.writingTitle || "").trim() ||
                                     String(lesson.writingPrompt || "").trim() ||
                                     String(lesson.writingDueDate || "").trim() ||
                                     (lesson.writingCriteria || []).length > 0,
@@ -2185,6 +2215,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                 if (writingEnabled) {
                                   updateLesson(section.id, lesson.id, {
                                     assignmentId: undefined,
+                                    writingTitle: "",
                                     writingDueDate: "",
                                     writingPrompt: "",
                                     writingCriteria: [],
@@ -2200,14 +2231,27 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                               }}
                               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 hover:bg-fuchsia-500/20 transition-smooth"
                             >
-                              {lesson.assignmentId || lesson.writingPrompt || (lesson.writingCriteria || []).length > 0 || lesson.writingDueDate
+                              {lesson.assignmentId || lesson.writingTitle || lesson.writingPrompt || (lesson.writingCriteria || []).length > 0 || lesson.writingDueDate
                                 ? "Tắt Writing"
                                 : "Bật Writing"}
                             </button>
                           </div>
 
-                          {(lesson.assignmentId || lesson.writingPrompt || (lesson.writingCriteria || []).length > 0 || lesson.writingDueDate) && (
+                          {(lesson.assignmentId || lesson.writingTitle || lesson.writingPrompt || (lesson.writingCriteria || []).length > 0 || lesson.writingDueDate) && (
                             <>
+                              <div>
+                                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Tên bài tập writing</label>
+                                <input
+                                  value={lesson.writingTitle || ""}
+                                  onChange={(e) =>
+                                    updateLesson(section.id, lesson.id, {
+                                      writingTitle: e.target.value,
+                                    })
+                                  }
+                                  className="w-full px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-sm text-foreground dark:text-white"
+                                  placeholder="Ví dụ: Essay tuần 1"
+                                />
+                              </div>
                               <div>
                                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Đề bài</label>
                                 <textarea
@@ -2867,6 +2911,238 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                       rows={3}
                       className="w-full px-4 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                     />
+                  </div>
+
+                  <div className="rounded-lg border border-fuchsia-400/30 bg-fuchsia-500/5 p-4 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h5 className="font-semibold text-foreground dark:text-white">Cấu hình Writing cho bài học này</h5>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const writingEnabled = Boolean(
+                            String(newLessonData.writingTitle || "").trim() ||
+                            String(newLessonData.writingPrompt || "").trim() ||
+                            String(newLessonData.writingDueDate || "").trim() ||
+                            (newLessonData.writingCriteria || []).length > 0,
+                          )
+
+                          if (writingEnabled) {
+                            setNewLessonData((prev) => ({
+                              ...prev,
+                              writingTitle: "",
+                              writingPrompt: "",
+                              writingDueDate: "",
+                              writingCriteria: [],
+                              writingMaxScore: 100,
+                            }))
+                          } else {
+                            const maxScore = newLessonData.writingMaxScore || 100
+                            setNewLessonData((prev) => ({
+                              ...prev,
+                              writingCriteria: createDefaultWritingCriteria(maxScore, (_key, fallback) => fallback),
+                              writingMaxScore: maxScore,
+                            }))
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 hover:bg-fuchsia-500/20 transition-smooth"
+                      >
+                        {newLessonData.writingTitle || newLessonData.writingPrompt || (newLessonData.writingCriteria || []).length > 0 || newLessonData.writingDueDate
+                          ? "Tắt Writing"
+                          : "Bật Writing"}
+                      </button>
+                    </div>
+
+                    {(newLessonData.writingTitle || newLessonData.writingPrompt || (newLessonData.writingCriteria || []).length > 0 || newLessonData.writingDueDate) && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Tên bài tập writing</label>
+                          <input
+                            value={newLessonData.writingTitle || ""}
+                            onChange={(e) => setNewLessonData((prev) => ({ ...prev, writingTitle: e.target.value }))}
+                            className="w-full px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-sm text-foreground dark:text-white"
+                            placeholder="Ví dụ: Essay tuần 1"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Đề bài</label>
+                          <textarea
+                            value={newLessonData.writingPrompt || ""}
+                            onChange={(e) => setNewLessonData((prev) => ({ ...prev, writingPrompt: e.target.value }))}
+                            rows={5}
+                            className="w-full px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-sm text-foreground dark:text-white"
+                            placeholder="Nhập nội dung đề bài writing cho học sinh"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Hạn nộp</label>
+                            <input
+                              type="datetime-local"
+                              value={newLessonData.writingDueDate || ""}
+                              onChange={(e) => setNewLessonData((prev) => ({ ...prev, writingDueDate: e.target.value }))}
+                              className="w-full px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-sm text-foreground dark:text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Điểm tối đa</label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={newLessonData.writingMaxScore || 100}
+                              onChange={(e) => {
+                                const nextMaxScore = Math.max(1, Number(e.target.value || 100))
+                                const points = defaultRubricPoints(nextMaxScore)
+                                setNewLessonData((prev) => ({
+                                  ...prev,
+                                  writingMaxScore: nextMaxScore,
+                                  writingCriteria: (prev.writingCriteria || []).map((criterion) => ({
+                                    ...criterion,
+                                    levels: (criterion.levels || []).map((level, levelIndex) => ({
+                                      ...level,
+                                      points: points[levelIndex] ?? 0,
+                                    })),
+                                  })),
+                                }))
+                              }}
+                              className="w-full px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-sm text-foreground dark:text-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                            Grading criteria dạng rubric
+                          </label>
+                          <div className="space-y-3">
+                            <div className="overflow-x-auto rounded-lg border border-border dark:border-slate-800">
+                              <table className="w-full min-w-[980px] text-sm">
+                                <thead className="bg-secondary dark:bg-slate-900/80">
+                                  <tr>
+                                    <th className="px-3 py-2 text-left font-semibold text-foreground dark:text-white w-[220px]">Tiêu chí</th>
+                                    {[1, 2, 3, 4, 5].map((level) => (
+                                      <th key={`new-header-${level}`} className="px-3 py-2 text-left font-semibold text-foreground dark:text-white">
+                                        Mức {level}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(newLessonData.writingCriteria || []).map((criterion, criterionIndex) => (
+                                    <tr key={`new-criterion-${criterionIndex}`} className="border-t border-border dark:border-slate-800 align-top">
+                                      <td className="px-2 py-2">
+                                        <input
+                                          value={criterion.title}
+                                          onChange={(e) =>
+                                            setNewLessonData((prev) => ({
+                                              ...prev,
+                                              writingCriteria: (prev.writingCriteria || []).map((item, itemIndex) =>
+                                                itemIndex === criterionIndex ? { ...item, title: e.target.value } : item,
+                                              ),
+                                            }))
+                                          }
+                                          className="w-full px-2 py-1.5 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-sm text-foreground dark:text-white"
+                                          placeholder="Tên tiêu chí"
+                                        />
+                                      </td>
+                                      {criterion.levels.map((level, levelIndex) => (
+                                        <td key={`new-${criterionIndex}-${levelIndex}`} className="px-2 py-2">
+                                          <div className="space-y-2">
+                                            <textarea
+                                              value={level.description}
+                                              onChange={(e) =>
+                                                setNewLessonData((prev) => ({
+                                                  ...prev,
+                                                  writingCriteria: (prev.writingCriteria || []).map((item, itemIndex) =>
+                                                    itemIndex === criterionIndex
+                                                      ? {
+                                                          ...item,
+                                                          levels: item.levels.map((l, lIndex) =>
+                                                            lIndex === levelIndex ? { ...l, description: e.target.value } : l,
+                                                          ),
+                                                        }
+                                                      : item,
+                                                  ),
+                                                }))
+                                              }
+                                              rows={4}
+                                              className="w-full px-2 py-1.5 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-xs text-foreground dark:text-white"
+                                              placeholder={`Mô tả mức ${levelIndex + 1}`}
+                                            />
+                                            <div className="flex items-center gap-2">
+                                              <input
+                                                type="number"
+                                                min={0}
+                                                value={level.points}
+                                                onChange={(e) =>
+                                                  setNewLessonData((prev) => ({
+                                                    ...prev,
+                                                    writingCriteria: (prev.writingCriteria || []).map((item, itemIndex) =>
+                                                      itemIndex === criterionIndex
+                                                        ? {
+                                                            ...item,
+                                                            levels: item.levels.map((l, lIndex) =>
+                                                              lIndex === levelIndex
+                                                                ? { ...l, points: Math.max(0, Number(e.target.value || 0)) }
+                                                                : l,
+                                                            ),
+                                                          }
+                                                        : item,
+                                                    ),
+                                                  }))
+                                                }
+                                                className="w-24 px-2 py-1 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-xs text-foreground dark:text-white"
+                                              />
+                                              <span className="text-xs text-muted-foreground dark:text-slate-400">điểm</span>
+                                            </div>
+                                          </div>
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setNewLessonData((prev) => ({
+                                    ...prev,
+                                    writingCriteria: (prev.writingCriteria || []).slice(0, -1),
+                                  }))
+                                }}
+                                disabled={(newLessonData.writingCriteria || []).length === 0}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-smooth disabled:opacity-60"
+                              >
+                                Xóa tiêu chí cuối
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const points = defaultRubricPoints(newLessonData.writingMaxScore || 100)
+                                  setNewLessonData((prev) => ({
+                                    ...prev,
+                                    writingCriteria: [
+                                      ...(prev.writingCriteria || []),
+                                      {
+                                        title: `Tiêu chí ${(prev.writingCriteria || []).length + 1}`,
+                                        levels: points.map((point) => ({ description: "", points: point })),
+                                      },
+                                    ],
+                                  }))
+                                }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary dark:text-accent hover:bg-primary/20 transition-smooth"
+                              >
+                                + Thêm tiêu chí
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Video Upload */}
