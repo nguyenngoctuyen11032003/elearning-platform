@@ -9,6 +9,8 @@ export interface User {
   avatar?: string;
   address?: string;
   bio?: string;
+  dateOfBirth?: string;
+  lastLoginAt?: string;
   role: UserRole;
   status: UserStatus;
   createdAt: string;
@@ -69,6 +71,7 @@ export interface UpdateProfileRequest {
   phone?: string;
   address?: string;
   bio?: string;
+  dateOfBirth?: string;
   avatar?: string;
 }
 export interface SystemSettings {

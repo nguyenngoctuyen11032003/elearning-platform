@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import { useState, useEffect } from "react"
-import { Save, Lock, User, Mail, Phone, Eye, EyeOff, ArrowLeft, Upload, Camera } from "lucide-react"
+import { Save, Lock, User, Mail, Phone, Eye, EyeOff, ArrowLeft, Upload, Camera, MapPin, FileText, Calendar } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
@@ -28,6 +28,8 @@ export default function AdminProfilePage() {
     email: "",
     phone: "",
     address: "",
+    bio: "",
+    dateOfBirth: "",
   })
 
   const [passwordData, setPasswordData] = useState({
@@ -43,6 +45,8 @@ export default function AdminProfilePage() {
         email: user.email || "",
         phone: user.phone || "",
         address: user.address || "",
+        bio: user.bio || "",
+        dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth).slice(0, 10) : "",
       })
       
       // Set avatar preview from user data if available
@@ -52,7 +56,7 @@ export default function AdminProfilePage() {
     }
   }, [user])
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setProfileData(prev => ({ ...prev, [name]: value }))
   }
@@ -107,6 +111,8 @@ export default function AdminProfilePage() {
         name: profileData.name,
         phone: profileData.phone || undefined,
         address: profileData.address || undefined,
+        bio: profileData.bio || undefined,
+        dateOfBirth: profileData.dateOfBirth || undefined,
       })
 
       // Refresh user profile in auth context
@@ -315,6 +321,50 @@ export default function AdminProfilePage() {
                     onChange={handleProfileChange}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
                     placeholder={t("adm_prof_phone_placeholder", "Nhập số điện thoại (tùy chọn)")}
+                  />
+                </div>
+
+                {/* Address Field */}
+                <div>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                    <MapPin size={16} /> {t("adm_prof_address", "Địa chỉ")}
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={profileData.address}
+                    onChange={handleProfileChange}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
+                    placeholder={t("adm_prof_address_placeholder", "Nhập địa chỉ của bạn (tùy chọn)")}
+                  />
+                </div>
+
+                {/* Bio Field */}
+                <div>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                    <FileText size={16} /> {t("adm_prof_bio", "Giới thiệu")}
+                  </label>
+                  <textarea
+                    name="bio"
+                    value={profileData.bio}
+                    onChange={handleProfileChange}
+                    rows={4}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth resize-none"
+                    placeholder={t("adm_prof_bio_placeholder", "Viết đôi dòng giới thiệu về bạn")}
+                  />
+                </div>
+
+                {/* Date of Birth Field */}
+                <div>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                    <Calendar size={16} /> {t("adm_prof_dob", "Ngày sinh")}
+                  </label>
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    value={profileData.dateOfBirth}
+                    onChange={handleProfileChange}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
                   />
                 </div>
 

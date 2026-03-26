@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import { useState, useEffect } from "react"
-import { Save, ArrowLeft, Mail, Phone, User } from "lucide-react"
+import { Save, ArrowLeft, Mail, Phone, User, MapPin, FileText, Calendar } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
@@ -19,6 +19,9 @@ export default function EditProfilePage() {
     name: "",
     email: "",
     phone: "",
+    address: "",
+    bio: "",
+    dateOfBirth: "",
   })
 
   useEffect(() => {
@@ -27,6 +30,9 @@ export default function EditProfilePage() {
         name: user.name || "",
         email: user.email || "",
         phone: user.phone || "",
+        address: user.address || "",
+        bio: user.bio || "",
+        dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth).slice(0, 10) : "",
       })
     }
   }, [user])
@@ -47,6 +53,9 @@ export default function EditProfilePage() {
       await apiClient.updateProfile({
         name: formData.name,
         phone: formData.phone || undefined,
+        address: formData.address || undefined,
+        bio: formData.bio || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
       })
 
       toast.success(t("profile_edit_success", "Cập nhật hồ sơ thành công!"))
@@ -168,6 +177,50 @@ export default function EditProfilePage() {
               onChange={handleChange}
               className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
               placeholder={t("profile_edit_phone_ph", "Nhập số điện thoại (tùy chọn)")}
+            />
+          </div>
+
+          {/* Address Field */}
+          <div>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+              <MapPin size={16} /> {t("profile_address", "Địa chỉ")}
+            </label>
+            <input
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+              placeholder={t("profile_address_placeholder", "Nhập địa chỉ của bạn (tùy chọn)")}
+            />
+          </div>
+
+          {/* Bio Field */}
+          <div>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+              <FileText size={16} /> {t("profile_bio", "Giới thiệu")}
+            </label>
+            <textarea
+              name="bio"
+              value={formData.bio}
+              onChange={handleChange}
+              rows={4}
+              className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent resize-none"
+              placeholder={t("profile_bio_placeholder", "Viết đôi dòng giới thiệu về bạn")}
+            />
+          </div>
+
+          {/* Date of Birth Field */}
+          <div>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+              <Calendar size={16} /> {t("profile_dob", "Ngày sinh")}
+            </label>
+            <input
+              type="date"
+              name="dateOfBirth"
+              value={formData.dateOfBirth}
+              onChange={handleChange}
+              className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
             />
           </div>
 

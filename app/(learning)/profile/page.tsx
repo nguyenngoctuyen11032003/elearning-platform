@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import { useState, useEffect } from "react"
-import { Save, Lock, User, Mail, Phone, Eye, EyeOff, Upload, Camera, MapPin, Award, BookOpen, Calendar } from "lucide-react"
+import { Save, Lock, User, Mail, Phone, Eye, EyeOff, Upload, Camera, MapPin, Award, BookOpen, Calendar, FileText } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
@@ -38,6 +38,8 @@ export default function StudentProfilePage() {
     email: "",
     phone: "",
     address: "",
+    bio: "",
+    dateOfBirth: "",
   })
 
   const [passwordData, setPasswordData] = useState({
@@ -85,6 +87,8 @@ export default function StudentProfilePage() {
         email: user.email || "",
         phone: user.phone || "",
         address: user.address || "",
+        bio: user.bio || "",
+        dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth).slice(0, 10) : "",
       })
       
       // Set avatar preview from user data if available
@@ -151,6 +155,8 @@ export default function StudentProfilePage() {
         name: profileData.name,
         phone: profileData.phone || undefined,
         address: profileData.address || undefined,
+        bio: profileData.bio || undefined,
+        dateOfBirth: profileData.dateOfBirth || undefined,
       })
 
       // Refresh profile data in auth context
@@ -430,6 +436,35 @@ export default function StudentProfilePage() {
                   onChange={handleProfileChange}
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
                   placeholder={t("profile_address_placeholder", "Nhập địa chỉ của bạn (tùy chọn)")}
+                />
+              </div>
+
+              {/* Bio Field */}
+              <div>
+                <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
+                  <FileText size={16} /> {t("profile_bio", "Giới thiệu")}
+                </label>
+                <textarea
+                  name="bio"
+                  value={profileData.bio}
+                  onChange={handleProfileChange}
+                  rows={4}
+                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors resize-none"
+                  placeholder={t("profile_bio_placeholder", "Viết đôi dòng giới thiệu về bạn")}
+                />
+              </div>
+
+              {/* Date of Birth Field */}
+              <div>
+                <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
+                  <Calendar size={16} /> {t("profile_dob", "Ngày sinh")}
+                </label>
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  value={profileData.dateOfBirth}
+                  onChange={handleProfileChange}
+                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
                 />
               </div>
 

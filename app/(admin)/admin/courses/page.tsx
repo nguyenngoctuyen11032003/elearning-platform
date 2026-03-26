@@ -48,6 +48,44 @@ export default function AdminCoursesPage() {
     courseId?: string
   }>({ isOpen: false, action: "" })
 
+  const normalizeDateValue = (value: unknown): string | undefined => {
+    if (value == null) return undefined
+
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? undefined : value.toISOString()
+    }
+
+    if (typeof value === "number") {
+      const ms = value > 1_000_000_000_000 ? value : value * 1000
+      const d = new Date(ms)
+      return Number.isNaN(d.getTime()) ? undefined : d.toISOString()
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim()
+      if (!trimmed) return undefined
+
+      if (/^\d+$/.test(trimmed)) {
+        const numeric = Number(trimmed)
+        const ms = numeric > 1_000_000_000_000 ? numeric : numeric * 1000
+        const d = new Date(ms)
+        if (!Number.isNaN(d.getTime())) return d.toISOString()
+      }
+
+      const d = new Date(trimmed)
+      return Number.isNaN(d.getTime()) ? undefined : d.toISOString()
+    }
+
+    if (typeof value === "object") {
+      const maybeDate = (value as { $date?: unknown }).$date
+      if (maybeDate !== undefined) {
+        return normalizeDateValue(maybeDate)
+      }
+    }
+
+    return undefined
+  }
+
   useEffect(() => {
     const fetchCourses = async () => {
       setIsLoading(true)
@@ -68,7 +106,10 @@ export default function AdminCoursesPage() {
           revenue: (c.revenue as number) || 0,
           price: (c.price as number) || 0,
           status: c.status as Course["status"],
-          createdAt: (c.createdAt as string) || "",
+          createdAt:
+            normalizeDateValue(
+              c.createdAt ?? c.created_at ?? c.publishedAt ?? c.updatedAt,
+            ) || "",
           category: ((c.category as Record<string, unknown>)?.name as string) || "",
           thumbnail: (c.thumbnail as string) || "",
           lessons: (c.lessonCount as number) || 0,
@@ -167,7 +208,15 @@ export default function AdminCoursesPage() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN', {
+    const normalized = normalizeDateValue(dateString)
+    if (!normalized) return t("common_not_updated", "Chưa cập nhật")
+
+    const parsed = new Date(normalized)
+    if (Number.isNaN(parsed.getTime())) {
+      return t("common_not_updated", "Chưa cập nhật")
+    }
+
+    return parsed.toLocaleDateString(language === "en" ? "en-US" : "vi-VN", {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
