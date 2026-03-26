@@ -36,7 +36,7 @@ interface Submission {
     email?: string;
   };
   content?: string;
-  attachments?: Array<string | SubmissionAttachment>;
+  attachments?: SubmissionAttachment[];
   status: 'not_submitted' | 'submitted' | 'graded' | 'late';
   score?: number;
   feedback?: string;

@@ -52,6 +52,14 @@ interface Course {
   title: string
 }
 
+interface CertificateTemplate {
+  id: string
+  title: string
+  courseId?: string
+  courseName?: string
+  status?: string
+}
+
 const IMAGE_MARKER_REGEX = /\[\[IMAGE:img_\d+\]\]|\[image\]|\(image\)/i
 const MATH_TOKEN_REGEX = /(\d\s*[x×*]\s*10\^?-?\d+|10\^?-?\d+|[=+\-×÷*/^√∑∫π]|\bfrac\b|\blog\b|\bsin\b|\bcos\b|\btan\b)/i
 const FORMULA_PROMPT_REGEX = /(without using a calculator|solve|calculate|compute|evaluate|find|tính|giải|rút gọn|chứng minh)/i
@@ -89,11 +97,18 @@ export default function EditExamPage() {
   const [pendingAction, setPendingAction] = useState<{ type: "import" | "multiple_choice" | "true_false" | "fill_in" } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [courses, setCourses] = useState<Course[]>([])
+  const [templates, setTemplates] = useState<CertificateTemplate[]>([])
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     courseId: "",
+    type: "practice" as "practice" | "official",
+    certificateTemplateId: "",
+    passingScore: 70,
+    maxAttempts: 3,
+    showCorrectAnswers: true,
   })
 
   const [questions, setQuestions] = useState<Question[]>([])
@@ -1192,6 +1207,8 @@ function ImportQuestionsModal({
   onImport: (questions: Question[], mode: "append" | "replace") => void
   hasExistingQuestions: boolean
 }) {
+  const { language } = useLanguage()
+  const tr = (vi: string, en: string) => (language === "en" ? en : vi)
   const [importType, setImportType] = useState<"excel" | "word">("excel")
   const [file, setFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)

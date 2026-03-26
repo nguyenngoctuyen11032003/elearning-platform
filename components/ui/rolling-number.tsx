@@ -70,7 +70,6 @@ export function AnimatedNumber({
 }
 
 // Backward-compatible alias
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function RollingNumber(props: AnimatedNumberProps) {
   return <AnimatedNumber {...props} />
 }

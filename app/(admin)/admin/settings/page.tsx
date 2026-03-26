@@ -494,8 +494,8 @@ if (!settings) return null
                     className="w-full md:w-64 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                   >
                     {(supportedLanguages || ["en", "vi"]).map((langItem) => {
-                      const code = typeof langItem === "string" ? langItem : langItem?.code || langItem?.value || "en"
-                      const label = typeof langItem === "string" ? langItem.toUpperCase() : langItem?.label || code.toUpperCase()
+                      const code = typeof langItem === "string" ? (langItem as LanguageCode) : langItem.code
+                      const label = typeof langItem === "string" ? String(langItem).toUpperCase() : langItem.label || code.toUpperCase()
                       return (
                         <option key={code} value={code}>
                           {label}
