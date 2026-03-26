@@ -22,6 +22,7 @@ import {
   FileText
 } from "lucide-react"
 import { toast } from "sonner"
+import { authFetch } from "@/lib/authfetch"
 import { parseExamQuestionsFileWithReport, type ExamImportReport } from "@/lib/utils/exam-import"
 import { TeacherExamsNavbar } from "@/components/teacher-exams-navbar"
 import { ScientificText } from "@/components/scientific-text"
@@ -217,11 +218,7 @@ export default function CreateExamPage() {
   const fetchCourses = async () => {
     try {
       // Fetch only teacher's courses
-      const response = await fetch("/api/courses/teacher/my-courses", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        },
-      })
+      const response = await authFetch("/courses/my-courses")
       if (response.ok) {
         const contentType = response.headers.get("content-type") || ""
         if (contentType.includes("application/json")) {
@@ -243,11 +240,7 @@ export default function CreateExamPage() {
   const fetchTemplates = async () => {
     try {
       setIsLoadingTemplates(true)
-      const response = await fetch("/api/certificate-templates", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        },
-      })
+      const response = await authFetch("/certificates/templates/my")
       if (response.ok) {
         const contentType = response.headers.get("content-type") || ""
         if (contentType.includes("application/json")) {
@@ -416,12 +409,8 @@ export default function CreateExamPage() {
         examData.certificateTemplateId = normalizedTemplateId
       }
 
-      const response = await fetch("/api/exams", {
+      const response = await authFetch("/exams", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        },
         body: JSON.stringify(examData),
       })
 
