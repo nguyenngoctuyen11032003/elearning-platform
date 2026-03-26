@@ -502,7 +502,7 @@ export default function StudentDashboardPage() {
                         </p>
                       </div>
                       <Link
-                        href={`/player/${course.id}`}
+                        href={`/player/${course.courseId}`}
                         className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-2"
                       >
                         <Play size={16} />
