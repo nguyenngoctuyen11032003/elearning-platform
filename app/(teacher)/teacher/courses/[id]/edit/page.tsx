@@ -85,7 +85,7 @@ function parseLessonResources(resources: unknown): LessonDocument[] {
     try {
       normalized = JSON.parse(normalized)
     } catch {
-      return null
+      return []
     }
   }
 

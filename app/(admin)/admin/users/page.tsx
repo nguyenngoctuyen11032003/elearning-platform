@@ -204,6 +204,72 @@ export default function AdminUsersPage() {
   }>({ isOpen: false, action: "" })
   const [userList, setUserList] = useState<UserData[]>([])
 
+  const normalizeDateValue = (value: unknown): string | undefined => {
+    if (value == null) return undefined
+
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? undefined : value.toISOString()
+    }
+
+    if (typeof value === "number") {
+      const ms = value > 1_000_000_000_000 ? value : value * 1000
+      const d = new Date(ms)
+      return Number.isNaN(d.getTime()) ? undefined : d.toISOString()
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim()
+      if (!trimmed) return undefined
+
+      if (/^\d+$/.test(trimmed)) {
+        const numeric = Number(trimmed)
+        const ms = numeric > 1_000_000_000_000 ? numeric : numeric * 1000
+        const d = new Date(ms)
+        if (!Number.isNaN(d.getTime())) return d.toISOString()
+      }
+
+      const d = new Date(trimmed)
+      return Number.isNaN(d.getTime()) ? undefined : d.toISOString()
+    }
+
+    if (typeof value === "object" && value !== null) {
+      const typedValue = value as {
+        $date?: unknown
+        date?: unknown
+        value?: unknown
+        iso?: unknown
+        timestamp?: unknown
+      }
+      const objectCandidates = [
+        typedValue.$date,
+        typedValue.date,
+        typedValue.value,
+        typedValue.iso,
+        typedValue.timestamp,
+      ]
+
+      for (const candidate of objectCandidates) {
+        if (candidate === undefined) continue
+        const normalized = normalizeDateValue(candidate)
+        if (normalized) return normalized
+      }
+    }
+
+    return undefined
+  }
+
+  const getNormalizedDateFromCandidates = (
+    source: Record<string, unknown>,
+    keys: string[],
+  ): string | undefined => {
+    for (const key of keys) {
+      const value = source[key]
+      const normalized = normalizeDateValue(value)
+      if (normalized) return normalized
+    }
+    return undefined
+  }
+
   // Close menu on outside click or Escape
   useEffect(() => {
     if (!openMenu || !menuPos) return;
@@ -251,7 +317,42 @@ const fetchUsers = async () => {
   }
 
   const result = await res.json()
-  setUserList(result.data?.data ?? [])
+  const rawUsers = result.data?.data ?? []
+
+  const normalizedUsers: UserData[] = rawUsers.map((user: Record<string, unknown>) => {
+    const normalizedCreatedAt = getNormalizedDateFromCandidates(user, [
+      "createdAt",
+      "created_at",
+      "registeredAt",
+      "registrationDate",
+      "created",
+      "insertedAt",
+      "emailVerifiedAt",
+    ])
+
+    const normalizedJoinDate = normalizedCreatedAt
+
+    const normalizedLastLoginAt = getNormalizedDateFromCandidates(user, [
+      "lastLoginAt",
+      "last_login_at",
+      "lastActive",
+      "last_active",
+      "lastSeenAt",
+      "last_seen_at",
+      "lastActivityAt",
+      "last_activity_at",
+    ])
+
+    return {
+      ...(user as any),
+      joinDate: normalizedJoinDate ?? normalizedCreatedAt ?? "",
+      createdAt: normalizedCreatedAt ?? normalizedJoinDate ?? "",
+      lastLoginAt: normalizedLastLoginAt,
+      dateOfBirth: normalizeDateValue(user.dateOfBirth ?? user.date_of_birth) ?? "",
+    }
+  })
+
+  setUserList(normalizedUsers)
 }
   useEffect(() => {
     fetchUsers()
@@ -426,15 +527,75 @@ const handleUpdateUser = async (updatedData: any) => {
   }
 }
 
-const formatDate = (dateString?: string) => {
-  if (!dateString) return t("common_not_updated", "Chưa cập nhật")
-  const d = new Date(dateString)
+const formatDate = (dateInput?: unknown) => {
+  const normalized = normalizeDateValue(dateInput)
+  if (!normalized) return t("common_not_updated", "Chưa cập nhật")
+  const d = new Date(normalized)
   if (isNaN(d.getTime())) return t("common_not_updated", "Chưa cập nhật")
   return d.toLocaleDateString(language === "en" ? "en-US" : "vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   })
+}
+
+const formatDateTime = (dateInput?: unknown) => {
+  const normalized = normalizeDateValue(dateInput)
+  if (!normalized) return t("common_not_updated", "Chưa cập nhật")
+  const d = new Date(normalized)
+  if (isNaN(d.getTime())) return t("common_not_updated", "Chưa cập nhật")
+  return d.toLocaleString(language === "en" ? "en-US" : "vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+const getCoursesCount = (user: UserData): number | null => {
+  const rawCourses = user.courses as unknown
+
+  if (typeof rawCourses === "number" && Number.isFinite(rawCourses)) {
+    return rawCourses
+  }
+
+  if (typeof rawCourses === "string") {
+    const parsed = Number(rawCourses)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+
+  if (Array.isArray(rawCourses)) {
+    return rawCourses.length
+  }
+
+  return null
+}
+
+const getJoinedDate = (user: UserData): string | undefined => {
+  const createdDate = normalizeDateValue(user.createdAt)
+  if (createdDate) return createdDate
+
+  return undefined
+}
+
+const getLastActiveDate = (user: UserData): string | undefined => {
+  const lastActive = normalizeDateValue(user.lastLoginAt)
+  if (lastActive) return lastActive
+
+  const fallbackLastActive = normalizeDateValue(user.lastActive)
+  if (fallbackLastActive) return fallbackLastActive
+
+  return undefined
+}
+
+const getLastActiveDisplay = (user: UserData): string => {
+  const lastActiveDate = getLastActiveDate(user)
+  if (lastActiveDate) {
+    return formatDateTime(lastActiveDate)
+  }
+
+  return t("user_never_logged_in", "Chưa có lần đăng nhập")
 }
   // ================= STATS =================
   const totalUsers = userList.length
@@ -624,8 +785,8 @@ const formatDate = (dateString?: string) => {
                         {user.role === "admin" ? t("user_admin_role", "Quản trị") : user.role === "teacher" ? t("user_instructors", "Giảng viên") : t("user_students", "Học viên")}
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-foreground dark:text-white text-sm">{user.courses || "-"}</td>
-                    <td className="py-3 px-3 text-muted-foreground dark:text-slate-400 text-sm whitespace-nowrap">{user.createdAt ? formatDate(user.createdAt) : "-"}
+                    <td className="py-3 px-3 text-foreground dark:text-white text-sm whitespace-nowrap tabular-nums">{getCoursesCount(user) ?? "-"}</td>
+                    <td className="py-3 px-3 text-muted-foreground dark:text-slate-400 text-sm whitespace-nowrap">{getJoinedDate(user) ? formatDate(getJoinedDate(user)) : "-"}
 </td>
                     <td className="py-3 px-3">
                       <span
@@ -735,10 +896,13 @@ const formatDate = (dateString?: string) => {
                       : t("user_students", "Học viên")
                   }
                 />
-                <InfoRow label={t("pay_course", "Khóa học")} value={user.courses || t("common_not_updated", "Chưa cập nhật")} />
+                <InfoRow
+                  label={t("pay_course", "Khóa học")}
+                  value={getCoursesCount(user) ?? t("common_not_updated", "Chưa cập nhật")}
+                />
                 <InfoRow
                   label={t("user_join_date", "Ngày tham gia")}
-                  value={user.createdAt ? formatDate(user.createdAt) : t("common_not_updated", "Chưa cập nhật")}
+                  value={getJoinedDate(user) ? formatDate(getJoinedDate(user)) : t("common_not_updated", "Chưa cập nhật")}
                 />
                 <InfoRow
                   label={t("pay_status", "Trạng thái")}
@@ -962,7 +1126,7 @@ const formatDate = (dateString?: string) => {
                       <span className="text-sm">{t("user_join_date", "Ngày tham gia")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">
-                      {viewUser && viewUser.createdAt ? formatDate(viewUser.createdAt) : t("common_not_updated", "Chưa cập nhật")}
+                        {viewUser && getJoinedDate(viewUser) ? formatDate(getJoinedDate(viewUser)) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
                   </div>
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
@@ -971,12 +1135,17 @@ const formatDate = (dateString?: string) => {
                       <span className="text-sm">{t("user_last_active", "Hoạt động gần nhất")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">
-                      {viewUser && viewUser.lastLoginAt
-                      ? formatDate(viewUser.lastLoginAt)
-                      : viewUser && viewUser.createdAt
-                        ? `${formatDate(viewUser.createdAt)} (${t("user_first_time", "lần đầu")})`
-                        : t("common_not_updated", "Chưa cập nhật")}
+                      {viewUser ? getLastActiveDisplay(viewUser) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
+                  </div>
+                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
+                      <Calendar size={16} />
+                      <span className="text-sm">{t("user_date_of_birth", "Ngày sinh")}</span>
+                    </div>
+                    <p className="text-foreground dark:text-white font-medium">
+                      {viewUser?.dateOfBirth ? formatDate(viewUser.dateOfBirth) : t("common_not_updated", "Chưa cập nhật")}
+                    </p>
                   </div>
                 </div>
                 {/* Address */}
@@ -999,7 +1168,7 @@ const formatDate = (dateString?: string) => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-center">
                       <BookOpen size={24} className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
-                      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{viewUser.courses || 0}</p>
+                      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{getCoursesCount(viewUser) ?? 0}</p>
                       <p className="text-sm text-blue-600 dark:text-blue-400">
                         {viewUser.role === "teacher" ? t("user_courses_teaching", "Khóa học dạy") : t("user_courses_enrolled", "Khóa học đăng ký")}
                       </p>
@@ -1140,7 +1309,7 @@ const formatDate = (dateString?: string) => {
                       <span className="text-sm">Ngày tham gia</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">
-                    {viewUser && viewUser.createdAt ? formatDate(viewUser.createdAt) : t("common_not_updated", "Chưa cập nhật")}
+                    {viewUser && getJoinedDate(viewUser) ? formatDate(getJoinedDate(viewUser)) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
                   </div>
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
@@ -1149,12 +1318,17 @@ const formatDate = (dateString?: string) => {
                       <span className="text-sm">{t("user_last_active", "Hoạt động gần nhất")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">
-                      {viewUser && viewUser.lastLoginAt
-                      ? formatDate(viewUser.lastLoginAt)
-                      : viewUser && viewUser.createdAt
-                        ? `${formatDate(viewUser.createdAt)} (${t("user_first_time", "lần đầu")})`
-                        : t("common_not_updated", "Chưa cập nhật")}
+                      {viewUser ? getLastActiveDisplay(viewUser) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
+                  </div>
+                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
+                      <Calendar size={16} />
+                      <span className="text-sm">{t("user_date_of_birth", "Ngày sinh")}</span>
+                    </div>
+                    <p className="text-foreground dark:text-white font-medium">
+                      {viewUser?.dateOfBirth ? formatDate(viewUser.dateOfBirth) : t("common_not_updated", "Chưa cập nhật")}
+                    </p>
                   </div>
                 </div>
                 {/* Address */}
@@ -1177,7 +1351,7 @@ const formatDate = (dateString?: string) => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-center">
                       <BookOpen size={24} className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
-                      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{viewUser.courses || 0}</p>
+                      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{getCoursesCount(viewUser) ?? 0}</p>
                       <p className="text-sm text-blue-600 dark:text-blue-400">
                         {viewUser.role === "teacher" ? t("user_courses_teaching", "Khóa học dạy") : t("user_courses_enrolled", "Khóa học đăng ký")}
                       </p>

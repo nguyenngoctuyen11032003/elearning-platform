@@ -1190,11 +1190,12 @@ function ImportQuestionsModal({
       const hasValidExtension = supportedExtensions.some(ext => lowerName.endsWith(ext))
       
       if (!hasValidExtension) {
-        toast.error(t(
-          "exam_unsupported_file_format",
-          `Định dạng file không được hỗ trợ. Vui lòng sỗ dụng: ${supportedExtensions.join(", ")}`,
-          `Unsupported file format. Please use: ${supportedExtensions.join(", ")}`
-        ) || `Định dạng file không được hỗ trợ. Vui lòng sỗ dụng: ${supportedExtensions.join(", ")}`)
+        toast.error(
+          t(
+            "exam_unsupported_file_format",
+            `Định dạng file không được hỗ trợ. Vui lòng sử dụng: ${supportedExtensions.join(", ")}`,
+          ) || `Định dạng file không được hỗ trợ. Vui lòng sử dụng: ${supportedExtensions.join(", ")}`,
+        )
         e.target.value = ""
         return
       }
@@ -1256,11 +1257,12 @@ function ImportQuestionsModal({
       }
 
       if (mapped.length === 0) {
-        toast.error(t(
-          "exam_no_valid_questions",
-          "File không chứa câu hỏi hợp lệ theo định dạng yêu cầu. Vui lòng kiểm tra file hoặc thử file khác.",
-          "File contains no valid questions in the required format. Please check your file or try another file."
-        ))
+        toast.error(
+          t(
+            "exam_no_valid_questions",
+            "File không chứa câu hỏi hợp lệ theo định dạng yêu cầu. Vui lòng kiểm tra file hoặc thử file khác.",
+          ),
+        )
         return
       }
       if (isPdf && !hasImportedImage) {

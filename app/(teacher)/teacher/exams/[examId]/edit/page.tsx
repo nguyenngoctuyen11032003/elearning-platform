@@ -97,8 +97,6 @@ export default function EditExamPage() {
   const [pendingAction, setPendingAction] = useState<{ type: "import" | "multiple_choice" | "true_false" | "fill_in" } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [courses, setCourses] = useState<Course[]>([])
-  const [templates, setTemplates] = useState<CertificateTemplate[]>([])
-  const [, setIsLoadingTemplates] = useState(false)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -1214,6 +1212,8 @@ function ImportQuestionsModal({
   onImport: (questions: Question[], mode: "append" | "replace") => void
   hasExistingQuestions: boolean
 }) {
+  const { language } = useLanguage()
+  const tr = (vi: string, en: string) => (language === "en" ? en : vi)
   const [importType, setImportType] = useState<"excel" | "word">("excel")
   const [file, setFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)

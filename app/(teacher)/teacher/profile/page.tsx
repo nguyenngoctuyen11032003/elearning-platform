@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import { useState, useEffect } from "react"
-import { Save, Lock, User, Mail, Phone, Eye, EyeOff, ArrowLeft, Upload, Camera, MapPin, FileText } from "lucide-react"
+import { Save, Lock, User, Mail, Phone, Eye, EyeOff, ArrowLeft, Upload, Camera, MapPin, FileText, Calendar } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
@@ -28,6 +28,7 @@ export default function TeacherProfilePage() {
     phone: "",
     address: "",
     bio: "",
+    dateOfBirth: "",
   })
 
   const [passwordData, setPasswordData] = useState({
@@ -44,6 +45,7 @@ export default function TeacherProfilePage() {
         phone: user.phone || "",
         address: user.address || "",
         bio: user.bio || "",
+        dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth).slice(0, 10) : "",
       })
       
       // Set avatar preview from user data if available
@@ -109,6 +111,7 @@ export default function TeacherProfilePage() {
         phone: profileData.phone || undefined,
         address: profileData.address || undefined,
         bio: profileData.bio || undefined,
+        dateOfBirth: profileData.dateOfBirth || undefined,
       })
 
       // Refresh profile data in auth context
@@ -378,6 +381,20 @@ export default function TeacherProfilePage() {
                   <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
                     {t("tch_prof_bio_public_hint", "Giới thiệu này sẽ hiển thị trên trang hồ sơ công khai của bạn")}
                   </p>
+                </div>
+
+                {/* Date of Birth Field */}
+                <div>
+                  <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
+                    <Calendar size={16} /> {t("tch_prof_lbl_dob", "Ngày sinh")}
+                  </label>
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    value={profileData.dateOfBirth}
+                    onChange={handleProfileChange}
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-smooth"
+                  />
                 </div>
 
                 {/* Submit Button */}
