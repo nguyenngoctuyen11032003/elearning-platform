@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, ClipboardList, Wand2, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/authfetch"
+import { ScientificText } from "@/components/scientific-text"
 
 type Difficulty = "easy" | "medium" | "hard"
 
@@ -680,7 +681,7 @@ function TeacherGenerateExamCreatePageContent() {
                 )}
                 {generatedQuestions.map((question, index) => (
                   <div key={`${question.id}-${index}`} className="rounded-lg border p-3">
-                    <p className="text-sm font-medium">Câu {index + 1}. {question.question}</p>
+                    <p className="text-sm font-medium">Câu {index + 1}. <ScientificText as="span" text={question.question} /></p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {(question.chapter || "Chưa phân chương")} • {(question.difficulty || "medium")}
                     </p>

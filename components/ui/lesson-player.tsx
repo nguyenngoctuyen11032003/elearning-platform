@@ -573,7 +573,7 @@ export function LessonPlayer({
                           return (
                             <div key={`quiz-${idx}`} className="p-4 bg-secondary dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg">
                               <p className="font-medium text-foreground dark:text-white mb-2 whitespace-pre-wrap break-words leading-relaxed">
-                                Câu {idx + 1}: {q.question}
+                                Câu {idx + 1}: <ScientificText as="span" text={q.question} />
                               </p>
                               {q.image && (
                                 <img
@@ -693,7 +693,7 @@ export function LessonPlayer({
                                 <div key={`quiz-detail-${idx}`} className="p-4 bg-secondary dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg">
                                   <div className="flex items-start gap-3 mb-3">
                                     <p className="font-medium text-foreground dark:text-white flex-1 whitespace-pre-wrap break-words leading-relaxed">
-                                      Câu {idx + 1}: {q.question}
+                                      Câu {idx + 1}: <ScientificText as="span" text={q.question} />
                                     </p>
                                     <div className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
                                       isCorrect

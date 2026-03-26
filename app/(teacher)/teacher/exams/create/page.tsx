@@ -417,8 +417,11 @@ export default function CreateExamPage() {
         questions: normalizedQuestions,
       }
 
-      if (formData.type !== "official") {
+      const normalizedTemplateId = String(formData.certificateTemplateId || "").trim()
+      if (formData.type !== "official" || !normalizedTemplateId) {
         delete examData.certificateTemplateId
+      } else {
+        examData.certificateTemplateId = normalizedTemplateId
       }
 
       const response = await fetch("/api/exams", {
@@ -1468,7 +1471,7 @@ function ImportQuestionsModal({
                 {previewQuestions.map((q, index) => (
                   <div key={q.id} className="p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg flex items-center gap-3">
                     <span className="w-6 h-6 flex items-center justify-center bg-primary/10 text-primary rounded font-semibold text-sm">{index + 1}</span>
-                    <span className="flex-1 text-foreground dark:text-white text-sm truncate">{q.question}</span>
+                    <span className="flex-1 text-foreground dark:text-white text-sm truncate"><ScientificText as="span" text={q.question} /></span>
                     <span className="text-xs text-muted-foreground">{q.points} {t("exam_points", "điểm")}</span>
                   </div>
                 ))}

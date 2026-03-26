@@ -8,6 +8,7 @@ import * as XLSX from "xlsx"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { authFetch } from "@/lib/authfetch"
 import { apiClient } from "@/lib/api/client"
+import { ScientificText } from "@/components/scientific-text"
 
 interface Section {
   id: string
@@ -1383,7 +1384,7 @@ export default function CreateCoursePage() {
                                     <div className="mt-1 space-y-1">
                                       {lesson.quizzes.map((q, idx) => (
                                         <div key={q.id} className="text-xs ml-2 text-muted-foreground/75 dark:text-slate-500">
-                                          • {idx + 1}. {q.question}
+                                          • {idx + 1}. <ScientificText as="span" text={q.question} />
                                         </div>
                                       ))}
                                     </div>
