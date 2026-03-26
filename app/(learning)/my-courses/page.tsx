@@ -168,6 +168,10 @@ export default function MyCoursesPage() {
     notStarted: courses.filter(c => c.progress === 0).length,
   }
 
+  const averageProgress = courses.length > 0
+    ? Math.round(courses.reduce((sum, c) => sum + c.progress, 0) / courses.length)
+    : 0
+
   if (loading) {
     return (
       <div className="space-y-8">
@@ -402,7 +406,7 @@ export default function MyCoursesPage() {
               {/* Total Project Card */}
               <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg">
                 <h3 className="text-base md:text-lg font-bold text-foreground dark:text-white mb-4 md:mb-6">{t("mycourses_total_courses", "Tổng khóa học")}</h3>
-                <div className="flex items-center justify-center mb-4 md:mb-6">
+                <div className="flex items-center justify-center mb-4 md:mb-6 relative">
                   <div className="w-32 h-32 md:w-48 md:h-48">
                     <svg viewBox="0 0 100 100" className="w-full h-full">
                       <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" strokeWidth="8" />
@@ -413,18 +417,16 @@ export default function MyCoursesPage() {
                         fill="none"
                         stroke="#8b5cf6"
                         strokeWidth="8"
-                        strokeDasharray={`${(stats.completed / stats.total) * 282.7} 282.7`}
+                        strokeDasharray={`${(averageProgress / 100) * 282.7} 282.7`}
                         strokeLinecap="round"
                         transform="rotate(-90 50 50)"
                       />
                       <circle cx="50" cy="50" r="35" fill="white" className="dark:fill-slate-900" />
-                      <text x="50" y="44" textAnchor="middle" dy="0.3em" className="text-2xl font-bold fill-foreground dark:fill-white" fontSize="20">
-                        {stats.completed}
-                      </text>
-                      <text x="50" y="60" textAnchor="middle" className="text-xs fill-muted-foreground dark:fill-slate-400" fontSize="10">
-                        {t("mycourses_completed", "Hoàn thành")}
-                      </text>
                     </svg>
+                  </div>
+                  <div className="absolute text-center">
+                    <p className="text-2xl md:text-4xl font-bold text-foreground dark:text-white">{Math.round(averageProgress)}%</p>
+                    <p className="text-xs md:text-sm text-muted-foreground dark:text-slate-400">{t("mycourses_completed", "Hoàn thành")}</p>
                   </div>
                 </div>
                 <div className="space-y-2 text-xs md:text-sm">
@@ -433,6 +435,9 @@ export default function MyCoursesPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground dark:text-slate-400">{t("mycourses_in_progress", "Đang học")}: {stats.inProgress}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground dark:text-slate-400">{t("mycourses_not_started", "Chưa bắt đầu")}: {stats.notStarted}</span>
                   </div>
                 </div>
               </div>

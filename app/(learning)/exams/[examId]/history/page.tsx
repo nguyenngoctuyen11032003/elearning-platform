@@ -276,7 +276,7 @@ export default function ExamHistoryPage() {
           className="text-center"
         >
           <Link
-            href={`/exams/${examId}/take`}
+            href={`/exams/${examId}/take?source=extracted`}
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
           >
             Thi lại

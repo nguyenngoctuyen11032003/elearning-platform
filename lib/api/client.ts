@@ -1010,6 +1010,13 @@ if (typeof window !== 'undefined' && token) {
     });
   }
 
+  async getCourseEnrollments(courseId: string): Promise<any[]> {
+    const result = await this.request(`/courses/${courseId}/enrollments`);
+    if (Array.isArray(result)) return result;
+    if (Array.isArray((result as any)?.data)) return (result as any).data;
+    return [];
+  }
+
   async publishCourse(id: string): Promise<any> {
     return this.request(`/courses/${id}/publish`, {
       method: 'PATCH',
@@ -1315,6 +1322,12 @@ if (typeof window !== 'undefined' && token) {
 
   async getAttemptResult(attemptId: string): Promise<any> {
     return this.request(API_ENDPOINTS.EXAMS.ATTEMPT_RESULT(attemptId));
+  }
+
+  async retryIssueCertificate(attemptId: string): Promise<any> {
+    return this.request(API_ENDPOINTS.EXAMS.RETRY_CERTIFICATE(attemptId), {
+      method: 'POST',
+    });
   }
 
   // ================== Cart API ==================

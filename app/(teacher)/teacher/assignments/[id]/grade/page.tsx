@@ -176,6 +176,7 @@ export default function TeacherAssignmentGradingPage() {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>('');
   const [selectedLevels, setSelectedLevels] = useState<Record<number, number>>({});
   const [feedback, setFeedback] = useState('');
+  const [manualScore, setManualScore] = useState<number | null>(null);
 
   const criteria = useMemo(
     () => parseCriteria(assignment?.instructions, assignment?.maxScore ?? 100),
@@ -204,11 +205,16 @@ export default function TeacherAssignmentGradingPage() {
     [selectedRows],
   );
 
+  const selectedCriteriaCount = useMemo(
+    () => selectedRows.filter((row) => row.selectedLevelIndex >= 0).length,
+    [selectedRows],
+  );
+
   const averageScore = useMemo(() => {
-    if (selectedRows.length === 0) return 0;
-    const raw = totalScore / selectedRows.length;
+    if (selectedCriteriaCount === 0) return 0;
+    const raw = totalScore / selectedCriteriaCount;
     return Number(raw.toFixed(1));
-  }, [selectedRows.length, totalScore]);
+  }, [selectedCriteriaCount, totalScore]);
 
   const allCriteriaSelected =
     criteria.length > 0 && selectedRows.every((row) => row.selectedLevelIndex >= 0);
@@ -255,10 +261,12 @@ export default function TeacherAssignmentGradingPage() {
     if (!selectedSubmission) {
       setFeedback('');
       setSelectedLevels({});
+      setManualScore(null);
       return;
     }
 
     setFeedback(selectedSubmission.feedback || '');
+    setManualScore(selectedSubmission.score ?? null);
 
     const savedRows = parseSavedDetails(selectedSubmission.gradingDetails);
     if (savedRows.length > 0) {
@@ -287,25 +295,36 @@ export default function TeacherAssignmentGradingPage() {
 
   const handleSaveGrade = async () => {
     if (!selectedSubmission || !assignment) return;
-    if (!allCriteriaSelected) {
-      toast.error(tr('Vui lòng chọn mức điểm cho tất cả tiêu chí', 'Please pick a score level for all criteria'));
-      return;
-    }
 
+    let score: number;
     const details = selectedRows.map((row) => ({
       criterion: row.criterion.title,
       selectedLevel: row.selectedLevelIndex,
       points: row.points,
     }));
 
-    const score = Math.min(averageScore, assignment.maxScore || averageScore);
+    if (criteria.length === 0) {
+      // No criteria: use manual score input
+      if (manualScore === null || manualScore === undefined) {
+        toast.error(tr('Vui lòng nhập điểm', 'Please enter a score'));
+        return;
+      }
+      score = Math.min(manualScore, assignment.maxScore || 100);
+    } else {
+      // Has criteria: require all to be selected and use calculated average
+      if (!allCriteriaSelected) {
+        toast.error(tr('Vui lòng chọn mức điểm cho tất cả tiêu chí', 'Please pick a score level for all criteria'));
+        return;
+      }
+      score = Math.min(averageScore, assignment.maxScore || averageScore);
+    }
 
     setSaving(true);
     try {
       await apiClient.gradeSubmission(selectedSubmission.id, {
         score,
         feedback,
-        gradingDetails: details,
+        gradingDetails: details.length > 0 ? details : undefined,
       });
 
       toast.success(tr('Đã gửi điểm và nhận xét cho học viên', 'Score and feedback sent to the student'));
@@ -478,11 +497,29 @@ export default function TeacherAssignmentGradingPage() {
                 )}
 
                 <div className="rounded-xl border border-border p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-foreground">{tr('Tổng điểm', 'Overall')}</p>
-                    <p className="text-lg font-bold text-green-700">
-                      {Math.min(averageScore, assignment?.maxScore ?? averageScore)} / {assignment?.maxScore ?? 100}
-                    </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-foreground">{tr('Tổng điểm', 'Overall')}</p>
+                      <p className="text-lg font-bold text-green-700">
+                        {criteria.length > 0
+                          ? `${Math.min(averageScore, assignment?.maxScore ?? averageScore)} / ${assignment?.maxScore ?? 100}`
+                          : `${manualScore ?? 0} / ${assignment?.maxScore ?? 100}`}
+                      </p>
+                    </div>
+                    {criteria.length === 0 && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">{tr('Nhập điểm', 'Enter score')}</label>
+                        <input
+                          type="number"
+                          value={manualScore ?? ''}
+                          onChange={(e) => setManualScore(e.target.value ? Number(e.target.value) : null)}
+                          min="0"
+                          max={assignment?.maxScore ?? 100}
+                          placeholder={tr(`Nhập điểm từ 0 đến ${assignment?.maxScore ?? 100}`, `Enter score from 0 to ${assignment?.maxScore ?? 100}`)}
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">{tr('Feedback cho học viên', 'Feedback for student')}</label>
@@ -498,7 +535,7 @@ export default function TeacherAssignmentGradingPage() {
                     <button
                       type="button"
                       onClick={handleSaveGrade}
-                      disabled={saving || !selectedSubmission || !allCriteriaSelected}
+                      disabled={saving || !selectedSubmission || (criteria.length > 0 && !allCriteriaSelected) || (criteria.length === 0 && (manualScore === null || manualScore === undefined))}
                       className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
                     >
                       {saving ? tr('Đang gửi điểm...', 'Sending grade...') : tr('Gửi điểm cho học viên', 'Send grade to student')}

@@ -402,12 +402,13 @@ const formatDate = (date?: string) => {
             />
           </div>
           <div className="flex gap-2 flex-wrap">
+            {/* Tab Filters - Blue */}
             <button
               onClick={() => setViewTab("templates")}
               className={`px-4 py-3 rounded-lg transition-smooth font-medium ${
                 viewTab === "templates"
-                  ? "bg-primary text-white"
-                  : "bg-card dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
+                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                  : "bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
               }`}
             >
               {t("adm_cert_tab_templates", "Mẫu chứng chỉ")}
@@ -416,12 +417,13 @@ const formatDate = (date?: string) => {
               onClick={() => setViewTab("issued")}
               className={`px-4 py-3 rounded-lg transition-smooth font-medium ${
                 viewTab === "issued"
-                  ? "bg-primary text-white"
-                  : "bg-card dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
+                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                  : "bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
               }`}
             >
               {t("adm_cert_tab_issued", "Chứng chỉ đã cấp")}
             </button>
+            {/* Status Filters - Purple */}
             {[
               { value: "all", label: t("adm_cert_all", "Tất cả") },
               { value: "pending", label: t("adm_cert_pending", "Chờ duyệt") },
@@ -433,8 +435,8 @@ const formatDate = (date?: string) => {
                 onClick={() => setStatusFilter(option.value)}
                 className={`px-4 py-3 rounded-lg transition-smooth font-medium ${
                   statusFilter === option.value
-                    ? "bg-primary text-white"
-                    : "bg-card dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
+                    ? "bg-purple-600 hover:bg-purple-700 text-white shadow-md"
+                    : "bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                 }`}
               >
                 {option.label}

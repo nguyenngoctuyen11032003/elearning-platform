@@ -189,6 +189,7 @@ export const API_ENDPOINTS = {
     SUBMIT: '/exams/submit',
     MY_ATTEMPTS: '/exams/my-attempts',
     ATTEMPT_RESULT: (attemptId: string) => `/exams/attempt/${attemptId}/result`,
+    RETRY_CERTIFICATE: (attemptId: string) => `/exams/attempt/${attemptId}/retry-certificate`,
   },
   CERTIFICATE_TEMPLATES: {
     LIST: '/certificates/templates/my',

@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
-  Edit,
   Trash2,
   BookOpen,
   Users,
@@ -96,6 +95,16 @@ interface CourseDetail {
   rejectionReason?: string
 }
 
+interface EnrolledStudentRow {
+  id: string
+  name: string
+  email: string
+  progress: number
+  status: string
+  enrolledAt?: string
+  lastAccessedAt?: string
+}
+
 const getAuth = (): Record<string, string> => {
   const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
   return token ? { Authorization: `Bearer ${token}` } : {}
@@ -109,6 +118,8 @@ export default function AdminCourseDetailPage() {
   const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState<"overview" | "content" | "students" | "analytics">("overview")
   const [expandedQuizLessonId, setExpandedQuizLessonId] = useState<string | null>(null)
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudentRow[]>([])
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const parseWritingCriteria = (instructions: unknown): string[] => {
     if (!instructions) return []
@@ -251,11 +262,12 @@ export default function AdminCourseDetailPage() {
       setIsLoading(true)
       try {
         const auth = getAuth()
-        const [courseRes, lessonsRes, quizzesRes, assignments] = await Promise.all([
+        const [courseRes, lessonsRes, quizzesRes, assignments, enrollments] = await Promise.all([
           fetch(`/api/courses/${params.id}`, { headers: auth }),
           fetch(`/api/lessons/course/${params.id}`, { headers: auth }),
           fetch(`/api/quizzes/course/${params.id}`, { headers: auth }),
           apiClient.getAssignments(String(params.id)),
+          apiClient.getCourseEnrollments(String(params.id)).catch(() => []),
         ])
         if (!courseRes.ok) throw new Error()
         const courseJson = await courseRes.json()
@@ -321,6 +333,23 @@ export default function AdminCourseDetailPage() {
           }
         })
         const teacher = (c.teacher as Record<string, unknown>) || {}
+        const studentRows: EnrolledStudentRow[] = (Array.isArray(enrollments) ? enrollments : []).map((item: any) => {
+          const student = item?.student || {}
+          const name = String(student?.name || "").trim()
+          const email = String(student?.email || "").trim()
+          return {
+            id: String(item?.id || `${student?.id || ""}-${item?.courseId || ""}`),
+            name: name || t("adm_cd_student_fallback", "Học viên"),
+            email,
+            progress: Number.isFinite(Number(item?.progress)) ? Number(item.progress) : 0,
+            status: String(item?.status || "active"),
+            enrolledAt: item?.createdAt ? String(item.createdAt) : undefined,
+            lastAccessedAt: item?.lastAccessedAt ? String(item.lastAccessedAt) : undefined,
+          }
+        })
+
+        setEnrolledStudents(studentRows)
+
         setCourse({
           id: c.id,
           title: c.title,
@@ -328,7 +357,7 @@ export default function AdminCourseDetailPage() {
           instructor: (teacher.name as string) || `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim() || "",
           instructorEmail: (teacher.email as string) || "",
           instructorId: (teacher.id as string) || "",
-          students: c.enrollmentCount || 0,
+          students: studentRows.length || c.enrollmentCount || 0,
           revenue: c.revenue || 0,
           price: c.price || 0,
           status: c.status,
@@ -346,7 +375,7 @@ export default function AdminCourseDetailPage() {
           sections: [{ id: "main", title: t("adm_cd_course_content", "Nội dung khóa học"), order: 1, lessons: lessonList }],
           totalLessons: lessonList.length,
           totalVideoDuration: "",
-          enrollmentCount: c.enrollmentCount || 0,
+          enrollmentCount: studentRows.length || c.enrollmentCount || 0,
           completionRate: 0,
           averageProgress: 0,
           rejectionReason: c.rejectionReason,
@@ -420,6 +449,41 @@ export default function AdminCourseDetailPage() {
     return text
   }
 
+  const formatDate = (value?: string) => {
+    if (!value) return "-"
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return "-"
+    return date.toLocaleDateString('vi-VN')
+  }
+
+  const formatLastAccess = (value?: string) => {
+    if (!value) return t("adm_cd_never_accessed", "Chưa truy cập")
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return "-"
+    return date.toLocaleString('vi-VN')
+  }
+
+  const handleDeleteCourse = async () => {
+    if (!course || isDeleting) return
+
+    const confirmed = window.confirm(
+      `${t("adm_cd_confirm_delete", "Bạn có chắc chắn muốn xóa khóa học")}: "${course.title}"? ${t("adm_cd_delete_warning", "Hành động này không thể hoàn tác.")}`,
+    )
+    if (!confirmed) return
+
+    setIsDeleting(true)
+    try {
+      await apiClient.deleteCourse(course.id)
+      toast.success(t("adm_cd_delete_success", "Đã xóa khóa học thành công"))
+      router.push('/admin/courses')
+    } catch (error) {
+      console.error('Failed to delete course:', error)
+      toast.error(t("adm_cd_delete_failed", "Không thể xóa khóa học"))
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className="p-6 md:p-8">
       <div className="w-full space-y-6">
@@ -433,13 +497,13 @@ export default function AdminCourseDetailPage() {
             <span>{t("adm_cd_back", "Quay lại")}</span>
           </button>
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 bg-secondary dark:bg-slate-800 hover:bg-secondary/80 dark:hover:bg-slate-700 text-foreground dark:text-white rounded-lg transition-smooth flex items-center gap-2">
-              <Edit size={18} />
-              {t("adm_cd_edit", "Chỉnh sửa")}
-            </button>
-            <button className="px-4 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-smooth flex items-center gap-2">
+            <button
+              onClick={handleDeleteCourse}
+              disabled={isDeleting}
+              className="px-4 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-smooth flex items-center gap-2 disabled:opacity-60"
+            >
               <Trash2 size={18} />
-              {t("adm_cd_delete", "Xóa")}
+              {isDeleting ? t("adm_cd_deleting", "Đang xóa...") : t("adm_cd_delete", "Xóa")}
             </button>
           </div>
         </div>
@@ -855,19 +919,10 @@ export default function AdminCourseDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { id: 1, name: 'Nguyễn Văn A', email: 'nguyenvana@email.com', progress: 85, status: 'active', enrolled: '2024-01-15', lastAccess: t('adm_cd_2h_ago', '2 giờ trước') },
-                    { id: 2, name: 'Trần Thị B', email: 'tranthib@email.com', progress: 100, status: 'completed', enrolled: '2024-01-10', lastAccess: t('adm_cd_1d_ago', '1 ngày trước') },
-                    { id: 3, name: 'Lê Văn C', email: 'levanc@email.com', progress: 45, status: 'active', enrolled: '2024-02-01', lastAccess: t('adm_cd_5h_ago', '5 giờ trước') },
-                    { id: 4, name: 'Phạm Thị D', email: 'phamthid@email.com', progress: 92, status: 'active', enrolled: '2024-01-20', lastAccess: t('adm_cd_3h_ago', '3 giờ trước') },
-                    { id: 5, name: 'Hoàng Văn E', email: 'hoangvane@email.com', progress: 15, status: 'active', enrolled: '2024-03-05', lastAccess: t('adm_cd_1w_ago', '1 tuần trước') },
-                    { id: 6, name: 'Vũ Thị F', email: 'vuthif@email.com', progress: 100, status: 'completed', enrolled: '2024-01-08', lastAccess: t('adm_cd_3d_ago', '3 ngày trước') },
-                    { id: 7, name: 'Đặng Văn G', email: 'dangvang@email.com', progress: 68, status: 'active', enrolled: '2024-02-15', lastAccess: t('adm_cd_1d_ago', '1 ngày trước') },
-                    { id: 8, name: 'Bùi Thị H', email: 'buithih@email.com', progress: 30, status: 'active', enrolled: '2024-02-28', lastAccess: t('adm_cd_2d_ago', '2 ngày trước') },
-                  ].map((student) => (
+                  {enrolledStudents.map((student) => (
                     <tr key={student.id} className="border-b border-border dark:border-slate-800 hover:bg-muted/50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="py-3 px-4 text-sm text-foreground dark:text-white font-medium">{student.name}</td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{student.email}</td>
+                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{student.email || '-'}</td>
                       <td className="py-3 px-4">
                         <div className="flex flex-col items-center gap-1">
                           <span className="text-sm font-semibold text-foreground dark:text-white">{student.progress}%</span>
@@ -880,7 +935,7 @@ export default function AdminCourseDetailPage() {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        {student.status === 'completed' ? (
+                        {String(student.status).toLowerCase() === 'completed' ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                             <CheckCircle className="w-3 h-3 mr-1" />
                             {t("adm_cd_completed", "Hoàn thành")}
@@ -892,22 +947,25 @@ export default function AdminCourseDetailPage() {
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{student.enrolled}</td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{student.lastAccess}</td>
+                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{formatDate(student.enrolledAt)}</td>
+                      <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{formatLastAccess(student.lastAccessedAt)}</td>
                     </tr>
                   ))}
+                  {enrolledStudents.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground dark:text-slate-400">
+                        {t("adm_cd_no_enrolled_students", "Chưa có học viên đăng ký khóa học này")}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
             
             <div className="mt-6 flex justify-between items-center">
-              <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_showing", "Hiển thị")} 8 / {course.students} {t("adm_cd_students", "học viên")}</p>
-              <div className="flex gap-2">
-                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">{t("adm_cd_prev", "Trước")}</button>
-                <button className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg">1</button>
-                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">2</button>
-                <button className="px-4 py-2 text-sm border border-border dark:border-slate-700 rounded-lg hover:bg-muted dark:hover:bg-slate-800 transition-colors">{t("adm_cd_next", "Sau")}</button>
-              </div>
+              <p className="text-sm text-muted-foreground dark:text-slate-400">
+                {t("adm_cd_showing", "Hiển thị")} {enrolledStudents.length} / {course.students} {t("adm_cd_students", "học viên")}
+              </p>
             </div>
           </div>
         )}

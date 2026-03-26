@@ -763,7 +763,14 @@ export default function TeacherAssignmentsPage() {
                                           <MoreVertical className="h-4 w-4" />
                                         </Button>
                                       </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
+                                      <DropdownMenuContent
+                                        align="end"
+                                        side="top"
+                                        sideOffset={8}
+                                        avoidCollisions={false}
+                                        sticky="always"
+                                        className="z-[1200] bg-slate-900 text-slate-100 border-slate-700 shadow-2xl"
+                                      >
                                         <DropdownMenuItem onClick={() => router.push(`/teacher/assignments/${row.assignmentId}/grade${selectedCourse !== 'all' ? `?courseId=${selectedCourse}` : ''}`)}>
                                           <CheckCircle2 className="mr-2 h-4 w-4" />
                                           {tr('Xem chi tiết chấm', 'View grading details')}

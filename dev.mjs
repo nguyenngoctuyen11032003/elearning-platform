@@ -27,7 +27,7 @@ async function main() {
     console.log(`\n⚠️  Port ${port} is in use, switching to port 3001...\n`);
     port = 3001;
   } else {
-    console.log(`\n✅ Starting development server on port ${port}...\n`);
+    console.log(`\n Starting development server on port ${port}...\n`);
   }
   
   const proc = spawn('next', ['dev', '-H', '0.0.0.0', '-p', port.toString()], {
