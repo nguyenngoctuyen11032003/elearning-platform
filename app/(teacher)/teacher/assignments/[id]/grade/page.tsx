@@ -160,6 +160,86 @@ function getAttachmentLabel(attachment: SubmissionAttachment): string {
   return attachment.url.split('/').pop() || attachment.url;
 }
 
+function normalizeStudentInfo(student: unknown): { name: string; email: string } {
+  if (!student || typeof student !== 'object') {
+    return { name: '', email: '' };
+  }
+
+  const studentObj = student as Record<string, unknown>;
+  const name = String(studentObj.name || studentObj.fullName || studentObj.firstName || '').trim();
+  const email = String(studentObj.email || '').trim();
+
+  return {
+    name: name || '(No name)',
+    email: email || '(No email)',
+  };
+}
+
+function formatSubmissionDate(dateValue: unknown, language: string): string {
+  if (!dateValue) return '(Unknown)';
+
+  let date: Date | null = null;
+
+  // Handle various date formats
+  if (typeof dateValue === 'string') {
+    // Try parsing ISO string or timestamp string
+    const parsed = new Date(dateValue);
+    if (!isNaN(parsed.getTime())) {
+      date = parsed;
+    } else {
+      // Try parsing as number (milliseconds)
+      const numValue = Number(dateValue);
+      if (!isNaN(numValue) && numValue > 0) {
+        date = new Date(numValue);
+      }
+    }
+  } else if (typeof dateValue === 'number' && dateValue > 0) {
+    // Milliseconds timestamp
+    date = new Date(dateValue);
+  }
+
+  // If still invalid, return fallback
+  if (!date || isNaN(date.getTime())) {
+    return '(Invalid Date)';
+  }
+
+  // Format with locale
+  try {
+    return date.toLocaleString(language === 'en' ? 'en-US' : 'vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  } catch {
+    return date.toISOString();
+  }
+}
+
+function extractValidPoints(criteria: WritingCriterion[]): Set<number> {
+  const validPoints = new Set<number>();
+  criteria.forEach((criterion) => {
+    criterion.levels.forEach((level) => {
+      validPoints.add(level.points);
+    });
+  });
+  return validPoints;
+}
+
+function snapScoreToValidPoint(score: number, validPoints: Set<number>): number {
+  if (validPoints.has(score)) return score;
+
+  // Find nearest valid point
+  const sortedPoints = Array.from(validPoints).sort((a, b) => a - b);
+  const nearest = sortedPoints.reduce((closest, point) => {
+    return Math.abs(point - score) < Math.abs(closest - score) ? point : closest;
+  });
+
+  return nearest;
+}
+
 export default function TeacherAssignmentGradingPage() {
   const { language } = useLanguage();
   const tr = (vi: string, en: string) => (language === 'en' ? en : vi);
@@ -218,6 +298,20 @@ export default function TeacherAssignmentGradingPage() {
 
   const allCriteriaSelected =
     criteria.length > 0 && selectedRows.every((row) => row.selectedLevelIndex >= 0);
+
+  const finalScore = useMemo(() => {
+    if (criteria.length === 0) {
+      return manualScore ?? 0;
+    }
+
+    if (!allCriteriaSelected) {
+      return 0;
+    }
+
+    const rawScore = Math.min(averageScore, assignment?.maxScore ?? averageScore);
+    const validPoints = extractValidPoints(criteria);
+    return snapScoreToValidPoint(rawScore, validPoints);
+  }, [allCriteriaSelected, averageScore, assignment, criteria, manualScore]);
 
   const loadData = async () => {
     if (!assignmentId) return;
@@ -296,33 +390,28 @@ export default function TeacherAssignmentGradingPage() {
   const handleSaveGrade = async () => {
     if (!selectedSubmission || !assignment) return;
 
-    let score: number;
+    // Validate we have a valid score
+    if (finalScore === 0 && (criteria.length > 0 || manualScore === 0)) {
+      if (criteria.length === 0 && (manualScore === null || manualScore === undefined)) {
+        toast.error(tr('Vui lòng nhập điểm', 'Please enter a score'));
+        return;
+      }
+      if (criteria.length > 0 && !allCriteriaSelected) {
+        toast.error(tr('Vui lòng chọn mức điểm cho tất cả tiêu chí', 'Please pick a score level for all criteria'));
+        return;
+      }
+    }
+
     const details = selectedRows.map((row) => ({
       criterion: row.criterion.title,
       selectedLevel: row.selectedLevelIndex,
       points: row.points,
     }));
 
-    if (criteria.length === 0) {
-      // No criteria: use manual score input
-      if (manualScore === null || manualScore === undefined) {
-        toast.error(tr('Vui lòng nhập điểm', 'Please enter a score'));
-        return;
-      }
-      score = Math.min(manualScore, assignment.maxScore || 100);
-    } else {
-      // Has criteria: require all to be selected and use calculated average
-      if (!allCriteriaSelected) {
-        toast.error(tr('Vui lòng chọn mức điểm cho tất cả tiêu chí', 'Please pick a score level for all criteria'));
-        return;
-      }
-      score = Math.min(averageScore, assignment.maxScore || averageScore);
-    }
-
     setSaving(true);
     try {
       await apiClient.gradeSubmission(selectedSubmission.id, {
-        score,
+        score: finalScore,
         feedback,
         gradingDetails: details.length > 0 ? details : undefined,
       });
@@ -384,6 +473,9 @@ export default function TeacherAssignmentGradingPage() {
             )}
             {submissions.map((submission) => {
               const active = submission.id === selectedSubmissionId;
+              const studentInfo = normalizeStudentInfo(submission.student);
+              const submittedAtFormatted = formatSubmissionDate(submission.submittedAt, language);
+
               return (
                 <button
                   key={submission.id}
@@ -395,16 +487,12 @@ export default function TeacherAssignmentGradingPage() {
                       : 'border-border bg-background hover:border-primary/40'
                   }`}
                 >
-                  <p className="font-medium text-foreground">{submission.student?.name || tr('Học viên', 'Student')}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{submission.student?.email || ''}</p>
+                  <p className="font-medium text-foreground">{studentInfo.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{studentInfo.email}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {tr('Nộp lúc', 'Submitted at')}:{' '}
-                    {submission.submittedAt
-                      ? new Date(submission.submittedAt).toLocaleString(language === 'en' ? 'en-US' : 'vi-VN')
-                      : tr('Không rõ', 'Unknown')}
+                    {tr('Nộp lúc', 'Submitted at')}: {submittedAtFormatted}
                   </p>
-                  <div className="mt-2">
-                    {submission.status === 'graded' ? (
+                  <div className="mt-2">{submission.status === 'graded' ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">
                         <CheckCircle2 size={12} /> {tr('Đã chấm', 'Graded')} ({submission.score ?? 0} {tr('điểm', 'points')})
                       </span>
@@ -501,9 +589,7 @@ export default function TeacherAssignmentGradingPage() {
                     <div className="flex items-center justify-between">
                       <p className="font-semibold text-foreground">{tr('Tổng điểm', 'Overall')}</p>
                       <p className="text-lg font-bold text-green-700">
-                        {criteria.length > 0
-                          ? `${Math.min(averageScore, assignment?.maxScore ?? averageScore)} / ${assignment?.maxScore ?? 100}`
-                          : `${manualScore ?? 0} / ${assignment?.maxScore ?? 100}`}
+                        {`${finalScore} / ${assignment?.maxScore ?? 100}`}
                       </p>
                     </div>
                     {criteria.length === 0 && (
