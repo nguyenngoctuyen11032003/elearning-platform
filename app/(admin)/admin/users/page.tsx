@@ -233,9 +233,25 @@ export default function AdminUsersPage() {
     }
 
     if (typeof value === "object" && value !== null) {
-      const maybeDate = (value as { $date?: unknown }).$date
-      if (maybeDate !== undefined) {
-        return normalizeDateValue(maybeDate)
+      const typedValue = value as {
+        $date?: unknown
+        date?: unknown
+        value?: unknown
+        iso?: unknown
+        timestamp?: unknown
+      }
+      const objectCandidates = [
+        typedValue.$date,
+        typedValue.date,
+        typedValue.value,
+        typedValue.iso,
+        typedValue.timestamp,
+      ]
+
+      for (const candidate of objectCandidates) {
+        if (candidate === undefined) continue
+        const normalized = normalizeDateValue(candidate)
+        if (normalized) return normalized
       }
     }
 
@@ -319,8 +335,12 @@ const fetchUsers = async () => {
     const normalizedLastLoginAt = getNormalizedDateFromCandidates(user, [
       "lastLoginAt",
       "last_login_at",
+      "lastActive",
+      "last_active",
       "lastSeenAt",
       "last_seen_at",
+      "lastActivityAt",
+      "last_activity_at",
     ])
 
     return {
@@ -563,7 +583,19 @@ const getLastActiveDate = (user: UserData): string | undefined => {
   const lastActive = normalizeDateValue(user.lastLoginAt)
   if (lastActive) return lastActive
 
+  const fallbackLastActive = normalizeDateValue(user.lastActive)
+  if (fallbackLastActive) return fallbackLastActive
+
   return undefined
+}
+
+const getLastActiveDisplay = (user: UserData): string => {
+  const lastActiveDate = getLastActiveDate(user)
+  if (lastActiveDate) {
+    return formatDateTime(lastActiveDate)
+  }
+
+  return t("user_never_logged_in", "Chưa có lần đăng nhập")
 }
   // ================= STATS =================
   const totalUsers = userList.length
@@ -1103,9 +1135,7 @@ const getLastActiveDate = (user: UserData): string | undefined => {
                       <span className="text-sm">{t("user_last_active", "Hoạt động gần nhất")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">
-                      {viewUser && getLastActiveDate(viewUser)
-                      ? formatDateTime(getLastActiveDate(viewUser))
-                      : t("common_not_updated", "Chưa cập nhật")}
+                      {viewUser ? getLastActiveDisplay(viewUser) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
                   </div>
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
@@ -1288,9 +1318,7 @@ const getLastActiveDate = (user: UserData): string | undefined => {
                       <span className="text-sm">{t("user_last_active", "Hoạt động gần nhất")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">
-                      {viewUser && getLastActiveDate(viewUser)
-                      ? formatDateTime(getLastActiveDate(viewUser))
-                      : t("common_not_updated", "Chưa cập nhật")}
+                      {viewUser ? getLastActiveDisplay(viewUser) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
                   </div>
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
