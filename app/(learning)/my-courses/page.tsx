@@ -28,6 +28,33 @@ interface EnrolledCourse {
   enrolledAt: string
 }
 
+const normalizeProgress = (value: unknown): number => {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return 0
+  return Math.max(0, Math.min(100, Math.round(parsed)))
+}
+
+const normalizeStatus = (value: unknown): string => {
+  return String(value ?? "").trim().toLowerCase()
+}
+
+const isCompletedEnrollment = (enrollment: Pick<EnrolledCourse, "progress" | "status">): boolean => {
+  const status = normalizeStatus(enrollment.status)
+  return (
+    enrollment.progress >= 100 ||
+    status === "completed" ||
+    status === "complete" ||
+    status === "done" ||
+    status === "finished"
+  )
+}
+
+const isInProgressEnrollment = (enrollment: Pick<EnrolledCourse, "progress" | "status">): boolean => {
+  if (isCompletedEnrollment(enrollment)) return false
+  const status = normalizeStatus(enrollment.status)
+  return enrollment.progress > 0 || status === "in-progress" || status === "in_progress" || status === "learning"
+}
+
 export default function MyCoursesPage() {
   const { t } = useLanguage()
   const { user } = useAuth()
@@ -48,7 +75,14 @@ export default function MyCoursesPage() {
     try {
       setLoading(true)
       const enrollments = await apiClient.getMyEnrollments()
-      setCourses(Array.isArray(enrollments) ? enrollments : [])
+      const normalized = Array.isArray(enrollments)
+        ? enrollments.map((item: any) => ({
+            ...item,
+            progress: normalizeProgress(item?.progress),
+            status: normalizeStatus(item?.status),
+          }))
+        : []
+      setCourses(normalized)
     } catch (error) {
       console.error("Error fetching enrollments:", error)
       setCourses([])
@@ -101,9 +135,9 @@ export default function MyCoursesPage() {
   const filteredCourses = courses.filter(enrollment => {
     const matchesFilter =
       filter === "all" ||
-      (filter === "in-progress" && enrollment.progress > 0 && enrollment.progress < 100) ||
-      (filter === "completed" && enrollment.progress === 100) ||
-      (filter === "not-started" && enrollment.progress === 0)
+      (filter === "in-progress" && isInProgressEnrollment(enrollment)) ||
+      (filter === "completed" && isCompletedEnrollment(enrollment)) ||
+      (filter === "not-started" && enrollment.progress === 0 && !isCompletedEnrollment(enrollment))
 
     const matchesSearch = enrollment.course.title.toLowerCase().includes(searchTerm.toLowerCase())
 
@@ -163,14 +197,12 @@ export default function MyCoursesPage() {
 
   const stats = {
     total: courses.length,
-    inProgress: courses.filter(c => c.progress > 0 && c.progress < 100).length,
-    completed: courses.filter(c => c.progress === 100).length,
-    notStarted: courses.filter(c => c.progress === 0).length,
+    inProgress: courses.filter((course) => isInProgressEnrollment(course)).length,
+    completed: courses.filter((course) => isCompletedEnrollment(course)).length,
+    notStarted: courses.filter((course) => course.progress === 0 && !isCompletedEnrollment(course)).length,
   }
 
-  const averageProgress = courses.length > 0
-    ? Math.round(courses.reduce((sum, c) => sum + c.progress, 0) / courses.length)
-    : 0
+  const completedRatio = stats.total > 0 ? stats.completed / stats.total : 0
 
   if (loading) {
     return (
@@ -292,7 +324,9 @@ export default function MyCoursesPage() {
                                 {enrollment.course.title}
                               </h3>
                               <p className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded inline-block">
-                                {enrollment.progress === 100 ? t("mycourses_completed", "Hoàn thành") : t("mycourses_in_progress", "Đang học")}
+                                {isCompletedEnrollment(enrollment)
+                                  ? t("mycourses_completed", "Hoàn thành")
+                                  : t("mycourses_in_progress", "Đang học")}
                               </p>
                             </div>
                             <div className="relative group flex-shrink-0">
@@ -417,7 +451,7 @@ export default function MyCoursesPage() {
                         fill="none"
                         stroke="#8b5cf6"
                         strokeWidth="8"
-                        strokeDasharray={`${(averageProgress / 100) * 282.7} 282.7`}
+                        strokeDasharray={`${completedRatio * 282.7} 282.7`}
                         strokeLinecap="round"
                         transform="rotate(-90 50 50)"
                       />
@@ -425,7 +459,7 @@ export default function MyCoursesPage() {
                     </svg>
                   </div>
                   <div className="absolute text-center">
-                    <p className="text-2xl md:text-4xl font-bold text-foreground dark:text-white">{Math.round(averageProgress)}%</p>
+                    <p className="text-2xl md:text-4xl font-bold text-foreground dark:text-white">{stats.completed}</p>
                     <p className="text-xs md:text-sm text-muted-foreground dark:text-slate-400">{t("mycourses_completed", "Hoàn thành")}</p>
                   </div>
                 </div>
@@ -447,7 +481,7 @@ export default function MyCoursesPage() {
                 <h3 className="text-base md:text-lg font-bold text-foreground dark:text-white mb-4 md:mb-6">{t("mycourses_completed_list", "Đã hoàn thành")}</h3>
                 <div className="space-y-3 md:space-y-4">
                   {courses
-                    .filter(c => c.progress === 100)
+                    .filter((course) => isCompletedEnrollment(course))
                     .map((enrollment) => (
                       <Link
                         key={enrollment.id}
@@ -466,7 +500,7 @@ export default function MyCoursesPage() {
                         <ChevronRight size={14} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                       </Link>
                     ))}
-                  {courses.filter(c => c.progress === 100).length === 0 && (
+                  {courses.filter((course) => isCompletedEnrollment(course)).length === 0 && (
                     <p className="text-sm text-muted-foreground dark:text-slate-400 text-center py-6">{t("mycourses_none_completed", "Chưa hoàn thành khóa học nào")}</p>
                   )}
                 </div>
