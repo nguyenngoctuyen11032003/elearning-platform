@@ -97,8 +97,6 @@ export default function EditExamPage() {
   const [pendingAction, setPendingAction] = useState<{ type: "import" | "multiple_choice" | "true_false" | "fill_in" } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [courses, setCourses] = useState<Course[]>([])
-  const [templates, setTemplates] = useState<CertificateTemplate[]>([])
-  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -114,6 +112,8 @@ export default function EditExamPage() {
   const [questions, setQuestions] = useState<Question[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [hasLegacyQuestionPayload, setHasLegacyQuestionPayload] = useState(false)
+  const [templates, setTemplates] = useState<CertificateTemplate[]>([])
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
 
   const normalizeQuestionType = (value: any): Question["type"] => {
     const normalized = String(value || "multiple_choice").toLowerCase().trim()
@@ -549,6 +549,13 @@ export default function EditExamPage() {
         ...formData,
         status: asDraft ? "draft" : "approved",
         questions: normalizedQuestions,
+      }
+
+      const normalizedTemplateId = String(formData.certificateTemplateId || "").trim()
+      if (formData.type !== "official" || !normalizedTemplateId) {
+        delete examData.certificateTemplateId
+      } else {
+        examData.certificateTemplateId = normalizedTemplateId
       }
 
       if (!asDraft && normalizedQuestions.length === 0) {
@@ -1603,7 +1610,7 @@ function ImportQuestionsModal({
                     <span className="w-6 h-6 flex items-center justify-center bg-primary/10 text-primary rounded font-semibold text-sm">
                       {index + 1}
                     </span>
-                    <span className="flex-1 text-foreground dark:text-white text-sm truncate">{q.question}</span>
+                    <span className="flex-1 text-foreground dark:text-white text-sm truncate"><ScientificText as="span" text={q.question} /></span>
                     <span className="text-xs text-muted-foreground">{q.points} điểm</span>
                   </div>
                 ))}

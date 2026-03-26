@@ -429,7 +429,7 @@ export default function TakeExamPage() {
         {safeQuestions.map((q, idx) => (
           <div key={q.id} className="rounded-xl border bg-card p-4">
             <p className="mb-2 font-medium whitespace-pre-wrap break-words leading-relaxed">
-              Câu {idx + 1}: {q.question}
+              Câu {idx + 1}: <ScientificText as="span" text={q.question} />
             </p>
             {q.image && (
               <img

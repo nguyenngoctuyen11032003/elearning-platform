@@ -4,6 +4,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { CheckCircle, XCircle } from "lucide-react"
 import { AnimatedButton } from "./animated-button"
+import { ScientificText } from "@/components/scientific-text"
 
 interface QuizQuestion {
   id: string
@@ -129,7 +130,9 @@ export function QuizComponent({ questions, onComplete }: QuizComponentProps) {
 
       {/* Question */}
       <motion.div key={currentQuestion} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h3 className="text-2xl font-bold text-white mb-6">{question.question}</h3>
+        <h3 className="text-2xl font-bold text-white mb-6">
+          <ScientificText as="span" text={question.question} />
+        </h3>
 
         {/* Options */}
         <div className="space-y-3">
