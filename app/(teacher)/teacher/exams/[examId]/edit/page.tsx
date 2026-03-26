@@ -112,6 +112,8 @@ export default function EditExamPage() {
   const [questions, setQuestions] = useState<Question[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [hasLegacyQuestionPayload, setHasLegacyQuestionPayload] = useState(false)
+  const [templates, setTemplates] = useState<CertificateTemplate[]>([])
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
 
   const normalizeQuestionType = (value: any): Question["type"] => {
     const normalized = String(value || "multiple_choice").toLowerCase().trim()
