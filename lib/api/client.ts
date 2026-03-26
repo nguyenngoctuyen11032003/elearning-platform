@@ -1014,6 +1014,7 @@ if (typeof window !== 'undefined' && token) {
     const result = await this.request(`/courses/${courseId}/enrollments`);
     if (Array.isArray(result)) return result;
     if (Array.isArray((result as any)?.data)) return (result as any).data;
+    if (Array.isArray((result as any)?.data?.data)) return (result as any).data.data;
     return [];
   }
 

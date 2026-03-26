@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { toast } from "sonner"
 
 interface Exam {
   id: string
@@ -280,11 +281,21 @@ export default function AdminExamsPage() {
         throw new Error(t("adm_exam_delete_fail", "Failed to delete exam"))
       }
 
-      await fetchExams()
+      setExams((prev) => prev.filter((exam) => exam.id !== examId))
       setConfirmDialog({ isOpen: false, action: "" })
+      toast.success(t("adm_exam_delete_ok", "Đã xóa bài thi thành công"))
+
+      // Refresh background data without overriding successful delete notification.
+      fetchExams().catch((refreshError) => {
+        console.warn("Refresh exams after delete failed", refreshError)
+      })
     } catch (error) {
       console.error("Delete failed", error)
-      window.alert(t("adm_exam_delete_fail", "Không thể xóa bài thi"))
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : t("adm_exam_delete_fail", "Không thể xóa bài thi")
+      toast.error(message)
     }
   }
 

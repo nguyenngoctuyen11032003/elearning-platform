@@ -24,6 +24,7 @@ import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { autoTranslateData } from "@/lib/i18n/dynamic-translate"
 import { ScientificText } from "@/components/scientific-text"
+import { toast } from "sonner"
 
 interface Question {
   id: string
@@ -224,7 +225,6 @@ export default function AdminExamDetailPage() {
   const [loadError, setLoadError] = useState("")
   const [activeTab, setActiveTab] = useState<"overview" | "questions" | "attempts" | "analytics">("overview")
   const [actionLoading, setActionLoading] = useState(false)
-  const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [rejectDialog, setRejectDialog] = useState(false)
   const [rejectionReason, setRejectionReason] = useState("")
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -447,11 +447,6 @@ export default function AdminExamDetailPage() {
     }
   }
 
-  const showToast = (type: "success" | "error", text: string) => {
-    setToastMsg({ type, text })
-    setTimeout(() => setToastMsg(null), 3000)
-  }
-
   const handleApprove = async () => {
     if (actionLoading) return
     setActionLoading(true)
@@ -461,10 +456,14 @@ export default function AdminExamDetailPage() {
         headers: getAuthHeaders(),
       })
       if (!res.ok) throw new Error(t("adm_examd_approve_fail", "Failed to approve exam"))
-      showToast("success", t("adm_examd_approve_ok", "Đã duyệt bài thi thành công"))
+      toast.success(t("adm_examd_approve_ok", "Đã duyệt bài thi thành công"))
       await fetchExamDetail()
-    } catch {
-      showToast("error", t("adm_examd_approve_fail", "Không thể duyệt bài thi"))
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : t("adm_examd_approve_fail", "Không thể duyệt bài thi")
+      toast.error(message)
     } finally {
       setActionLoading(false)
     }
@@ -480,12 +479,16 @@ export default function AdminExamDetailPage() {
         body: JSON.stringify({ reason: rejectionReason.trim() }),
       })
       if (!res.ok) throw new Error(t("adm_examd_reject_fail", "Failed to reject exam"))
-      showToast("success", t("adm_examd_reject_ok", "Đã từ chối bài thi"))
+      toast.success(t("adm_examd_reject_ok", "Đã từ chối bài thi"))
       setRejectDialog(false)
       setRejectionReason("")
       await fetchExamDetail()
-    } catch {
-      showToast("error", t("adm_examd_reject_fail", "Không thể từ chối bài thi"))
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : t("adm_examd_reject_fail", "Không thể từ chối bài thi")
+      toast.error(message)
     } finally {
       setActionLoading(false)
     }
@@ -500,10 +503,16 @@ export default function AdminExamDetailPage() {
         headers: getAuthHeaders(),
       })
       if (!res.ok) throw new Error(t("adm_examd_delete_fail", "Failed to delete exam"))
-      showToast("success", t("adm_examd_delete_ok", "Đã xóa bài thi"))
-      setTimeout(() => router.push("/admin/exams"), 1000)
-    } catch {
-      showToast("error", t("adm_examd_delete_fail", "Không thể xóa bài thi"))
+      toast.success(t("adm_examd_delete_ok", "Đã xóa bài thi thành công"))
+      setConfirmDelete(false)
+      setTimeout(() => router.push("/admin/exams"), 900)
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : t("adm_examd_delete_fail", "Không thể xóa bài thi")
+      toast.error(message)
+    } finally {
       setActionLoading(false)
     }
   }
@@ -1038,14 +1047,6 @@ export default function AdminExamDetailPage() {
           </div>
         )}
       </div>
-
-      {/* Toast Notification */}
-      {toastMsg && (
-        <div className={`fixed bottom-6 right-6 z-[9999] px-6 py-3 rounded-xl shadow-xl text-white font-medium flex items-center gap-2 ${toastMsg.type === "success" ? "bg-green-500" : "bg-red-500"}`}>
-          {toastMsg.type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-          {toastMsg.text}
-        </div>
-      )}
 
       {/* Reject Dialog */}
       {rejectDialog && (

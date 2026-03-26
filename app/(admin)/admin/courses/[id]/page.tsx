@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
+  Edit,
+  Save,
   Trash2,
   BookOpen,
   Users,
@@ -120,6 +122,48 @@ export default function AdminCourseDetailPage() {
   const [expandedQuizLessonId, setExpandedQuizLessonId] = useState<string | null>(null)
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudentRow[]>([])
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [editDraft, setEditDraft] = useState({
+    title: "",
+    description: "",
+    price: "0",
+    status: "pending" as CourseDetail["status"],
+    reason: "",
+  })
+
+  const durationToMinutes = (value?: string) => {
+    if (!value) return 0
+    const text = String(value).trim().toLowerCase()
+    if (!text) return 0
+
+    const hourMatch = text.match(/(\d+)\s*(h|gio|hour)/i)
+    const minuteMatch = text.match(/(\d+)\s*(m|phut|min|minute)/i)
+    if (hourMatch || minuteMatch) {
+      const hours = hourMatch ? Number(hourMatch[1]) : 0
+      const minutes = minuteMatch ? Number(minuteMatch[1]) : 0
+      return hours * 60 + minutes
+    }
+
+    const colonMatch = text.match(/^(\d{1,2}):(\d{1,2})$/)
+    if (colonMatch) {
+      return Number(colonMatch[1]) * 60 + Number(colonMatch[2])
+    }
+
+    const parsed = Number(text.replace(/[^\d.]/g, ""))
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  const formatMinutes = (totalMinutes: number) => {
+    if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) {
+      return t("adm_cd_not_available", "Chưa có")
+    }
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
+    if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`
+    if (hours > 0) return `${hours}h`
+    return `${minutes}m`
+  }
 
   const parseWritingCriteria = (instructions: unknown): string[] => {
     if (!instructions) return []
@@ -337,11 +381,13 @@ export default function AdminCourseDetailPage() {
           const student = item?.student || {}
           const name = String(student?.name || "").trim()
           const email = String(student?.email || "").trim()
+          const rawProgress = item?.progress ?? item?.completionRate ?? item?.progressPercent ?? 0
+          const progress = Number.isFinite(Number(rawProgress)) ? Math.max(0, Math.min(100, Number(rawProgress))) : 0
           return {
             id: String(item?.id || `${student?.id || ""}-${item?.courseId || ""}`),
             name: name || t("adm_cd_student_fallback", "Học viên"),
             email,
-            progress: Number.isFinite(Number(item?.progress)) ? Number(item.progress) : 0,
+            progress,
             status: String(item?.status || "active"),
             enrolledAt: item?.createdAt ? String(item.createdAt) : undefined,
             lastAccessedAt: item?.lastAccessedAt ? String(item.lastAccessedAt) : undefined,
@@ -350,6 +396,29 @@ export default function AdminCourseDetailPage() {
 
         setEnrolledStudents(studentRows)
 
+        const totalMinutes = lessonList.reduce(
+          (sum, lesson) => sum + durationToMinutes(lesson.duration),
+          0,
+        )
+        const totalVideoMinutes = lessonList
+          .filter((lesson) => lesson.type === "video")
+          .reduce((sum, lesson) => sum + durationToMinutes(lesson.duration), 0)
+
+        const enrollmentCount = studentRows.length || Number(c.enrollmentCount) || 0
+        const completedCount = studentRows.filter((student) => {
+          const status = String(student.status || "").toLowerCase()
+          return status === "completed" || student.progress >= 100
+        }).length
+        const completionRate = enrollmentCount > 0 ? Math.round((completedCount / enrollmentCount) * 100) : 0
+        const averageProgress = enrollmentCount > 0
+          ? Math.round(
+              studentRows.reduce((sum, student) => sum + Number(student.progress || 0), 0) /
+                enrollmentCount,
+            )
+          : 0
+        const normalizedPrice = Number(c.price) || 0
+        const normalizedRevenue = Number(c.revenue) || (normalizedPrice > 0 ? normalizedPrice * enrollmentCount : 0)
+
         setCourse({
           id: c.id,
           title: c.title,
@@ -357,15 +426,15 @@ export default function AdminCourseDetailPage() {
           instructor: (teacher.name as string) || `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim() || "",
           instructorEmail: (teacher.email as string) || "",
           instructorId: (teacher.id as string) || "",
-          students: studentRows.length || c.enrollmentCount || 0,
-          revenue: c.revenue || 0,
-          price: c.price || 0,
+          students: enrollmentCount,
+          revenue: normalizedRevenue,
+          price: normalizedPrice,
           status: c.status,
           createdAt: c.createdAt || "",
           updatedAt: c.updatedAt || "",
           category: (c.category as Record<string, unknown>)?.name as string || "",
           thumbnail: c.thumbnail || "",
-          duration: "",
+          duration: formatMinutes(totalMinutes),
           rating: c.averageRating || 0,
           reviewCount: c.reviewCount || 0,
           level: c.level || "beginner",
@@ -374,11 +443,18 @@ export default function AdminCourseDetailPage() {
           learningOutcomes: c.learningOutcomes || [],
           sections: [{ id: "main", title: t("adm_cd_course_content", "Nội dung khóa học"), order: 1, lessons: lessonList }],
           totalLessons: lessonList.length,
-          totalVideoDuration: "",
-          enrollmentCount: studentRows.length || c.enrollmentCount || 0,
-          completionRate: 0,
-          averageProgress: 0,
+          totalVideoDuration: formatMinutes(totalVideoMinutes),
+          enrollmentCount,
+          completionRate,
+          averageProgress,
           rejectionReason: c.rejectionReason,
+        })
+        setEditDraft({
+          title: String(c.title || ""),
+          description: String(c.description || ""),
+          price: String(normalizedPrice),
+          status: (c.status || "pending") as CourseDetail["status"],
+          reason: c.rejectionReason || "",
         })
       } catch {
         toast.error(t("adm_cd_load_err", "Không thể tải thông tin khóa học"))
@@ -475,13 +551,131 @@ export default function AdminCourseDetailPage() {
     try {
       await apiClient.deleteCourse(course.id)
       toast.success(t("adm_cd_delete_success", "Đã xóa khóa học thành công"))
-      router.push('/admin/courses')
+      setTimeout(() => {
+        router.push('/admin/courses')
+      }, 900)
     } catch (error) {
       console.error('Failed to delete course:', error)
-      toast.error(t("adm_cd_delete_failed", "Không thể xóa khóa học"))
+      const message = error instanceof Error && error.message
+        ? error.message
+        : t("adm_cd_delete_failed", "Không thể xóa khóa học")
+      toast.error(message)
     } finally {
       setIsDeleting(false)
     }
+  }
+
+  const handleSaveEditCourse = async () => {
+    if (!course || isSaving) return
+
+    const title = editDraft.title.trim()
+    const description = editDraft.description.trim()
+    const price = Number(editDraft.price)
+    const status = editDraft.status
+    const reason = editDraft.reason.trim()
+
+    if (!title) {
+      toast.error(t("adm_cd_edit_title_required", "Vui lòng nhập tiêu đề khóa học"))
+      return
+    }
+
+    if (!description) {
+      toast.error(t("adm_cd_edit_desc_required", "Vui lòng nhập mô tả khóa học"))
+      return
+    }
+
+    if (!Number.isFinite(price) || price < 0) {
+      toast.error(t("adm_cd_edit_price_invalid", "Giá khóa học không hợp lệ"))
+      return
+    }
+
+    if (!["pending", "approved", "rejected", "published"].includes(status)) {
+      toast.error(t("adm_cd_edit_status_invalid", "Trạng thái khóa học không hợp lệ"))
+      return
+    }
+
+    if (status === "rejected" && !reason) {
+      toast.error(t("adm_cd_edit_reason_required", "Vui lòng nhập lý do từ chối"))
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const payload: Record<string, unknown> = {
+        title,
+        description,
+        price,
+        status,
+      }
+      if (status === "rejected") {
+        payload.rejectionReason = reason
+      }
+
+      await apiClient.updateCourse(course.id, payload)
+
+      setCourse((prev) =>
+        prev
+          ? {
+              ...prev,
+              title,
+              description,
+              price,
+              status,
+              rejectionReason: status === "rejected" ? reason : undefined,
+            }
+          : prev,
+      )
+      setIsEditing(false)
+      toast.success(t("adm_cd_edit_saved", "Đã cập nhật khóa học"))
+    } catch (error) {
+      console.error('Failed to update course:', error)
+      const message = error instanceof Error && error.message
+        ? error.message
+        : t("adm_cd_edit_failed", "Không thể cập nhật khóa học")
+      toast.error(message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    if (!course) return
+    setEditDraft({
+      title: course.title,
+      description: course.description,
+      price: String(course.price),
+      status: course.status,
+      reason: course.rejectionReason || "",
+    })
+    setIsEditing(false)
+  }
+
+  const getMonthlyEnrollmentStats = () => {
+    const now = new Date()
+    const stats = Array.from({ length: 6 }).map((_, index) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1)
+      return {
+        key: `${date.getFullYear()}-${date.getMonth()}`,
+        month: `T${date.getMonth() + 1}`,
+        enrollments: 0,
+      }
+    })
+
+    const indexMap = new Map(stats.map((item, index) => [item.key, index]))
+    enrolledStudents.forEach((student) => {
+      if (!student.enrolledAt) return
+      const d = new Date(student.enrolledAt)
+      if (Number.isNaN(d.getTime())) return
+      const key = `${d.getFullYear()}-${d.getMonth()}`
+      const idx = indexMap.get(key)
+      if (idx === undefined) return
+      stats[idx].enrollments += 1
+    })
+
+    return stats.map((item) => ({
+      ...item,
+      revenue: item.enrollments * (Number(course?.price) || 0),
+    }))
   }
 
   return (
@@ -497,6 +691,32 @@ export default function AdminCourseDetailPage() {
             <span>{t("adm_cd_back", "Quay lại")}</span>
           </button>
           <div className="flex items-center gap-3">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={handleSaveEditCourse}
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-smooth flex items-center gap-2 disabled:opacity-60"
+                >
+                  <Save size={18} />
+                  {isSaving ? t("adm_cd_saving", "Đang lưu...") : t("adm_cd_save", "Lưu")}
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-smooth"
+                >
+                  {t("common_cancel", "Hủy")}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-smooth flex items-center gap-2"
+              >
+                <Edit size={18} />
+                {t("common_edit", "Chỉnh sửa")}
+              </button>
+            )}
             <button
               onClick={handleDeleteCourse}
               disabled={isDeleting}
@@ -519,8 +739,82 @@ export default function AdminCourseDetailPage() {
             <div className="flex-1 space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-foreground dark:text-white mb-2">{course.title}</h1>
-                  <p className="text-muted-foreground dark:text-slate-400">{course.description}</p>
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <input
+                        value={editDraft.title}
+                        onChange={(e) =>
+                          setEditDraft((prev) => ({ ...prev, title: e.target.value }))
+                        }
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+                        placeholder={t("adm_cd_course_title", "Tiêu đề khóa học")}
+                      />
+                      <textarea
+                        value={editDraft.description}
+                        onChange={(e) =>
+                          setEditDraft((prev) => ({ ...prev, description: e.target.value }))
+                        }
+                        rows={3}
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+                        placeholder={t("adm_cd_course_desc", "Mô tả khóa học")}
+                      />
+                      <div className="max-w-xs">
+                        <label className="mb-1 block text-sm text-muted-foreground">
+                          {t("adm_cd_price", "Giá")}
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={editDraft.price}
+                          onChange={(e) =>
+                            setEditDraft((prev) => ({ ...prev, price: e.target.value }))
+                          }
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+                        />
+                      </div>
+                      <div className="max-w-xs">
+                        <label className="mb-1 block text-sm text-muted-foreground">
+                          {t("adm_cd_status", "Trạng thái")}
+                        </label>
+                        <select
+                          value={editDraft.status}
+                          onChange={(e) =>
+                            setEditDraft((prev) => ({
+                              ...prev,
+                              status: e.target.value as CourseDetail["status"],
+                            }))
+                          }
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+                        >
+                          <option value="pending">{t("adm_cd_pending", "Chờ duyệt")}</option>
+                          <option value="approved">{t("adm_cd_approved", "Đã duyệt")}</option>
+                          <option value="rejected">{t("adm_cd_rejected", "Từ chối")}</option>
+                          <option value="published">{t("adm_cd_published", "Đã xuất bản")}</option>
+                        </select>
+                      </div>
+                      {editDraft.status === "rejected" && (
+                        <div className="w-full">
+                          <label className="mb-1 block text-sm text-muted-foreground">
+                            {t("adm_cd_rejection_reason", "Lý do từ chối")} <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            value={editDraft.reason}
+                            onChange={(e) =>
+                              setEditDraft((prev) => ({ ...prev, reason: e.target.value }))
+                            }
+                            rows={2}
+                            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+                            placeholder={t("adm_cd_rejection_reason_placeholder", "Nhập lý do từ chối...")}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <h1 className="text-3xl font-bold text-foreground dark:text-white mb-2">{course.title}</h1>
+                      <p className="text-muted-foreground dark:text-slate-400">{course.description}</p>
+                    </>
+                  )}
                 </div>
                 {getStatusBadge(course.status)}
               </div>
@@ -995,27 +1289,22 @@ export default function AdminCourseDetailPage() {
             <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
               <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("adm_cd_revenue_over_time", "Doanh thu theo thời gian")}</h3>
               <div className="h-64 flex items-end justify-between gap-2">
-                {[
-                  { month: 'T1', revenue: 15000000, enrollments: 25 },
-                  { month: 'T2', revenue: 22000000, enrollments: 37 },
-                  { month: 'T3', revenue: 28000000, enrollments: 47 },
-                  { month: 'T4', revenue: 25000000, enrollments: 42 },
-                  { month: 'T5', revenue: 32000000, enrollments: 53 },
-                  { month: 'T6', revenue: 35000000, enrollments: 58 },
-                ].map((data, index) => (
+                {getMonthlyEnrollmentStats().map((data, index, arr) => {
+                  const maxRevenue = Math.max(...arr.map((item) => item.revenue), 1)
+                  return (
                   <div key={index} className="flex-1 flex flex-col items-center gap-2">
                     <div className="text-xs text-muted-foreground dark:text-slate-400 mb-1">
                       {(data.revenue / 1000000).toFixed(0)}M
                     </div>
                     <div 
                       className="w-full bg-gradient-to-t from-green-500 to-emerald-400 dark:from-green-600 dark:to-emerald-400 rounded-t-lg transition-all hover:opacity-80 cursor-pointer"
-                      style={{ height: `${(data.revenue / 35000000) * 100}%` }}
+                      style={{ height: `${(data.revenue / maxRevenue) * 100}%` }}
                       title={`${data.enrollments} ${t("adm_cd_enrollments_unit", "đăng ký")}, ${(data.revenue / 1000000).toFixed(1)}M VNĐ`}
                     ></div>
                     <div className="text-xs font-medium text-foreground dark:text-white">{data.month}</div>
                     <div className="text-xs text-muted-foreground dark:text-slate-400">{data.enrollments}</div>
                   </div>
-                ))}
+                )})}
               </div>
               <div className="mt-4 pt-4 border-t border-border dark:border-slate-800 flex justify-between text-sm">
                 <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_enrollment_count", "Số lượng đăng ký")}</span>
@@ -1027,31 +1316,26 @@ export default function AdminCourseDetailPage() {
             <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
               <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("adm_cd_completion_by_section", "Tỷ lệ hoàn thành theo chương")}</h3>
               <div className="space-y-4">
-                {[
-                  { section: 'Giới thiệu và cài đặt', lessons: 5, completion: 95 },
-                  { section: 'Cơ bản về React', lessons: 8, completion: 88 },
-                  { section: 'Hooks và State Management', lessons: 10, completion: 75 },
-                  { section: 'Routing và Navigation', lessons: 6, completion: 68 },
-                  { section: 'API và Data Fetching', lessons: 7, completion: 62 },
-                  { section: 'Advanced Patterns', lessons: 9, completion: 45 },
-                  { section: 'Testing và Deployment', lessons: 5, completion: 38 },
-                ].map((section, index) => (
+                {course.sections.map((section, index) => {
+                  const completion = course.averageProgress
+                  const lessons = section.lessons.length
+                  return (
                   <div key={index}>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-foreground dark:text-white font-medium">{section.section}</span>
-                      <span className="text-muted-foreground dark:text-slate-400">{section.lessons} {t("adm_cd_lessons_unit_short", "bài")} • {section.completion}%</span>
+                      <span className="text-foreground dark:text-white font-medium">{section.title}</span>
+                      <span className="text-muted-foreground dark:text-slate-400">{lessons} {t("adm_cd_lessons_unit_short", "bài")} • {completion}%</span>
                     </div>
                     <div className="w-full bg-muted dark:bg-slate-800 rounded-full h-3 overflow-hidden">
                       <div 
                         className="h-full rounded-full transition-all"
                         style={{ 
-                          width: `${section.completion}%`,
-                          background: `linear-gradient(to right, ${section.completion > 70 ? '#10b981' : section.completion > 50 ? '#f59e0b' : '#ef4444'}, ${section.completion > 70 ? '#34d399' : section.completion > 50 ? '#fbbf24' : '#f87171'})`
+                          width: `${completion}%`,
+                          background: `linear-gradient(to right, ${completion > 70 ? '#10b981' : completion > 50 ? '#f59e0b' : '#ef4444'}, ${completion > 70 ? '#34d399' : completion > 50 ? '#fbbf24' : '#f87171'})`
                         }}
                       ></div>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
             
