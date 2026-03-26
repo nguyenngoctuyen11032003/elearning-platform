@@ -117,6 +117,7 @@ export default function StudentExamsPage() {
             <p className="text-black/70 dark:text-white/80 drop-shadow">{t("exam_desc", "Quản lý các bài thi bạn có thể tham gia.")}</p>
           </div>
 
+          <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
               <div className="group flex items-center justify-between p-6 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
@@ -151,6 +152,7 @@ export default function StudentExamsPage() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>

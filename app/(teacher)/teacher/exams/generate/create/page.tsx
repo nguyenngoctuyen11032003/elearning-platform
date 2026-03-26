@@ -188,6 +188,7 @@ function TeacherGenerateExamCreatePageContent() {
           : []
 
         const mapped = examList
+          .filter((item: any) => item?.status === "approved")
           .map((item: any) => {
             const questions = parseQuestions(item?.questions)
             return {

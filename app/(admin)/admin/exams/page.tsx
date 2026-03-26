@@ -222,7 +222,9 @@ export default function AdminExamsPage() {
   const practiceExams = exams.filter(e => e.type === "practice").length
   const officialExams = exams.filter(e => e.type === "official").length
 
-  const handleApprove = async (examId: string) => {
+  const canModerateExam = (status: Exam["status"]) => status === "pending"
+
+  const handleApproveAndPublish = async (examId: string) => {
     try {
       const res = await fetch(`/api/exams/${examId}/approve`, {
         method: "POST",
@@ -238,9 +240,12 @@ export default function AdminExamsPage() {
 
       await fetchExams()
       setOpenMenu(null)
+      setMenuButtonRect(null)
+      setConfirmDialog({ isOpen: false, action: "" })
+      toast.success(t("adm_exam_approve_publish_ok", "Đã duyệt và xuất bản bài thi"))
     } catch (error) {
       console.error("Approve failed", error)
-      window.alert(t("adm_exam_approve_fail", "Không thể duyệt bài thi"))
+      toast.error(t("adm_exam_approve_fail", "Không thể duyệt bài thi"))
     }
   }
 
@@ -261,12 +266,15 @@ export default function AdminExamsPage() {
       }
 
       await fetchExams()
+      setOpenMenu(null)
+      setMenuButtonRect(null)
       setViewMode(null)
       setSelectedExam(null)
       setRejectionReason("")
+      toast.success(t("adm_exam_reject_ok", "Đã từ chối bài thi"))
     } catch (error) {
       console.error("Reject failed", error)
-      window.alert(t("adm_exam_reject_fail", "Không thể từ chối bài thi"))
+      toast.error(t("adm_exam_reject_fail", "Không thể từ chối bài thi"))
     }
   }
 
@@ -346,7 +354,7 @@ export default function AdminExamsPage() {
   return (
     <div className="w-full space-y-8">
       {/* Header with Stats */}
-        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/exam2.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/Bg_course1.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
           <div className="absolute inset-0 bg-black/15 dark:bg-black/45 rounded-3xl"></div>
           
@@ -355,11 +363,12 @@ export default function AdminExamsPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("adm_exam_title", "Quản lý Bài thi")}</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("adm_exam_subtitle", "Theo dõi và quản lý các bài thi từ giáo viên")}</p>
+                  <p className="text-black/70 dark:text-white/80 drop-shadow">{t("adm_exam_subtitle", "Xem xét, duyệt và quản lý các bài thi từ giảng viên")}</p>
               </div>
             </div>
 
             {/* Stats Cards: grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 */}
+            <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
@@ -427,6 +436,7 @@ export default function AdminExamsPage() {
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>
@@ -697,12 +707,37 @@ export default function AdminExamsPage() {
                       ref={menuRef}
                       className="relative right-0 bottom-0 z-[9999] w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg"
                     >
+                      {canModerateExam(exam.status) && (
+                        <button
+                          onClick={() => {
+                            handleApproveAndPublish(exam.id)
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-green-600 dark:text-green-400"
+                        >
+                          <CheckCircle size={16} />
+                          <span className="font-medium">{t("adm_exam_approve_publish", "Duyệt & xuất bản")}</span>
+                        </button>
+                      )}
+                      {canModerateExam(exam.status) && (
+                        <button
+                          onClick={() => {
+                            setSelectedExam(exam)
+                            setViewMode("reject")
+                            setRejectionReason("")
+                            setOpenMenu(null)
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-amber-600 dark:text-amber-400"
+                        >
+                          <AlertCircle size={16} />
+                          <span className="font-medium">{t("adm_exam_reject", "Từ chối")}</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setConfirmDialog({ isOpen: true, action: "delete", examId: exam.id })
                           setOpenMenu(null)
                         }}
-                        className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-xl"
+                        className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-b-xl"
                       >
                         <XCircle size={16} />
                         <span className="font-medium">{t("adm_exam_delete", "Xóa bài thi")}</span>
@@ -866,6 +901,25 @@ export default function AdminExamsPage() {
                     >
                       {t("adm_exam_view_full_detail", "Xem chi tiết đầy đủ (câu hỏi, đáp án)")} →
                     </Link>
+                    {canModerateExam(selectedExam.status) && (
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          onClick={() => handleApproveAndPublish(selectedExam.id)}
+                          className="flex-1 px-4 py-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-medium"
+                        >
+                          {t("adm_exam_approve_publish", "Duyệt & xuất bản")}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setViewMode("reject")
+                            setRejectionReason("")
+                          }}
+                          className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-medium"
+                        >
+                          {t("adm_exam_reject", "Từ chối")}
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
                 {viewMode === "reject" && (
@@ -894,6 +948,12 @@ export default function AdminExamsPage() {
                     </div>
 
                     <div className="flex gap-3 justify-end">
+                      <button
+                        onClick={() => handleApproveAndPublish(selectedExam.id)}
+                        className="px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors"
+                      >
+                        {t("adm_exam_approve_publish", "Duyệt & xuất bản")}
+                      </button>
                       <button
                         onClick={() => {
                           setViewMode(null)
@@ -958,9 +1018,33 @@ export default function AdminExamsPage() {
               style={{ top: menuButtonRect.top, right: menuButtonRect.right }}
               className="hidden xl:block fixed w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg z-[9999]"
             >
+              {canModerateExam(activeExam.status) && (
+                <button
+                  onClick={() => { handleApproveAndPublish(activeExam.id) }}
+                  className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-green-600 dark:text-green-400"
+                >
+                  <CheckCircle size={16} />
+                  <span className="font-medium">{t("adm_exam_approve_publish", "Duyệt & xuất bản")}</span>
+                </button>
+              )}
+              {canModerateExam(activeExam.status) && (
+                <button
+                  onClick={() => {
+                    setSelectedExam(activeExam)
+                    setViewMode("reject")
+                    setRejectionReason("")
+                    setOpenMenu(null)
+                    setMenuButtonRect(null)
+                  }}
+                  className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-amber-600 dark:text-amber-400"
+                >
+                  <AlertCircle size={16} />
+                  <span className="font-medium">{t("adm_exam_reject", "Từ chối")}</span>
+                </button>
+              )}
               <button
                 onClick={() => { setConfirmDialog({ isOpen: true, action: "delete", examId: activeExam.id }); setOpenMenu(null); setMenuButtonRect(null) }}
-                className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-t-xl rounded-b-xl"
+                className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-b-xl"
               >
                 <XCircle size={16} />
                 <span className="font-medium">{t("adm_exam_delete", "Xóa bài thi")}</span>

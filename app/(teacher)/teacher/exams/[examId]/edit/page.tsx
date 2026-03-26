@@ -282,26 +282,19 @@ export default function EditExamPage() {
 
   const fetchCourses = async () => {
     try {
-      let nextCourses: Course[] = []
-      const response = await fetch("/api/courses?limit=200")
+      // Fetch only teacher's courses
+      const response = await fetch("/api/courses/teacher/my-courses", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      })
       if (response.ok) {
         const data = await response.json()
-        nextCourses = normalizeList<Course>(data)
+        const nextCourses = normalizeList<Course>(data)
+        setCourses(nextCourses)
+      } else {
+        setCourses([])
       }
-
-      if (nextCourses.length === 0) {
-        const fallback = await fetch("/api/courses/teacher/my-courses", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-          },
-        })
-        if (fallback.ok) {
-          const fallbackData = await fallback.json()
-          nextCourses = normalizeList<Course>(fallbackData)
-        }
-      }
-
-      setCourses(nextCourses)
     } catch (error) {
       console.error("Error fetching courses:", error)
       setCourses([])
@@ -547,7 +540,7 @@ export default function EditExamPage() {
       
       const examData: any = {
         ...formData,
-        status: asDraft ? "draft" : "approved",
+        status: asDraft ? "draft" : "pending",
         questions: normalizedQuestions,
       }
 
@@ -583,7 +576,7 @@ export default function EditExamPage() {
         toast.warning(tr("Đã lưu cập nhật thông tin. Dữ liệu câu hỏi cũ bị lỗi, vui lòng nhập lại đề để đảm bảo nội dung", "Information was saved, but legacy question data is invalid. Please re-enter questions to ensure content integrity"))
       }
 
-      toast.success(asDraft ? tr("Đã lưu cập nhật ngân hàng đề thi", "Exam bank update saved") : tr("Đã cập nhật và xuất bản ngân hàng đề thi", "Exam bank updated and published"))
+      toast.success(asDraft ? tr("Đã lưu cập nhật ngân hàng đề thi", "Exam bank update saved") : tr("Đã gửi ngân hàng đề thi chờ duyệt", "Exam bank submitted for review"))
       router.push("/teacher/exams")
     } catch (error) {
       console.error("Error updating exam:", error)
@@ -1146,7 +1139,7 @@ export default function EditExamPage() {
                 className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 <Send size={18} />
-                {isSubmitting ? "Đang cập nhật..." : "Cập nhật & Xuất bản"}
+                {isSubmitting ? "Đang cập nhật..." : "Cập nhật & Gửi duyệt"}
               </button>
             )}
           </div>

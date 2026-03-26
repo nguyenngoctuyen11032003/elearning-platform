@@ -265,6 +265,7 @@ useEffect(() => {
             </div>
 
             {/* Stats Cards */}
+            <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className="group flex items-center justify-between p-5 h-full bg-white/82 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer">
@@ -299,6 +300,7 @@ useEffect(() => {
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>
