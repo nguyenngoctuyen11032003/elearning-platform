@@ -216,32 +216,24 @@ export default function CreateExamPage() {
 
   const fetchCourses = async () => {
     try {
-      let nextCourses: Course[] = []
-      const response = await fetch("/api/courses?limit=200")
+      // Fetch only teacher's courses
+      const response = await fetch("/api/courses/teacher/my-courses", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      })
       if (response.ok) {
         const contentType = response.headers.get("content-type") || ""
         if (contentType.includes("application/json")) {
           const data = await response.json()
-          nextCourses = normalizeList<Course>(data)
+          const nextCourses = normalizeList<Course>(data)
+          setCourses(nextCourses)
+        } else {
+          setCourses([])
         }
+      } else {
+        setCourses([])
       }
-
-      if (nextCourses.length === 0) {
-        const fallback = await fetch("/api/courses/teacher/my-courses", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-          },
-        })
-        if (fallback.ok) {
-          const contentType = fallback.headers.get("content-type") || ""
-          if (contentType.includes("application/json")) {
-            const fallbackData = await fallback.json()
-            nextCourses = normalizeList<Course>(fallbackData)
-          }
-        }
-      }
-
-      setCourses(nextCourses)
     } catch (error) {
       console.error("Error fetching courses:", error)
       setCourses([])
@@ -413,7 +405,7 @@ export default function CreateExamPage() {
       const examData: any = {
         ...formData,
         type: formData.type,
-        status: asDraft ? "draft" : "approved",
+        status: asDraft ? "draft" : "pending",
         questions: normalizedQuestions,
       }
 
@@ -440,7 +432,7 @@ export default function CreateExamPage() {
 
       await response.json().catch(() => ({}))
 
-      toast.success(asDraft ? t("exam_saved_draft", "Đã lưu bài thi nháp") : t("exam_published", "Đã tạo và xuất bản bài thi"))
+      toast.success(asDraft ? t("exam_saved_draft", "Đã lưu bài thi nháp") : t("exam_pending_review", "Đã gửi bài thi chờ duyệt"))
       router.push("/teacher/exams")
     } catch (error) {
       console.error("Error creating exam:", error)
@@ -1088,7 +1080,7 @@ export default function CreateExamPage() {
                 className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 <Send size={18} />
-                {isSubmitting ? t("common_processing", "Đang xử lý...") : t("exam_publish", "Xuất bản")}
+                {isSubmitting ? t("common_processing", "Đang xử lý...") : t("exam_submit_review", "Gửi duyệt")}
               </button>
             )}
           </div>
