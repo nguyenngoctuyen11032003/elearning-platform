@@ -100,6 +100,14 @@ interface SubmissionRow extends Submission {
   assignment: Assignment;
 }
 
+const normalizeSubmissionStatus = (value: unknown): Submission['status'] => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'graded') return 'graded';
+  if (normalized === 'late') return 'late';
+  if (normalized === 'not_submitted' || normalized === 'not-submitted') return 'not_submitted';
+  return 'submitted';
+};
+
 export default function TeacherAssignmentsPage() {
   const router = useRouter();
   const { language } = useLanguage();
@@ -199,11 +207,31 @@ export default function TeacherAssignmentsPage() {
         apiClient.getCourses(),
       ]);
 
-      setAssignments(assignmentsData);
+      const normalizedAssignments = Array.isArray(assignmentsData) ? assignmentsData : [];
+      setAssignments(normalizedAssignments);
       setSubmissionsByAssignment({});
       setOpenLessonMap({});
       setLoadingLessonMap({});
       setCourses(Array.isArray(coursesData) ? coursesData : ((coursesData as any)?.data || []));
+
+      // Preload toàn bộ bài nộp để các card thống kê hiển thị đúng ngay khi vào trang.
+      const preloadEntries = await Promise.all(
+        normalizedAssignments.map(async (assignment) => {
+          try {
+            const data = await apiClient.getAssignmentSubmissions(assignment.id);
+            const normalizedSubmissions = Array.isArray(data)
+              ? data.map((submission: any) => ({
+                  ...submission,
+                  status: normalizeSubmissionStatus(submission?.status),
+                }))
+              : [];
+            return [assignment.id, normalizedSubmissions] as const;
+          } catch {
+            return [assignment.id, []] as const;
+          }
+        }),
+      );
+      setSubmissionsByAssignment(Object.fromEntries(preloadEntries));
 
       // Load lessons for the selected course
       if (selectedCourse !== 'all') {
@@ -297,7 +325,12 @@ export default function TeacherAssignmentsPage() {
   const loadSubmissionsForAssignment = async (assignmentId: string): Promise<Submission[]> => {
     try {
       const data = await apiClient.getAssignmentSubmissions(assignmentId);
-      const normalized = Array.isArray(data) ? data : [];
+      const normalized = Array.isArray(data)
+        ? data.map((submission: any) => ({
+            ...submission,
+            status: normalizeSubmissionStatus(submission?.status),
+          }))
+        : [];
       setSubmissionsByAssignment((prev) => ({ ...prev, [assignmentId]: normalized }));
       return normalized;
     } catch (error) {

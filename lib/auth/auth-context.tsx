@@ -61,6 +61,50 @@ function tAuth(key: AuthI18nKey): string {
   return AUTH_MESSAGES[lang][key];
 }
 
+function extractReadableMessage(input: unknown): string {
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (!trimmed) return '';
+
+    const looksLikeJson = trimmed.startsWith('{') || trimmed.startsWith('[');
+    if (looksLikeJson) {
+      try {
+        return extractReadableMessage(JSON.parse(trimmed));
+      } catch {
+      }
+    }
+
+    return trimmed;
+  }
+
+  if (input instanceof Error) {
+    return extractReadableMessage(input.message);
+  }
+
+  if (Array.isArray(input)) {
+    return input
+      .map((item) => extractReadableMessage(item))
+      .filter(Boolean)
+      .join(', ')
+      .trim();
+  }
+
+  if (input && typeof input === 'object') {
+    const payload = input as Record<string, unknown>;
+    if ('message' in payload) {
+      const message = extractReadableMessage(payload.message);
+      if (message) return message;
+    }
+    if ('error' in payload) {
+      const error = extractReadableMessage(payload.error);
+      if (error) return error;
+    }
+    return '';
+  }
+
+  return '';
+}
+
 type LogoutOptions = {
   redirect?: string | null;
   message?: string;
@@ -225,7 +269,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       toast.success(tAuth('auth_register_success_verify'));
       router.push('/login?registered=1');
     } catch (error) {
-      const message = error instanceof Error ? error.message : tAuth('auth_register_failed');
+      const rawMessage = error instanceof Error ? error.message : error;
+      let message = extractReadableMessage(rawMessage);
+      const lower = message.toLowerCase();
+
+      if (!message) {
+        message = tAuth('auth_register_failed');
+      } else if (lower.includes('toLowerCase is not a function')) {
+        message = tAuth('auth_register_failed');
+      }
+
       toast.error(message);
       throw error;
     } finally {

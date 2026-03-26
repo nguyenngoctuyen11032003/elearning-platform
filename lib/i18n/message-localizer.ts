@@ -44,8 +44,19 @@ const MESSAGE_RULES: MessageRule[] = [
   },
 ]
 
-function normalize(message: string): string {
-  return message
+function normalize(message: unknown): string {
+  const source =
+    typeof message === 'string'
+      ? message
+      : Array.isArray(message)
+      ? message.map((item) => String(item ?? '')).join(', ')
+      : message == null
+      ? ''
+      : typeof message === 'object'
+      ? JSON.stringify(message)
+      : String(message)
+
+  return source
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -64,17 +75,28 @@ export function getCurrentClientLanguage(): SupportedLanguage {
   return 'vi'
 }
 
-export function localizeMessage(rawMessage: string, language: SupportedLanguage = getCurrentClientLanguage()): string {
-  if (!rawMessage) return rawMessage
+export function localizeMessage(rawMessage: unknown, language: SupportedLanguage = getCurrentClientLanguage()): string {
+  const safeMessage =
+    typeof rawMessage === 'string'
+      ? rawMessage
+      : Array.isArray(rawMessage)
+      ? rawMessage.map((item) => String(item ?? '')).join(', ')
+      : rawMessage == null
+      ? ''
+      : typeof rawMessage === 'object'
+      ? JSON.stringify(rawMessage)
+      : String(rawMessage)
 
-  const normalized = normalize(rawMessage)
+  if (!safeMessage) return safeMessage
+
+  const normalized = normalize(safeMessage)
 
   for (const rule of MESSAGE_RULES) {
     const matched = rule.patterns.some((pattern) => {
       if (typeof pattern === 'string') {
         return normalized.includes(pattern)
       }
-      return pattern.test(rawMessage) || pattern.test(normalized)
+      return pattern.test(safeMessage) || pattern.test(normalized)
     })
 
     if (matched) {
@@ -82,5 +104,5 @@ export function localizeMessage(rawMessage: string, language: SupportedLanguage 
     }
   }
 
-  return rawMessage
+  return safeMessage
 }
