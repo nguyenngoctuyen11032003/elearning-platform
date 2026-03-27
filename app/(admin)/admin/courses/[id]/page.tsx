@@ -94,6 +94,7 @@ interface CourseDetail {
   enrollmentCount: number
   completionRate: number
   averageProgress: number
+  ratingDistribution: { stars: number; count: number; percentage: number }[]
   rejectionReason?: string
 }
 
@@ -163,6 +164,54 @@ export default function AdminCourseDetailPage() {
     if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`
     if (hours > 0) return `${hours}h`
     return `${minutes}m`
+  }
+
+  const normalizeRatingDistribution = (
+    raw: unknown,
+  ): { stars: number; count: number; percentage: number }[] => {
+    const byStar = new Map<number, number>([
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [4, 0],
+      [5, 0],
+    ])
+
+    if (Array.isArray(raw)) {
+      for (const item of raw) {
+        if (!item || typeof item !== "object") continue
+        const record = item as Record<string, unknown>
+        const stars = Number(record.stars)
+        const count = Number(record.count)
+        if (!Number.isInteger(stars) || stars < 1 || stars > 5) continue
+        if (!Number.isFinite(count) || count < 0) continue
+        byStar.set(stars, Math.round(count))
+      }
+    }
+
+    const total = Array.from(byStar.values()).reduce((sum, count) => sum + count, 0)
+
+    return [5, 4, 3, 2, 1].map((stars) => {
+      const count = byStar.get(stars) || 0
+      const percentage = total > 0 ? Math.round((count / total) * 100) : 0
+      return { stars, count, percentage }
+    })
+  }
+
+  const calculateAverageRatingFromDistribution = (
+    distribution: { stars: number; count: number; percentage: number }[],
+  ) => {
+    const totals = distribution.reduce(
+      (acc, item) => {
+        acc.count += item.count
+        acc.weighted += item.stars * item.count
+        return acc
+      },
+      { count: 0, weighted: 0 },
+    )
+
+    if (totals.count <= 0) return 0
+    return Math.round((totals.weighted / totals.count) * 10) / 10
   }
 
   const parseWritingCriteria = (instructions: unknown): string[] => {
@@ -403,6 +452,14 @@ export default function AdminCourseDetailPage() {
         const totalVideoMinutes = lessonList
           .filter((lesson) => lesson.type === "video")
           .reduce((sum, lesson) => sum + durationToMinutes(lesson.duration), 0)
+        const ratingDistribution = normalizeRatingDistribution(c.ratingDistribution)
+        const reviewCountFromDistribution = ratingDistribution.reduce(
+          (sum, item) => sum + item.count,
+          0,
+        )
+        const averageRatingFromDistribution = calculateAverageRatingFromDistribution(
+          ratingDistribution,
+        )
 
         const enrollmentCount = studentRows.length || Number(c.enrollmentCount) || 0
         const completedCount = studentRows.filter((student) => {
@@ -435,8 +492,8 @@ export default function AdminCourseDetailPage() {
           category: (c.category as Record<string, unknown>)?.name as string || "",
           thumbnail: c.thumbnail || "",
           duration: formatMinutes(totalMinutes),
-          rating: c.averageRating || 0,
-          reviewCount: c.reviewCount || 0,
+          rating: Number(c.averageRating) || Number(c.rating) || averageRatingFromDistribution,
+          reviewCount: reviewCountFromDistribution || Number(c.reviewCount) || 0,
           level: c.level || "beginner",
           language: c.language || "vi",
           requirements: c.requirements || [],
@@ -447,6 +504,7 @@ export default function AdminCourseDetailPage() {
           enrollmentCount,
           completionRate,
           averageProgress,
+          ratingDistribution,
           rejectionReason: c.rejectionReason,
         })
         setEditDraft({
@@ -1307,13 +1365,7 @@ export default function AdminCourseDetailPage() {
             <div className="mt-6 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
               <h3 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("adm_cd_rating_dist", "Phân bố đánh giá")}</h3>
               <div className="space-y-3">
-                {[
-                  { stars: 5, count: 145, percentage: 58 },
-                  { stars: 4, count: 78, percentage: 31 },
-                  { stars: 3, count: 18, percentage: 7 },
-                  { stars: 2, count: 7, percentage: 3 },
-                  { stars: 1, count: 2, percentage: 1 },
-                ].map((rating) => (
+                {course.ratingDistribution.map((rating) => (
                   <div key={rating.stars} className="flex items-center gap-3">
                     <div className="flex items-center gap-1 w-16">
                       <span className="text-sm font-medium text-foreground dark:text-white">{rating.stars}</span>
