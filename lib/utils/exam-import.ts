@@ -46,7 +46,8 @@ interface WordQuestionBlock {
 
 const QUESTION_LINE_REGEX = /^\s*(?:Cau|Câu|Question|Q)\s*\d+[\.:\-\)]*\s*/i
 const NUMBERED_QUESTION_LINE_REGEX = /^\s*\(?\d{1,4}\)?[\.:\-\)]\s*(.+?)\s*$/i
-const OPTION_LINE_REGEX = /^\s*([A-F])[\.)]\s*(.+)$/i
+const OPTION_LINE_REGEX = /^\s*([A-F])[\.)](?!:)\s*(.+)$/i
+const INLINE_OPTION_MARKER_REGEX = /([A-F])[\.)](?!:)\s*/gi
 const ANSWER_LINE_REGEX = /^\s*(?:Dap an|Đáp án|Answer|Ans(?:wer)?)\s*(?:[:=.\-])?\s*(.+)$/i
 const EXPLANATION_LINE_REGEX = /^\s*(?:Giai thich|Giải thích|Explanation|Solution|Loi giai|Lời giải)\s*(?:[:=.\-])?\s*(.+)$/i
 const POINTS_LINE_REGEX = /^\s*(?:Diem|Điểm|Points?)\s*[:=-]\s*(\d+(?:\.\d+)?)\s*$/i
@@ -261,13 +262,13 @@ const normalizeTrueFalseAnswer = (raw: string, options: string[]): string => {
   const truthy = ["dung", "đúng", "true", "t"]
   const falsy = ["sai", "false", "f"]
 
-  const truthOption = options.find((option) => truthy.some((token) => option.toLowerCase().includes(token))) ?? "Đúng"
-  const falseOption = options.find((option) => falsy.some((token) => option.toLowerCase().includes(token))) ?? "Sai"
+  const truthOption = options.find((option) => truthy.some((token) => option.toLowerCase().includes(token))) ?? options[0] ?? "True"
+  const falseOption = options.find((option) => falsy.some((token) => option.toLowerCase().includes(token))) ?? options[1] ?? "False"
 
   if (truthy.some((token) => lower.includes(token))) return truthOption
   if (falsy.some((token) => lower.includes(token))) return falseOption
 
-  return options[0] ?? "Đúng"
+  return options[0] ?? "True"
 }
 
 /**
@@ -290,6 +291,42 @@ const normalizeScientificNotation = (text: string): string => {
 const cleanAndNormalizeOption = (value: string): string =>
   normalizeScientificNotation(cleanOptionText(value))
 
+const splitInlineOptionSegments = (
+  value: string,
+): { leadText: string; optionLines: string[] } | null => {
+  const source = String(value || "").trim()
+  if (!source) return null
+
+  const matches = Array.from(source.matchAll(INLINE_OPTION_MARKER_REGEX))
+    .map((match) => ({
+      index: match.index ?? -1,
+      marker: `${match[1].toUpperCase()}.`,
+    }))
+    .filter((match) => match.index >= 0)
+
+  // Require at least 2 option markers to avoid false positives.
+  if (matches.length < 2) return null
+
+  const optionLines: string[] = []
+  const leadText = source
+    .slice(0, matches[0].index)
+    .replace(/\s+\d{1,3}$/g, "")
+    .trim()
+
+  for (let i = 0; i < matches.length; i += 1) {
+    const current = matches[i]
+    const next = matches[i + 1]
+    const end = next ? next.index : source.length
+    const rawSegment = source.slice(current.index, end).trim()
+    const cleanedSegment = rawSegment.replace(/^([A-F])[\.)]\s*/i, (_m, p1) => `${String(p1).toUpperCase()}. `)
+    if (!OPTION_LINE_REGEX.test(cleanedSegment)) continue
+    optionLines.push(cleanedSegment)
+  }
+
+  if (optionLines.length < 2) return null
+  return { leadText, optionLines }
+}
+
 const finalizeWordBlock = (
   block: WordQuestionBlock,
   imageMap: Record<string, string>,
@@ -301,21 +338,46 @@ const finalizeWordBlock = (
   const plainLines: string[] = []
   let questionText = rawQuestion
 
-  const hasPrefixedOptions = block.bodyLines.some((line) => OPTION_LINE_REGEX.test(line))
+  const inlineOptionsInQuestion = splitInlineOptionSegments(rawQuestion)
+  if (inlineOptionsInQuestion) {
+    questionText = inlineOptionsInQuestion.leadText || questionText
+    for (const optionLine of inlineOptionsInQuestion.optionLines) {
+      const optionMatch = optionLine.match(OPTION_LINE_REGEX)
+      if (!optionMatch) continue
+      options.push(cleanAndNormalizeOption(optionMatch[2]))
+    }
+  }
+
+  const hasPrefixedOptions =
+    options.length >= 2 ||
+    block.bodyLines.some((line) => OPTION_LINE_REGEX.test(line) || Boolean(splitInlineOptionSegments(line)))
 
   if (hasPrefixedOptions) {
     let lastOptionIndex = -1
     for (const line of block.bodyLines) {
-      const optionMatch = line.match(OPTION_LINE_REGEX)
-      if (optionMatch) {
-        options.push(cleanAndNormalizeOption(optionMatch[2]))
-        lastOptionIndex = options.length - 1
-      } else if (lastOptionIndex >= 0 && looksLikeExponentContinuation(line)) {
+      const inlineSplit = splitInlineOptionSegments(line)
+      if (inlineSplit) {
+        if (inlineSplit.leadText) {
+          questionText += "\n" + normalizeScientificNotation(inlineSplit.leadText)
+        }
+        for (const optionLine of inlineSplit.optionLines) {
+          const optionMatch = optionLine.match(OPTION_LINE_REGEX)
+          if (!optionMatch) continue
+          options.push(cleanAndNormalizeOption(optionMatch[2]))
+          lastOptionIndex = options.length - 1
+        }
+      } else {
+        const optionMatch = line.match(OPTION_LINE_REGEX)
+        if (optionMatch) {
+          options.push(cleanAndNormalizeOption(optionMatch[2]))
+          lastOptionIndex = options.length - 1
+        } else if (lastOptionIndex >= 0 && looksLikeExponentContinuation(line)) {
         const exponent = normalizeExponentFragment(line)
         const current = options[lastOptionIndex] || ""
         options[lastOptionIndex] = normalizeScientificNotation(`${current}^${exponent}`)
-      } else if (line.trim()) {
-        questionText += "\n" + normalizeScientificNotation(line.trim())
+        } else if (line.trim()) {
+          questionText += "\n" + normalizeScientificNotation(line.trim())
+        }
       }
     }
   } else {

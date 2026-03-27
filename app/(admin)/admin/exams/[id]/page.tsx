@@ -550,9 +550,9 @@ export default function AdminExamDetailPage() {
     let cancelled = false
 
     const localizeMock = async () => {
-      const localizedMock = await autoTranslateData(mockExamDetail, language)
+      // Don't translate exam data - keep original language
       if (!cancelled) {
-        setExam(localizedMock)
+        setExam(mockExamDetail)
       }
     }
 

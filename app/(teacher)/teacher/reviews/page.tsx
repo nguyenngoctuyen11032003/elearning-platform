@@ -105,9 +105,9 @@ export default function TeacherReviewsPage() {
     ]
 
     setTimeout(async () => {
-      const localizedReviews = await autoTranslateData(mockReviews, language)
+      // Don't translate review data
       if (!isMounted) return
-      setReviews(localizedReviews)
+      setReviews(mockReviews)
       setLoading(false)
     }, 500)
 

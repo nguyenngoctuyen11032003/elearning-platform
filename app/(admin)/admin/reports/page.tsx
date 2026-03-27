@@ -116,11 +116,10 @@ export default function AdminReportsPage() {
     const load = async () => {
       setLoading(true)
       try {
-        const [localizedRevenueByCategory, localizedCoursePerformance, localizedCompletionRates] = await Promise.all([
-          autoTranslateData(sampleRevenueByCategory, language),
-          autoTranslateData(sampleCoursePerformance, language),
-          autoTranslateData(sampleCompletionRates, language),
-        ])
+        // Don't translate report data
+        const localizedRevenueByCategory = sampleRevenueByCategory
+        const localizedCoursePerformance = sampleCoursePerformance
+        const localizedCompletionRates = sampleCompletionRates
 
         const [revenueReport, userReport, performanceReport, dashboardStats, growthStats] = await Promise.all([
           apiClient.getAdminRevenueReport(),
