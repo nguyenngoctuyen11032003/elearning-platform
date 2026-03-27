@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { authFetch } from "@/lib/authfetch"
@@ -23,8 +23,12 @@ import {
   X,
   BookOpen,
   Users
+  ,ChevronRight
+  ,ChevronDown
+  ,Send
 } from "lucide-react"
 import React from "react"
+import { toast } from "sonner"
 
 interface Exam {
   id: string
@@ -53,6 +57,35 @@ interface CertificateTemplate {
   title: string
 }
 
+interface GroupedExamBank {
+  key: string
+  title: string
+  variants: Exam[]
+  isTypeGroup: boolean
+}
+
+const extractTypeFromTitle = (title: string): { baseTitle: string; typeLabel: string | null } => {
+  const text = String(title || "").trim()
+  const match = text.match(/^(.*?)\s*-\s*type\s*([A-Z0-9]+)\s*$/i)
+  if (!match) {
+    return { baseTitle: text, typeLabel: null }
+  }
+  return {
+    baseTitle: String(match[1] || "").trim(),
+    typeLabel: `Type ${String(match[2] || "").toUpperCase()}`,
+  }
+}
+
+const normalizeExamSetBaseTitle = (title: string): string => {
+  let value = String(title || "").trim()
+
+  value = value.replace(/\s*-\s*type\s*[A-Z0-9]+\s*$/i, "").trim()
+  value = value.replace(/\s*-\s*(?:mã\s*đề|ma\s*de|code|variant)\s*[A-Z0-9_-]+\s*$/i, "").trim()
+  value = value.replace(/\s*\((?:mã\s*đề|ma\s*de|code|variant)\s*[A-Z0-9_-]+\)\s*$/i, "").trim()
+
+  return value || String(title || "").trim()
+}
+
 export default function TeacherExamsPage() {
   const router = useRouter()
   const { t } = useLanguage()
@@ -64,6 +97,7 @@ export default function TeacherExamsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "delete" | null>(null)
   const [modalPos, setModalPos] = useState<{ top: number; left: number } | null>(null)
@@ -153,6 +187,44 @@ export default function TeacherExamsPage() {
       (typeFilter === "all" || exam.type === typeFilter)
   )
 
+  const groupedExams = useMemo<GroupedExamBank[]>(() => {
+    const map = new Map<string, GroupedExamBank>()
+
+    for (const exam of filteredExams) {
+      const parsed = extractTypeFromTitle(exam.title)
+      const baseTitle = normalizeExamSetBaseTitle(parsed.baseTitle || exam.title)
+      const courseKey = String(exam.courseId || exam.courseName || "")
+      const key = `${courseKey}::${baseTitle || exam.id}`
+      const current = map.get(key)
+      if (!current) {
+        map.set(key, {
+          key,
+          title: baseTitle || exam.title,
+          variants: [exam],
+          isTypeGroup: Boolean(parsed.typeLabel),
+        })
+        continue
+      }
+      current.variants.push(exam)
+      current.isTypeGroup = current.isTypeGroup || Boolean(parsed.typeLabel)
+    }
+
+    return Array.from(map.values())
+      .map((group) => ({
+        ...group,
+        variants: group.variants.sort((a, b) => {
+          const ta = extractTypeFromTitle(a.title).typeLabel || ""
+          const tb = extractTypeFromTitle(b.title).typeLabel || ""
+          return ta.localeCompare(tb) || (a.createdAt < b.createdAt ? 1 : -1)
+        }),
+      }))
+      .sort((a, b) => {
+        const ad = a.variants[0]?.createdAt || ""
+        const bd = b.variants[0]?.createdAt || ""
+        return ad < bd ? 1 : -1
+      })
+  }, [filteredExams])
+
   const getTemplateName = (templateId?: string) => {
     if (!templateId) return ""
     return templates.find((t) => t.id === templateId)?.title || ""
@@ -202,6 +274,41 @@ export default function TeacherExamsPage() {
       console.error("Error removing certificate:", error)
     }
     setOpenMenu(null)
+  }
+
+  const submitGroupForApproval = async (variants: Exam[]) => {
+    const candidates = variants.filter((exam) => ["draft", "rejected"].includes(String(exam.status || "")))
+
+    if (candidates.length === 0) {
+      toast.info("Không có đề nào cần gửi duyệt")
+      return
+    }
+
+    try {
+      const results = await Promise.all(
+        candidates.map(async (exam) => {
+          const response = await authFetch(`/exams/${exam.id}/submit-for-approval`, {
+            method: "POST",
+          })
+          return { examId: exam.id, ok: response.ok }
+        }),
+      )
+
+      const successCount = results.filter((item) => item.ok).length
+      const failCount = results.length - successCount
+
+      if (successCount > 0) {
+        toast.success(`Đã gửi duyệt ${successCount} đề trong ngân hàng`) 
+      }
+      if (failCount > 0) {
+        toast.warning(`${failCount} đề gửi duyệt thất bại, vui lòng kiểm tra lại`) 
+      }
+
+      await fetchExams()
+    } catch (error) {
+      console.error("Error submitting group for approval:", error)
+      toast.error("Gửi duyệt ngân hàng đề thất bại")
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -387,173 +494,128 @@ export default function TeacherExamsPage() {
             </div>
           )}
 
-          {!isLoading && filteredExams.map((exam) => {
-            const templateName = exam.certificateTemplateName || getTemplateName(exam.certificateTemplateId)
+          {!isLoading && groupedExams.map((group) => {
+            const isExpanded = expandedGroups[group.key] ?? false
+            const approvedCount = group.variants.filter((exam) => exam.status === "approved").length
+            const unapprovedCount = group.variants.length - approvedCount
+            const totalQuestions = group.variants.reduce((sum, exam) => sum + Number(exam.questionsCount || 0), 0)
+
             return (
-            <div
-              key={exam.id}
-              data-exam-card
-              className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 hover:shadow-lg transition-shadow"
-            >
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-foreground dark:text-white text-lg">{exam.title}</h3>
-                    {getTypeBadge(exam.type)}
-                    {getStatusBadge(exam.status)}
+              <div key={group.key} className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden">
+                <div className="w-full text-left p-5 flex items-center justify-between hover:bg-secondary/40 dark:hover:bg-slate-800/50">
+                  <div>
+                    <h3 className="text-xl font-semibold text-foreground dark:text-white">{group.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {group.variants.length} {group.variants.length > 1 ? "type" : "đề"} • {totalQuestions} {t("te_questions", "câu hỏi")}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {t("te_status_approved", "Đã duyệt")}: {approvedCount} • {t("te_unapproved", "Chưa duyệt")}: {unapprovedCount}
+                    </p>
                   </div>
-                  <p className="text-muted-foreground dark:text-slate-400 text-sm mb-3">{exam.description}</p>
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground dark:text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <BookOpen size={14} /> {exam.courseName}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Timer size={14} /> {exam.timeLimit} {t("te_minutes", "phút")}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <FileText size={14} /> {exam.questionsCount} {t("te_questions", "câu hỏi")}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users size={14} /> {exam.attemptCount} {t("te_attempts", "lượt thi")}
-                    </span>
-                    {exam.type === "official" && templateName && (
-                      <span className="flex items-center gap-1 text-purple-500">
-                        <Award size={14} /> {templateName}
-                      </span>
-                    )}
-                  </div>
-
-                  {exam.status === "rejected" && exam.rejectionReason && (
-                    <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                      <p className="text-sm text-red-500 flex items-start gap-2">
-                        <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-                        <span><strong>{t("te_rejection_reason", "Lý do từ chối")}:</strong> {exam.rejectionReason}</span>
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => {
-  const card = (e.currentTarget as HTMLElement).closest("[data-exam-card]")
-  if (card) {
-    const rect = card.getBoundingClientRect()
-
-    setModalPos({
-      top: rect.top + window.scrollY,
-      left: rect.right + 16, // cách card 16px
-    })
-  }
-
-  setSelectedExam(exam)
-  setViewMode("view")
-}}
-                    className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
-                    title={t("te_view_details", "Xem chi tiết")}
-                  >
-                    <Eye size={18} className="text-muted-foreground" />
-                  </button>
-
-                  <div className="relative">
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setOpenMenu(openMenu === exam.id ? null : exam.id)}
-                      className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
+                      type="button"
+                      onClick={() => {
+                        submitGroupForApproval(group.variants)
+                      }}
+                      className="px-3 py-2 bg-primary/15 text-primary border border-primary/30 rounded-lg text-sm font-medium hover:bg-primary/25 transition-colors flex items-center gap-2"
+                      title="Gửi duyệt toàn bộ đề con trong ngân hàng này"
                     >
-                      <MoreVertical size={18} className="text-muted-foreground" />
+                      <Send size={14} /> Gửi duyệt
                     </button>
-                    {openMenu === exam.id && (
-                      <div className="fixed inset-0 z-50 flex items-end justify-end" style={{ background: "rgba(0,0,0,0.4)" }} onClick={() => setOpenMenu(null)}>
-                        <div className="w-full max-w-xs mx-auto mb-6 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleEdit(exam.id)}
-                            className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 rounded-t-xl"
-                          >
-                            <Edit2 size={16} />
-                            {t("te_edit", "Chỉnh sửa")}
-                          </button>
-                          {exam.type === "official" && exam.certificateTemplateId && (
-                            <button
-                              onClick={() => handleRemoveCertificate(exam.id)}
-                              className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-amber-600"
-                            >
-                              <Award size={16} />
-                              {t("te_remove_certificate", "Bỏ chứng chỉ")}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleDeleteClick(exam)}
-                            className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-b-xl"
-                          >
-                            <Trash2 size={16} />
-                            {t("te_delete_exam_bank", "Xóa ngân hàng đề")}
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExpandedGroups((prev) => ({ ...prev, [group.key]: !(prev[group.key] ?? false) }))
+                      }}
+                      className="p-2 rounded-lg hover:bg-secondary/70 dark:hover:bg-slate-700/70 text-muted-foreground"
+                      aria-label={isExpanded ? "Thu gọn cụm đề" : "Mở rộng cụm đề"}
+                    >
+                      {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                    </button>
                   </div>
                 </div>
+
+                {isExpanded && (
+                  <div className="px-5 pb-5 space-y-3">
+                    {group.variants.map((exam) => {
+                      const parsed = extractTypeFromTitle(exam.title)
+                      const typeTitle = parsed.typeLabel || exam.title
+                      const templateName = exam.certificateTemplateName || getTemplateName(exam.certificateTemplateId)
+
+                      return (
+                        <div key={exam.id} data-exam-card className="border border-border/70 dark:border-slate-700 rounded-xl p-4 bg-background/30">
+                          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2 flex-wrap">
+                                <h4 className="font-semibold text-foreground dark:text-white text-lg">{typeTitle}</h4>
+                                {getTypeBadge(exam.type)}
+                                {getStatusBadge(exam.status)}
+                              </div>
+                              <p className="text-muted-foreground dark:text-slate-400 text-sm mb-3">{exam.description}</p>
+                              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground dark:text-slate-400">
+                                <span className="flex items-center gap-1"><BookOpen size={14} /> {exam.courseName}</span>
+                                <span className="flex items-center gap-1"><Timer size={14} /> {exam.timeLimit} {t("te_minutes", "phút")}</span>
+                                <span className="flex items-center gap-1"><FileText size={14} /> {exam.questionsCount} {t("te_questions", "câu hỏi")}</span>
+                                <span className="flex items-center gap-1"><Users size={14} /> {exam.attemptCount} {t("te_attempts", "lượt thi")}</span>
+                                {exam.type === "official" && templateName && (
+                                  <span className="flex items-center gap-1 text-purple-500"><Award size={14} /> {templateName}</span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={(e) => {
+                                  const card = (e.currentTarget as HTMLElement).closest("[data-exam-card]")
+                                  if (card) {
+                                    const rect = card.getBoundingClientRect()
+                                    setModalPos({ top: rect.top + window.scrollY, left: rect.right + 16 })
+                                  }
+                                  setSelectedExam(exam)
+                                  setViewMode("view")
+                                }}
+                                className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                title={t("te_view_details", "Xem chi tiết")}
+                              >
+                                <Eye size={18} className="text-muted-foreground" />
+                              </button>
+
+                              <div className="relative">
+                                <button
+                                  onClick={() => setOpenMenu(openMenu === exam.id ? null : exam.id)}
+                                  className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                >
+                                  <MoreVertical size={18} className="text-muted-foreground" />
+                                </button>
+                                {openMenu === exam.id && (
+                                  <div className="fixed inset-0 z-50 flex items-end justify-end" style={{ background: "rgba(0,0,0,0.4)" }} onClick={() => setOpenMenu(null)}>
+                                    <div className="w-full max-w-xs mx-auto mb-6 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg" onClick={e => e.stopPropagation()}>
+                                      <button onClick={() => handleEdit(exam.id)} className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 rounded-t-xl">
+                                        <Edit2 size={16} />{t("te_edit", "Chỉnh sửa")}
+                                      </button>
+                                      {exam.type === "official" && exam.certificateTemplateId && (
+                                        <button onClick={() => handleRemoveCertificate(exam.id)} className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-amber-600">
+                                          <Award size={16} />{t("te_remove_certificate", "Bỏ chứng chỉ")}
+                                        </button>
+                                      )}
+                                      <button onClick={() => handleDeleteClick(exam)} className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-b-xl">
+                                        <Trash2 size={16} />{t("te_delete_exam_bank", "Xóa ngân hàng đề")}
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-              {/* INLINE DETAIL – MOBILE – NEO THEO CARD */}
-              <div className="md:hidden">
-{viewMode === "view" && selectedExam?.id === exam.id && (
-  <div className="mt-4 rounded-xl border border-border bg-secondary/50 p-4 animate-slideDown">
-
-    {/* Header */}
-    <div className="flex items-start justify-between gap-3 mb-3">
-      <div>
-        <h4 className="font-semibold text-sm">{exam.title}</h4>
-        <p className="text-xs text-muted-foreground">{exam.description}</p>
-      </div>
-
-      <button
-        onClick={() => {
-          setViewMode(null)
-          setSelectedExam(null)
-        }}
-        className="text-muted-foreground"
-      >
-        <X size={18} />
-      </button>
-    </div>
-
-    {/* Info grid */}
-    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-      <div className="bg-background rounded-lg p-2">
-        <p className="text-xs text-muted-foreground">{t("te_course", "Khóa học")}</p>
-        <p className="font-medium">{exam.courseName}</p>
-      </div>
-
-      <div className="bg-background rounded-lg p-2">
-        <p className="text-xs text-muted-foreground">{t("te_time", "Thời gian")}</p>
-        <p className="font-medium">{exam.timeLimit} {t("te_minutes", "phút")}</p>
-      </div>
-
-      <div className="bg-background rounded-lg p-2">
-        <p className="text-xs text-muted-foreground">{t("te_questions_label", "Câu hỏi")}</p>
-        <p className="font-medium">{exam.questionsCount} {t("te_questions_unit", "câu")}</p>
-      </div>
-
-      <div className="bg-background rounded-lg p-2">
-        <p className="text-xs text-muted-foreground">{t("te_passing_score", "Điểm đạt")}</p>
-        <p className="font-medium">{exam.passingScore}%</p>
-      </div>
-
-      <div className="bg-background rounded-lg p-2">
-        <p className="text-xs text-muted-foreground">{t("te_max_attempts", "Số lần thi")}</p>
-        <p className="font-medium">{exam.maxAttempts} {t("te_times", "lần")}</p>
-      </div>
-
-      <div className="bg-background rounded-lg p-2">
-        <p className="text-xs text-muted-foreground">{t("te_attempt_count", "Lượt thi")}</p>
-        <p className="font-medium">{exam.attemptCount}</p>
-      </div>
-    </div>
-    </div>
-)}
-  </div>
-            </div>
-          )})}
+            )
+          })}
 
           {!isLoading && filteredExams.length === 0 && (
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-12 text-center">

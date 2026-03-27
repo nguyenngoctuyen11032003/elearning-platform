@@ -29,11 +29,21 @@ interface SourceExam {
   courseId: string
   courseName: string
   questions: BankQuestion[]
+  status?: string
+}
+
+interface SourceExamGroup {
+  key: string
+  title: string
+  courseId: string
+  courseName: string
+  exams: SourceExam[]
 }
 
 interface CourseOption {
   id: string
   title: string
+  status?: string
 }
 
 interface CertificateTemplate {
@@ -41,6 +51,18 @@ interface CertificateTemplate {
   title: string
   courseId: string
   status?: string
+}
+
+const SOURCE_BANK_ALLOWED_STATUSES = new Set(["approved", "pending", "draft", "rejected"])
+
+const normalizeExamSetBaseTitle = (title: string): string => {
+  let value = String(title || "").trim()
+
+  value = value.replace(/\s*-\s*type\s*[A-Z0-9]+\s*$/i, "").trim()
+  value = value.replace(/\s*-\s*(?:mã\s*đề|ma\s*de|code|variant)\s*[A-Z0-9_-]+\s*$/i, "").trim()
+  value = value.replace(/\s*\((?:mã\s*đề|ma\s*de|code|variant)\s*[A-Z0-9_-]+\)\s*$/i, "").trim()
+
+  return value || String(title || "").trim()
 }
 
 const shuffle = <T,>(items: T[]): T[] => {
@@ -99,33 +121,68 @@ const parseQuestions = (value: any): BankQuestion[] => {
     }
   }
 
+  if (!Array.isArray(data) && data && typeof data === "object") {
+    const nested = (data as any)?.questions
+    if (Array.isArray(nested)) {
+      data = nested
+    } else {
+      data = Object.values(data)
+    }
+  }
+
   if (!Array.isArray(data)) return []
 
   return data
     .map((item: any, index: number) => {
       const type = normalizeType(item?.type)
-      const options = Array.isArray(item?.options)
-        ? item.options.map((opt: any) => String(opt || "").trim()).filter(Boolean)
+      const rawOptions = Array.isArray(item?.options)
+        ? item.options
+        : Array.isArray(item?.answers)
+        ? item.answers
         : []
+      const options = rawOptions
+        .map((opt: any) => {
+          if (typeof opt === "string") return opt.trim()
+          if (opt && typeof opt === "object") {
+            return String(opt.text || opt.content || opt.label || "").trim()
+          }
+          return String(opt || "").trim()
+        })
+        .filter(Boolean)
+
+      const questionText = String(
+        item?.question || item?.questionText || item?.content || item?.text || item?.title || "",
+      ).trim()
+
+      const rawCorrectAnswer =
+        item?.correctAnswer ?? item?.correct_answer ?? item?.answer ?? item?.correct ?? item?.correctAnswers
 
       return {
         id: String(item?.id || `${Date.now()}-${index}`),
         type,
-        question: String(item?.question || "").trim(),
+        question: questionText,
         image: typeof item?.image === "string" && item.image.trim() ? item.image.trim() : undefined,
         chapter: typeof item?.chapter === "string" && item.chapter.trim() ? item.chapter.trim() : undefined,
         difficulty: normalizeDifficulty(item?.difficulty),
         options: type === "true_false" ? ["Đúng", "Sai"] : options,
-        correctAnswer: Array.isArray(item?.correctAnswer)
-          ? item.correctAnswer.map((ans: any) => String(ans || "").trim()).filter(Boolean)
+        correctAnswer: Array.isArray(rawCorrectAnswer)
+          ? rawCorrectAnswer.map((ans: any) => String(ans || "").trim()).filter(Boolean)
           : type === "multiple_choice"
-          ? normalizeMcqCorrectAnswer(item?.correctAnswer, options)
-          : String(item?.correctAnswer || "").trim(),
-        points: Number(item?.points) > 0 ? Number(item.points) : 1,
+          ? normalizeMcqCorrectAnswer(rawCorrectAnswer, options)
+          : String(rawCorrectAnswer || "").trim(),
+        points: Number(item?.points || item?.score) > 0 ? Number(item?.points || item?.score) : 1,
         explanation: typeof item?.explanation === "string" ? item.explanation.trim() : "",
       } as BankQuestion
     })
-    .filter((q) => q.question)
+    .filter((q) => {
+      const text = String(q.question || "").trim()
+      const hasOptions = Array.isArray(q.options) && q.options.some((opt) => String(opt || "").trim().length > 0)
+      const hasAnswer = Array.isArray(q.correctAnswer)
+        ? q.correctAnswer.some((ans) => String(ans || "").trim().length > 0)
+        : String(q.correctAnswer || "").trim().length > 0
+
+      return text.length > 0 || hasOptions || hasAnswer
+    })
 }
 
 function TeacherGenerateExamCreatePageContent() {
@@ -136,6 +193,7 @@ function TeacherGenerateExamCreatePageContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [sourceExams, setSourceExams] = useState<SourceExam[]>([])
+  const [courses, setCourses] = useState<CourseOption[]>([])
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
   const [selectedExamIds, setSelectedExamIds] = useState<string[]>([])
   const [selectedCourseId, setSelectedCourseId] = useState("")
@@ -167,42 +225,114 @@ function TeacherGenerateExamCreatePageContent() {
       try {
         setIsLoading(true)
 
-        const [examResponse, templateResponse] = await Promise.all([
+        const normalizeList = <T,>(payload: any): T[] => {
+          if (Array.isArray(payload)) return payload
+          if (Array.isArray(payload?.data)) return payload.data
+          if (Array.isArray(payload?.data?.data)) return payload.data.data
+          return []
+        }
+
+        const [examResponse, templateResponse, courseResponse] = await Promise.all([
           authFetch("/exams/my-exams"),
           fetch("/api/certificate-templates", {
             headers: { Authorization: `Bearer ${localStorage.getItem("auth_token") || ""}` },
           }),
+          authFetch("/courses/my-courses"),
         ])
 
-        if (!examResponse.ok) {
-          throw new Error("Không thể tải ngân hàng đề thi")
+        if (examResponse.ok) {
+          const examPayload = await examResponse.json()
+          const examList = Array.isArray(examPayload)
+            ? examPayload
+            : Array.isArray(examPayload?.data)
+            ? examPayload.data
+            : Array.isArray(examPayload?.data?.data)
+            ? examPayload.data.data
+            : []
+
+          const mapped = examList
+            .filter((item: any) => {
+              const status = String(item?.status || "").toLowerCase()
+              return !status || SOURCE_BANK_ALLOWED_STATUSES.has(status)
+            })
+            .map((item: any) => {
+              const questions = parseQuestions(item?.questions)
+              const variantQuestions = parseQuestions(item?.variants?.[0]?.questions)
+              const resolvedQuestions = questions.length > 0 ? questions : variantQuestions
+              return {
+                id: String(item?.id || ""),
+                title: String(item?.title || ""),
+                courseId: String(item?.courseId || item?.course?.id || ""),
+                courseName: String(item?.course?.title || item?.courseName || ""),
+                status: String(item?.status || "").toLowerCase(),
+                questions: resolvedQuestions,
+              } as SourceExam
+            })
+
+          const missingQuestionIds = mapped
+            .filter((exam: SourceExam) => exam.id && exam.questions.length === 0)
+            .map((exam: SourceExam) => exam.id)
+
+          let merged = mapped
+
+          if (missingQuestionIds.length > 0) {
+            const detailPairs = await Promise.all(
+              missingQuestionIds.map(async (examId) => {
+                try {
+                  const detailResponse = await authFetch(`/exams/${examId}`)
+                  if (!detailResponse.ok) return { examId, questions: [] as BankQuestion[] }
+
+                  const detailPayload = await detailResponse.json().catch(() => ({}))
+                  const detailData = detailPayload?.data ?? detailPayload
+                  const detailQuestions = parseQuestions(detailData?.questions)
+                  return { examId, questions: detailQuestions }
+                } catch {
+                  return { examId, questions: [] as BankQuestion[] }
+                }
+              }),
+            )
+
+            const questionMap = new Map(detailPairs.map((item) => [item.examId, item.questions]))
+
+            merged = mapped.map((exam) => {
+              if (exam.questions.length > 0) return exam
+              const nextQuestions = questionMap.get(exam.id) || []
+              return {
+                ...exam,
+                questions: nextQuestions,
+              }
+            })
+          }
+
+          const finalExams = merged.filter((exam: SourceExam) => exam.id && exam.questions.length > 0)
+
+          setSourceExams(finalExams)
+          setSelectedExamIds(finalExams.map((exam: SourceExam) => exam.id))
+        } else {
+          setSourceExams([])
+          setSelectedExamIds([])
         }
 
-        const examPayload = await examResponse.json()
-        const examList = Array.isArray(examPayload)
-          ? examPayload
-          : Array.isArray(examPayload?.data)
-          ? examPayload.data
-          : Array.isArray(examPayload?.data?.data)
-          ? examPayload.data.data
-          : []
+        if (courseResponse.ok) {
+          const coursePayload = await courseResponse.json().catch(() => ({}))
+          const courseList = normalizeList<any>(coursePayload)
+          const mappedCourses = courseList
+            .map((course: any) => ({
+              id: String(course?.id || ""),
+              title: String(course?.title || ""),
+              status: String(course?.status || "").toLowerCase(),
+            }))
+            .filter((course: CourseOption) => course.id && course.title)
 
-        const mapped = examList
-          .filter((item: any) => item?.status === "approved")
-          .map((item: any) => {
-            const questions = parseQuestions(item?.questions)
-            return {
-              id: String(item?.id || ""),
-              title: String(item?.title || ""),
-              courseId: String(item?.courseId || item?.course?.id || ""),
-              courseName: String(item?.course?.title || item?.courseName || ""),
-              questions,
-            } as SourceExam
-          })
-          .filter((exam: SourceExam) => exam.id && exam.questions.length > 0)
+          // Keep only active/approved-like course states for teacher exam generation.
+          const visibleCourses = mappedCourses.filter((course: CourseOption) =>
+            ["published", "approved", "pending", "draft"].includes(course.status || ""),
+          )
 
-        setSourceExams(mapped)
-        setSelectedExamIds(mapped.map((exam: SourceExam) => exam.id))
+          setCourses(visibleCourses)
+        } else {
+          setCourses([])
+        }
 
         if (templateResponse.ok) {
           const templatePayload = await templateResponse.json()
@@ -272,6 +402,10 @@ function TeacherGenerateExamCreatePageContent() {
   }, [editId])
 
   const courseOptions = useMemo<CourseOption[]>(() => {
+    if (courses.length > 0) {
+      return courses
+    }
+
     const map = new Map<string, string>()
     sourceExams.forEach((exam) => {
       if (exam.courseId && exam.courseName && !map.has(exam.courseId)) {
@@ -285,6 +419,34 @@ function TeacherGenerateExamCreatePageContent() {
     if (!selectedCourseId) return sourceExams
     return sourceExams.filter((exam) => exam.courseId === selectedCourseId)
   }, [sourceExams, selectedCourseId])
+
+  const groupedSourceExams = useMemo<SourceExamGroup[]>(() => {
+    const map = new Map<string, SourceExamGroup>()
+
+    for (const exam of filteredExams) {
+      const baseTitle = normalizeExamSetBaseTitle(exam.title)
+      const key = `${exam.courseId}::${baseTitle}`
+      const current = map.get(key)
+
+      if (!current) {
+        map.set(key, {
+          key,
+          title: baseTitle,
+          courseId: exam.courseId,
+          courseName: exam.courseName,
+          exams: [exam],
+        })
+        continue
+      }
+
+      current.exams.push(exam)
+    }
+
+    return Array.from(map.values()).map((group) => ({
+      ...group,
+      exams: group.exams.sort((a, b) => a.title.localeCompare(b.title)),
+    }))
+  }, [filteredExams])
 
   useEffect(() => {
     const nextExamIds = selectedCourseId
@@ -324,6 +486,18 @@ function TeacherGenerateExamCreatePageContent() {
 
   const toggleExam = (examId: string) => {
     setSelectedExamIds((prev) => (prev.includes(examId) ? prev.filter((id) => id !== examId) : [...prev, examId]))
+  }
+
+  const toggleGroupExams = (examIds: string[]) => {
+    setSelectedExamIds((prev) => {
+      const allSelected = examIds.every((id) => prev.includes(id))
+      if (allSelected) {
+        return prev.filter((id) => !examIds.includes(id))
+      }
+      const merged = new Set(prev)
+      examIds.forEach((id) => merged.add(id))
+      return Array.from(merged)
+    })
   }
 
   const toggleChapter = (chapter: string) => {
@@ -605,13 +779,48 @@ function TeacherGenerateExamCreatePageContent() {
 
             <div className="rounded-2xl border bg-card p-5 space-y-4">
               <h2 className="font-semibold">Chọn ngân hàng nguồn</h2>
-              <div className="grid gap-2 md:grid-cols-2 max-h-56 overflow-y-auto">
-                {filteredExams.map((exam) => (
-                  <label key={exam.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-                    <input type="checkbox" checked={selectedExamIds.includes(exam.id)} onChange={() => toggleExam(exam.id)} />
-                    <span>{exam.title} ({exam.questions.length} câu)</span>
-                  </label>
-                ))}
+              <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+                {groupedSourceExams.length === 0 && (
+                  <div className="rounded-lg border px-3 py-2 text-sm text-muted-foreground">
+                    Không có ngân hàng đề phù hợp để chọn
+                  </div>
+                )}
+
+                {groupedSourceExams.map((group) => {
+                  const groupExamIds = group.exams.map((exam) => exam.id)
+                  const selectedCount = groupExamIds.filter((id) => selectedExamIds.includes(id)).length
+                  const allSelected = selectedCount === groupExamIds.length && groupExamIds.length > 0
+
+                  return (
+                    <div key={group.key} className="rounded-lg border p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold">{group.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {group.courseName} • {group.exams.length} đề
+                          </p>
+                        </div>
+                        <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            checked={allSelected}
+                            onChange={() => toggleGroupExams(groupExamIds)}
+                          />
+                          <span>Chọn cả bộ</span>
+                        </label>
+                      </div>
+
+                      <div className="grid gap-2 md:grid-cols-2">
+                        {group.exams.map((exam) => (
+                          <label key={exam.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+                            <input type="checkbox" checked={selectedExamIds.includes(exam.id)} onChange={() => toggleExam(exam.id)} />
+                            <span>{exam.title} ({exam.questions.length} câu)</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 

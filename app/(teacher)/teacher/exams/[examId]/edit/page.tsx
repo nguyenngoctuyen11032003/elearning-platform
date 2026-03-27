@@ -33,6 +33,34 @@ const generateId = () => {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
 }
 
+const TYPE_LABEL_FALLBACK = "Khác"
+
+const extractTypeToken = (value: string): string | null => {
+  const text = String(value || "").trim()
+  if (!text) return null
+
+  const byTitle = text.match(/\btype\s*([A-Z0-9]+)/i)
+  if (byTitle) return String(byTitle[1]).toUpperCase()
+
+  const bySection = text.match(/\bsection\s*\d+\s*[-:]?\s*type\s*([A-Z0-9]+)/i)
+  if (bySection) return String(bySection[1]).toUpperCase()
+
+  return null
+}
+
+const toTypeLabel = (token: string | null): string => (token ? `Type ${token}` : TYPE_LABEL_FALLBACK)
+
+const detectQuestionTypeLabel = (question: Pick<Question, "chapter" | "question">): string => {
+  const byChapter = extractTypeToken(String(question.chapter || ""))
+  if (byChapter) return toTypeLabel(byChapter)
+
+  const firstLine = String(question.question || "").split(/\n+/)[0] || ""
+  const byQuestion = extractTypeToken(firstLine)
+  if (byQuestion) return toTypeLabel(byQuestion)
+
+  return TYPE_LABEL_FALLBACK
+}
+
 interface Question {
   id: string
   type: "multiple_choice" | "true_false" | "fill_in"
@@ -114,6 +142,7 @@ export default function EditExamPage() {
   const [hasLegacyQuestionPayload, setHasLegacyQuestionPayload] = useState(false)
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
+  const [currentTypeLabel, setCurrentTypeLabel] = useState<string>(TYPE_LABEL_FALLBACK)
 
   const normalizeQuestionType = (value: any): Question["type"] => {
     const normalized = String(value || "multiple_choice").toLowerCase().trim()
@@ -369,6 +398,7 @@ export default function EditExamPage() {
         showCorrectAnswers: data.showCorrectAnswers ?? true,
       })
       setQuestions(normalizedQuestions)
+      setCurrentTypeLabel(toTypeLabel(extractTypeToken(String(data.title || ""))))
       setHasLegacyQuestionPayload(rawQuestions.length > 0 && normalizedQuestions.length === 0)
     } catch (error) {
       console.error("Error loading exam:", error)
@@ -439,6 +469,7 @@ export default function EditExamPage() {
           id: generateId(),
           type,
           question: "",
+          chapter: currentTypeLabel !== TYPE_LABEL_FALLBACK ? currentTypeLabel : undefined,
           options: type === "multiple_choice" ? ["", "", "", ""] : type === "true_false" ? ["Đúng", "Sai"] : [],
           correctAnswer: type === "true_false" ? "Đúng" : "",
           points: 1,
@@ -458,6 +489,7 @@ export default function EditExamPage() {
       id: generateId(),
       type,
       question: "",
+      chapter: currentTypeLabel !== TYPE_LABEL_FALLBACK ? currentTypeLabel : undefined,
       options: type === "multiple_choice" ? ["", "", "", ""] : type === "true_false" ? ["Đúng", "Sai"] : [],
       correctAnswer: type === "true_false" ? "Đúng" : "",
       points: 1,
@@ -512,10 +544,27 @@ export default function EditExamPage() {
   }
 
   const handleImportQuestions = (importedQuestions: Question[], mode: "append" | "replace") => {
-    const normalizedImported = importedQuestions.map((q) => ({
+    const sameTypeImported = importedQuestions.filter((q) => detectQuestionTypeLabel(q) === currentTypeLabel)
+    const normalizedImported = sameTypeImported.map((q) => ({
       ...q,
+      chapter: currentTypeLabel !== TYPE_LABEL_FALLBACK ? currentTypeLabel : q.chapter,
       needsAssetReview: Boolean(q.needsAssetReview) || needsFormulaAssetReview(q),
     }))
+
+    if (normalizedImported.length === 0) {
+      toast.error(tr(`Không có câu hỏi nào thuộc ${currentTypeLabel} trong file import`, `No questions for ${currentTypeLabel} found in imported file`))
+      setShowImportModal(false)
+      return
+    }
+
+    if (sameTypeImported.length < importedQuestions.length) {
+      toast.warning(
+        tr(
+          `Đã bỏ qua ${importedQuestions.length - sameTypeImported.length} câu khác type. Chỉ giữ ${currentTypeLabel}.`,
+          `Skipped ${importedQuestions.length - sameTypeImported.length} questions from other types. Kept only ${currentTypeLabel}.`,
+        ),
+      )
+    }
 
     if (mode === "replace") {
       setQuestions(normalizedImported)
@@ -1192,6 +1241,7 @@ export default function EditExamPage() {
           onClose={() => setShowImportModal(false)}
           onImport={handleImportQuestions}
           hasExistingQuestions={questions.length > 0}
+          currentTypeLabel={currentTypeLabel}
         />
       )}
     </div>
@@ -1202,11 +1252,13 @@ export default function EditExamPage() {
 function ImportQuestionsModal({
   onClose,
   onImport,
-  hasExistingQuestions
+  hasExistingQuestions,
+  currentTypeLabel,
 }: {
   onClose: () => void
   onImport: (questions: Question[], mode: "append" | "replace") => void
   hasExistingQuestions: boolean
+  currentTypeLabel: string
 }) {
   const { language } = useLanguage()
   const tr = (vi: string, en: string) => (language === "en" ? en : vi)
@@ -1310,22 +1362,36 @@ function ImportQuestionsModal({
         isPdf ? { extractImages: true, ocrMode: "extract" } : undefined,
       )
       setImportReport(isPdf ? report : null)
-      const mapped: Question[] = parsed.map((item) => ({
-        id: generateId(),
-        type: item.type,
-        question: item.question,
-        image: item.image,
-        needsAssetReview: false,
-        chapter: item.chapter,
-        difficulty: item.difficulty,
-        options: item.options,
-        correctAnswer: item.correctAnswer,
-        points: item.points,
-        explanation: item.explanation,
-      }))
+      const importedWithDetectedType = parsed.map((item) => {
+        const rawQuestion: Question = {
+          id: generateId(),
+          type: item.type,
+          question: item.question,
+          image: item.image,
+          needsAssetReview: false,
+          chapter: item.chapter,
+          difficulty: item.difficulty,
+          options: item.options,
+          correctAnswer: item.correctAnswer,
+          points: item.points,
+          explanation: item.explanation,
+        }
 
-      const hasImportedImage = mapped.some((item) => Boolean(item.image))
-      const hasLikelyFormulaLoss = mapped.some((item) => {
+        return {
+          rawQuestion,
+          detectedTypeLabel: detectQuestionTypeLabel(rawQuestion),
+        }
+      })
+
+      const sameTypeOnly = importedWithDetectedType
+        .filter(({ detectedTypeLabel }) => detectedTypeLabel === currentTypeLabel)
+        .map(({ rawQuestion }) => ({
+          ...rawQuestion,
+          chapter: currentTypeLabel !== TYPE_LABEL_FALLBACK ? currentTypeLabel : rawQuestion.chapter,
+        }))
+
+      const hasImportedImage = sameTypeOnly.some((item) => Boolean(item.image))
+      const hasLikelyFormulaLoss = sameTypeOnly.some((item) => {
         const q = String(item.question || "").trim()
         if (!q) return false
         const lines = q.split(/\n+/).map((line) => line.trim()).filter(Boolean)
@@ -1333,8 +1399,8 @@ function ImportQuestionsModal({
         return lines.every((line) => /^[-+]?\d+(?:[.,]\d+)?$/.test(line))
       })
 
-      const issueNumbers = computeAssetIssueNumbers(mapped, isPdf ? report : null, isPdf)
-      const mappedWithFlags = mapped.map((q, idx) => ({
+      const issueNumbers = computeAssetIssueNumbers(sameTypeOnly, isPdf ? report : null, isPdf)
+      const mappedWithFlags = sameTypeOnly.map((q, idx) => ({
         ...q,
         needsAssetReview: issueNumbers.has(idx + 1),
       }))
@@ -1349,10 +1415,10 @@ function ImportQuestionsModal({
         setShowAssetIssuesModal(false)
       }
 
-      if (mapped.length === 0) {
+      if (mappedWithFlags.length === 0) {
         toast.error(tr(
-          "File không chứa câu hỏi hợp lệ theo định dạng yêu cầu. Vui lòng kiểm tra file hoặc thử file khác.",
-          "File contains no valid questions in the required format. Please check your file or try another file."
+          `Không có câu hỏi thuộc ${currentTypeLabel} trong file import.`,
+          `No questions for ${currentTypeLabel} found in imported file.`
         ))
         return
       }

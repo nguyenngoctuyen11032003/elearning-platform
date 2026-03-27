@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -108,6 +108,32 @@ const shouldFlagAssetReview = (question: Pick<Question, "question" | "options" |
   return !stemHasMath && promptLike && mathishOptionCount >= Math.max(2, Math.ceil(options.length / 2))
 }
 
+const TYPE_LABEL_FALLBACK = "Khác"
+
+const extractTypeToken = (value: string): string | null => {
+  const text = String(value || "").trim()
+  if (!text) return null
+
+  const sectionType = text.match(/\bsection\s*\d+\s*[-:]?\s*type\s*([A-Z0-9]+)/i)
+  if (sectionType) return String(sectionType[1]).toUpperCase()
+
+  const plainType = text.match(/\btype\s*([A-Z0-9]+)/i)
+  if (plainType) return String(plainType[1]).toUpperCase()
+
+  return null
+}
+
+const detectQuestionTypeLabel = (question: Pick<Question, "chapter" | "question">): string => {
+  const byChapter = extractTypeToken(String(question.chapter || ""))
+  if (byChapter) return `Type ${byChapter}`
+
+  const firstLine = String(question.question || "").split(/\n+/)[0] || ""
+  const byQuestion = extractTypeToken(firstLine)
+  if (byQuestion) return `Type ${byQuestion}`
+
+  return TYPE_LABEL_FALLBACK
+}
+
 export default function CreateExamPage() {
   const router = useRouter()
   const { t } = useLanguage()
@@ -133,6 +159,7 @@ export default function CreateExamPage() {
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("all")
 
   const sanitizeQuestions = (rawQuestions: Question[]): Question[] => {
     if (!Array.isArray(rawQuestions)) return []
@@ -379,10 +406,27 @@ export default function CreateExamPage() {
       needsAssetReview: Boolean(q.needsAssetReview) || shouldFlagAssetReview(q),
     }))
     setQuestions([...questions, ...normalizedImported])
+    setSelectedTypeFilter("all")
     setShowImportModal(false)
   }
 
   const reviewIssueCount = questions.filter((q) => q.needsAssetReview).length
+  const questionSections = Array.from(
+    new Set(questions.map((q) => String(q.chapter || "").trim()).filter(Boolean)),
+  )
+  const typeFilterOptions = useMemo(() => {
+    const labels = Array.from(new Set(questions.map((q) => detectQuestionTypeLabel(q))))
+    return labels.sort((a, b) => a.localeCompare(b))
+  }, [questions])
+
+  const visibleQuestions = useMemo(() => {
+    if (selectedTypeFilter === "all") {
+      return questions.map((q, index) => ({ q, index }))
+    }
+    return questions
+      .map((q, index) => ({ q, index }))
+      .filter(({ q }) => detectQuestionTypeLabel(q) === selectedTypeFilter)
+  }, [questions, selectedTypeFilter])
 
   const handleSubmit = async (asDraft: boolean = true) => {
     if (!asDraft && !validateStep(1)) {
@@ -401,33 +445,56 @@ export default function CreateExamPage() {
         throw new Error(t("exam_err_no_valid", "Không có câu hỏi hợp lệ để lưu bài thi"))
       }
 
-      const examData: any = {
-        ...formData,
-        type: formData.type,
-        status: asDraft ? "draft" : "pending",
-        questions: normalizedQuestions,
-      }
+      const groupedByType = normalizedQuestions.reduce((acc, q) => {
+        const typeLabel = detectQuestionTypeLabel({ question: q.question, chapter: (q as any).chapter })
+        if (!acc[typeLabel]) {
+          acc[typeLabel] = []
+        }
+        acc[typeLabel].push(q)
+        return acc
+      }, {} as Record<string, typeof normalizedQuestions>)
+
+      const groups = Object.entries(groupedByType)
+      const shouldSplitByType = groups.length > 1
 
       const normalizedTemplateId = String(formData.certificateTemplateId || "").trim()
-      if (formData.type !== "official" || !normalizedTemplateId) {
-        delete examData.certificateTemplateId
+      for (const [typeLabel, typeQuestions] of groups) {
+        const examData: any = {
+          ...formData,
+          title: shouldSplitByType ? `${formData.title} - ${typeLabel}` : formData.title,
+          type: formData.type,
+          status: asDraft ? "draft" : "pending",
+          questions: typeQuestions,
+        }
+
+        if (formData.type !== "official" || !normalizedTemplateId) {
+          delete examData.certificateTemplateId
+        } else {
+          examData.certificateTemplateId = normalizedTemplateId
+        }
+
+        const response = await authFetch("/exams", {
+          method: "POST",
+          body: JSON.stringify(examData),
+        })
+
+        if (!response.ok) {
+          const errorPayload = await response.json().catch(() => ({}))
+          throw new Error(errorPayload?.details?.message || errorPayload?.error || t("exam_err_create", "Tạo bài thi thất bại"))
+        }
+
+        await response.json().catch(() => ({}))
+      }
+
+      if (shouldSplitByType) {
+        toast.success(
+          asDraft
+            ? `Đã tạo ${groups.length} ngân hàng đề nháp theo Type: ${groups.map(([k]) => k).join(", ")}`
+            : `Đã tạo ${groups.length} ngân hàng đề chờ duyệt theo Type: ${groups.map(([k]) => k).join(", ")}`,
+        )
       } else {
-        examData.certificateTemplateId = normalizedTemplateId
+        toast.success(asDraft ? t("exam_saved_draft", "Đã lưu bài thi nháp") : t("exam_pending_review", "Đã gửi bài thi chờ duyệt"))
       }
-
-      const response = await authFetch("/exams", {
-        method: "POST",
-        body: JSON.stringify(examData),
-      })
-
-      if (!response.ok) {
-        const errorPayload = await response.json().catch(() => ({}))
-        throw new Error(errorPayload?.details?.message || errorPayload?.error || t("exam_err_create", "Tạo bài thi thất bại"))
-      }
-
-      await response.json().catch(() => ({}))
-
-      toast.success(asDraft ? t("exam_saved_draft", "Đã lưu bài thi nháp") : t("exam_pending_review", "Đã gửi bài thi chờ duyệt"))
       router.push("/teacher/exams")
     } catch (error) {
       console.error("Error creating exam:", error)
@@ -560,6 +627,11 @@ export default function CreateExamPage() {
                   <p className="text-sm text-muted-foreground dark:text-slate-400">
                     {questions.length} {t("exam_questions_count", "câu hỏi")} • {t("exam_total", "Tổng")} {totalPoints} {t("exam_points", "điểm")}
                   </p>
+                  {questionSections.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t("exam_sections_label", "Section")}: {questionSections.join(" • ")}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {/* Import Button */}
@@ -591,6 +663,17 @@ export default function CreateExamPage() {
                     <Plus size={16} />
                     {t("exam_fill_in", "Điền khuyết")}
                   </button>
+                  <select
+                    value={selectedTypeFilter}
+                    onChange={(e) => setSelectedTypeFilter(e.target.value)}
+                    className="px-3 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg text-sm"
+                    title="Lọc theo Type"
+                  >
+                    <option value="all">Tất cả Type</option>
+                    {typeFilterOptions.map((label) => (
+                      <option key={label} value={label}>{label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -613,7 +696,7 @@ export default function CreateExamPage() {
               )}
 
               <div className="space-y-4">
-                {questions.map((question, index) => (
+                {visibleQuestions.map(({ q: question, index }) => (
                   <div
                     key={question.id}
                     className="bg-secondary/50 dark:bg-slate-800/50 border border-border dark:border-slate-700 rounded-xl overflow-hidden"
@@ -628,6 +711,17 @@ export default function CreateExamPage() {
                         <span className="font-semibold text-foreground dark:text-white">
                           {t("exam_question_num", "Câu")} {index + 1}
                         </span>
+                        <span className="text-xs px-2 py-1 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                          {detectQuestionTypeLabel(question)}
+                        </span>
+                        {question.chapter && (
+                          <span
+                            className="text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 max-w-[260px] truncate"
+                            title={question.chapter}
+                          >
+                            {question.chapter}
+                          </span>
+                        )}
                         <span className={`text-xs px-2 py-1 rounded-full ${
                           question.type === "multiple_choice" 
                             ? "bg-blue-500/10 text-blue-500" 
@@ -953,11 +1047,13 @@ export default function CreateExamPage() {
                   </div>
                 ))}
 
-                {questions.length === 0 && (
+                {visibleQuestions.length === 0 && (
                   <div className="text-center py-12">
                     <ClipboardList size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
                     <p className="text-muted-foreground dark:text-slate-400">
-                      {t("exam_no_questions_yet", "Chưa có câu hỏi nào. Bấm nút ở trên để thêm câu hỏi.")}
+                      {questions.length === 0
+                        ? t("exam_no_questions_yet", "Chưa có câu hỏi nào. Bấm nút ở trên để thêm câu hỏi.")
+                        : "Không có câu hỏi thuộc Type đã chọn."}
                     </p>
                   </div>
                 )}
@@ -1122,6 +1218,18 @@ function ImportQuestionsModal({
     { number: number; preview: string; reasons: string[] }[]
   >([])
   const [showAssetIssuesModal, setShowAssetIssuesModal] = useState(false)
+
+  const previewGroupedBySection = previewQuestions.reduce(
+    (acc, q, index) => {
+      const title = String(q.chapter || "Section mặc định").trim() || "Section mặc định"
+      if (!acc[title]) {
+        acc[title] = []
+      }
+      acc[title].push({ q, index })
+      return acc
+    },
+    {} as Record<string, { q: Question; index: number }[]>,
+  )
 
   const computeAssetIssues = (
     mapped: Question[],
@@ -1467,12 +1575,21 @@ function ImportQuestionsModal({
           {previewQuestions.length > 0 && !isProcessing && (
             <div>
               <h4 className="font-medium text-foreground dark:text-white mb-3">{t("exam_preview", "Xem trước")} ({previewQuestions.length} {t("exam_questions_count", "câu hỏi")})</h4>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {previewQuestions.map((q, index) => (
-                  <div key={q.id} className="p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg flex items-center gap-3">
-                    <span className="w-6 h-6 flex items-center justify-center bg-primary/10 text-primary rounded font-semibold text-sm">{index + 1}</span>
-                    <span className="notranslate flex-1 text-foreground dark:text-white text-sm truncate" translate="no"><ScientificText as="span" text={q.question} /></span>
-                    <span className="text-xs text-muted-foreground">{q.points} {t("exam_points", "điểm")}</span>
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                {Object.entries(previewGroupedBySection).map(([sectionTitle, items]) => (
+                  <div key={sectionTitle} className="rounded-lg border border-border/60 dark:border-slate-700/60 overflow-hidden">
+                    <div className="px-3 py-2 text-xs font-semibold tracking-wide uppercase bg-amber-500/10 text-amber-300 border-b border-border/60 dark:border-slate-700/60">
+                      {sectionTitle} ({items.length})
+                    </div>
+                    <div className="space-y-2 p-2">
+                      {items.map(({ q, index }) => (
+                        <div key={q.id} className="p-2 bg-secondary/50 dark:bg-slate-800/50 rounded-lg flex items-center gap-3">
+                          <span className="w-6 h-6 flex items-center justify-center bg-primary/10 text-primary rounded font-semibold text-sm">{index + 1}</span>
+                          <span className="notranslate flex-1 text-foreground dark:text-white text-sm truncate" translate="no"><ScientificText as="span" text={q.question} /></span>
+                          <span className="text-xs text-muted-foreground">{q.points} {t("exam_points", "điểm")}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

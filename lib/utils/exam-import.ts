@@ -27,6 +27,7 @@ export interface ExamImportWithReport {
 
 interface WordQuestionBlock {
   questionText: string
+  questionNumber?: number
   bodyLines: string[]
   answerLine: string
   explanationLine: string
@@ -45,7 +46,9 @@ interface WordQuestionBlock {
 }
 
 const QUESTION_LINE_REGEX = /^\s*(?:Cau|Câu|Question|Q)\s*\d+[\.:\-\)]*\s*/i
+const QUESTION_WITH_NUMBER_REGEX = /^\s*(?:Cau|Câu|Question|Q)\s*(\d{1,4})[\.:\-\)]*\s*(.+)$/i
 const NUMBERED_QUESTION_LINE_REGEX = /^\s*\(?\d{1,4}\)?[\.:\-\)]\s*(.+?)\s*$/i
+const NUMBERED_WITH_NUMBER_REGEX = /^\s*\(?(\d{1,4})\)?[\.:\-\)]\s*(.+?)\s*$/i
 const OPTION_LINE_REGEX = /^\s*([A-F])[\.)](?!:)\s*(.+)$/i
 const INLINE_OPTION_MARKER_REGEX = /([A-F])[\.)](?!:)\s*/gi
 const ANSWER_LINE_REGEX = /^\s*(?:Dap an|Đáp án|Answer|Ans(?:wer)?)\s*(?:[:=.\-])?\s*(.+)$/i
@@ -56,6 +59,32 @@ const INLINE_METADATA_SPLIT_REGEX = /\s+(?:Diff|Var|Topic|Learning\s*Obj|Global\
 const SECTION_LINE_REGEX = /^\s*(\d+(?:\.\d+)*)\s+([A-Za-z][^\n]{3,})$/
 const METADATA_LINE_REGEX = /^\s*(Diff|Var|Topic|Learning\s*Obj|Global\s*Obj|Rationale|Reason|Loi\s*giai|Lời\s*giải)\s*[:=.\-]\s*(.+)$/i
 const FILL_IN_QUESTION_HINT_REGEX = /(?:_{2,}|\.{3,}|\(\s*\)|\[\s*\]|\bfill\s*(?:in|the\s*blank)\b|\bđiền\s*(?:vào\s*)?chỗ\s*trống\b)/i
+
+const normalizeSectionLabel = (value: string): string => {
+  return String(value || "").replace(/\s+/g, " ").trim()
+}
+
+const toAutoSectionLabel = (index: number): string => `Section ${index}`
+
+const toTypeSectionLabel = (value: string): string | null => {
+  const text = normalizeSectionLabel(value)
+  const sectionType = text.match(/\bsection\s*(\d+)\s*[:\-]?\s*type\s*([A-Z0-9]+)/i)
+  if (sectionType) {
+    return `Section ${sectionType[1]} - Type ${sectionType[2].toUpperCase()}`
+  }
+
+  const plainSection = text.match(/^section\s*(\d+)\b/i)
+  if (plainSection) {
+    return `Section ${plainSection[1]}`
+  }
+
+  const plainType = text.match(/^type\s*([A-Z0-9]+)\b/i)
+  if (plainType) {
+    return `Type ${plainType[1].toUpperCase()}`
+  }
+
+  return null
+}
 
 const extractQuestionText = (line: string): string | null => {
   if (!line.trim()) return null
@@ -78,6 +107,32 @@ const extractQuestionText = (line: string): string | null => {
   return content
 }
 
+const extractQuestionStart = (line: string): { text: string; number?: number } | null => {
+  const raw = String(line || "")
+  if (!raw.trim()) return null
+
+  const prefixed = raw.match(QUESTION_WITH_NUMBER_REGEX)
+  if (prefixed) {
+    const number = Number.parseInt(prefixed[1], 10)
+    const text = String(prefixed[2] || "").trim()
+    if (text.length < 1) return null
+    return { text, number: Number.isNaN(number) ? undefined : number }
+  }
+
+  const numbered = raw.match(NUMBERED_WITH_NUMBER_REGEX)
+  if (numbered) {
+    const number = Number.parseInt(numbered[1], 10)
+    const text = String(numbered[2] || "").trim()
+    if (text.length < 4) return null
+    if (/^(?:chapter|unit|part|section)\b/i.test(text)) return null
+    return { text, number: Number.isNaN(number) ? undefined : number }
+  }
+
+  const text = extractQuestionText(raw)
+  if (!text) return null
+  return { text }
+}
+
 const looksLikeFillInQuestion = (value: string): boolean => {
   const text = value.trim()
   if (!text) return false
@@ -93,15 +148,18 @@ const extractSectionTitle = (line: string): string | null => {
   if (ANSWER_LINE_REGEX.test(text)) return null
   if (EXPLANATION_LINE_REGEX.test(text)) return null
 
+  const explicitTypeSection = toTypeSectionLabel(text)
+  if (explicitTypeSection) return explicitTypeSection
+
   const match = text.match(SECTION_LINE_REGEX)
   if (!match) return null
 
   const title = `${match[1]} ${match[2]}`.trim()
-  if (!/question|questions|trac nghiem|trắc nghiệm|true false|fill/i.test(title)) {
+  if (!/question|questions|trac nghiem|trắc nghiệm|true false|fill|section|type/i.test(title)) {
     return null
   }
 
-  return title
+  return normalizeSectionLabel(title)
 }
 
 const looksLikeStandaloneQuestionStart = (line: string): boolean => {
@@ -421,7 +479,7 @@ const finalizeWordBlock = (
   const image = block.imageKey ? imageMap[block.imageKey] : undefined
   const chapter = block.sectionTitle?.trim() || undefined
   const difficulty = toDifficultyLevel(block.metadata.diff)
-  const questionWithSection = block.sectionTitle ? `[${block.sectionTitle}]\n${normalizedQuestion}` : normalizedQuestion
+  const questionWithSection = normalizedQuestion
 
   if (options.length >= 2) {
     const normalizedLower = options.map((option) => option.toLowerCase().trim())
@@ -529,6 +587,9 @@ const parseDocumentQuestions = async (
   const blocks: WordQuestionBlock[] = []
   let current: WordQuestionBlock | null = null
   let currentSectionTitle: string | undefined
+  let currentAutoSectionTitle = toAutoSectionLabel(1)
+  let autoSectionIndex = 1
+  let lastQuestionNumber: number | undefined
   let pendingImageKey: string | undefined
   let pendingExtraImageKeys: string[] = []
 
@@ -539,23 +600,39 @@ const parseDocumentQuestions = async (
         blocks.push(current)
         current = null
       }
-      currentSectionTitle = sectionTitle
+      currentSectionTitle = normalizeSectionLabel(sectionTitle)
+      lastQuestionNumber = undefined
       continue
     }
 
-    const questionText = extractQuestionText(line)
-    if (questionText) {
+    const questionStart = extractQuestionStart(line)
+    if (questionStart) {
+      const isResetFromQuestionSequence =
+        questionStart.number === 1 &&
+        typeof lastQuestionNumber === "number" &&
+        lastQuestionNumber > 1
+
+      if (isResetFromQuestionSequence) {
+        autoSectionIndex += 1
+        currentAutoSectionTitle = toAutoSectionLabel(autoSectionIndex)
+        currentSectionTitle = currentAutoSectionTitle
+      }
+
       if (current) blocks.push(current)
       current = {
-        questionText,
+        questionText: questionStart.text,
+        questionNumber: questionStart.number,
         bodyLines: [],
         answerLine: "",
         explanationLine: "",
-        sectionTitle: currentSectionTitle,
+        sectionTitle: currentSectionTitle || currentAutoSectionTitle,
         metadata: {},
         imageKey: pendingImageKey,
         extraImageKeys: pendingExtraImageKeys,
         points: 1,
+      }
+      if (typeof questionStart.number === "number") {
+        lastQuestionNumber = questionStart.number
       }
       pendingImageKey = undefined
       pendingExtraImageKeys = []
