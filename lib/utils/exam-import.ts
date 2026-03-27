@@ -542,8 +542,8 @@ const parseDocumentQuestions = async (
 ): Promise<ExamImportWithReport> => {
   const lowerName = file.name.toLowerCase()
   const parserEndpoint = lowerName.endsWith(".pdf")
-    ? "/api/import/parse-pdf"
-    : "/api/import/parse-word"
+    ? "/internal/import/parse-pdf"
+    : "/internal/import/parse-word"
 
   const formData = new FormData()
   formData.append("file", file)
