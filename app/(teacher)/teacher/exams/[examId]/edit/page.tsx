@@ -282,16 +282,17 @@ export default function EditExamPage() {
 
   const fetchCourses = async () => {
     try {
-      // Fetch only teacher's courses
-      const response = await fetch("/api/courses/teacher/my-courses", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        },
-      })
+      // Keep consistent with other teacher pages: call backend directly with authFetch
+      const response = await authFetch("/courses/my-courses")
       if (response.ok) {
-        const data = await response.json()
-        const nextCourses = normalizeList<Course>(data)
-        setCourses(nextCourses)
+        const contentType = response.headers.get("content-type") || ""
+        if (contentType.includes("application/json")) {
+          const data = await response.json()
+          const nextCourses = normalizeList<Course>(data)
+          setCourses(nextCourses)
+        } else {
+          setCourses([])
+        }
       } else {
         setCourses([])
       }
