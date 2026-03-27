@@ -115,6 +115,11 @@ function renderScientificNodes(value: string): ReactNode[] {
 export function ScientificText({ text, className, as = "span" }: ScientificTextProps) {
   const content = text == null ? "" : String(text)
   const Tag = as
+  const mergedClassName = ["notranslate", className].filter(Boolean).join(" ")
 
-  return <Tag className={className}>{renderScientificNodes(content)}</Tag>
+  return (
+    <Tag className={mergedClassName} translate="no">
+      {renderScientificNodes(content)}
+    </Tag>
+  )
 }

@@ -129,10 +129,10 @@ export default function PaymentHistoryPage() {
     let active = true
 
     const localizePayments = async () => {
-      const localized = await autoTranslateData(mockPaymentHistory, language)
+      // Don't translate payment data
       if (!active) return
-      setPayments(localized)
-      setFilteredPayments(localized)
+      setPayments(mockPaymentHistory)
+      setFilteredPayments(mockPaymentHistory)
       setLoading(false)
     }
 

@@ -137,6 +137,12 @@ export default function CreateExamPage() {
   const sanitizeQuestions = (rawQuestions: Question[]): Question[] => {
     if (!Array.isArray(rawQuestions)) return []
 
+    const getTrueFalseOptions = (rawOptions: string[]) => {
+      const normalized = rawOptions.map((option) => String(option || "").trim()).filter(Boolean)
+      if (normalized.length >= 2) return normalized.slice(0, 2)
+      return [t("exam_true_label", "Đúng"), t("exam_false_label", "Sai")]
+    }
+
     const ensureFourOptions = (options: string[]) => {
       const normalized = options.map((option) => String(option || "").trim()).filter(Boolean)
       if (normalized.length >= 4) return normalized.slice(0, 4)
@@ -179,7 +185,7 @@ export default function CreateExamPage() {
         const options = type === "multiple_choice"
           ? ensureFourOptions(rawOptions)
           : type === "true_false"
-          ? [t("exam_true_label", "Đúng"), t("exam_false_label", "Sai")]
+          ? getTrueFalseOptions(rawOptions)
           : []
 
         const correctAnswer = type === "fill_in"
@@ -659,7 +665,7 @@ export default function CreateExamPage() {
 
                     {/* Question Content */}
                     {expandedQuestion === question.id && (
-                      <div className="p-4 pt-0 space-y-4">
+                      <div className="notranslate p-4 pt-0 space-y-4" translate="no">
                         {/* Question Text */}
                         <div>
                           <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
@@ -669,7 +675,8 @@ export default function CreateExamPage() {
                             value={question.question}
                             onChange={(e) => updateQuestion(question.id, { question: e.target.value })}
                             rows={2}
-                            className={`w-full px-4 py-3 bg-card dark:bg-slate-900 border rounded-xl text-foreground dark:text-white ${
+                            translate="no"
+                            className={`notranslate w-full px-4 py-3 bg-card dark:bg-slate-900 border rounded-xl text-foreground dark:text-white ${
                               errors[`question_${index}`] ? "border-red-500" : "border-border dark:border-slate-700"
                             }`}
                             placeholder={t("exam_question_placeholder", "Nhập câu hỏi...")}
@@ -760,7 +767,8 @@ export default function CreateExamPage() {
                                               }
                                               updateQuestion(question.id, nextUpdate)
                                             }}
-                                            className="flex-1 px-4 py-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg text-foreground dark:text-white"
+                                            translate="no"
+                                            className="notranslate flex-1 px-4 py-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg text-foreground dark:text-white"
                                             placeholder={`${t("exam_answer_label", "Đáp án")} ${String.fromCharCode(65 + optIndex)}`}
                                           />
                                           {question.options.length > 2 && (
@@ -871,7 +879,14 @@ export default function CreateExamPage() {
                               {t("exam_correct_answer", "Đáp án đúng")} <span className="text-red-500">*</span>
                             </label>
                             <div className="flex gap-4">
-                              {["Đúng", "Sai"].map((opt) => (
+                              {(() => {
+                                const normalized = question.options
+                                  .map((option) => String(option || "").trim())
+                                  .filter(Boolean)
+                                const tfOptions = normalized.length >= 2
+                                  ? normalized.slice(0, 2)
+                                  : [t("exam_true_label", "Đúng"), t("exam_false_label", "Sai")]
+                                return tfOptions.map((opt) => (
                                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
                                   <input
                                     type="radio"
@@ -882,7 +897,8 @@ export default function CreateExamPage() {
                                   />
                                   <span className="text-foreground dark:text-white">{opt}</span>
                                 </label>
-                              ))}
+                                ))
+                              })()}
                             </div>
                           </div>
                         )}
@@ -897,7 +913,8 @@ export default function CreateExamPage() {
                               type="text"
                               value={question.correctAnswer as string}
                               onChange={(e) => updateQuestion(question.id, { correctAnswer: e.target.value })}
-                              className="w-full px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
+                              translate="no"
+                              className="notranslate w-full px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
                               placeholder={t("exam_correct_answer_placeholder", "Nhập đáp án đúng...")}
                             />
                           </div>
@@ -1454,7 +1471,7 @@ function ImportQuestionsModal({
                 {previewQuestions.map((q, index) => (
                   <div key={q.id} className="p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg flex items-center gap-3">
                     <span className="w-6 h-6 flex items-center justify-center bg-primary/10 text-primary rounded font-semibold text-sm">{index + 1}</span>
-                    <span className="flex-1 text-foreground dark:text-white text-sm truncate"><ScientificText as="span" text={q.question} /></span>
+                    <span className="notranslate flex-1 text-foreground dark:text-white text-sm truncate" translate="no"><ScientificText as="span" text={q.question} /></span>
                     <span className="text-xs text-muted-foreground">{q.points} {t("exam_points", "điểm")}</span>
                   </div>
                 ))}
