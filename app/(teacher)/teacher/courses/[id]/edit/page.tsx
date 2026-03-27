@@ -1302,7 +1302,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
         : { "Content-Type": "application/json" }
 
-      const persistedIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      // Accept UUID-like IDs used by seeded data (e.g. f300..., e000...) to avoid false "new lesson" detection.
+      const persistedIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       const isPersistedId = (value: unknown) => persistedIdPattern.test(String(value || ""))
 
       // Reconcile deletions first: anything removed in UI must be removed in DB.
@@ -1441,7 +1442,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       // Save lessons (new and existing) with sectionTitle and order
       for (const [, section] of sections.entries()) {
         for (const [lIdx, lesson] of section.lessons.entries()) {
-          const isNewLesson = !/^[0-9a-f-]{36}$/.test(lesson.id)
+          const isNewLesson = !isPersistedId(lesson.id)
           if (isNewLesson) {
             const lessonResources = buildLessonResources(lesson)
             const createRes = await fetch("/api/lessons", {

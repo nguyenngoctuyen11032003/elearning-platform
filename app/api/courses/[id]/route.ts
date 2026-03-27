@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from "next/server"
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"
 
+function normalizeErrorMessage(raw: unknown, fallback: string): string {
+  if (typeof raw === "string" && raw.trim()) return raw
+  if (Array.isArray(raw)) {
+    const messages = raw
+      .map((item) => (typeof item === "string" ? item : ""))
+      .filter(Boolean)
+    if (messages.length > 0) return messages.join("; ")
+  }
+  if (raw && typeof raw === "object") {
+    const record = raw as Record<string, unknown>
+    return (
+      normalizeErrorMessage(record.message, "") ||
+      normalizeErrorMessage(record.error, "") ||
+      fallback
+    )
+  }
+  return fallback
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -55,7 +74,7 @@ export async function PATCH(
     if (!response.ok) {
       const err = await response.json().catch(() => ({}))
       return NextResponse.json(
-        { error: err.message || "Failed to update course" },
+        { error: normalizeErrorMessage(err, "Failed to update course") },
         { status: response.status },
       )
     }
