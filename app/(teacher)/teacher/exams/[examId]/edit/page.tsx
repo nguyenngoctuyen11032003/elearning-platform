@@ -603,7 +603,7 @@ export default function EditExamPage() {
   return (
     <div className="p-6 md:p-8 overflow-y-auto">
       <div className="w-full space-y-8">
-        <TeacherExamsNavbar />
+        <TeacherExamsNavbar showCreateButton={false} />
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link

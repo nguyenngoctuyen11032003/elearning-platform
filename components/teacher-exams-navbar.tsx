@@ -10,6 +10,10 @@ type ExamLike = {
   attemptCount?: number
 }
 
+type TeacherExamsNavbarProps = {
+  showCreateButton?: boolean
+}
+
 const normalizeList = <T,>(payload: any): T[] => {
   if (Array.isArray(payload)) return payload
   if (payload?.data && Array.isArray(payload.data)) return payload.data
@@ -17,7 +21,7 @@ const normalizeList = <T,>(payload: any): T[] => {
   return []
 }
 
-export function TeacherExamsNavbar() {
+export function TeacherExamsNavbar({ showCreateButton = true }: TeacherExamsNavbarProps) {
   const { t } = useLanguage()
   const [total, setTotal] = useState<number | null>(null)
   const [used, setUsed] = useState<number | null>(null)
@@ -67,13 +71,15 @@ export function TeacherExamsNavbar() {
         </div>
       </Link>
 
-      <Link
-        href="/teacher/exams/create"
-        className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-medium transition-colors hover:bg-primary/90"
-      >
-        <Plus size={16} />
-        {t("exam_create", "Tạo đề thi")}
-      </Link>
+      {showCreateButton && (
+        <Link
+          href="/teacher/exams/create"
+          className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-medium transition-colors hover:bg-primary/90"
+        >
+          <Plus size={16} />
+          {t("exam_create", "Tạo đề thi")}
+        </Link>
+      )}
     </div>
   )
 }

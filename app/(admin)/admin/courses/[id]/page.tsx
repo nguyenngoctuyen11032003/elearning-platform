@@ -690,42 +690,6 @@ export default function AdminCourseDetailPage() {
             <ArrowLeft size={20} />
             <span>{t("adm_cd_back", "Quay lại")}</span>
           </button>
-          <div className="flex items-center gap-3">
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleSaveEditCourse}
-                  disabled={isSaving}
-                  className="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-smooth flex items-center gap-2 disabled:opacity-60"
-                >
-                  <Save size={18} />
-                  {isSaving ? t("adm_cd_saving", "Đang lưu...") : t("adm_cd_save", "Lưu")}
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-smooth"
-                >
-                  {t("common_cancel", "Hủy")}
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-smooth flex items-center gap-2"
-              >
-                <Edit size={18} />
-                {t("common_edit", "Chỉnh sửa")}
-              </button>
-            )}
-            <button
-              onClick={handleDeleteCourse}
-              disabled={isDeleting}
-              className="px-4 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-smooth flex items-center gap-2 disabled:opacity-60"
-            >
-              <Trash2 size={18} />
-              {isDeleting ? t("adm_cd_deleting", "Đang xóa...") : t("adm_cd_delete", "Xóa")}
-            </button>
-          </div>
         </div>
 
         {/* Course Header */}

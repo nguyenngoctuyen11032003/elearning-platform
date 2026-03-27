@@ -223,6 +223,37 @@ export default function AdminCoursesPage() {
     })
   }
 
+  useEffect(() => {
+    if (!openMenu) return
+
+    const handlePointerDownOutside = (event: MouseEvent) => {
+      const target = event.target as Node | null
+      if (!target) return
+
+      if (menuRef.current?.contains(target)) return
+
+      const targetElement = target as HTMLElement
+      if (targetElement.closest('[data-course-menu-trigger="true"]')) return
+
+      setOpenMenu(null)
+      setMenuPos(null)
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return
+      setOpenMenu(null)
+      setMenuPos(null)
+    }
+
+    document.addEventListener("mousedown", handlePointerDownOutside)
+    document.addEventListener("keydown", handleEscape)
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDownOutside)
+      document.removeEventListener("keydown", handleEscape)
+    }
+  }, [openMenu])
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "published":
@@ -439,6 +470,7 @@ export default function AdminCoursesPage() {
                           <Eye size={18} />
                         </Link>
                         <button
+                          data-course-menu-trigger="true"
                           onClick={e => {
                             const rect = e.currentTarget.getBoundingClientRect();
                             const menuWidth = 208; // min-w-52 = 13rem = 208px
@@ -523,6 +555,7 @@ export default function AdminCoursesPage() {
                     {t("adm_courses_view_details", "Chi tiết")}
                   </Link>
                   <button
+                    data-course-menu-trigger="true"
                     className="p-2 bg-slate-700 rounded-lg"
                     onClick={e => {
                       const rect = e.currentTarget.getBoundingClientRect();

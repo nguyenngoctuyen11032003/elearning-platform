@@ -437,7 +437,7 @@ export default function CreateExamPage() {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        <TeacherExamsNavbar />
+        <TeacherExamsNavbar showCreateButton={false} />
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link

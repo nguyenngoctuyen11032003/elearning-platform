@@ -210,6 +210,7 @@ export default function CreateCoursePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [createdCourseId, setCreatedCourseId] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
+  const [categoryError, setCategoryError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -290,6 +291,12 @@ export default function CreateCoursePage() {
           toast.error(t("tc_create_err_desc_required", "Vui lòng nhập mô tả khóa học"))
           return
         }
+        if (!formData.categoryId) {
+          const message = t("tc_create_err_category_required", "Danh mục là trường bắt buộc")
+          setCategoryError(message)
+          toast.error(message)
+          return
+        }
       }
       setCurrentStep(currentStep + 1)
       return
@@ -303,6 +310,12 @@ export default function CreateCoursePage() {
       }
       if (!formData.description.trim()) {
         toast.error(t("tc_create_err_desc_required", "Vui lòng nhập mô tả khóa học"))
+        return
+      }
+      if (!formData.categoryId) {
+        const message = t("tc_create_err_category_required", "Danh mục là trường bắt buộc")
+        setCategoryError(message)
+        toast.error(message)
         return
       }
 
@@ -1210,14 +1223,25 @@ export default function CreateCoursePage() {
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_category", "Danh mục")}</label>
                 <select
                   value={formData.categoryId}
-                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                  className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
+                  onChange={(e) => {
+                    const selectedCategoryId = e.target.value
+                    setFormData({ ...formData, categoryId: selectedCategoryId })
+                    if (selectedCategoryId) {
+                      setCategoryError(null)
+                    }
+                  }}
+                  className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white ${
+                    categoryError ? "border-destructive" : "border-border dark:border-slate-700"
+                  }`}
                 >
                   <option value="">{t("tc_create_select_category", "Chọn danh mục")}</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
+                {categoryError && (
+                  <p className="mt-2 text-sm text-destructive">{categoryError}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_course_image", "Ảnh hình khóa học")}</label>
