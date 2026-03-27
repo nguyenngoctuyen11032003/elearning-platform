@@ -4,7 +4,7 @@ const request = async (
   url: string,
   options: RequestInit = {},
 ) => {
-  const token = localStorage.getItem('access_token')
+  const token = localStorage.getItem('auth_token')
 
   const res = await fetch(`${API_BASE_URL}${url}`, {
     ...options,
@@ -20,7 +20,11 @@ const request = async (
     throw err
   }
 
-  return res.json()
+  const payload = await res.json()
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return (payload as any).data
+  }
+  return payload
 }
 
 export const scheduleApi = {

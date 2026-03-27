@@ -28,6 +28,14 @@ interface EnrolledCourse {
   enrolledAt: string
 }
 
+const getFirstLessonId = (enrollment: EnrolledCourse): string => {
+  const lessons = Array.isArray(enrollment.course?.lessons) ? enrollment.course.lessons : []
+  if (lessons.length === 0) return enrollment.courseId
+
+  const sorted = [...lessons].sort((a: any, b: any) => Number(a?.order || 0) - Number(b?.order || 0))
+  return String(sorted[0]?.id || enrollment.courseId)
+}
+
 const normalizeProgress = (value: unknown): number => {
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) return 0
@@ -326,7 +334,9 @@ export default function MyCoursesPage() {
                               <p className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded inline-block">
                                 {isCompletedEnrollment(enrollment)
                                   ? t("mycourses_completed", "Hoàn thành")
-                                  : t("mycourses_in_progress", "Đang học")}
+                                  : enrollment.progress === 0
+                                    ? t("mycourses_not_started", "Chưa bắt đầu")
+                                    : t("mycourses_in_progress", "Đang học")}
                               </p>
                             </div>
                             <div className="relative group flex-shrink-0">
@@ -411,7 +421,7 @@ export default function MyCoursesPage() {
                               </div>
                             </div>
                             <Link
-                              href={`/player/${enrollment.courseId}`}
+                              href={`/player/${getFirstLessonId(enrollment)}`}
                               className="flex items-center gap-1 text-primary dark:text-accent hover:gap-2 transition-all text-xs font-medium whitespace-nowrap"
                             >
                               {t("mycourses_continue", "Tiếp tục")}
@@ -485,7 +495,7 @@ export default function MyCoursesPage() {
                     .map((enrollment) => (
                       <Link
                         key={enrollment.id}
-                        href={`/player/${enrollment.courseId}`}
+                        href={`/player/${getFirstLessonId(enrollment)}`}
                         className="group flex items-center gap-3 p-3 rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
                       >
                         <div className="w-1.5 h-1.5 rounded-full bg-green-500" />

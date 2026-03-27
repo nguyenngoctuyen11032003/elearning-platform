@@ -206,14 +206,19 @@ export default function StudentAssignmentDetailPage() {
   const submittedAt = mySubmission?.submittedAt ? new Date(mySubmission.submittedAt) : null;
   const submitted = Boolean(mySubmission?.id);
   const isGraded = mySubmission?.status === 'graded';
+  const lastModifiedAt = mySubmission?.gradedAt
+    ? new Date(mySubmission.gradedAt)
+    : mySubmission?.submittedAt
+      ? new Date(mySubmission.submittedAt)
+      : null;
 
   const submissionStatusText = !submitted
     ? t('asgn_no_submission_yet', 'No submissions have been made yet')
     : mySubmission?.status === 'graded'
-      ? t('asgn_status_submitted_for_grading', 'Submitted for grading')
+      ? t('asgn_status_graded', 'Graded')
       : mySubmission?.status === 'late'
         ? t('asgn_status_submitted_late', 'Submitted late')
-        : t('asgn_status_draft_not_submitted', 'Draft (not submitted)');
+        : t('asgn_status_submitted_for_grading', 'Submitted for grading');
 
   const loadData = async () => {
     if (!assignmentId) return;
@@ -377,10 +382,10 @@ export default function StudentAssignmentDetailPage() {
                     {formatTimeRemaining(dueAt, submittedAt, t)}
                   </td>
                 </tr>
-                {submittedAt && (
+                {lastModifiedAt && (
                   <tr className="border-t border-border align-top">
                     <td className="px-4 py-4 font-semibold text-foreground">Last modified</td>
-                    <td className="px-4 py-4 text-foreground">{submittedAt.toLocaleString('vi-VN')}</td>
+                    <td className="px-4 py-4 text-foreground">{lastModifiedAt.toLocaleString('vi-VN')}</td>
                   </tr>
                 )}
                 {attachments.length > 0 && (

@@ -539,6 +539,8 @@ export default function AdminCourseDetailPage() {
     )
   }
 
+  const courseThumbnail = course.thumbnail?.trim() || "/image/logo-ics.jpg"
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       published: { label: t("adm_cd_published", "Đã xuất bản"), icon: CheckCircle, color: "text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" },
@@ -754,7 +756,7 @@ export default function AdminCourseDetailPage() {
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
           <div className="flex flex-col lg:flex-row gap-6">
             <img
-              src={course.thumbnail}
+              src={courseThumbnail}
               alt={course.title}
               className="w-full lg:w-80 h-48 object-cover rounded-xl"
             />

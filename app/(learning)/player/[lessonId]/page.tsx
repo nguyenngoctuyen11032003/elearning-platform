@@ -534,9 +534,6 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
           // startId is a courseId
           const rawData = await courseLessonsRes.json()
           const allLessons = unwrapArray<ApiLesson>(rawData)
-          if (allLessons.length > 0) {
-            setCurrentLessonId(allLessons[0].id)
-          }
           const [courseRes, quizMetaByLessonId, writingMetaByLessonId, enrollmentProgress] = await Promise.all([
             fetch(`/api/courses/${startId}`, { headers: getAuth() }),
             buildQuizMeta(startId),
@@ -558,6 +555,12 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
             writingMetaByLessonId,
             enrollmentProgress.progressByLessonId,
           )
+
+          if (builtLessons.length > 0) {
+            const nextLesson = builtLessons.find((item) => !item.completed) || builtLessons[0]
+            setCurrentLessonId(nextLesson.id)
+          }
+
           setLessons(builtLessons)
 
           if (enrollmentProgress.enrollmentId) {

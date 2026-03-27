@@ -7,6 +7,7 @@ import { Download, Share2, Award, Calendar, User, FileText, CheckCircle, Externa
 import { PremiumCard } from "@/components/ui/premium-card"
 import { PageHero } from "@/components/ui/page-hero"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { apiClient } from "@/lib/api/client"
 
 interface Certificate {
   id: string
@@ -57,18 +58,40 @@ export default function CertificatesPage() {
     const load = async () => {
       setLoading(true)
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
-        if (!token) return
-        const res = await fetch("/api/certificates/my-certificates", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (!res.ok) throw new Error(t("cert_list_load_failed", "Failed to load certificates"))
-        const payload = await res.json()
-        const raw: any[] = Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload?.data)
-          ? payload.data
-          : []
+        const initial = await apiClient.getMyCertificates()
+        let raw: any[] = Array.isArray(initial) ? initial : []
+
+        if (raw.length === 0) {
+          try {
+            const attemptsRaw = await apiClient.get("/exams/my-attempts")
+            const attempts = Array.isArray(attemptsRaw)
+              ? attemptsRaw
+              : Array.isArray((attemptsRaw as any)?.data)
+              ? (attemptsRaw as any).data
+              : []
+
+            const passedAttemptIds = attempts
+              .filter((attempt: any) => {
+                const score = Number(attempt?.score || 0)
+                const passingScore = Number(attempt?.exam?.passingScore || attempt?.passingScore || 70)
+                const status = String(attempt?.status || "").toLowerCase()
+                return Boolean(attempt?.isPassed) || status === "passed" || score >= passingScore
+              })
+              .map((attempt: any) => String(attempt?.id || ""))
+              .filter(Boolean)
+
+            if (passedAttemptIds.length > 0) {
+              await Promise.allSettled(
+                passedAttemptIds.slice(0, 10).map((attemptId: string) => apiClient.retryIssueCertificate(attemptId)),
+              )
+              const refreshed = await apiClient.getMyCertificates()
+              raw = Array.isArray(refreshed) ? refreshed : []
+            }
+          } catch {
+            // ignore fallback errors and keep empty state
+          }
+        }
+
         setCertificates(raw.map(mapCertificate))
       } catch {
         setCertificates([])
@@ -77,7 +100,7 @@ export default function CertificatesPage() {
       }
     }
     load()
-  }, [])
+  }, [t])
 
   const formatDate = (dateStr: string) => {
     try {

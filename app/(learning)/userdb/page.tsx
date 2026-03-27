@@ -26,6 +26,7 @@ import { AnimatedNumber } from "@/components/ui/rolling-number"
 type DashboardCourse = {
   id: string
   courseId: string
+  nextLessonId: string
   title: string
   instructor: string
   image: string
@@ -186,6 +187,15 @@ export default function StudentDashboardPage() {
                 t("userdb_continue_next", "Tiếp tục học bài tiếp theo")
               : t("userdb_continue_next", "Tiếp tục học bài tiếp theo")
 
+            const nextLessonId = Array.isArray(progressEntries)
+              ? String(
+                  progressEntries.find((p: any) => !p?.isCompleted)?.lessonId ||
+                    lessons.find((lesson: any) => Number(lesson?.order) === completedLessons + 1)?.id ||
+                    lessons[0]?.id ||
+                    enrollment.courseId,
+                )
+              : String(lessons?.[0]?.id || enrollment.courseId)
+
             const totalDurationSeconds = Array.isArray(lessons)
               ? lessons.reduce((sum: number, lesson: any) => sum + (lesson.duration || 0), 0)
               : 0
@@ -194,6 +204,7 @@ export default function StudentDashboardPage() {
             return {
               id: enrollment.id,
               courseId: enrollment.courseId,
+              nextLessonId,
               title: enrollment.course.title,
               instructor: enrollment.course.teacher?.name || t("userdb_instructor", "Giảng viên"),
               image: enrollment.course.thumbnail || "/image/logo-ics.jpg",
@@ -502,7 +513,7 @@ export default function StudentDashboardPage() {
                         </p>
                       </div>
                       <Link
-                        href={`/player/${course.courseId}`}
+                        href={`/player/${course.nextLessonId || course.courseId}`}
                         className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-2"
                       >
                         <Play size={16} />

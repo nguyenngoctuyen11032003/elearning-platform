@@ -389,7 +389,7 @@ useEffect(() => {
   const fetchData = async () => {
     try {
       const res = await scheduleApi.getAll()
-      const items = res.data || []
+      const items = Array.isArray(res) ? res : res?.data || []
       setScheduleItems(items)
 
       // Check for approaching deadlines and notify user

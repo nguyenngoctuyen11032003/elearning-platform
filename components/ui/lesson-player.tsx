@@ -1,6 +1,6 @@
 "use client"
 
-import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react"
+import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from "react"
 import { ChevronDown, MessageCircle, Download, FileText, CheckCircle2, Circle, Play } from "lucide-react"
 import { authFetch } from "@/lib/authfetch"
 import { toast } from "sonner"
@@ -119,11 +119,13 @@ export function LessonPlayer({
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState<"notes" | "materials" | "quiz" | "writing">("notes")
   const [notes, setNotes] = useState("")
+  const [noteIdsByLesson, setNoteIdsByLesson] = useState<Record<string, string>>({})
   const [showAIChat, setShowAIChat] = useState(false)
   const [openedMaterialsByLesson, setOpenedMaterialsByLesson] = useState<Record<string, Record<string, boolean>>>({})
   const [quizAnswersByLesson, setQuizAnswersByLesson] = useState<Record<string, Record<number, number[]>>>({})
   const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false)
   const [showQuizDetails, setShowQuizDetails] = useState(false)
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const currentLesson = lessons.find((l) => l.id === currentLessonId)
   const currentResources = currentLesson?.resources || []
@@ -137,6 +139,106 @@ export function LessonPlayer({
   useEffect(() => {
     setActiveTab("notes")
   }, [currentLessonId])
+
+  useEffect(() => {
+    const key = `lesson_notes_${currentLessonId}`
+    const savedLocal = typeof window !== "undefined" ? localStorage.getItem(key) : null
+    if (savedLocal != null) {
+      setNotes(savedLocal)
+    } else {
+      setNotes("")
+    }
+
+    let isMounted = true
+    const loadNoteFromServer = async () => {
+      if (!currentLessonId) return
+      try {
+        const response = await authFetch(`/notes/lesson/${currentLessonId}`)
+        if (!response.ok) return
+
+        const raw = await response.json()
+        const noteList = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : []
+        const latestNote = [...noteList]
+          .filter((item: any) => typeof item?.content === "string")
+          .sort(
+            (a: any, b: any) =>
+              new Date(b?.updatedAt || b?.createdAt || 0).getTime() -
+              new Date(a?.updatedAt || a?.createdAt || 0).getTime(),
+          )[0]
+
+        if (!latestNote || !isMounted) return
+
+        const serverContent = String(latestNote.content || "")
+        setNotes(serverContent)
+        if (typeof window !== "undefined") {
+          localStorage.setItem(key, serverContent)
+        }
+        if (latestNote?.id) {
+          setNoteIdsByLesson((prev) => ({ ...prev, [currentLessonId]: String(latestNote.id) }))
+        }
+      } catch {
+        // keep local content if server is unavailable
+      }
+    }
+
+    loadNoteFromServer()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentLessonId])
+
+  useEffect(() => {
+    if (!currentLessonId) return
+
+    const localKey = `lesson_notes_${currentLessonId}`
+    if (typeof window !== "undefined") {
+      localStorage.setItem(localKey, notes)
+    }
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        const existingNoteId = noteIdsByLesson[currentLessonId]
+        if (existingNoteId) {
+          await authFetch(`/notes/${existingNoteId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ content: notes }),
+          })
+          return
+        }
+
+        const createResponse = await authFetch(`/notes`, {
+          method: "POST",
+          body: JSON.stringify({
+            lessonId: currentLessonId,
+            content: notes,
+            type: "general",
+            timestamp: 0,
+          }),
+        })
+
+        if (!createResponse.ok) return
+
+        const createdRaw = await createResponse.json()
+        const created = createdRaw?.data ?? createdRaw
+        if (created?.id) {
+          setNoteIdsByLesson((prev) => ({ ...prev, [currentLessonId]: String(created.id) }))
+        }
+      } catch {
+        // keep local cache and retry on next changes
+      }
+    }, 800)
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+  }, [currentLessonId, noteIdsByLesson, notes])
 
   let quizItems: Array<{
     question: string
