@@ -109,7 +109,7 @@ export const PDFOCRImporter: React.FC<PDFOCRImporterProps> = ({
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
-      const response = await fetch("/api/import/parse-pdf", {
+      const response = await fetch("/internal/import/parse-pdf", {
         method: "POST",
         body: formData,
         signal: controller.signal,
@@ -364,7 +364,7 @@ export function usePDFOCRImport() {
 
       setProgress(50)
 
-      const response = await fetch("/api/import/parse-pdf", {
+      const response = await fetch("/internal/import/parse-pdf", {
         method: "POST",
         body: formData,
       })

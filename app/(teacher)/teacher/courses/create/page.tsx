@@ -722,7 +722,7 @@ export default function CreateCoursePage() {
         const formData = new FormData()
         formData.append("file", file)
 
-        const response = await fetch("/api/import/parse-word", {
+        const response = await fetch("/internal/import/parse-word", {
           method: "POST",
           body: formData,
         })
