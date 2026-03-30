@@ -1,9 +1,32 @@
 /**
  * Safe number conversion - ensures we get a valid number or 0
+ * Handles edge cases: null, undefined, strings, formatted strings, NaN
  */
 function safeNumber(value: any): number {
-  const num = Number(value);
-  return isNaN(num) ? 0 : num;
+  if (value === null || value === undefined) return 0
+  
+  // If already a valid number, return it
+  if (typeof value === 'number' && !isNaN(value)) return value
+  
+  // If string, try to parse
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return 0
+    
+    // Remove currency symbols and thousands separators
+    const cleaned = trimmed
+      .replace(/[₫đ$USD]/gi, '') // Remove currency symbols
+      .replace(/\./g, '')         // Remove dots (thousands separator)
+      .replace(/,/g, '.')         // Convert commas to dots for decimals
+      .trim()
+    
+    const num = Number(cleaned)
+    return isNaN(num) ? 0 : num
+  }
+  
+  // For any other type, try to convert
+  const num = Number(value)
+  return isNaN(num) ? 0 : num
 }
 
 /**

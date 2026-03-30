@@ -50,7 +50,11 @@ export default function CheckoutPage() {
     if (singleCourse) {
       try {
         const parsed = JSON.parse(singleCourse)
-        setCourses(parsed ? [parsed] : [])
+        if (parsed) {
+          // Ensure price is always a number, not a string
+          parsed.price = Number(parsed.price) || 0
+          setCourses([parsed])
+        }
         return
       } catch {
         // continue to fallback
@@ -63,7 +67,12 @@ export default function CheckoutPage() {
     try {
       const items = JSON.parse(itemsRaw)
       if (Array.isArray(items) && items.length > 0) {
-        setCourses(items)
+        // Ensure all prices are numbers to avoid string concatenation
+        const coursesWithNumPrices = items.map((item: any) => ({
+          ...item,
+          price: Number(item.price) || 0,
+        }))
+        setCourses(coursesWithNumPrices)
       }
     } catch {
       // ignore invalid localStorage shape
@@ -72,10 +81,19 @@ export default function CheckoutPage() {
 
   const firstCourse = courses[0] || null
   const isMultiCourseCheckout = courses.length > 1
-  const baseAmount = useMemo(
-    () => courses.reduce((sum, item) => sum + Number(item?.price || 0), 0),
-    [courses],
-  )
+  const baseAmount = useMemo(() => {
+    // Ensure proper numeric addition - avoid string concatenation
+    let total = 0
+    for (const item of courses) {
+      const price = Number(item?.price) || 0
+      if (isNaN(price)) {
+        total += 0
+      } else {
+        total += price
+      }
+    }
+    return total
+  }, [courses])
 
   const discount = useMemo(() => {
     if (!couponPreview?.valid) return 0
