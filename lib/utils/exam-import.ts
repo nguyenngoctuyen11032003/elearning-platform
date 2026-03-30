@@ -123,11 +123,6 @@ const toTypeSectionLabel = (value: string): string | null => {
     return `Section ${plainSection[1]}`
   }
 
-  const plainType = text.match(/^type\s*([A-Z0-9]+)\b/i)
-  if (plainType) {
-    return `Type ${plainType[1].toUpperCase()}`
-  }
-
   return null
 }
 
@@ -196,15 +191,33 @@ const extractSectionTitle = (line: string): string | null => {
   const explicitTypeSection = toTypeSectionLabel(text)
   if (explicitTypeSection) return explicitTypeSection
 
-  const match = text.match(SECTION_LINE_REGEX)
-  if (!match) return null
-
-  const title = `${match[1]} ${match[2]}`.trim()
-  if (!/question|questions|trac nghiem|trắc nghiệm|true false|fill|section|type/i.test(title)) {
-    return null
+  const explicitSectionKeyword = text.match(/^(?:section|chapter|part|phan|phần|chuong|chương|muc|mục)\s*([0-9]+(?:\.[0-9]+)*)\b\s*[:\-]?\s*(.*)$/i)
+  if (explicitSectionKeyword) {
+    const keyword = text.match(/^(section|chapter|part|phan|phần|chuong|chương|muc|mục)/i)?.[1] || "Section"
+    const index = explicitSectionKeyword[1]
+    const suffix = String(explicitSectionKeyword[2] || "").trim()
+    const normalizedKeyword = keyword[0].toUpperCase() + keyword.slice(1).toLowerCase()
+    return normalizeSectionLabel(`${normalizedKeyword} ${index}${suffix ? ` - ${suffix}` : ""}`)
   }
 
-  return normalizeSectionLabel(title)
+  const prefixedSectionKeyword = text.match(/^([0-9]+(?:\.[0-9]+)*)\s*(?:[:\-]\s*)?(section|chapter|part|phan|phần|chuong|chương|muc|mục)\b\s*(.*)$/i)
+  if (prefixedSectionKeyword) {
+    const index = prefixedSectionKeyword[1]
+    const keyword = prefixedSectionKeyword[2]
+    const suffix = String(prefixedSectionKeyword[3] || "").trim()
+    const normalizedKeyword = keyword[0].toUpperCase() + keyword.slice(1).toLowerCase()
+    return normalizeSectionLabel(`${normalizedKeyword} ${index}${suffix ? ` - ${suffix}` : ""}`)
+  }
+
+  const match = text.match(SECTION_LINE_REGEX)
+  if (match) {
+    const title = `${match[1]} ${match[2]}`.trim()
+    if (/\b(section|chapter|part|phan|phần|chuong|chương|muc|mục)\b/i.test(title)) {
+      return normalizeSectionLabel(title)
+    }
+  }
+
+  return null
 }
 
 const looksLikeStandaloneQuestionStart = (line: string): boolean => {
@@ -303,17 +316,21 @@ const parseCorrectAnswerFromLine = (raw: string, options: string[]): string | st
 
   const optionIndexes = tokens
     .map((token) => {
-      const letterMatch = token.match(/^[A-F]$/i)
+      const normalizedToken = String(token || "")
+        .trim()
+        .replace(/^[\s\(\[]+|[\s\)\].:;,-]+$/g, "")
+
+      const letterMatch = normalizedToken.match(/^[A-F]$/i)
       if (letterMatch) {
         return letterMatch[0].toUpperCase().charCodeAt(0) - 65
       }
 
-      const numeric = Number.parseInt(token, 10)
+      const numeric = Number.parseInt(normalizedToken, 10)
       if (!Number.isNaN(numeric) && numeric > 0) {
         return numeric - 1
       }
 
-      return options.findIndex((option) => option.toLowerCase().trim() === token.toLowerCase())
+      return options.findIndex((option) => option.toLowerCase().trim() === normalizedToken.toLowerCase())
     })
     .filter((index) => index >= 0 && index < options.length)
 
@@ -725,6 +742,8 @@ const collectLabeledOptionsFromRawLines = (
   const collected: Array<{ labelIndex: number; text: string; marked: boolean }> = []
   let started = false
   let expectedLabelIndex = 0
+  let pendingLabelIndex: number | null = null
+  let pendingMarked = false
 
   const appendContinuation = (text: string) => {
     if (!text.trim() || collected.length === 0) return
@@ -761,27 +780,59 @@ const collectLabeledOptionsFromRawLines = (
         started = true
         expectedLabelIndex = 0
       }
-
-      if (labelIndex !== expectedLabelIndex) {
-        return collected.length >= 2 ? collected : []
-      }
-
       const markedInUnit = containsUnderlineMarker(unit) || isMarkedOptionText(unit)
       const rawText = String(match[2] || "")
-      const normalizedText = cleanAndNormalizeOption(rawText)
+      const segments = splitCombinedOptionByLabel(rawText, labelIndex)
+      const resolvedSegments = segments.length > 0 ? segments : [{ text: rawText, labelIndex }]
 
-      collected.push({
-        labelIndex,
-        text: normalizedText,
-        marked: markedInUnit,
-      })
+      for (const segment of resolvedSegments) {
+        const segLabel =
+          typeof segment.labelIndex === "number" && segment.labelIndex >= 0 && segment.labelIndex <= 5
+            ? segment.labelIndex
+            : expectedLabelIndex
 
-      expectedLabelIndex += 1
+        if (segLabel !== expectedLabelIndex) {
+          return collected.length >= 2 ? collected : []
+        }
+
+        const normalizedText = cleanAndNormalizeOption(segment.text)
+        if (!normalizedText) {
+          pendingLabelIndex = segLabel
+          pendingMarked = markedInUnit
+          continue
+        }
+
+        collected.push({
+          labelIndex: segLabel,
+          text: normalizedText,
+          marked: markedInUnit,
+        })
+
+        expectedLabelIndex += 1
+        pendingLabelIndex = null
+        pendingMarked = false
+      }
+
       matchedLabelInLine = true
     }
 
     if (started && !matchedLabelInLine) {
-      appendContinuation(normalizeLabelSource(stripUnderlineTags(original)))
+      const continuationText = cleanAndNormalizeOption(normalizeLabelSource(stripUnderlineTags(original)))
+      if (pendingLabelIndex !== null && continuationText) {
+        if (pendingLabelIndex !== expectedLabelIndex) {
+          return collected.length >= 2 ? collected : []
+        }
+        collected.push({
+          labelIndex: pendingLabelIndex,
+          text: continuationText,
+          marked: pendingMarked,
+        })
+        expectedLabelIndex += 1
+        pendingLabelIndex = null
+        pendingMarked = false
+      } else {
+        appendContinuation(continuationText)
+      }
     }
   }
 
@@ -896,6 +947,71 @@ const inferAnswerFromHintLines = (lines: string[], options: string[]): string =>
   }
 
   return ""
+}
+
+const recoverUnlabeledOptions = (
+  sourceLines: string[],
+  answerToken: string,
+): { stem: string; options: string[] } | null => {
+  const lines = sourceLines
+    .flatMap((line) => String(line || "").split(/\r?\n/))
+    .map((line) => normalizeScientificNotation(stripUnderlineTags(line)).replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+
+  if (lines.length < 3) return null
+
+  const looksLikeOptionLine = (line: string): boolean => {
+    const text = String(line || "").trim()
+    if (!text) return false
+    if (ANSWER_LINE_REGEX.test(text) || EXPLANATION_LINE_REGEX.test(text)) return false
+    if (QUESTION_LINE_REGEX.test(text) || NUMBERED_QUESTION_LINE_REGEX.test(text)) return false
+    if (text.length > 140) return false
+    return true
+  }
+
+  const canUseTailAsOptions = (tail: string[]): boolean => {
+    if (tail.length < 2 || tail.length > 6) return false
+    if (!tail.every(looksLikeOptionLine)) return false
+
+    const unique = new Set(tail.map((item) => optionIdentity(item)).filter(Boolean))
+    return unique.size >= 2
+  }
+
+  let splitIndex = -1
+
+  for (let i = 0; i < lines.length - 2; i += 1) {
+    const head = lines[i]
+    const tail = lines.slice(i + 1)
+    const likelyStemBoundary = /[?？:]$/.test(head) || /\b(choose|which|what|where|when|how|select|hãy chọn|câu nào|đâu|là gì)\b/i.test(head)
+    if (likelyStemBoundary && canUseTailAsOptions(tail)) {
+      splitIndex = i + 1
+      break
+    }
+  }
+
+  if (splitIndex < 0 && answerToken.trim()) {
+    for (let count = Math.min(6, lines.length - 1); count >= 2; count -= 1) {
+      const candidateSplit = lines.length - count
+      const tail = lines.slice(candidateSplit)
+      if (canUseTailAsOptions(tail)) {
+        splitIndex = candidateSplit
+        break
+      }
+    }
+  }
+
+  if (splitIndex <= 0 || splitIndex >= lines.length - 1) return null
+
+  const stem = lines.slice(0, splitIndex).join("\n").trim()
+  const options = lines
+    .slice(splitIndex)
+    .map((line) => cleanAndNormalizeOption(line))
+    .filter(Boolean)
+    .slice(0, 6)
+
+  if (!stem || options.length < 2) return null
+
+  return { stem, options }
 }
 
 const finalizeWordBlock = (
@@ -1046,30 +1162,21 @@ const finalizeWordBlock = (
     return ""
   }
 
-  if (options.length < 2 && plainLines.length >= 2 && looksLikeOptionReferenceToken(answerToken)) {
-    // Use the answer line to determine how many options from the end of plainLines
-    const answerLetters = answerToken.match(/[A-F]/gi) || []
-    const maxLetterIdx = answerLetters.reduce((max, l) => {
-      const idx = l.toUpperCase().charCodeAt(0) - 65
-      return idx > max ? idx : max
-    }, 3) // default D (index 3) = 4 options
-    const optCount = Math.min(6, Math.max(2, maxLetterIdx + 1))
+  if (options.length < 2 && plainLines.length >= 2) {
+    const normalizedStem = normalizeScientificNotation(String(questionText || "")).trim()
+    const simpleTail = plainLines
+      .map((line) => normalizeScientificNotation(String(line || "")).trim())
+      .filter(Boolean)
 
-    const splitAt = Math.max(0, plainLines.length - optCount)
-    const contextLines = plainLines.slice(0, splitAt)
-    const optionLines = plainLines.slice(splitAt)
-
-    if (optionLines.length >= 2) {
-      options = []
-      optionLabelIndexes = []
-      markedOptionIndexes = []
-      for (const line of optionLines) {
-        const parsedOption = parseOptionCandidate(line)
-        if (!parsedOption.text) continue
-        pushOption(parsedOption.text, parsedOption.isMarked, getOptionLabelIndex(line))
-      }
-      if (contextLines.length > 0) {
-        questionText += "\n" + contextLines.join("\n")
+    // Common case: stem is one line ending with '?' and all following lines are options.
+    if (/[?？:]$/.test(normalizedStem) && simpleTail.length >= 2 && simpleTail.length <= 6) {
+      const recovered = simpleTail
+        .map((line) => cleanAndNormalizeOption(line))
+        .filter(Boolean)
+      if (recovered.length >= 2) {
+        options = recovered
+        optionLabelIndexes = recovered.map((_, idx) => idx)
+        markedOptionIndexes = []
       }
     }
   }
@@ -1173,6 +1280,17 @@ const finalizeWordBlock = (
       markedOptionIndexes = recoveredFromCombined
         .map((item, idx) => (item.marked ? idx : -1))
         .filter((idx) => idx >= 0)
+    }
+  }
+
+  // Extra fallback for files where options are plain lines without A/B/C labels.
+  if (options.length < 2) {
+    const recoveredUnlabeled = recoverUnlabeledOptions([questionText, ...plainLines], answerToken)
+    if (recoveredUnlabeled) {
+      questionText = recoveredUnlabeled.stem
+      options = recoveredUnlabeled.options
+      optionLabelIndexes = recoveredUnlabeled.options.map((_, idx) => idx)
+      markedOptionIndexes = []
     }
   }
 
@@ -1427,12 +1545,6 @@ const parseDocumentQuestions = async (
     const hasCollectedOptions = current.bodyLines.some(
       (candidate) => OPTION_LINE_REGEX.test(candidate) || Boolean(splitInlineOptionSegments(candidate)),
     )
-
-    const standaloneAnswerLabelMatch = line.match(/^\(?\s*([A-F])\s*[\).．。]?\s*\)?$/i)
-    if (!current.answerLine && hasCollectedOptions && standaloneAnswerLabelMatch) {
-      current.answerLine = standaloneAnswerLabelMatch[1].toUpperCase()
-      continue
-    }
 
     if ((current.answerLine || hasCollectedOptions) && looksLikeStandaloneQuestionStart(line)) {
       blocks.push(current)

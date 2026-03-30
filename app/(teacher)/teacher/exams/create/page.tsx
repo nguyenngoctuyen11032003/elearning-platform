@@ -63,27 +63,34 @@ interface CertificateTemplate {
 const OPTION_IMAGE_TOKEN_REGEX = /^\[\[IMG:(data:image\/[^\]]+)\]\]\s*([\s\S]*)$/
 
 const parseOptionPayload = (raw: string): { text: string; image?: string } => {
-  const value = String(raw || "").trim()
+  const value = String(raw || "")
   const match = value.match(OPTION_IMAGE_TOKEN_REGEX)
   if (!match) {
     return { text: value }
   }
   return {
     image: match[1],
-    text: String(match[2] || "").trim(),
+    text: String(match[2] || ""),
   }
 }
 
 const serializeOptionPayload = (payload: { text: string; image?: string }): string => {
-  const text = String(payload.text || "").trim()
+  const text = String(payload.text || "")
   const image = payload.image?.trim()
   if (!image) return text
-  return `[[IMG:${image}]] ${text}`.trim()
+  return text ? `[[IMG:${image}]] ${text}` : `[[IMG:${image}]]`
 }
 
 const optionComparableText = (raw: string): string => {
   const payload = parseOptionPayload(raw)
-  return payload.text || raw || ""
+  return String(payload.text || raw || "").trim()
+}
+
+const stripChoicePrefix = (value: string): string => {
+  return String(value || "")
+    .trim()
+    .replace(/^[\(\[]?([A-F])[\)\].:-]?\s+/i, "")
+    .trim()
 }
 
 const IMAGE_MARKER_REGEX = /\[\[IMAGE:img_\d+\]\]|\[image\]|\(image\)/i
@@ -134,6 +141,21 @@ const detectQuestionTypeLabel = (question: Pick<Question, "chapter" | "question"
   return TYPE_LABEL_FALLBACK
 }
 
+const hasValidCorrectAnswer = (question: Question): boolean => {
+  if (question.type === "fill_in") {
+    return String(question.correctAnswer || "").trim().length > 0
+  }
+
+  const selected = String(question.correctAnswer || "").trim()
+  if (!selected) return false
+
+  const normalizedOptions = (Array.isArray(question.options) ? question.options : [])
+    .map((option) => String(option || "").trim())
+    .filter(Boolean)
+
+  return normalizedOptions.includes(selected)
+}
+
 export default function CreateExamPage() {
   const router = useRouter()
   const { t } = useLanguage()
@@ -180,17 +202,27 @@ export default function CreateExamPage() {
       const token = String(tokenRaw || "").trim()
       if (!token) return ""
 
+      const normalizedToken = token.toLowerCase()
+      const comparableToken = stripChoicePrefix(token).toLowerCase()
+
       const same = options.find((option) => {
         const raw = String(option || "")
         const comparable = optionComparableText(raw)
-        const normalizedToken = token.toLowerCase()
-        return raw.toLowerCase() === normalizedToken || comparable.toLowerCase() === normalizedToken
+        const normalizedRaw = raw.toLowerCase()
+        const normalizedComparable = comparable.toLowerCase()
+        const strippedComparable = stripChoicePrefix(comparable).toLowerCase()
+        return (
+          normalizedRaw === normalizedToken ||
+          normalizedComparable === normalizedToken ||
+          normalizedComparable === comparableToken ||
+          strippedComparable === comparableToken
+        )
       })
       if (same) return same
 
-      const letterMatch = token.match(/^[A-F]$/i)
+      const letterMatch = token.match(/^[\(\[]?([A-F])[\)\].:-]?$/i) || token.match(/^[\(\[]?([A-F])[\)\].:-]?\s+/i)
       if (letterMatch) {
-        const idx = letterMatch[0].toUpperCase().charCodeAt(0) - 65
+        const idx = letterMatch[1].toUpperCase().charCodeAt(0) - 65
         return options[idx] || ""
       }
 
@@ -356,7 +388,7 @@ export default function CreateExamPage() {
           newErrors[`options_${index}`] = t("exam_err_min_options", "Cần ít nhất 2 đáp án")
           missingOptionQuestionNumbers.push(index + 1)
         }
-        if (!q.correctAnswer || (Array.isArray(q.correctAnswer) && q.correctAnswer.length === 0)) {
+        if (!hasValidCorrectAnswer(q)) {
           newErrors[`answer_${index}`] = t("exam_err_no_answer", "Vui lòng chọn đáp án đúng")
           missingCorrectAnswerQuestionNumbers.push(index + 1)
         }
@@ -535,10 +567,16 @@ export default function CreateExamPage() {
       }, {} as Record<string, typeof normalizedQuestions>)
 
       const groups = Object.entries(groupedByType)
-      const shouldSplitByType = groups.length > 1
+      const hasFallbackTypeGroup = groups.some(([label]) => label === TYPE_LABEL_FALLBACK)
+      const hasNonFallbackTypeGroup = groups.some(([label]) => label !== TYPE_LABEL_FALLBACK)
+
+      // Mixed fallback/non-fallback labels usually come from inconsistent import markers.
+      // In this case, keep a single exam bank to avoid accidental split into multiple codes.
+      const shouldSplitByType = groups.length > 1 && !(hasFallbackTypeGroup && hasNonFallbackTypeGroup)
+      const groupsForSubmit = shouldSplitByType ? groups : [[TYPE_LABEL_FALLBACK, normalizedQuestions] as const]
 
       const normalizedTemplateId = String(formData.certificateTemplateId || "").trim()
-      for (const [typeLabel, typeQuestions] of groups) {
+      for (const [typeLabel, typeQuestions] of groupsForSubmit) {
         const examData: any = {
           ...formData,
           title: shouldSplitByType ? `${formData.title} - ${typeLabel}` : formData.title,
@@ -569,8 +607,8 @@ export default function CreateExamPage() {
       if (shouldSplitByType) {
         toast.success(
           asDraft
-            ? `Đã tạo ${groups.length} ngân hàng đề nháp theo Type: ${groups.map(([k]) => k).join(", ")}`
-            : `Đã tạo ${groups.length} ngân hàng đề chờ duyệt theo Type: ${groups.map(([k]) => k).join(", ")}`,
+            ? `Đã tạo ${groupsForSubmit.length} ngân hàng đề nháp theo Type: ${groupsForSubmit.map(([k]) => k).join(", ")}`
+            : `Đã tạo ${groupsForSubmit.length} ngân hàng đề chờ duyệt theo Type: ${groupsForSubmit.map(([k]) => k).join(", ")}`,
         )
       } else {
         toast.success(asDraft ? t("exam_saved_draft", "Đã lưu bài thi nháp") : t("exam_pending_review", "Đã gửi bài thi chờ duyệt"))
@@ -948,8 +986,13 @@ export default function CreateExamPage() {
                                           {question.options.length > 2 && (
                                             <button
                                               onClick={() => {
+                                                const removedOption = question.options[optIndex]
                                                 const newOptions = question.options.filter((_, i) => i !== optIndex)
-                                                updateQuestion(question.id, { options: newOptions })
+                                                const nextUpdate: Partial<Question> = { options: newOptions }
+                                                if (question.correctAnswer === removedOption) {
+                                                  nextUpdate.correctAnswer = ""
+                                                }
+                                                updateQuestion(question.id, nextUpdate)
                                               }}
                                               className="p-2 hover:bg-red-500/10 rounded-lg text-red-500"
                                             >
@@ -1041,6 +1084,12 @@ export default function CreateExamPage() {
                                   <Plus size={14} />
                                   {t("exam_add_answer", "Thêm đáp án")}
                                 </button>
+                              )}
+                              {errors[`options_${index}`] && (
+                                <p className="text-red-500 text-sm mt-1">{errors[`options_${index}`]}</p>
+                              )}
+                              {errors[`answer_${index}`] && (
+                                <p className="text-red-500 text-sm mt-1">{errors[`answer_${index}`]}</p>
                               )}
                             </div>
                           </div>

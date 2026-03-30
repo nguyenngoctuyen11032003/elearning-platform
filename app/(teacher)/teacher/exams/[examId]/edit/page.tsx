@@ -61,6 +61,28 @@ const detectQuestionTypeLabel = (question: Pick<Question, "chapter" | "question"
   return TYPE_LABEL_FALLBACK
 }
 
+const stripChoicePrefix = (value: string): string => {
+  return String(value || "")
+    .trim()
+    .replace(/^[\(\[]?([A-F])[\)\].:-]?\s+/i, "")
+    .trim()
+}
+
+const hasValidCorrectAnswer = (question: Question): boolean => {
+  if (question.type === "fill_in") {
+    return String(question.correctAnswer || "").trim().length > 0
+  }
+
+  const selected = String(question.correctAnswer || "").trim()
+  if (!selected) return false
+
+  const normalizedOptions = (Array.isArray(question.options) ? question.options : [])
+    .map((option) => String(option || "").trim())
+    .filter(Boolean)
+
+  return normalizedOptions.includes(selected)
+}
+
 interface Question {
   id: string
   type: "multiple_choice" | "true_false" | "fill_in"
@@ -174,12 +196,24 @@ export default function EditExamPage() {
       const token = String(value || "").trim()
       if (!token) return ""
 
-      const same = options.find((option) => option.toLowerCase() === token.toLowerCase())
+      const normalizedToken = token.toLowerCase()
+      const comparableToken = stripChoicePrefix(token).toLowerCase()
+
+      const same = options.find((option) => {
+        const raw = String(option || "")
+        const normalizedRaw = raw.toLowerCase()
+        const strippedRaw = stripChoicePrefix(raw).toLowerCase()
+        return (
+          normalizedRaw === normalizedToken ||
+          normalizedRaw === comparableToken ||
+          strippedRaw === comparableToken
+        )
+      })
       if (same) return same
 
-      const letterMatch = token.match(/^[A-F]$/i)
+      const letterMatch = token.match(/^[\(\[]?([A-F])[\)\].:-]?$/i) || token.match(/^[\(\[]?([A-F])[\)\].:-]?\s+/i)
       if (letterMatch) {
-        const idx = letterMatch[0].toUpperCase().charCodeAt(0) - 65
+        const idx = letterMatch[1].toUpperCase().charCodeAt(0) - 65
         return options[idx] || ""
       }
 
@@ -188,7 +222,7 @@ export default function EditExamPage() {
         if (numberValue >= 1 && numberValue <= options.length) return options[numberValue - 1]
         if (numberValue >= 0 && numberValue < options.length) return options[numberValue]
       }
-      return same || token
+      return ""
     }
 
     if (Array.isArray(answer)) {
@@ -418,13 +452,24 @@ export default function EditExamPage() {
     }
 
     if (step === 2) {
+      const missingCorrectAnswerQuestionNumbers: number[] = []
       if (questions.length === 0) newErrors.questions = "Vui lòng thêm ít nhất 1 câu hỏi"
       questions.forEach((q, index) => {
         if (!q.question.trim()) newErrors[`question_${index}`] = "Câu hỏi không được để trống"
         if (q.type === "multiple_choice" && q.options.filter(o => o.trim()).length < 2) {
           newErrors[`options_${index}`] = "Cần ít nhất 2 đáp án"
         }
+        if (!hasValidCorrectAnswer(q)) {
+          newErrors[`answer_${index}`] = tr("Vui lòng chọn đáp án đúng", "Please select a correct answer")
+          missingCorrectAnswerQuestionNumbers.push(index + 1)
+        }
       })
+
+      if (missingCorrectAnswerQuestionNumbers.length > 0) {
+        const message = `${tr("Chưa chọn đáp án đúng ở câu", "Missing correct answer in question(s)")}: ${missingCorrectAnswerQuestionNumbers.join(", ")}`
+        newErrors.questions = newErrors.questions ? `${newErrors.questions} | ${message}` : message
+      }
+
     }
 
     setErrors(newErrors)
@@ -942,8 +987,13 @@ export default function EditExamPage() {
                                     value={option}
                                     onChange={(e) => {
                                       const newOptions = [...question.options]
+                                      const prevOption = newOptions[optIndex]
                                       newOptions[optIndex] = e.target.value
-                                      updateQuestion(question.id, { options: newOptions })
+                                      const nextUpdate: Partial<Question> = { options: newOptions }
+                                      if (question.correctAnswer === prevOption) {
+                                        nextUpdate.correctAnswer = e.target.value
+                                      }
+                                      updateQuestion(question.id, nextUpdate)
                                     }}
                                     className="flex-1 px-4 py-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg text-foreground dark:text-white"
                                     placeholder={`Đáp án ${String.fromCharCode(65 + optIndex)}`}
@@ -951,8 +1001,13 @@ export default function EditExamPage() {
                                   {question.options.length > 2 && (
                                     <button
                                       onClick={() => {
+                                        const removedOption = question.options[optIndex]
                                         const newOptions = question.options.filter((_, i) => i !== optIndex)
-                                        updateQuestion(question.id, { options: newOptions })
+                                        const nextUpdate: Partial<Question> = { options: newOptions }
+                                        if (question.correctAnswer === removedOption) {
+                                          nextUpdate.correctAnswer = ""
+                                        }
+                                        updateQuestion(question.id, nextUpdate)
                                       }}
                                       className="p-2 hover:bg-red-500/10 rounded-lg text-red-500"
                                     >
@@ -969,6 +1024,12 @@ export default function EditExamPage() {
                                   <Plus size={14} />
                                   Thêm đáp án
                                 </button>
+                              )}
+                              {errors[`options_${index}`] && (
+                                <p className="text-red-500 text-sm mt-1">{errors[`options_${index}`]}</p>
+                              )}
+                              {errors[`answer_${index}`] && (
+                                <p className="text-red-500 text-sm mt-1">{errors[`answer_${index}`]}</p>
                               )}
                             </div>
                           </div>
