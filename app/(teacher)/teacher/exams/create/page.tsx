@@ -170,20 +170,21 @@ export default function CreateExamPage() {
       return [t("exam_true_label", "Đúng"), t("exam_false_label", "Sai")]
     }
 
-    const ensureFourOptions = (options: string[]) => {
+    const ensureOptions = (options: string[]) => {
       const normalized = options.map((option) => String(option || "").trim()).filter(Boolean)
-      if (normalized.length >= 4) return normalized.slice(0, 4)
-      return [...normalized, ...Array.from({ length: 4 - normalized.length }, () => "")]
+      if (normalized.length >= 2) return normalized.slice(0, 6)
+      return [...normalized, ...Array.from({ length: 2 - normalized.length }, () => "")]
     }
 
-    const mapAnswerToOption = (answer: any, options: string[]) => {
-      const token = String(answer || "").trim()
+    const mapAnswerTokenToOption = (tokenRaw: string, options: string[]) => {
+      const token = String(tokenRaw || "").trim()
       if (!token) return ""
 
       const same = options.find((option) => {
         const raw = String(option || "")
         const comparable = optionComparableText(raw)
-        return raw.toLowerCase() === token.toLowerCase() || comparable.toLowerCase() === token.toLowerCase()
+        const normalizedToken = token.toLowerCase()
+        return raw.toLowerCase() === normalizedToken || comparable.toLowerCase() === normalizedToken
       })
       if (same) return same
 
@@ -198,7 +199,35 @@ export default function CreateExamPage() {
         if (numeric >= 1 && numeric <= options.length) return options[numeric - 1]
         if (numeric >= 0 && numeric < options.length) return options[numeric]
       }
-      return same || token
+
+      return ""
+    }
+
+    const mapAnswerToOption = (answer: any, options: string[]) => {
+      if (Array.isArray(answer)) {
+        for (const part of answer) {
+          const mapped = mapAnswerTokenToOption(String(part || ""), options)
+          if (mapped) return mapped
+        }
+        return ""
+      }
+
+      const raw = String(answer || "").trim()
+      if (!raw) return ""
+
+      const direct = mapAnswerTokenToOption(raw, options)
+      if (direct) return direct
+
+      const splitTokens = raw
+        .split(/[;,|/]/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+      for (const token of splitTokens) {
+        const mapped = mapAnswerTokenToOption(token, options)
+        if (mapped) return mapped
+      }
+
+      return ""
     }
 
     return rawQuestions
@@ -210,7 +239,7 @@ export default function CreateExamPage() {
           : []
 
         const options = type === "multiple_choice"
-          ? ensureFourOptions(rawOptions)
+          ? ensureOptions(rawOptions)
           : type === "true_false"
           ? getTrueFalseOptions(rawOptions)
           : []
@@ -304,8 +333,9 @@ export default function CreateExamPage() {
       cert.courseId === formData.courseId
   )
 
-  const validateStep = (step: number): boolean => {
+  const validateStep = (step: number, sourceQuestions: Question[] = questions): boolean => {
     const newErrors: Record<string, string> = {}
+    let firstInvalidQuestionId: string | null = null
 
     if (step === 1) {
       if (!formData.title.trim()) newErrors.title = t("exam_err_title", "Vui lòng nhập tiêu đề bài thi")
@@ -316,24 +346,70 @@ export default function CreateExamPage() {
     }
 
     if (step === 2) {
-      if (questions.length === 0) newErrors.questions = t("exam_err_no_questions", "Vui lòng thêm ít nhất 1 câu hỏi")
-      questions.forEach((q, index) => {
+      const missingOptionQuestionNumbers: number[] = []
+      const missingCorrectAnswerQuestionNumbers: number[] = []
+
+      if (sourceQuestions.length === 0) newErrors.questions = t("exam_err_no_questions", "Vui lòng thêm ít nhất 1 câu hỏi")
+      sourceQuestions.forEach((q, index) => {
         if (!q.question.trim()) newErrors[`question_${index}`] = t("exam_err_empty_question", "Câu hỏi không được để trống")
         if (q.type === "multiple_choice" && q.options.filter(o => o.trim()).length < 2) {
           newErrors[`options_${index}`] = t("exam_err_min_options", "Cần ít nhất 2 đáp án")
+          missingOptionQuestionNumbers.push(index + 1)
         }
         if (!q.correctAnswer || (Array.isArray(q.correctAnswer) && q.correctAnswer.length === 0)) {
           newErrors[`answer_${index}`] = t("exam_err_no_answer", "Vui lòng chọn đáp án đúng")
+          missingCorrectAnswerQuestionNumbers.push(index + 1)
+        }
+
+        if (!firstInvalidQuestionId && (newErrors[`question_${index}`] || newErrors[`options_${index}`] || newErrors[`answer_${index}`])) {
+          firstInvalidQuestionId = q.id
         }
       })
+
+      const detailParts: string[] = []
+      if (missingOptionQuestionNumbers.length > 0) {
+        detailParts.push(
+          `${t("exam_err_missing_options_questions", "Thiếu đáp án lựa chọn ở câu")}: ${missingOptionQuestionNumbers.join(", ")}`,
+        )
+      }
+      if (missingCorrectAnswerQuestionNumbers.length > 0) {
+        detailParts.push(
+          `${t("exam_err_missing_correct_questions", "Chưa chọn đáp án đúng ở câu")}: ${missingCorrectAnswerQuestionNumbers.join(", ")}`,
+        )
+      }
+      if (detailParts.length > 0) {
+        newErrors.questions = detailParts.join(" | ")
+      }
+
+      if (firstInvalidQuestionId) {
+        setExpandedQuestion(firstInvalidQuestionId)
+      }
     }
 
     setErrors(newErrors)
+    if (Object.keys(newErrors).length > 0) {
+      const firstError =
+        newErrors.questions ||
+        Object.entries(newErrors)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([, value]) => value)
+          .find(Boolean)
+
+      if (firstError) {
+        toast.error(firstError)
+      }
+    }
+
     return Object.keys(newErrors).length === 0
   }
 
   const handleNext = () => {
-    if (validateStep(currentStep)) {
+    const questionsForValidation = currentStep === 2 ? sanitizeQuestions(questions) : questions
+    if (currentStep === 2) {
+      setQuestions(questionsForValidation)
+    }
+
+    if (validateStep(currentStep, questionsForValidation)) {
       setCurrentStep(prev => Math.min(prev + 1, 3))
     }
   }
@@ -405,7 +481,7 @@ export default function CreateExamPage() {
       ...q,
       needsAssetReview: Boolean(q.needsAssetReview) || shouldFlagAssetReview(q),
     }))
-    setQuestions([...questions, ...normalizedImported])
+    setQuestions([...questions, ...sanitizeQuestions(normalizedImported)])
     setSelectedTypeFilter("all")
     setShowImportModal(false)
   }
@@ -433,7 +509,11 @@ export default function CreateExamPage() {
       setCurrentStep(1)
       return
     }
-    if (!asDraft && !validateStep(2)) {
+    const normalizedForValidation = sanitizeQuestions(questions)
+    if (!asDraft) {
+      setQuestions(normalizedForValidation)
+    }
+    if (!asDraft && !validateStep(2, normalizedForValidation)) {
       setCurrentStep(2)
       return
     }

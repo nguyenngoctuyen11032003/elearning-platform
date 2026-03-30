@@ -68,9 +68,45 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Extract text from this paragraph
-      const textParts = [...para.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map(m => m[1])
-      const paraText = textParts.join("").trim()
+      // Extract text while preserving underlined runs as explicit markers.
+      // Some source banks use underline to mark correct answers (e.g. underlined B. or option text).
+      const runMatches = [...para.matchAll(/<w:r[ >][\s\S]*?<\/w:r>/g)].map((m) => m[0])
+      const runParts: string[] = []
+
+      for (const run of runMatches) {
+        const tokens = [
+          ...run.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>|<w:br\b[^>]*\/>|<w:tab\b[^>]*\/>/gi),
+        ]
+        if (tokens.length === 0) continue
+
+        let runText = ""
+        for (const token of tokens) {
+          const raw = token[0] || ""
+          if (/^<w:br\b/i.test(raw)) {
+            runText += "\n"
+            continue
+          }
+          if (/^<w:tab\b/i.test(raw)) {
+            runText += " "
+            continue
+          }
+          runText += token[1] || ""
+        }
+
+        if (!runText) continue
+
+        const underlineTag = run.match(/<w:u([^>]*)\/?>(?:<\/w:u>)?/i)
+        const underlineAttrs = String(underlineTag?.[1] || "")
+        const hasUnderline = Boolean(underlineTag) && !/w:val\s*=\s*"none"/i.test(underlineAttrs)
+
+        if (hasUnderline) {
+          runParts.push(`[[U]]${runText}[[/U]]`)
+        } else {
+          runParts.push(runText)
+        }
+      }
+
+      const paraText = runParts.join("").trim()
 
       if (paraText) lines.push(paraText)
       imageKeys.forEach(k => lines.push(k))

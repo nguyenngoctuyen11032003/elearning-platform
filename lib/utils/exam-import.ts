@@ -49,16 +49,61 @@ const QUESTION_LINE_REGEX = /^\s*(?:Cau|Câu|Question|Q)\s*\d+[\.:\-\)]*\s*/i
 const QUESTION_WITH_NUMBER_REGEX = /^\s*(?:Cau|Câu|Question|Q)\s*(\d{1,4})[\.:\-\)]*\s*(.+)$/i
 const NUMBERED_QUESTION_LINE_REGEX = /^\s*\(?\d{1,4}\)?[\.:\-\)]\s*(.+?)\s*$/i
 const NUMBERED_WITH_NUMBER_REGEX = /^\s*\(?(\d{1,4})\)?[\.:\-\)]\s*(.+?)\s*$/i
-const OPTION_LINE_REGEX = /^\s*([A-F])[\.)](?!:)\s*(.+)$/i
-const INLINE_OPTION_MARKER_REGEX = /([A-F])[\.)](?!:)\s*/gi
-const ANSWER_LINE_REGEX = /^\s*(?:Dap an|Đáp án|Answer|Ans(?:wer)?)\s*(?:[:=.\-])?\s*(.+)$/i
+const OPTION_LINE_REGEX = /^\s*([A-F])(?:\s*[\.)．。:\-,])\s*(.+)$/i
+const INLINE_OPTION_MARKER_REGEX = /(^|[\s\[(])([A-F])(?:\s*[\.)．。:\-,])\s*/gi
+const ANSWER_LINE_REGEX = /^\s*(?:Dap an|Đáp án|ĐA(?=\s|[:=.\-]|$)|DA(?=\s|[:=.\-]|$)|Answer|Ans(?:wer)?|Correct\s*answer|Answer\s*key|Key)\s*(?:[:=.\-])?\s*(.+)$/i
 const EXPLANATION_LINE_REGEX = /^\s*(?:Giai thich|Giải thích|Explanation|Solution|Loi giai|Lời giải)\s*(?:[:=.\-])?\s*(.+)$/i
 const POINTS_LINE_REGEX = /^\s*(?:Diem|Điểm|Points?)\s*[:=-]\s*(\d+(?:\.\d+)?)\s*$/i
-const INLINE_ANSWER_REGEX = /^(.*?)\s*(?:Dap an|Đáp án|Answer|Ans(?:wer)?)\s*[:=.\-]?\s*(.+)$/i
+const INLINE_ANSWER_REGEX = /^(.*?)\s*(?:Dap an|Đáp án|ĐA(?=\s|[:=.\-]|$)|DA(?=\s|[:=.\-]|$)|Answer|Ans(?:wer)?|Correct\s*answer|Answer\s*key|Key)\s*[:=.\-]?\s*(.+)$/i
 const INLINE_METADATA_SPLIT_REGEX = /\s+(?:Diff|Var|Topic|Learning\s*Obj|Global\s*Obj|Rationale|Reason|Loi\s*giai|Lời\s*giải)\s*[:=.\-]/i
 const SECTION_LINE_REGEX = /^\s*(\d+(?:\.\d+)*)\s+([A-Za-z][^\n]{3,})$/
 const METADATA_LINE_REGEX = /^\s*(Diff|Var|Topic|Learning\s*Obj|Global\s*Obj|Rationale|Reason|Loi\s*giai|Lời\s*giải)\s*[:=.\-]\s*(.+)$/i
 const FILL_IN_QUESTION_HINT_REGEX = /(?:_{2,}|\.{3,}|\(\s*\)|\[\s*\]|\bfill\s*(?:in|the\s*blank)\b|\bđiền\s*(?:vào\s*)?chỗ\s*trống\b)/i
+const MARKED_OPTION_PREFIX_REGEX = /^\s*(?:[\[(]\s*(?:x|X|\*|✓|✔|✅|☑)\s*[\])]|(?:\*|✓|✔|✅|☑)+)\s*/
+const MARKED_OPTION_SUFFIX_REGEX = /\s*(?:[\[(]\s*(?:x|X|\*|✓|✔|✅|☑)\s*[\])]|(?:\*|✓|✔|✅|☑)+|[|｜│¦])\s*$/
+const MARKED_OPTION_WORD_SUFFIX_REGEX = /\s*(?:\((?:correct|answer|đáp án|dap an|dung|đúng)\)|\[(?:correct|answer|đáp án|dap an|dung|đúng)\])\s*$/i
+const MARKED_OPTION_UNDERSCORE_WRAPPER_REGEX = /^\s*[_＿]{1,3}\s*.+?\s*[_＿]{1,3}\s*$/
+const COMBINING_UNDERLINE_CHAR_REGEX = /\u0332/
+const UNDERLINE_MARKER_REGEX = /\[\[U\]\]([\s\S]*?)\[\[\/U\]\]/g
+const UNDERLINE_TAG_REGEX = /\[\[\/?U\]\]/gi
+
+const decodeHtmlEntities = (input: string): string => {
+  const named: Record<string, string> = {
+    quot: '"',
+    amp: "&",
+    lt: "<",
+    gt: ">",
+    nbsp: " ",
+    apos: "'",
+  }
+
+  return String(input || "")
+    .replace(/&#(\d+);/g, (_m, code) => {
+      const value = Number.parseInt(code, 10)
+      if (Number.isNaN(value)) return _m
+      return String.fromCodePoint(value)
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_m, code) => {
+      const value = Number.parseInt(code, 16)
+      if (Number.isNaN(value)) return _m
+      return String.fromCodePoint(value)
+    })
+    .replace(/&([a-z]+);/gi, (full, name: string) => named[name.toLowerCase()] ?? full)
+}
+
+const normalizeImportedText = (raw: string): string => {
+  const decoded = decodeHtmlEntities(String(raw || ""))
+
+  return decoded
+    .replace(/<u\b[^>]*>/gi, "[[U]]")
+    .replace(/<\/u>/gi, "[[/U]]")
+    .replace(/<ins\b[^>]*>/gi, "[[U]]")
+    .replace(/<\/ins>/gi, "[[/U]]")
+    .replace(/\[\s*<br\s*\/?\s*>\s*\]/gi, "\n")
+    .replace(/<br\s*\/?\s*>/gi, "\n")
+    .replace(/\[\s*br\s*\]/gi, "\n")
+    .replace(/\r\n?/g, "\n")
+}
 
 const normalizeSectionLabel = (value: string): string => {
   return String(value || "").replace(/\s+/g, " ").trim()
@@ -115,7 +160,7 @@ const extractQuestionStart = (line: string): { text: string; number?: number } |
   if (prefixed) {
     const number = Number.parseInt(prefixed[1], 10)
     const text = String(prefixed[2] || "").trim()
-    if (text.length < 1) return null
+    // Support formats where the stem is on the next line, e.g. "Câu 1:".
     return { text, number: Number.isNaN(number) ? undefined : number }
   }
 
@@ -250,7 +295,7 @@ const normalizeType = (value?: string): ImportedExamQuestion["type"] | undefined
 const parseCorrectAnswerFromLine = (raw: string, options: string[]): string | string[] => {
   const value = raw.trim()
   if (!value) {
-    return options[0] ?? ""
+    return ""
   }
 
   const byDelimiter = value.split(/[;,|]/).map((item) => item.trim()).filter(Boolean)
@@ -272,12 +317,61 @@ const parseCorrectAnswerFromLine = (raw: string, options: string[]): string | st
     })
     .filter((index) => index >= 0 && index < options.length)
 
-  if (optionIndexes.length <= 1) {
-    const selectedIndex = optionIndexes[0] ?? 0
+  const uniqueIndexes = Array.from(new Set(optionIndexes))
+
+  if (uniqueIndexes.length === 0) {
+    const normalizeLoose = (input: string): string =>
+      String(input || "")
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .replace(/^[\s\-:;.,()\[\]]+|[\s\-:;.,()\[\]]+$/g, "")
+        .trim()
+
+    const letterWithText = value.match(/^\s*([A-F])\s*[\).:\-]\s*(.+)$/i)
+    if (letterWithText) {
+      const idx = letterWithText[1].toUpperCase().charCodeAt(0) - 65
+      if (idx >= 0 && idx < options.length) {
+        return options[idx] ?? ""
+      }
+
+      const described = normalizeLoose(letterWithText[2])
+      if (described) {
+        const matchByText = options.find((option) => normalizeLoose(option) === described)
+        if (matchByText) return matchByText
+      }
+    }
+
+    const letterMentions = Array.from(value.toUpperCase().matchAll(/\b([A-F])\b/g)).map((m) => m[1])
+    const uniqueLetters = Array.from(new Set(letterMentions))
+    if (uniqueLetters.length === 1) {
+      const idx = uniqueLetters[0].charCodeAt(0) - 65
+      if (idx >= 0 && idx < options.length) {
+        return options[idx] ?? ""
+      }
+    }
+
+    const normalizedValue = normalizeLoose(value)
+    if (normalizedValue) {
+      const byContainment = options.find((option) => {
+        const normalizedOption = normalizeLoose(option)
+        if (!normalizedOption) return false
+        if (normalizedOption === normalizedValue) return true
+        if (normalizedValue.length >= 4 && normalizedOption.includes(normalizedValue)) return true
+        if (normalizedOption.length >= 4 && normalizedValue.includes(normalizedOption)) return true
+        return false
+      })
+      if (byContainment) return byContainment
+    }
+
+    return ""
+  }
+
+  if (uniqueIndexes.length <= 1) {
+    const selectedIndex = uniqueIndexes[0]
     return options[selectedIndex] ?? ""
   }
 
-  return optionIndexes.map((index) => options[index]).filter(Boolean)
+  return uniqueIndexes.map((index) => options[index]).filter(Boolean)
 }
 
 const looksLikeOptionReferenceToken = (value: string): boolean => {
@@ -285,6 +379,63 @@ const looksLikeOptionReferenceToken = (value: string): boolean => {
   if (!token) return false
   if (/^[A-F]$/i.test(token)) return true
   return false
+}
+
+const isMarkedOptionText = (value: string): boolean => {
+  const text = String(value || "").trim()
+  if (!text) return false
+  if (COMBINING_UNDERLINE_CHAR_REGEX.test(text)) return true
+  if (MARKED_OPTION_UNDERSCORE_WRAPPER_REGEX.test(text)) return true
+  if (/<\/?(?:u|ins)\b[^>]*>/i.test(text)) return true
+  if (/\[\[U\]\][\s\S]*?\[\[\/U\]\]/i.test(text)) return true
+  if (MARKED_OPTION_PREFIX_REGEX.test(text)) return true
+  if (MARKED_OPTION_WORD_SUFFIX_REGEX.test(text)) return true
+  if (MARKED_OPTION_SUFFIX_REGEX.test(text)) return true
+  return false
+}
+
+const stripMarkedOptionText = (value: string): string => {
+  let text = String(value || "")
+  text = text.replace(/\u0332/g, "")
+  text = text.replace(/<\/?(?:u|ins)\b[^>]*>/gi, "")
+  text = text.replace(UNDERLINE_MARKER_REGEX, "$1")
+  text = text.replace(/^\s*[_＿]{1,3}\s*(.+?)\s*[_＿]{1,3}\s*$/, "$1")
+  text = text.replace(MARKED_OPTION_PREFIX_REGEX, "")
+  text = text.replace(MARKED_OPTION_WORD_SUFFIX_REGEX, "")
+  text = text.replace(MARKED_OPTION_SUFFIX_REGEX, "")
+  return text.trim()
+}
+
+const containsUnderlineMarker = (value: string): boolean => {
+  return /\[\[U\]\][\s\S]*?\[\[\/U\]\]/i.test(String(value || ""))
+}
+
+const stripUnderlineTags = (value: string): string => {
+  return String(value || "").replace(UNDERLINE_TAG_REGEX, "")
+}
+
+const parseOptionCandidate = (value: string): { text: string; isMarked: boolean } => {
+  const raw = String(value || "")
+  const isMarked = isMarkedOptionText(raw)
+  return {
+    text: cleanAndNormalizeOption(stripMarkedOptionText(raw)),
+    isMarked,
+  }
+}
+
+const resolveMarkedOptionAnswer = (
+  markedOptionIndexes: number[],
+  options: string[],
+): string | string[] | null => {
+  const uniqueIndexes = Array.from(new Set(markedOptionIndexes))
+    .filter((index) => Number.isInteger(index) && index >= 0 && index < options.length)
+
+  if (uniqueIndexes.length === 0) return null
+  if (uniqueIndexes.length === 1) {
+    return options[uniqueIndexes[0]] ?? null
+  }
+
+  return uniqueIndexes.map((index) => options[index]).filter(Boolean)
 }
 
 const cleanOptionText = (value: string): string => {
@@ -316,7 +467,10 @@ const looksLikeExponentContinuation = (line: string): boolean => {
 }
 
 const normalizeTrueFalseAnswer = (raw: string, options: string[]): string => {
-  const lower = raw.toLowerCase()
+  const token = String(raw || "").trim()
+  if (!token) return ""
+
+  const lower = token.toLowerCase()
   const truthy = ["dung", "đúng", "true", "t"]
   const falsy = ["sai", "false", "f"]
 
@@ -326,7 +480,11 @@ const normalizeTrueFalseAnswer = (raw: string, options: string[]): string => {
   if (truthy.some((token) => lower.includes(token))) return truthOption
   if (falsy.some((token) => lower.includes(token))) return falseOption
 
-  return options[0] ?? "True"
+  const direct = parseCorrectAnswerFromLine(token, options)
+  if (typeof direct === "string" && direct) return direct
+  if (Array.isArray(direct) && direct.length > 0) return direct[0]
+
+  return ""
 }
 
 /**
@@ -346,27 +504,46 @@ const normalizeScientificNotation = (text: string): string => {
     .replace(/\b(10)(-\d+)/g, "$1^$2")
 }
 
+const normalizeQuestionText = (value: string): string => {
+  const text = normalizeScientificNotation(value).replace(/\[\[\/?U\]\]/gi, "")
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+
+  return lines.join("\n").trim()
+}
+
 const cleanAndNormalizeOption = (value: string): string =>
   normalizeScientificNotation(cleanOptionText(value))
 
 const splitInlineOptionSegments = (
   value: string,
 ): { leadText: string; optionLines: string[] } | null => {
-  const source = String(value || "").trim()
-  if (!source) return null
+  const sourceRaw = String(value || "").trim()
+  if (!sourceRaw) return null
 
-  const matches = Array.from(source.matchAll(INLINE_OPTION_MARKER_REGEX))
+  // Keep marker length while scanning so match indexes still map to raw text slices.
+  const sourceForScan = sourceRaw.replace(UNDERLINE_TAG_REGEX, (m) => " ".repeat(m.length))
+
+  const matches = Array.from(sourceForScan.matchAll(INLINE_OPTION_MARKER_REGEX))
     .map((match) => ({
-      index: match.index ?? -1,
-      marker: `${match[1].toUpperCase()}.`,
+      index: (match.index ?? -1) + String(match[1] || "").length,
+      labelIndex: String(match[2] || "").toUpperCase().charCodeAt(0) - 65,
     }))
-    .filter((match) => match.index >= 0)
+    .filter((match) => match.index >= 0 && match.labelIndex >= 0 && match.labelIndex <= 5)
 
-  // Require at least 2 option markers to avoid false positives.
   if (matches.length < 2) return null
 
+  if (matches[0].labelIndex !== 0) return null
+  for (let i = 1; i < matches.length; i += 1) {
+    if (matches[i].labelIndex !== matches[i - 1].labelIndex + 1) {
+      return null
+    }
+  }
+
   const optionLines: string[] = []
-  const leadText = source
+  const leadText = stripUnderlineTags(sourceRaw)
     .slice(0, matches[0].index)
     .replace(/\s+\d{1,3}$/g, "")
     .trim()
@@ -374,15 +551,351 @@ const splitInlineOptionSegments = (
   for (let i = 0; i < matches.length; i += 1) {
     const current = matches[i]
     const next = matches[i + 1]
-    const end = next ? next.index : source.length
-    const rawSegment = source.slice(current.index, end).trim()
-    const cleanedSegment = rawSegment.replace(/^([A-F])[\.)]\s*/i, (_m, p1) => `${String(p1).toUpperCase()}. `)
-    if (!OPTION_LINE_REGEX.test(cleanedSegment)) continue
-    optionLines.push(cleanedSegment)
+    const end = next ? next.index : sourceRaw.length
+    const rawSegment = sourceRaw.slice(current.index, end).trim()
+    const matchableSegment = stripUnderlineTags(rawSegment)
+      .replace(/^\s*([A-F])(?:\s*[\.)．。:\-,])\s*/i, (_m, p1) => `${String(p1).toUpperCase()}. `)
+    if (!OPTION_LINE_REGEX.test(matchableSegment)) continue
+    optionLines.push(rawSegment)
   }
 
   if (optionLines.length < 2) return null
   return { leadText, optionLines }
+}
+
+const parseOptionCandidateFromLine = (line: string): { text: string; isMarked: boolean } | null => {
+  const raw = String(line || "").trim()
+  if (!raw) return null
+
+  const cleaned = stripUnderlineTags(raw)
+  const match = cleaned.match(/^\s*([A-F])(?:\s*[\.)．。:\-,])?\s*([\s\S]+)$/i)
+  if (!match) return null
+
+  const parsed = parseOptionCandidate(match[2])
+  if (!parsed.text) return null
+
+  return {
+    text: parsed.text,
+    isMarked: parsed.isMarked || containsUnderlineMarker(raw) || isMarkedOptionText(raw),
+  }
+}
+
+const parseOptionFallbackTextFromLine = (line: string): string | null => {
+  const cleaned = stripUnderlineTags(String(line || "").trim())
+  const match = cleaned.match(/^\s*[A-F](?:\s*[\.)．。:\-,])?\s*([\s\S]+)$/i)
+  if (!match) return null
+
+  const text = cleanAndNormalizeOption(match[1])
+  return text || null
+}
+
+const optionIdentity = (value: string): string =>
+  cleanAndNormalizeOption(String(value || ""))
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+
+const getOptionLabelIndex = (line: string): number | undefined => {
+  const cleaned = stripUnderlineTags(String(line || "").trim())
+  const match = cleaned.match(/^\s*([A-F])(?:\s*[\.)．。:\-,])?\s*/i)
+  if (!match) return undefined
+  const idx = match[1].toUpperCase().charCodeAt(0) - 65
+  return idx >= 0 && idx <= 5 ? idx : undefined
+}
+
+const normalizeOptionsByLabels = (
+  options: string[],
+  labelIndexes: Array<number | undefined>,
+  markedIndexes: number[],
+): { options: string[]; markedIndexes: number[]; labelIndexes: number[] } => {
+  const markedSet = new Set(markedIndexes)
+  const labeled = new Map<number, { text: string; marked: boolean; order: number }>()
+  const unlabeled: Array<{ text: string; marked: boolean; order: number }> = []
+
+  for (let i = 0; i < options.length; i += 1) {
+    const text = String(options[i] || "").trim()
+    if (!text) continue
+    const marked = markedSet.has(i)
+    const label = labelIndexes[i]
+
+    if (typeof label === "number" && label >= 0 && label <= 5) {
+      const existing = labeled.get(label)
+      if (!existing) {
+        labeled.set(label, { text, marked, order: i })
+      } else {
+        existing.marked = existing.marked || marked
+        if (!existing.text && text) {
+          existing.text = text
+          existing.order = i
+        }
+      }
+      continue
+    }
+
+    unlabeled.push({ text, marked, order: i })
+  }
+
+  const finalEntries: Array<{ text: string; marked: boolean; labelIndex: number }> = []
+  const existingKeys = new Set<string>()
+
+  Array.from(labeled.entries())
+    .sort((a, b) => a[0] - b[0])
+    .forEach(([label, entry]) => {
+      const key = optionIdentity(entry.text)
+      if (!key || existingKeys.has(key)) return
+      existingKeys.add(key)
+      finalEntries.push({ text: entry.text, marked: entry.marked, labelIndex: label })
+    })
+
+  unlabeled
+    .sort((a, b) => a.order - b.order)
+    .forEach((entry) => {
+      const key = optionIdentity(entry.text)
+      if (!key || existingKeys.has(key)) return
+      existingKeys.add(key)
+      const nextLabel = finalEntries.length <= 5 ? finalEntries.length : 5
+      finalEntries.push({ text: entry.text, marked: entry.marked, labelIndex: nextLabel })
+    })
+
+  return {
+    options: finalEntries.map((entry) => entry.text),
+    labelIndexes: finalEntries.map((entry) => entry.labelIndex),
+    markedIndexes: finalEntries
+      .map((entry, idx) => (entry.marked ? idx : -1))
+      .filter((idx) => idx >= 0),
+  }
+}
+
+const splitCombinedOptionByLabel = (
+  text: string,
+  baseLabelIndex?: number,
+): Array<{ text: string; labelIndex?: number }> => {
+  const source = String(text || "").trim()
+  if (!source) return []
+  if (typeof baseLabelIndex !== "number" || baseLabelIndex < 0 || baseLabelIndex > 5) {
+    return [{ text: source, labelIndex: baseLabelIndex }]
+  }
+
+  const markerRegex = /\b([A-F])[\.)．。]\s*/gi
+  const allMarkers = Array.from(source.matchAll(markerRegex)).map((m) => ({
+    index: m.index ?? -1,
+    end: (m.index ?? -1) + m[0].length,
+    label: m[1].toUpperCase().charCodeAt(0) - 65,
+  }))
+
+  const markers = allMarkers.filter((m) => m.index > 0 && m.label > baseLabelIndex && m.label <= 5)
+  if (markers.length === 0) {
+    return [{ text: source, labelIndex: baseLabelIndex }]
+  }
+
+  const parts: Array<{ text: string; labelIndex?: number }> = []
+  const firstSplit = markers[0].index
+  const baseText = source.slice(0, firstSplit).trim()
+  if (baseText) {
+    parts.push({ text: baseText, labelIndex: baseLabelIndex })
+  }
+
+  for (let i = 0; i < markers.length; i += 1) {
+    const current = markers[i]
+    const next = markers[i + 1]
+    const end = next ? next.index : source.length
+    const candidate = source.slice(current.end, end).trim()
+    if (!candidate) continue
+    parts.push({ text: candidate, labelIndex: current.label })
+  }
+
+  return parts.length > 0 ? parts : [{ text: source, labelIndex: baseLabelIndex }]
+}
+
+const isLabeledOptionLine = (line: string): boolean => {
+  const cleaned = normalizeLabelSource(stripUnderlineTags(String(line || "")))
+  return /^\s*[A-F](?:\s*[\.)\-,:])\s+.+$/i.test(cleaned)
+}
+
+const normalizeLabelSource = (value: string): string =>
+  String(value || "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/[．。]/g, ".")
+    .replace(/[，、]/g, ",")
+    .trim()
+
+const collectLabeledOptionsFromRawLines = (
+  lines: string[],
+): Array<{ labelIndex: number; text: string; marked: boolean }> => {
+  const collected: Array<{ labelIndex: number; text: string; marked: boolean }> = []
+  let started = false
+  let expectedLabelIndex = 0
+
+  const appendContinuation = (text: string) => {
+    if (!text.trim() || collected.length === 0) return
+    const last = collected[collected.length - 1]
+    last.text = `${last.text} ${text.trim()}`.trim()
+  }
+
+  for (const lineRaw of lines) {
+    const original = String(lineRaw || "").trim()
+    if (!original) continue
+
+    if (started) {
+      const normalized = normalizeLabelSource(stripUnderlineTags(original))
+      if (ANSWER_LINE_REGEX.test(normalized) || EXPLANATION_LINE_REGEX.test(normalized)) {
+        break
+      }
+    }
+
+    const split = splitInlineOptionSegments(original)
+    const units = split?.optionLines?.length ? split.optionLines : [original]
+
+    let matchedLabelInLine = false
+
+    for (const unit of units) {
+      const cleaned = normalizeLabelSource(stripUnderlineTags(unit))
+      const match = cleaned.match(/^\s*([A-F])(?:\s*[\.)\-,:])\s*([\s\S]*)\s*$/i)
+      if (!match) continue
+
+      const labelIndex = match[1].toUpperCase().charCodeAt(0) - 65
+      if (labelIndex < 0 || labelIndex > 5) continue
+
+      if (!started) {
+        if (labelIndex !== 0) continue
+        started = true
+        expectedLabelIndex = 0
+      }
+
+      if (labelIndex !== expectedLabelIndex) {
+        return collected.length >= 2 ? collected : []
+      }
+
+      const markedInUnit = containsUnderlineMarker(unit) || isMarkedOptionText(unit)
+      const rawText = String(match[2] || "")
+      const normalizedText = cleanAndNormalizeOption(rawText)
+
+      collected.push({
+        labelIndex,
+        text: normalizedText,
+        marked: markedInUnit,
+      })
+
+      expectedLabelIndex += 1
+      matchedLabelInLine = true
+    }
+
+    if (started && !matchedLabelInLine) {
+      appendContinuation(normalizeLabelSource(stripUnderlineTags(original)))
+    }
+  }
+
+  const normalizedCollected = collected
+    .map((item) => ({ ...item, text: cleanAndNormalizeOption(item.text) }))
+    .filter((item) => Boolean(item.text))
+
+  return normalizedCollected.length >= 2 ? normalizedCollected : []
+}
+
+const findUnderlinedAnswerFromSegments = (lines: string[], options: string[]): string => {
+  if (!Array.isArray(lines) || lines.length === 0 || options.length === 0) return ""
+
+  const byLabelToken = (tokenRaw: string): string => {
+    const token = String(tokenRaw || "").trim().replace(/[\).．。:;]+$/g, "")
+    if (!/^[A-F]$/i.test(token)) return ""
+    const idx = token.toUpperCase().charCodeAt(0) - 65
+    if (idx < 0 || idx >= options.length) return ""
+    return options[idx] || ""
+  }
+
+  const findByText = (raw: string): string => {
+    const normalized = optionIdentity(raw)
+    if (!normalized) return ""
+
+    const labelOnly = byLabelToken(normalized)
+    if (labelOnly) return labelOnly
+
+    const exact = options.find((opt) => optionIdentity(opt) === normalized)
+    if (exact) return exact
+
+    if (normalized.length < 3) return ""
+
+    const contains = options.find((opt) => {
+      const candidate = optionIdentity(opt)
+      if (!candidate) return false
+      return candidate.includes(normalized) || normalized.includes(candidate)
+    })
+    return contains || ""
+  }
+
+  for (const line of lines) {
+    const segments = Array.from(String(line || "").matchAll(/\[\[U\]\]([\s\S]*?)\[\[\/U\]\]/gi))
+    for (const segment of segments) {
+      const underlinedRaw = String(segment[1] || "").trim()
+      if (!underlinedRaw) continue
+
+      const byLabel = byLabelToken(underlinedRaw)
+      if (byLabel) return byLabel
+
+      const withLabel = underlinedRaw.match(/^\s*([A-F])[\.)．。]?\s*([\s\S]*)$/i)
+      if (withLabel) {
+        const tail = String(withLabel[2] || "").trim()
+        if (tail) {
+          const byText = findByText(tail)
+          if (byText) return byText
+        }
+
+        const idx = withLabel[1].toUpperCase().charCodeAt(0) - 65
+        if (idx >= 0 && idx < options.length && options[idx]) {
+          return options[idx]
+        }
+      }
+
+      const byWhole = findByText(underlinedRaw)
+      if (byWhole) return byWhole
+    }
+  }
+
+  return ""
+}
+
+const isEmptyResolvedAnswer = (value: string | string[]): boolean => {
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v || "").trim()).filter(Boolean).length === 0
+  }
+  return !String(value || "").trim()
+}
+
+const inferAnswerFromHintLines = (lines: string[], options: string[]): string => {
+  if (!Array.isArray(lines) || lines.length === 0 || options.length === 0) return ""
+
+  const resolveByLabel = (tokenRaw: string): string => {
+    const token = String(tokenRaw || "").trim().replace(/[\).．。:;]+$/g, "")
+    if (!/^[A-F]$/i.test(token)) return ""
+    const idx = token.toUpperCase().charCodeAt(0) - 65
+    if (idx < 0 || idx >= options.length) return ""
+    return options[idx] || ""
+  }
+
+  for (const raw of lines) {
+    const line = String(raw || "").trim()
+    if (!line) continue
+
+    const direct = line.match(/(?:correct\s*answer|answer\s*key|key|đáp\s*án\s*đúng|đáp\s*án|dap\s*an|\bđa\b|\bda\b|\bans(?:wer)?\b)\s*[:=.\-]?\s*([A-F]|\d{1,2}|[^\n]+)$/i)
+    if (direct) {
+      const token = String(direct[1] || "").trim()
+      const byLabel = resolveByLabel(token)
+      if (byLabel) return byLabel
+
+      const parsed = parseCorrectAnswerFromLine(token, options)
+      if (typeof parsed === "string" && parsed.trim()) return parsed
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed[0]
+    }
+
+    // Standalone label lines often appear after OCR/format conversion (e.g. "D" or "D.").
+    const standalone = line.match(/^\(?\s*([A-F])\s*[\).．。]?\s*\)?$/i)
+    if (standalone) {
+      const byLabel = resolveByLabel(standalone[1])
+      if (byLabel) return byLabel
+    }
+  }
+
+  return ""
 }
 
 const finalizeWordBlock = (
@@ -393,48 +906,104 @@ const finalizeWordBlock = (
   if (!rawQuestion) return null
 
   let options: string[] = []
+  let markedOptionIndexes: number[] = []
+  let optionLabelIndexes: Array<number | undefined> = []
   const plainLines: string[] = []
   let questionText = rawQuestion
+
+  const pushOption = (text: string, marked: boolean, labelIndex?: number) => {
+    const normalizedText = String(text || "").trim()
+    if (!normalizedText) return
+    options.push(normalizedText)
+    optionLabelIndexes.push(labelIndex)
+    if (marked) {
+      markedOptionIndexes.push(options.length - 1)
+    }
+  }
 
   const inlineOptionsInQuestion = splitInlineOptionSegments(rawQuestion)
   if (inlineOptionsInQuestion) {
     questionText = inlineOptionsInQuestion.leadText || questionText
     for (const optionLine of inlineOptionsInQuestion.optionLines) {
-      const optionMatch = optionLine.match(OPTION_LINE_REGEX)
-      if (!optionMatch) continue
-      options.push(cleanAndNormalizeOption(optionMatch[2]))
+      const parsedOption = parseOptionCandidateFromLine(optionLine)
+      if (parsedOption) {
+        pushOption(
+          parsedOption.text,
+          containsUnderlineMarker(optionLine) || isMarkedOptionText(optionLine) || parsedOption.isMarked,
+          getOptionLabelIndex(optionLine),
+        )
+      } else {
+        const fallbackText = parseOptionFallbackTextFromLine(optionLine)
+        if (!fallbackText) continue
+        pushOption(
+          fallbackText,
+          containsUnderlineMarker(optionLine) || isMarkedOptionText(optionLine),
+          getOptionLabelIndex(optionLine),
+        )
+      }
     }
   }
 
   const hasPrefixedOptions =
     options.length >= 2 ||
-    block.bodyLines.some((line) => OPTION_LINE_REGEX.test(line) || Boolean(splitInlineOptionSegments(line)))
+    block.bodyLines.some((line) => {
+      const plainLine = stripUnderlineTags(line)
+      return OPTION_LINE_REGEX.test(plainLine) || Boolean(splitInlineOptionSegments(line))
+    })
 
   if (hasPrefixedOptions) {
     let lastOptionIndex = -1
     for (const line of block.bodyLines) {
+      const plainLine = stripUnderlineTags(line)
       const inlineSplit = splitInlineOptionSegments(line)
       if (inlineSplit) {
         if (inlineSplit.leadText) {
           questionText += "\n" + normalizeScientificNotation(inlineSplit.leadText)
         }
         for (const optionLine of inlineSplit.optionLines) {
-          const optionMatch = optionLine.match(OPTION_LINE_REGEX)
-          if (!optionMatch) continue
-          options.push(cleanAndNormalizeOption(optionMatch[2]))
+          const parsedOption = parseOptionCandidateFromLine(optionLine)
+          if (parsedOption) {
+            pushOption(
+              parsedOption.text,
+              containsUnderlineMarker(optionLine) || isMarkedOptionText(optionLine) || parsedOption.isMarked,
+              getOptionLabelIndex(optionLine),
+            )
+          } else {
+            const fallbackText = parseOptionFallbackTextFromLine(optionLine)
+            if (!fallbackText) continue
+            pushOption(
+              fallbackText,
+              containsUnderlineMarker(optionLine) || isMarkedOptionText(optionLine),
+              getOptionLabelIndex(optionLine),
+            )
+          }
           lastOptionIndex = options.length - 1
         }
       } else {
-        const optionMatch = line.match(OPTION_LINE_REGEX)
-        if (optionMatch) {
-          options.push(cleanAndNormalizeOption(optionMatch[2]))
+        const parsedOption = parseOptionCandidateFromLine(line)
+        if (parsedOption) {
+          pushOption(
+            parsedOption.text,
+            parsedOption.isMarked || containsUnderlineMarker(line) || isMarkedOptionText(line),
+            getOptionLabelIndex(line),
+          )
           lastOptionIndex = options.length - 1
-        } else if (lastOptionIndex >= 0 && looksLikeExponentContinuation(line)) {
-        const exponent = normalizeExponentFragment(line)
-        const current = options[lastOptionIndex] || ""
-        options[lastOptionIndex] = normalizeScientificNotation(`${current}^${exponent}`)
-        } else if (line.trim()) {
-          questionText += "\n" + normalizeScientificNotation(line.trim())
+        } else {
+          const fallbackText = parseOptionFallbackTextFromLine(line)
+          if (fallbackText) {
+            pushOption(
+              fallbackText,
+              containsUnderlineMarker(line) || isMarkedOptionText(line),
+              getOptionLabelIndex(line),
+            )
+            lastOptionIndex = options.length - 1
+          } else if (lastOptionIndex >= 0 && looksLikeExponentContinuation(line)) {
+            const exponent = normalizeExponentFragment(line)
+            const current = options[lastOptionIndex] || ""
+            options[lastOptionIndex] = normalizeScientificNotation(`${current}^${exponent}`)
+          } else if (line.trim()) {
+            questionText += "\n" + normalizeScientificNotation(line.trim())
+          }
         }
       }
     }
@@ -447,6 +1016,35 @@ const finalizeWordBlock = (
   }
 
   const answerToken = sanitizeAnswerToken(block.answerLine)
+
+  const findUnderlinedAnswerFallback = (): string => {
+    const bySegments = findUnderlinedAnswerFromSegments([rawQuestion, ...block.bodyLines], options)
+    if (bySegments) return bySegments
+
+    const linesToScan = [rawQuestion, ...block.bodyLines]
+    for (const line of linesToScan) {
+      const inlineSplit = splitInlineOptionSegments(line)
+      if (inlineSplit) {
+        for (const optionLine of inlineSplit.optionLines) {
+          const parsed = parseOptionCandidateFromLine(optionLine)
+          if (!parsed?.text) continue
+          if (containsUnderlineMarker(optionLine) || parsed.isMarked) {
+            const same = options.find((opt) => opt.toLowerCase().trim() === parsed.text.toLowerCase().trim())
+            return same || parsed.text
+          }
+        }
+        continue
+      }
+
+      const parsed = parseOptionCandidateFromLine(line)
+      if (!parsed?.text) continue
+      if (containsUnderlineMarker(line) || parsed.isMarked) {
+        const same = options.find((opt) => opt.toLowerCase().trim() === parsed.text.toLowerCase().trim())
+        return same || parsed.text
+      }
+    }
+    return ""
+  }
 
   if (options.length < 2 && plainLines.length >= 2 && looksLikeOptionReferenceToken(answerToken)) {
     // Use the answer line to determine how many options from the end of plainLines
@@ -462,17 +1060,126 @@ const finalizeWordBlock = (
     const optionLines = plainLines.slice(splitAt)
 
     if (optionLines.length >= 2) {
-      options = optionLines.map((line) => cleanAndNormalizeOption(line)).filter(Boolean)
+      options = []
+      optionLabelIndexes = []
+      markedOptionIndexes = []
+      for (const line of optionLines) {
+        const parsedOption = parseOptionCandidate(line)
+        if (!parsedOption.text) continue
+        pushOption(parsedOption.text, parsedOption.isMarked, getOptionLabelIndex(line))
+      }
       if (contextLines.length > 0) {
         questionText += "\n" + contextLines.join("\n")
       }
     }
   }
 
+  // Rescue pass: if inline options leaked into question text, extract and merge them.
+  const leakedInline = splitInlineOptionSegments(questionText)
+  if (leakedInline && leakedInline.optionLines.length > 0) {
+    const lead = String(leakedInline.leadText || "").trim()
+    if (lead) {
+      questionText = lead
+    }
+
+    const existing = new Set(options.map((opt) => optionIdentity(opt)))
+    for (const optionLine of leakedInline.optionLines) {
+      const parsed = parseOptionCandidateFromLine(optionLine)
+      const fallback = parsed?.text ? null : parseOptionFallbackTextFromLine(optionLine)
+      const text = parsed?.text || fallback || ""
+      if (!text) continue
+
+      const key = optionIdentity(text)
+      if (!key || existing.has(key)) continue
+      pushOption(
+        text,
+        parsed?.isMarked || containsUnderlineMarker(optionLine) || isMarkedOptionText(optionLine),
+        getOptionLabelIndex(optionLine),
+      )
+      existing.add(key)
+    }
+  }
+
+  const normalizedOptionResult = normalizeOptionsByLabels(options, optionLabelIndexes, markedOptionIndexes)
+  options = normalizedOptionResult.options
+  optionLabelIndexes = normalizedOptionResult.labelIndexes
+  markedOptionIndexes = normalizedOptionResult.markedIndexes
+
+  const markedSetBeforeSplit = new Set(markedOptionIndexes)
+  const splitOptions: string[] = []
+  const splitLabels: Array<number | undefined> = []
+  const splitMarked: number[] = []
+
+  for (let i = 0; i < options.length; i += 1) {
+    const sourceText = options[i]
+    const sourceLabel = optionLabelIndexes[i]
+    const sourceMarked = markedSetBeforeSplit.has(i)
+    const expanded = splitCombinedOptionByLabel(sourceText, sourceLabel)
+
+    if (expanded.length === 0) continue
+
+    expanded.forEach((part, partIdx) => {
+      const text = cleanAndNormalizeOption(part.text)
+      if (!text) return
+      splitOptions.push(text)
+      splitLabels.push(part.labelIndex)
+      if (sourceMarked && partIdx === 0) {
+        splitMarked.push(splitOptions.length - 1)
+      }
+    })
+  }
+
+  if (splitOptions.length > 0) {
+    const reNormalized = normalizeOptionsByLabels(splitOptions, splitLabels, splitMarked)
+    options = reNormalized.options
+    optionLabelIndexes = reNormalized.labelIndexes
+    markedOptionIndexes = reNormalized.markedIndexes
+  }
+
+  const recoveredLabeledOptions = collectLabeledOptionsFromRawLines([rawQuestion, ...block.bodyLines])
+  if (recoveredLabeledOptions.length >= 2) {
+    options = recoveredLabeledOptions.map((item) => item.text)
+    optionLabelIndexes = recoveredLabeledOptions.map((item) => item.labelIndex)
+    markedOptionIndexes = recoveredLabeledOptions
+      .map((item, idx) => (item.marked ? idx : -1))
+      .filter((idx) => idx >= 0)
+
+    const leaked = splitInlineOptionSegments(questionText)
+    if (leaked?.leadText) {
+      questionText = leaked.leadText.trim() || questionText
+    }
+  }
+
+  // Fallback: some documents place A/B/C... lines into question text/plain lines,
+  // causing MCQ questions to be misclassified as fill-in.
+  if (options.length < 2) {
+    const combinedLines = [questionText, ...plainLines]
+      .flatMap((line) => String(line || "").split(/\r?\n/))
+      .map((line) => line.trim())
+      .filter(Boolean)
+
+    const recoveredFromCombined = collectLabeledOptionsFromRawLines(combinedLines)
+    if (recoveredFromCombined.length >= 2) {
+      const firstOptionLineIndex = combinedLines.findIndex((line) => isLabeledOptionLine(line))
+      if (firstOptionLineIndex > 0) {
+        const rebuiltQuestion = combinedLines.slice(0, firstOptionLineIndex).join("\n").trim()
+        if (rebuiltQuestion) {
+          questionText = rebuiltQuestion
+        }
+      }
+
+      options = recoveredFromCombined.map((item) => item.text)
+      optionLabelIndexes = recoveredFromCombined.map((item) => item.labelIndex)
+      markedOptionIndexes = recoveredFromCombined
+        .map((item, idx) => (item.marked ? idx : -1))
+        .filter((idx) => idx >= 0)
+    }
+  }
+
   const question = options.length >= 2 ? questionText : [questionText, ...plainLines].join("\n").trim()
   if (!question) return null
 
-  const normalizedQuestion = normalizeScientificNotation(question)
+  const normalizedQuestion = normalizeQuestionText(question)
 
   const explanation = buildExplanation(block)
   const points = block.points > 0 ? block.points : 1
@@ -480,6 +1187,8 @@ const finalizeWordBlock = (
   const chapter = block.sectionTitle?.trim() || undefined
   const difficulty = toDifficultyLevel(block.metadata.diff)
   const questionWithSection = normalizedQuestion
+  const markedAnswer = resolveMarkedOptionAnswer(markedOptionIndexes, options)
+  const hasFillInBlank = looksLikeFillInQuestion(questionWithSection)
 
   if (options.length >= 2) {
     const normalizedLower = options.map((option) => option.toLowerCase().trim())
@@ -489,7 +1198,8 @@ const finalizeWordBlock = (
         (normalizedLower.includes("true") && normalizedLower.includes("false")))
 
     if (isTrueFalse) {
-      const answerValue = answerToken || options[0]
+      const markedValue = Array.isArray(markedAnswer) ? markedAnswer[0] : markedAnswer
+      const answerValue = answerToken || markedValue || ""
       return {
         type: "true_false",
         question: questionWithSection,
@@ -503,12 +1213,47 @@ const finalizeWordBlock = (
       }
     }
 
-    const answerRaw = answerToken || options[0]
+    let answerRaw: string | string[] = ""
+    if (answerToken) {
+      answerRaw = parseCorrectAnswerFromLine(answerToken, options)
+      if (isEmptyResolvedAnswer(answerRaw)) {
+        const underlinedAnswer = findUnderlinedAnswerFallback()
+        if (underlinedAnswer) {
+          answerRaw = underlinedAnswer
+        } else {
+          const hinted = inferAnswerFromHintLines(
+            [block.answerLine, block.explanationLine, block.metadata.reason || "", rawQuestion, ...block.bodyLines],
+            options,
+          )
+          if (hinted) {
+            answerRaw = hinted
+          } else if (markedAnswer) {
+            answerRaw = markedAnswer
+          }
+        }
+      }
+    } else {
+      const underlinedAnswer = findUnderlinedAnswerFallback()
+      if (underlinedAnswer) {
+        answerRaw = underlinedAnswer
+      } else if (markedAnswer) {
+        answerRaw = markedAnswer
+      } else {
+        const hinted = inferAnswerFromHintLines(
+          [block.answerLine, block.explanationLine, block.metadata.reason || "", rawQuestion, ...block.bodyLines],
+          options,
+        )
+        if (hinted) {
+          answerRaw = hinted
+        }
+      }
+    }
+
     return {
       type: "multiple_choice",
       question: questionWithSection,
       options: options.length > 6 ? options.slice(0, 6) : options,
-      correctAnswer: parseCorrectAnswerFromLine(answerRaw, options),
+      correctAnswer: answerRaw,
       points,
       explanation,
       image,
@@ -518,16 +1263,41 @@ const finalizeWordBlock = (
   }
 
   const fillAnswer = answerToken.trim()
-  if (!looksLikeFillInQuestion(questionWithSection) && looksLikeOptionReferenceToken(fillAnswer)) {
-    return null
+  // Keep incomplete fill-in questions so import count matches source file count.
+  // Users can review/fix missing answers after import.
+  if (!hasFillInBlank) {
+    return {
+      type: "multiple_choice",
+      question: questionWithSection,
+      options: options.length > 6 ? options.slice(0, 6) : options,
+      correctAnswer: "",
+      points,
+      explanation,
+      image,
+      chapter,
+      difficulty,
+    }
   }
-  if (!fillAnswer) return null
+
+  if (looksLikeOptionReferenceToken(fillAnswer)) {
+    return {
+      type: "fill_in",
+      question: questionWithSection,
+      options: [],
+      correctAnswer: "",
+      points,
+      explanation,
+      image,
+      chapter,
+      difficulty,
+    }
+  }
 
   return {
     type: "fill_in",
     question: questionWithSection,
     options: [],
-    correctAnswer: fillAnswer,
+    correctAnswer: fillAnswer || "",
     points,
     explanation,
     image,
@@ -567,7 +1337,7 @@ const parseDocumentQuestions = async (
   }
 
   const result = await response.json()
-  const text = (result?.text as string) || ""
+  const text = normalizeImportedText((result?.text as string) || "")
   const imageMap = (result?.images as Record<string, string>) || {}
   
   // Log metadata if available
@@ -618,6 +1388,9 @@ const parseDocumentQuestions = async (
         currentSectionTitle = currentAutoSectionTitle
       }
 
+      const activeSectionTitle = currentSectionTitle || currentAutoSectionTitle
+      currentSectionTitle = activeSectionTitle
+
       if (current) blocks.push(current)
       current = {
         questionText: questionStart.text,
@@ -625,7 +1398,7 @@ const parseDocumentQuestions = async (
         bodyLines: [],
         answerLine: "",
         explanationLine: "",
-        sectionTitle: currentSectionTitle || currentAutoSectionTitle,
+        sectionTitle: activeSectionTitle,
         metadata: {},
         imageKey: pendingImageKey,
         extraImageKeys: pendingExtraImageKeys,
@@ -651,14 +1424,24 @@ const parseDocumentQuestions = async (
       continue
     }
 
-    if (current.answerLine && looksLikeStandaloneQuestionStart(line)) {
+    const hasCollectedOptions = current.bodyLines.some(
+      (candidate) => OPTION_LINE_REGEX.test(candidate) || Boolean(splitInlineOptionSegments(candidate)),
+    )
+
+    const standaloneAnswerLabelMatch = line.match(/^\(?\s*([A-F])\s*[\).．。]?\s*\)?$/i)
+    if (!current.answerLine && hasCollectedOptions && standaloneAnswerLabelMatch) {
+      current.answerLine = standaloneAnswerLabelMatch[1].toUpperCase()
+      continue
+    }
+
+    if ((current.answerLine || hasCollectedOptions) && looksLikeStandaloneQuestionStart(line)) {
       blocks.push(current)
       current = {
         questionText: line.trim(),
         bodyLines: [],
         answerLine: "",
         explanationLine: "",
-        sectionTitle: currentSectionTitle,
+        sectionTitle: currentSectionTitle || currentAutoSectionTitle,
         metadata: {},
         imageKey: pendingImageKey,
         extraImageKeys: pendingExtraImageKeys,
@@ -774,15 +1557,15 @@ const parseExcelObjectRows = (rows: Record<string, unknown>[]): ImportedExamQues
     const explanation = pickValue(row, ["giai thich", "giải thích", "explanation"])
     const pointsValue = Number.parseFloat(pickValue(row, ["diem", "điểm", "points"]))
     const points = !Number.isNaN(pointsValue) && pointsValue > 0 ? pointsValue : 1
+    const hasFillInBlank = looksLikeFillInQuestion(question)
 
-    if (explicitType === "fill_in") {
+    if (explicitType === "fill_in" && hasFillInBlank) {
       const answer = pickValue(row, ["dap an", "đáp án", "correct", "correctanswer", "answer"])
-      if (!answer) continue
       questions.push({
         type: "fill_in",
         question,
         options: [],
-        correctAnswer: answer,
+        correctAnswer: answer || "",
         points,
         explanation,
       })
@@ -800,15 +1583,25 @@ const parseExcelObjectRows = (rows: Record<string, unknown>[]): ImportedExamQues
 
     if (options.length < 2) {
       const fallbackAnswer = pickValue(row, ["dap an", "đáp án", "correct", "answer"])
-      if (!fallbackAnswer) continue
-      questions.push({
-        type: "fill_in",
-        question,
-        options: [],
-        correctAnswer: fallbackAnswer,
-        points,
-        explanation,
-      })
+      if (hasFillInBlank) {
+        questions.push({
+          type: "fill_in",
+          question,
+          options: [],
+          correctAnswer: fallbackAnswer || "",
+          points,
+          explanation,
+        })
+      } else {
+        questions.push({
+          type: "multiple_choice",
+          question,
+          options,
+          correctAnswer: parseCorrectAnswerFromLine(fallbackAnswer, options),
+          points,
+          explanation,
+        })
+      }
       continue
     }
 
@@ -824,7 +1617,7 @@ const parseExcelObjectRows = (rows: Record<string, unknown>[]): ImportedExamQues
         type: "true_false",
         question,
         options,
-        correctAnswer: normalizeTrueFalseAnswer(answerRaw || options[0], options),
+        correctAnswer: normalizeTrueFalseAnswer(answerRaw, options),
         points,
         explanation,
       })
@@ -835,7 +1628,7 @@ const parseExcelObjectRows = (rows: Record<string, unknown>[]): ImportedExamQues
       type: "multiple_choice",
       question,
       options,
-      correctAnswer: parseCorrectAnswerFromLine(answerRaw || options[0], options),
+      correctAnswer: parseCorrectAnswerFromLine(answerRaw, options),
       points,
       explanation,
     })
@@ -848,22 +1641,22 @@ const parseExcelArrayRows = (rows: unknown[][]): ImportedExamQuestion[] => {
   const questions: ImportedExamQuestion[] = []
 
   for (const row of rows) {
-    if (!row || row.length < 2) continue
+    if (!row || row.length < 1) continue
 
     const question = String(row[0] ?? "").trim()
     if (!question || /^cau hoi|^câu hỏi|^question/i.test(question)) continue
+    const hasFillInBlank = looksLikeFillInQuestion(question)
 
     const maybeType = normalizeType(String(row[1] ?? ""))
-    if (maybeType === "fill_in") {
+    if (maybeType === "fill_in" && hasFillInBlank) {
       const answer = String(row[2] ?? "").trim()
-      if (!answer) continue
       const points = Number.parseFloat(String(row[3] ?? ""))
       const explanation = String(row[4] ?? "").trim()
       questions.push({
         type: "fill_in",
         question,
         options: [],
-        correctAnswer: answer,
+        correctAnswer: answer || "",
         points: !Number.isNaN(points) && points > 0 ? points : 1,
         explanation,
       })
@@ -894,15 +1687,25 @@ const parseExcelArrayRows = (rows: unknown[][]): ImportedExamQuestion[] => {
 
     if (options.length < 2) {
       const answer = String(row[2] ?? "").trim() || answerRaw
-      if (!answer) continue
-      questions.push({
-        type: "fill_in",
-        question,
-        options: [],
-        correctAnswer: answer,
-        points,
-        explanation,
-      })
+      if (hasFillInBlank) {
+        questions.push({
+          type: "fill_in",
+          question,
+          options: [],
+          correctAnswer: answer || "",
+          points,
+          explanation,
+        })
+      } else {
+        questions.push({
+          type: "multiple_choice",
+          question,
+          options,
+          correctAnswer: parseCorrectAnswerFromLine(answer, options),
+          points,
+          explanation,
+        })
+      }
       continue
     }
 
@@ -922,7 +1725,7 @@ const parseExcelArrayRows = (rows: unknown[][]): ImportedExamQuestion[] => {
         type: "true_false",
         question,
         options,
-        correctAnswer: normalizeTrueFalseAnswer(answerRaw || options[0], options),
+        correctAnswer: normalizeTrueFalseAnswer(answerRaw, options),
         points,
         explanation,
       })
@@ -933,7 +1736,7 @@ const parseExcelArrayRows = (rows: unknown[][]): ImportedExamQuestion[] => {
       type: "multiple_choice",
       question,
       options,
-      correctAnswer: parseCorrectAnswerFromLine(answerRaw || options[0], options),
+      correctAnswer: parseCorrectAnswerFromLine(answerRaw, options),
       points,
       explanation,
     })
