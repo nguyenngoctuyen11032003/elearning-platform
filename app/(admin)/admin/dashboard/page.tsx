@@ -318,8 +318,8 @@ if (loading) {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-      <div className="w-full space-y-6 md:space-y-8 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-6 md:space-y-8">
         {/* Header with Background */}
         <div className="relative overflow-hidden rounded-3xl p-4 sm:p-6 lg:p-8" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
@@ -393,7 +393,7 @@ if (loading) {
         {/* Main Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Revenue Chart */}
-          <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-xl shadow-slate-900/20 p-4 sm:p-6">
+          <div className="lg:col-span-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_revenue_monthly", "Doanh thu theo tháng")}</h3>
             {revenueData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">
@@ -439,7 +439,7 @@ if (loading) {
           </div>
 
           {/* Category Distribution */}
-          <div className="rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-xl shadow-slate-900/20 p-4 sm:p-6 animate-fadeIn">
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_course_dist", "Phân bố khóa học")}</h3>
             {categoryData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_cat_data", "Chưa có dữ liệu danh mục")}</p>
@@ -492,7 +492,7 @@ if (loading) {
         {/* Additional Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* User Activity Chart */}
-          <div className="rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-xl shadow-slate-900/20 p-4 sm:p-6 animate-fadeIn">
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_weekly_activity", "Hoạt động người dùng tuần này")}</h3>
             {weeklyStats.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center">
