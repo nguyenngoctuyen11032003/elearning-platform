@@ -8,6 +8,7 @@ import { CheckCircle, Clock, FileText, Loader2, MoreVertical, Pencil, Plus, Sear
 import { useLanguage } from "@/lib/i18n/language-context"
 import { ScientificText } from "@/components/scientific-text"
 import * as XLSX from "xlsx"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 type Exam = {
   id: string
@@ -523,7 +524,7 @@ export default function TeacherExamsListPage() {
             />
           </div>
           <div className="flex gap-2 w-full md:w-auto">
-            <select
+            <UniversalSelect
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="border rounded-lg px-3 py-2 text-sm w-1/2 md:w-auto"
@@ -533,8 +534,8 @@ export default function TeacherExamsListPage() {
               <option value="pending">{t("tch_exg_pending", "Chờ duyệt")}</option>
               <option value="draft">{t("tch_exg_draft", "Nháp")}</option>
               <option value="rejected">{t("tch_exg_rejected", "Từ chối")}</option>
-            </select>
-            <select
+            </UniversalSelect>
+            <UniversalSelect
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
               className="border rounded-lg px-3 py-2 text-sm w-1/2 md:w-auto"
@@ -542,7 +543,7 @@ export default function TeacherExamsListPage() {
               <option value="all">{t("tch_exg_all_type", "Tất cả loại")}</option>
               <option value="practice">{t("tch_exg_practice", "Thi thử")}</option>
               <option value="official">{t("tch_exg_official", "Thi thật")}</option>
-            </select>
+            </UniversalSelect>
           </div>
         </div>
 

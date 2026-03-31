@@ -9,6 +9,7 @@ import { useLanguage } from "@/lib/i18n/language-context"
 import { authFetch } from "@/lib/authfetch"
 import { apiClient } from "@/lib/api/client"
 import { ScientificText } from "@/components/scientific-text"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Section {
   id: string
@@ -1221,7 +1222,7 @@ export default function CreateCoursePage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_category", "Danh mục")}</label>
-                <select
+                <UniversalSelect
                   value={formData.categoryId}
                   onChange={(e) => {
                     const selectedCategoryId = e.target.value
@@ -1238,7 +1239,7 @@ export default function CreateCoursePage() {
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
-                </select>
+                </UniversalSelect>
                 {categoryError && (
                   <p className="mt-2 text-sm text-destructive">{categoryError}</p>
                 )}
@@ -2018,7 +2019,7 @@ export default function CreateCoursePage() {
                                   </button>
                                 </div>
                                 <div className="mb-2 flex items-center gap-3">
-                                  <select
+                                  <UniversalSelect
                                     value={quiz.type}
                                     onChange={(e) =>
                                       updateQuiz(currentSectionId!, currentLessonId!, quiz.id, {
@@ -2030,9 +2031,9 @@ export default function CreateCoursePage() {
                                     <option value="multiple-choice">{t("tc_create_type_single", "1 đáp án")}</option>
                                     <option value="multiple-select">{t("tc_create_type_multiple", "Nhiều đáp án")}</option>
                                     <option value="true-false">{t("tc_create_type_true_false", "Đúng/Sai")}</option>
-                                  </select>
+                                  </UniversalSelect>
                                   {quiz.type !== "true-false" && (
-                                    <select
+                                    <UniversalSelect
                                       value={quiz.options.length}
                                       onChange={(e) => {
                                         const count = Number(e.target.value)
@@ -2052,7 +2053,7 @@ export default function CreateCoursePage() {
                                       {[2, 3, 4, 5, 6].map((count) => (
                                         <option key={count} value={count}>{t("tc_create_option_count", "{count} đáp án").replace("{count}", String(count))}</option>
                                       ))}
-                                    </select>
+                                    </UniversalSelect>
                                   )}
                                 </div>
                                 <div className="space-y-1">
@@ -2206,14 +2207,14 @@ export default function CreateCoursePage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_status", "Trạng thái")}</label>
-                <select
+                <UniversalSelect
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
                 >
                   <option value="draft">{t("tc_create_status_draft", "Nháp")}</option>
                   <option value="pending">{t("tc_create_status_pending", "Chờ duyệt")}</option>
-                </select>
+                </UniversalSelect>
               </div>
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-sm text-blue-900 dark:text-blue-200">

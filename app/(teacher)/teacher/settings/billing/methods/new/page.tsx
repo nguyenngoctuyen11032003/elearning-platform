@@ -7,6 +7,7 @@ import { CreditCard, Wallet } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 type MethodType = "bank_card" | "e_wallet"
 
@@ -147,14 +148,14 @@ function NewPaymentMethodPageContent() {
         <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
           <div>
             <label className="mb-1 block text-sm text-muted-foreground">{t("payment_choose_provider", "Chọn ví")}</label>
-            <select
+            <UniversalSelect
               className="w-full rounded-lg border border-border bg-background px-3 py-2"
               value={provider}
               onChange={(e) => setProvider(e.target.value as "momo" | "zalopay")}
             >
               <option value="momo">{t("payment_provider_momo", "MoMo")}</option>
               <option value="zalopay">{t("payment_provider_zalopay", "ZaloPay")}</option>
-            </select>
+            </UniversalSelect>
           </div>
 
           <div>

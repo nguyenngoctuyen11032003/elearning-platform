@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 type Plan = {
   id: string
@@ -190,7 +191,7 @@ function TeacherPlanCheckoutPageContent() {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-4">
           <p className="mb-2 text-sm text-muted-foreground">{t("checkout_plan", "Gói")}</p>
-          <select
+          <UniversalSelect
             className="w-full rounded-lg border border-border bg-background px-3 py-2"
             value={selectedPlanId}
             onChange={(e) => setSelectedPlanId(e.target.value)}
@@ -200,7 +201,7 @@ function TeacherPlanCheckoutPageContent() {
                 {plan.name} - ${Number(plan.price || 0)} / {plan.durationMonths} {t("common_month", "month")}
               </option>
             ))}
-          </select>
+          </UniversalSelect>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-4">

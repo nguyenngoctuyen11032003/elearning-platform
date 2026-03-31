@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, Save, X, Search, BookOpen, TrendingUp, FolderOpen, 
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { useRouter } from "next/navigation"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Category {
   id: string
@@ -351,7 +352,7 @@ useEffect(() => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_icon_label", "Icon (tuỳ chọn)")}</label>
-                    <select
+                    <UniversalSelect
                       value={newCategory.icon}
                       onChange={(e) => {
                         setImageFile(null) // Reset file khi chọn icon
@@ -367,7 +368,7 @@ useEffect(() => {
                       {iconOptions.map((icon) => (
                         <option key={icon} value={icon}>{icon}</option>
                       ))}
-                    </select>
+                    </UniversalSelect>
                   </div>
                   <div>
                     <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_img_label", "Ảnh danh mục (tuỳ chọn)")}</label>
@@ -475,7 +476,7 @@ useEffect(() => {
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold">{t("adm_cat_icon", "Icon")}</label>
 
-                    <select
+                    <UniversalSelect
                       value={category.icon || ""}
                       onChange={(e) => {
                         setEditImageFile(null) // Reset file ảnh khi chọn icon
@@ -499,7 +500,7 @@ useEffect(() => {
                           {icon}
                         </option>
                       ))}
-                    </select>
+                    </UniversalSelect>
                   </div>
 
                   {/* IMAGE */}

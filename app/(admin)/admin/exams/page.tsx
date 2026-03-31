@@ -21,6 +21,7 @@ import {
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { toast } from "sonner"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Exam {
   id: string
@@ -524,7 +525,7 @@ export default function AdminExamsPage() {
               className="w-full pl-10 pr-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </div>
-          <select
+          <UniversalSelect
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
@@ -534,8 +535,8 @@ export default function AdminExamsPage() {
             <option value="approved">{t("adm_exam_status_approved", "Đã duyệt")}</option>
             <option value="rejected">{t("adm_exam_status_rejected", "Từ chối")}</option>
             <option value="draft">{t("adm_exam_status_draft", "Nháp")}</option>
-          </select>
-          <select
+          </UniversalSelect>
+          <UniversalSelect
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
             className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
@@ -543,7 +544,7 @@ export default function AdminExamsPage() {
             <option value="all">{t("adm_exam_filter_all_type", "Tất cả loại")}</option>
             <option value="practice">{t("adm_exam_type_practice", "Thi thử")}</option>
             <option value="official">{t("adm_exam_type_official", "Thi thật")}</option>
-          </select>
+          </UniversalSelect>
         </div>
 
         {/* Exams Table (Desktop only - xl+) */}

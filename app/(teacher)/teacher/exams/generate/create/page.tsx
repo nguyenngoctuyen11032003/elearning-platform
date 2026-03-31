@@ -7,6 +7,7 @@ import { ArrowLeft, ClipboardList, Wand2, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/authfetch"
 import { ScientificText } from "@/components/scientific-text"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 type Difficulty = "easy" | "medium" | "hard"
 
@@ -667,7 +668,7 @@ function TeacherGenerateExamCreatePageContent() {
                 </div>
                 <div className="relative overflow-visible">
                   <label className="block text-xs text-muted-foreground mb-1">Chọn khóa học</label>
-                  <select
+                  <UniversalSelect
                     value={selectedCourseId}
                     onChange={(e) => {
                       setSelectedCourseId(e.target.value)
@@ -680,11 +681,11 @@ function TeacherGenerateExamCreatePageContent() {
                     {courseOptions.map((course) => (
                       <option key={course.id} value={course.id}>{course.title}</option>
                     ))}
-                  </select>
+                  </UniversalSelect>
                 </div>
                 <div className="relative overflow-visible">
                   <label className="block text-xs text-muted-foreground mb-1">Loại bài thi</label>
-                  <select
+                  <UniversalSelect
                     value={type}
                     onChange={(e) => {
                       const nextType = e.target.value as "practice" | "official"
@@ -698,7 +699,7 @@ function TeacherGenerateExamCreatePageContent() {
                   >
                     <option value="practice">Thi thử</option>
                     <option value="official">Thi thật</option>
-                  </select>
+                  </UniversalSelect>
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Thời gian làm bài (phút)</label>
@@ -761,7 +762,7 @@ function TeacherGenerateExamCreatePageContent() {
               </div>
 
               {type === "official" && (
-                <select
+                <UniversalSelect
                   value={certificateTemplateId}
                   onChange={(e) => setCertificateTemplateId(e.target.value)}
                   className="w-full border rounded-lg px-3 py-2 bg-background"
@@ -773,7 +774,7 @@ function TeacherGenerateExamCreatePageContent() {
                   {availableCertificates.map((cert) => (
                     <option key={cert.id} value={cert.id}>{cert.title}</option>
                   ))}
-                </select>
+                </UniversalSelect>
               )}
             </div>
 

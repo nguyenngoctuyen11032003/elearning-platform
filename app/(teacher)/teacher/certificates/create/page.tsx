@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/auth-context"
 import { authFetch } from "@/lib/authfetch"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { UniversalSelect } from "@/components/ui/universal-select"
 import {
   ArrowLeft,
   Save,
@@ -1348,7 +1349,7 @@ export default function CreateCertificatePage() {
                   <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">
                     {t("tch_cert_label_course", "Khóa học")} <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <UniversalSelect
                     value={formData.courseId}
                     onChange={(e) => {
                       const selectedId = e.target.value
@@ -1367,14 +1368,14 @@ export default function CreateCertificatePage() {
                     ) : (
                       <option disabled>{t("tch_cert_option_no_courses", "Không có khóa học nào")}</option>
                     )}
-                  </select>
+                  </UniversalSelect>
                   {errors.courseId && <p className="text-red-500 text-sm mt-2 flex items-center gap-1"><AlertCircle size={14}/>{errors.courseId}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">{t("tch_cert_label_validity", "Thời hạn hiệu lực")}</label>
-                    <select
+                    <UniversalSelect
                       value={typeof formData.validityPeriod === 'string' && validityOptions.some((option) => option.value === formData.validityPeriod) ? formData.validityPeriod : validityOptions[0]?.value}
                       onChange={(e) => setFormData({ ...formData, validityPeriod: e.target.value })}
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all"
@@ -1382,11 +1383,11 @@ export default function CreateCertificatePage() {
                       {validityOptions.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
-                    </select>
+                    </UniversalSelect>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">{t("tch_cert_label_border_style", "Kiểu viền")}</label>
-                    <select
+                    <UniversalSelect
                       value={formData.borderStyle}
                       onChange={(e) => setFormData({ ...formData, borderStyle: e.target.value })}
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all"
@@ -1394,7 +1395,7 @@ export default function CreateCertificatePage() {
                       {borderStyleOptions.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
-                    </select>
+                    </UniversalSelect>
                   </div>
                 </div>
 

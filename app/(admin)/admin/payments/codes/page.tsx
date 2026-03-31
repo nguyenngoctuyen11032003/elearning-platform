@@ -5,6 +5,7 @@ import Link from "next/link"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface CouponItem {
   id: string
@@ -111,14 +112,14 @@ export default function AdminPaymentCodesPage() {
             className="rounded-lg border bg-background px-3 py-2"
           />
 
-          <select
+          <UniversalSelect
             value={form.type}
             onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value as "fixed" | "percentage" }))}
             className="rounded-lg border bg-background px-3 py-2"
           >
             <option value="fixed">{t("adm_code_fixed_vnd", "Giảm cố định (VND)")}</option>
             <option value="percentage">{t("adm_code_pct", "Giảm theo %")}</option>
-          </select>
+          </UniversalSelect>
 
           <input
             type="number"

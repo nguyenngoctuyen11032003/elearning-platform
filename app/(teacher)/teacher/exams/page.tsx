@@ -29,6 +29,7 @@ import {
 } from "lucide-react"
 import React from "react"
 import { toast } from "sonner"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Exam {
   id: string
@@ -464,7 +465,7 @@ export default function TeacherExamsPage() {
               className="w-full pl-10 pr-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </div>
-          <select
+          <UniversalSelect
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
@@ -474,8 +475,8 @@ export default function TeacherExamsPage() {
             <option value="pending">{t("te_status_pending", "Chờ duyệt")}</option>
             <option value="approved">{t("te_status_approved", "Đã duyệt")}</option>
             <option value="rejected">{t("te_status_rejected", "Từ chối")}</option>
-          </select>
-          <select
+          </UniversalSelect>
+          <UniversalSelect
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
             className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
@@ -483,7 +484,7 @@ export default function TeacherExamsPage() {
             <option value="all">{t("te_all_types", "Tất cả loại")}</option>
             <option value="practice">{t("te_type_practice", "Thi thử")}</option>
             <option value="official">{t("te_type_official", "Thi thật")}</option>
-          </select>
+          </UniversalSelect>
         </div>
 
         {/* Exams List */}

@@ -27,6 +27,7 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { ScientificText } from "@/components/scientific-text"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Lesson {
   id: string
@@ -800,7 +801,7 @@ export default function AdminCourseDetailPage() {
                         <label className="mb-1 block text-sm text-muted-foreground">
                           {t("adm_cd_status", "Trạng thái")}
                         </label>
-                        <select
+                        <UniversalSelect
                           value={editDraft.status}
                           onChange={(e) =>
                             setEditDraft((prev) => ({
@@ -814,7 +815,7 @@ export default function AdminCourseDetailPage() {
                           <option value="approved">{t("adm_cd_approved", "Đã duyệt")}</option>
                           <option value="rejected">{t("adm_cd_rejected", "Từ chối")}</option>
                           <option value="published">{t("adm_cd_published", "Đã xuất bản")}</option>
-                        </select>
+                        </UniversalSelect>
                       </div>
                       {editDraft.status === "rejected" && (
                         <div className="w-full">

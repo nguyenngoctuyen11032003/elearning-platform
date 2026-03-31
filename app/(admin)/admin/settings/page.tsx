@@ -34,6 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { DEFAULT_SYSTEM_SETTINGS } from "../../../../lib/system-config/default-system-settings"
 import type { LanguageCode } from "@/lib/i18n/language-context"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 export default function AdminSettingsPage() {
   const { t, language, setLanguage, supportedLanguages } = useLanguage()
@@ -488,7 +489,7 @@ if (!settings) return null
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
                     <Globe size={16} /> {t("adm_set_language", "Ngôn ngữ")}
                   </label>
-                  <select
+                  <UniversalSelect
                     value={settings.language}
                     onChange={(e) => handleLanguageSelect(e.target.value as LanguageCode)}
                     className="w-full md:w-64 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
@@ -502,7 +503,7 @@ if (!settings) return null
                         </option>
                       )
                     })}
-                  </select>
+                  </UniversalSelect>
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">

@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { scheduleApi } from '@/lib/api/schedule.api'
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface ScheduleItem {
   id: string
@@ -758,7 +759,7 @@ useEffect(() => {
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_type", "Loại")}</label>
-                    <select
+                    <UniversalSelect
                       value={newItem.type}
                       onChange={(e) => setNewItem({ ...newItem, type: e.target.value as any })}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
@@ -766,11 +767,11 @@ useEffect(() => {
                       <option value="lesson">{t("sched_lesson", "Bài học")}</option>
                       <option value="exam">{t("sched_exam", "Bài thi")}</option>
                       <option value="live">{t('sched_live_session', 'Live session')}</option>
-                    </select>
+                    </UniversalSelect>
                   </div>
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_status", "Trạng thái")}</label>
-                    <select
+                    <UniversalSelect
                       value={newItem.status}
                       onChange={(e) => setNewItem({ ...newItem, status: e.target.value as any })}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
@@ -778,7 +779,7 @@ useEffect(() => {
                       <option value="todo">{t("sched_todo", "Chưa làm")}</option>
                       <option value="in-progress">{t("sched_in_progress", "Đang làm")}</option>
                       <option value="completed">{t("sched_completed", "Hoàn thành")}</option>
-                    </select>
+                    </UniversalSelect>
                   </div>
                 </div>
 
@@ -898,7 +899,7 @@ useEffect(() => {
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_type", "Loại")}</label>
-                    <select
+                    <UniversalSelect
                       value={editingItem.type}
                       onChange={(e) => setEditingItem({ ...editingItem, type: e.target.value as any })}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
@@ -906,11 +907,11 @@ useEffect(() => {
                       <option value="lesson">{t("sched_lesson", "Bài học")}</option>
                       <option value="exam">{t("sched_exam", "Bài thi")}</option>
                       <option value="live">{t('sched_live_session', 'Live session')}</option>
-                    </select>
+                    </UniversalSelect>
                   </div>
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_status", "Trạng thái")}</label>
-                    <select
+                    <UniversalSelect
                       value={editingItem.status}
                       onChange={(e) => setEditingItem({ ...editingItem, status: e.target.value as any })}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
@@ -918,7 +919,7 @@ useEffect(() => {
                       <option value="todo">{t("sched_todo", "Chưa làm")}</option>
                       <option value="in-progress">{t("sched_in_progress", "Đang làm")}</option>
                       <option value="completed">{t("sched_completed", "Hoàn thành")}</option>
-                    </select>
+                    </UniversalSelect>
                   </div>
                 </div>
 

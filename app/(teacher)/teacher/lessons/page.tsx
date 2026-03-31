@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Plus, Edit2, Trash2, GripVertical, Eye, EyeOff, Loader2, Video, FileText, BookOpen, ChevronDown, X, Check } from "lucide-react"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Course {
   id: string
@@ -211,14 +212,14 @@ export default function TeacherLessonsPage() {
           <div className="flex items-center gap-2 text-muted-foreground"><Loader2 size={16} className="animate-spin" /> Đang tải...</div>
         ) : (
           <div className="relative">
-            <select
+            <UniversalSelect
               value={selectedCourseId}
               onChange={(e) => setSelectedCourseId(e.target.value)}
               className="w-full px-4 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary appearance-none pr-10"
             >
               <option value="">{t("tch_lsn_select_course_ph", "-- Chọn khóa học --")}</option>
               {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-            </select>
+            </UniversalSelect>
             <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           </div>
         )}

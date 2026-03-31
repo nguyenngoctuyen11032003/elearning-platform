@@ -9,6 +9,7 @@ import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface EnrolledCourse {
   id: string
@@ -274,7 +275,7 @@ export default function MyCoursesPage() {
                 </div>
                 <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg px-3 md:px-4 py-2 text-sm md:text-base">
                   <span className="text-sm font-medium text-foreground dark:text-white">{t("mycourses_sort", "Sắp xếp theo")}</span>
-                  <select
+                  <UniversalSelect
                     value={filter}
                     onChange={(e) => handleFilterChange(e.target.value)}
                     className="bg-transparent border-0 focus:outline-none text-sm font-medium text-muted-foreground dark:text-slate-400"
@@ -283,7 +284,7 @@ export default function MyCoursesPage() {
                     <option value="in-progress">{t("mycourses_in_progress", "Đang học")}</option>
                     <option value="completed">{t("mycourses_completed", "Hoàn thành")}</option>
                     <option value="not-started">{t("mycourses_not_started", "Chưa bắt đầu")}</option>
-                  </select>
+                  </UniversalSelect>
                 </div>
               </div>
 

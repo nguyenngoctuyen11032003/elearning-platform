@@ -5,6 +5,7 @@ import { Star, MessageSquare, ThumbsUp, Search, BookOpen, TrendingUp, Users, X, 
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { autoTranslateData, getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Review {
   id: string
@@ -274,7 +275,7 @@ export default function TeacherReviewsPage() {
               className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
             />
           </div>
-          <select
+          <UniversalSelect
             value={courseFilter}
             onChange={(e) => setCourseFilter(e.target.value)}
             className="px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
@@ -283,8 +284,8 @@ export default function TeacherReviewsPage() {
             {courses.map((course) => (
               <option key={course.id} value={course.id}>{course.name}</option>
             ))}
-          </select>
-          <select
+          </UniversalSelect>
+          <UniversalSelect
             value={ratingFilter}
             onChange={(e) => setRatingFilter(e.target.value)}
             className="px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
@@ -295,7 +296,7 @@ export default function TeacherReviewsPage() {
             <option value="3">3 sao</option>
             <option value="2">2 sao</option>
             <option value="1">1 sao</option>
-          </select>
+          </UniversalSelect>
         </div>
 
         {/* Reviews Table */}

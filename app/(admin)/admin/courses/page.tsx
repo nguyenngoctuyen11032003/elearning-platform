@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Course {
   id: string
@@ -820,7 +821,7 @@ export default function AdminCoursesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_cat_label", "Danh mục")}</label>
-                  <select
+                  <UniversalSelect
                     value={selectedCourse.category}
                     onChange={(e) => setSelectedCourse({ ...selectedCourse, category: e.target.value })}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
@@ -830,7 +831,7 @@ export default function AdminCoursesPage() {
                     <option value="AI & Data">AI & Data</option>
                     <option value="Kinh doanh">{t("adm_courses_cat_business", "Kinh doanh")}</option>
                     <option value="Ngoại ngữ">{t("adm_courses_cat_language", "Ngoại ngữ")}</option>
-                  </select>
+                  </UniversalSelect>
                 </div>
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_price_vnd", "Giá (VND)")}</label>
@@ -844,7 +845,7 @@ export default function AdminCoursesPage() {
               </div>
               <div>
                 <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_status_label", "Trạng thái")}</label>
-                <select
+                <UniversalSelect
                   value={selectedCourse.status}
                   onChange={(e) => setSelectedCourse({ ...selectedCourse, status: e.target.value as Course["status"] })}
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
@@ -852,7 +853,7 @@ export default function AdminCoursesPage() {
                   <option value="pending">{t("adm_courses_pending", "Chờ duyệt")}</option>
                   <option value="published">{t("adm_courses_approved_label", "Đã duyệt")}</option>
                   <option value="rejected">{t("adm_courses_rejected_label", "Từ chối")}</option>
-                </select>
+                </UniversalSelect>
               </div>
 
               <button

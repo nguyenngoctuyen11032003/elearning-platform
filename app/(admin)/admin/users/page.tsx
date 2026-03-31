@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { getApiBaseUrl } from "@/lib/api/config"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
+import { UniversalSelect } from "@/components/ui/universal-select"
 // DropdownFilter: custom dropdown with slide-down effect
 type DropdownOption = { value: string; label: string }
 type DropdownFilterProps = {
@@ -1485,7 +1486,7 @@ const getLastActiveDisplay = (user: UserData): string => {
 
               <div>
                 <label className="block mb-1 font-medium">{t("user_role", "Vai trò")}</label>
-                <select
+                <UniversalSelect
                   name="role"
                   defaultValue={editUser.role}
                   className="w-full rounded-lg border px-3 py-2 bg-background"
@@ -1493,12 +1494,12 @@ const getLastActiveDisplay = (user: UserData): string => {
                   <option value="student">{t("user_students", "Học viên")}</option>
                   <option value="teacher">{t("user_instructors", "Giảng viên")}</option>
                   <option value="admin">{t("user_admins", "Quản trị viên")}</option>
-                </select>
+                </UniversalSelect>
               </div>
 
               <div>
                 <label className="block mb-1 font-medium">{t("pay_status", "Trạng thái")}</label>
-                <select
+                <UniversalSelect
                   name="status"
                   defaultValue={editUser.status}
                   className="w-full rounded-lg border px-3 py-2 bg-background"
@@ -1506,7 +1507,7 @@ const getLastActiveDisplay = (user: UserData): string => {
                   <option value="active">{t("user_active", "Hoạt động")}</option>
                   <option value="inactive">{t("user_disabled", "Vô hiệu hóa")}</option>
                   <option value="pending">{t("user_pending", "Chờ xác thực")}</option>
-                </select>
+                </UniversalSelect>
               </div>
 
               <div className="flex gap-3 pt-3">

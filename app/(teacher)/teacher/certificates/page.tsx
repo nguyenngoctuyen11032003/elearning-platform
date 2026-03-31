@@ -28,6 +28,7 @@ import {
   TrendingUp
 } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface CertificateTemplate {
   id: string
@@ -418,7 +419,7 @@ export default function TeacherCertificatesPage() {
               className="w-full pl-10 pr-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </div>
-          <select
+          <UniversalSelect
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
@@ -428,7 +429,7 @@ export default function TeacherCertificatesPage() {
             <option value="pending">{t("status_pending", "Chờ duyệt")}</option>
             <option value="approved">{t("status_approved", "Đã duyệt")}</option>
             <option value="rejected">{t("status_rejected", "Từ chối")}</option>
-          </select>
+          </UniversalSelect>
         </div>
 
         {/* Templates Grid */}
@@ -606,7 +607,7 @@ export default function TeacherCertificatesPage() {
                 <div className="text-sm text-muted-foreground">
                   {t("teacher_cert_assign_only_official", "Chỉ hiển thị các bài thi thật (official).")}
                 </div>
-                <select
+                <UniversalSelect
                   value={selectedExamId}
                   onChange={(e) => setSelectedExamId(e.target.value)}
                   className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
@@ -618,7 +619,7 @@ export default function TeacherCertificatesPage() {
                       {exam.title}{exam.course?.title ? ` - ${exam.course.title}` : ""}
                     </option>
                   ))}
-                </select>
+                </UniversalSelect>
                 {!isLoadingExams && officialExams.length === 0 && (
                   <p className="text-sm text-muted-foreground">
                     {t("teacher_cert_no_official_exams", "Chưa có bài thi thật nào để gán chứng chỉ.")}

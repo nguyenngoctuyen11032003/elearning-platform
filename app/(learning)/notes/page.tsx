@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/lib/auth/auth-context"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { getApiBaseUrl } from "@/lib/api/config"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Note {
   id: string
@@ -964,7 +965,7 @@ useEffect(() => {
                                   }}
                                   className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary text-sm"
                                 />
-                                <select
+                                <UniversalSelect
                                   value={item.priority}
                                   onChange={(e) => {
                                     const updated = [...newNote.items!]
@@ -976,7 +977,7 @@ useEffect(() => {
                                   <option value="low">{t("notes_priority_low", "Thấp")}</option>
                                   <option value="medium">{t("notes_priority_medium", "Bình thường")}</option>
                                   <option value="high">{t("notes_priority_high", "Cao")}</option>
-                                </select>
+                                </UniversalSelect>
                                 <button
                                   onClick={() => {
                                     const updated = newNote.items!.filter((_, i) => i !== idx)
@@ -1250,7 +1251,7 @@ useEffect(() => {
                                   }}
                                   className="flex-1 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-1.5 border border-border dark:border-slate-800 focus:outline-none focus:border-primary text-sm"
                                 />
-                                <select
+                                <UniversalSelect
                                   value={item.priority}
                                   onChange={(e) => {
                                     const updated = [...editingNote.items!]
@@ -1262,7 +1263,7 @@ useEffect(() => {
                                   <option value="low">{t("notes_priority_low", "Thấp")}</option>
                                   <option value="medium">{t("notes_priority_medium", "Bình thường")}</option>
                                   <option value="high">{t("notes_priority_high", "Cao")}</option>
-                                </select>
+                                </UniversalSelect>
                                 <button
                                   onClick={() => {
                                     const updated = editingNote.items!.filter((_, i) => i !== idx)

@@ -22,6 +22,7 @@ import { AnimatedNumber } from "@/components/ui/rolling-number"
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
 import { PageHero } from "@/components/ui/page-hero"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 export default function ProgressPage() {
   const { t } = useLanguage()
@@ -199,11 +200,11 @@ export default function ProgressPage() {
         >
           <div className="flex items-center justify-between mb-10">
             <h2 className="text-xl font-bold text-foreground dark:text-white">{t("prog_weekly_activity", "Hoạt động trong tuần")}</h2>
-            <select className="bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm">
+            <UniversalSelect className="bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm">
               <option>{t("prog_this_week", "Tuần này")}</option>
               <option>{t("prog_last_week", "Tuần trước")}</option>
               <option>{t("prog_this_month", "Tháng này")}</option>
-            </select>
+            </UniversalSelect>
           </div>
           
           <div className="h-[320px]">

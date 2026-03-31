@@ -27,6 +27,7 @@ import { TeacherExamsNavbar } from "@/components/teacher-exams-navbar"
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { ScientificText } from "@/components/scientific-text"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 // Generate unique ID
 const generateId = () => {
@@ -847,7 +848,7 @@ export default function EditExamPage() {
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
                   Khóa học <span className="text-red-500">*</span>
                 </label>
-                <select
+                <UniversalSelect
                   value={formData.courseId}
                   onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
                   className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
@@ -858,7 +859,7 @@ export default function EditExamPage() {
                   {courses.map(course => (
                     <option key={course.id} value={course.id}>{course.title}</option>
                   ))}
-                </select>
+                </UniversalSelect>
                 {errors.courseId && <p className="text-red-500 text-sm mt-1">{errors.courseId}</p>}
               </div>
             </div>

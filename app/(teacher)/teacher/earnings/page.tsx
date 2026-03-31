@@ -10,6 +10,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { formatCurrencyByLanguage, formatNumber } from "@/lib/format"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Payment {
   id: string
@@ -724,7 +725,7 @@ export default function TeacherEarningsPage() {
                     <label className="text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
                       <BookOpen size={16} /> {t("teacher_dashboard_courses", "Khóa học")}
                     </label>
-                    <select
+                    <UniversalSelect
                       value={exportCourse}
                       onChange={(e) => setExportCourse(e.target.value)}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
@@ -733,7 +734,7 @@ export default function TeacherEarningsPage() {
                       {uniqueCourses.map((course) => (
                         <option key={course} value={course}>{course}</option>
                       ))}
-                    </select>
+                    </UniversalSelect>
                   </div>
 
                   {/* Student Filter */}
@@ -741,7 +742,7 @@ export default function TeacherEarningsPage() {
                     <label className="text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
                       <Users size={16} /> {t("teacher_dashboard_students", "Học viên")}
                     </label>
-                    <select
+                    <UniversalSelect
                       value={exportStudent}
                       onChange={(e) => setExportStudent(e.target.value)}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
@@ -750,7 +751,7 @@ export default function TeacherEarningsPage() {
                       {uniqueStudents.map((student) => (
                         <option key={student} value={student}>{student}</option>
                       ))}
-                    </select>
+                    </UniversalSelect>
                   </div>
 
                   {/* Date Range */}

@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import * as XLSX from "xlsx"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Section {
   id: string
@@ -1983,7 +1984,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{tr("Danh mục", "Category")}</label>
-                <select
+                <UniversalSelect
                   value={course.categoryId}
                   onChange={(e) => setCourse({ ...course, categoryId: e.target.value })}
                   className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
@@ -1992,7 +1993,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
-                </select>
+                </UniversalSelect>
               </div>
             </div>
 
@@ -2752,7 +2753,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                     </button>
                                   </div>
                                   <div className="mb-1.5 flex flex-wrap items-center gap-1">
-                                    <select
+                                    <UniversalSelect
                                       value={quiz.type}
                                       onChange={(e) => updateQuiz(lesson.id, quiz.id, { type: e.target.value as Quiz["type"] })}
                                       className="flex-1 min-w-[90px] px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
@@ -2760,9 +2761,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                       <option value="multiple-choice">{tr("1 đáp án", "Single answer")}</option>
                                       <option value="multiple-select">{tr("Nhiều đáp án", "Multiple answers")}</option>
                                       <option value="true-false">{tr("Đúng/Sai", "True/False")}</option>
-                                    </select>
+                                    </UniversalSelect>
                                     {quiz.type !== "true-false" && (
-                                      <select
+                                      <UniversalSelect
                                         value={quiz.options.length}
                                         onChange={(e) => {
                                           const count = Number(e.target.value)
@@ -2782,7 +2783,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                         {[2, 3, 4, 5, 6].map((count) => (
                                           <option key={count} value={count}>{language === "en" ? `${count} options` : `${count} đáp án`}</option>
                                         ))}
-                                      </select>
+                                      </UniversalSelect>
                                     )}
                                   </div>
                                   <div className="space-y-0.5">
@@ -3391,7 +3392,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                               </button>
                             </div>
                             <div className="mb-1 flex flex-col sm:flex-row sm:items-center gap-0.5">
-                              <select
+                              <UniversalSelect
                                 value={quiz.type}
                                 onChange={(e) => updateNewLessonQuiz(quiz.id, { type: e.target.value as Quiz["type"] })}
                                 className="w-full sm:flex-1 sm:min-w-[60px] px-1 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
@@ -3399,9 +3400,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                 <option value="multiple-choice">1 đáp án</option>
                                 <option value="multiple-select">Nhiều đáp án</option>
                                 <option value="true-false">Đúng/Sai</option>
-                              </select>
+                              </UniversalSelect>
                               {quiz.type !== "true-false" && (
-                                <select
+                                <UniversalSelect
                                   value={quiz.options.length}
                                   onChange={(e) => {
                                     const count = Number(e.target.value)
@@ -3421,7 +3422,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                   {[2, 3, 4, 5, 6].map((count) => (
                                     <option key={count} value={count}>{count} đáp án</option>
                                   ))}
-                                </select>
+                                </UniversalSelect>
                               )}
                             </div>
                             <div className="space-y-0.5">

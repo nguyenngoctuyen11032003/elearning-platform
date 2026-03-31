@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import * as XLSX from "xlsx"
 import { toast } from "sonner"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
@@ -410,7 +411,7 @@ export default function TeacherStudentsPage() {
               className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
             />
           </div>
-          <select
+          <UniversalSelect
             value={filterCourse}
             onChange={(e) => setFilterCourse(e.target.value)}
             className="px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
@@ -421,8 +422,8 @@ export default function TeacherStudentsPage() {
                 {course.title}
               </option>
             ))}
-          </select>
-          <select
+          </UniversalSelect>
+          <UniversalSelect
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
@@ -431,7 +432,7 @@ export default function TeacherStudentsPage() {
             <option value="active">{t("teacher_dashboard_learning", "Đang học")}</option>
             <option value="completed">{t("teacher_dashboard_completed", "Hoàn thành")}</option>
             <option value="inactive">{t("teacher_students_inactive", "Không hoạt động")}</option>
-          </select>
+          </UniversalSelect>
         </div>
 
         {/* Mobile & Tablet: Cards */}

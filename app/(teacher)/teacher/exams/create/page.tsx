@@ -27,6 +27,7 @@ import { parseExamQuestionsFileWithReport, type ExamImportReport } from "@/lib/u
 import { TeacherExamsNavbar } from "@/components/teacher-exams-navbar"
 import { ScientificText } from "@/components/scientific-text"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 // Generate unique ID without uuid dependency
 const generateId = () => {
@@ -732,7 +733,7 @@ export default function CreateExamPage() {
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
                   {t("exam_course", "Khóa học")} <span className="text-red-500">*</span>
                 </label>
-                <select
+                <UniversalSelect
                   value={formData.courseId}
                   onChange={(e) => setFormData({ ...formData, courseId: e.target.value, certificateTemplateId: "" })}
                   className={`relative z-30 w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
@@ -744,7 +745,7 @@ export default function CreateExamPage() {
                   {courses.map(course => (
                     <option key={course.id} value={course.id}>{course.title}</option>
                   ))}
-                </select>
+                </UniversalSelect>
                 {errors.courseId && <p className="text-red-500 text-sm mt-1">{errors.courseId}</p>}
               </div>
             </div>
@@ -800,7 +801,7 @@ export default function CreateExamPage() {
                     <Plus size={16} />
                     {t("exam_fill_in", "Điền khuyết")}
                   </button>
-                  <select
+                  <UniversalSelect
                     value={selectedTypeFilter}
                     onChange={(e) => setSelectedTypeFilter(e.target.value)}
                     className="px-3 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg text-sm"
@@ -810,7 +811,7 @@ export default function CreateExamPage() {
                     {typeFilterOptions.map((label) => (
                       <option key={label} value={label}>{label}</option>
                     ))}
-                  </select>
+                  </UniversalSelect>
                 </div>
               </div>
 

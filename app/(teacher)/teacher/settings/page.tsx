@@ -7,6 +7,7 @@ import { apiClient } from "@/lib/api/client"
 import { useRouter } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
+import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface PlanItem {
   id: string
@@ -207,14 +208,14 @@ export default function TeacherSettingsPage() {
                 <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("teacher_settings_language_desc", "Chọn ngôn ngữ hiển thị")}</p>
               </div>
             </div>
-            <select
+            <UniversalSelect
               value={selectedLanguage}
               onChange={(e) => handleLanguageChange(e.target.value)}
               className="bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="vi">{t("teacher_settings_lang_vi", "Tiếng Việt")}</option>
               <option value="en">{t("teacher_settings_lang_en", "English")}</option>
-            </select>
+            </UniversalSelect>
           </div>
         </div>
 
