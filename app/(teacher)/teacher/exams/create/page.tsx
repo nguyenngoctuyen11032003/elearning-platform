@@ -60,6 +60,12 @@ interface CertificateTemplate {
   status?: string
 }
 
+interface ModalAnchor {
+  top: number
+  left: number
+  width: number
+}
+
 const OPTION_IMAGE_TOKEN_REGEX = /^\[\[IMG:(data:image\/[^\]]+)\]\]\s*([\s\S]*)$/
 
 const parseOptionPayload = (raw: string): { text: string; image?: string } => {
@@ -163,6 +169,7 @@ export default function CreateExamPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
+  const [importModalAnchor, setImportModalAnchor] = useState<ModalAnchor | null>(null)
   const [courses, setCourses] = useState<Course[]>([])
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
@@ -448,6 +455,15 @@ export default function CreateExamPage() {
 
   const handleBack = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1))
+  }
+
+  const getAnchorFromElement = (el: HTMLElement): ModalAnchor => {
+    const rect = el.getBoundingClientRect()
+    return {
+      top: rect.bottom + 8,
+      left: rect.left,
+      width: rect.width,
+    }
   }
 
   const addQuestion = (type: "multiple_choice" | "true_false" | "fill_in") => {
@@ -754,7 +770,10 @@ export default function CreateExamPage() {
                 <div className="flex gap-2 flex-wrap">
                   {/* Import Button */}
                   <button
-                    onClick={() => setShowImportModal(true)}
+                    onClick={(e) => {
+                      setImportModalAnchor(getAnchorFromElement(e.currentTarget))
+                      setShowImportModal(true)
+                    }}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
                   >
                     <Upload size={16} />
@@ -1321,7 +1340,11 @@ export default function CreateExamPage() {
       {/* Import Modal */}
       {showImportModal && (
         <ImportQuestionsModal
-          onClose={() => setShowImportModal(false)}
+          anchor={importModalAnchor}
+          onClose={() => {
+            setShowImportModal(false)
+            setImportModalAnchor(null)
+          }}
           onImport={handleImportQuestions}
         />
       )}
@@ -1331,9 +1354,11 @@ export default function CreateExamPage() {
 
 // Import Questions Modal Component
 function ImportQuestionsModal({
+  anchor,
   onClose,
   onImport
 }: {
+  anchor: ModalAnchor | null
   onClose: () => void
   onImport: (questions: Question[]) => void
 }) {
@@ -1531,11 +1556,22 @@ function ImportQuestionsModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [importType])
 
+  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1280
+  const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 900
+  const panelWidth = Math.min(768, Math.max(360, viewportWidth - 32))
+  const estimatedPanelHeight = 760
+  const maxTop = Math.max(16, viewportHeight - estimatedPanelHeight - 16)
+  const anchoredLeft = anchor
+    ? Math.min(Math.max(anchor.left, 16), Math.max(16, viewportWidth - panelWidth - 16))
+    : Math.max(16, (viewportWidth - panelWidth) / 2)
+  const anchoredTop = Math.min(Math.max(16, anchor ? anchor.top : 80), maxTop)
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 z-[90] bg-black/50">
       {showAssetIssuesModal && assetIssues.length > 0 && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/50">
+          <div className="min-h-full flex items-center justify-center p-4">
+            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-foreground dark:text-white">{t("exam_asset_issues_title", "Câu cần bổ sung ảnh/tài liệu")}</h3>
@@ -1585,10 +1621,12 @@ function ImportQuestionsModal({
                 {t("exam_understood", "Đã hiểu")}
               </button>
             </div>
+            </div>
           </div>
         </div>
       )}
-      <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="absolute" style={{ top: `${anchoredTop}px`, left: `${anchoredLeft}px`, width: `${panelWidth}px`, maxHeight: "calc(100vh - 32px)", zIndex: 91 }}>
+        <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full overflow-hidden shadow-2xl">
         <div className="p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-foreground dark:text-white">{t("exam_import_title", "Nhập đề thi từ file")}</h2>
@@ -1745,6 +1783,7 @@ function ImportQuestionsModal({
             <CheckCircle size={18} />
             {t("exam_import_btn", "Nhập")} {previewQuestions.length} {t("exam_questions_count", "câu hỏi")}
           </button>
+        </div>
         </div>
       </div>
     </div>

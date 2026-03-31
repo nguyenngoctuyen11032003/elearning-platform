@@ -110,6 +110,12 @@ interface CertificateTemplate {
   status?: string
 }
 
+interface ModalAnchor {
+  top: number
+  left: number
+  width: number
+}
+
 const IMAGE_MARKER_REGEX = /\[\[IMAGE:img_\d+\]\]|\[image\]|\(image\)/i
 const MATH_TOKEN_REGEX = /(\d\s*[x×*]\s*10\^?-?\d+|10\^?-?\d+|[=+\-×÷*/^√∑∫π]|\bfrac\b|\blog\b|\bsin\b|\bcos\b|\btan\b)/i
 const FORMULA_PROMPT_REGEX = /(without using a calculator|solve|calculate|compute|evaluate|find|tính|giải|rút gọn|chứng minh)/i
@@ -144,7 +150,9 @@ export default function EditExamPage() {
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showActionModal, setShowActionModal] = useState(false)
-  const [pendingAction, setPendingAction] = useState<{ type: "import" | "multiple_choice" | "true_false" | "fill_in" } | null>(null)
+  const [pendingAction, setPendingAction] = useState<{ type: "import" | "multiple_choice" | "true_false" | "fill_in"; anchor: ModalAnchor | null } | null>(null)
+  const [actionModalAnchor, setActionModalAnchor] = useState<ModalAnchor | null>(null)
+  const [importModalAnchor, setImportModalAnchor] = useState<ModalAnchor | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [courses, setCourses] = useState<Course[]>([])
 
@@ -292,22 +300,66 @@ export default function EditExamPage() {
       if (effectiveOptions.length < 2 && effectiveQuestion.includes("\n")) {
         const lines = effectiveQuestion.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
         if (lines.length >= 3) {
-          const stem = lines[0]
-          const guessedOptions = lines
-            .slice(1)
-            .map((line) => normalizeOptionText(line.replace(/^[A-F][\.)]\s*/i, "")))
-            .filter(Boolean)
+          const extractLabeledOption = (line: string): { labelIndex: number; text: string } | null => {
+            const match = line.match(/^\s*([A-F])(?:\s*[\.)．。:\-,]\s*|\s+)([\s\S]+)$/i)
+            if (!match) return null
+            const text = normalizeOptionText(match[2])
+            if (!text) return null
+            return {
+              labelIndex: match[1].toUpperCase().charCodeAt(0) - 65,
+              text,
+            }
+          }
 
-          if (guessedOptions.length >= 2) {
-            effectiveQuestion = stem
-            effectiveOptions = guessedOptions
+          const firstOptionIndex = lines.findIndex((line) => Boolean(extractLabeledOption(line)))
+          if (firstOptionIndex > 0) {
+            const optionLines = lines.slice(firstOptionIndex)
+            const parsedOptions = optionLines
+              .map((line) => extractLabeledOption(line))
+              .filter((item): item is { labelIndex: number; text: string } => Boolean(item))
+
+            const labels = parsedOptions.map((item) => item.labelIndex)
+            const hasConsecutiveLabels =
+              labels.length >= 2 &&
+              labels[0] === 0 &&
+              labels.every((label, idx) => idx === 0 || label === labels[idx - 1] + 1)
+
+            if (hasConsecutiveLabels && parsedOptions.length === optionLines.length) {
+              effectiveQuestion = lines.slice(0, firstOptionIndex).join("\n").trim()
+              effectiveOptions = parsedOptions.map((item) => item.text)
+            }
           }
         }
       }
 
       const normalizedType = effectiveOptions.length >= 2 ? normalizeQuestionType(q?.type || q?.questionType) : "fill_in"
+      let repairedQuestionText = effectiveQuestion
+      let repairedOptions = effectiveOptions
+
+      if (normalizedType === "multiple_choice" && repairedOptions.length > 4) {
+        const isCodeLikeLine = (value: string): boolean => {
+          const text = String(value || "").trim()
+          if (!text) return false
+          if (/^<\/?[a-z][^>]*>?$/i.test(text) || /<\/?\w+[^>]*>?/i.test(text)) return true
+          if (/\b(?:runat|displaymode|showsummary|headertext|validationsummary|asp:)\b/i.test(text)) return true
+          if (/\w+\s*=\s*['"][^'"]+['"]/.test(text)) return true
+          return false
+        }
+
+        let misplacedLeadingCount = 0
+        while (repairedOptions.length - misplacedLeadingCount > 4 && isCodeLikeLine(repairedOptions[misplacedLeadingCount] || "")) {
+          misplacedLeadingCount += 1
+        }
+
+        if (misplacedLeadingCount > 0) {
+          const movedBack = repairedOptions.slice(0, misplacedLeadingCount).map((line: string) => normalizeOptionText(line)).filter(Boolean)
+          repairedQuestionText = [repairedQuestionText, ...movedBack].filter(Boolean).join("\n").trim()
+          repairedOptions = repairedOptions.slice(misplacedLeadingCount)
+        }
+      }
+
       const finalOptions = normalizedType === "multiple_choice"
-        ? ensureFourOptions(effectiveOptions)
+        ? ensureFourOptions(repairedOptions)
         : normalizedType === "true_false"
         ? ["Đúng", "Sai"]
         : []
@@ -316,7 +368,7 @@ export default function EditExamPage() {
       return {
         id: toText(q?.id) || `${Date.now()}-${index}`,
         type: normalizedType,
-        question: effectiveQuestion,
+        question: repairedQuestionText,
         image: toText(q?.image || q?.imageUrl || q?.imageURL || q?.img) || undefined,
         chapter: toText(q?.chapter) || undefined,
         difficulty: ["easy", "medium", "hard"].includes(toText(q?.difficulty).toLowerCase())
@@ -486,12 +538,24 @@ export default function EditExamPage() {
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
-  const handleQuestionAction = (type: "import" | "multiple_choice" | "true_false" | "fill_in") => {
+  const getAnchorFromElement = (el: HTMLElement): ModalAnchor => {
+    const rect = el.getBoundingClientRect()
+    return {
+      top: rect.bottom + 8,
+      left: rect.left,
+      width: rect.width,
+    }
+  }
+
+  const handleQuestionAction = (type: "import" | "multiple_choice" | "true_false" | "fill_in", triggerEl?: HTMLElement | null) => {
+    const anchor = triggerEl ? getAnchorFromElement(triggerEl) : null
     if (questions.length > 0) {
-      setPendingAction({ type })
+      setPendingAction({ type, anchor })
+      setActionModalAnchor(anchor)
       setShowActionModal(true)
     } else {
       if (type === "import") {
+        setImportModalAnchor(anchor)
         setShowImportModal(true)
       } else {
         addQuestion(type)
@@ -505,6 +569,7 @@ export default function EditExamPage() {
 
     if (pendingAction.type === "import") {
       if (choice === "new") setQuestions([])
+      setImportModalAnchor(pendingAction.anchor ?? actionModalAnchor)
       setShowImportModal(true)
     } else {
       const type = pendingAction.type
@@ -526,6 +591,7 @@ export default function EditExamPage() {
         addQuestion(type)
       }
     }
+    setActionModalAnchor(null)
     setPendingAction(null)
   }
 
@@ -813,28 +879,28 @@ export default function EditExamPage() {
                 <div className="flex flex-wrap gap-2">
                   {/* Import Button */}
                   <button
-                    onClick={() => handleQuestionAction("import")}
+                    onClick={(e) => handleQuestionAction("import", e.currentTarget)}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
                   >
                     <Upload size={16} />
                     Nhập đề thi
                   </button>
                   <button
-                    onClick={() => handleQuestionAction("multiple_choice")}
+                    onClick={(e) => handleQuestionAction("multiple_choice", e.currentTarget)}
                     className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
                   >
                     <Plus size={16} />
                     Trắc nghiệm
                   </button>
                   <button
-                    onClick={() => handleQuestionAction("true_false")}
+                    onClick={(e) => handleQuestionAction("true_false", e.currentTarget)}
                     className="px-4 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg font-medium hover:bg-secondary/80 transition-colors flex items-center gap-2"
                   >
                     <Plus size={16} />
                     Đúng/Sai
                   </button>
                   <button
-                    onClick={() => handleQuestionAction("fill_in")}
+                    onClick={(e) => handleQuestionAction("fill_in", e.currentTarget)}
                     className="px-4 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg font-medium hover:bg-secondary/80 transition-colors flex items-center gap-2"
                   >
                     <Plus size={16} />
@@ -1259,8 +1325,28 @@ export default function EditExamPage() {
 
       {/* Action Confirmation Modal */}
       {showActionModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-6">
+        <div className="fixed inset-0 bg-black/50 z-[90]">
+          <div
+            className="absolute"
+            style={(() => {
+              const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1280
+              const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 900
+              const panelWidth = Math.min(460, Math.max(320, viewportWidth - 32))
+              const estimatedPanelHeight = 420
+              const maxTop = Math.max(16, viewportHeight - estimatedPanelHeight - 16)
+              const left = actionModalAnchor
+                ? Math.min(Math.max(actionModalAnchor.left, 16), Math.max(16, viewportWidth - panelWidth - 16))
+                : Math.max(16, (viewportWidth - panelWidth) / 2)
+              const top = Math.min(Math.max(16, actionModalAnchor ? actionModalAnchor.top : 80), maxTop)
+              return {
+                top: `${top}px`,
+                left: `${left}px`,
+                width: `${panelWidth}px`,
+                zIndex: 91,
+              }
+            })()}
+          >
+            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full p-6 space-y-6 shadow-2xl">
             <div className="text-center">
               <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertCircle size={28} className="text-primary" />
@@ -1286,7 +1372,11 @@ export default function EditExamPage() {
                 Thêm câu hỏi vào bài thi
               </button>
               <button
-                onClick={() => { setShowActionModal(false); setPendingAction(null) }}
+                onClick={() => {
+                  setShowActionModal(false)
+                  setPendingAction(null)
+                  setActionModalAnchor(null)
+                }}
                 className="w-full px-4 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
               >
                 Hủy
@@ -1294,12 +1384,17 @@ export default function EditExamPage() {
             </div>
           </div>
         </div>
+        </div>
       )}
 
       {/* Import Modal */}
       {showImportModal && (
         <ImportQuestionsModal
-          onClose={() => setShowImportModal(false)}
+          anchor={importModalAnchor}
+          onClose={() => {
+            setShowImportModal(false)
+            setImportModalAnchor(null)
+          }}
           onImport={handleImportQuestions}
           hasExistingQuestions={questions.length > 0}
           currentTypeLabel={currentTypeLabel}
@@ -1311,11 +1406,13 @@ export default function EditExamPage() {
 
 // Import Questions Modal Component
 function ImportQuestionsModal({
+  anchor,
   onClose,
   onImport,
   hasExistingQuestions,
   currentTypeLabel,
 }: {
+  anchor: ModalAnchor | null
   onClose: () => void
   onImport: (questions: Question[], mode: "append" | "replace") => void
   hasExistingQuestions: boolean
@@ -1514,11 +1611,22 @@ function ImportQuestionsModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [importType])
 
+  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1280
+  const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 900
+  const panelWidth = Math.min(768, Math.max(360, viewportWidth - 32))
+  const estimatedPanelHeight = 760
+  const maxTop = Math.max(16, viewportHeight - estimatedPanelHeight - 16)
+  const anchoredLeft = anchor
+    ? Math.min(Math.max(anchor.left, 16), Math.max(16, viewportWidth - panelWidth - 16))
+    : Math.max(16, (viewportWidth - panelWidth) / 2)
+  const anchoredTop = Math.min(Math.max(16, anchor ? anchor.top : 80), maxTop)
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 z-[90] bg-black/50">
       {showAssetIssuesModal && assetIssues.length > 0 && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/50">
+          <div className="min-h-full flex items-center justify-center p-4">
+            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-foreground dark:text-white">Câu cần bổ sung ảnh/tài liệu</h3>
@@ -1568,10 +1676,12 @@ function ImportQuestionsModal({
                 Đã hiểu
               </button>
             </div>
+            </div>
           </div>
         </div>
       )}
-      <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="absolute" style={{ top: `${anchoredTop}px`, left: `${anchoredLeft}px`, width: `${panelWidth}px`, maxHeight: "calc(100vh - 32px)", zIndex: 91 }}>
+        <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full overflow-hidden shadow-2xl">
         <div className="p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-foreground dark:text-white">Nhập đề thi từ file</h2>
@@ -1774,6 +1884,7 @@ function ImportQuestionsModal({
             <CheckCircle size={18} />
             Thêm {previewQuestions.length} câu hỏi
           </button>
+        </div>
         </div>
       </div>
     </div>
