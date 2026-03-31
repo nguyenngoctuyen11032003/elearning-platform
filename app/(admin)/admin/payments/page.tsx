@@ -303,116 +303,111 @@ export default function AdminPaymentsPage() {
   }
 
   return (
-    <div className="min-h-screen w-full">
+    <div className="min-h-screen w-full bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <div className="w-full space-y-8">
         {/* Hero Section with Background */}
         <div
-          className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn"
-          style={{ backgroundImage: "url('/image/bg_payment1.png')", backgroundSize: "cover", backgroundPosition: "center" }}
+          className="relative overflow-hidden rounded-3xl p-8 lg:p-10 animate-fadeIn border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl"
+          style={{ backgroundImage: "url('/image/bg_login.png')", backgroundSize: "cover", backgroundPosition: "center" }}
         >
-          {/* Overlay for better readability */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-900/80" />
 
-          <div className="relative z-10 space-y-8">
-            <div
-              className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown"
-              style={{ animationDelay: "0.15s" }}
-            >
-              <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("pay_manage_title", "Quản lý thanh toán")}</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("pay_manage_desc", "Theo dõi và quản lý các giao dịch thanh toán")}</p>
+          <div className="relative z-10 space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+              <div className="space-y-3 animate-slideDown" style={{ animationDelay: "0.1s" }}>
+                <div className="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold uppercase tracking-wide rounded-full bg-white/80 text-primary shadow-sm backdrop-blur">
+                  {t("pay_label", "Thanh toán")}
+                </div>
+                <div className="space-y-2">
+                  <h1 className="text-3xl lg:text-4xl font-bold text-white drop-shadow-lg">{t("pay_manage_title", "Quản lý thanh toán")}</h1>
+                  <p className="text-base text-white/85 max-w-2xl drop-shadow">{t("pay_manage_desc", "Theo dõi và quản lý các giao dịch thanh toán")}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="px-3 py-1 rounded-full bg-white/90 text-primary text-sm font-semibold shadow-sm backdrop-blur">
+                    {t("pay_total_transactions", "Tổng giao dịch")}: <AnimatedNumber value={totalTransactions} formatter={formatNumber} />
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-black/15 text-white text-sm font-medium backdrop-blur">
+                    {t("pay_live_badge", "Cập nhật tức thời")}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  href="/admin/payments/codes"
-                  className="flex items-center gap-2 px-4 py-3 bg-white text-primary rounded-lg font-medium transition-all duration-300 hover:shadow-lg"
-                >
-                  {t("pay_codes", "Mã thanh toán")}
-                </Link>
-                <button
-                  ref={exportButtonRef}
-                  onClick={() => setIsExportOpen(true)}
-                  className="flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-lg font-medium transition-all duration-300 hover:shadow-lg w-fit backdrop-blur-sm"
-                >
-                  <Download size={20} /> {t("pay_export", "Xuất báo cáo")}
-                </button>
+
+              <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center gap-3 animate-slideDown" style={{ animationDelay: "0.2s" }}>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href="/admin/payments/codes"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 text-primary font-semibold shadow-lg hover:shadow-xl transition-smooth backdrop-blur"
+                  >
+                    {t("pay_codes", "Mã thanh toán")}
+                  </Link>
+                  <button
+                    ref={exportButtonRef}
+                    onClick={() => setIsExportOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 text-primary font-semibold shadow-lg hover:shadow-xl transition-smooth backdrop-blur"
+                  >
+                    <Download size={16} /> {t("pay_export", "Xuất báo cáo")}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 rounded-full bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-200 text-xs font-semibold">
+                    {t("pay_success_count", "Giao dịch thành công")}: <AnimatedNumber value={successCount} formatter={formatNumber} />
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200 text-xs font-semibold">
+                    {t("pay_pending_total", "Đang chờ xử lý")}: <AnimatedNumber value={stats.pendingTransactions} formatter={formatNumber} />
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 text-xs font-semibold">
+                    {t("pay_failed", "Thất bại")}: <AnimatedNumber value={stats.failedTransactions} formatter={formatNumber} />
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {/* Stats Cards - Fixed height, centered content */}
-              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <div className="bg-white/80 dark:bg-slate-900/80 border border-white/20 rounded-2xl p-4 sm:p-6 shadow-lg flex items-center justify-between h-36">
-                  <div className="min-w-0">
-                    <p className="text-sm text-muted-foreground">
-                      {t("pay_total_revenue", "Tổng doanh thu")}
-                    </p>
-                    <p className="text-lg sm:text-xl font-bold text-green-600 whitespace-nowrap">
-                      <AnimatedNumber value={totalRevenue} formatter={formatNumber} prefix="₫" />
-                    </p>
+            <div className="rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/20 dark:bg-white/5 backdrop-blur-xl p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.16)] space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[ 
+                  { label: t("pay_total_revenue", "Tổng doanh thu"), value: totalRevenue, formatter: (val: number) => formatCurrencyByLanguage(val, language), tone: "from-green-200/40 to-emerald-100/30", icon: DollarSign },
+                  { label: t("pay_pending_total", "Đang chờ xử lý"), value: pendingAmount, formatter: (val: number) => formatCurrencyByLanguage(val, language), tone: "from-amber-200/45 to-yellow-100/35", icon: Clock },
+                  { label: t("pay_success_count", "Giao dịch thành công"), value: successCount, formatter: formatNumber, tone: "from-blue-200/45 to-indigo-100/35", icon: TrendingUp },
+                  { label: t("pay_total_transactions", "Tổng giao dịch"), value: totalTransactions, formatter: formatNumber, tone: "from-purple-200/40 to-pink-100/35", icon: CreditCard },
+                ].map(({ label, value, formatter, tone, icon: Icon }, idx) => (
+                  <div key={label} className="group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-white/60 dark:border-slate-800 p-4 shadow-[0_10px_26px_rgba(15,23,42,0.16)]">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${tone} opacity-70 group-hover:opacity-90 transition-opacity duration-300`} />
+                    <div className="relative flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{label}</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                          <AnimatedNumber value={value} formatter={formatter} />
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                          {t("pay_live_badge", "Cập nhật tức thời")}
+                        </p>
+                      </div>
+                      <div className="w-11 h-11 rounded-2xl bg-white/70 dark:bg-slate-800/80 border border-white/60 dark:border-slate-700 flex items-center justify-center shadow-inner">
+                        <Icon size={20} className="text-primary" />
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="w-10 h-10 flex-shrink-0 bg-green-100 rounded-lg flex items-center justify-center">
-                    <DollarSign size={20} className="text-green-600" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg h-36 flex flex-col justify-between items-center">
-                  <div className="flex flex-col items-center w-full">
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">{t("pay_pending_total", "Đang chờ xử lý")}</p>
-                    <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
-                      <AnimatedNumber value={pendingAmount} formatter={formatNumber} prefix="₫" />
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center mt-2">
-                    <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg h-36 flex flex-col justify-between items-center">
-                  <div className="flex flex-col items-center w-full">
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">{t("pay_success_count", "Giao dịch thành công")}</p>
-                    <p className="text-xl font-bold text-foreground dark:text-white mt-1">
-                      <AnimatedNumber value={successCount} formatter={formatNumber} />
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mt-2">
-                    <TrendingUp size={20} className="text-blue-600 dark:text-blue-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 rounded-2xl p-6 shadow-lg h-36 flex flex-col justify-between items-center">
-                  <div className="flex flex-col items-center w-full">
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm font-medium">{t("pay_total_transactions", "Tổng giao dịch")}</p>
-                    <p className="text-xl font-bold text-foreground dark:text-white mt-1">
-                      <AnimatedNumber value={totalTransactions} formatter={formatNumber} />
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mt-2">
-                    <CreditCard size={20} className="text-purple-600 dark:text-purple-400" />
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
+        <div className="relative z-10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-border/60 dark:border-slate-800/70 rounded-2xl p-5 space-y-4 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400" size={20} />
             <input
               type="text"
               placeholder={t("pay_search_placeholder", "Tìm kiếm theo ID, người dùng, khóa học hoặc giảng viên...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+              className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border-2 border-border/60 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary dark:focus:border-accent transition-all duration-300 text-foreground dark:text-white placeholder:text-muted-foreground/60"
             />
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_filter_by", "Lọc theo")}:</span>
             {[
               { value: "all", label: t("common_all", "Tất cả") },
               { value: "success", label: t("pay_success", "Thành công") },
@@ -422,10 +417,10 @@ export default function AdminPaymentsPage() {
               <button
                 key={option.value}
                 onClick={() => setStatusFilter(option.value as any)}
-                className={`px-4 py-3 rounded-lg transition-smooth font-medium ${
+                className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-all duration-300 backdrop-blur-sm shadow-sm ${
                   statusFilter === option.value
-                    ? "bg-primary text-white"
-                    : "bg-card dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
+                    ? "bg-primary text-white border-primary shadow-lg scale-[1.02]"
+                    : "bg-white/10 text-foreground dark:text-white border-border/60 dark:border-slate-700 hover:bg-white/30"
                 }`}
               >
                 {option.label}
@@ -437,28 +432,28 @@ export default function AdminPaymentsPage() {
 <div className="block lg:hidden space-y-4 mb-6">
   {filteredPayments.map(payment => (
     <div
-  key={payment.id}
-  ref={(el) => { cardRefs.current[payment.id] = el; }}
-  className="relative w-full bg-slate-800/80 rounded-xl p-4 space-y-3"
->
+      key={payment.id}
+      ref={(el) => { cardRefs.current[payment.id] = el; }}
+      className="relative w-full rounded-2xl p-4 space-y-3 bg-white/90 dark:bg-slate-900/80 border border-border/70 dark:border-slate-800 shadow-[0_10px_26px_rgba(15,23,42,0.14)] backdrop-blur"
+    >
       {/* HEADER */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <p className="font-semibold text-white leading-snug line-clamp-2">
+          <p className="font-semibold text-foreground dark:text-white leading-snug line-clamp-2">
             {payment.user}
           </p>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">
             {payment.course}
           </p>
         </div>
         {/* STATUS BADGE */}
         <span
-          className={`px-2 py-1 rounded-full text-xs font-medium border ${
+          className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
             payment.status === "success"
-              ? "bg-green-500/10 text-green-400 border-green-500/20"
+              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200/80 dark:border-green-800"
               : payment.status === "pending"
-              ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-              : "bg-red-500/10 text-red-400 border-red-500/20"
+              ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-200 border-yellow-200/80 dark:border-yellow-800"
+              : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-200 border-red-200/80 dark:border-red-800"
           }`}
         >
           {payment.status === "success"
@@ -468,36 +463,39 @@ export default function AdminPaymentsPage() {
             : t("pay_failed", "Thất bại")}
         </span>
       </div>
-      {/* GIẢNG VIÊN */}
-      <div className="text-sm text-slate-300">
-        {payment.teacher}
+
+      <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-400">
+        <User size={14} />
+        <span className="truncate">{payment.teacher}</span>
       </div>
-      {/* EMAIL / PHONE */}
-      <div className="text-xs text-slate-400 truncate">
+
+      <div className="text-xs text-muted-foreground dark:text-slate-500 truncate">
         {payment.userEmail || payment.userPhone}
       </div>
+
       {/* GRID INFO */}
       <div className="grid grid-cols-2 gap-3 text-sm pt-2">
         <div className="flex items-center gap-2">
-          <span className="text-green-400">{language === "vi" ? "₫" : "$"}</span>
-          <span>{formatCurrencyByLanguage(payment.amount, language)}</span>
+          <span className="text-green-600 dark:text-green-300">{language === "vi" ? "₫" : "$"}</span>
+          <span className="font-semibold text-foreground dark:text-white">{formatCurrencyByLanguage(payment.amount, language)}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-blue-400">💳</span>
+        <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400">
+          <CreditCard size={14} />
           <span>{payment.method}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-yellow-400">🕒</span>
+        <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400">
+          <Clock size={14} />
           <span>{formatDate(payment.date)}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-purple-400">#</span>
+        <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400">
+          <span className="text-purple-500">#</span>
           <span className="truncate">{payment.transactionId}</span>
         </div>
       </div>
+
       {/* FOOTER */}
-      <div className="flex items-center justify-between pt-3 border-t border-slate-700/50">
-        <span className="text-xs text-slate-400">
+      <div className="flex items-center justify-between pt-3 border-t border-border/70 dark:border-slate-800">
+        <span className="text-xs text-muted-foreground dark:text-slate-500">
           ID: {payment.id}
         </span>
         <button
@@ -511,7 +509,7 @@ export default function AdminPaymentsPage() {
             })
             setExpandedPaymentId(payment.id)
           }}
-          className="px-3 py-1.5 rounded-lg bg-primary/20 text-primary text-sm"
+          className="px-3 py-1.5 rounded-lg bg-primary/15 text-primary text-sm font-semibold hover:bg-primary/25 transition-smooth"
         >
           {t("pay_view_detail", "Xem chi tiết")}
         </button>
@@ -536,29 +534,29 @@ export default function AdminPaymentsPage() {
                 maxWidth: 420,
               }}
             >
-              <div className="bg-gradient-to-b from-[#0B1220] to-[#070B14] border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden">
+              <div className="bg-white/95 dark:bg-slate-900/95 border border-border/70 dark:border-slate-800 rounded-2xl shadow-[0_20px_60px_rgba(15,23,42,0.25)] overflow-hidden backdrop-blur-xl">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-white/10">
-                  <p className="text-white font-semibold text-base">{t("pay_transaction_detail", "Chi tiết giao dịch")}</p>
+                <div className="flex items-center justify-between p-4 border-b border-border/70 dark:border-slate-800">
+                  <p className="text-foreground dark:text-white font-semibold text-base">{t("pay_transaction_detail", "Chi tiết giao dịch")}</p>
                   <button
                     onClick={() => setExpandedPaymentId(null)}
-                    className="p-1 rounded hover:bg-white/10"
+                    className="p-1 rounded hover:bg-secondary dark:hover:bg-slate-800"
                   >
-                    <X size={18} className="text-slate-300" />
+                    <X size={18} className="text-muted-foreground" />
                   </button>
                 </div>
 
                 {/* Mã giao dịch + trạng thái */}
-                <div className="p-4 pb-2 text-center border-b border-white/10">
-                  <p className="text-slate-400 text-xs mb-1">{t("pay_transaction_id", "Mã giao dịch")}</p>
-                  <p className="text-white font-bold text-base break-all">{payment.id}</p>
+                <div className="p-4 pb-2 text-center border-b border-border/70 dark:border-slate-800">
+                  <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">{t("pay_transaction_id", "Mã giao dịch")}</p>
+                  <p className="text-foreground dark:text-white font-bold text-base break-all">{payment.id}</p>
                   <div className="mt-2 flex justify-center">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                       payment.status === "success"
-                        ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200/80 dark:border-green-800"
                         : payment.status === "pending"
-                          ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-                          : "bg-red-500/10 text-red-400 border border-red-500/20"
+                          ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-200 border border-yellow-200/80 dark:border-yellow-800"
+                          : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-200 border border-red-200/80 dark:border-red-800"
                     }`}>
                       {payment.status === "success"
                         ? t("pay_success", "Thành công")
@@ -571,40 +569,40 @@ export default function AdminPaymentsPage() {
 
                 {/* Số tiền thanh toán */}
                 <div className="p-4">
-                  <div className="bg-[#0E2236] rounded-xl p-4 text-center border border-cyan-400/20">
-                    <p className="text-slate-400 text-xs">{t("pay_amount_label", "Số tiền thanh toán")}</p>
-                    <p className="text-2xl font-extrabold text-cyan-400">{formatCurrencyByLanguage(payment.amount, language)}</p>
+                  <div className="bg-primary/10 dark:bg-accent/10 rounded-xl p-4 text-center border border-primary/30 dark:border-accent/30">
+                    <p className="text-muted-foreground dark:text-slate-400 text-xs">{t("pay_amount_label", "Số tiền thanh toán")}</p>
+                    <p className="text-2xl font-extrabold text-primary dark:text-accent">{formatCurrencyByLanguage(payment.amount, language)}</p>
                   </div>
                 </div>
 
                 {/* Người mua */}
                 <div className="px-4 pb-2">
-                  <div className="bg-white/5 rounded-xl p-3">
-                    <p className="text-slate-400 text-xs mb-1">{t("pay_buyer", "Người mua")}</p>
-                    <p className="text-white font-medium">{payment.user}</p>
-                    {payment.userEmail && <p className="text-slate-400 text-xs">{payment.userEmail}</p>}
+                  <div className="bg-white/60 dark:bg-slate-800/60 rounded-xl p-3 border border-border/60 dark:border-slate-700">
+                    <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">{t("pay_buyer", "Người mua")}</p>
+                    <p className="text-foreground dark:text-white font-medium">{payment.user}</p>
+                    {payment.userEmail && <p className="text-muted-foreground dark:text-slate-400 text-xs">{payment.userEmail}</p>}
                   </div>
                 </div>
 
                 {/* Khóa học + Giảng viên */}
                 <div className="px-4 pb-2">
-                  <div className="bg-white/5 rounded-xl p-3">
-                    <p className="text-slate-400 text-xs mb-1">{t("pay_course", "Khóa học")}</p>
-                    <p className="text-white font-medium">{payment.course}</p>
-                    {payment.teacher && <p className="text-slate-400 text-xs">{t("pay_instructor", "Giảng viên")}: {payment.teacher}</p>}
+                  <div className="bg-white/60 dark:bg-slate-800/60 rounded-xl p-3 border border-border/60 dark:border-slate-700">
+                    <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">{t("pay_course", "Khóa học")}</p>
+                    <p className="text-foreground dark:text-white font-medium">{payment.course}</p>
+                    {payment.teacher && <p className="text-muted-foreground dark:text-slate-400 text-xs">{t("pay_instructor", "Giảng viên")}: {payment.teacher}</p>}
                   </div>
                 </div>
 
                 {/* Phương thức + Ngày thanh toán */}
                 <div className="px-4 pb-4">
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-white/5 rounded-xl p-3">
-                      <p className="text-slate-400 text-xs mb-1">{t("pay_method", "Phương thức")}</p>
-                      <p className="text-white text-xs font-medium break-all">{payment.method}</p>
+                    <div className="bg-white/60 dark:bg-slate-800/60 rounded-xl p-3 border border-border/60 dark:border-slate-700">
+                      <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">{t("pay_method", "Phương thức")}</p>
+                      <p className="text-foreground dark:text-white text-xs font-medium break-all">{payment.method}</p>
                     </div>
-                    <div className="bg-white/5 rounded-xl p-3">
-                      <p className="text-slate-400 text-xs mb-1">{t("pay_date_label", "Ngày thanh toán")}</p>
-                      <p className="text-white text-xs font-medium">{formatDate(payment.date)}</p>
+                    <div className="bg-white/60 dark:bg-slate-800/60 rounded-xl p-3 border border-border/60 dark:border-slate-700">
+                      <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">{t("pay_date_label", "Ngày thanh toán")}</p>
+                      <p className="text-foreground dark:text-white text-xs font-medium">{formatDate(payment.date)}</p>
                     </div>
                   </div>
                 </div>
@@ -615,26 +613,26 @@ export default function AdminPaymentsPage() {
         })()
       }
         {/* Payments Table */}
-        <div className="hidden lg:block bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-hidden">
+        <div className="hidden lg:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl overflow-hidden shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("pay_user", "Người dùng")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("pay_course", "Khóa học")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("pay_instructor", "Giảng viên")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("pay_amount", "Số tiền")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("pay_method", "Phương thức")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("pay_status", "Trạng thái")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("pay_date", "Ngày")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("pay_detail", "Chi tiết")}</th>
+                <tr className="border-b border-border dark:border-slate-800 bg-white/70 dark:bg-slate-800/60">
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_user", "Người dùng")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_course", "Khóa học")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_instructor", "Giảng viên")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_amount", "Số tiền")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_method", "Phương thức")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_status", "Trạng thái")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_date", "Ngày")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_detail", "Chi tiết")}</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPayments.map((payment) => (
                   <tr
                     key={payment.id}
-                    className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
+                    className="border-b border-border dark:border-slate-800 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-smooth"
                   >
                     <td className="py-4 px-6">
                       <div>
@@ -652,7 +650,8 @@ export default function AdminPaymentsPage() {
                       {formatCurrencyByLanguage(payment.amount, language)}
                     </td>
                     <td className="py-4 px-6">
-                      <span className="px-2 py-1 bg-secondary dark:bg-slate-800 rounded text-foreground dark:text-white text-xs font-medium">
+                      <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/80 dark:bg-slate-800/60 border border-border/60 dark:border-slate-700 rounded-full text-foreground dark:text-white text-xs font-semibold">
+                        <CreditCard size={14} className="text-primary" />
                         {payment.method}
                       </span>
                     </td>
@@ -741,8 +740,8 @@ setPopupPos({
                 maxWidth: "calc(100vw - 2rem)",
               }}
             >
-              <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
-                <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
+              <div className="bg-white/95 dark:bg-slate-900/95 border border-border/70 dark:border-slate-800 rounded-2xl shadow-[0_20px_60px_rgba(15,23,42,0.25)] max-w-lg w-full max-h-[90vh] overflow-y-auto relative z-[10000] backdrop-blur-xl">
+                <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 border-b border-border/70 dark:border-slate-800 p-6 flex items-center justify-between">
                   <h2 className="text-xl font-bold text-foreground dark:text-white">{t("pay_transaction_detail", "Chi tiết giao dịch")}</h2>
                   <button
                     onClick={() => setExpandedPaymentId(null)}
@@ -830,5 +829,107 @@ setPopupPos({
           )
         })()
       }
+
+      {/* Export panel */}
+      {isExportOpen && exportMenuPos && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed z-[9999]"
+              style={{ top: exportMenuPos.top, left: exportMenuPos.left, width: 460, maxWidth: "calc(100vw - 24px)" }}
+            >
+              <div className="bg-white/95 dark:bg-slate-900/95 border border-border/70 dark:border-slate-800 rounded-2xl shadow-[0_20px_60px_rgba(15,23,42,0.25)] w-full max-h-[90vh] overflow-y-auto relative z-[10000] backdrop-blur-xl">
+                <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 border-b border-border/70 dark:border-slate-800 p-6 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-foreground dark:text-white">{t("pay_export", "Xuất báo cáo")}</h2>
+                  <button onClick={() => setIsExportOpen(false)} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
+                    <X size={20} className="text-muted-foreground" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <p className="text-sm text-muted-foreground">{t("pay_export_desc", "Lọc dữ liệu trước khi xuất Excel.")}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">{t("pay_status", "Trạng thái")}</label>
+                      <select
+                        value={exportStatus}
+                        onChange={(e) => setExportStatus(e.target.value)}
+                        className="w-full rounded-lg border border-border dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                      >
+                        <option value="all">{t("common_all", "Tất cả")}</option>
+                        <option value="success">{t("pay_success", "Thành công")}</option>
+                        <option value="pending">{t("pay_pending", "Chờ xử lý")}</option>
+                        <option value="failed">{t("pay_failed", "Thất bại")}</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">{t("pay_user", "Người dùng")}</label>
+                      <select
+                        value={exportUser}
+                        onChange={(e) => setExportUser(e.target.value)}
+                        className="w-full rounded-lg border border-border dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                      >
+                        <option value="all">{t("common_all", "Tất cả")}</option>
+                        {uniqueUsers.map((u) => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">{t("pay_course", "Khóa học")}</label>
+                      <select
+                        value={exportCourse}
+                        onChange={(e) => setExportCourse(e.target.value)}
+                        className="w-full rounded-lg border border-border dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                      >
+                        <option value="all">{t("common_all", "Tất cả")}</option>
+                        {uniqueCourses.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">{t("pay_instructor", "Giảng viên")}</label>
+                      <select
+                        value={exportTeacher}
+                        onChange={(e) => setExportTeacher(e.target.value)}
+                        className="w-full rounded-lg border border-border dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                      >
+                        <option value="all">{t("common_all", "Tất cả")}</option>
+                        {uniqueTeachers.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">{t("pay_date_from", "Từ ngày")}</label>
+                      <input
+                        type="date"
+                        value={exportDateFrom}
+                        onChange={(e) => setExportDateFrom(e.target.value)}
+                        className="w-full rounded-lg border border-border dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">{t("pay_date_to", "Đến ngày")}</label>
+                      <input
+                        type="date"
+                        value={exportDateTo}
+                        onChange={(e) => setExportDateTo(e.target.value)}
+                        className="w-full rounded-lg border border-border dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleExport}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl font-semibold hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
+                  >
+                    <Download size={20} /> {t("pay_export", "Xuất báo cáo")}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
  </div>  
   )}
