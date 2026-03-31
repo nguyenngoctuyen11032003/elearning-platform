@@ -34,6 +34,7 @@ export default function PaymentHistoryPage() {
   const [filteredPayments, setFilteredPayments] = useState<PaymentHistory[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [statusTab, setStatusTab] = useState("all")
   const [selectedPayment, setSelectedPayment] = useState<PaymentHistory | null>(null)
   const [viewingDetails, setViewingDetails] = useState(false)
   const [balance, setBalance] = useState(5000000)
@@ -55,6 +56,9 @@ export default function PaymentHistoryPage() {
       return date.toDateString() === today.toDateString()
     })
     .reduce((sum, p) => sum + p.finalAmount, 0)
+  const completedCount = payments.filter(p => p.status === "completed").length
+  const pendingCount = payments.filter(p => p.status === "pending").length
+  const failedCount = payments.filter(p => p.status === "failed").length
 
   const mockPaymentHistory: PaymentHistory[] = [
     {
@@ -151,8 +155,11 @@ export default function PaymentHistoryPage() {
         p.transactionId.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
+    if (statusTab !== "all") {
+      filtered = filtered.filter(p => p.status === statusTab)
+    }
     setFilteredPayments(filtered)
-  }, [searchTerm, payments])
+  }, [searchTerm, statusTab, payments])
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -233,56 +240,112 @@ export default function PaymentHistoryPage() {
         className="w-full overflow-y-auto [&::-webkit-scrollbar]:hidden [&::-moz-scrollbar]:hidden [-ms-overflow-style:none]"
       >
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
-            {/* Header with Logo */}
-            <div className="flex items-center justify-between">
-              <div className={`text-lg sm:text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>ICS-Learning</div>
-            </div>
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl">
+              <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,#22c55e,transparent_35%),radial-gradient(circle_at_80%_0%,#0ea5e9,transparent_30%),radial-gradient(circle_at_50%_80%,#6366f1,transparent_35%)]" />
+              <div className="relative p-6 sm:p-8">
+                <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] items-start">
+                  <div className="space-y-3 max-w-3xl">
+                    <p className="text-xs uppercase tracking-[0.22em] text-emerald-200/80">{t("pay_header_label", "Ví & giao dịch")}</p>
+                    <h1 className="text-3xl sm:text-4xl font-bold leading-tight">{t("pay_header_title", "Lịch sử thanh toán")}</h1>
+                    <p className="text-slate-200/90 text-sm sm:text-base">{t("pay_header_subtitle", "Theo dõi số dư, chi tiêu và hóa đơn của bạn trên một bảng điều khiển tinh gọn.")}</p>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={() => router.push("/top-up")}
+                        className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur hover:bg-white/25"
+                      >
+                        <Plus size={16} /> {t("pay_topup", "Nạp tiền")}
+                      </button>
+                      <button
+                        onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
+                      >
+                        <Download size={14} /> {t("pay_scroll_tx", "Xem giao dịch")}
+                      </button>
+                    </div>
+                  </div>
 
-            {/* Top Balance Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className={`${isDarkMode ? 'bg-gradient-to-br from-blue-900 to-blue-800 border-blue-700' : 'bg-gradient-to-br from-blue-500 to-blue-600 border-blue-400'} rounded-2xl p-4 sm:p-6 border shadow-lg text-white hover:shadow-xl transition-all`}>
-                <p className={`text-xs ${isDarkMode ? 'text-blue-200' : 'text-blue-100'} mb-2`}>{t("pay_balance", "SỐ DƯ HIỆN TẠI")}</p>
-                <p className="text-2xl sm:text-3xl font-bold mb-4">{formatCurrency(balance)}</p>
-                <button
-                  onClick={() => router.push("/top-up")}
-                  className={`w-full px-3 py-2 ${isDarkMode ? 'bg-blue-700/70 hover:bg-blue-600/70' : 'bg-white/20 hover:bg-white/30'} rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm`}
-                >
-                  <Plus size={16} />
-                  {t("pay_topup", "Nạp tiền")}
-                </button>
-              </div>
-              <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm hover:shadow-md transition-all`}>
-                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>{t("pay_total_spent", "TỔNG ĐÃ CHI")}</p>
-                <p className={`text-2xl sm:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatCurrency(totalSpent)}</p>
-              </div>
-              <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm hover:shadow-md transition-all flex items-center justify-between`}>
-                <div>
-                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>{t("pay_linked_cards", "Thẻ liên kết")}</p>
-                  <div className="flex gap-2">
-                    <div className="w-8 h-5 bg-red-500 rounded text-xs flex items-center justify-center text-white">💳</div>
-                    <div className="w-8 h-5 bg-blue-600 rounded text-xs flex items-center justify-center text-white">V</div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[{
+                        label: t("pay_completed", "Hoàn tất"),
+                        value: completedCount,
+                        tone: "from-emerald-500/20 to-emerald-600/20 border-emerald-500/40 text-emerald-100"
+                      }, {
+                        label: t("pay_pending", "Chờ xử lý"),
+                        value: pendingCount,
+                        tone: "from-amber-500/20 to-amber-600/20 border-amber-500/40 text-amber-100"
+                      }, {
+                        label: t("pay_failed", "Thất bại"),
+                        value: failedCount,
+                        tone: "from-rose-500/20 to-rose-600/20 border-rose-500/40 text-rose-100"
+                      }].map(card => (
+                        <div key={card.label} className={`rounded-2xl border bg-gradient-to-br ${card.tone} p-4 sm:p-5 shadow-sm backdrop-blur`}> 
+                          <p className="text-xs uppercase tracking-[0.15em] opacity-80">{card.label}</p>
+                          <p className="text-2xl sm:text-3xl font-bold mt-2">{card.value}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm hover:shadow-md transition-all`}>
-                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>{t("pay_daily_spend", "CHI TIÊU HÀNG NGÀY")}</p>
-                <p className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatCurrency(dailySpend)}</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div className="rounded-2xl bg-white/80 text-gray-900 dark:bg-slate-900/80 dark:text-white border border-border/60 p-4 sm:p-5 shadow-lg backdrop-blur">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("pay_balance", "SỐ DƯ HIỆN TẠI")}</p>
+                <p className="text-2xl sm:text-3xl font-bold whitespace-nowrap">{formatCurrency(balance)}</p>
+              </div>
+              <div className="rounded-2xl bg-white/80 text-gray-900 dark:bg-slate-900/80 dark:text-white border border-border/60 p-4 sm:p-5 shadow-lg backdrop-blur">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("pay_total_spent", "TỔNG ĐÃ CHI")}</p>
+                <p className="text-2xl sm:text-3xl font-bold whitespace-nowrap">{formatCurrency(totalSpent)}</p>
+              </div>
+              <div className="rounded-2xl bg-white/80 text-gray-900 dark:bg-slate-900/80 dark:text-white border border-border/60 p-4 sm:p-5 shadow-lg backdrop-blur">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("pay_daily_spend", "CHI TIÊU HÀNG NGÀY")}</p>
+                <p className="text-xl sm:text-2xl font-bold whitespace-nowrap">{formatCurrency(dailySpend)}</p>
               </div>
             </div>
 
             {/* Transactions Section */}
-            <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm`}>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <h2 className={`text-lg sm:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t("pay_recent_tx", "Giao dịch gần đây")}</h2>
-                <div className="relative w-full sm:w-64">
-                  <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} size={16} />
-                  <input
-                    type="text"
-                    placeholder={t("pay_search", "Tìm kiếm...")}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className={`w-full pl-10 pr-4 py-2 text-sm ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400'} border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400`}
-                  />
+            <div className={`${isDarkMode ? 'bg-slate-900/80 border-gray-700/70' : 'bg-white/80 border-gray-200'} rounded-3xl p-4 sm:p-6 border shadow-lg backdrop-blur`}> 
+              <div className="flex flex-col gap-4 sm:gap-5 mb-4 sm:mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-white/20 flex items-center justify-center">
+                      <Download size={18} className="text-blue-400" />
+                    </div>
+                    <div>
+                      <h2 className={`text-lg sm:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t("pay_recent_tx", "Giao dịch gần đây")}</h2>
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t("pay_recent_tx_hint", "Lọc theo trạng thái hoặc tìm theo mã giao dịch")}</p>
+                    </div>
+                  </div>
+                  <div className="relative w-full sm:w-64">
+                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} size={16} />
+                    <input
+                      type="text"
+                      placeholder={t("pay_search", "Tìm kiếm...")}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className={`w-full pl-10 pr-4 py-2 text-sm ${isDarkMode ? 'bg-slate-800 border-gray-700 text-white placeholder-gray-500' : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'} border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400`}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {[{key:"all", label:t("pay_all_status","Tất cả")}, {key:"completed", label:getStatusText("completed")}, {key:"pending", label:getStatusText("pending")}, {key:"failed", label:getStatusText("failed")}].map(tab => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setStatusTab(tab.key)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
+                        statusTab === tab.key
+                          ? 'bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-500/20'
+                          : isDarkMode
+                            ? 'bg-slate-800 border-gray-700 text-gray-200 hover:border-blue-500/50'
+                            : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -301,6 +364,27 @@ export default function PaymentHistoryPage() {
                     <div className="col-span-2">{t("pay_col_amount", "Số tiền")}</div>
                     <div className="col-span-2 text-right">{t("pay_col_actions", "Thao tác")}</div>
                   </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              {[{
+                label: t("pay_completed", "Hoàn tất"),
+                value: completedCount,
+                tone: isDarkMode ? "from-emerald-500/20 to-emerald-600/20 border-emerald-500/40 text-emerald-200" : "from-emerald-50 to-white border-emerald-100 text-emerald-700"
+              }, {
+                label: t("pay_pending", "Đang xử lý"),
+                value: pendingCount,
+                tone: isDarkMode ? "from-amber-500/20 to-amber-600/20 border-amber-500/40 text-amber-100" : "from-amber-50 to-white border-amber-100 text-amber-700"
+              }, {
+                label: t("pay_failed", "Thất bại"),
+                value: failedCount,
+                tone: isDarkMode ? "from-rose-500/20 to-rose-600/20 border-rose-500/40 text-rose-100" : "from-rose-50 to-white border-rose-100 text-rose-700"
+              }].map(card => (
+                <div key={card.label} className={`rounded-2xl border bg-gradient-to-br ${card.tone} p-4 sm:p-5 shadow-sm hover:shadow-lg transition-all`}>
+                  <p className="text-xs uppercase tracking-[0.15em] opacity-80">{card.label}</p>
+                  <p className="text-2xl sm:text-3xl font-bold mt-2">{card.value}</p>
+                </div>
+              ))}
+            </div>
 
                   {/* Table Rows */}
                   {filteredPayments.map((payment) => (
@@ -323,7 +407,7 @@ export default function PaymentHistoryPage() {
                             payment.status === "pending" ? "bg-yellow-400" :
                             "bg-red-400"
                           }`}></span>
-                          {payment.status === "completed" ? "Success" : payment.status === "pending" ? "Pending" : "Failed"}
+                          {getStatusText(payment.status)}
                         </span>
                       </div>
                       <div className={`col-span-2 font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatCurrency(payment.finalAmount)}</div>
@@ -369,7 +453,7 @@ export default function PaymentHistoryPage() {
                                 payment.status === "pending" ? "bg-yellow-400" :
                                 "bg-red-400"
                               }`}></span>
-                              {payment.status === "completed" ? "Success" : payment.status === "pending" ? "Pending" : "Failed"}
+                              {getStatusText(payment.status)}
                             </span>
                           </div>
                           <div className="text-right space-y-2">

@@ -167,6 +167,33 @@ export default function TeacherCertificatesPage() {
   const approvedTemplates = templates.filter(t => t.status === "approved").length
   const totalIssued = templates.reduce((sum, t) => sum + t.issuedCount, 0)
 
+  const heroCards = [
+    {
+      title: t("teacher_cert_total_templates", "Tổng mẫu"),
+      value: totalTemplates,
+      badge: t("teacher_cert_ready", "Đủ kho"),
+      tone: "from-emerald-500/20 to-emerald-600/20 border-emerald-500/40 text-emerald-100",
+    },
+    {
+      title: t("teacher_cert_pending", "Chờ duyệt"),
+      value: pendingTemplates,
+      badge: t("teacher_cert_reviewing", "Review"),
+      tone: "from-amber-500/20 to-amber-600/20 border-amber-500/40 text-amber-100",
+    },
+    {
+      title: t("teacher_cert_active", "Hoạt động"),
+      value: approvedTemplates,
+      badge: t("teacher_cert_live", "Live"),
+      tone: "from-sky-500/20 to-sky-600/20 border-sky-500/40 text-sky-100",
+    },
+    {
+      title: t("teacher_cert_issued", "Đã cấp"),
+      value: totalIssued,
+      badge: t("teacher_cert_trusted", "Trusted"),
+      tone: "from-purple-500/20 to-purple-600/20 border-purple-500/40 text-purple-100",
+    },
+  ]
+
   const filteredTemplates = templates.filter(
     (template) =>
       template.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -334,101 +361,70 @@ export default function TeacherCertificatesPage() {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        {/* Header with Stats */}
-        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/bg_certificate.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-          {/* Overlay for better readability */}
-          <div className="absolute inset-0 bg-black/15 dark:bg-black/45 rounded-3xl"></div>
-          
-          <div className="relative z-10 space-y-8">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
-              <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("teacher_cert_manage_title", "Quản lý Chứng chỉ")}</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("teacher_cert_manage_subtitle", "Tạo và quản lý mẫu chứng chỉ cho khóa học")}</p>
+        <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+          <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,#22c55e,transparent_35%),radial-gradient(circle_at_80%_0%,#0ea5e9,transparent_30%),radial-gradient(circle_at_50%_80%,#6366f1,transparent_35%)]" />
+          <div className="relative p-6 md:p-8 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.2em] text-emerald-200/80">{t("teacher_cert_label", "Chứng chỉ & mẫu")}</p>
+                <h1 className="text-3xl md:text-4xl font-bold leading-tight">{t("teacher_cert_manage_title", "Quản lý Chứng chỉ")}</h1>
+                <p className="text-slate-200 max-w-2xl">{t("teacher_cert_manage_subtitle", "Thiết kế mẫu chứng chỉ, theo dõi trạng thái duyệt và gán cho bài thi chính thức.")}</p>
               </div>
               <Link
                 href="/teacher/certificates/create"
-                className="flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
+                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
               >
-                <Plus size={20} /> {t("teacher_cert_create_template", "Tạo mẫu chứng chỉ")}
+                <Plus size={18} /> {t("teacher_cert_create_template", "Tạo mẫu chứng chỉ")}
               </Link>
             </div>
 
-            {/* Stats Cards */}
-            <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("teacher_cert_total_templates", "Tổng mẫu")}</p>
-                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalTemplates}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {heroCards.map((card) => (
+                <div key={card.title} className={`rounded-2xl border ${card.tone} bg-white/10 p-4 backdrop-blur shadow-md`}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-white/90">{card.title}</p>
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-white/20 text-white/80">{card.badge}</span>
                   </div>
-                  <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <Award size={20} className="text-primary" />
-                  </div>
+                  <p className="text-2xl font-bold mt-2">{card.value}</p>
                 </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("teacher_cert_pending", "Chờ duyệt")}</p>
-                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingTemplates}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("teacher_cert_active", "Hoạt động")}</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{approvedTemplates}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("teacher_cert_issued", "Đã cấp")}</p>
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{totalIssued}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <Users size={20} className="text-purple-600 dark:text-purple-400" />
-                  </div>
-                </div>
-              </div>
-            </div>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="rounded-2xl border border-border/80 bg-card/80 dark:bg-slate-900/70 backdrop-blur p-4 md:p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
             <input
               type="text"
               placeholder={t("teacher_cert_search_placeholder", "Tìm kiếm mẫu chứng chỉ...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-background/80 border border-border focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-          >
-            <option value="all">{t("teacher_cert_all_status", "Tất cả trạng thái")}</option>
-            <option value="draft">{t("status_draft", "Nháp")}</option>
-            <option value="pending">{t("status_pending", "Chờ duyệt")}</option>
-            <option value="approved">{t("status_approved", "Đã duyệt")}</option>
-            <option value="rejected">{t("status_rejected", "Từ chối")}</option>
-          </select>
+          <div className="flex flex-wrap gap-2">
+            {["all", "draft", "pending", "approved", "rejected"].map((status) => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
+                  statusFilter === status
+                    ? "bg-primary text-white border-primary"
+                    : "bg-background/60 border-border text-foreground hover:border-primary/60"
+                }`}
+              >
+                {
+                  status === "all" ? t("teacher_cert_all_status", "Tất cả trạng thái") :
+                  status === "draft" ? t("status_draft", "Nháp") :
+                  status === "pending" ? t("status_pending", "Chờ duyệt") :
+                  status === "approved" ? t("status_approved", "Đã duyệt") :
+                  t("status_rejected", "Từ chối")
+                }
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Templates Grid */}

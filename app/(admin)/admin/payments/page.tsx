@@ -158,9 +158,24 @@ export default function AdminPaymentsPage() {
         failedTransactions: Number(statsRes?.failedTransactions ?? mapped.filter((p) => p.status === "failed").length),
         totalTransactions: Number(statsRes?.totalTransactions ?? mapped.length),
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading payments", error)
-      toast.error(t("pay_load_error", "Không thể tải dữ liệu thanh toán"))
+      const isTimeout = typeof error?.message === "string" && error.message.toLowerCase().includes("timeout")
+
+      setPayments([])
+      setStats({
+        totalRevenue: 0,
+        pendingTransactions: 0,
+        completedTransactions: 0,
+        failedTransactions: 0,
+        totalTransactions: 0,
+      })
+
+      if (isTimeout) {
+        toast.error(t("pay_load_timeout", "Kết nối quá thời gian, vui lòng thử lại."))
+      } else {
+        toast.error(t("pay_load_error", "Không thể tải dữ liệu thanh toán"))
+      }
     } finally {
       setLoading(false)
     }
