@@ -28,8 +28,8 @@ export function AdminSidebar() {
   const menuItems = [
     { icon: LayoutDashboard, label: t("admin_menu_dashboard", "Dashboard"), href: "/admin/dashboard" },
     { icon: Users, label: t("admin_menu_users", "Người dùng"), href: "/admin/users" },
-    { icon: BookOpen, label: t("admin_menu_courses", "Khóa học"), href: "/admin/courses" },
     { icon: FolderOpen, label: t("admin_menu_categories", "Danh mục"), href: "/admin/categories" },
+    { icon: BookOpen, label: t("admin_menu_courses", "Khóa học"), href: "/admin/courses" },
     { icon: FileText, label: t("admin_menu_exams", "Bài thi"), href: "/admin/exams" },
     { icon: Award, label: t("admin_menu_certificates", "Chứng chỉ"), href: "/admin/certificates" },
     { icon: CreditCard, label: t("admin_menu_payments", "Thanh toán"), href: "/admin/payments" },

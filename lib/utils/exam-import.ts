@@ -52,6 +52,7 @@ const NUMBERED_WITH_NUMBER_REGEX = /^\s*\(?(\d{1,4})\)?[\.:\-\)]\s*(.+?)\s*$/i
 const OPTION_LINE_REGEX = /^\s*([A-F])(?:\s*[\.)．。:\-,])\s*(.+)$/i
 const INLINE_OPTION_MARKER_REGEX = /(^|[\s\[(])([A-F])(?:\s*[\.)．。:\-,])\s*/gi
 const ANSWER_LINE_REGEX = /^\s*(?:Dap an|Đáp án|ĐA(?=\s|[:=.\-]|$)|DA(?=\s|[:=.\-]|$)|Answer|Ans(?:wer)?|Correct\s*answer|Answer\s*key|Key)\s*(?:[:=.\-])?\s*(.+)$/i
+const STANDALONE_OPTION_LABEL_REGEX = /^\s*([A-F])(?:\s*[\.)．。:\-,])?\s*$/i
 const EXPLANATION_LINE_REGEX = /^\s*(?:Giai thich|Giải thích|Explanation|Solution|Loi giai|Lời giải)\s*(?:[:=.\-])?\s*(.+)$/i
 const POINTS_LINE_REGEX = /^\s*(?:Diem|Điểm|Points?)\s*[:=-]\s*(\d+(?:\.\d+)?)\s*$/i
 const INLINE_ANSWER_REGEX = /^(.*?)\s*(?:Dap an|Đáp án|ĐA(?=\s|[:=.\-]|$)|DA(?=\s|[:=.\-]|$)|Answer|Ans(?:wer)?|Correct\s*answer|Answer\s*key|Key)\s*[:=.\-]?\s*(.+)$/i
@@ -59,6 +60,7 @@ const INLINE_METADATA_SPLIT_REGEX = /\s+(?:Diff|Var|Topic|Learning\s*Obj|Global\
 const SECTION_LINE_REGEX = /^\s*(\d+(?:\.\d+)*)\s+([A-Za-z][^\n]{3,})$/
 const METADATA_LINE_REGEX = /^\s*(Diff|Var|Topic|Learning\s*Obj|Global\s*Obj|Rationale|Reason|Loi\s*giai|Lời\s*giải)\s*[:=.\-]\s*(.+)$/i
 const FILL_IN_QUESTION_HINT_REGEX = /(?:_{2,}|\.{3,}|\(\s*\)|\[\s*\]|\bfill\s*(?:in|the\s*blank)\b|\bđiền\s*(?:vào\s*)?chỗ\s*trống\b)/i
+const QUESTION_GROUP_HEADING_REGEX = /^(?:\d+(?:\.\d+)*)?\s*(?:multiple\s*choice|short\s*answer|true\s*false|fill(?:ed)?\s*in(?:\s*the\s*blank)?|essay|matching|algorithmic|conceptual|review|practice|sample|discussion|application|problem\s*solving)\s+(?:question|questions|problem|problems)\b\s*$/i
 const MARKED_OPTION_PREFIX_REGEX = /^\s*(?:[\[(]\s*(?:x|X|\*|✓|✔|✅|☑)\s*[\])]|(?:\*|✓|✔|✅|☑)+)\s*/
 const MARKED_OPTION_SUFFIX_REGEX = /\s*(?:[\[(]\s*(?:x|X|\*|✓|✔|✅|☑)\s*[\])]|(?:\*|✓|✔|✅|☑)+|[|｜│¦])\s*$/
 const MARKED_OPTION_WORD_SUFFIX_REGEX = /\s*(?:\((?:correct|answer|đáp án|dap an|dung|đúng)\)|\[(?:correct|answer|đáp án|dap an|dung|đúng)\])\s*$/i
@@ -66,6 +68,8 @@ const MARKED_OPTION_UNDERSCORE_WRAPPER_REGEX = /^\s*[_＿]{1,3}\s*.+?\s*[_＿]{1
 const COMBINING_UNDERLINE_CHAR_REGEX = /\u0332/
 const UNDERLINE_MARKER_REGEX = /\[\[U\]\]([\s\S]*?)\[\[\/U\]\]/g
 const UNDERLINE_TAG_REGEX = /\[\[\/?U\]\]/gi
+const OPTION_LABEL_WITH_TEXT_REGEX = /^\s*([A-F])(?:\s*[\.)．。:\-,]\s*|\s+)([\s\S]+)$/i
+const OPTION_LABEL_PREFIX_REGEX = /^\s*([A-F])(?:\s*[\.)．。:\-,]\s*|\s+|$)/i
 
 const decodeHtmlEntities = (input: string): string => {
   const named: Record<string, string> = {
@@ -143,6 +147,7 @@ const extractQuestionText = (line: string): string | null => {
   const content = (numberedMatch[1] || "").trim()
   if (content.length < 4) return null
   if (/^(?:chapter|unit|part|section)\b/i.test(content)) return null
+  if (QUESTION_GROUP_HEADING_REGEX.test(content)) return null
 
   return content
 }
@@ -155,6 +160,7 @@ const extractQuestionStart = (line: string): { text: string; number?: number } |
   if (prefixed) {
     const number = Number.parseInt(prefixed[1], 10)
     const text = String(prefixed[2] || "").trim()
+    if (QUESTION_GROUP_HEADING_REGEX.test(text)) return null
     // Support formats where the stem is on the next line, e.g. "Câu 1:".
     return { text, number: Number.isNaN(number) ? undefined : number }
   }
@@ -165,6 +171,7 @@ const extractQuestionStart = (line: string): { text: string; number?: number } |
     const text = String(numbered[2] || "").trim()
     if (text.length < 4) return null
     if (/^(?:chapter|unit|part|section)\b/i.test(text)) return null
+    if (QUESTION_GROUP_HEADING_REGEX.test(text)) return null
     return { text, number: Number.isNaN(number) ? undefined : number }
   }
 
@@ -233,6 +240,29 @@ const looksLikeStandaloneQuestionStart = (line: string): boolean => {
   if (/[?]$/.test(text)) return true
 
   return /^(?:what|which|how|why|when|where|who|if|the\s+number|the\s+temperature|one\s+liter|the\s+diameter|the\s+thickness|the\s+freezing|the\s+nighttime|a\s+consistent)\b/i.test(text)
+}
+
+const ANSWER_LINE_PREFIX_REGEX = /^\s*(?:Dap an|Đáp án|ĐA(?=\s|[:=.\-]|$)|DA(?=\s|[:=.\-]|$)|Answer|Ans(?:wer)?|Correct\s*answer|Answer\s*key|Key)\s*/i
+const ANSWER_LINE_WITH_DELIMITER_REGEX = /^\s*(?:Dap an|Đáp án|ĐA(?=\s|[:=.\-]|$)|DA(?=\s|[:=.\-]|$)|Answer|Ans(?:wer)?|Correct\s*answer|Answer\s*key|Key)\s*[:=.\-]\s*/i
+
+const isLikelyAnswerTokenValue = (value: string): boolean => {
+  const token = sanitizeAnswerToken(String(value || ""))
+  if (!token) return false
+  if (/^[\(\[]?[A-F][\)\].:\-]?$/i.test(token)) return true
+  if (/^\d{1,2}$/.test(token)) return true
+  if (/^(?:true|false|đúng|sai)$/i.test(token)) return true
+
+  const compact = token.replace(/[\s"'“”‘’]/g, "")
+  if (!compact) return false
+  if (compact.length <= 8 && !/\s/.test(token)) return true
+  return false
+}
+
+const shouldTreatAsAnswerMetadataLine = (line: string, answerValue: string): boolean => {
+  const raw = String(line || "")
+  if (!ANSWER_LINE_PREFIX_REGEX.test(raw)) return false
+  if (ANSWER_LINE_WITH_DELIMITER_REGEX.test(raw)) return true
+  return isLikelyAnswerTokenValue(answerValue)
 }
 
 const sanitizeAnswerToken = (raw: string): string => {
@@ -585,7 +615,7 @@ const parseOptionCandidateFromLine = (line: string): { text: string; isMarked: b
   if (!raw) return null
 
   const cleaned = stripUnderlineTags(raw)
-  const match = cleaned.match(/^\s*([A-F])(?:\s*[\.)．。:\-,])?\s*([\s\S]+)$/i)
+  const match = cleaned.match(OPTION_LABEL_WITH_TEXT_REGEX)
   if (!match) return null
 
   const parsed = parseOptionCandidate(match[2])
@@ -599,10 +629,10 @@ const parseOptionCandidateFromLine = (line: string): { text: string; isMarked: b
 
 const parseOptionFallbackTextFromLine = (line: string): string | null => {
   const cleaned = stripUnderlineTags(String(line || "").trim())
-  const match = cleaned.match(/^\s*[A-F](?:\s*[\.)．。:\-,])?\s*([\s\S]+)$/i)
+  const match = cleaned.match(OPTION_LABEL_WITH_TEXT_REGEX)
   if (!match) return null
 
-  const text = cleanAndNormalizeOption(match[1])
+  const text = cleanAndNormalizeOption(match[2])
   return text || null
 }
 
@@ -614,7 +644,7 @@ const optionIdentity = (value: string): string =>
 
 const getOptionLabelIndex = (line: string): number | undefined => {
   const cleaned = stripUnderlineTags(String(line || "").trim())
-  const match = cleaned.match(/^\s*([A-F])(?:\s*[\.)．。:\-,])?\s*/i)
+  const match = cleaned.match(OPTION_LABEL_PREFIX_REGEX)
   if (!match) return undefined
   const idx = match[1].toUpperCase().charCodeAt(0) - 65
   return idx >= 0 && idx <= 5 ? idx : undefined
@@ -726,7 +756,7 @@ const splitCombinedOptionByLabel = (
 
 const isLabeledOptionLine = (line: string): boolean => {
   const cleaned = normalizeLabelSource(stripUnderlineTags(String(line || "")))
-  return /^\s*[A-F](?:\s*[\.)\-,:])\s+.+$/i.test(cleaned)
+  return OPTION_LABEL_WITH_TEXT_REGEX.test(cleaned)
 }
 
 const normalizeLabelSource = (value: string): string =>
@@ -757,7 +787,7 @@ const collectLabeledOptionsFromRawLines = (
 
     if (started) {
       const normalized = normalizeLabelSource(stripUnderlineTags(original))
-      if (ANSWER_LINE_REGEX.test(normalized) || EXPLANATION_LINE_REGEX.test(normalized)) {
+      if ((ANSWER_LINE_REGEX.test(normalized) || EXPLANATION_LINE_REGEX.test(normalized)) && pendingLabelIndex === null) {
         break
       }
     }
@@ -769,7 +799,7 @@ const collectLabeledOptionsFromRawLines = (
 
     for (const unit of units) {
       const cleaned = normalizeLabelSource(stripUnderlineTags(unit))
-      const match = cleaned.match(/^\s*([A-F])(?:\s*[\.)\-,:])\s*([\s\S]*)\s*$/i)
+      const match = cleaned.match(OPTION_LABEL_WITH_TEXT_REGEX)
       if (!match) continue
 
       const labelIndex = match[1].toUpperCase().charCodeAt(0) - 65
@@ -960,11 +990,26 @@ const recoverUnlabeledOptions = (
 
   if (lines.length < 3) return null
 
+  // If the content already contains explicit A/B/C... labels, let labeled parsers handle it.
+  // Unlabeled fallback is intentionally conservative to avoid swallowing question/code lines.
+  const hasExplicitLabeledOptions = lines.some((line) => OPTION_LINE_REGEX.test(line) || OPTION_LABEL_WITH_TEXT_REGEX.test(line))
+  if (hasExplicitLabeledOptions) return null
+
+  const looksLikeCodeOrMarkup = (line: string): boolean => {
+    const text = String(line || "").trim()
+    if (!text) return false
+    if (/^<\/?[a-z][^>]*>$/i.test(text) || /<\/?\w+[^>]*>/i.test(text)) return true
+    if (/\b(?:runat|displaymode|showsummary|headertext|validationsummary)\s*=/i.test(text)) return true
+    if (/[{};]/.test(text) && /[=()]/.test(text)) return true
+    return false
+  }
+
   const looksLikeOptionLine = (line: string): boolean => {
     const text = String(line || "").trim()
     if (!text) return false
     if (ANSWER_LINE_REGEX.test(text) || EXPLANATION_LINE_REGEX.test(text)) return false
     if (QUESTION_LINE_REGEX.test(text) || NUMBERED_QUESTION_LINE_REGEX.test(text)) return false
+    if (looksLikeCodeOrMarkup(text)) return false
     if (text.length > 140) return false
     return true
   }
@@ -1069,7 +1114,36 @@ const finalizeWordBlock = (
 
   if (hasPrefixedOptions) {
     let lastOptionIndex = -1
+    let pendingOptionLabelIndex: number | null = null
+    let pendingOptionMarked = false
     for (const line of block.bodyLines) {
+      const normalizedLine = normalizeLabelSource(stripUnderlineTags(line))
+
+      if (pendingOptionLabelIndex !== null) {
+        const continuation = cleanAndNormalizeOption(normalizedLine)
+        if (continuation) {
+          pushOption(
+            continuation,
+            pendingOptionMarked || containsUnderlineMarker(line) || isMarkedOptionText(line),
+            pendingOptionLabelIndex,
+          )
+          lastOptionIndex = options.length - 1
+          pendingOptionLabelIndex = null
+          pendingOptionMarked = false
+          continue
+        }
+      }
+
+      const standaloneLabelMatch = normalizedLine.match(/^\s*([A-F])(?:\s*[\.)\-,:])\s*$/i)
+      if (standaloneLabelMatch) {
+        const labelIdx = standaloneLabelMatch[1].toUpperCase().charCodeAt(0) - 65
+        if (labelIdx >= 0 && labelIdx <= 5) {
+          pendingOptionLabelIndex = labelIdx
+          pendingOptionMarked = containsUnderlineMarker(line) || isMarkedOptionText(line)
+          continue
+        }
+      }
+
       const plainLine = stripUnderlineTags(line)
       const inlineSplit = splitInlineOptionSegments(line)
       if (inlineSplit) {
@@ -1294,6 +1368,34 @@ const finalizeWordBlock = (
     }
   }
 
+  // Defensive recovery: OCR/import noise can put code lines into options before real A/B/C/D.
+  // If that happens, move leading code-like lines back into the stem.
+  if (options.length > 4) {
+    const isCodeLikeLine = (value: string): boolean => {
+      const text = String(value || "").trim()
+      if (!text) return false
+      if (/^<\/?[a-z][^>]*>?$/i.test(text) || /<\/?\w+[^>]*>?/i.test(text)) return true
+      if (/\b(?:runat|displaymode|showsummary|headertext|validationsummary|asp:)\b/i.test(text)) return true
+      if (/\w+\s*=\s*['"][^'"]+['"]/.test(text)) return true
+      return false
+    }
+
+    let misplacedLeadingCount = 0
+    while (options.length - misplacedLeadingCount > 4 && isCodeLikeLine(options[misplacedLeadingCount] || "")) {
+      misplacedLeadingCount += 1
+    }
+
+    if (misplacedLeadingCount > 0) {
+      const movedBackToStem = options.slice(0, misplacedLeadingCount).map((line) => String(line || "").trim()).filter(Boolean)
+      questionText = [questionText, ...movedBackToStem].filter(Boolean).join("\n").trim()
+      options = options.slice(misplacedLeadingCount)
+      optionLabelIndexes = optionLabelIndexes.slice(misplacedLeadingCount)
+      markedOptionIndexes = markedOptionIndexes
+        .map((idx) => idx - misplacedLeadingCount)
+        .filter((idx) => idx >= 0)
+    }
+  }
+
   const question = options.length >= 2 ? questionText : [questionText, ...plainLines].join("\n").trim()
   if (!question) return null
 
@@ -1381,9 +1483,11 @@ const finalizeWordBlock = (
   }
 
   const fillAnswer = answerToken.trim()
+  const hasExplicitFillAnswer = Boolean(fillAnswer) && !looksLikeOptionReferenceToken(fillAnswer)
+
   // Keep incomplete fill-in questions so import count matches source file count.
   // Users can review/fix missing answers after import.
-  if (!hasFillInBlank) {
+  if (!hasFillInBlank && !hasExplicitFillAnswer) {
     return {
       type: "multiple_choice",
       question: questionWithSection,
@@ -1574,6 +1678,12 @@ const parseDocumentQuestions = async (
       continue
     }
 
+    const lastBodyLine = current.bodyLines[current.bodyLines.length - 1]
+    if (typeof lastBodyLine === "string" && STANDALONE_OPTION_LABEL_REGEX.test(stripUnderlineTags(lastBodyLine))) {
+      current.bodyLines.push(line)
+      continue
+    }
+
     const pointsMatch = line.match(POINTS_LINE_REGEX)
     if (pointsMatch) {
       const parsed = Number.parseFloat(pointsMatch[1])
@@ -1585,19 +1695,24 @@ const parseDocumentQuestions = async (
 
     const answerMatch = line.match(ANSWER_LINE_REGEX)
     if (answerMatch) {
-      current.answerLine = answerMatch[1].trim()
-      continue
+      const answerValue = answerMatch[1].trim()
+      if (shouldTreatAsAnswerMetadataLine(line, answerValue)) {
+        current.answerLine = answerValue
+        continue
+      }
     }
 
     const inlineAnswerMatch = line.match(INLINE_ANSWER_REGEX)
     if (inlineAnswerMatch) {
       const leading = inlineAnswerMatch[1].trim()
       const answerValue = inlineAnswerMatch[2].trim()
-      if (leading) {
-        current.bodyLines.push(leading)
+      if (shouldTreatAsAnswerMetadataLine(line, answerValue)) {
+        if (leading) {
+          current.bodyLines.push(leading)
+        }
+        current.answerLine = answerValue
+        continue
       }
-      current.answerLine = answerValue
-      continue
     }
 
     const explanationMatch = line.match(EXPLANATION_LINE_REGEX)
