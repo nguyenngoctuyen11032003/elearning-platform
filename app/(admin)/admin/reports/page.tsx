@@ -25,6 +25,7 @@ import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { autoTranslateData } from "@/lib/i18n/dynamic-translate"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
 
 // Types mirror backend admin report DTOs
 type RevenueByMonth = { month: string; revenue: number; orders: number; growth: number }
@@ -232,6 +233,14 @@ export default function AdminReportsPage() {
     return revenueByMonth.slice(-6)
   }, [filterPeriod, revenueByMonth])
 
+  const periodLabel = filterPeriod === "day"
+    ? t("adm_rpt_day", "Ngày")
+    : filterPeriod === "week"
+      ? t("adm_rpt_week", "Tuần")
+      : filterPeriod === "month"
+        ? t("adm_rpt_month", "Tháng")
+        : t("adm_rpt_year", "Năm")
+
   const teacherGrowth = growthChart.map((g) => ({ month: g.month, teachers: g.teachers }))
   const studentGrowth = growthChart.map((g) => ({ month: g.month, students: g.students }))
 
@@ -317,77 +326,139 @@ export default function AdminReportsPage() {
   }
 
   return (
-    <div className="min-h-screen w-full">
+    <div className="min-h-screen w-full bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <div className="w-full space-y-8">
         <div
-          className="relative overflow-hidden rounded-3xl p-8 animate-fadeIn"
-          style={{ backgroundImage: "url('/image/bg_report.png')", backgroundSize: "cover", backgroundPosition: "center" }}
+          className="relative overflow-hidden rounded-3xl p-8 lg:p-10 animate-fadeIn border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl"
+          style={{ backgroundImage: "url('/image/bg_login.png')", backgroundSize: "cover", backgroundPosition: "center" }}
         >
-          <div className="absolute inset-0 bg-black/15 dark:bg-black/45 rounded-3xl" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-900/80" />
 
-          <div className="relative z-10 space-y-8">
-            <div
-              className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown"
-              style={{ animationDelay: "0.15s" }}
-            >
-              <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("adm_rpt_title", "Báo cáo & Phân tích")}</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("adm_rpt_subtitle", "Xem chi tiết hiệu suất nền tảng")}</p>
+          <div className="relative z-10 space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+              <div className="space-y-3 animate-slideDown" style={{ animationDelay: "0.1s" }}>
+                <div className="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold uppercase tracking-wide rounded-full bg-white/80 text-primary shadow-sm backdrop-blur">
+                  {t("adm_rpt_label", "Báo cáo")}
+                </div>
+                <div className="space-y-2">
+                  <h1 className="text-3xl lg:text-4xl font-bold text-white drop-shadow-lg">{t("adm_rpt_title", "Báo cáo & Phân tích")}</h1>
+                  <p className="text-base text-white/85 max-w-2xl drop-shadow">{t("adm_rpt_subtitle", "Xem chi tiết hiệu suất nền tảng")}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="px-3 py-1 rounded-full bg-white/90 text-primary text-sm font-semibold shadow-sm backdrop-blur">
+                    {t("adm_rpt_period_chip", "Kỳ đang xem")}: {periodLabel}
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-black/15 text-white text-sm font-medium backdrop-blur">
+                    {t("adm_rpt_live", "Dữ liệu cập nhật tức thời")}
+                  </span>
+                </div>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                {[
-                  { value: "day", label: t("adm_rpt_day", "Ngày") },
-                  { value: "week", label: t("adm_rpt_week", "Tuần") },
-                  { value: "month", label: t("adm_rpt_month", "Tháng") },
-                  { value: "year", label: t("adm_rpt_year", "Năm") },
-                ].map((period) => (
-                  <button
-                    key={period.value}
-                    onClick={() => setFilterPeriod(period.value)}
-                    className={`px-4 py-2 rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
-                      filterPeriod === period.value
-                        ? "bg-white text-primary shadow-lg"
-                        : "bg-white/30 dark:bg-white/20 text-slate-900 dark:text-white hover:bg-white/45"
-                    }`}
-                  >
-                    {period.label}
-                  </button>
-                ))}
+
+              <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center gap-3 animate-slideDown" style={{ animationDelay: "0.2s" }}>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: "day", label: t("adm_rpt_day", "Ngày") },
+                    { value: "week", label: t("adm_rpt_week", "Tuần") },
+                    { value: "month", label: t("adm_rpt_month", "Tháng") },
+                    { value: "year", label: t("adm_rpt_year", "Năm") },
+                  ].map((period) => (
+                    <button
+                      key={period.value}
+                      onClick={() => setFilterPeriod(period.value)}
+                      className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-all duration-300 backdrop-blur-sm shadow-sm ${
+                        filterPeriod === period.value
+                          ? "bg-white text-primary border-white shadow-lg scale-[1.02]"
+                          : "bg-white/20 text-white border-white/40 hover:bg-white/30"
+                      }`}
+                    >
+                      {period.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={(event) => handleExport("revenue", event.currentTarget)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 text-primary font-semibold shadow-lg hover:shadow-xl transition-smooth backdrop-blur"
+                >
+                  <Download size={16} /> {t("adm_rpt_export", "Xuất báo cáo")}
+                </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <StatCard icon={DollarSign} title={t("adm_rpt_total_revenue", "Tổng doanh thu")} value={totals.totalRevenue} formatter={(val) => formatCurrency(Math.round(val))} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
+            <div className="rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/20 dark:bg-white/5 backdrop-blur-xl p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.16)] space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[ 
+                  { label: t("adm_rpt_total_revenue", "Tổng doanh thu"), value: totals.totalRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-primary/20 to-accent/25", icon: DollarSign },
+                  { label: t("adm_rpt_total_teachers", "Tổng giáo viên"), value: totals.totalTeachers, formatter: formatNumber, tone: "from-purple-200/30 to-blue-200/30", icon: Users },
+                  { label: t("adm_rpt_total_students", "Tổng học viên"), value: totals.totalStudents, formatter: formatNumber, tone: "from-green-200/25 to-teal-200/30", icon: TrendingUp },
+                  { label: t("adm_rpt_courses", "Khóa học"), value: totals.totalCourses, formatter: formatNumber, tone: "from-orange-200/30 to-yellow-200/25", icon: BookOpen },
+                ].map(({ label, value, formatter, tone, icon: Icon }, idx) => (
+                  <div key={label} className="group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-white/60 dark:border-slate-800 p-4 shadow-[0_10px_26px_rgba(15,23,42,0.16)]">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${tone} opacity-70 group-hover:opacity-90 transition-opacity duration-300`} />
+                    <div className="relative flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{label}</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                          <AnimatedNumber value={value} formatter={formatter} />
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                          {t("adm_rpt_period_update", "Cập nhật theo kỳ")}
+                        </p>
+                      </div>
+                      <div className="w-11 h-11 rounded-2xl bg-white/70 dark:bg-slate-800/80 border border-white/60 dark:border-slate-700 flex items-center justify-center shadow-inner">
+                        <Icon size={20} className="text-primary" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <StatCard icon={Users} title={t("adm_rpt_total_teachers", "Tổng giáo viên")} value={totals.totalTeachers} formatter={formatNumber} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <StatCard icon={TrendingUp} title={t("adm_rpt_total_students", "Tổng học viên")} value={totals.totalStudents} formatter={formatNumber} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <StatCard icon={BookOpen} title={t("adm_rpt_courses", "Khóa học")} value={totals.totalCourses} formatter={formatNumber} change={t("adm_rpt_period_update", "Cập nhật theo kỳ")} />
+
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                {[ 
+                  { label: t("adm_rpt_platform_rev", "Doanh thu nền tảng"), value: totals.platformRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-primary/15 to-primary/5" },
+                  { label: t("adm_rpt_teacher_rev", "Doanh thu giáo viên"), value: totals.teacherRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-emerald-100/40 to-green-100/30" },
+                  { label: t("adm_rpt_total_users", "Tổng người dùng"), value: totals.totalUsers, formatter: formatNumber, tone: "from-indigo-100/40 to-indigo-50/50" },
+                  { label: t("adm_rpt_growth_teachers", "Tăng trưởng GV"), value: teacherGrowth.at(-1)?.teachers || 0, formatter: formatNumber, suffix: ` ${t("adm_rpt_person", "người")}`, tone: "from-purple-100/40 to-blue-100/30" },
+                  { label: t("adm_rpt_growth_students", "Tăng trưởng HV"), value: studentGrowth.at(-1)?.students || 0, formatter: formatNumber, suffix: ` ${t("adm_rpt_person", "người")}`, tone: "from-cyan-100/35 to-teal-100/25" },
+                ].map((item) => (
+                  <div key={item.label} className="relative overflow-hidden rounded-xl px-3 py-3 bg-white/75 dark:bg-slate-900/70 border border-white/60 dark:border-slate-800 shadow-sm backdrop-blur">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${item.tone} opacity-70`} />
+                    <div className="relative space-y-1">
+                      <p className="text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-300 font-semibold">{item.label}</p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                        <AnimatedNumber value={item.value} formatter={item.formatter} suffix={item.suffix} />
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
+          <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+            <div className="flex items-start justify-between mb-6 gap-3">
+              <div className="space-y-2">
                 <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_revenue_chart", "Biểu đồ doanh thu")}</h2>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">
                   {filterPeriod === "day" ? t("adm_rpt_last_7_days", "7 ngày gần nhất") : filterPeriod === "week" ? t("adm_rpt_this_week", "Tuần này") : filterPeriod === "month" ? t("adm_rpt_12_months", "12 tháng") : t("adm_rpt_full_year", "Cả năm")}
                 </p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">{periodLabel}</span>
+                  <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200 text-xs font-semibold">
+                    {t("adm_rpt_total_revenue", "Tổng doanh thu")}: {formatCurrency(Math.round(totals.totalRevenue))}
+                  </span>
+                </div>
               </div>
-              <button
-                onClick={(event) => handleExport("revenue", event.currentTarget)}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-              >
-                <Download size={18} className="text-muted-foreground dark:text-slate-400" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(event) => handleExport("revenue", event.currentTarget)}
+                  className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth border border-border/60 dark:border-slate-700"
+                >
+                  <Download size={18} className="text-muted-foreground dark:text-slate-400" />
+                </button>
+              </div>
             </div>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
@@ -402,15 +473,23 @@ export default function AdminReportsPage() {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
+          <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+            <div className="flex items-start justify-between mb-6 gap-3">
+              <div className="space-y-2">
                 <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_category_dist", "Phân bố theo danh mục")}</h2>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_category_revenue", "Tỷ lệ doanh thu theo danh mục")}</p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200 text-xs font-semibold">
+                    {t("adm_rpt_th_category", "Danh mục")}: {revenueByCategory.length}
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-white/60 dark:bg-white/10 text-xs font-semibold text-foreground dark:text-white border border-border/60 dark:border-slate-700">
+                    {t("adm_rpt_total_revenue", "Tổng doanh thu")}: {formatCurrency(revenueByCategory.reduce((s, c) => s + (c.revenue || 0), 0))}
+                  </span>
+                </div>
               </div>
               <button
                 onClick={(event) => handleExport("category", event.currentTarget)}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth border border-border/60 dark:border-slate-700"
               >
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
@@ -441,15 +520,23 @@ export default function AdminReportsPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
+          <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+            <div className="flex items-start justify-between mb-6 gap-3">
+              <div className="space-y-2">
                 <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_teacher_growth", "Tăng trưởng giáo viên")}</h2>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_teacher_growth_desc", "Số lượng giáo viên theo thời gian")}</p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200 text-xs font-semibold">
+                    {t("adm_rpt_total_teachers", "Tổng giáo viên")}: {formatNumber(totals.totalTeachers)}
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-white/60 dark:bg-white/10 text-xs font-semibold text-foreground dark:text-white border border-border/60 dark:border-slate-700">
+                    {t("adm_rpt_growth_teachers", "Tăng trưởng GV")}: {formatNumber(teacherGrowth.at(-1)?.teachers || 0)}
+                  </span>
+                </div>
               </div>
               <button
                 onClick={(event) => handleExport("teachers", event.currentTarget)}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth border border-border/60 dark:border-slate-700"
               >
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
@@ -466,15 +553,23 @@ export default function AdminReportsPage() {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
+          <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+            <div className="flex items-start justify-between mb-6 gap-3">
+              <div className="space-y-2">
                 <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_student_growth", "Tăng trưởng học viên")}</h2>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_student_growth_desc", "Số lượng học viên theo thời gian")}</p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 rounded-full bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-200 text-xs font-semibold">
+                    {t("adm_rpt_total_students", "Tổng học viên")}: {formatNumber(totals.totalStudents)}
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-white/60 dark:bg-white/10 text-xs font-semibold text-foreground dark:text-white border border-border/60 dark:border-slate-700">
+                    {t("adm_rpt_growth_students", "Tăng trưởng HV")}: {formatNumber(studentGrowth.at(-1)?.students || 0)}
+                  </span>
+                </div>
               </div>
               <button
                 onClick={(event) => handleExport("students", event.currentTarget)}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth border border-border/60 dark:border-slate-700"
               >
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
@@ -492,15 +587,19 @@ export default function AdminReportsPage() {
           </div>
         </div>
 
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
+        <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+          <div className="flex items-start justify-between mb-6 gap-3">
+            <div className="space-y-2">
               <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_course_perf", "Hiệu suất khóa học")}</h2>
               <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_course_perf_desc", "Thống kê chi tiết theo khóa học")}</p>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">{t("adm_rpt_courses", "Khóa học")}: {coursePerformance.length}</span>
+                <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200 text-xs font-semibold">{t("adm_rpt_total_revenue", "Tổng doanh thu")}: {formatCurrency(coursePerformance.reduce((s, c) => s + (c.revenue || 0), 0))}</span>
+              </div>
             </div>
             <button
               onClick={(event) => handleExport("courses", event.currentTarget)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg transition-smooth hover:shadow-lg"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-xl transition-smooth hover:shadow-lg shadow-primary/30"
             >
               <Download size={16} /> {t("adm_rpt_export", "Xuất báo cáo")}
             </button>
@@ -584,11 +683,19 @@ export default function AdminReportsPage() {
           </div>
         </div>
 
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
+        <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+          <div className="flex items-start justify-between mb-6 gap-3">
+            <div className="space-y-2">
               <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_completion_rate", "Tỷ lệ hoàn thành theo danh mục")}</h2>
               <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_completion_desc", "Theo dõi mức độ hoàn thành của học viên")}</p>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 dark:from-purple-900/30 dark:to-pink-900/30 dark:text-purple-100 text-xs font-semibold">
+                  {t("adm_rpt_th_category", "Danh mục")}: {completionRates.length}
+                </span>
+                <span className="px-3 py-1 rounded-full bg-white/60 dark:bg-white/10 text-xs font-semibold text-foreground dark:text-white border border-border/60 dark:border-slate-700">
+                  {t("adm_rpt_total_students", "Tổng học viên")}: {formatNumber(totals.totalStudents)}
+                </span>
+              </div>
             </div>
           </div>
           
@@ -670,8 +777,8 @@ export default function AdminReportsPage() {
               className="fixed z-[9999]"
               style={{ top: exportMenuPos.top, left: exportMenuPos.left, width: 420, maxWidth: "calc(100vw - 24px)" }}
             >
-              <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
-                <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
+              <div className="bg-white/95 dark:bg-slate-900/95 border border-border/70 dark:border-slate-800 rounded-2xl shadow-[0_20px_60px_rgba(15,23,42,0.25)] w-full max-h-[90vh] overflow-y-auto relative z-[10000] backdrop-blur-xl">
+                <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 border-b border-border/70 dark:border-slate-800 p-6 flex items-center justify-between">
                   <h2 className="text-xl font-bold text-foreground dark:text-white">
                     {t("adm_rpt_export", "Xuất báo cáo")}: {selectedReport === "revenue" ? t("adm_rpt_name_revenue", "Báo cáo doanh thu") : selectedReport === "category" ? t("adm_rpt_name_category", "Báo cáo danh mục") : selectedReport === "teachers" ? t("adm_rpt_name_teachers", "Báo cáo giáo viên") : selectedReport === "students" ? t("adm_rpt_name_students", "Báo cáo học viên") : t("adm_rpt_name_courses", "Báo cáo khóa học")}
                   </h2>

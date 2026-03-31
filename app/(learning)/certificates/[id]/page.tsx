@@ -125,17 +125,17 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
       <div className="min-h-screen bg-gray-100 dark:bg-slate-950 flex items-center justify-center py-12 px-4 print:bg-white print:min-h-0 print:py-0 print:px-0">
         <div
           id="certificate"
-          className="relative w-[680px] max-w-full"
-          style={{ fontFamily: "'Georgia', serif" }}
+          className="relative w-full max-w-[900px]"
+          style={{ fontFamily: "'Roboto', 'Helvetica Neue', Arial, sans-serif", aspectRatio: "210 / 297" }}
         >
           {/* Outer border */}
           <div
-            className="p-[6px] rounded-lg"
+            className="p-[6px] rounded-lg h-full"
             style={{ background: "linear-gradient(135deg, #b8860b, #ffd700, #b8860b, #ffd700, #b8860b)" }}
           >
             {/* Inner dark background */}
             <div
-              className="relative rounded-md px-10 py-12 flex flex-col items-center text-center"
+              className="relative rounded-md px-10 py-12 flex flex-col items-center text-center h-full"
               style={{ background: "#0d1b2e" }}
             >
               {/* Inner gold border inset */}
@@ -252,10 +252,10 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
 
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 10mm; }
+          @page { size: A4 portrait; margin: 10mm; }
           body * { visibility: hidden; }
           #certificate, #certificate * { visibility: visible; }
-          #certificate { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90vw; }
+          #certificate { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 210mm; max-width: 100%; height: auto; }
         }
       `}</style>
     </>

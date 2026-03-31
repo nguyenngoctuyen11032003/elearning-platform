@@ -161,7 +161,10 @@ export default function AdminExamsPage() {
       })
 
       if (!res.ok) {
-        throw new Error(t("adm_exam_templates_load_fail", "Failed to fetch certificate templates"))
+        const message = t("adm_exam_templates_load_fail", "Failed to fetch certificate templates")
+        toast.error(message)
+        setCertificateTemplates([])
+        return []
       }
 
       const payload = await res.json()
@@ -170,6 +173,8 @@ export default function AdminExamsPage() {
       return templates
     } catch (error) {
       console.error("Failed to fetch certificate templates", error)
+      toast.error(t("adm_exam_templates_load_fail", "Failed to fetch certificate templates"))
+      setCertificateTemplates([])
       return []
     }
   }
@@ -222,7 +227,6 @@ export default function AdminExamsPage() {
   useEffect(() => {
     const initialize = async () => {
       const templates = await fetchCertificateTemplates()
-      setCertificateTemplates(templates)
       await fetchExams(templates)
     }
     initialize()
