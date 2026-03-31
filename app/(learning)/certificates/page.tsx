@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Download, Share2, Award, Calendar, User, FileText, CheckCircle, ExternalLink, Loader2 } from "lucide-react"
+import { Download, Share2, Award, Calendar, User, FileText, CheckCircle, ExternalLink, Loader2, Clock, AlertCircle, Eye } from "lucide-react"
 import { PremiumCard } from "@/components/ui/premium-card"
 import { PageHero } from "@/components/ui/page-hero"
 import { useLanguage } from "@/lib/i18n/language-context"
@@ -30,12 +30,20 @@ interface Certificate {
 }
 
 function mapCertificate(raw: any): Certificate {
+  const imageUrl =
+    raw?.imageUrl ||
+    raw?.certificateImageUrl ||
+    raw?.templateImageUrl ||
+    raw?.metadata?.imageUrl ||
+    raw?.metadata?.previewUrl ||
+    raw?.metadata?.certificateUrl
+
   return {
     id: raw?.id || "",
     certificateNumber: raw?.certificateNumber || "",
     issueDate: raw?.issueDate || raw?.createdAt || new Date().toISOString(),
     pdfUrl: raw?.pdfUrl || undefined,
-    imageUrl: raw?.imageUrl || undefined,
+    imageUrl: imageUrl || undefined,
     status: raw?.status || "approved",
     courseId: raw?.courseId || raw?.course?.id || "",
     course: raw?.course
@@ -134,6 +142,35 @@ export default function CertificatesPage() {
     }
   }
 
+  const renderStatusBadge = (status: string) => {
+    const normalized = status?.toLowerCase()
+    const map: Record<string, { label: string; className: string; icon: JSX.Element }> = {
+      approved: {
+        label: t("cert_approved", "Đã xác nhận"),
+        className: "bg-emerald-100/80 text-emerald-700 border border-emerald-300 shadow-sm",
+        icon: <CheckCircle size={14} />,
+      },
+      pending: {
+        label: t("cert_pending", "Chờ duyệt"),
+        className: "bg-amber-100/80 text-amber-700 border border-amber-300 shadow-sm",
+        icon: <Clock size={14} />,
+      },
+      rejected: {
+        label: t("cert_rejected", "Từ chối"),
+        className: "bg-rose-100/80 text-rose-700 border border-rose-300 shadow-sm",
+        icon: <AlertCircle size={14} />,
+      },
+    }
+
+    const cfg = map[normalized] || map.pending
+    return (
+      <span className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-full backdrop-blur ${cfg.className}`}>
+        {cfg.icon}
+        {cfg.label}
+      </span>
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -198,7 +235,7 @@ export default function CertificatesPage() {
 
       {/* Certificates Grid */}
       {certificates.length > 0 ? (
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-5 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
           {certificates.map((cert, idx) => (
             <motion.div
               key={cert.id}
@@ -206,65 +243,87 @@ export default function CertificatesPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
             >
-              <PremiumCard className="overflow-hidden">
-                {/* Certificate Preview */}
-                <div className="h-40 bg-gradient-to-br from-primary/30 to-purple-600/30 flex items-center justify-center relative overflow-hidden">
-                  {cert.imageUrl ? (
-                    <img src={cert.imageUrl} alt={t("cert_image_alt", "Chứng chỉ")} className="w-full h-full object-cover" />
-                  ) : (
-                    <Award size={64} className="text-white/50" />
-                  )}
-                  <div className="absolute top-3 right-3">
-                    <span className={`px-2 py-1 text-xs rounded-full border ${
-                      cert.status === "approved"
-                        ? "bg-green-500/20 text-green-400 border-green-500/30"
-                        : cert.status === "pending"
-                        ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                        : "bg-red-500/20 text-red-400 border-red-500/30"
-                    }`}>
-                      {cert.status === "approved" ? t("cert_approved", "Đã xác nhận") : cert.status === "pending" ? t("cert_pending", "Chờ duyệt") : t("cert_rejected", "Từ chối")}
-                    </span>
+              <PremiumCard className="overflow-hidden border border-border/70 dark:border-slate-800 shadow-xl bg-gradient-to-b from-white via-slate-50/70 to-slate-100/60 dark:from-slate-900/80 dark:via-slate-950/70 dark:to-slate-950">
+                <div className="relative p-3 sm:p-4">
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 via-white to-purple-50 dark:from-primary/15 dark:via-slate-900 dark:to-slate-950" />
+                  <div className="relative rounded-2xl border border-white/70 dark:border-white/10 shadow-[0_20px_60px_rgba(59,130,246,0.12)] overflow-hidden">
+                    <div className="absolute top-4 left-4 z-10">{renderStatusBadge(cert.status)}</div>
+                    <div className="absolute inset-0 pointer-events-none rounded-2xl border border-white/60 dark:border-white/10" />
+                    <div className="relative p-3 sm:p-4 bg-white/70 dark:bg-slate-900/80 backdrop-blur">
+                      <div className="relative w-full aspect-[210/297] max-h-[320px] rounded-xl border border-border/70 dark:border-slate-700 bg-slate-950/80 dark:bg-slate-950 shadow-inner overflow-hidden flex items-center justify-center">
+                        {cert.imageUrl ? (
+                          <img
+                            src={cert.imageUrl}
+                            alt={t("cert_image_alt", "Chứng chỉ")}
+                            className="w-full h-full object-contain"
+                            loading="lazy"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-center gap-3 text-white/70">
+                            <Award size={56} className="text-white/70" />
+                            <p className="text-sm font-medium">
+                              {t("cert_preview_empty", "Chưa có ảnh chứng chỉ")}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-foreground dark:text-white mb-1">
-                    {cert.course?.title || t("cert_course_cert", "Chứng chỉ khóa học")}
-                  </h3>
-                  <p className="text-muted-foreground dark:text-slate-400 text-sm mb-4">
-                    {t("cert_completion", "Chứng nhận hoàn thành xuất sắc khóa học")}
-                  </p>
+                <div className="p-5 pt-4 space-y-4">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs uppercase tracking-[0.08em] text-primary font-semibold">
+                      {t("cert_course_cert", "Chứng chỉ khóa học")}
+                    </p>
+                    <h3 className="text-lg font-bold text-foreground dark:text-white leading-tight">
+                      {cert.course?.title || t("cert_course_cert", "Chứng chỉ khóa học")}
+                    </h3>
+                    <p className="text-muted-foreground dark:text-slate-400 text-[13px]">
+                      {t("cert_completion", "Chứng nhận hoàn thành xuất sắc khóa học")}
+                    </p>
+                  </div>
 
-                  <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                    <div>
-                      <p className="text-muted-foreground dark:text-slate-500 flex items-center gap-1">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-1">
+                      <p className="text-muted-foreground dark:text-slate-500 flex items-center gap-2 font-medium text-sm">
                         <User size={14} /> {t("cert_instructor", "Giảng viên")}
                       </p>
-                      <p className="text-foreground dark:text-white font-medium">{getInstructorName(cert)}</p>
+                      <p className="text-foreground dark:text-white font-semibold text-sm">{getInstructorName(cert)}</p>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground dark:text-slate-500 flex items-center gap-1">
+                    <div className="space-y-1">
+                      <p className="text-muted-foreground dark:text-slate-500 flex items-center gap-2 font-medium text-sm">
                         <Calendar size={14} /> {t("cert_issue_date", "Ngày cấp")}
                       </p>
-                      <p className="text-foreground dark:text-white font-medium">{formatDate(cert.issueDate)}</p>
+                      <p className="text-foreground dark:text-white font-semibold text-sm">{formatDate(cert.issueDate)}</p>
                     </div>
-                    <div className="col-span-2">
-                      <p className="text-muted-foreground dark:text-slate-500">{t("cert_number", "Số chứng chỉ")}</p>
-                      <p className="text-foreground dark:text-white font-medium font-mono text-xs">{cert.certificateNumber}</p>
+                    <div className="col-span-2 space-y-1">
+                      <p className="text-muted-foreground dark:text-slate-500 font-medium">{t("cert_number", "Số chứng chỉ")}</p>
+                      <p className="text-foreground dark:text-white font-semibold font-mono text-xs bg-slate-100/80 dark:bg-slate-800/70 rounded-lg px-3 py-2 inline-block">
+                        {cert.certificateNumber}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 pt-4 border-t border-border dark:border-slate-700">
+                  <div className="flex flex-wrap gap-2 pt-3 border-t border-border dark:border-slate-800">
                     <button
                       onClick={() => handleDownload(cert)}
-                      className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 min-w-[160px] px-4 py-2.5 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 shadow-md"
                     >
                       <Download size={16} />
                       {t("cert_download", "Tải xuống")}
                     </button>
+                    <Link
+                      href={`/certificates/${cert.id}`}
+                      className="px-4 py-2.5 border border-border dark:border-slate-700 rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-colors flex items-center gap-2 font-semibold"
+                    >
+                      <Eye size={16} />
+                      {t("cert_view", "Xem chứng chỉ")}
+                    </Link>
                     <button
                       onClick={() => handleShare(cert)}
-                      className="px-4 py-2 border border-border dark:border-slate-700 rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                      className="px-4 py-2.5 border border-border dark:border-slate-700 rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-colors flex items-center gap-2 font-semibold"
                     >
                       <Share2 size={16} />
                       {t("cert_share", "Chia sẻ")}
@@ -272,7 +331,7 @@ export default function CertificatesPage() {
                     {cert.courseId && (
                       <Link
                         href={`/courses/${cert.courseId}`}
-                        className="px-4 py-2 border border-border dark:border-slate-700 rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                        className="px-4 py-2.5 border border-border dark:border-slate-700 rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-colors flex items-center gap-2 font-semibold"
                       >
                         <ExternalLink size={16} />
                         {t("cert_course_link", "Khóa học")}
