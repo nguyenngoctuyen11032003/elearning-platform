@@ -18,6 +18,11 @@ import {
   Line,
   BarChart,
   Bar,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
 } from "recharts"
 import { useState, useEffect } from "react"
 import { formatPrice, formatNumber, formatCurrency, formatCurrencyByLanguage } from "@/lib/format"
@@ -45,6 +50,13 @@ type WeeklyPoint = { day: string; activeUsers: number; newSignups: number }
 type GrowthPoint = { month: string; teachers: number; students: number }
 type CategoryItem = { name: string; value: number; color: string; percentage?: number }
 type Transaction = { id: string; user: string; course: string; amount: number; status: string; date: string }
+type TeacherPlanSummary = { paid: number; free: number; unsubscribed: number; total: number; payingRate: number }
+type CertificateSummary = { withCertificate: number; withoutCertificate: number; totalCertificates: number }
+type TeacherRanking = { teacherId: string; teacherName: string; courseCount: number; studentCount: number }
+type StudentCompletion = { studentId: string; studentName: string; completedCourses: number; certificates: number }
+type StudentCertificate = { studentId: string; studentName: string; certificateCount: number; completedCourses: number }
+type RadarMetric = { metric: string; value: number }
+type CoursePerformance = { courseId: string; courseTitle: string; teacherName: string; enrollments: number; revenue: number; averageRating: number; completionRate: number }
 
 const pieColors = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"]
 
@@ -122,6 +134,42 @@ export default function AdminDashboard() {
   const [weeklyStats, setWeeklyStats] = useState<WeeklyPoint[]>([])
   const [growthData, setGrowthData] = useState<GrowthPoint[]>([])
   const [categoryData, setCategoryData] = useState<CategoryItem[]>([])
+  const [teacherPlanSummary, setTeacherPlanSummary] = useState<TeacherPlanSummary | null>(null)
+  const [certificateSummary, setCertificateSummary] = useState<CertificateSummary | null>(null)
+  const [teacherPlanData, setTeacherPlanData] = useState<CategoryItem[]>([])
+  const [certificateData, setCertificateData] = useState<CategoryItem[]>([])
+  const [topTeachers, setTopTeachers] = useState<TeacherRanking[]>([])
+  const [topStudentsCompletion, setTopStudentsCompletion] = useState<StudentCompletion[]>([])
+  const [topStudentsCertificates, setTopStudentsCertificates] = useState<StudentCertificate[]>([])
+  const [radarMetrics, setRadarMetrics] = useState<RadarMetric[]>([])
+  const [coursePerformanceTop, setCoursePerformanceTop] = useState<CoursePerformance[]>([])
+
+  const teacherRankingData = topTeachers.map((item) => ({
+    name: item.teacherName,
+    value: item.courseCount,
+    subtitle: `${t("adm_dash_students", "Học viên")}: ${item.studentCount}`,
+  }))
+
+  const studentCompletionData = topStudentsCompletion.map((item) => ({
+    name: item.studentName,
+    value: item.completedCourses,
+    subtitle: `${t("adm_dash_certificates", "Chứng chỉ")}: ${item.certificates}`,
+  }))
+
+  const studentCertificateData = topStudentsCertificates.map((item) => ({
+    name: item.studentName,
+    value: item.certificateCount,
+    subtitle: `${t("adm_dash_completed_courses", "Khóa hoàn thành")}: ${item.completedCourses}`,
+  }))
+
+  const coursePerformanceData = coursePerformanceTop.map((item) => ({
+    name: item.courseTitle,
+    teacher: item.teacherName,
+    enrollments: item.enrollments,
+    revenue: item.revenue,
+    rating: item.averageRating,
+    completionRate: item.completionRate,
+  }))
 
 function buildRevenueChart(transactions: { createdAt: string; amount: number }[]) {
   const revenueMap = new Map<string, number>()
@@ -247,6 +295,89 @@ useEffect(() => {
           : []
       )
 
+      /* ================== PLAN & CERTIFICATE BREAKDOWN ================== */
+      const planSummary: TeacherPlanSummary = {
+        paid: Number(dashboard.teacherPlanSummary?.paid ?? 0),
+        free: Number(dashboard.teacherPlanSummary?.free ?? 0),
+        unsubscribed: Number(dashboard.teacherPlanSummary?.unsubscribed ?? 0),
+        total: Number(dashboard.teacherPlanSummary?.total ?? 0),
+        payingRate: Number(dashboard.teacherPlanSummary?.payingRate ?? 0),
+      }
+      setTeacherPlanSummary(planSummary)
+
+      setTeacherPlanData([
+        { name: t("adm_dash_paid_teachers", "GV trả phí"), value: planSummary.paid, color: "#22c55e" },
+        { name: t("adm_dash_free_teachers", "GV miễn phí"), value: planSummary.free, color: "#3b82f6" },
+        { name: t("adm_dash_unsub_teachers", "GV chưa đăng ký"), value: planSummary.unsubscribed, color: "#f97316" },
+      ].filter((item) => item.value > 0))
+
+      const certSummary: CertificateSummary = {
+        withCertificate: Number(dashboard.certificateSummary?.withCertificate ?? 0),
+        withoutCertificate: Number(dashboard.certificateSummary?.withoutCertificate ?? 0),
+        totalCertificates: Number(dashboard.certificateSummary?.totalCertificates ?? 0),
+      }
+      setCertificateSummary(certSummary)
+      setCertificateData([
+        { name: t("adm_dash_students_with_cert", "HV có chứng chỉ"), value: certSummary.withCertificate, color: "#a855f7" },
+        { name: t("adm_dash_students_no_cert", "HV chưa có"), value: certSummary.withoutCertificate, color: "#f59e0b" },
+      ].filter((item) => item.value > 0))
+
+      setTopTeachers(
+        Array.isArray(dashboard.topTeachersByCourses)
+          ? dashboard.topTeachersByCourses.map((item: any) => ({
+              teacherId: item.teacherId,
+              teacherName: item.teacherName,
+              courseCount: Number(item.courseCount ?? 0),
+              studentCount: Number(item.studentCount ?? 0),
+            }))
+          : []
+      )
+
+      setTopStudentsCompletion(
+        Array.isArray(dashboard.topStudentsByCompletion)
+          ? dashboard.topStudentsByCompletion.map((item: any) => ({
+              studentId: item.studentId,
+              studentName: item.studentName,
+              completedCourses: Number(item.completedCourses ?? 0),
+              certificates: Number(item.certificates ?? 0),
+            }))
+          : []
+      )
+
+      setTopStudentsCertificates(
+        Array.isArray(dashboard.topStudentsByCertificates)
+          ? dashboard.topStudentsByCertificates.map((item: any) => ({
+              studentId: item.studentId,
+              studentName: item.studentName,
+              certificateCount: Number(item.certificateCount ?? 0),
+              completedCourses: Number(item.completedCourses ?? 0),
+            }))
+          : []
+      )
+
+      setCoursePerformanceTop(
+        Array.isArray(dashboard.coursePerformanceTop)
+          ? dashboard.coursePerformanceTop.map((item: any) => ({
+              courseId: item.courseId,
+              courseTitle: item.courseTitle,
+              teacherName: item.teacherName,
+              enrollments: Number(item.enrollments ?? 0),
+              revenue: Number(item.revenue ?? 0),
+              averageRating: Number(item.averageRating ?? 0),
+              completionRate: Number(item.completionRate ?? 0),
+            }))
+          : []
+      )
+
+      const radarSource: RadarMetric[] = [
+        { metric: t("adm_dash_paid_teachers", "GV trả phí"), value: planSummary.paid },
+        { metric: t("adm_dash_free_or_unsub", "GV chưa trả phí"), value: planSummary.free + planSummary.unsubscribed },
+        { metric: t("adm_dash_students_with_cert", "HV có chứng chỉ"), value: certSummary.withCertificate },
+        { metric: t("adm_dash_students_no_cert", "HV chưa có chứng chỉ"), value: certSummary.withoutCertificate },
+        { metric: t("adm_dash_top_completion", "HV hoàn thành nhiều khóa"), value: topStudentsCompletion?.[0]?.completedCourses ?? 0 },
+      ].filter((item) => item.value > 0)
+      setRadarMetrics(radarSource)
+
       /* ================== RECENT TRANSACTIONS ================== */
       setRecentTransactions(
         (dashboard.recentTransactions ?? []).map((item: any) => ({
@@ -278,6 +409,15 @@ useEffect(() => {
       setWeeklyStats([])
       setGrowthData([])
       setCategoryData([])
+      setTeacherPlanSummary(null)
+      setCertificateSummary(null)
+      setTeacherPlanData([])
+      setCertificateData([])
+      setTopTeachers([])
+      setTopStudentsCompletion([])
+      setTopStudentsCertificates([])
+      setRadarMetrics([])
+      setCoursePerformanceTop([])
     } finally {
       setLoading(false)
     }
@@ -584,6 +724,238 @@ if (loading) {
                 />
               </LineChart>
             </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Adoption & Certificates */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground dark:text-white">{t("adm_dash_radar_title", "Tổng quan sức khỏe")}</h3>
+              {teacherPlanSummary?.payingRate ? (
+                <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary font-medium">
+                  {teacherPlanSummary.payingRate}% {t("adm_dash_pay_rate", "GV trả phí")}
+                </span>
+              ) : null}
+            </div>
+            {radarMetrics.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">
+                {t("adm_dash_no_radar", "Chưa đủ dữ liệu để hiển thị")}
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height={320}>
+                <RadarChart data={radarMetrics} outerRadius={120}>
+                  <PolarGrid stroke="#e2e8f0" />
+                  <PolarAngleAxis dataKey="metric" tick={{ fill: '#475569', fontSize: 12 }} />
+                  <PolarRadiusAxis angle={30} tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                  <Radar
+                    name={t("adm_dash_health_profile", "Chỉ số hệ thống")}
+                    dataKey="value"
+                    stroke="#6366f1"
+                    fill="#6366f1"
+                    fillOpacity={0.35}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#0f172a",
+                      border: "1px solid #1e293b",
+                      borderRadius: "10px",
+                      color: "#e2e8f0",
+                    }}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_plan_breakdown", "Tỷ lệ giáo viên theo gói")}</h3>
+            {teacherPlanData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_plan_data", "Chưa có dữ liệu gói")}</p>
+            ) : (
+              <div className="flex flex-col items-center gap-4">
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie data={teacherPlanData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label>
+                      {teacherPlanData.map((entry, idx) => (
+                        <Cell key={`plan-${idx}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [formatNumber(Number(value ?? 0)), String(name)]}
+                      contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#22c55e" }}></span>
+                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_paid_teachers", "GV trả phí")}: {formatNumber(teacherPlanSummary?.paid || 0)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#3b82f6" }}></span>
+                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_free_teachers", "GV miễn phí")}: {formatNumber(teacherPlanSummary?.free || 0)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#f97316" }}></span>
+                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_unsub_teachers", "Chưa đăng ký")}: {formatNumber(teacherPlanSummary?.unsubscribed || 0)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#94a3b8" }}></span>
+                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_total_teachers", "Tổng GV")}: {formatNumber(teacherPlanSummary?.total || 0)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_cert_breakdown", "Tỷ lệ chứng chỉ học viên")}</h3>
+            {certificateData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_cert_data", "Chưa có dữ liệu chứng chỉ")}</p>
+            ) : (
+              <div className="flex flex-col items-center gap-4">
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie data={certificateData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label>
+                      {certificateData.map((entry, idx) => (
+                        <Cell key={`cert-${idx}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [formatNumber(Number(value ?? 0)), String(name)]}
+                      contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#a855f7" }}></span>
+                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_students_with_cert", "HV có chứng chỉ")}: {formatNumber(certificateSummary?.withCertificate || 0)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#f59e0b" }}></span>
+                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_students_no_cert", "HV chưa có")}: {formatNumber(certificateSummary?.withoutCertificate || 0)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#0ea5e9" }}></span>
+                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_cert_total", "Tổng chứng chỉ")}: {formatNumber(certificateSummary?.totalCertificates || 0)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Rankings */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_top_teachers_courses", "GV có nhiều khóa học nhất")}</h3>
+            {teacherRankingData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_teacher_rank", "Chưa có dữ liệu")}</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={teacherRankingData} layout="vertical" margin={{ left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis type="number" stroke="#94a3b8" hide />
+                  <YAxis type="category" dataKey="name" stroke="#94a3b8" width={120} />
+                  <Tooltip
+                    formatter={(value, name, props) => [formatNumber(Number(value ?? 0)), props?.payload?.subtitle]}
+                    contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                  />
+                  <Bar dataKey="value" fill="#22c55e" radius={[6, 6, 6, 6]}>
+                    {teacherRankingData.map((entry, index) => (
+                      <Cell key={`teacher-${index}`} fill={index === 0 ? "#22c55e" : "#16a34a"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_top_students_completion", "HV hoàn thành nhiều khóa nhất")}</h3>
+            {studentCompletionData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_student_rank", "Chưa có dữ liệu")}</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={studentCompletionData} layout="vertical" margin={{ left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis type="number" stroke="#94a3b8" hide />
+                  <YAxis type="category" dataKey="name" stroke="#94a3b8" width={120} />
+                  <Tooltip
+                    formatter={(value, name, props) => [formatNumber(Number(value ?? 0)), props?.payload?.subtitle]}
+                    contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                  />
+                  <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 6, 6]}>
+                    {studentCompletionData.map((entry, index) => (
+                      <Cell key={`student-comp-${index}`} fill={index === 0 ? "#06b6d4" : "#0ea5e9"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_top_students_cert", "HV có nhiều chứng chỉ nhất")}</h3>
+            {studentCertificateData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_cert_rank", "Chưa có dữ liệu")}</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={studentCertificateData} layout="vertical" margin={{ left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis type="number" stroke="#94a3b8" hide />
+                  <YAxis type="category" dataKey="name" stroke="#94a3b8" width={120} />
+                  <Tooltip
+                    formatter={(value, name, props) => [formatNumber(Number(value ?? 0)), props?.payload?.subtitle]}
+                    contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                  />
+                  <Bar dataKey="value" fill="#f97316" radius={[6, 6, 6, 6]}>
+                    {studentCertificateData.map((entry, index) => (
+                      <Cell key={`student-cert-${index}`} fill={index === 0 ? "#f97316" : "#fb923c"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 xl:col-span-3">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground dark:text-white">{t("adm_dash_course_perf", "Hiệu suất khóa học")}</h3>
+              <span className="text-xs text-muted-foreground">{t("adm_dash_top5", "Top 5 theo doanh thu")}</span>
+            </div>
+            {coursePerformanceData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_course_perf", "Chưa có dữ liệu hiệu suất")}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border dark:border-slate-800">
+                      <th className="text-left py-3 px-4">{t("adm_dash_course", "Khóa học")}</th>
+                      <th className="text-left py-3 px-4">{t("adm_dash_teacher", "Giảng viên")}</th>
+                      <th className="text-left py-3 px-4">{t("adm_dash_enrollments", "Học viên")}</th>
+                      <th className="text-left py-3 px-4">{t("adm_dash_revenue", "Doanh thu")}</th>
+                      <th className="text-left py-3 px-4">{t("adm_dash_rating", "Đánh giá")}</th>
+                      <th className="text-left py-3 px-4">{t("adm_dash_completion_rate", "Tỉ lệ hoàn thành")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {coursePerformanceData.map((row, idx) => (
+                      <tr key={idx} className="border-b border-border dark:border-slate-800 hover:bg-secondary/40 dark:hover:bg-slate-800/50 transition-smooth">
+                        <td className="py-3 px-4 font-medium text-foreground dark:text-white">{row.name}</td>
+                        <td className="py-3 px-4 text-muted-foreground dark:text-slate-300">{row.teacher}</td>
+                        <td className="py-3 px-4">{formatNumber(row.enrollments)}</td>
+                        <td className="py-3 px-4">{formatCurrencyByLanguage(row.revenue, language)}</td>
+                        <td className="py-3 px-4">{row.rating.toFixed(1)}</td>
+                        <td className="py-3 px-4">{row.completionRate.toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
