@@ -41,6 +41,14 @@ async function fetchJson(url: string) {
   return unwrapped;
 }
 
+function normalizeImage(url?: string) {
+  if (!url || typeof url !== "string") return "/placeholder.svg";
+  // Một số ảnh được trả về dạng /api/uploads/... nhưng static được serve tại /uploads
+  const cleaned = url.replace(/^https?:\/\/learn\.icss\.com\.vn\/api\//, "https://learn.icss.com.vn/")
+                    .replace(/(^|\s)\/api\/uploads\//, "$1/uploads/");
+  return cleaned;
+}
+
 export default function CoursesPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -73,12 +81,12 @@ export default function CoursesPage() {
         ]);
 
         const courses = Array.isArray(coursesRaw) ? coursesRaw : [];
-        // Normalise price to number (backend returns string e.g. "1289000.00")
+        // Normalise price to number (backend returns string e.g. "1289000.00") và chuẩn hoá URL ảnh
         const normalised = courses.map((c: any) => ({
           ...c,
           price: parseFloat(c.price) || 0,
           discountPrice: parseFloat(c.discountPrice) || 0,
-          image: c.thumbnail || "/placeholder.svg",
+          image: normalizeImage(c.thumbnail),
         }));
         setAllCourses(normalised);
 
