@@ -3,7 +3,17 @@
 import { Suspense, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, ClipboardList, Wand2, CheckCircle2 } from "lucide-react"
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ClipboardList,
+  Database,
+  Eye,
+  FileText,
+  SlidersHorizontal,
+  Sparkles,
+  Wand2,
+} from "lucide-react"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/authfetch"
 import { ScientificText } from "@/components/scientific-text"
@@ -220,6 +230,15 @@ function TeacherGenerateExamCreatePageContent() {
   const [numExamVariants, setNumExamVariants] = useState(1)
   const [variantCount, setVariantCount] = useState(1)
   const [examVariants, setExamVariants] = useState<BankQuestion[][]>([])
+  const [currentStep, setCurrentStep] = useState(1)
+
+  const totalSteps = 4
+  const stepItems = [
+    { step: 1, title: "Thông tin đề thi", icon: FileText },
+    { step: 2, title: "Ngân hàng nguồn", icon: Database },
+    { step: 3, title: "Phân bổ câu hỏi", icon: SlidersHorizontal },
+    { step: 4, title: "Review & tạo đề", icon: Eye },
+  ] as const
 
   useEffect(() => {
     const loadData = async () => {
@@ -278,7 +297,7 @@ function TeacherGenerateExamCreatePageContent() {
 
           if (missingQuestionIds.length > 0) {
             const detailPairs = await Promise.all(
-              missingQuestionIds.map(async (examId) => {
+              missingQuestionIds.map(async (examId: string) => {
                 try {
                   const detailResponse = await authFetch(`/exams/${examId}`)
                   if (!detailResponse.ok) return { examId, questions: [] as BankQuestion[] }
@@ -295,7 +314,7 @@ function TeacherGenerateExamCreatePageContent() {
 
             const questionMap = new Map(detailPairs.map((item) => [item.examId, item.questions]))
 
-            merged = mapped.map((exam) => {
+            merged = mapped.map((exam: SourceExam) => {
               if (exam.questions.length > 0) return exam
               const nextQuestions = questionMap.get(exam.id) || []
               return {
@@ -475,6 +494,17 @@ function TeacherGenerateExamCreatePageContent() {
     return allQuestions.filter((question) => selectedChapters.includes(question.chapter || "Chưa phân chương"))
   }, [allQuestions, selectedChapters])
 
+  const generatedDifficultyStats = useMemo(() => {
+    return generatedQuestions.reduce(
+      (acc, question) => {
+        const key = question.difficulty || "medium"
+        acc[key] += 1
+        return acc
+      },
+      { easy: 0, medium: 0, hard: 0 } as Record<Difficulty, number>,
+    )
+  }, [generatedQuestions])
+
   const availableCertificates = useMemo(() => {
     if (!selectedCourseId) return []
     return templates.filter((cert) => {
@@ -561,6 +591,52 @@ function TeacherGenerateExamCreatePageContent() {
     }
   }
 
+  const validateWizardStep = (step: number) => {
+    if (step === 1) {
+      if (!title.trim()) {
+        toast.error("Vui lòng nhập tiêu đề đề thi")
+        return false
+      }
+      if (!selectedCourseId) {
+        toast.error("Vui lòng chọn khóa học")
+        return false
+      }
+      if (type === "official" && !certificateTemplateId) {
+        toast.error("Bài thi thật cần chọn chứng chỉ")
+        return false
+      }
+      if (availableFrom && availableUntil && new Date(availableUntil) <= new Date(availableFrom)) {
+        toast.error("Thời gian đóng bài phải sau thời gian mở bài")
+        return false
+      }
+    }
+
+    if (step === 2) {
+      if (selectedExamIds.length === 0) {
+        toast.error("Vui lòng chọn ít nhất một ngân hàng đề thi")
+        return false
+      }
+    }
+
+    if (step === 3) {
+      if (generatedQuestions.length === 0) {
+        toast.error("Hãy bấm 'Sinh bộ câu hỏi' trước khi sang bước review")
+        return false
+      }
+    }
+
+    return true
+  }
+
+  const handleNextStep = () => {
+    if (!validateWizardStep(currentStep)) return
+    setCurrentStep((prev) => Math.min(totalSteps, prev + 1))
+  }
+
+  const handlePrevStep = () => {
+    setCurrentStep((prev) => Math.max(1, prev - 1))
+  }
+
   const handleCreateExam = async () => {
     if (!title.trim()) {
       toast.error("Vui lòng nhập tiêu đề đề thi")
@@ -638,271 +714,418 @@ function TeacherGenerateExamCreatePageContent() {
     }
   }
 
+  const requestedByDifficulty = easyCount + mediumCount + hardCount
+  const generatedProgress = questionCount > 0
+    ? Math.min(100, Math.round((generatedQuestions.length / questionCount) * 100))
+    : 0
+
+  const inputClass = "w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-500/20"
+  const sectionCardClass = "rounded-2xl border border-slate-700 bg-slate-800 p-5 shadow-[0_10px_25px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(0,0,0,0.3)]"
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/teacher/exams/generate" className="p-2 rounded-lg hover:bg-secondary transition-colors">
-          <ArrowLeft size={18} />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold">{isEditMode ? "Sửa Cấu Hình Đề Thi" : "Tạo Bài Thi Cá Nhân"}</h1>
-          <p className="text-sm text-muted-foreground">
-            {isEditMode
-              ? "Cập nhật cấu hình đề thi cá nhân cho học sinh"
-              : "Tạo đề thi cá nhân cho học sinh từ ngân hàng câu hỏi (Extracted Exam)"}
-          </p>
-        </div>
+    <div className="relative min-h-screen overflow-hidden rounded-3xl bg-slate-900 p-4 md:p-6">
+      <div className="pointer-events-none absolute inset-0 opacity-70">
+        <div className="absolute -top-32 left-1/3 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-cyan-500/15 blur-3xl" />
       </div>
 
-      {isLoading ? (
-        <div className="rounded-xl border p-6 text-sm text-muted-foreground">Đang tải dữ liệu ngân hàng đề thi...</div>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="rounded-2xl border bg-card p-5 space-y-4 overflow-visible">
-              <h2 className="font-semibold flex items-center gap-2"><ClipboardList size={18} /> Cấu hình đề thi</h2>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Tiêu đề đề thi</label>
-                  <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nhập tiêu đề đề thi" className="w-full border rounded-lg px-3 py-2 bg-background" />
-                </div>
-                <div className="relative overflow-visible">
-                  <label className="block text-xs text-muted-foreground mb-1">Chọn khóa học</label>
-                  <UniversalSelect
-                    value={selectedCourseId}
-                    onChange={(e) => {
-                      setSelectedCourseId(e.target.value)
-                      setCertificateTemplateId("")
-                    }}
-                    className="relative z-30 w-full border rounded-lg px-3 py-2 bg-background"
-                    style={{ zIndex: 30 }}
-                  >
-                    <option value="">Chọn khóa học</option>
-                    {courseOptions.map((course) => (
-                      <option key={course.id} value={course.id}>{course.title}</option>
-                    ))}
-                  </UniversalSelect>
-                </div>
-                <div className="relative overflow-visible">
-                  <label className="block text-xs text-muted-foreground mb-1">Loại bài thi</label>
-                  <UniversalSelect
-                    value={type}
-                    onChange={(e) => {
-                      const nextType = e.target.value as "practice" | "official"
-                      setType(nextType)
-                      if (nextType === "practice") {
-                        setCertificateTemplateId("")
-                      }
-                    }}
-                    className="relative z-30 w-full border rounded-lg px-3 py-2 bg-background"
-                    style={{ zIndex: 30 }}
-                  >
-                    <option value="practice">Thi thử</option>
-                    <option value="official">Thi thật</option>
-                  </UniversalSelect>
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Thời gian làm bài (phút)</label>
-                  <input type="text" value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value) || 60)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập thời gian (phút)" />
-                </div>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả ngắn" rows={2} className="border rounded-lg px-3 py-2 bg-background md:col-span-2" />
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số câu hỏi cần tạo</label>
-                  <input type="text" value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập số câu hỏi" />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số mã đề</label>
-                  <input type="number" min={1} max={26} value={numExamVariants} onChange={(e) => setNumExamVariants(Math.max(1, Number(e.target.value) || 1))} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="1 - 26" />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Mở bài thi lúc</label>
-                  <input
-                    type="datetime-local"
-                    value={availableFrom}
-                    onChange={(e) => setAvailableFrom(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 bg-background"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Đóng bài thi lúc</label>
-                  <input
-                    type="datetime-local"
-                    value={availableUntil}
-                    onChange={(e) => setAvailableUntil(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 bg-background"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Điểm đạt (%)</label>
-                  <input type="text" value={passingScore} onChange={(e) => setPassingScore(Number(e.target.value) || 70)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập điểm đạt %" />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số lần thi tối đa</label>
-                  <input type="number" min={1} max={10} value={maxAttempts} onChange={(e) => setMaxAttempts(Math.max(1, Number(e.target.value) || 3))} className="w-full border-2 border-blue-500 rounded-lg px-3 py-2 bg-background font-semibold focus:outline-none focus:border-blue-600" placeholder="Nhập số lần (1-10)" />
-                  <p className="text-xs text-muted-foreground mt-1">Số lần thi tối đa: {maxAttempts}</p>
-                </div>
-                <div className="md:col-span-2 flex items-center gap-5 rounded-lg border px-3 py-2">
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={shuffleQuestions}
-                      onChange={(e) => setShuffleQuestions(e.target.checked)}
-                    />
-                    <span>Tráo câu hỏi</span>
-                  </label>
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={shuffleAnswers}
-                      onChange={(e) => setShuffleAnswers(e.target.checked)}
-                    />
-                    <span>Tráo đáp án</span>
-                  </label>
-                </div>
-              </div>
+      <div className="relative z-10 space-y-5">
+        <div className="flex items-start gap-3 rounded-2xl border border-slate-700 bg-slate-800/50 p-4 md:p-5">
+          <Link href="/teacher/exams/generate" className="rounded-xl border border-slate-700 p-2.5 text-slate-300 transition hover:bg-slate-700 hover:text-white">
+            <ArrowLeft size={18} />
+          </Link>
+          <div className="space-y-1">
+            <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-100 md:text-[28px]">
+              <Sparkles size={20} className="text-emerald-400" />
+              {isEditMode ? "Sửa cấu hình đề thi cá nhân" : "Tạo bài thi cá nhân"}
+            </h1>
+            <p className="text-sm text-slate-400">
+              {isEditMode
+                ? "Cập nhật đề thi từ ngân hàng câu hỏi theo luồng step-based"
+                : "Tạo đề thi nhanh từ ngân hàng câu hỏi (Extracted Exam)"}
+            </p>
+          </div>
+        </div>
 
-              {type === "official" && (
-                <UniversalSelect
-                  value={certificateTemplateId}
-                  onChange={(e) => setCertificateTemplateId(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 bg-background"
-                >
-                  <option value="">Chọn chứng chỉ cho bài thi thật</option>
-                  {certificateTemplateId && !availableCertificates.some((cert) => cert.id === certificateTemplateId) && (
-                    <option value={certificateTemplateId}>Chứng chỉ đã chọn (không còn trong danh sách hiện tại)</option>
-                  )}
-                  {availableCertificates.map((cert) => (
-                    <option key={cert.id} value={cert.id}>{cert.title}</option>
-                  ))}
-                </UniversalSelect>
-              )}
-            </div>
-
-            <div className="rounded-2xl border bg-card p-5 space-y-4">
-              <h2 className="font-semibold">Chọn ngân hàng nguồn</h2>
-              <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
-                {groupedSourceExams.length === 0 && (
-                  <div className="rounded-lg border px-3 py-2 text-sm text-muted-foreground">
-                    Không có ngân hàng đề phù hợp để chọn
-                  </div>
-                )}
-
-                {groupedSourceExams.map((group) => {
-                  const groupExamIds = group.exams.map((exam) => exam.id)
-                  const selectedCount = groupExamIds.filter((id) => selectedExamIds.includes(id)).length
-                  const allSelected = selectedCount === groupExamIds.length && groupExamIds.length > 0
-
+        {isLoading ? (
+          <div className="rounded-xl border border-[#1e293b] bg-[#0f172a] p-6 text-sm text-slate-400">
+            Đang tải dữ liệu ngân hàng đề thi...
+          </div>
+        ) : (
+          <>
+            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
+              <div className="grid gap-3 md:grid-cols-4">
+                {stepItems.map((item) => {
+                  const Icon = item.icon
+                  const isDone = currentStep > item.step
+                  const isCurrent = currentStep === item.step
                   return (
-                    <div key={group.key} className="rounded-lg border p-3 space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold">{group.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {group.courseName} • {group.exams.length} đề
-                          </p>
-                        </div>
-                        <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                          <input
-                            type="checkbox"
-                            checked={allSelected}
-                            onChange={() => toggleGroupExams(groupExamIds)}
-                          />
-                          <span>Chọn cả bộ</span>
-                        </label>
-                      </div>
-
-                      <div className="grid gap-2 md:grid-cols-2">
-                        {group.exams.map((exam) => (
-                          <label key={exam.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-                            <input type="checkbox" checked={selectedExamIds.includes(exam.id)} onChange={() => toggleExam(exam.id)} />
-                            <span>{exam.title} ({exam.questions.length} câu)</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
+                    <button
+                      key={item.step}
+                      type="button"
+                      onClick={() => {
+                        if (item.step <= currentStep) setCurrentStep(item.step)
+                      }}
+                      className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
+                        isCurrent
+                          ? "border-emerald-400/60 bg-emerald-500/10"
+                          : isDone
+                          ? "border-slate-700 bg-slate-700/60"
+                          : "border-slate-700 bg-slate-700/30"
+                      }`}
+                    >
+                      <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+                        isCurrent || isDone ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-300"
+                      }`}>
+                        {isDone ? <CheckCircle2 size={14} /> : item.step}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-sm font-medium text-slate-200">
+                        <Icon size={14} className="text-slate-400" />
+                        {item.title}
+                      </span>
+                    </button>
                   )
                 })}
               </div>
             </div>
 
-            <div className="rounded-2xl border bg-card p-5 space-y-4">
-              <h2 className="font-semibold">Chọn chương và độ khó</h2>
-              <div className="grid gap-2 md:grid-cols-3 max-h-44 overflow-y-auto">
-                {chapterOptions.map((chapter) => (
-                  <label key={chapter} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-                    <input type="checkbox" checked={selectedChapters.includes(chapter)} onChange={() => toggleChapter(chapter)} />
-                    <span>{chapter}</span>
-                  </label>
-                ))}
-              </div>
+            <div className="grid gap-5 lg:grid-cols-10">
+              <div className="space-y-5 lg:col-span-7">
+                {currentStep === 1 && (
+                  <div className={sectionCardClass}>
+                    <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
+                      <FileText size={18} className="text-emerald-400" /> Thông tin đề thi
+                    </h2>
 
-              <div className="grid gap-3 md:grid-cols-3">
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số câu dễ</label>
-                  <input type="text" value={easyCount} onChange={(e) => setEasyCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập số câu dễ" />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số câu trung bình</label>
-                  <input type="text" value={mediumCount} onChange={(e) => setMediumCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập số câu trung bình" />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Số câu khó</label>
-                  <input type="text" value={hardCount} onChange={(e) => setHardCount(Number(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 bg-background" placeholder="Nhập số câu khó" />
-                </div>
-              </div>
+                    <div className="space-y-5">
+                      <div>
+                        <p className="mb-3 text-xs uppercase tracking-wide text-slate-400">Thông tin cơ bản</p>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <label className="mb-1.5 block text-xs text-slate-400">Tiêu đề đề thi</label>
+                            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nhập tiêu đề đề thi" className={inputClass} />
+                          </div>
+                          <div className="relative z-[80] overflow-visible">
+                            <label className="mb-1.5 block text-xs text-slate-400">Chọn khóa học</label>
+                            <UniversalSelect
+                              value={selectedCourseId}
+                              onChange={(e) => {
+                                setSelectedCourseId(e.target.value)
+                                setCertificateTemplateId("")
+                              }}
+                              className={`${inputClass} relative z-[90]`}
+                              style={{ zIndex: 30 }}
+                            >
+                              <option value="">Chọn khóa học</option>
+                              {courseOptions.map((course) => (
+                                <option key={course.id} value={course.id}>{course.title}</option>
+                              ))}
+                            </UniversalSelect>
+                          </div>
+                          <div className="relative overflow-visible">
+                            <label className="mb-1.5 block text-xs text-slate-400">Loại bài thi</label>
+                            <UniversalSelect
+                              value={type}
+                              onChange={(e) => {
+                                const nextType = e.target.value as "practice" | "official"
+                                setType(nextType)
+                                if (nextType === "practice") {
+                                  setCertificateTemplateId("")
+                                }
+                              }}
+                              className={inputClass}
+                              style={{ zIndex: 20 }}
+                            >
+                              <option value="practice">Thi thử</option>
+                              <option value="official">Thi thật</option>
+                            </UniversalSelect>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-xs text-slate-400">Mô tả ngắn</label>
+                            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả mục tiêu đề thi" className={inputClass} />
+                          </div>
+                        </div>
+                      </div>
 
-              <button
-                onClick={generateExamQuestions}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90"
-              >
-                <Wand2 size={16} /> Sinh bộ câu hỏi
-              </button>
-            </div>
-          </div>
+                      <div>
+                        <p className="mb-3 text-xs uppercase tracking-wide text-slate-400">Cấu hình</p>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <label className="mb-1.5 block text-xs text-slate-400">Thời gian làm bài (phút)</label>
+                            <input type="number" value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value) || 60)} className={inputClass} />
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-xs text-slate-400">Số câu hỏi cần tạo</label>
+                            <input type="number" value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value) || 0)} className={inputClass} />
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-xs text-slate-400">Điểm đạt (%)</label>
+                            <input type="number" value={passingScore} onChange={(e) => setPassingScore(Number(e.target.value) || 70)} className={inputClass} />
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-xs text-slate-400">Số lần thi tối đa</label>
+                            <input type="number" min={1} max={10} value={maxAttempts} onChange={(e) => setMaxAttempts(Math.max(1, Number(e.target.value) || 3))} className={inputClass} />
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-xs text-slate-400">Số mã đề</label>
+                            <input type="number" min={1} max={26} value={numExamVariants} onChange={(e) => setNumExamVariants(Math.max(1, Number(e.target.value) || 1))} className={inputClass} />
+                          </div>
+                          <div className="flex items-end gap-5 rounded-xl border border-[#1e293b] bg-[#0a1326] px-3 py-2.5">
+                            <label className="inline-flex items-center gap-2 text-sm text-slate-300">
+                              <input type="checkbox" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
+                              <span>Tráo câu hỏi</span>
+                            </label>
+                            <label className="inline-flex items-center gap-2 text-sm text-slate-300">
+                              <input type="checkbox" checked={shuffleAnswers} onChange={(e) => setShuffleAnswers(e.target.checked)} />
+                              <span>Tráo đáp án</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
 
-          <div className="space-y-4">
-            <div className="rounded-2xl border bg-card p-5">
-              <h3 className="font-semibold mb-2">Kết quả sinh đề</h3>
-              {examVariants.length > 0 ? (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    Đã tạo <span className="font-semibold text-foreground">{examVariants.length} mã đề</span>, mỗi mã có <span className="font-semibold text-foreground">{generatedQuestions.length} câu hỏi</span>.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Đề: {Array.from({ length: examVariants.length }, (_, i) => String.fromCharCode(65 + i)).join(", ")}
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">Đã chọn {generatedQuestions.length} câu hỏi.</p>
-              )}
-              <button
-                onClick={handleCreateExam}
-                disabled={isSubmitting || generatedQuestions.length === 0}
-                className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                <CheckCircle2 size={16} /> {isSubmitting ? (isEditMode ? "Đang lưu..." : "Đang tạo...") : (isEditMode ? "Lưu cập nhật" : "Tạo đề thi")}
-              </button>
-            </div>
+                      <div>
+                        <p className="mb-3 text-xs uppercase tracking-wide text-slate-400">Thời gian</p>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <label className="mb-1.5 block text-xs text-slate-400">Mở bài thi lúc</label>
+                            <input type="datetime-local" value={availableFrom} onChange={(e) => setAvailableFrom(e.target.value)} className={inputClass} />
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-xs text-slate-400">Đóng bài thi lúc</label>
+                            <input type="datetime-local" value={availableUntil} onChange={(e) => setAvailableUntil(e.target.value)} className={inputClass} />
+                          </div>
+                        </div>
+                      </div>
 
-            <div className="rounded-2xl border bg-card p-5 max-h-[440px] overflow-y-auto">
-              <h3 className="font-semibold mb-3">Danh sách câu hỏi</h3>
-              <div className="space-y-3">
-                {generatedQuestions.length === 0 && (
-                  <p className="text-sm text-muted-foreground">Chưa có câu hỏi, hãy bấm "Sinh bộ câu hỏi".</p>
-                )}
-                {generatedQuestions.map((question, index) => (
-                  <div key={`${question.id}-${index}`} className="rounded-lg border p-3">
-                    <p className="text-sm font-medium">Câu {index + 1}. <ScientificText as="span" text={question.question} /></p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {(question.chapter || "Chưa phân chương")} • {(question.difficulty || "medium")}
-                    </p>
+                      {type === "official" && (
+                        <div>
+                          <label className="mb-1.5 block text-xs text-slate-400">Chứng chỉ cho bài thi thật</label>
+                          <UniversalSelect value={certificateTemplateId} onChange={(e) => setCertificateTemplateId(e.target.value)} className={inputClass}>
+                            <option value="">Chọn chứng chỉ</option>
+                            {certificateTemplateId && !availableCertificates.some((cert) => cert.id === certificateTemplateId) && (
+                              <option value={certificateTemplateId}>Chứng chỉ đã chọn (không còn trong danh sách hiện tại)</option>
+                            )}
+                            {availableCertificates.map((cert) => (
+                              <option key={cert.id} value={cert.id}>{cert.title}</option>
+                            ))}
+                          </UniversalSelect>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                ))}
+                )}
+
+                {currentStep === 2 && (
+                  <div className={sectionCardClass}>
+                    <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
+                      <Database size={18} className="text-emerald-400" /> Chọn ngân hàng nguồn
+                    </h2>
+                    <div className="mb-3 flex flex-wrap gap-2 text-xs text-slate-300">
+                      <span className="rounded-full border border-slate-700 bg-slate-700/50 px-2.5 py-1">Đã chọn {selectedExamIds.length} đề</span>
+                      <span className="rounded-full border border-slate-700 bg-slate-700/50 px-2.5 py-1">Pool câu hỏi {allQuestions.length}</span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {groupedSourceExams.length === 0 && (
+                        <div className="rounded-xl border border-slate-700 bg-slate-700/40 px-3 py-2 text-sm text-slate-400">
+                          Không có ngân hàng đề phù hợp để chọn
+                        </div>
+                      )}
+
+                      {groupedSourceExams.map((group) => {
+                        const groupExamIds = group.exams.map((exam) => exam.id)
+                        const selectedCount = groupExamIds.filter((id) => selectedExamIds.includes(id)).length
+                        const allSelected = selectedCount === groupExamIds.length && groupExamIds.length > 0
+
+                        return (
+                          <div key={group.key} className="rounded-xl border border-slate-700 bg-slate-700/40 p-3">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <div>
+                                <p className="text-sm font-semibold text-slate-100">{group.title}</p>
+                                <p className="text-xs text-slate-400">{group.courseName} • {group.exams.length} đề</p>
+                              </div>
+                              <label className="inline-flex items-center gap-2 text-xs text-slate-400">
+                                <input type="checkbox" checked={allSelected} onChange={() => toggleGroupExams(groupExamIds)} />
+                                <span>Chọn cả bộ</span>
+                              </label>
+                            </div>
+
+                            <div className="grid gap-2 md:grid-cols-2">
+                              {group.exams.map((exam) => (
+                                <label key={exam.id} className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200">
+                                  <input type="checkbox" checked={selectedExamIds.includes(exam.id)} onChange={() => toggleExam(exam.id)} />
+                                  <span>{exam.title} ({exam.questions.length} câu)</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {currentStep === 3 && (
+                  <div className={sectionCardClass}>
+                    <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
+                      <ClipboardList size={18} className="text-emerald-400" /> Chọn chương và phân bổ độ khó
+                    </h2>
+
+                    <div className="mb-4 grid gap-2 md:grid-cols-3">
+                      {chapterOptions.map((chapter) => (
+                        <label key={chapter} className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-700/40 px-3 py-2 text-sm text-slate-300">
+                          <input type="checkbox" checked={selectedChapters.includes(chapter)} onChange={() => toggleChapter(chapter)} />
+                          <span>{chapter}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="space-y-4 rounded-xl border border-slate-700 bg-slate-700/40 p-4">
+                      {[{ key: "easy", label: "Dễ", value: easyCount, setValue: setEasyCount, color: "emerald" }, { key: "medium", label: "Trung bình", value: mediumCount, setValue: setMediumCount, color: "sky" }, { key: "hard", label: "Khó", value: hardCount, setValue: setHardCount, color: "rose" }].map((item) => (
+                        <div key={item.key} className="space-y-1.5">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-300">{item.label}</span>
+                            <span className="rounded-full border border-[#1e293b] px-2 py-0.5 text-xs text-slate-200">{item.value}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0}
+                            max={Math.max(0, questionCount)}
+                            value={item.value}
+                            onChange={(e) => item.setValue(Number(e.target.value) || 0)}
+                            className="h-2 w-full cursor-pointer accent-emerald-500"
+                          />
+                        </div>
+                      ))}
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+                        <span>Tổng phân bổ: {requestedByDifficulty} / {questionCount} câu</span>
+                        <span>Pool khả dụng: {filteredQuestions.length} câu</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={generateExamQuestions}
+                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.98]"
+                    >
+                      <Wand2 size={16} /> Sinh bộ câu hỏi
+                    </button>
+                  </div>
+                )}
+
+                {currentStep === 4 && (
+                  <div className={sectionCardClass}>
+                    <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
+                      <Eye size={18} className="text-emerald-400" /> Review & tạo đề
+                    </h2>
+
+                    <div className="mb-4 grid gap-3 md:grid-cols-2">
+                      <div className="rounded-xl border border-slate-700 bg-slate-700/40 p-3">
+                        <p className="text-xs text-slate-400">Tiêu đề</p>
+                        <p className="mt-1 text-sm font-medium text-slate-100">{title || "Chưa nhập"}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-700 bg-slate-700/40 p-3">
+                        <p className="text-xs text-slate-400">Khóa học</p>
+                        <p className="mt-1 text-sm font-medium text-slate-100">{courseOptions.find((c) => c.id === selectedCourseId)?.title || "Chưa chọn"}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-700 bg-slate-700/40 p-3">
+                        <p className="text-xs text-slate-400">Số câu</p>
+                        <p className="mt-1 text-sm font-medium text-slate-100">{generatedQuestions.length} / {questionCount}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-700 bg-slate-700/40 p-3">
+                        <p className="text-xs text-slate-400">Mã đề</p>
+                        <p className="mt-1 text-sm font-medium text-slate-100">{Math.max(1, numExamVariants)} mã</p>
+                      </div>
+                    </div>
+
+                    <div className="max-h-[360px] space-y-2 overflow-y-auto rounded-xl border border-slate-700 bg-slate-700/40 p-3">
+                      {generatedQuestions.length === 0 && (
+                        <p className="text-sm text-slate-400">Chưa có câu hỏi, quay lại bước 3 để sinh đề.</p>
+                      )}
+                      {generatedQuestions.slice(0, 12).map((question, index) => (
+                        <div key={`${question.id}-${index}`} className="rounded-lg border border-slate-700 bg-slate-800 p-2.5">
+                          <p className="text-sm font-medium text-slate-100">Câu {index + 1}. <ScientificText as="span" text={question.question} /></p>
+                          <p className="mt-1 text-xs text-slate-400">{question.chapter || "Chưa phân chương"} • {question.difficulty || "medium"}</p>
+                        </div>
+                      ))}
+                      {generatedQuestions.length > 12 && (
+                        <p className="text-center text-xs text-slate-500">Hiển thị 12/{generatedQuestions.length} câu đầu tiên</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
+                  <button
+                    type="button"
+                    onClick={handlePrevStep}
+                    disabled={currentStep === 1}
+                    className="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Quay lại
+                  </button>
+
+                  {currentStep < totalSteps ? (
+                    <button
+                      type="button"
+                      onClick={handleNextStep}
+                      className="rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.98]"
+                    >
+                      Tiếp tục bước {currentStep + 1}
+                    </button>
+                  ) : (
+                    <div className="text-xs text-slate-500">Tạo đề thi tại panel "Kết quả sinh đề" bên phải</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4 lg:col-span-3">
+                <div className="sticky top-4 space-y-4">
+                  <div className="rounded-2xl border border-slate-700 bg-slate-800 p-4 shadow-[0_12px_28px_rgba(0,0,0,0.2)]">
+                    <h3 className="text-base font-semibold text-slate-100">Kết quả sinh đề</h3>
+                    <p className="mt-1 text-xs text-slate-400">Live preview theo cấu hình hiện tại</p>
+
+                    <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
+                      <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-300" style={{ width: `${generatedProgress}%` }} />
+                    </div>
+                    <p className="mt-2 text-xs text-slate-400">{generatedQuestions.length}/{questionCount || 0} câu hỏi</p>
+
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                      <span className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-300">Dễ: {generatedDifficultyStats.easy}</span>
+                      <span className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-sky-300">TB: {generatedDifficultyStats.medium}</span>
+                      <span className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-rose-300">Khó: {generatedDifficultyStats.hard}</span>
+                      <span className="rounded-lg border border-slate-700 bg-slate-700/50 px-2 py-1 text-slate-300">Thời gian: {timeLimit} phút</span>
+                    </div>
+
+                    {examVariants.length > 0 && (
+                      <p className="mt-3 text-xs text-slate-400">Mã đề: {Array.from({ length: examVariants.length }, (_, i) => String.fromCharCode(65 + i)).join(", ")}</p>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleCreateExam}
+                      disabled={isSubmitting || generatedQuestions.length === 0 || currentStep !== totalSteps}
+                      className="mt-4 w-full rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {isSubmitting ? (isEditMode ? "Đang lưu..." : "Đang tạo...") : "Tạo đề thi"}
+                    </button>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-700 bg-slate-800 p-4">
+                    <h3 className="text-base font-semibold text-slate-100">Checklist nhanh</h3>
+                    <ul className="mt-2 space-y-1 text-xs text-slate-400">
+                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={title ? "text-emerald-400" : "text-slate-600"} /> Tiêu đề đề thi</li>
+                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={selectedCourseId ? "text-emerald-400" : "text-slate-600"} /> Khóa học</li>
+                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={selectedExamIds.length > 0 ? "text-emerald-400" : "text-slate-600"} /> Ngân hàng nguồn</li>
+                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={generatedQuestions.length > 0 ? "text-emerald-400" : "text-slate-600"} /> Bộ câu hỏi đã sinh</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

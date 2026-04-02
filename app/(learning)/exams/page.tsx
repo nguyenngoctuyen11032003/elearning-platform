@@ -24,6 +24,12 @@ interface ExamAttemptsSummary {
   count: number
 }
 
+interface CourseExamGroup {
+  courseId: string
+  courseTitle: string
+  exams: ExamItem[]
+}
+
 export default function StudentExamsPage() {
   const [exams, setExams] = useState<ExamItem[]>([])
   const [attemptsByExam, setAttemptsByExam] = useState<Record<string, ExamAttemptsSummary>>({})
@@ -74,6 +80,34 @@ export default function StudentExamsPage() {
     }
   }, [exams])
 
+  const groupedExamsByCourse = useMemo<CourseExamGroup[]>(() => {
+    const bucket = new Map<string, CourseExamGroup>()
+
+    for (const exam of exams) {
+      const courseId = exam.course?.id || "unknown-course"
+      const courseTitle = exam.course?.title || t("exam_course_unknown", "Khóa học chưa xác định")
+      const existing = bucket.get(courseId)
+
+      if (!existing) {
+        bucket.set(courseId, {
+          courseId,
+          courseTitle,
+          exams: [exam],
+        })
+        continue
+      }
+
+      existing.exams.push(exam)
+    }
+
+    return Array.from(bucket.values())
+      .map((group) => ({
+        ...group,
+        exams: [...group.exams].sort((a, b) => a.title.localeCompare(b.title)),
+      }))
+      .sort((a, b) => a.courseTitle.localeCompare(b.courseTitle))
+  }, [exams, t])
+
   const canStart = (exam: ExamItem) => {
     if (exam.availableFrom && now < new Date(exam.availableFrom)) return false
     if (exam.availableUntil && now > new Date(exam.availableUntil)) return false
@@ -100,6 +134,11 @@ export default function StudentExamsPage() {
       return `${t("exam_until", "Đến hạn")} ${new Date(exam.availableUntil).toLocaleString("vi-VN")}`
     }
     return t("exam_can_start", "Có thể vào thi ngay")
+  }
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return "-"
+    return new Date(value).toLocaleString("vi-VN")
   }
 
   if (loading) {
@@ -157,57 +196,129 @@ export default function StudentExamsPage() {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {exams.map((exam) => (
-          <div key={exam.id} className="rounded-2xl border bg-card p-5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-1">
-                <h2 className="text-lg font-semibold">{exam.title}</h2>
-                <p className="text-sm text-muted-foreground">{exam.course?.title || t("exam_course", "Khóa học")}</p>
-                {exam.description && <p className="text-sm text-muted-foreground">{exam.description}</p>}
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center gap-1"><Clock size={14} /> {exam.timeLimit} {t("exam_minutes", "phút")}</span>
-                  <span className="inline-flex items-center gap-1"><FileText size={14} /> {t("exam_pass_from", "Đạt từ")} {exam.passingScore}%</span>
-                  <span className="inline-flex items-center gap-1"><Trophy size={14} /> {exam.type === "official" ? t("exam_official", "Thi thật") : t("exam_practice", "Thi thử")}</span>
-                  <span className="inline-flex items-center gap-1"><ClipboardList size={14} /> {t("exam_attempts", "Lượt thi")}: {getAttemptCount(exam.id)}/{exam.maxAttempts}</span>
+      <div className="space-y-6">
+        {groupedExamsByCourse.map((group) => {
+          const availableCount = group.exams.filter((exam) => canStart(exam) && hasRemainingAttempts(exam)).length
+          const doneCount = group.exams.filter((exam) => hasHistory(exam) && !hasRemainingAttempts(exam)).length
+
+          return (
+            <section key={group.courseId} className="rounded-2xl border bg-card p-5 space-y-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold">{group.courseTitle}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {t("exam_course_group_desc", "Danh sách bài thi thuộc khóa học này")}
+                  </p>
                 </div>
-                <p className={`text-sm ${canStart(exam) ? "text-green-600" : "text-amber-600"}`}>{timeNotice(exam)}</p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full border px-3 py-1">
+                    {t("exam_total", "Tổng bài thi")}: {group.exams.length}
+                  </span>
+                  <span className="rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1 text-green-700 dark:text-green-300">
+                    {t("exam_can_start", "Có thể vào thi ngay")}: {availableCount}
+                  </span>
+                  <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-blue-700 dark:text-blue-300">
+                    {t("exam_done", "Đã hoàn thành")}: {doneCount}
+                  </span>
+                </div>
               </div>
 
-              {canStart(exam) && hasRemainingAttempts(exam) ? (
-                <Link
-                  href={`/exams/${exam.id}/take?source=extracted`}
-                  className="rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-primary/90"
-                >
-                  {t("exam_enter", "Vào thi")}
-                </Link>
-              ) : hasHistory(exam) || !hasRemainingAttempts(exam) ? (
-                <Link
-                  href={`/exams/${exam.id}/history`}
-                  className="rounded-lg border border-primary px-4 py-2 text-center text-sm font-medium text-primary hover:bg-primary/5"
-                >
-                  {t("exam_history", "Lịch sử")}
-                </Link>
-              ) : isExpired(exam) ? (
-                <button
-                  disabled
-                  className="rounded-lg border px-4 py-2 text-sm text-muted-foreground"
-                >
-                  {t("exam_no_history", "Bạn không có lịch sử thi")}
-                </button>
-              ) : (
-                <button
-                  disabled
-                  className="rounded-lg border px-4 py-2 text-sm text-muted-foreground"
-                >
-                  {t("exam_not_available_yet", "Chưa thể vào thi")}
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
+              <div className="overflow-x-auto rounded-xl border">
+                <table className="w-full min-w-[980px] text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold">{t("exam_table_name", "Bài thi")}</th>
+                      <th className="px-4 py-3 text-left font-semibold">{t("exam_table_type", "Loại")}</th>
+                      <th className="px-4 py-3 text-left font-semibold">{t("exam_table_time", "Thời gian")}</th>
+                      <th className="px-4 py-3 text-left font-semibold">{t("exam_table_pass", "Điểm đạt")}</th>
+                      <th className="px-4 py-3 text-left font-semibold">{t("exam_attempts", "Lượt thi")}</th>
+                      <th className="px-4 py-3 text-left font-semibold">{t("exam_table_window", "Khung giờ")}</th>
+                      <th className="px-4 py-3 text-left font-semibold">{t("exam_table_status", "Trạng thái")}</th>
+                      <th className="px-4 py-3 text-right font-semibold">{t("exam_table_action", "Thao tác")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.exams.map((exam) => (
+                      <tr key={exam.id} className="border-t align-top">
+                        <td className="px-4 py-3">
+                          <p className="font-medium">{exam.title}</p>
+                          {exam.description ? (
+                            <p className="mt-1 text-xs text-muted-foreground">{exam.description}</p>
+                          ) : (
+                            <p className="mt-1 text-xs text-muted-foreground">-</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs">
+                            <Trophy size={12} />
+                            {exam.type === "official" ? t("exam_official", "Thi thật") : t("exam_practice", "Thi thử")}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1">
+                            <Clock size={14} /> {exam.timeLimit} {t("exam_minutes", "phút")}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {t("exam_pass_from", "Đạt từ")} {exam.passingScore}%
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1">
+                            <ClipboardList size={14} /> {getAttemptCount(exam.id)}/{exam.maxAttempts}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-xs text-muted-foreground">
+                            {t("exam_open_from", "Từ")}: {formatDateTime(exam.availableFrom)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t("exam_until", "Đến hạn")} : {formatDateTime(exam.availableUntil)}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className={`text-xs font-medium ${canStart(exam) ? "text-green-600" : "text-amber-600"}`}>{timeNotice(exam)}</p>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {canStart(exam) && hasRemainingAttempts(exam) ? (
+                            <Link
+                              href={`/exams/${exam.id}/take?source=extracted`}
+                              className="inline-flex rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-primary/90"
+                            >
+                              {t("exam_enter", "Vào thi")}
+                            </Link>
+                          ) : hasHistory(exam) || !hasRemainingAttempts(exam) ? (
+                            <Link
+                              href={`/exams/${exam.id}/history`}
+                              className="inline-flex rounded-lg border border-primary px-4 py-2 text-center text-sm font-medium text-primary hover:bg-primary/5"
+                            >
+                              {t("exam_history", "Lịch sử")}
+                            </Link>
+                          ) : isExpired(exam) ? (
+                            <button
+                              disabled
+                              className="inline-flex rounded-lg border px-4 py-2 text-sm text-muted-foreground"
+                            >
+                              {t("exam_no_history", "Bạn không có lịch sử thi")}
+                            </button>
+                          ) : (
+                            <button
+                              disabled
+                              className="inline-flex rounded-lg border px-4 py-2 text-sm text-muted-foreground"
+                            >
+                              {t("exam_not_available_yet", "Chưa thể vào thi")}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )
+        })}
 
-        {exams.length === 0 && (
+        {groupedExamsByCourse.length === 0 && (
           <div className="rounded-xl border p-8 text-center text-muted-foreground">
             {t("exam_empty_enrolled", "Chưa có bài thi nào cho các khóa bạn đã đăng ký.")}
           </div>

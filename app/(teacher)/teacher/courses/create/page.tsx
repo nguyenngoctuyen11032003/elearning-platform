@@ -4,10 +4,10 @@ import { ChevronRight, Check, Plus, Trash2, FileText, Video, X, Loader2, Upload 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import * as XLSX from "xlsx"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { authFetch } from "@/lib/authfetch"
 import { apiClient } from "@/lib/api/client"
+import { parseExamQuestionsFileWithReport } from "@/lib/utils/exam-import"
 import { ScientificText } from "@/components/scientific-text"
 import { UniversalSelect } from "@/components/ui/universal-select"
 
@@ -705,177 +705,96 @@ export default function CreateCoursePage() {
 
   const handleImportQuizzes = async (file: File, sectionId: string, lessonId: string) => {
     try {
-      const data = await file.arrayBuffer()
-      let questions: Array<{ question: string; options: string[]; correctAnswerIndex?: number; correctAnswerIndexes?: number[]; image?: string }> = []
-      let foundQuestionPattern = false
+      const lowerName = file.name.toLowerCase()
+      const importType =
+        lowerName.endsWith(".doc") ||
+        lowerName.endsWith(".docx") ||
+        lowerName.endsWith(".pdf")
+          ? "word"
+          : "excel"
 
-      const isWord =
-        file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-        file.name.endsWith(".docx")
-      const isExcel =
-        file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-        file.type === "application/vnd.ms-excel" ||
-        file.name.endsWith(".xlsx") ||
-        file.name.endsWith(".xls") ||
-        file.name.endsWith(".csv")
+      const { questions: parsedQuestions } = await parseExamQuestionsFileWithReport(
+        file,
+        importType,
+        lowerName.endsWith(".pdf") ? { extractImages: true, ocrMode: "extract" } : undefined,
+      )
 
-      if (isWord) {
-        const formData = new FormData()
-        formData.append("file", file)
+      const normalizeText = (value: string): string =>
+        String(value || "").toLowerCase().replace(/\s+/g, " ").trim()
 
-        const response = await fetch("/internal/import/parse-word", {
-          method: "POST",
-          body: formData,
-        })
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({}))
-          throw new Error(err?.error || t("tc_create_err_word_read", "Không đọc được file Word"))
+      const resolveIndex = (token: string, options: string[]): number => {
+        const trimmed = String(token || "").trim()
+        if (!trimmed) return -1
+
+        const clean = trimmed.replace(/^[\s\(\[]+|[\s\)\].:;,-]+$/g, "")
+        const normalized = normalizeText(clean)
+        if (normalized) {
+          const byText = options.findIndex((option) => normalizeText(option) === normalized)
+          if (byText >= 0) return byText
         }
 
-        const result = await response.json()
-        const text = result.text || ""
-        const imageDataMap: Record<string, string> = result.images || {}
-        const lines = text.split(/\r?\n/).map((l: string) => l.trim()).filter((l: string) => l)
-
-        interface WordBlock {
-          questionText: string
-          bodyLines: string[]
-          answerLine: string
-          imageKey?: string
+        if (/^[A-F]$/i.test(clean)) {
+          const index = clean.toUpperCase().charCodeAt(0) - 65
+          return index >= 0 && index < options.length ? index : -1
         }
-        const blocks: WordBlock[] = []
-        let curBlock: WordBlock | null = null
 
-        for (const line of lines) {
-          const isQuestionLine = /^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/.test(line)
-          if (isQuestionLine) {
-            foundQuestionPattern = true
-            if (curBlock) blocks.push(curBlock)
-            curBlock = {
-              questionText: line.replace(/^.*?(Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*/, "").trim(),
-              bodyLines: [],
-              answerLine: "",
-            }
-            continue
-          }
-          if (!curBlock) continue
-
-          if (line.startsWith("[[IMAGE:")) {
-            const m = line.match(/^\[\[IMAGE:(img_\d+)\]\]$/)
-            if (m) curBlock.imageKey = m[1]
-            continue
-          }
-          if (line.match(/^Đáp\s*án[\s\:\=]+/i)) {
-            curBlock.answerLine = line
-            continue
-          }
-          curBlock.bodyLines.push(line)
+        const numeric = Number.parseInt(clean, 10)
+        if (!Number.isNaN(numeric)) {
+          const index = numeric - 1
+          return index >= 0 && index < options.length ? index : -1
         }
-        if (curBlock) blocks.push(curBlock)
 
-        for (const block of blocks) {
-          const hasPrefixedOptions = block.bodyLines.some((l) => /^[A-Da-d][\.\)]\s+\S/.test(l))
-          let questionText = block.questionText
-          const opts: string[] = []
-
-          if (hasPrefixedOptions) {
-            for (const line of block.bodyLines) {
-              const m = line.match(/^\s*[A-Da-d][\.\)]\s*(.+)/)
-              if (m) opts.push(m[1].trim())
-              else questionText += "\n" + line
-            }
-          } else {
-            const answerLetters = block.answerLine.match(/[A-D]/gi) || []
-            const maxLetterIdx = answerLetters.reduce((max, l) => {
-              const idx = l.toUpperCase().charCodeAt(0) - 65
-              return idx > max ? idx : max
-            }, 3)
-            const optCount = maxLetterIdx + 1
-            const splitAt = Math.max(0, block.bodyLines.length - optCount)
-            const contextLines = block.bodyLines.slice(0, splitAt)
-            const optionLines = block.bodyLines.slice(splitAt)
-
-            if (contextLines.length > 0) questionText += "\n" + contextLines.join("\n")
-            for (const line of optionLines) opts.push(line)
-          }
-
-          let correctIndex = -1
-          let correctIndexes: number[] = []
-          if (block.answerLine) {
-            const letters = block.answerLine.match(/[A-D]/gi) || []
-            const nums = block.answerLine.match(/[1-6]/g) || []
-            const idxSet = new Set<number>()
-            letters.forEach((l: string) => idxSet.add(l.toUpperCase().charCodeAt(0) - 65))
-            nums.forEach((n: string) => idxSet.add(parseInt(n, 10) - 1))
-            const sorted = [...idxSet].filter((i) => i >= 0 && i < opts.length).sort((a, b) => a - b)
-            if (sorted.length > 0) {
-              correctIndexes = sorted
-              correctIndex = sorted[0]
-            }
-          }
-
-          if (questionText && opts.length >= 2) {
-            questions.push({
-              question: questionText,
-              options: opts,
-              correctAnswerIndex: correctIndex >= 0 ? correctIndex : undefined,
-              correctAnswerIndexes: correctIndexes.length > 1 ? correctIndexes : undefined,
-              image: block.imageKey ? imageDataMap[block.imageKey] : undefined,
-            })
-          }
-        }
-      } else if (isExcel) {
-        const workbook = XLSX.read(data, { type: "array" })
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as string[][]
-
-        for (const row of rows) {
-          if (!row || row.length < 3) continue
-          const question = row[0]?.toString().trim()
-          if (!question) continue
-
-          const options: string[] = []
-          let correctIndex = -1
-          for (let i = 1; i < row.length; i++) {
-            let opt = row[i]?.toString().trim() || ""
-            if (!opt) continue
-            const marked = opt.startsWith("*") || opt.startsWith("+") || opt.startsWith("✓")
-            opt = opt.replace(/^(\*|\+|✓|√)\s*/, "").trim()
-            if (!opt) continue
-            options.push(opt)
-            if (marked && correctIndex === -1) correctIndex = options.length - 1
-          }
-          if (options.length >= 2) {
-            foundQuestionPattern = true
-            questions.push({
-              question,
-              options: normalizeOptionCount(options, Math.min(options.length, 6)),
-              correctAnswerIndex: correctIndex >= 0 ? correctIndex : 0,
-            })
-          }
-        }
+        return -1
       }
 
-      const importedQuizzes: Quiz[] = questions.map((q) => {
-        const lower = q.options.map((o) => o.toLowerCase().trim())
-        const isTrueFalse = q.options.length === 2 &&
-          ((lower.includes("đúng") && lower.includes("sai")) || (lower.includes("true") && lower.includes("false")))
-        const type: Quiz["type"] = isTrueFalse
-          ? "true-false"
-          : q.correctAnswerIndexes && q.correctAnswerIndexes.length > 1
-          ? "multiple-select"
-          : "multiple-choice"
+      const resolveAnswerIndexes = (answer: string | string[], options: string[]): number[] => {
+        const tokens = Array.isArray(answer)
+          ? answer
+          : String(answer || "")
+              .split(/[;,|]/)
+              .map((item) => item.trim())
+              .filter(Boolean)
 
-        return {
-          id: `${Date.now()}-${Math.random()}`,
-          question: q.question,
-          image: q.image,
-          type,
-          options: q.options,
-          correctAnswer: type === "multiple-select" ? undefined : (q.correctAnswerIndex ?? 0),
-          correctAnswers: type === "multiple-select" ? (q.correctAnswerIndexes || []) : [],
-        }
-      })
+        const indexes = tokens
+          .map((token) => resolveIndex(token, options))
+          .filter((index) => index >= 0)
+
+        return Array.from(new Set(indexes))
+      }
+
+      const importedQuizzes: Quiz[] = parsedQuestions
+        .map((item) => {
+          const options = (item.options || []).slice(0, 6)
+          if (item.type === "fill_in" || options.length < 2) {
+            return null
+          }
+
+          const answerIndexes = resolveAnswerIndexes(item.correctAnswer, options)
+          const isTrueFalse = item.type === "true_false"
+
+          if (answerIndexes.length > 1 && !isTrueFalse) {
+            return {
+              id: `${Date.now()}-${Math.random()}`,
+              question: item.question,
+              image: item.image,
+              type: "multiple-select" as const,
+              options,
+              correctAnswer: undefined,
+              correctAnswers: answerIndexes,
+            }
+          }
+
+          return {
+            id: `${Date.now()}-${Math.random()}`,
+            question: item.question,
+            image: item.image,
+            type: (isTrueFalse ? "true-false" : "multiple-choice") as const,
+            options,
+            correctAnswer: answerIndexes[0] ?? 0,
+            correctAnswers: [],
+          }
+        })
+        .filter((quiz): quiz is Quiz => Boolean(quiz))
 
       const quizzesWithUploadedImages = await Promise.all(
         importedQuizzes.map(async (quiz) => {
@@ -889,7 +808,7 @@ export default function CreateCoursePage() {
         }),
       )
 
-      if (!foundQuestionPattern || quizzesWithUploadedImages.length === 0) {
+      if (quizzesWithUploadedImages.length === 0) {
         toast.error(t("tc_create_import_invalid_format", "File không đúng định dạng câu hỏi. Vui lòng kiểm tra mẫu import."))
         return
       }
@@ -907,6 +826,12 @@ export default function CreateCoursePage() {
       )
 
       toast.success(t("tc_create_import_success", "Đã import {count} câu hỏi").replace("{count}", String(quizzesWithUploadedImages.length)))
+      toast.warning(
+        t(
+          "tc_create_import_review_notice",
+          "Chú ý: Câu hỏi có thể import thiếu hoặc sai. Vui lòng kiểm tra kỹ thông tin trước khi lưu.",
+        ),
+      )
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t("tc_create_import_failed", "Import câu hỏi thất bại")
       toast.error(message)
@@ -1234,6 +1159,8 @@ export default function CreateCoursePage() {
                   className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white ${
                     categoryError ? "border-destructive" : "border-border dark:border-slate-700"
                   }`}
+                  contentClassName="bg-white/90 dark:bg-slate-900/88 backdrop-blur-xl border border-white/45 dark:border-slate-700/80 shadow-[0_20px_60px_rgba(2,6,23,0.45)] ring-1 ring-sky-400/20"
+                  portalled
                 >
                   <option value="">{t("tc_create_select_category", "Chọn danh mục")}</option>
                   {categories.map((cat) => (
@@ -2027,6 +1954,8 @@ export default function CreateCoursePage() {
                                       })
                                     }
                                     className="px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
+                                    contentClassName="bg-white/90 dark:bg-slate-900/88 backdrop-blur-xl border border-white/45 dark:border-slate-700/80 shadow-[0_20px_60px_rgba(2,6,23,0.45)] ring-1 ring-sky-400/20"
+                                    portalled
                                   >
                                     <option value="multiple-choice">{t("tc_create_type_single", "1 đáp án")}</option>
                                     <option value="multiple-select">{t("tc_create_type_multiple", "Nhiều đáp án")}</option>
@@ -2049,6 +1978,8 @@ export default function CreateCoursePage() {
                                         })
                                       }}
                                       className="px-2 py-1 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
+                                      contentClassName="bg-white/90 dark:bg-slate-900/88 backdrop-blur-xl border border-white/45 dark:border-slate-700/80 shadow-[0_20px_60px_rgba(2,6,23,0.45)] ring-1 ring-sky-400/20"
+                                      portalled
                                     >
                                       {[2, 3, 4, 5, 6].map((count) => (
                                         <option key={count} value={count}>{t("tc_create_option_count", "{count} đáp án").replace("{count}", String(count))}</option>
@@ -2211,6 +2142,8 @@ export default function CreateCoursePage() {
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
+                  contentClassName="bg-white/90 dark:bg-slate-900/88 backdrop-blur-xl border border-white/45 dark:border-slate-700/80 shadow-[0_20px_60px_rgba(2,6,23,0.45)] ring-1 ring-sky-400/20"
+                  portalled
                 >
                   <option value="draft">{t("tc_create_status_draft", "Nháp")}</option>
                   <option value="pending">{t("tc_create_status_pending", "Chờ duyệt")}</option>

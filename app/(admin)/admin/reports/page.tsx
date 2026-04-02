@@ -53,32 +53,6 @@ const sampleRevenueByCategory: RevenueByCategory[] = [
   { categoryName: "Khác", revenue: 8000000, orderCount: 30, percentage: 13 },
 ]
 
-const sampleCoursePerformance: CoursePerformance[] = [
-  {
-    courseId: "sample-1",
-    courseTitle: "Pentest căn bản",
-    teacherName: "Nguyễn Minh",
-    enrollments: 120,
-    revenue: 18000000,
-    averageRating: 4.7,
-    completionRate: 86,
-  },
-  {
-    courseId: "sample-2",
-    courseTitle: "React + NestJS",
-    teacherName: "Lê Anh",
-    enrollments: 140,
-    revenue: 21000000,
-    averageRating: 4.5,
-    completionRate: 78,
-  },
-]
-
-const sampleCompletionRates: CategoryRate[] = [
-  { categoryName: "An ninh mạng", totalEnrollments: 200, completedEnrollments: 164, completionRate: 82 },
-  { categoryName: "Lập trình", totalEnrollments: 180, completedEnrollments: 130, completionRate: 72 },
-]
-
 const sampleGrowth: GrowthPoint[] = [
   { month: "2025-01", teachers: 12, students: 220 },
   { month: "2025-02", teachers: 15, students: 260 },
@@ -119,8 +93,6 @@ export default function AdminReportsPage() {
       try {
         // Don't translate report data
         const localizedRevenueByCategory = sampleRevenueByCategory
-        const localizedCoursePerformance = sampleCoursePerformance
-        const localizedCompletionRates = sampleCompletionRates
 
         const [revenueReport, userReport, performanceReport, dashboardStats, growthStats] = await Promise.all([
           apiClient.getAdminRevenueReport(),
@@ -132,8 +104,8 @@ export default function AdminReportsPage() {
 
         // Determine if we have real data from database
         const hasPayments = Boolean(revenueReport?.revenueByMonth?.length)
-        const hasCourses = Boolean(performanceReport?.topPerformingCourses?.length)
-        const hasCompletion = Boolean(performanceReport?.completionRates?.length)
+        const hasCourses = Array.isArray(performanceReport?.topPerformingCourses)
+        const hasCompletion = Array.isArray(performanceReport?.completionRates)
 
         const teacherSeries = Array.isArray(growthStats?.teachersByMonth) ? growthStats.teachersByMonth : []
         const studentSeries = Array.isArray(growthStats?.studentsByMonth) ? growthStats.studentsByMonth : []
@@ -154,8 +126,8 @@ export default function AdminReportsPage() {
         // Set chart data - prefer real DB data
         setRevenueByMonth(hasPayments ? revenueReport.revenueByMonth : sampleRevenueByMonth)
         setRevenueByCategory(hasPayments ? revenueReport.revenueByCategory : localizedRevenueByCategory)
-        setCoursePerformance(hasCourses ? performanceReport.topPerformingCourses : localizedCoursePerformance)
-        setCompletionRates(hasCompletion ? performanceReport.completionRates : localizedCompletionRates)
+        setCoursePerformance(hasCourses ? performanceReport.topPerformingCourses : [])
+        setCompletionRates(hasCompletion ? performanceReport.completionRates : [])
         setGrowthChart(hasGrowth ? mergedGrowth : sampleGrowth)
 
         // Helper function to safely convert to number
@@ -171,7 +143,7 @@ export default function AdminReportsPage() {
           teacherRevenue: hasPayments ? toNumber(revenueReport.teacherRevenue) : sampleRevenueByMonth.reduce((s, i) => s + i.revenue, 0) * 0.7,
           totalTeachers: toNumber(dashboardStats?.totalTeachers || sampleGrowth[sampleGrowth.length - 1].teachers),
           totalStudents: toNumber(dashboardStats?.totalStudents || sampleGrowth[sampleGrowth.length - 1].students),
-          totalCourses: toNumber(dashboardStats?.totalCourses || sampleCoursePerformance.length),
+          totalCourses: toNumber(dashboardStats?.totalCourses || performanceReport?.topPerformingCourses?.length || 0),
           totalUsers: toNumber(userReport?.totalUsers || sampleGrowth[sampleGrowth.length - 1].students + sampleGrowth[sampleGrowth.length - 1].teachers),
         })
       } catch (error) {

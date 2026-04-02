@@ -194,6 +194,58 @@ export default function CreateExamPage() {
   const sanitizeQuestions = (rawQuestions: Question[]): Question[] => {
     if (!Array.isArray(rawQuestions)) return []
 
+    const splitEmbeddedOptionsFromQuestion = (rawQuestion: string): { stem: string; options: string[] } | null => {
+      const source = String(rawQuestion || "")
+        .replace(/\r/g, "")
+        .replace(/\n+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+      if (!source) return null
+
+      const markerRegex = /([A-F])\s*[\)\].:\-]\s*/gi
+      const markers = Array.from(source.matchAll(markerRegex)).map((match) => ({
+        label: String(match[1] || "").toUpperCase(),
+        start: match.index ?? -1,
+        end: (match.index ?? 0) + match[0].length,
+      }))
+
+      if (markers.length < 2) return null
+      if (markers[0].label !== "A") return null
+
+      for (let i = 1; i < markers.length; i += 1) {
+        const prevCode = markers[i - 1].label.charCodeAt(0)
+        const currentCode = markers[i].label.charCodeAt(0)
+        if (currentCode !== prevCode + 1) return null
+      }
+
+      const stem = source.slice(0, markers[0].start).replace(/\s+\d{1,3}$/g, "").trim()
+      if (!stem) return null
+
+      const options = markers
+        .map((marker, index) => {
+          const next = markers[index + 1]
+          const end = next ? next.start : source.length
+          return source.slice(marker.end, end).trim()
+        })
+        .map((item) => String(item || "").trim())
+        .filter(Boolean)
+
+      const uniqueOptions = Array.from(new Set(options.map((item) => item.toLowerCase())))
+      if (uniqueOptions.length < 2) return null
+
+      return {
+        stem,
+        options: options.slice(0, 6),
+      }
+    }
+
+    const looksLikeBrokenOptions = (items: string[]) => {
+      if (items.length === 0) return true
+      if (items.length < 2) return true
+      if (items.length > 2) return false
+      return items.every((item) => String(item || "").trim().length <= 4)
+    }
+
     const getTrueFalseOptions = (rawOptions: string[]) => {
       const normalized = rawOptions.map((option) => String(option || "").trim()).filter(Boolean)
       if (normalized.length >= 2) return normalized.slice(0, 2)
@@ -273,13 +325,18 @@ export default function CreateExamPage() {
     return rawQuestions
       .map((q, index) => {
         const type = q?.type || "multiple_choice"
-        const question = String(q?.question || "").trim()
+        const rawQuestion = String(q?.question || "").trim()
         const rawOptions = Array.isArray(q?.options)
           ? q.options.map((option) => String(option || "").trim()).filter(Boolean)
           : []
 
+        const embedded = type === "multiple_choice" ? splitEmbeddedOptionsFromQuestion(rawQuestion) : null
+        const shouldUseEmbeddedOptions = Boolean(embedded && looksLikeBrokenOptions(rawOptions))
+        const question = shouldUseEmbeddedOptions && embedded ? embedded.stem : rawQuestion
+        const nextRawOptions = shouldUseEmbeddedOptions && embedded ? embedded.options : rawOptions
+
         const options = type === "multiple_choice"
-          ? ensureOptions(rawOptions)
+          ? ensureOptions(nextRawOptions)
           : type === "true_false"
           ? getTrueFalseOptions(rawOptions)
           : []
@@ -533,6 +590,12 @@ export default function CreateExamPage() {
     setQuestions([...questions, ...sanitizeQuestions(normalizedImported)])
     setSelectedTypeFilter("all")
     setShowImportModal(false)
+    toast.warning(
+      t(
+        "exam_import_review_notice",
+        "Chú ý: Câu hỏi có thể import thiếu hoặc sai. Vui lòng kiểm tra kỹ thông tin trước khi lưu.",
+      ),
+    )
   }
 
   const reviewIssueCount = questions.filter((q) => q.needsAssetReview).length
@@ -545,12 +608,20 @@ export default function CreateExamPage() {
   }, [questions])
 
   const visibleQuestions = useMemo(() => {
-    if (selectedTypeFilter === "all") {
-      return questions.map((q, index) => ({ q, index }))
-    }
-    return questions
-      .map((q, index) => ({ q, index }))
-      .filter(({ q }) => detectQuestionTypeLabel(q) === selectedTypeFilter)
+    const baseList =
+      selectedTypeFilter === "all"
+        ? questions.map((q, index) => ({ q, index }))
+        : questions
+            .map((q, index) => ({ q, index }))
+            .filter(({ q }) => detectQuestionTypeLabel(q) === selectedTypeFilter)
+
+    const typeCounters = new Map<string, number>()
+    return baseList.map(({ q, index }) => {
+      const typeLabel = detectQuestionTypeLabel(q)
+      const displayIndex = (typeCounters.get(typeLabel) || 0) + 1
+      typeCounters.set(typeLabel, displayIndex)
+      return { q, index, displayIndex }
+    })
   }, [questions, selectedTypeFilter])
 
   const handleSubmit = async (asDraft: boolean = true) => {
@@ -645,117 +716,147 @@ export default function CreateExamPage() {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        <TeacherExamsNavbar showCreateButton={false} />
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Link
-            href="/teacher/exams"
-            className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("exam_create_title", "Tạo Ngân Hàng Đề Thi")}</h1>
-            <p className="text-muted-foreground dark:text-slate-400">{t("exam_create_subtitle", "Tạo ngân hàng câu hỏi để sử dụng trong các bài thi của khóa học")}</p>
-          </div>
-        </div>
+        <div
+          className="relative overflow-hidden rounded-3xl p-6 md:p-8 border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl"
+          style={{ backgroundImage: "url('/image/bg_login.png')", backgroundSize: "cover", backgroundPosition: "center" }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-900/80" />
+          <div className="relative z-10 space-y-6">
+            <div className="rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/15 dark:bg-white/5 backdrop-blur-xl px-4 py-3">
+              <TeacherExamsNavbar showCreateButton={false} variant="ghost" tone="light" />
+            </div>
 
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center gap-4">
-          {[
-            { step: 1, label: t("exam_step_info", "Thông tin cơ bản") },
-            { step: 2, label: t("exam_step_questions", "Câu hỏi") },
-            { step: 3, label: t("exam_step_preview", "Xem trước") },
-          ].map((item, index) => (
-            <div key={item.step} className="flex items-center">
-              <div
-                className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold transition-colors ${
-                  currentStep >= item.step
-                    ? "bg-primary text-white"
-                    : "bg-secondary dark:bg-slate-800 text-muted-foreground"
-                }`}
+            <div className="flex items-center gap-4">
+              <Link
+                href="/teacher/exams"
+                className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
               >
-                {currentStep > item.step ? <CheckCircle size={20} /> : item.step}
+                <ArrowLeft size={20} />
+              </Link>
+              <div>
+                <h1 className="text-3xl font-bold text-white drop-shadow-lg">{t("exam_create_title", "Tạo Ngân Hàng Đề Thi")}</h1>
+                <p className="text-white/85 max-w-2xl drop-shadow">{t("exam_create_subtitle", "Tạo ngân hàng câu hỏi để sử dụng trong các bài thi của khóa học")}</p>
               </div>
-              <span className={`ml-2 hidden sm:inline ${
-                currentStep >= item.step ? "text-foreground dark:text-white" : "text-muted-foreground"
-              }`}>
-                {item.label}
-              </span>
-              {index < 2 && (
-                <div className={`w-12 h-0.5 mx-4 ${
-                  currentStep > item.step ? "bg-primary" : "bg-secondary dark:bg-slate-700"
-                }`} />
-              )}
             </div>
-          ))}
-        </div>
 
-        {/* Step 1: Basic Info */}
-        {currentStep === 1 && (
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-            <h2 className="text-xl font-semibold text-foreground dark:text-white">{t("exam_step_info", "Thông tin cơ bản")}</h2>
-
-            <div className="space-y-4">
-              {/* Title */}
-              <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                  {t("exam_title_label", "Tiêu đề bài thi")} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
-                    errors.title ? "border-red-500" : "border-border dark:border-slate-700"
-                  }`}
-                  placeholder={t("exam_title_placeholder", "VD: Bài thi cuối khóa Next.js")}
-                />
-                {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                  {t("exam_description", "Mô tả")}
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  placeholder={t("exam_desc_placeholder", "Mô tả ngắn về bài thi...")}
-                />
-              </div>
-
-              {/* Course */}
-              <div className="relative overflow-visible">
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                  {t("exam_course", "Khóa học")} <span className="text-red-500">*</span>
-                </label>
-                <UniversalSelect
-                  value={formData.courseId}
-                  onChange={(e) => setFormData({ ...formData, courseId: e.target.value, certificateTemplateId: "" })}
-                  className={`relative z-30 w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
-                    errors.courseId ? "border-red-500" : "border-border dark:border-slate-700"
-                  }`}
-                  style={{ zIndex: 30 }}
-                >
-                  <option value="">{t("exam_select_course", "Chọn khóa học")}</option>
-                  {courses.map(course => (
-                    <option key={course.id} value={course.id}>{course.title}</option>
-                  ))}
-                </UniversalSelect>
-                {errors.courseId && <p className="text-red-500 text-sm mt-1">{errors.courseId}</p>}
+            <div className="rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/15 dark:bg-white/5 backdrop-blur-xl p-4 md:p-5">
+              <div className="flex items-center justify-center gap-4">
+                {[
+                  { step: 1, label: t("exam_step_info", "Thông tin cơ bản") },
+                  { step: 2, label: t("exam_step_questions", "Câu hỏi") },
+                  { step: 3, label: t("exam_step_preview", "Xem trước") },
+                ].map((item, index) => (
+                  <div key={item.step} className="flex items-center">
+                    <div
+                      className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold transition-colors ${
+                        currentStep >= item.step
+                          ? "bg-white text-primary"
+                          : "bg-white/20 text-white/70"
+                      }`}
+                    >
+                      {currentStep > item.step ? (
+                        <span key={`done-${item.step}`} className="animate-in zoom-in-95 fade-in duration-200">
+                          <CheckCircle size={20} />
+                        </span>
+                      ) : (
+                        <span key={`step-${item.step}`} className="animate-in zoom-in-95 fade-in duration-200">
+                          {item.step}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`ml-2 hidden sm:inline ${
+                      currentStep >= item.step ? "text-white" : "text-white/70"
+                    }`}>
+                      {item.label}
+                    </span>
+                    {index < 2 && (
+                      <div className="mx-4 w-12 h-0.5 rounded-full bg-white/25 overflow-hidden">
+                        <div
+                          className="h-full bg-white transition-[width] duration-500 ease-out"
+                          style={{ width: currentStep > item.step ? "100%" : "0%" }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Step 2: Questions */}
-        {currentStep === 2 && (
-          <div className="space-y-6">
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+        <div
+          key={`step-${currentStep}`}
+          className={`animate-in fade-in duration-300 ${
+            currentStep === 1 ? "slide-in-from-left-4" : "slide-in-from-right-4"
+          }`}
+        >
+          {/* Step 1: Basic Info */}
+          {currentStep === 1 && (
+            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
+              <h2 className="text-xl font-semibold text-foreground dark:text-white">{t("exam_step_info", "Thông tin cơ bản")}</h2>
+
+              <div className="space-y-4">
+                {/* Title */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                    {t("exam_title_label", "Tiêu đề bài thi")} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
+                      errors.title ? "border-red-500" : "border-border dark:border-slate-700"
+                    }`}
+                    placeholder={t("exam_title_placeholder", "VD: Bài thi cuối khóa Next.js")}
+                  />
+                  {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                    {t("exam_description", "Mô tả")}
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={3}
+                    className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    placeholder={t("exam_desc_placeholder", "Mô tả ngắn về bài thi...")}
+                  />
+                </div>
+
+                {/* Course */}
+                <div className="relative overflow-visible">
+                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                    {t("exam_course", "Khóa học")} <span className="text-red-500">*</span>
+                  </label>
+                  <UniversalSelect
+                    value={formData.courseId}
+                    onChange={(e) => setFormData({ ...formData, courseId: e.target.value, certificateTemplateId: "" })}
+                    className={`relative z-30 w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
+                      errors.courseId ? "border-red-500" : "border-border dark:border-slate-700"
+                    }`}
+                    contentClassName="bg-white/90 dark:bg-slate-900/88 backdrop-blur-xl border border-white/45 dark:border-slate-700/80 shadow-[0_20px_60px_rgba(2,6,23,0.45)] ring-1 ring-sky-400/20"
+                    portalled
+                    style={{ zIndex: 30 }}
+                  >
+                    <option value="">{t("exam_select_course", "Chọn khóa học")}</option>
+                    {courses.map(course => (
+                      <option key={course.id} value={course.id}>{course.title}</option>
+                    ))}
+                  </UniversalSelect>
+                  {errors.courseId && <p className="text-red-500 text-sm mt-1">{errors.courseId}</p>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Questions */}
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-semibold text-foreground dark:text-white">{t("exam_step_questions", "Câu hỏi")}</h2>
@@ -805,6 +906,8 @@ export default function CreateExamPage() {
                     value={selectedTypeFilter}
                     onChange={(e) => setSelectedTypeFilter(e.target.value)}
                     className="px-3 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg text-sm"
+                    contentClassName="bg-white/90 dark:bg-slate-900/88 backdrop-blur-xl border border-white/45 dark:border-slate-700/80 shadow-[0_20px_60px_rgba(2,6,23,0.45)] ring-1 ring-sky-400/20"
+                    portalled
                     title="Lọc theo Type"
                   >
                     <option value="all">Tất cả Type</option>
@@ -834,7 +937,7 @@ export default function CreateExamPage() {
               )}
 
               <div className="space-y-4">
-                {visibleQuestions.map(({ q: question, index }) => (
+                {visibleQuestions.map(({ q: question, index, displayIndex }) => (
                   <div
                     key={question.id}
                     className="bg-secondary/50 dark:bg-slate-800/50 border border-border dark:border-slate-700 rounded-xl overflow-hidden"
@@ -847,7 +950,7 @@ export default function CreateExamPage() {
                       <div className="flex items-center gap-3">
                         <GripVertical size={16} className="text-muted-foreground" />
                         <span className="font-semibold text-foreground dark:text-white">
-                          {t("exam_question_num", "Câu")} {index + 1}
+                          {t("exam_question_num", "Câu")} {displayIndex}
                         </span>
                         <span className="text-xs px-2 py-1 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
                           {detectQuestionTypeLabel(question)}
@@ -1212,8 +1315,9 @@ export default function CreateExamPage() {
         )}
 
         {/* Step 3: Preview */}
-        {currentStep === 3 && (
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
+          {/* Step 3: Preview */}
+          {currentStep === 3 && (
+            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
             <h2 className="text-xl font-semibold text-foreground dark:text-white">{t("exam_preview_title", "Xem trước bài thi")}</h2>
 
             <div className="grid grid-cols-2 gap-4">
@@ -1297,7 +1401,8 @@ export default function CreateExamPage() {
               </div>
             </div>
           </div>
-        )}
+          )}
+        </div>
 
         {/* Navigation Buttons */}
         <div className="flex items-center justify-between">

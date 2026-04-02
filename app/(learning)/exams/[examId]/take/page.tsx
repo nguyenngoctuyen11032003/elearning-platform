@@ -303,6 +303,7 @@ export default function TakeExamPage() {
   const [submitting, setSubmitting] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState(0)
   const [assignedVariantCode, setAssignedVariantCode] = useState<number | null>(null)
+  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -366,10 +367,40 @@ export default function TakeExamPage() {
 
   const safeQuestions = useMemo(() => normalizeExamQuestions(exam?.questions), [exam?.questions])
   const questionCount = safeQuestions.length
+  const answeredCount = useMemo(
+    () => safeQuestions.filter((q) => {
+      const answer = answers[q.id]
+      if (Array.isArray(answer)) return answer.length > 0
+      return String(answer ?? "").trim().length > 0
+    }).length,
+    [answers, safeQuestions],
+  )
+
+  const isQuestionAnswered = (questionId: string) => {
+    const answer = answers[questionId]
+    if (Array.isArray(answer)) return answer.length > 0
+    return String(answer ?? "").trim().length > 0
+  }
+
+  const jumpToQuestion = (questionId: string) => {
+    setActiveQuestionId(questionId)
+    const questionElement = document.getElementById(`question-${questionId}`)
+    if (!questionElement) return
+    questionElement.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
 
   const handleSubmit = async (autoSubmit = false) => {
     if (submitting) return
     if (!isExtractedSource && !attemptId) return
+
+    if (!autoSubmit) {
+      const unanswered = Math.max(questionCount - answeredCount, 0)
+      if (unanswered > 0) {
+        toast.warning(`Bạn còn ${unanswered} câu chưa hoàn thành`)
+        const confirmed = window.confirm(`Bạn còn ${unanswered} câu chưa hoàn thành. Bạn vẫn muốn nộp bài?`)
+        if (!confirmed) return
+      }
+    }
 
     setSubmitting(true)
     try {
@@ -407,134 +438,222 @@ export default function TakeExamPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{exam.title}</h1>
-          <p className="text-sm text-muted-foreground">
-            {questionCount} {t("exam_take_question_count", "câu hỏi")}
-          </p>
-          {assignedVariantCode && (
-            <span className="inline-block mt-1 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 text-xs font-semibold px-2 py-0.5">
-              {t("exam_take_variant_code", "Mã đề")}: {assignedVariantCode}
-            </span>
-          )}
-        </div>
-        <div className="rounded-lg border px-4 py-2 font-semibold">
-          {t("exam_take_time_remaining", "Thời gian còn lại")}: {formatTime(timeRemaining)}
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {safeQuestions.map((q, idx) => (
-          <div key={q.id} className="rounded-xl border bg-card p-4">
-            <p className="mb-2 font-medium whitespace-pre-wrap break-words leading-relaxed">
-              Câu {idx + 1}: <ScientificText as="span" text={q.question} />
+    <div className="p-6 xl:h-[calc(100dvh-2rem)] xl:overflow-hidden">
+      <div className="grid gap-6 xl:h-full xl:grid-cols-[minmax(0,1fr)_300px]">
+        <section className="flex min-h-0 flex-col gap-4">
+          <div className="rounded-xl border bg-card p-4">
+            <h1 className="text-2xl font-bold">{exam.title}</h1>
+            <p className="text-sm text-muted-foreground">
+              {questionCount} {t("exam_take_question_count", "câu hỏi")}
             </p>
-            {q.image && (
-              <img
-                src={q.image}
-                alt={`Minh họa câu ${idx + 1}`}
-                className="mb-3 max-w-full rounded-lg border border-border"
-              />
-            )}
-
-            {q.type === "fill_in" ? (
-              <input
-                value={answers[q.id] || ""}
-                onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                className="w-full rounded-lg border bg-background px-3 py-2"
-                placeholder={t("exam_take_answer_placeholder", "Nhập câu trả lời")}
-              />
-            ) : q.type === "multiple_select" ? (
-              <div className="space-y-2">
-                {(q.options || []).map((option, optIdx) => {
-                  const optionPayload = parseOptionPayload(option)
-                  return (
-                  <label key={`${q.id}-${optIdx}`} className="flex cursor-pointer items-center gap-2 rounded-lg border p-2 hover:bg-secondary/50">
-                    <input
-                      type="checkbox"
-                      name={q.id}
-                      value={option}
-                      checked={Array.isArray(answers[q.id]) ? (answers[q.id] as string[]).includes(option) : false}
-                      onChange={() => {
-                        const current: string[] = Array.isArray(answers[q.id]) ? [...(answers[q.id] as string[])] : []
-                        const exists = current.indexOf(option)
-                        if (exists >= 0) current.splice(exists, 1)
-                        else current.push(option)
-                        setAnswers((prev) => ({ ...prev, [q.id]: current }))
-                      }}
-                      className="h-4 w-4 rounded"
-                    />
-                    <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold">
-                      {String.fromCharCode(65 + optIdx)}
-                    </span>
-                    <div className="min-w-0">
-                      {optionPayload.text && (
-                        <ScientificText
-                          as="span"
-                          className="whitespace-pre-wrap break-words"
-                          text={optionPayload.text}
-                        />
-                      )}
-                      {optionPayload.image && (
-                        <img
-                          src={optionPayload.image}
-                          alt={`Đáp án ${String.fromCharCode(65 + optIdx)}`}
-                          className="mt-1 max-h-24 max-w-full rounded border border-border"
-                        />
-                      )}
-                    </div>
-                  </label>
-                )})}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {(q.options || []).map((option, optIdx) => {
-                  const optionPayload = parseOptionPayload(option)
-                  return (
-                  <label key={`${q.id}-${optIdx}`} className="flex cursor-pointer items-center gap-2 rounded-lg border p-2 hover:bg-secondary/50">
-                    <input
-                      type="radio"
-                      name={q.id}
-                      value={option}
-                      checked={answers[q.id] === option}
-                      onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: option }))}
-                    />
-                    <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold">
-                      {String.fromCharCode(65 + optIdx)}
-                    </span>
-                    <div className="min-w-0">
-                      {optionPayload.text && (
-                        <ScientificText
-                          as="span"
-                          className="whitespace-pre-wrap break-words"
-                          text={optionPayload.text}
-                        />
-                      )}
-                      {optionPayload.image && (
-                        <img
-                          src={optionPayload.image}
-                          alt={`Đáp án ${String.fromCharCode(65 + optIdx)}`}
-                          className="mt-1 max-h-24 max-w-full rounded border border-border"
-                        />
-                      )}
-                    </div>
-                  </label>
-                )})}
-              </div>
+            {assignedVariantCode && (
+              <span className="mt-2 inline-block rounded-md bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-200">
+                {t("exam_take_variant_code", "Mã đề")}: {assignedVariantCode}
+              </span>
             )}
           </div>
-        ))}
-      </div>
 
-      <button
-        onClick={() => handleSubmit(false)}
-        disabled={submitting}
-        className="rounded-lg bg-primary px-5 py-3 font-semibold text-white hover:bg-primary/90 disabled:opacity-60"
-      >
-        {submitting ? "Đang nộp bài..." : "Nộp bài"}
-      </button>
+          <div className="rounded-xl border bg-card p-4 xl:hidden">
+            <div className="mb-3 flex items-center justify-between text-sm">
+              <p className="font-semibold">{t("exam_take_question_nav", "Điều hướng câu hỏi")}</p>
+              <p className="text-muted-foreground">{answeredCount}/{questionCount} {t("exam_take_answered", "đã trả lời")}</p>
+            </div>
+            <div className="grid grid-cols-8 gap-2 sm:grid-cols-10">
+              {safeQuestions.map((q, idx) => {
+                const answered = isQuestionAnswered(q.id)
+                const isActive = activeQuestionId === q.id
+                return (
+                  <button
+                    key={`m-nav-${q.id}`}
+                    type="button"
+                    onClick={() => jumpToQuestion(q.id)}
+                    className={`h-9 rounded-lg text-sm font-semibold transition ${
+                      answered
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                        : "bg-secondary text-foreground hover:bg-secondary/80"
+                    } ${isActive ? "ring-2 ring-primary/40" : ""}`}
+                    aria-label={`Đi tới câu ${idx + 1}`}
+                  >
+                    {idx + 1}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="min-h-0 space-y-4 overflow-y-auto pr-1 xl:pr-2">
+            {safeQuestions.map((q, idx) => (
+              <div
+                id={`question-${q.id}`}
+                key={q.id}
+                className={`rounded-xl border bg-card p-4 transition ${
+                  activeQuestionId === q.id ? "ring-2 ring-primary/50" : ""
+                }`}
+              >
+                <p className="mb-2 font-medium whitespace-pre-wrap break-words leading-relaxed">
+                  Câu {idx + 1}: <ScientificText as="span" text={q.question} />
+                </p>
+                {q.image && (
+                  <img
+                    src={q.image}
+                    alt={`Minh họa câu ${idx + 1}`}
+                    className="mb-3 max-w-full rounded-lg border border-border"
+                  />
+                )}
+
+                {q.type === "fill_in" ? (
+                  <input
+                    value={answers[q.id] || ""}
+                    onChange={(e) => {
+                      setActiveQuestionId(q.id)
+                      setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+                    }}
+                    className="w-full rounded-lg border bg-background px-3 py-2"
+                    placeholder={t("exam_take_answer_placeholder", "Nhập câu trả lời")}
+                  />
+                ) : q.type === "multiple_select" ? (
+                  <div className="space-y-2">
+                    {(q.options || []).map((option, optIdx) => {
+                      const optionPayload = parseOptionPayload(option)
+                      return (
+                      <label key={`${q.id}-${optIdx}`} className="flex cursor-pointer items-center gap-2 rounded-lg border p-2 hover:bg-secondary/50">
+                        <input
+                          type="checkbox"
+                          name={q.id}
+                          value={option}
+                          checked={Array.isArray(answers[q.id]) ? (answers[q.id] as string[]).includes(option) : false}
+                          onChange={() => {
+                            setActiveQuestionId(q.id)
+                            const current: string[] = Array.isArray(answers[q.id]) ? [...(answers[q.id] as string[])] : []
+                            const exists = current.indexOf(option)
+                            if (exists >= 0) current.splice(exists, 1)
+                            else current.push(option)
+                            setAnswers((prev) => ({ ...prev, [q.id]: current }))
+                          }}
+                          className="h-4 w-4 rounded"
+                        />
+                        <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold">
+                          {String.fromCharCode(65 + optIdx)}
+                        </span>
+                        <div className="min-w-0">
+                          {optionPayload.text && (
+                            <ScientificText
+                              as="span"
+                              className="whitespace-pre-wrap break-words"
+                              text={optionPayload.text}
+                            />
+                          )}
+                          {optionPayload.image && (
+                            <img
+                              src={optionPayload.image}
+                              alt={`Đáp án ${String.fromCharCode(65 + optIdx)}`}
+                              className="mt-1 max-h-24 max-w-full rounded border border-border"
+                            />
+                          )}
+                        </div>
+                      </label>
+                    )})}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {(q.options || []).map((option, optIdx) => {
+                      const optionPayload = parseOptionPayload(option)
+                      return (
+                      <label key={`${q.id}-${optIdx}`} className="flex cursor-pointer items-center gap-2 rounded-lg border p-2 hover:bg-secondary/50">
+                        <input
+                          type="radio"
+                          name={q.id}
+                          value={option}
+                          checked={answers[q.id] === option}
+                          onChange={() => {
+                            setActiveQuestionId(q.id)
+                            setAnswers((prev) => ({ ...prev, [q.id]: option }))
+                          }}
+                        />
+                        <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold">
+                          {String.fromCharCode(65 + optIdx)}
+                        </span>
+                        <div className="min-w-0">
+                          {optionPayload.text && (
+                            <ScientificText
+                              as="span"
+                              className="whitespace-pre-wrap break-words"
+                              text={optionPayload.text}
+                            />
+                          )}
+                          {optionPayload.image && (
+                            <img
+                              src={optionPayload.image}
+                              alt={`Đáp án ${String.fromCharCode(65 + optIdx)}`}
+                              className="mt-1 max-h-24 max-w-full rounded border border-border"
+                            />
+                          )}
+                        </div>
+                      </label>
+                    )})}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <button
+              onClick={() => handleSubmit(false)}
+              disabled={submitting}
+              className="rounded-lg bg-primary px-5 py-3 font-semibold text-white hover:bg-primary/90 disabled:opacity-60 xl:hidden"
+            >
+              {submitting ? "Đang nộp bài..." : "Nộp bài"}
+            </button>
+          </div>
+        </section>
+
+        <aside className="hidden xl:flex xl:h-full xl:flex-col xl:gap-4">
+          <div className="rounded-xl border bg-card p-4">
+            <p className="mb-1 text-sm text-muted-foreground">{t("exam_take_time_remaining", "Thời gian còn lại")}</p>
+            <p className="text-2xl font-bold">{formatTime(timeRemaining)}</p>
+          </div>
+
+          <div className="rounded-xl border bg-card p-4">
+            <div className="mb-3 flex items-center justify-between text-sm">
+              <p className="font-semibold">{t("exam_take_question_nav", "Điều hướng câu hỏi")}</p>
+              <p className="text-muted-foreground">{answeredCount}/{questionCount}</p>
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {safeQuestions.map((q, idx) => {
+                const answered = isQuestionAnswered(q.id)
+                const isActive = activeQuestionId === q.id
+                return (
+                  <button
+                    key={`d-nav-${q.id}`}
+                    type="button"
+                    onClick={() => jumpToQuestion(q.id)}
+                    className={`h-10 rounded-lg text-sm font-semibold transition ${
+                      answered
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                        : "bg-secondary text-foreground hover:bg-secondary/80"
+                    } ${isActive ? "ring-2 ring-primary/40" : ""}`}
+                    aria-label={`Đi tới câu ${idx + 1}`}
+                  >
+                    {idx + 1}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-xl border bg-card p-4">
+            <p className="mb-3 text-sm text-muted-foreground">
+              {answeredCount}/{questionCount} {t("exam_take_answered", "đã trả lời")}
+            </p>
+            <button
+              onClick={() => handleSubmit(false)}
+              disabled={submitting}
+              className="w-full rounded-lg bg-primary px-5 py-3 font-semibold text-white hover:bg-primary/90 disabled:opacity-60"
+            >
+              {submitting ? "Đang nộp bài..." : "Nộp bài"}
+            </button>
+          </div>
+        </aside>
+      </div>
     </div>
   )
 }

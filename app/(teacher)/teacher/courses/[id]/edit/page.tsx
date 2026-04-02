@@ -6,9 +6,9 @@ import { FileUploadZone } from "@/components/ui/file-upload-zone"
 import { apiClient } from "@/lib/api/client"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import * as XLSX from "xlsx"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
+import { parseExamQuestionsFileWithReport } from "@/lib/utils/exam-import"
 import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Section {
@@ -76,6 +76,12 @@ interface NewLessonDraft {
   writingDueDate: string
   writingMaxScore: number
   writingCriteria: WritingCriterion[]
+}
+
+let tempIdSeed = 0
+function createTempId(prefix: string): string {
+  tempIdSeed += 1
+  return `${prefix}-${Date.now().toString(36)}-${tempIdSeed.toString(36)}`
 }
 
 // Normalize lesson resources from varied backend shapes into a flat document list.
@@ -576,284 +582,94 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   // Handle importing quizzes from Excel/CSV/Word
   const handleImportQuizzes = async (file: File, addToNew: boolean = true, lessonId?: string) => {
     try {
-      const data = await file.arrayBuffer()
-      let questions: Array<{ question: string; options: string[]; correctAnswerIndex?: number; correctAnswerIndexes?: number[]; image?: string }> = []
+      const lowerName = file.name.toLowerCase()
+      const importType =
+        lowerName.endsWith(".doc") ||
+        lowerName.endsWith(".docx") ||
+        lowerName.endsWith(".pdf")
+          ? "word"
+          : "excel"
 
-      // Check file type
-      const isWord = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || 
-                     file.name.endsWith(".docx")
-      const isExcel = file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-                      file.type === "application/vnd.ms-excel" ||
-                      file.name.endsWith(".xlsx") ||
-                      file.name.endsWith(".xls")
+      const { questions: parsedQuestions } = await parseExamQuestionsFileWithReport(
+        file,
+        importType,
+        lowerName.endsWith(".pdf") ? { extractImages: true, ocrMode: "extract" } : undefined,
+      )
 
-      if (isWord) {
-        // Parse Word document via API
-        const formData = new FormData()
-        formData.append("file", file)
-        
-        const response = await fetch("/internal/import/parse-word", {
-          method: "POST",
-          body: formData,
-        })
+      const normalizeText = (value: string): string =>
+        String(value || "").toLowerCase().replace(/\s+/g, " ").trim()
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(localizeMessage(errorData.error || tr("Không thể phân tích file Word", "Failed to parse Word document"), getCurrentClientLanguage()))
+      const resolveIndex = (token: string, options: string[]): number => {
+        const trimmed = String(token || "").trim()
+        if (!trimmed) return -1
+
+        const clean = trimmed.replace(/^[\s\(\[]+|[\s\)\].:;,-]+$/g, "")
+        const normalized = normalizeText(clean)
+        if (normalized) {
+          const byText = options.findIndex((option) => normalizeText(option) === normalized)
+          if (byText >= 0) return byText
         }
 
-        const result = await response.json()
-        const text = result.text
-        const imageDataMap: Record<string, string> = result.images || {}
-        const lines = text.split(/\r?\n/).map((l: string) => l.trim()).filter((l: string) => l)
-        const imageMarkerLines = lines.filter((l: string) => l.startsWith("[[IMAGE:"))
-        
-        // Pass 1: group lines into per-question blocks
-        interface WordBlock {
-          questionText: string
-          bodyLines: string[]
-          answerLine: string
-          imageKey: string | undefined
+        if (/^[A-F]$/i.test(clean)) {
+          const index = clean.toUpperCase().charCodeAt(0) - 65
+          return index >= 0 && index < options.length ? index : -1
         }
-        const questionStartRegex = /^(?:.*?(?:Câu|Question|câu|question)\s*[\d]+[\.\:\s\-]*|\d+[\)\.\:\-]\s*)/
-        const answerStartRegex = /^(?:Đáp\s*án|Answer)\s*[\:\=]+/i
-        const metadataLineRegex = /^(?:Diff|Var|Topic|Learning\s*Obj|Global\s*Obj)\s*[\:\=]/i
-        const blocks: WordBlock[] = []
-        let curBlock: WordBlock | null = null
 
-        for (const line of lines) {
-          const isCauLine = questionStartRegex.test(line)
-
-          if (isCauLine) {
-            if (curBlock) blocks.push(curBlock)
-            curBlock = {
-              questionText: line.replace(questionStartRegex, "").trim(),
-              bodyLines: [],
-              answerLine: "",
-              imageKey: undefined,
-            }
-            continue
-          }
-          if (!curBlock) continue
-
-          if (line.startsWith("[[IMAGE:")) {
-            const m = line.match(/^\[\[IMAGE:(img_\d+)\]\]$/)
-            if (m) curBlock.imageKey = m[1]
-            continue
-          }
-
-          if (line.match(answerStartRegex)) {
-            curBlock.answerLine = line
-            continue
-          }
-
-          // Keep import robust for chemistry-style metadata lines.
-          if (line.match(metadataLineRegex)) {
-            continue
-          }
-
-          curBlock.bodyLines.push(line)
+        const numeric = Number.parseInt(clean, 10)
+        if (!Number.isNaN(numeric)) {
+          const index = numeric - 1
+          return index >= 0 && index < options.length ? index : -1
         }
-        if (curBlock) blocks.push(curBlock)
 
-        // Pass 2: for each block decide how to split body into question content vs options
-        for (const block of blocks) {
-          // Detect if options use A./B./C./D. prefix
-          const hasPrefixedOptions = block.bodyLines.some(l => /^[A-Da-d][\.\)]\s+\S/.test(l))
-
-          let questionText = block.questionText
-          const opts: string[] = []
-
-          if (hasPrefixedOptions) {
-            // Prefixed format: A./B./C./D. lines are options, others append to question
-            for (const line of block.bodyLines) {
-              const m = line.match(/^\s*[A-Da-d][\.\)]\s*(.+)/)
-              if (m) {
-                opts.push(m[1].trim())
-              } else {
-                questionText += "\n" + line
-              }
-            }
-          } else {
-            // Plain format: Word auto-numbered list (A/B/C/D not in text).
-            // Determine option count: check answer letter for max letter used, default 4.
-            const answerLetters = block.answerLine.match(/[A-D]/gi) || []
-            const maxLetterIdx = answerLetters.reduce((max, l) => {
-              const idx = l.toUpperCase().charCodeAt(0) - 65
-              return idx > max ? idx : max
-            }, 3) // default to D (index 3) = 4 options
-            const optCount = maxLetterIdx + 1 // A=1, B=2, C=3, D=4
-
-            // Take last optCount lines as options, everything before is question context
-            const splitAt = Math.max(0, block.bodyLines.length - optCount)
-            const contextLines = block.bodyLines.slice(0, splitAt)
-            const optionLines = block.bodyLines.slice(splitAt)
-
-            if (contextLines.length > 0) questionText += "\n" + contextLines.join("\n")
-            for (const line of optionLines) opts.push(line)
-          }
-
-          // Parse answer key
-          let correctIndex = -1
-          let correctIndexes: number[] = []
-          if (block.answerLine) {
-            const letters = block.answerLine.match(/[A-D]/gi) || []
-            const nums = block.answerLine.match(/[1-4]/g) || []
-            const idxSet = new Set<number>()
-            letters.forEach((l: string) => idxSet.add(l.toUpperCase().charCodeAt(0) - 65))
-            nums.forEach((n: string) => idxSet.add(parseInt(n, 10) - 1))
-            const sorted = [...idxSet].filter(i => i >= 0 && i < opts.length).sort((a, b) => a - b)
-            if (sorted.length > 0) { correctIndexes = sorted; correctIndex = sorted[0] }
-          }
-
-          const image = block.imageKey ? imageDataMap[block.imageKey] : undefined
-
-          if (questionText && opts.length >= 2) {
-            questions.push({
-              question: questionText,
-              options: opts,
-              correctAnswerIndex: correctIndex >= 0 ? correctIndex : undefined,
-              correctAnswerIndexes: correctIndexes.length > 1 ? correctIndexes : undefined,
-              image,
-            })
-          }
-        }
-      } else if (isExcel) {
-        // Parse Excel file
-        const workbook = XLSX.read(data, { type: "array" })
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as string[][]
-
-        for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
-          const row = rows[rowIdx]
-          if (!row || row.length === 0) continue
-
-          const question = row[0]?.toString().trim()
-          if (!question) continue
-
-          // Extract options and detect correct answer
-          const rawOptions: Array<{ text: string; isCorrect: boolean }> = []
-          let correctIndex = -1
-          let correctIndexes: number[] = []
-          let image: string | undefined
-
-          for (let i = 1; i < row.length; i++) {
-            const cell = row[i]?.toString().trim() || ""
-            if (!cell) continue
-
-            let optionText = cell
-            let isMarked = false
-
-            // Detect image cell (URL or base64)
-            if (/^data:image\//i.test(optionText) || /^https?:\/\//i.test(optionText)) {
-              image = optionText
-              continue
-            }
-
-            if (/^image\s*:\s*/i.test(optionText)) {
-              image = optionText.replace(/^image\s*:\s*/i, "").trim()
-              continue
-            }
-
-            // Check for explicit markers first
-            if (optionText.startsWith("*") || optionText.includes("*") && optionText.indexOf("*") === 0) {
-              isMarked = true
-              optionText = optionText.replace(/^\*\s*/, "").trim()
-            } else if (optionText.startsWith("✓") || optionText.startsWith("√")) {
-              isMarked = true
-              optionText = optionText.replace(/^(✓|√)\s*/, "").trim()
-            } else if (optionText.startsWith("+")) {
-              isMarked = true
-              optionText = optionText.replace(/^\+\s*/, "").trim()
-            } else if (optionText.startsWith("【") && optionText.includes("】")) {
-              isMarked = true
-              optionText = optionText.replace(/^【/, "").replace(/】.*$/, "").trim()
-            } else if (optionText.startsWith("[") && optionText.includes("]")) {
-              isMarked = true
-              optionText = optionText.replace(/^\[/, "").replace(/\].*$/, "").trim()
-            }
-
-            if (optionText) {
-              rawOptions.push({ text: optionText, isCorrect: isMarked })
-              if (isMarked && correctIndex === -1) {
-                correctIndex = rawOptions.length - 1
-              }
-              if (isMarked) {
-                correctIndexes.push(rawOptions.length - 1)
-              }
-            }
-          }
-
-          // Check if there's an answer row following this question
-          if (rowIdx + 1 < rows.length) {
-            const nextRow = rows[rowIdx + 1]
-            if (nextRow && nextRow[0]) {
-              const nextCell = nextRow[0].toString().trim()
-              if (nextCell.match(/^Đáp\s*án[\s\:\=]*/i)) {
-                const answerLetters = nextCell.match(/[A-D]/gi) || []
-                const answerNumbers = nextCell.match(/[1-6]/g) || []
-                const indexes = new Set<number>()
-
-                answerLetters.forEach((letter) => {
-                  const idx = letter.toUpperCase().charCodeAt(0) - 65
-                  if (idx >= 0) indexes.add(idx)
-                })
-
-                answerNumbers.forEach((num) => {
-                  const idx = parseInt(num, 10) - 1
-                  if (idx >= 0) indexes.add(idx)
-                })
-
-                const sortedIndexes = Array.from(indexes).filter((idx) => idx < rawOptions.length).sort((a, b) => a - b)
-                if (sortedIndexes.length > 0) {
-                  correctIndexes = sortedIndexes
-                  correctIndex = sortedIndexes[0]
-                }
-              }
-            }
-          }
-
-          const options = rawOptions.map(o => o.text)
-          if (options.length >= 2) {
-            questions.push({
-              question,
-              options: normalizeOptionCount(options, Math.min(options.length, 6)),
-              correctAnswerIndex: correctIndex >= 0 ? correctIndex : undefined,
-              correctAnswerIndexes: correctIndexes.length > 1 ? correctIndexes : undefined,
-              image
-            })
-          }
-        }
+        return -1
       }
 
-      // Convert parsed questions to Quiz objects
-      const importedQuizzes: Quiz[] = questions.map((q, idx) => {
-        // Auto-detect type
-        let type: "multiple-choice" | "multiple-select" | "true-false" = "multiple-choice"
-        
-        const lowerOptions = q.options.map(o => o.toLowerCase().trim())
-        const isTrueFalse = q.options.length === 2 && 
-          ((lowerOptions.includes("đúng") && lowerOptions.includes("sai")) || 
-           (lowerOptions.includes("true") && lowerOptions.includes("false")) ||
-           (lowerOptions.includes("yes") && lowerOptions.includes("no")))
+      const resolveAnswerIndexes = (answer: string | string[], options: string[]): number[] => {
+        const tokens = Array.isArray(answer)
+          ? answer
+          : String(answer || "")
+              .split(/[;,|]/)
+              .map((item) => item.trim())
+              .filter(Boolean)
 
-        if (isTrueFalse) {
-          type = "true-false"
-        } else if (q.correctAnswerIndexes && q.correctAnswerIndexes.length > 1) {
-          type = "multiple-select"
-        }
+        const indexes = tokens
+          .map((token) => resolveIndex(token, options))
+          .filter((index) => index >= 0)
 
-        const newQuiz: Quiz = {
-          id: `${Date.now()}-${Math.random()}`,
-          question: q.question,
-          type: type,
-          options: q.options,
-          correctAnswer: type === "multiple-select" ? undefined : (q.correctAnswerIndex ?? 0),
-          correctAnswers: type === "multiple-select" ? (q.correctAnswerIndexes || []) : [],
-          image: q.image,
-        }
-        return newQuiz
-      })
+        return Array.from(new Set(indexes))
+      }
+
+      const importedQuizzes: Quiz[] = parsedQuestions
+        .map((item) => {
+          const options = (item.options || []).slice(0, 6)
+          if (item.type === "fill_in" || options.length < 2) return null
+
+          const answerIndexes = resolveAnswerIndexes(item.correctAnswer, options)
+          const isTrueFalse = item.type === "true_false"
+
+          if (answerIndexes.length > 1 && !isTrueFalse) {
+            return {
+              id: createTempId("quiz"),
+              question: item.question,
+              type: "multiple-select" as const,
+              options,
+              correctAnswer: undefined,
+              correctAnswers: answerIndexes,
+              image: item.image,
+            }
+          }
+
+          return {
+            id: createTempId("quiz"),
+            question: item.question,
+            type: (isTrueFalse ? "true-false" : "multiple-choice") as const,
+            options,
+            correctAnswer: answerIndexes[0] ?? 0,
+            correctAnswers: [],
+            image: item.image,
+          }
+        })
+        .filter((quiz): quiz is Quiz => Boolean(quiz))
 
       const quizzesWithUploadedImages = await Promise.all(
         importedQuizzes.map(async (quiz) => {
@@ -981,7 +797,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             sectionMap.get(key)!.push(l)
           }
           const reconstructedSections = Array.from(sectionMap.entries()).map(([title, lsns], idx) => ({
-            id: `section-${idx}-${Date.now()}`,
+            id: createTempId(`section-${idx}`),
             title,
             lessons: lsns
               .sort((a: { order?: number }, b: { order?: number }) => (a.order || 0) - (b.order || 0))
@@ -997,7 +813,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   description: l.description || "",
                   quizId: linkedQuiz?.id,
                   quizzes: questions.map((q: any) => ({
-                    id: q.id || `${Date.now()}-${Math.random()}`,
+                    id: q.id || createTempId("quiz"),
                     question: q.question || "",
                     image: q.image || undefined,
                     type: q.type || "multiple-choice",
@@ -1054,7 +870,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
   const addSection = () => {
     const newSection: Section = {
-      id: Date.now().toString(),
+      id: createTempId("section"),
       title: `Phần ${sections.length + 1}`,
       lessons: [],
     }
@@ -1092,7 +908,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     }
 
     if (addLessonSectionId) {
-      const newLessonId = Date.now().toString()
+      const newLessonId = createTempId("lesson")
       // Snapshot quizzes/files to avoid losing data when modal state is reset.
       const quizSnapshot = newLessonQuizzes.map((q) => ({
         ...q,
@@ -1139,7 +955,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
   const addNewLessonQuiz = () => {
     const newQuiz: Quiz = {
-      id: Date.now().toString(),
+      id: createTempId("quiz"),
       question: "Câu hỏi mới",
       type: "multiple-choice",
       options: buildOptions(4),
@@ -1226,7 +1042,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         lessons: s.lessons.map((l) => {
           if (l.id === lessonId) {
             const newQuiz: Quiz = {
-              id: Date.now().toString(),
+              id: createTempId("quiz"),
               question: "Câu hỏi mới",
               type: "multiple-choice",
               options: buildOptions(4),
@@ -1681,7 +1497,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             sectionMap.get(key)!.push(l)
           }
           const reconstructed = Array.from(sectionMap.entries()).map(([title, lsns], idx) => ({
-            id: `section-${idx}-${Date.now()}`,
+            id: createTempId(`section-${idx}`),
             title,
             lessons: (lsns as { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[]; order?: number; type?: string }[])
               .sort((a, b) => (a.order || 0) - (b.order || 0))
@@ -1697,7 +1513,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   description: l.description || "",
                   quizId: linkedQuiz?.id,
                   quizzes: questions.map((q) => ({
-                    id: q.id || `${Date.now()}-${Math.random()}`,
+                    id: q.id || createTempId("quiz"),
                     question: q.question || "",
                     image: q.image || undefined,
                     type: q.type || "multiple-choice",

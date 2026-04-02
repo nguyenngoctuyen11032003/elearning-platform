@@ -31,9 +31,7 @@ export function TeacherRouteGuard({ children }: TeacherRouteGuardProps) {
       <div className="min-h-screen flex items-center justify-center bg-background dark:bg-slate-950">
         <div className="text-center">
           <Loader2 className="animate-spin text-primary mx-auto mb-3" size={34} />
-          <p className="text-sm text-muted-foreground dark:text-slate-400">
-            {t("common_loading", "Đang tải...")}
-          </p>
+          <p className="text-sm text-muted-foreground dark:text-slate-400">Đang tải...</p>
         </div>
       </div>
     )

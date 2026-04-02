@@ -28,9 +28,13 @@ export interface ExamImportWithReport {
 interface WordQuestionBlock {
   questionText: string
   questionNumber?: number
+  sectionQuestionNumber?: number
   bodyLines: string[]
   answerLine: string
   explanationLine: string
+  inlineAnswer?: string
+  markedAnswer?: string | string[]
+  answerKeyAnswer?: string
   sectionTitle?: string
   metadata: {
     diff?: string
@@ -45,12 +49,20 @@ interface WordQuestionBlock {
   points: number
 }
 
+interface AnswerKeyEntry {
+  sectionTitle?: string
+  sectionIndex?: number
+  questionNumber: number
+  answerLine: string
+  explanationLine: string
+}
+
 const QUESTION_LINE_REGEX = /^\s*(?:Cau|Câu|Question|Q)\s*\d+[\.:\-\)]*\s*/i
 const QUESTION_WITH_NUMBER_REGEX = /^\s*(?:Cau|Câu|Question|Q)\s*(\d{1,4})[\.:\-\)]*\s*(.+)$/i
 const NUMBERED_QUESTION_LINE_REGEX = /^\s*\(?\d{1,4}\)?[\.:\-\)]\s*(.+?)\s*$/i
 const NUMBERED_WITH_NUMBER_REGEX = /^\s*\(?(\d{1,4})\)?[\.:\-\)]\s*(.+?)\s*$/i
 const OPTION_LINE_REGEX = /^\s*([A-F])(?:\s*[\.)．。:\-,])\s*(.+)$/i
-const INLINE_OPTION_MARKER_REGEX = /(^|[\s\[(])([A-F])(?:\s*[\.)．。:\-,])\s*/gi
+const INLINE_OPTION_MARKER_REGEX = /([A-F])(?:\s*[\.)．。:\-,])\s*/g
 const ANSWER_LINE_REGEX = /^\s*(?:Dap an|Đáp án|ĐA(?=\s|[:=.\-]|$)|DA(?=\s|[:=.\-]|$)|Answer|Ans(?:wer)?|Correct\s*answer|Answer\s*key|Key)\s*(?:[:=.\-])?\s*(.+)$/i
 const STANDALONE_OPTION_LABEL_REGEX = /^\s*([A-F])(?:\s*[\.)．。:\-,])?\s*$/i
 const EXPLANATION_LINE_REGEX = /^\s*(?:Giai thich|Giải thích|Explanation|Solution|Loi giai|Lời giải)\s*(?:[:=.\-])?\s*(.+)$/i
@@ -58,6 +70,10 @@ const POINTS_LINE_REGEX = /^\s*(?:Diem|Điểm|Points?)\s*[:=-]\s*(\d+(?:\.\d+)?
 const INLINE_ANSWER_REGEX = /^(.*?)\s*(?:Dap an|Đáp án|ĐA(?=\s|[:=.\-]|$)|DA(?=\s|[:=.\-]|$)|Answer|Ans(?:wer)?|Correct\s*answer|Answer\s*key|Key)\s*[:=.\-]?\s*(.+)$/i
 const INLINE_METADATA_SPLIT_REGEX = /\s+(?:Diff|Var|Topic|Learning\s*Obj|Global\s*Obj|Rationale|Reason|Loi\s*giai|Lời\s*giải)\s*[:=.\-]/i
 const SECTION_LINE_REGEX = /^\s*(\d+(?:\.\d+)*)\s+([A-Za-z][^\n]{3,})$/
+const ANSWER_KEY_HEADER_REGEX = /^(?:answer\s*key|đáp\s*án)\s*(?:[:\-])?\s*(?:(?:&|and|và)\s*)?(?:explanations?|hướng\s*dẫn\s*giải|giai\s*thich|giải\s*thích)?\s*$/i
+const ANSWER_KEY_SECTION_REGEX = /^\s*(?:section|phần|phan)\s*(\d+)\s*[:\-]?\s*(?:type\s*([A-Z0-9]+))?/i
+const ANSWER_KEY_ITEM_REGEX = /^\s*(?:(?:Q(?:uestion)?|Câu|Cau)\s*)?(\d{1,4})\s*[.)]\s*([\s\S]*)$/i
+const NUMBER_ONLY_QUESTION_MARKER_REGEX = /^\s*\(?(\d{1,4})\)?\s*[.)]\s*$/
 const METADATA_LINE_REGEX = /^\s*(Diff|Var|Topic|Learning\s*Obj|Global\s*Obj|Rationale|Reason|Loi\s*giai|Lời\s*giải)\s*[:=.\-]\s*(.+)$/i
 const FILL_IN_QUESTION_HINT_REGEX = /(?:_{2,}|\.{3,}|\(\s*\)|\[\s*\]|\bfill\s*(?:in|the\s*blank)\b|\bđiền\s*(?:vào\s*)?chỗ\s*trống\b)/i
 const QUESTION_GROUP_HEADING_REGEX = /^(?:\d+(?:\.\d+)*)?\s*(?:multiple\s*choice|short\s*answer|true\s*false|fill(?:ed)?\s*in(?:\s*the\s*blank)?|essay|matching|algorithmic|conceptual|review|practice|sample|discussion|application|problem\s*solving)\s+(?:question|questions|problem|problems)\b\s*$/i
@@ -128,6 +144,393 @@ const toTypeSectionLabel = (value: string): string | null => {
   }
 
   return null
+}
+
+const extractSectionIndex = (value?: string): number | undefined => {
+  const match = String(value || "").match(/\bsection\s*(\d+)\b/i)
+  if (!match) return undefined
+
+  const parsed = Number.parseInt(match[1], 10)
+  if (Number.isNaN(parsed)) return undefined
+  return parsed
+}
+
+const isAnswerKeyHeaderLine = (line: string): boolean => {
+  const text = normalizeSectionLabel(line)
+  if (!text) return false
+  if (text.length > 140) return false
+  if (QUESTION_LINE_REGEX.test(text) || OPTION_LINE_REGEX.test(text)) return false
+  return ANSWER_KEY_HEADER_REGEX.test(text)
+}
+
+const normalizeAnswerKeySectionLine = (
+  line: string,
+): { sectionTitle?: string; sectionIndex?: number; restLine?: string } => {
+  const text = normalizeSectionLabel(line)
+  if (!text) return {}
+
+  const sectionWithType = text.match(/^(?:section|phần|phan)\s*(\d+)\s*[:\-]?\s*type\s*([A-Z0-9]+)\b\s*(.*)$/i)
+  if (sectionWithType) {
+    const index = Number.parseInt(sectionWithType[1], 10)
+    const type = String(sectionWithType[2] || "").trim().toUpperCase()
+    return {
+      sectionTitle: `Section ${index} - Type ${type}`,
+      sectionIndex: Number.isNaN(index) ? undefined : index,
+      restLine: normalizeSectionLabel(sectionWithType[3] || ""),
+    }
+  }
+
+  const sectionOnly = text.match(/^(?:section|phần|phan)\s*(\d+)\b\s*(.*)$/i)
+  if (sectionOnly) {
+    const index = Number.parseInt(sectionOnly[1], 10)
+    return {
+      sectionTitle: `Section ${index}`,
+      sectionIndex: Number.isNaN(index) ? undefined : index,
+      restLine: normalizeSectionLabel(sectionOnly[2] || ""),
+    }
+  }
+
+  const byTypeSection = toTypeSectionLabel(text)
+  if (byTypeSection) {
+    return {
+      sectionTitle: byTypeSection,
+      sectionIndex: extractSectionIndex(byTypeSection),
+      restLine: "",
+    }
+  }
+
+  const bySection = text.match(ANSWER_KEY_SECTION_REGEX)
+  if (bySection) {
+    const index = Number.parseInt(bySection[1], 10)
+    const type = String(bySection[2] || "").trim().toUpperCase()
+    return {
+      sectionTitle: type ? `Section ${index} - Type ${type}` : `Section ${index}`,
+      sectionIndex: Number.isNaN(index) ? undefined : index,
+      restLine: normalizeSectionLabel(text.slice(String(bySection[0] || "").length)),
+    }
+  }
+
+  const sectionIndex = extractSectionIndex(text)
+  if (typeof sectionIndex === "number") {
+    return {
+      sectionTitle: `Section ${sectionIndex}`,
+      sectionIndex,
+      restLine: "",
+    }
+  }
+
+  return {}
+}
+
+const stripTrailingQuestionMarkerArtifact = (value: string): string => {
+  return String(value || "")
+    .replace(/\s+\d{1,4}[.)]\s*$/g, "")
+    .trim()
+}
+
+const parseAnswerKeyPayload = (raw: string): { answerLine: string; explanationLine: string } => {
+  const value = stripTrailingQuestionMarkerArtifact(String(raw || "").replace(/\s+/g, " ").trim())
+  if (!value) {
+    return { answerLine: "", explanationLine: "" }
+  }
+
+  const normalizeExplanation = (input: string): string =>
+    stripTrailingQuestionMarkerArtifact(String(input || "").replace(/\s+/g, " ").trim())
+
+  const tokenMatch = value.match(/^(\b[A-F]\b|\bđúng\b|\bsai\b|\btrue\b|\bfalse\b|\d{1,2})\s*/i)
+  if (tokenMatch) {
+    const rawToken = String(tokenMatch[1] || "").trim()
+    const token = /^[A-F]$/i.test(rawToken) ? rawToken.toUpperCase() : rawToken
+    let rest = value.slice(tokenMatch[0].length).trim()
+    rest = rest.replace(/^[\).:\-]\s*/, "")
+
+    let explanationLine = ""
+    const withParen = rest.match(/^\(([^)]*)\)\s*[.:;\-]?\s*([\s\S]*)$/)
+    if (withParen) {
+      explanationLine = normalizeExplanation(withParen[2] || "")
+    } else {
+      explanationLine = normalizeExplanation(rest)
+    }
+
+    return {
+      answerLine: token,
+      explanationLine,
+    }
+  }
+
+  const fallback = value.match(/^([^\s]+)\s*[.:;\-]\s*([\s\S]*)$/)
+  if (fallback) {
+    return {
+      answerLine: String(fallback[1] || "").trim(),
+      explanationLine: normalizeExplanation(fallback[2] || ""),
+    }
+  }
+
+  return {
+    answerLine: value,
+    explanationLine: "",
+  }
+}
+
+const splitAnswerKeyInlineItems = (line: string): Array<{ questionNumber: number; content: string }> => {
+  const source = String(line || "")
+  if (!source.trim()) return []
+
+  const looksLikeAnswerLead = (value: string): boolean => {
+    const text = String(value || "").trim()
+    if (!text) return false
+    return /^([A-F](?:\b|[\).:\-])|\(?[A-F]\)?\b|đúng\b|sai\b|true\b|false\b|\d{1,2}(?:\s*[\).:\-(]|$))/i.test(text)
+  }
+
+  const markerRegex = /(?:(?:Q(?:uestion)?|Câu|Cau)\s*)?(\d{1,4})\s*[.)]\s*/gi
+  const matches = Array.from(source.matchAll(markerRegex))
+    .map((match) => {
+      const start = match.index ?? -1
+      const end = (match.index ?? 0) + match[0].length
+      const questionNumber = Number.parseInt(String(match[1] || ""), 10)
+      const tail = source.slice(end)
+      const markerText = source.slice(start, end)
+      const hasQuestionPrefix = /^\s*(?:Q(?:uestion)?|Câu|Cau)/i.test(markerText)
+      const prevChar = start > 0 ? source[start - 1] : ""
+      return {
+        questionNumber,
+        start,
+        end,
+        tail,
+        hasQuestionPrefix,
+        prevChar,
+      }
+    })
+    .filter((item) => item.start >= 0)
+    .filter((item) => !Number.isNaN(item.questionNumber) && item.questionNumber > 0 && item.questionNumber <= 500)
+    .filter((item) => item.hasQuestionPrefix || item.start === 0 || /[\s;:|)\]]/.test(item.prevChar))
+    .filter((item) => looksLikeAnswerLead(item.tail))
+
+  if (matches.length === 0) return []
+
+  const items: Array<{ questionNumber: number; content: string }> = []
+  for (let i = 0; i < matches.length; i += 1) {
+    const current = matches[i]
+    if (current.start < 0 || Number.isNaN(current.questionNumber) || current.questionNumber <= 0) continue
+    const next = matches[i + 1]
+    const end = next ? next.start : source.length
+    const content = stripTrailingQuestionMarkerArtifact(source.slice(current.end, end).trim())
+    items.push({
+      questionNumber: current.questionNumber,
+      content,
+    })
+  }
+
+  return items
+}
+
+const parseAnswerKeyEntries = (lines: string[]): AnswerKeyEntry[] => {
+  if (!Array.isArray(lines) || lines.length === 0) return []
+
+  const entries: AnswerKeyEntry[] = []
+  let currentSectionTitle: string | undefined
+  let currentSectionIndex: number | undefined
+  let currentQuestionNumber: number | null = null
+  let currentParts: string[] = []
+
+  const flushCurrent = () => {
+    if (currentQuestionNumber === null) return
+
+    const merged = stripTrailingQuestionMarkerArtifact(currentParts.join(" ").replace(/\s+/g, " ").trim())
+    if (!merged) {
+      currentQuestionNumber = null
+      currentParts = []
+      return
+    }
+
+    const payload = parseAnswerKeyPayload(merged)
+    if (!payload.answerLine && !payload.explanationLine) {
+      currentQuestionNumber = null
+      currentParts = []
+      return
+    }
+
+    entries.push({
+      sectionTitle: currentSectionTitle,
+      sectionIndex: currentSectionIndex,
+      questionNumber: currentQuestionNumber,
+      answerLine: payload.answerLine,
+      explanationLine: payload.explanationLine,
+    })
+
+    currentQuestionNumber = null
+    currentParts = []
+  }
+
+  for (const rawLine of lines) {
+    const rawNormalized = normalizeSectionLabel(rawLine)
+    if (!rawNormalized) continue
+    if (isAnswerKeyHeaderLine(rawNormalized)) continue
+
+    let line = rawNormalized
+
+    const section = normalizeAnswerKeySectionLine(line)
+    if (typeof section.sectionIndex === "number") {
+      flushCurrent()
+      currentSectionTitle = section.sectionTitle
+      currentSectionIndex = section.sectionIndex
+      line = normalizeSectionLabel(section.restLine || "")
+      if (!line) continue
+    }
+
+    const inlineItems = splitAnswerKeyInlineItems(line)
+    const startsWithItem = /^\s*(?:(?:Q(?:uestion)?|Câu|Cau)\s*)?\d{1,4}\s*[.)]\s*/i.test(line)
+    if (inlineItems.length >= 2) {
+      flushCurrent()
+      for (const item of inlineItems) {
+        const payload = parseAnswerKeyPayload(item.content)
+        if (!payload.answerLine && !payload.explanationLine) continue
+        entries.push({
+          sectionTitle: currentSectionTitle,
+          sectionIndex: currentSectionIndex,
+          questionNumber: item.questionNumber,
+          answerLine: payload.answerLine,
+          explanationLine: payload.explanationLine,
+        })
+      }
+      continue
+    }
+
+    if (inlineItems.length === 1 && startsWithItem) {
+      flushCurrent()
+      currentQuestionNumber = inlineItems[0].questionNumber
+      currentParts = [inlineItems[0].content]
+      continue
+    }
+
+    const itemMatch = line.match(ANSWER_KEY_ITEM_REGEX)
+    if (itemMatch) {
+      flushCurrent()
+      const questionNumber = Number.parseInt(itemMatch[1], 10)
+      if (Number.isNaN(questionNumber)) continue
+
+      currentQuestionNumber = questionNumber
+      currentParts = [String(itemMatch[2] || "").trim()]
+      continue
+    }
+
+    if (currentQuestionNumber !== null) {
+      currentParts.push(line)
+    }
+  }
+
+  flushCurrent()
+  return entries
+}
+
+const ANSWER_KEY_MULTI_TOKEN_VALUE_REGEX =
+  /^\s*(?:\(?\s*[A-F]\s*\)?|\d{1,2})(?:\s*[,;/|]\s*(?:\(?\s*[A-F]\s*\)?|\d{1,2}))+\s*[\).:\-]?\s*$/i
+
+const isLikelyAnswerKeyEntryValue = (value: string): boolean => {
+  const text = normalizeSectionLabel(value)
+  if (!text) return false
+
+  if (ANSWER_KEY_MULTI_TOKEN_VALUE_REGEX.test(text)) return true
+
+  const leadMatch = text.match(/^(\(?\s*[A-F]\s*\)?|true|false|đúng|sai|\d{1,2})\s*([\s\S]*)$/i)
+  if (!leadMatch) return false
+
+  const token = sanitizeAnswerToken(String(leadMatch[1] || ""))
+  if (!token) return false
+  if (!/^(?:[A-F]|\d{1,2}|true|false|đúng|sai)$/i.test(token)) return false
+
+  const tail = String(leadMatch[2] || "").trim()
+  if (!tail) return true
+
+  // Accept explanation separators/markers after the answer token.
+  if (/^[\).:\-;,/|]/.test(tail)) return true
+  if (/^[\(\[]/.test(tail)) return true
+  if (/^\d/.test(tail)) return true
+  if (/^(?:=>|->|~)/.test(tail)) return true
+
+  // Reject question-like continuations such as "A person ...".
+  return false
+}
+
+const isLikelyAnswerKeyTailLine = (line: string, options?: { allowStructural?: boolean }): boolean => {
+  const text = normalizeSectionLabel(line)
+  if (!text) return false
+  if (options?.allowStructural) {
+    if (isAnswerKeyHeaderLine(text)) return true
+    if (ANSWER_KEY_SECTION_REGEX.test(text)) return true
+  }
+
+  const inlineItems = splitAnswerKeyInlineItems(text)
+  if (inlineItems.length > 0) {
+    return inlineItems.every((item) => isLikelyAnswerKeyEntryValue(item.content))
+  }
+
+  const itemMatch = text.match(ANSWER_KEY_ITEM_REGEX)
+  if (!itemMatch) return false
+  return isLikelyAnswerKeyEntryValue(String(itemMatch[2] || ""))
+}
+
+const detectAnswerKeyStartIndex = (lines: string[]): number => {
+  if (!Array.isArray(lines) || lines.length === 0) return -1
+
+  const explicitHeaderIndex = lines.findIndex((line) => isAnswerKeyHeaderLine(line))
+  if (explicitHeaderIndex >= 0) return explicitHeaderIndex
+
+  // Heuristic for files without explicit "Answer key" header: detect a dense answer-like tail block.
+  const minTailStart = Math.floor(lines.length * 0.35)
+
+  for (let i = minTailStart; i < lines.length; i += 1) {
+    if (!isLikelyAnswerKeyTailLine(lines[i])) continue
+
+    let windowNonEmptyCount = 0
+    let windowTailLikeCount = 0
+    let windowItemLikeCount = 0
+
+    for (let j = i; j < lines.length && windowNonEmptyCount < 10; j += 1) {
+      const text = normalizeSectionLabel(lines[j])
+      if (!text) continue
+      windowNonEmptyCount += 1
+      if (isLikelyAnswerKeyTailLine(text)) {
+        windowItemLikeCount += 1
+      }
+      if (isLikelyAnswerKeyTailLine(text, { allowStructural: true })) {
+        windowTailLikeCount += 1
+      }
+    }
+
+    if (
+      windowNonEmptyCount > 0 &&
+      (windowItemLikeCount < 2 || windowTailLikeCount < Math.ceil(windowNonEmptyCount * 0.4))
+    ) {
+      continue
+    }
+
+    let nonEmptyCount = 0
+    let tailLikeCount = 0
+    let itemLikeCount = 0
+
+    for (let j = i; j < lines.length; j += 1) {
+      const text = normalizeSectionLabel(lines[j])
+      if (!text) continue
+      nonEmptyCount += 1
+      if (isLikelyAnswerKeyTailLine(text)) {
+        itemLikeCount += 1
+      }
+      if (isLikelyAnswerKeyTailLine(text, { allowStructural: true })) {
+        tailLikeCount += 1
+      }
+    }
+
+    if (
+      itemLikeCount >= 2 &&
+      tailLikeCount >= 2 &&
+      tailLikeCount >= Math.ceil(nonEmptyCount * 0.45)
+    ) {
+      return i
+    }
+  }
+
+  return -1
 }
 
 const extractQuestionText = (line: string): string | null => {
@@ -574,34 +977,60 @@ const splitInlineOptionSegments = (
   const sourceForScan = sourceRaw.replace(UNDERLINE_TAG_REGEX, (m) => " ".repeat(m.length))
 
   const matches = Array.from(sourceForScan.matchAll(INLINE_OPTION_MARKER_REGEX))
-    .map((match) => ({
-      index: (match.index ?? -1) + String(match[1] || "").length,
-      labelIndex: String(match[2] || "").toUpperCase().charCodeAt(0) - 65,
-    }))
+    .map((match) => {
+      const markerStart = match.index ?? -1
+      const labelIndex = String(match[1] || "").toUpperCase().charCodeAt(0) - 65
+      return {
+        index: markerStart,
+        labelIndex,
+      }
+    })
     .filter((match) => match.index >= 0 && match.labelIndex >= 0 && match.labelIndex <= 5)
 
   if (matches.length < 2) return null
 
-  if (matches[0].labelIndex !== 0) return null
-  for (let i = 1; i < matches.length; i += 1) {
-    if (matches[i].labelIndex !== matches[i - 1].labelIndex + 1) {
-      return null
+  // Pick the longest A->... sequence to avoid catching stray "(A)/(B)" markers inside question stems.
+  let bestRun: Array<{ index: number; labelIndex: number }> = []
+  for (let i = 0; i < matches.length; i += 1) {
+    if (matches[i].labelIndex !== 0) continue
+
+    const run: Array<{ index: number; labelIndex: number }> = [matches[i]]
+    let expected = 1
+
+    for (let j = i + 1; j < matches.length; j += 1) {
+      const candidateLabel = matches[j].labelIndex
+      if (candidateLabel === expected) {
+        run.push(matches[j])
+        expected += 1
+        if (expected > 5) break
+        continue
+      }
+
+      if (candidateLabel === 0) {
+        break
+      }
+    }
+
+    if (run.length > bestRun.length) {
+      bestRun = run
     }
   }
 
+  if (bestRun.length < 2) return null
+
   const optionLines: string[] = []
   const leadText = stripUnderlineTags(sourceRaw)
-    .slice(0, matches[0].index)
+    .slice(0, bestRun[0].index)
     .replace(/\s+\d{1,3}$/g, "")
     .trim()
 
-  for (let i = 0; i < matches.length; i += 1) {
-    const current = matches[i]
-    const next = matches[i + 1]
+  for (let i = 0; i < bestRun.length; i += 1) {
+    const current = bestRun[i]
+    const next = bestRun[i + 1]
     const end = next ? next.index : sourceRaw.length
     const rawSegment = sourceRaw.slice(current.index, end).trim()
     const matchableSegment = stripUnderlineTags(rawSegment)
-      .replace(/^\s*([A-F])(?:\s*[\.)．。:\-,])\s*/i, (_m, p1) => `${String(p1).toUpperCase()}. `)
+      .replace(/^\s*(?:\d+\s*)?([A-F])(?:\s*[\.)．。:\-,])\s*/, (_m, p1) => `${String(p1).toUpperCase()}. `)
     if (!OPTION_LINE_REGEX.test(matchableSegment)) continue
     optionLines.push(rawSegment)
   }
@@ -723,7 +1152,7 @@ const splitCombinedOptionByLabel = (
     return [{ text: source, labelIndex: baseLabelIndex }]
   }
 
-  const markerRegex = /\b([A-F])[\.)．。]\s*/gi
+  const markerRegex = /([A-F])[\.)．。]\s*/g
   const allMarkers = Array.from(source.matchAll(markerRegex)).map((m) => ({
     index: m.index ?? -1,
     end: (m.index ?? -1) + m[0].length,
@@ -942,6 +1371,51 @@ const isEmptyResolvedAnswer = (value: string | string[]): boolean => {
   return !String(value || "").trim()
 }
 
+const resolveFinalAnswer = (
+  block: WordQuestionBlock,
+  options: string[],
+  answerKeyMap: Map<number, AnswerKeyEntry>,
+): string | string[] => {
+  const parseToken = (raw: unknown): string | string[] => {
+    const token = sanitizeAnswerToken(String(raw || ""))
+    if (!token) return ""
+
+    if (options.length === 0) {
+      return token
+    }
+
+    return parseCorrectAnswerFromLine(token, options)
+  }
+
+  // 1) Priority: marked option from parsing options
+  if (block.markedAnswer && !isEmptyResolvedAnswer(block.markedAnswer)) {
+    return block.markedAnswer
+  }
+
+  // 2) Priority: inline answer in question block
+  const inlineCandidate = parseToken(block.inlineAnswer || block.answerLine)
+  if (!isEmptyResolvedAnswer(inlineCandidate)) {
+    return inlineCandidate
+  }
+
+  // 3) Priority: mapped answer from answer-key tail by section-aware mapping
+  const mappedCandidate = parseToken(block.answerKeyAnswer)
+  if (!isEmptyResolvedAnswer(mappedCandidate)) {
+    return mappedCandidate
+  }
+
+  // 4) Fallback: question-number map (best-effort)
+  if (block.questionNumber) {
+    const keyEntry = answerKeyMap.get(block.questionNumber)
+    const keyCandidate = parseToken(keyEntry?.answerLine)
+    if (!isEmptyResolvedAnswer(keyCandidate)) {
+      return keyCandidate
+    }
+  }
+
+  return ""
+}
+
 const inferAnswerFromHintLines = (lines: string[], options: string[]): string => {
   if (!Array.isArray(lines) || lines.length === 0 || options.length === 0) return ""
 
@@ -1062,6 +1536,7 @@ const recoverUnlabeledOptions = (
 const finalizeWordBlock = (
   block: WordQuestionBlock,
   imageMap: Record<string, string>,
+  answerKeyMap: Map<number, AnswerKeyEntry>,
 ): ImportedExamQuestion | null => {
   const rawQuestion = block.questionText.trim()
   if (!rawQuestion) return null
@@ -1408,7 +1883,11 @@ const finalizeWordBlock = (
   const difficulty = toDifficultyLevel(block.metadata.diff)
   const questionWithSection = normalizedQuestion
   const markedAnswer = resolveMarkedOptionAnswer(markedOptionIndexes, options)
+  if (markedAnswer) {
+    block.markedAnswer = markedAnswer
+  }
   const hasFillInBlank = looksLikeFillInQuestion(questionWithSection)
+  const hybridResolvedAnswer = resolveFinalAnswer(block, options, answerKeyMap)
 
   if (options.length >= 2) {
     const normalizedLower = options.map((option) => option.toLowerCase().trim())
@@ -1419,7 +1898,8 @@ const finalizeWordBlock = (
 
     if (isTrueFalse) {
       const markedValue = Array.isArray(markedAnswer) ? markedAnswer[0] : markedAnswer
-      const answerValue = answerToken || markedValue || ""
+      const hybridToken = Array.isArray(hybridResolvedAnswer) ? hybridResolvedAnswer[0] : hybridResolvedAnswer
+      const answerValue = String(hybridToken || answerToken || markedValue || "").trim()
       return {
         type: "true_false",
         question: questionWithSection,
@@ -1433,26 +1913,8 @@ const finalizeWordBlock = (
       }
     }
 
-    let answerRaw: string | string[] = ""
-    if (answerToken) {
-      answerRaw = parseCorrectAnswerFromLine(answerToken, options)
-      if (isEmptyResolvedAnswer(answerRaw)) {
-        const underlinedAnswer = findUnderlinedAnswerFallback()
-        if (underlinedAnswer) {
-          answerRaw = underlinedAnswer
-        } else {
-          const hinted = inferAnswerFromHintLines(
-            [block.answerLine, block.explanationLine, block.metadata.reason || "", rawQuestion, ...block.bodyLines],
-            options,
-          )
-          if (hinted) {
-            answerRaw = hinted
-          } else if (markedAnswer) {
-            answerRaw = markedAnswer
-          }
-        }
-      }
-    } else {
+    let answerRaw: string | string[] = hybridResolvedAnswer
+    if (isEmptyResolvedAnswer(answerRaw)) {
       const underlinedAnswer = findUnderlinedAnswerFallback()
       if (underlinedAnswer) {
         answerRaw = underlinedAnswer
@@ -1460,7 +1922,15 @@ const finalizeWordBlock = (
         answerRaw = markedAnswer
       } else {
         const hinted = inferAnswerFromHintLines(
-          [block.answerLine, block.explanationLine, block.metadata.reason || "", rawQuestion, ...block.bodyLines],
+          [
+            block.inlineAnswer || "",
+            block.answerLine,
+            block.answerKeyAnswer || "",
+            block.explanationLine,
+            block.metadata.reason || "",
+            rawQuestion,
+            ...block.bodyLines,
+          ],
           options,
         )
         if (hinted) {
@@ -1482,7 +1952,8 @@ const finalizeWordBlock = (
     }
   }
 
-  const fillAnswer = answerToken.trim()
+  const fillResolved = resolveFinalAnswer(block, [], answerKeyMap)
+  const fillAnswer = String(Array.isArray(fillResolved) ? fillResolved[0] : fillResolved || answerToken).trim()
   const hasExplicitFillAnswer = Boolean(fillAnswer) && !looksLikeOptionReferenceToken(fillAnswer)
 
   // Keep incomplete fill-in questions so import count matches source file count.
@@ -1573,8 +2044,11 @@ const parseDocumentQuestions = async (
 
   const lines = text
     .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
+    .map((line) => line.trimEnd())
+
+  const answerKeyStartIndex = detectAnswerKeyStartIndex(lines)
+  const questionLines = answerKeyStartIndex >= 0 ? lines.slice(0, answerKeyStartIndex) : lines
+  const answerKeyLines = answerKeyStartIndex >= 0 ? lines.slice(answerKeyStartIndex) : []
 
   const blocks: WordQuestionBlock[] = []
   let current: WordQuestionBlock | null = null
@@ -1582,10 +2056,27 @@ const parseDocumentQuestions = async (
   let currentAutoSectionTitle = toAutoSectionLabel(1)
   let autoSectionIndex = 1
   let lastQuestionNumber: number | undefined
+  let pendingQuestionNumber: number | undefined
   let pendingImageKey: string | undefined
   let pendingExtraImageKeys: string[] = []
+  const sectionQuestionCounters = new Map<string, number>()
 
-  for (const line of lines) {
+  const nextSectionQuestionNumber = (sectionTitle?: string): number => {
+    const sectionKey = normalizeSectionLabel(sectionTitle || "") || "__global"
+    const next = (sectionQuestionCounters.get(sectionKey) || 0) + 1
+    sectionQuestionCounters.set(sectionKey, next)
+    return next
+  }
+
+  for (const rawLine of questionLines) {
+    const line = rawLine.trim()
+    if (!line) {
+      if (current) {
+        current.bodyLines.push("")
+      }
+      continue
+    }
+
     const sectionTitle = extractSectionTitle(line)
     if (sectionTitle) {
       if (current) {
@@ -1594,15 +2085,43 @@ const parseDocumentQuestions = async (
       }
       currentSectionTitle = normalizeSectionLabel(sectionTitle)
       lastQuestionNumber = undefined
+      pendingQuestionNumber = undefined
+      continue
+    }
+
+    const standaloneQuestionNumber = line.match(NUMBER_ONLY_QUESTION_MARKER_REGEX)
+    if (standaloneQuestionNumber) {
+      const parsedNumber = Number.parseInt(standaloneQuestionNumber[1], 10)
+      if (!Number.isNaN(parsedNumber)) {
+        if (current) {
+          blocks.push(current)
+          current = null
+        }
+        pendingQuestionNumber = parsedNumber
+      }
       continue
     }
 
     const questionStart = extractQuestionStart(line)
     if (questionStart) {
+      const resolvedQuestionNumber =
+        typeof questionStart.number === "number" ? questionStart.number : pendingQuestionNumber
       const isResetFromQuestionSequence =
-        questionStart.number === 1 &&
+        resolvedQuestionNumber === 1 &&
         typeof lastQuestionNumber === "number" &&
         lastQuestionNumber > 1
+
+      let initialQuestionText = questionStart.text
+      let initialInlineAnswer = ""
+      const inlineInQuestion = questionStart.text.match(INLINE_ANSWER_REGEX)
+      if (inlineInQuestion) {
+        const leading = inlineInQuestion[1].trim()
+        const answerValue = inlineInQuestion[2].trim()
+        if (isLikelyAnswerTokenValue(answerValue)) {
+          initialQuestionText = leading
+          initialInlineAnswer = sanitizeAnswerToken(answerValue)
+        }
+      }
 
       if (isResetFromQuestionSequence) {
         autoSectionIndex += 1
@@ -1615,20 +2134,51 @@ const parseDocumentQuestions = async (
 
       if (current) blocks.push(current)
       current = {
-        questionText: questionStart.text,
-        questionNumber: questionStart.number,
+        questionText: initialQuestionText,
+        questionNumber: resolvedQuestionNumber,
+        sectionQuestionNumber: nextSectionQuestionNumber(activeSectionTitle),
         bodyLines: [],
-        answerLine: "",
+        answerLine: initialInlineAnswer,
         explanationLine: "",
+        inlineAnswer: initialInlineAnswer,
+        answerKeyAnswer: "",
         sectionTitle: activeSectionTitle,
         metadata: {},
         imageKey: pendingImageKey,
         extraImageKeys: pendingExtraImageKeys,
         points: 1,
       }
-      if (typeof questionStart.number === "number") {
-        lastQuestionNumber = questionStart.number
+      if (typeof resolvedQuestionNumber === "number") {
+        lastQuestionNumber = resolvedQuestionNumber
       }
+      pendingQuestionNumber = undefined
+      pendingImageKey = undefined
+      pendingExtraImageKeys = []
+      continue
+    }
+
+    if (!current && pendingQuestionNumber && looksLikeStandaloneQuestionStart(line)) {
+      const activeSectionTitle = currentSectionTitle || currentAutoSectionTitle
+      currentSectionTitle = activeSectionTitle
+
+      current = {
+        questionText: line.trim(),
+        questionNumber: pendingQuestionNumber,
+        sectionQuestionNumber: nextSectionQuestionNumber(activeSectionTitle),
+        bodyLines: [],
+        answerLine: "",
+        explanationLine: "",
+        inlineAnswer: "",
+        answerKeyAnswer: "",
+        sectionTitle: activeSectionTitle,
+        metadata: {},
+        imageKey: pendingImageKey,
+        extraImageKeys: pendingExtraImageKeys,
+        points: 1,
+      }
+
+      lastQuestionNumber = pendingQuestionNumber
+      pendingQuestionNumber = undefined
       pendingImageKey = undefined
       pendingExtraImageKeys = []
       continue
@@ -1652,17 +2202,26 @@ const parseDocumentQuestions = async (
 
     if ((current.answerLine || hasCollectedOptions) && looksLikeStandaloneQuestionStart(line)) {
       blocks.push(current)
+      const activeSectionTitle = currentSectionTitle || currentAutoSectionTitle
       current = {
         questionText: line.trim(),
+        questionNumber: pendingQuestionNumber,
+        sectionQuestionNumber: nextSectionQuestionNumber(activeSectionTitle),
         bodyLines: [],
         answerLine: "",
         explanationLine: "",
-        sectionTitle: currentSectionTitle || currentAutoSectionTitle,
+        inlineAnswer: "",
+        answerKeyAnswer: "",
+        sectionTitle: activeSectionTitle,
         metadata: {},
         imageKey: pendingImageKey,
         extraImageKeys: pendingExtraImageKeys,
         points: 1,
       }
+      if (typeof pendingQuestionNumber === "number") {
+        lastQuestionNumber = pendingQuestionNumber
+      }
+      pendingQuestionNumber = undefined
       pendingImageKey = undefined
       pendingExtraImageKeys = []
       continue
@@ -1696,10 +2255,14 @@ const parseDocumentQuestions = async (
     const answerMatch = line.match(ANSWER_LINE_REGEX)
     if (answerMatch) {
       const answerValue = answerMatch[1].trim()
-      if (shouldTreatAsAnswerMetadataLine(line, answerValue)) {
+      if (shouldTreatAsAnswerMetadataLine(line, answerValue) || !current.answerLine) {
         current.answerLine = answerValue
-        continue
+        const sanitized = sanitizeAnswerToken(answerValue)
+        if (sanitized) {
+          current.inlineAnswer = sanitized
+        }
       }
+      continue
     }
 
     const inlineAnswerMatch = line.match(INLINE_ANSWER_REGEX)
@@ -1711,6 +2274,7 @@ const parseDocumentQuestions = async (
           current.bodyLines.push(leading)
         }
         current.answerLine = answerValue
+        current.inlineAnswer = sanitizeAnswerToken(answerValue)
         continue
       }
     }
@@ -1732,11 +2296,177 @@ const parseDocumentQuestions = async (
 
   if (current) blocks.push(current)
 
+  const answerKeyEntries = parseAnswerKeyEntries(answerKeyLines)
+  const answerKeyFrequency = new Map<number, number>()
+  for (const entry of answerKeyEntries) {
+    answerKeyFrequency.set(entry.questionNumber, (answerKeyFrequency.get(entry.questionNumber) || 0) + 1)
+  }
+
+  // Keep only unique question numbers here. Duplicates across sections are resolved by section-aware merge.
+  const answerKeyMap = new Map<number, AnswerKeyEntry>()
+  for (const entry of answerKeyEntries) {
+    const frequency = answerKeyFrequency.get(entry.questionNumber) || 0
+    if (frequency === 1 && !answerKeyMap.has(entry.questionNumber)) {
+      answerKeyMap.set(entry.questionNumber, entry)
+    }
+  }
+
+  if (answerKeyEntries.length > 0) {
+    const bySectionAndQuestion = new Map<string, AnswerKeyEntry>()
+    const bySectionIndexAndQuestion = new Map<string, AnswerKeyEntry>()
+    const byQuestionNumber = new Map<number, AnswerKeyEntry[]>()
+    const bySectionOrdered = new Map<string, AnswerKeyEntry[]>()
+    const usedEntries = new Set<AnswerKeyEntry>()
+
+    const toBlockSectionKey = (block: WordQuestionBlock): string => {
+      const normalizedSection = normalizeSectionLabel(block.sectionTitle || "")
+      const sectionIndex = extractSectionIndex(normalizedSection)
+      if (typeof sectionIndex === "number") return `idx:${sectionIndex}`
+      if (normalizedSection) return `title:${normalizedSection}`
+      return "__global"
+    }
+
+    const toEntrySectionKey = (entry: AnswerKeyEntry): string => {
+      if (typeof entry.sectionIndex === "number") return `idx:${entry.sectionIndex}`
+      const normalizedSection = normalizeSectionLabel(entry.sectionTitle || "")
+      if (normalizedSection) return `title:${normalizedSection}`
+      return "__global"
+    }
+
+    for (const entry of answerKeyEntries) {
+      if (entry.sectionTitle) {
+        const sectionKey = `${normalizeSectionLabel(entry.sectionTitle)}::${entry.questionNumber}`
+        if (!bySectionAndQuestion.has(sectionKey)) {
+          bySectionAndQuestion.set(sectionKey, entry)
+        }
+      }
+      if (typeof entry.sectionIndex === "number") {
+        const sectionIndexKey = `${entry.sectionIndex}::${entry.questionNumber}`
+        if (!bySectionIndexAndQuestion.has(sectionIndexKey)) {
+          bySectionIndexAndQuestion.set(sectionIndexKey, entry)
+        }
+      }
+      const existing = byQuestionNumber.get(entry.questionNumber) || []
+      existing.push(entry)
+      byQuestionNumber.set(entry.questionNumber, existing)
+
+      const sectionKey = toEntrySectionKey(entry)
+      const scoped = bySectionOrdered.get(sectionKey) || []
+      scoped.push(entry)
+      bySectionOrdered.set(sectionKey, scoped)
+    }
+
+    const unstableNumberingSections = new Set<string>()
+    for (const [sectionKey, sectionEntries] of bySectionOrdered.entries()) {
+      if (sectionEntries.length < 3) continue
+      const uniqueNumbers = new Set(sectionEntries.map((entry) => entry.questionNumber))
+      const hasDuplicate = uniqueNumbers.size < sectionEntries.length
+      const hasBacktrack = sectionEntries.some(
+        (entry, index) => index > 0 && entry.questionNumber < sectionEntries[index - 1].questionNumber,
+      )
+      const firstQuestionNumber = sectionEntries[0]?.questionNumber
+      if (
+        hasDuplicate ||
+        (hasBacktrack && typeof firstQuestionNumber === "number" && firstQuestionNumber > 1)
+      ) {
+        unstableNumberingSections.add(sectionKey)
+      }
+    }
+
+    const unresolvedBlocks: Array<{ block: WordQuestionBlock; sectionKey: string }> = []
+
+    const pickIfUnused = (entry?: AnswerKeyEntry): AnswerKeyEntry | undefined => {
+      if (!entry || usedEntries.has(entry)) return undefined
+      return entry
+    }
+
+    for (const block of blocks) {
+      const sectionKey = toBlockSectionKey(block)
+
+      if (unstableNumberingSections.has(sectionKey)) {
+        unresolvedBlocks.push({ block, sectionKey })
+        continue
+      }
+
+      const numberCandidates = Array.from(
+        new Set(
+          [block.sectionQuestionNumber, block.questionNumber].filter(
+            (value): value is number => typeof value === "number",
+          ),
+        ),
+      )
+
+      if (numberCandidates.length === 0) {
+        unresolvedBlocks.push({ block, sectionKey })
+        continue
+      }
+
+      const normalizedSection = normalizeSectionLabel(block.sectionTitle || "")
+      const blockSectionIndex = extractSectionIndex(normalizedSection)
+      let matched: AnswerKeyEntry | undefined
+
+      for (const candidateNumber of numberCandidates) {
+        const blockSectionKey = normalizedSection ? `${normalizedSection}::${candidateNumber}` : ""
+        const blockSectionIndexKey =
+          typeof blockSectionIndex === "number" ? `${blockSectionIndex}::${candidateNumber}` : ""
+
+        const candidates = (byQuestionNumber.get(candidateNumber) || []).filter((entry) => !usedEntries.has(entry))
+        matched =
+          pickIfUnused(blockSectionKey ? bySectionAndQuestion.get(blockSectionKey) : undefined) ||
+          pickIfUnused(blockSectionIndexKey ? bySectionIndexAndQuestion.get(blockSectionIndexKey) : undefined) ||
+          (candidates.length === 1 ? candidates[0] : undefined)
+
+        if (matched) break
+      }
+
+      if (!matched) {
+        unresolvedBlocks.push({ block, sectionKey })
+        continue
+      }
+
+      usedEntries.add(matched)
+      if (matched.answerLine) {
+        block.answerKeyAnswer = sanitizeAnswerToken(matched.answerLine)
+      }
+      if (matched.explanationLine && !block.explanationLine) {
+        block.explanationLine = matched.explanationLine
+      }
+    }
+
+    const remainingBySection = new Map<string, AnswerKeyEntry[]>()
+    for (const entry of answerKeyEntries) {
+      if (usedEntries.has(entry)) continue
+      const key = toEntrySectionKey(entry)
+      const list = remainingBySection.get(key) || []
+      list.push(entry)
+      remainingBySection.set(key, list)
+    }
+
+    for (const item of unresolvedBlocks) {
+      const scoped = (remainingBySection.get(item.sectionKey) || []).find((entry) => !usedEntries.has(entry))
+      const matched =
+        scoped ||
+        (item.sectionKey === "__global"
+          ? (remainingBySection.get("__global") || []).find((entry) => !usedEntries.has(entry))
+          : undefined)
+      if (!matched) continue
+
+      usedEntries.add(matched)
+
+      if (matched.answerLine) {
+        item.block.answerKeyAnswer = sanitizeAnswerToken(matched.answerLine)
+      }
+      if (matched.explanationLine && !item.block.explanationLine) {
+        item.block.explanationLine = matched.explanationLine
+      }
+    }
+  }
+
   const questions: ImportedExamQuestion[] = []
   const questionsWithExtraImages: number[] = []
 
   for (const block of blocks) {
-    const finalized = finalizeWordBlock(block, imageMap)
+    const finalized = finalizeWordBlock(block, imageMap, answerKeyMap)
     if (!finalized) continue
     questions.push(finalized)
     if (block.extraImageKeys.length > 0) {

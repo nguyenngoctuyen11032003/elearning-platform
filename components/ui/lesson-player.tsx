@@ -1,12 +1,14 @@
 "use client"
 
 import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronDown, MessageCircle, Download, FileText, CheckCircle2, Circle, Play } from "lucide-react"
+import { ChevronDown, MessageCircle, Download, FileText, CheckCircle2, Circle, Play, Lock, ChevronLeft, ChevronRight, Clapperboard } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
 import { authFetch } from "@/lib/authfetch"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { ScientificText } from "@/components/scientific-text"
+import { VideoPlayer } from "@/components/ui/video-player"
 
 interface Lesson {
   id: string
@@ -130,6 +132,43 @@ export function LessonPlayer({
   const currentLesson = lessons.find((l) => l.id === currentLessonId)
   const currentResources = currentLesson?.resources || []
   const currentRequirement = currentLesson ? calculateRequirementStatus(currentLesson) : null
+  const currentLessonIndex = lessons.findIndex((lesson) => lesson.id === currentLessonId)
+  const prevLesson = currentLessonIndex > 0 ? lessons[currentLessonIndex - 1] : null
+  const nextLesson = currentLessonIndex >= 0 && currentLessonIndex < lessons.length - 1 ? lessons[currentLessonIndex + 1] : null
+
+  const groupedLessons = useMemo(() => {
+    const groups: Array<{ title: string; items: Array<{ lesson: Lesson; index: number }> }> = []
+    let fallbackGroup: { title: string; items: Array<{ lesson: Lesson; index: number }> } | null = null
+
+    lessons.forEach((lesson, index) => {
+      const rawTitle = String(lesson.sectionTitle || "").trim()
+      if (!rawTitle) {
+        if (!fallbackGroup) {
+          fallbackGroup = { title: "Section 1", items: [] }
+          groups.push(fallbackGroup)
+        }
+        fallbackGroup.items.push({ lesson, index })
+        return
+      }
+
+      fallbackGroup = null
+      const existing = groups.find((group) => group.title === rawTitle)
+      if (existing) {
+        existing.items.push({ lesson, index })
+      } else {
+        groups.push({ title: rawTitle, items: [{ lesson, index }] })
+      }
+    })
+
+    return groups.length > 0 ? groups : [{ title: "Section 1", items: [] }]
+  }, [lessons])
+
+  const isLessonLocked = (index: number) => {
+    if (index <= 0) return false
+    const previous = lessons[index - 1]
+    const isCurrent = lessons[index]?.id === currentLessonId
+    return !isCurrent && !previous?.completed
+  }
 
   const progressPercent = useMemo(() => {
     if (lessons.length === 0) return 0
@@ -137,8 +176,28 @@ export function LessonPlayer({
   }, [lessons])
 
   useEffect(() => {
+    if (!currentLesson) {
+      setActiveTab("notes")
+      return
+    }
+
+    if (currentLesson.type === "quiz") {
+      setActiveTab("quiz")
+      return
+    }
+
+    if (currentLesson.type === "assignment") {
+      setActiveTab("writing")
+      return
+    }
+
+    if (currentLesson.type === "pdf" || currentLesson.type === "ppt") {
+      setActiveTab("materials")
+      return
+    }
+
     setActiveTab("notes")
-  }, [currentLessonId])
+  }, [currentLesson])
 
   useEffect(() => {
     const key = `lesson_notes_${currentLessonId}`
@@ -327,6 +386,11 @@ export function LessonPlayer({
     )
   }
 
+  const handleCustomVideoEnded = async () => {
+    if (!currentLesson) return
+    await updateLessonState(currentLesson.id, { videoCompleted: true })
+  }
+
   const handleOpenMaterial = async (lesson: Lesson, materialUrl: string) => {
     const lessonResources = lesson.resources || []
     const resourceCount = lessonResources.length
@@ -457,33 +521,31 @@ export function LessonPlayer({
   }
 
   return (
-    <div className="relative flex min-h-[100dvh] md:h-[calc(100vh-80px)] bg-background dark:bg-slate-950">
+    <div className="relative flex min-h-[100dvh] bg-white dark:bg-[#020617] text-slate-900 dark:text-slate-100 md:h-[calc(100vh-80px)]">
       {sidebarOpen && (
-        <div className="absolute inset-0 z-20 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="absolute inset-0 z-20 bg-black/20 dark:bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
       {/* Sidebar */}
       <aside
         className={`${
           sidebarOpen ? "w-[88vw] max-w-sm md:w-80" : "w-0"
-        } absolute inset-y-0 left-0 z-30 md:relative md:inset-auto md:z-auto border-r border-border dark:border-slate-800 bg-card dark:bg-slate-900/70 overflow-y-auto transition-all duration-300 flex-shrink-0 shadow-2xl md:shadow-none`}
+        } absolute inset-y-0 left-0 z-30 overflow-y-auto border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] transition-all duration-300 md:relative md:inset-auto md:z-auto md:shadow-none flex-shrink-0 shadow-2xl`}
       >
-        <div className="p-4 space-y-4">
-          <div>
-            <h3 className="text-sm font-semibold text-muted-foreground dark:text-slate-400 mb-2">{t("lesson_course", "Khóa học")}</h3>
-            <p className="text-foreground dark:text-white font-medium line-clamp-2">{courseTitle}</p>
+        <div className="space-y-5 p-4">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70 p-4">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{t("lesson_course", "Khóa học")}</h3>
+            <p className="line-clamp-2 text-base font-semibold text-slate-900 dark:text-white">{courseTitle}</p>
           </div>
 
           {/* Progress Bar */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-medium text-muted-foreground dark:text-slate-400">{t("lesson_progress", "Tiến độ")}</span>
-              <span className="text-xs font-bold text-primary dark:text-accent">
-                {progressPercent}%
-              </span>
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70 p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{t("lesson_progress", "Tiến độ")}</span>
+              <span className="text-xs font-bold text-slate-900 dark:text-white">{progressPercent}%</span>
             </div>
-            <div className="w-full h-2 bg-secondary dark:bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
               <div
-                className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
+                className="h-full bg-gradient-to-r from-[#3b82f6] to-[#22c55e] transition-all duration-500"
                 style={{
                   width: `${progressPercent}%`,
                 }}
@@ -493,174 +555,233 @@ export function LessonPlayer({
 
           {/* Lessons List */}
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-foreground dark:text-white">{t("lesson_course_content", "Nội dung khóa học")}</h4>
-            {lessons.map((lesson, index) => (
-              <button
-                key={lesson.id}
-                onClick={() => onLessonChange(lesson.id)}
-                className={`w-full text-left p-3 rounded-lg transition-smooth flex items-start gap-3 ${
-                  currentLessonId === lesson.id
-                    ? "bg-primary/10 dark:bg-primary/20 border-l-2 border-primary dark:border-accent"
-                    : "hover:bg-secondary dark:hover:bg-slate-800"
-                }`}
-              >
-                <div className="mt-0.5">
-                  {lesson.completed ? (
-                    <CheckCircle2 size={18} className="text-green-500" />
-                  ) : (
-                    <Circle size={18} className="text-muted-foreground dark:text-slate-500" />
-                  )}
+            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("lesson_course_content", "Nội dung khóa học")}</h4>
+            {groupedLessons.map((section, sectionIndex) => {
+              const completedCount = section.items.filter(({ lesson }) => lesson.completed).length
+              const totalCount = section.items.length
+              const sectionProgress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+
+              return (
+              <div key={`${section.title}-${sectionIndex}`} className="space-y-2">
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/40 px-3 py-2">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                      {section.title || `Section ${sectionIndex + 1}`}
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-500">{completedCount}/{totalCount}</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-[#3b82f6] to-[#22c55e] transition-all duration-500"
+                      style={{ width: `${sectionProgress}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p
-                    className={`text-sm font-medium line-clamp-2 ${
+                {section.items.map(({ lesson, index }) => (
+                  <button
+                    key={lesson.id}
+                    onClick={() => {
+                      if (!isLessonLocked(index)) onLessonChange(lesson.id)
+                    }}
+                    className={`w-full rounded-xl border p-3 text-left transition-all duration-200 flex items-start gap-3 ${
                       currentLessonId === lesson.id
-                        ? "text-primary dark:text-accent"
-                        : lesson.completed
-                          ? "text-muted-foreground dark:text-slate-400"
-                          : "text-foreground dark:text-white"
+                        ? "border-blue-500 bg-blue-50 dark:bg-[rgba(59,130,246,0.12)]"
+                        : isLessonLocked(index)
+                          ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 opacity-60"
+                          : "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 hover:-translate-y-px hover:border-slate-300 dark:hover:border-slate-600"
                     }`}
+                    disabled={isLessonLocked(index)}
                   >
-                    {index + 1}. {lesson.title}
-                  </p>
-                  {lesson.duration && (
-                    <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">{lesson.duration}</p>
-                  )}
-                </div>
-              </button>
-            ))}
+                    <div className="mt-0.5">
+                      {lesson.completed ? (
+                        <CheckCircle2 size={18} className="text-green-500" />
+                      ) : isLessonLocked(index) ? (
+                        <Lock size={18} className="text-slate-400 dark:text-slate-500" />
+                      ) : currentLessonId === lesson.id ? (
+                        <Play size={18} className="text-blue-500 dark:text-blue-400" />
+                      ) : (
+                        <Circle size={18} className="text-slate-400 dark:text-slate-500" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`text-sm font-medium line-clamp-2 ${
+                          currentLessonId === lesson.id
+                            ? "text-blue-600 dark:text-blue-300"
+                            : lesson.completed
+                              ? "text-slate-600 dark:text-slate-300"
+                              : "text-slate-900 dark:text-slate-100"
+                        }`}
+                      >
+                        {index + 1}. {lesson.title}
+                      </p>
+                      {lesson.duration && (
+                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-500">{lesson.duration}</p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              )
+            })}
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex min-w-0 flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-border dark:border-slate-800 bg-card dark:bg-slate-900/50">
+        <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b1223]/90 px-3 py-3 sm:px-4 sm:py-4 md:px-6">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+            className="rounded-lg p-2 transition hover:bg-slate-800"
           >
             <ChevronDown size={20} className={`transition-transform ${sidebarOpen ? "rotate-90" : ""}`} />
           </button>
-          <h2 className="text-base sm:text-lg font-semibold text-foreground dark:text-white flex-1 ml-3 sm:ml-4 line-clamp-1">{currentLesson?.title}</h2>
+          <h2 className="ml-3 flex-1 line-clamp-1 text-base font-semibold text-white sm:ml-4 sm:text-lg">{currentLesson?.title}</h2>
           <button
             onClick={() => setShowAIChat(!showAIChat)}
-            className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+            className="rounded-lg p-2 transition hover:bg-slate-800"
           >
-            <MessageCircle size={20} className="text-primary dark:text-accent" />
+            <MessageCircle size={20} className="text-blue-400" />
           </button>
         </div>
 
         {/* Player Area */}
         <div className="flex-1 overflow-y-auto">
-          {/* Video Player */}
-          <div className="bg-black aspect-video w-full">
-            {currentLesson?.videoUrl ? (
-              <video
-                key={currentLesson.id}
-                controls
-                className="w-full h-full"
-                poster="/video-player-thumbnail.jpg"
-                onEnded={handleVideoEnded}
-              >
-                <source src={currentLesson.videoUrl} type="video/mp4" />
-                {t("lesson_video_not_supported", "Trinh duyet cua ban khong ho tro the video.")}
-              </video>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-                {t("lesson_no_video", "Bai hoc nay chua co video")}
-              </div>
-            )}
-          </div>
-
-          {/* Tabs */}
-          <div className="border-b border-border dark:border-slate-800 bg-card dark:bg-slate-900/50">
-            <div className="flex overflow-x-auto no-scrollbar">
-              {[
-                { id: "notes", label: t("lesson_tab_notes", "Ghi chu") },
-                { id: "materials", label: t("lesson_tab_materials", "Tai lieu") },
-                { id: "quiz", label: t("lesson_tab_quiz", "Quiz") },
-                { id: "writing", label: t("lesson_tab_writing", "Writing") },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                  className={`px-4 sm:px-6 py-3 sm:py-4 font-medium text-sm border-b-2 transition-smooth whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? "border-primary dark:border-accent text-primary dark:text-accent"
-                      : "border-transparent text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Tab Content */}
-          <div className="p-4 sm:p-6 max-w-4xl">
-            {activeTab === "notes" && (
-              <div className="space-y-4">
-                <h3 className="font-semibold text-foreground dark:text-white">{t("lesson_notes_title", "Ghi chu ca nhan")}</h3>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder={t("lesson_notes_placeholder", "Nhap ghi chu cua ban tai day...")}
-                  className="w-full h-64 p-4 bg-secondary dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white placeholder-muted-foreground dark:placeholder-slate-500"
-                />
-                <p className="text-xs text-muted-foreground dark:text-slate-400">{t("lesson_notes_autosave", "Ghi chu se duoc luu tu dong")}</p>
-              </div>
-            )}
-
-            {activeTab === "materials" && (
-              <div className="space-y-4">
-                <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("lesson_materials_title", "Tai lieu dinh kem")}</h3>
-                {currentRequirement?.hasMaterials && !currentRequirement.materialsDone && (
-                  <p className="text-sm text-amber-600 dark:text-amber-400">
-                    {t("lesson_materials_open_all_required", "Ban can mo tat ca tai lieu de hoan thanh bai hoc")}
-                  </p>
-                )}
-                {currentResources.length > 0 ? (
-                  <div className="space-y-3">
-                    {currentResources.map((material, i) => (
-                      <div
-                        key={`${material.url}-${i}`}
-                        className="flex items-center justify-between p-4 bg-secondary dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg hover:shadow-md transition-smooth"
-                      >
-                        <div className="flex items-center gap-3">
-                          <FileText size={24} className="text-primary dark:text-accent" />
-                          <div>
-                            <p className="font-medium text-foreground dark:text-white">{material.name || `${t("lesson_material_label", "Tai lieu")} ${i + 1}`}</p>
-                            <p className="text-xs text-muted-foreground dark:text-slate-400">
-                              {(material.type || t("lesson_material_label", "Tai lieu")).toUpperCase()}
-                            </p>
-                          </div>
-                        </div>
-                        <a
-                          href={material.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={() => {
-                            if (currentLesson) {
-                              handleOpenMaterial(currentLesson, material.url)
-                            }
-                          }}
-                          className="p-2 hover:bg-primary/10 dark:hover:bg-primary/20 rounded-lg transition-smooth"
-                        >
-                          <Download size={20} className="text-primary dark:text-accent" />
-                        </a>
-                      </div>
-                    ))}
-                  </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentLessonId}
+              initial={{ opacity: 0.35 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0.35 }}
+              transition={{ duration: 0.22 }}
+            >
+              {/* Video Player */}
+              <div className="aspect-video w-full border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950">
+                {currentLesson?.videoUrl ? (
+                  <VideoPlayer
+                    key={currentLesson.id}
+                    src={currentLesson.videoUrl}
+                    title={currentLesson.title}
+                    className="h-full w-full rounded-none"
+                    poster="/video-player-thumbnail.jpg"
+                    onEnded={handleCustomVideoEnded}
+                  />
                 ) : (
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_no_materials", "Bai hoc nay chua co tai lieu dinh kem")}</p>
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-slate-100 dark:from-[#020617] dark:via-[#020617] dark:to-[#0f172a] px-6">
+                    <div className="w-full max-w-md rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/75 p-6 text-center shadow-lg dark:shadow-[0_20px_40px_rgba(2,6,23,0.6)] backdrop-blur-sm">
+                      <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300">
+                        <Clapperboard size={22} />
+                      </div>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-white">{t("lesson_no_video_title", "Chưa có video")}</p>
+                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("lesson_no_video", "Bài học này chưa có nội dung video")}</p>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("materials")}
+                        className="mt-4 inline-flex items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-100 transition hover:border-blue-400 dark:hover:border-blue-500/60 hover:text-blue-600 dark:hover:text-white"
+                      >
+                        📚 {t("lesson_open_materials", "Mở tài liệu học")}
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
-            )}
 
-            {activeTab === "quiz" && (
-              <div className="space-y-6">
+              {/* Tabs */}
+              <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0f172a]">
+                <div className="flex overflow-x-auto no-scrollbar">
+                  {[
+                    { id: "notes", label: t("lesson_tab_notes", "Ghi chu") },
+                    { id: "materials", label: t("lesson_tab_materials", "Tai lieu") },
+                    { id: "quiz", label: t("lesson_tab_quiz", "Quiz") },
+                    { id: "writing", label: t("lesson_tab_writing", "Writing") },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                      className={`px-4 sm:px-6 py-3 sm:py-4 font-medium text-sm border-b-2 transition-all duration-300 whitespace-nowrap ${
+                        activeTab === tab.id
+                          ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                          : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Tab Content */}
+              <div className="max-w-5xl p-4 sm:p-6">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                {activeTab === "notes" && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-foreground dark:text-white">{t("lesson_notes_title", "Ghi chu ca nhan")}</h3>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder={t("lesson_notes_placeholder", "Nhap ghi chu cua ban tai day...")}
+                      className="w-full h-64 p-4 bg-secondary dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white placeholder-muted-foreground dark:placeholder-slate-500"
+                    />
+                    <p className="text-xs text-muted-foreground dark:text-slate-400">{t("lesson_notes_autosave", "Ghi chu se duoc luu tu dong")}</p>
+                  </div>
+                )}
+
+                {activeTab === "materials" && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("lesson_materials_title", "Tai lieu dinh kem")}</h3>
+                    {currentRequirement?.hasMaterials && !currentRequirement.materialsDone && (
+                      <p className="text-sm text-amber-600 dark:text-amber-400">
+                        {t("lesson_materials_open_all_required", "Ban can mo tat ca tai lieu de hoan thanh bai hoc")}
+                      </p>
+                    )}
+                    {currentResources.length > 0 ? (
+                      <div className="space-y-3">
+                        {currentResources.map((material, i) => (
+                          <div
+                            key={`${material.url}-${i}`}
+                            className="flex items-center justify-between p-4 bg-secondary dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg hover:shadow-md transition-smooth"
+                          >
+                            <div className="flex items-center gap-3">
+                              <FileText size={24} className="text-primary dark:text-accent" />
+                              <div>
+                                <p className="font-medium text-foreground dark:text-white">{material.name || `${t("lesson_material_label", "Tai lieu")} ${i + 1}`}</p>
+                                <p className="text-xs text-muted-foreground dark:text-slate-400">
+                                  {(material.type || t("lesson_material_label", "Tai lieu")).toUpperCase()}
+                                </p>
+                              </div>
+                            </div>
+                            <a
+                              href={material.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={() => {
+                                if (currentLesson) {
+                                  handleOpenMaterial(currentLesson, material.url)
+                                }
+                              }}
+                              className="p-2 hover:bg-primary/10 dark:hover:bg-primary/20 rounded-lg transition-smooth"
+                            >
+                              <Download size={20} className="text-primary dark:text-accent" />
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_no_materials", "Bai hoc nay chua co tai lieu dinh kem")}</p>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "quiz" && (
+                  <div className="space-y-6">
                 <h3 className="font-semibold text-foreground dark:text-white">{t("lesson_quiz_section_title", "Kiem tra bai hoc")}</h3>
                 {quizItems.length > 0 ? (
                   <>
@@ -882,95 +1003,123 @@ export function LessonPlayer({
                 ) : (
                   <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_no_quiz_data", "Bai hoc nay chua co du lieu quiz")}</p>
                 )}
-              </div>
-            )}
+                  </div>
+                )}
 
-            {activeTab === "writing" && (
-              <div className="space-y-6">
-                <h3 className="font-semibold text-foreground dark:text-white">{t("lesson_writing_title", "Bai viet")}</h3>
-                {currentLesson?.writingAssignmentId ? (
-                  <div className="rounded-lg border border-border dark:border-slate-800 p-5 bg-card dark:bg-slate-900/50 space-y-4">
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_due_date", "Han nop")}</p>
-                      <p className="font-medium text-foreground dark:text-white">
-                        {currentLesson.writingDueDate
-                          ? new Date(currentLesson.writingDueDate).toLocaleString("vi-VN")
-                          : t("lesson_no_due_date", "Chua dat han nop")}
-                      </p>
-                    </div>
-
-                    {typeof currentLesson.writingMaxScore === "number" && (
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_max_score", "Diem toi da")}</p>
-                        <p className="font-medium text-foreground dark:text-white">{currentLesson.writingMaxScore} {t("lesson_points", "diem")}</p>
-                      </div>
-                    )}
-
-                    {currentLesson.writingPrompt && (
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_prompt", "De bai")}</p>
-                        <div className="rounded-lg border border-border dark:border-slate-800 bg-secondary/40 dark:bg-slate-900 p-4">
-                          <p className="text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed">
-                            <ScientificText text={currentLesson.writingPrompt} />
+                {activeTab === "writing" && (
+                  <div className="space-y-6">
+                    <h3 className="font-semibold text-foreground dark:text-white">{t("lesson_writing_title", "Bai viet")}</h3>
+                    {currentLesson?.writingAssignmentId ? (
+                      <div className="rounded-lg border border-border dark:border-slate-800 p-5 bg-card dark:bg-slate-900/50 space-y-4">
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_due_date", "Han nop")}</p>
+                          <p className="font-medium text-foreground dark:text-white">
+                            {currentLesson.writingDueDate
+                              ? new Date(currentLesson.writingDueDate).toLocaleString("vi-VN")
+                              : t("lesson_no_due_date", "Chua dat han nop")}
                           </p>
                         </div>
-                      </div>
-                    )}
 
-                    {Array.isArray(currentLesson.writingCriteria) && currentLesson.writingCriteria.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_grading_criteria", "Tieu chi cham diem")}</p>
-                        <div className="overflow-x-auto rounded-xl border border-border dark:border-slate-800">
-                          <table className="w-full min-w-[820px] text-sm">
-                            <tbody>
-                              {currentLesson.writingCriteria.map((criterion, idx) => (
-                                <tr key={`${currentLesson.id}-criterion-${idx}`} className="border-t border-border dark:border-slate-800 align-top first:border-t-0">
-                                  <td className="w-[240px] px-3 py-3 font-semibold text-foreground dark:text-white bg-secondary/30 dark:bg-slate-900/70">
-                                    {idx + 1}. {criterion.title}
-                                  </td>
-                                  {(criterion.levels || []).map((level, levelIndex) => (
-                                    <td key={`${currentLesson.id}-${idx}-${levelIndex}`} className="px-3 py-3 text-foreground dark:text-white">
-                                      <p className="whitespace-pre-wrap break-words leading-relaxed text-sm">
-                                        {level.description || "Chưa có mô tả mức này."}
-                                      </p>
-                                      <p className="mt-2 text-emerald-600 dark:text-emerald-400 font-semibold italic">
-                                        {level.points} {t("lesson_points", "diem")}
-                                      </p>
-                                    </td>
+                        {typeof currentLesson.writingMaxScore === "number" && (
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_max_score", "Diem toi da")}</p>
+                            <p className="font-medium text-foreground dark:text-white">{currentLesson.writingMaxScore} {t("lesson_points", "diem")}</p>
+                          </div>
+                        )}
+
+                        {currentLesson.writingPrompt && (
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_prompt", "De bai")}</p>
+                            <div className="rounded-lg border border-border dark:border-slate-800 bg-secondary/40 dark:bg-slate-900 p-4">
+                              <p className="text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed">
+                                <ScientificText text={currentLesson.writingPrompt} />
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {Array.isArray(currentLesson.writingCriteria) && currentLesson.writingCriteria.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_grading_criteria", "Tieu chi cham diem")}</p>
+                            <div className="overflow-x-auto rounded-xl border border-border dark:border-slate-800">
+                              <table className="w-full min-w-[820px] text-sm">
+                                <tbody>
+                                  {currentLesson.writingCriteria.map((criterion, idx) => (
+                                    <tr key={`${currentLesson.id}-criterion-${idx}`} className="border-t border-border dark:border-slate-800 align-top first:border-t-0">
+                                      <td className="w-[240px] px-3 py-3 font-semibold text-foreground dark:text-white bg-secondary/30 dark:bg-slate-900/70">
+                                        {idx + 1}. {criterion.title}
+                                      </td>
+                                      {(criterion.levels || []).map((level, levelIndex) => (
+                                        <td key={`${currentLesson.id}-${idx}-${levelIndex}`} className="px-3 py-3 text-foreground dark:text-white">
+                                          <p className="whitespace-pre-wrap break-words leading-relaxed text-sm">
+                                            {level.description || "Chưa có mô tả mức này."}
+                                          </p>
+                                          <p className="mt-2 text-emerald-600 dark:text-emerald-400 font-semibold italic">
+                                            {level.points} {t("lesson_points", "diem")}
+                                          </p>
+                                        </td>
+                                      ))}
+                                    </tr>
                                   ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+
+                        {currentLesson.writingSubmitted ? (
+                          <p className="text-sm text-green-600 dark:text-green-400">{t("lesson_writing_submitted", "Ban da nop bai writing")}</p>
+                        ) : (
+                          <p className="text-sm text-amber-600 dark:text-amber-400">{t("lesson_writing_not_submitted", "Ban chua nop bai writing")}</p>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/assignments/${currentLesson.writingAssignmentId}`)}
+                          className="w-full px-4 py-2 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 transition-smooth"
+                        >
+                          {currentLesson.writingSubmitted
+                            ? t("lesson_view_submitted", "Xem bai da nop")
+                            : t("lesson_do_writing", "Lam bai writing")}
+                        </button>
                       </div>
-                    )}
-
-                    {currentLesson.writingSubmitted ? (
-                      <p className="text-sm text-green-600 dark:text-green-400">{t("lesson_writing_submitted", "Ban da nop bai writing")}</p>
                     ) : (
-                      <p className="text-sm text-amber-600 dark:text-amber-400">{t("lesson_writing_not_submitted", "Ban chua nop bai writing")}</p>
+                      <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_no_writing", "Bai hoc nay chua co bai writing")}</p>
                     )}
-
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/assignments/${currentLesson.writingAssignmentId}`)}
-                      className="w-full px-4 py-2 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 transition-smooth"
-                    >
-                      {currentLesson.writingSubmitted
-                        ? t("lesson_view_submitted", "Xem bai da nop")
-                        : t("lesson_do_writing", "Lam bai writing")}
-                    </button>
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_no_writing", "Bai hoc nay chua co bai writing")}</p>
                 )}
+              </motion.div>
+            </AnimatePresence>
+
+              {currentLesson && (
+              <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0f172a] p-4 md:flex-row md:items-center md:justify-between">
+                <button
+                  type="button"
+                  onClick={() => prevLesson && onLessonChange(prevLesson.id)}
+                  disabled={!prevLesson}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/70 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-200 transition hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <ChevronLeft size={16} /> {t("lesson_prev", "Bài trước")}
+                </button>
+
+                <div className={`rounded-full px-4 py-2 text-sm font-semibold ${currentLesson.completed ? "bg-emerald-900/25 text-emerald-300" : "bg-slate-900/70 text-slate-300"}`}>
+                  {currentLesson.completed ? t("lesson_done", "✔ Đã hoàn thành bài học") : t("lesson_learning", "Đang học")}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => nextLesson && onLessonChange(nextLesson.id)}
+                  disabled={!nextLesson}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow-[0_10px_25px_rgba(59,130,246,0.35)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {t("lesson_next", "Bài tiếp theo")} <ChevronRight size={16} />
+                </button>
               </div>
             )}
 
-            {currentLesson && (
-              <div className="mt-6 rounded-lg border border-border dark:border-slate-800 p-4 bg-card dark:bg-slate-900/50">
-                <p className="text-sm font-semibold text-foreground dark:text-white mb-2">{t("lesson_completion_conditions", "Dieu kien hoan thanh bai hoc")}</p>
+              {currentLesson && (
+              <div className="mt-6 rounded-lg border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-[#0f172a]">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white mb-2">{t("lesson_completion_conditions", "Dieu kien hoan thanh bai hoc")}</p>
                 <div className="space-y-2 text-sm">
                   {currentRequirement?.hasVideo && (
                     <p className={currentRequirement.videoDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}>
@@ -1002,10 +1151,12 @@ export function LessonPlayer({
                   )}
                 </div>
               </div>
-            )}
+              )}
+            </div>
+            </motion.div>
+          </AnimatePresence>
           </div>
         </div>
-      </div>
 
       {/* AI Chat Sidebar */}
       {showAIChat && (

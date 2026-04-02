@@ -311,10 +311,10 @@ useEffect(() => {
           <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
           <input
             type="text"
-            placeholder={t("adm_cat_search", "Tìm kiếm danh mục theo tên hoặc mô tả...")}
+            placeholder={t("adm_cat_search", "Tìm kiếm danh mục...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3.5 bg-card/95 dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+            className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900/80 border border-border dark:border-slate-800 rounded-xl text-foreground dark:text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-all"
           />
         </div>
 
@@ -443,7 +443,7 @@ useEffect(() => {
         )}
 
         {/* Categories Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 items-stretch">
+        <div className="grid gap-6 items-stretch" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
           {filteredCategories.map((category) => (
             <div
               key={category.id}
@@ -567,92 +567,128 @@ useEffect(() => {
                 </div>
               ) : (
                 <>
-                  {/* Header with gradient */}
-                  <div
-                    className="h-2.5"
-                    style={{ backgroundColor: category.color }}
-                  />
-                  <div className="p-6 flex flex-col h-full">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
+                  {/* New Card Design */}
+                  <div className="p-6 flex flex-col h-full bg-[#0f172a] border border-white/6 rounded-2xl hover:shadow-[0_10px_30px_rgba(0,0,0,0.4)] active:shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 ease-out hover:-translate-y-1">
+                    
+                    {/* Header: Icon + Title + Menu */}
+                    <div className="flex items-center justify-between mb-3 gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {/* Icon Container */}
                         <div
-                          className="w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: `${category.color || '#2563eb'}20` }}
+                          className="w-12 h-12 rounded-[12px] flex items-center justify-center flex-shrink-0 border"
+                          style={{ 
+                            backgroundColor: `rgba(${parseInt((category.color || '#2563eb').slice(1, 3), 16)}, ${parseInt((category.color || '#2563eb').slice(3, 5), 16)}, ${parseInt((category.color || '#2563eb').slice(5, 7), 16)}, 0.15)`,
+                            borderColor: `rgba(${parseInt((category.color || '#2563eb').slice(1, 3), 16)}, ${parseInt((category.color || '#2563eb').slice(3, 5), 16)}, ${parseInt((category.color || '#2563eb').slice(5, 7), 16)}, 0.2)`
+                          }}
                         >
                           {category.image ? (
                             <img
                               src={category.image}
                               alt={category.name}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover rounded-[11px]"
                             />
                           ) : (
-                            <span className="text-3xl">{category.icon || "📚"}</span>
+                            <span className="text-xl">{category.icon || "📚"}</span>
                           )}
                         </div>
-                        <div>
-                          <h3 className="text-foreground dark:text-white font-bold text-lg truncate max-w-[180px]">{category.name}</h3>
-                          <p className="text-muted-foreground dark:text-slate-400 text-sm mt-0.5">{category.courses} {t("adm_cat_courses_unit", "khóa học")}</p>
-                        </div>
+                        
+                        {/* Title */}
+                        <h3 className="text-white font-bold text-lg line-clamp-1">{category.name}</h3>
                       </div>
+                      
+                      {/* Menu Button */}
                       <div className="relative">
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
                             setOpenMenu(openMenu === category.id ? null : category.id)
                           }}
-                          className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-150 flex-shrink-0"
+                          aria-label="Menu"
                         >
-                          <MoreVertical size={18} className="text-muted-foreground" />
+                          <MoreVertical size={18} className="text-white/60" />
                         </button>
                         {openMenu === category.id && (
-                          <div className="absolute right-0 top-full mt-1 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-10 min-w-36">
+                          <div className="absolute right-0 top-full mt-1 bg-slate-900 border border-white/10 rounded-lg shadow-2xl z-10 min-w-40 overflow-hidden">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setEditingId(category.id)
                                 setOpenMenu(null)
                               }}
-                              className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white text-sm"
+                              className="w-full text-left px-4 py-2.5 hover:bg-white/10 flex items-center gap-3 text-white text-sm font-medium transition-colors duration-150"
                             >
-                              <Edit size={14} /> {t("adm_cat_edit", "Chỉnh sửa")}
+                              <Edit size={16} /> {t("adm_cat_edit", "Chỉnh sửa")}
                             </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleDelete(category.id)
                               }}
-                              className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive text-sm"
+                              className="w-full text-left px-4 py-2.5 hover:bg-red-500/20 flex items-center gap-3 text-red-400 text-sm font-medium transition-colors duration-150"
                             >
-                              <Trash2 size={14} /> {t("adm_cat_delete", "Xóa")}
+                              <Trash2 size={16} /> {t("adm_cat_delete", "Xóa")}
                             </button>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <p className="text-muted-foreground dark:text-slate-400 text-sm mb-4 line-clamp-3 min-h-[72px]">
+                    {/* Description (1 line, centered, italic) */}
+                    <p className="text-white/50 text-sm italic text-center line-clamp-1 mb-4 px-2">
                       {category.description}
                     </p>
 
-                    <div className="mt-auto grid grid-cols-2 gap-3 pt-4 border-t border-border dark:border-slate-800">
-                      <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3 text-center">
-                        <p className="text-foreground dark:text-white font-bold text-2xl leading-none">{category.courses}</p>
-                        <p className="text-muted-foreground dark:text-slate-400 text-xs">{t("adm_cat_courses", "Khóa học")}</p>
+                    {/* Stats Badges */}
+                    <div className="flex gap-3 justify-center mb-4 px-2">
+                      {/* Courses Badge */}
+                      <div 
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium text-white"
+                        style={{ 
+                          backgroundColor: `rgba(${parseInt((category.color || '#2563eb').slice(1, 3), 16)}, ${parseInt((category.color || '#2563eb').slice(3, 5), 16)}, ${parseInt((category.color || '#2563eb').slice(5, 7), 16)}, 0.15)`,
+                          borderColor: `rgba(${parseInt((category.color || '#2563eb').slice(1, 3), 16)}, ${parseInt((category.color || '#2563eb').slice(3, 5), 16)}, ${parseInt((category.color || '#2563eb').slice(5, 7), 16)}, 0.2)`
+                        }}
+                      >
+                        <span>📚</span>
+                        <span>{category.courses} {t("adm_cat_courses_unit", "khóa")}</span>
                       </div>
-                      <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3 text-center">
-                        <p className="text-foreground dark:text-white font-bold text-2xl leading-none">{(category.students ?? 0).toLocaleString('en-US')}</p>
-                        <p className="text-muted-foreground dark:text-slate-400 text-xs">{t("adm_cat_students", "Học viên")}</p>
+                      
+                      {/* Students Badge */}
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-500/20 bg-blue-500/15 text-sm font-medium text-white">
+                        <span>👨‍🎓</span>
+                        <span>{(category.students ?? 0).toLocaleString('en-US')} {t("adm_cat_students_unit", "học viên")}</span>
                       </div>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/admin/categories/${category.id}`)
+
+                    {/* Divider */}
+                    <div 
+                      className="h-px mx-0 mb-4"
+                      style={{ 
+                        background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)`
                       }}
-                      className="mt-4 w-full px-4 py-2.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-smooth text-sm font-semibold"
-                    >
-                      {t("adm_cat_view_courses", "Xem danh sách khóa học")}
-                    </button>
+                    />
+
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-3 mt-auto">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(`/admin/categories/${category.id}`)
+                        }}
+                        className="px-4 py-2.5 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 text-white font-medium text-sm transition-all duration-150 hover:shadow-lg active:scale-95"
+                      >
+                        {t("adm_cat_view", "Xem")}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingId(category.id)
+                        }}
+                        className="px-4 py-2.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 font-medium text-sm transition-all duration-150 hover:shadow-lg active:scale-95"
+                      >
+                        {t("adm_cat_edit", "Chỉnh sửa")}
+                      </button>
+                    </div>
                   </div>
                 </>
               )}

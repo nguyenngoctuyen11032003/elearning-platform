@@ -1,10 +1,9 @@
 ﻿"use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import Link from "next/link"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { authFetch } from "@/lib/authfetch"
-import { CheckCircle, Clock, FileText, Loader2, MoreVertical, Pencil, Plus, Search, ShieldCheck, Trash2, Users, XCircle } from "lucide-react"
+import { CheckCircle, Clock, FileText, Loader2, Pencil, Plus, Search, ShieldCheck, Trash2, Users } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { ScientificText } from "@/components/scientific-text"
 import * as XLSX from "xlsx"
@@ -96,164 +95,141 @@ interface ExamCardProps {
   onEdit: (examId: string) => void
   onViewAttempts: (exam: Exam) => void
   onDelete: (examId: string, title: string) => void
-  t: (key: string, defaultValue: string) => string
+  onViewVariantQuestions: (exam: Exam, variant: any) => void
 }
 
-function ExamCard({ exam, onEdit, onViewAttempts, onDelete, t }: ExamCardProps) {
-  const [selectedVariant, setSelectedVariant] = useState<number | null>(null)
-  const [variantMenuOpen, setVariantMenuOpen] = useState(false)
-  const [variantQuestionsOpen, setVariantQuestionsOpen] = useState(false)
-  const [viewingVariantCode, setViewingVariantCode] = useState<number | null>(null)
+function ExamCard({ exam, onEdit, onViewAttempts, onDelete, onViewVariantQuestions }: ExamCardProps) {
+  const [isVariantsExpanded, setIsVariantsExpanded] = useState(false)
   
-  const hasVariants = exam.variants && exam.variants.length > 1
   const variants = (exam.variants || []).sort((a, b) => a.code - b.code)
-  const currentVariant = variants.find(v => v.code === viewingVariantCode)
-  
-  const handleViewVariantQuestions = (code: number) => {
-    setViewingVariantCode(code)
-    setVariantQuestionsOpen(true)
-    setVariantMenuOpen(false)
+  const displayVariants = variants.slice(0, 3)
+  const hasMoreVariants = variants.length > 3
+
+  const getStatusColor = (status: Exam["status"]) => {
+    const map = {
+      draft: "bg-slate-500/10 text-slate-500 border-slate-500/30",
+      pending: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30",
+      approved: "bg-green-500/10 text-green-600 border-green-500/30",
+      rejected: "bg-red-500/10 text-red-600 border-red-500/30",
+    } as const
+    return map[status]
+  }
+
+  const getStatusLabel = (status: Exam["status"]) => {
+    const map = {
+      draft: "🔵 Nháp",
+      pending: "🟡 Chờ duyệt",
+      approved: "🟢 Đã duyệt",
+      rejected: "🔴 Từ chối",
+    } as const
+    return map[status]
   }
   
   return (
     <>
-      <div className="rounded-xl border bg-card p-4 space-y-3">
-        <div className="flex items-start justify-between gap-3">
+      <div className="rounded-[14px] p-5 border border-white/5 bg-[#0f172a] transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-foreground truncate">{exam.title}</h3>
-            <div className="flex flex-wrap gap-2 items-center mt-2">
-              <span className="text-xs text-muted-foreground">{exam.courseName || "—"}</span>
-              <div className="inline-flex gap-1">
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${exam.type === "official" ? "bg-purple-500/10 text-purple-600" : "bg-blue-500/10 text-blue-600"}`}>
-                  {exam.type === "official" ? "Thi thật" : "Thi thử"}
-                </span>
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                  exam.status === "approved" ? "bg-green-500/10 text-green-600" :
-                  exam.status === "draft" ? "bg-gray-500/10 text-gray-600" :
-                  exam.status === "pending" ? "bg-amber-500/10 text-amber-600" :
-                  "bg-red-500/10 text-red-600"
-                }`}>
-                  {exam.status === "approved" ? "Đã duyệt" : exam.status === "draft" ? "Nháp" : exam.status === "pending" ? "Chờ duyệt" : "Từ chối"}
-                </span>
-              </div>
-            </div>
+            <h3 className="text-lg font-semibold text-white truncate">{exam.title}</h3>
+            <p className="text-sm text-slate-400 mt-1">{exam.courseName || "—"}</p>
           </div>
-          <div className="flex gap-1 shrink-0">
-            <button
-              onClick={() => onEdit(exam.id)}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-secondary"
-              title="Sửa cấu hình đề thi"
-            >
-              <Pencil size={16} />
-            </button>
-            <button
-              onClick={() => onViewAttempts(exam)}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-secondary"
-              title="Xem học sinh đã làm"
-            >
-              <Users size={16} />
-            </button>
-            <button
-              onClick={() => onDelete(exam.id, exam.title)}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border hover:bg-secondary text-red-500"
-              title="Xóa đề thi"
-            >
-              <Trash2 size={16} />
-            </button>
+          <div className={`px-3 py-1 rounded-full text-xs font-semibold border inline-flex items-center gap-1 whitespace-nowrap ${getStatusColor(exam.status)}`}>
+            {getStatusLabel(exam.status)}
           </div>
         </div>
-        
-        <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t">
-          <div className="flex gap-4">
-            <span>📝 {exam.questionsCount ?? "—"} câu</span>
-            <span>📊 {exam.attemptCount ?? 0} lần thi</span>
-          </div>
+
+        {/* Type badge */}
+        <div className="mb-3">
+          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+            exam.type === "official" ? "bg-purple-500/10 text-purple-400 border border-purple-500/30" : "bg-blue-500/10 text-blue-400 border border-blue-500/30"
+          }`}>
+            {exam.type === "official" ? "📋 Thi thật" : "📝 Thi thử"}
+          </span>
         </div>
-      </div>
-      
-      {hasVariants && (
-        <div className="relative -mt-2 mx-4 mb-3 z-40">
-          <button
-            onClick={() => setVariantMenuOpen(!variantMenuOpen)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-secondary text-sm bg-card"
-          >
-            <span className="font-medium">Mã đề {selectedVariant !== null ? selectedVariant : "— Chọn"}</span>
-            <span className={`text-xs transition-transform ${variantMenuOpen ? "rotate-180" : ""}`}>▼</span>
-          </button>
-          
-          {variantMenuOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-card border rounded-lg shadow-xl z-[60] border-t-0">
-              {variants.map((variant) => (
-                <div key={variant.code} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-secondary first:rounded-t-lg last:rounded-b-lg">
-                  <span>Mã đề {variant.code}</span>
+
+        {/* Info stats */}
+        <div className="flex flex-wrap gap-4 text-sm text-slate-300 mb-4 pb-4 border-b border-slate-800">
+          <span className="flex items-center gap-1"><FileText size={14} /> {exam.questionsCount ?? "—"} câu</span>
+          <span className="flex items-center gap-1"><Users size={14} /> {exam.attemptCount ?? 0} lượt thi</span>
+          <span className="inline-flex items-center gap-1">
+            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-700/50 text-xs">
+              {variants.length}
+            </span>
+            Đề con
+          </span>
+        </div>
+
+        {/* Variants section */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-slate-300">Danh sách đề con ({variants.length})</span>
+            {hasMoreVariants && (
+              <button
+                onClick={() => setIsVariantsExpanded(!isVariantsExpanded)}
+                className="text-xs text-slate-400 hover:text-slate-200 transition"
+              >
+                {isVariantsExpanded ? "▼ Thu gọn" : "▶ Xem"}
+              </button>
+            )}
+          </div>
+
+          {/* Show variants: first 3 always when collapsed, all when expanded */}
+          <div className="space-y-2">
+            {(isVariantsExpanded ? variants : displayVariants).map((variant) => (
+              <div key={variant.code} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition">
+                <span className="text-sm text-slate-300">
+                  <span className="font-medium text-blue-400">Đề {variant.code}</span>
+                  <span className="text-slate-500 ml-2">• {variant.questions?.length || 0} câu</span>
+                </span>
+                <div className="flex gap-1">
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleViewVariantQuestions(variant.code)
-                    }}
-                    className="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-secondary"
-                    title="Xem/sửa câu hỏi"
+                    onClick={() => onViewVariantQuestions(exam, variant)}
+                    className="px-2 py-1 text-xs rounded border border-slate-700 text-slate-300 hover:bg-slate-800 transition"
                   >
-                    <MoreVertical size={14} />
+                    Xem
+                  </button>
+                  <button
+                    onClick={() => onEdit(exam.id)}
+                    className="px-2 py-1 text-xs rounded border border-slate-700 text-slate-300 hover:bg-slate-800 transition"
+                  >
+                    Sửa
                   </button>
                 </div>
-              ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Show more indicator */}
+          {hasMoreVariants && !isVariantsExpanded && (
+            <div className="text-xs text-slate-500 text-center py-2 mt-2">
+              +{variants.length - 3} đề con khác
             </div>
           )}
         </div>
-      )}
-      
-      {variantQuestionsOpen && currentVariant && (
-        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 p-4" onClick={() => setVariantQuestionsOpen(false)}>
-          <div className="w-full max-w-3xl rounded-2xl border bg-card shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b px-5 py-4">
-              <div>
-                <h3 className="text-lg font-semibold">{exam.title}</h3>
-                <p className="text-sm text-muted-foreground">Mã đề {currentVariant.code} - {currentVariant.questions?.length || 0} câu hỏi</p>
-              </div>
-              <button
-                className="rounded-lg border px-3 py-1 text-sm hover:bg-secondary"
-                onClick={() => setVariantQuestionsOpen(false)}
-              >
-                Đóng
-              </button>
-            </div>
-            
-            <div className="max-h-[60vh] overflow-auto p-5">
-              {!currentVariant.questions || currentVariant.questions.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground">Không có câu hỏi</div>
-              ) : (
-                <div className="space-y-4">
-                  {currentVariant.questions.map((question: any, idx: number) => (
-                    <div key={question.id || idx} className="rounded-lg border p-4 space-y-2">
-                      <div className="flex items-start gap-2">
-                        <span className="font-semibold text-primary shrink-0">Câu {idx + 1}:</span>
-                        <ScientificText
-                          as="p"
-                          className="text-sm whitespace-pre-wrap"
-                          text={normalizeUploadedText(question.question) || "—"}
-                        />
-                      </div>
-                      {question.options && question.options.length > 0 && (
-                        <div className="pl-8 space-y-1">
-                          {question.options.map((option: string, optIdx: number) => (
-                            <div key={optIdx} className="text-sm text-muted-foreground">
-                              {String.fromCharCode(65 + optIdx)}. <ScientificText text={normalizeUploadedText(option)} />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="pl-8 text-xs text-green-600">
-                        Đáp án: <ScientificText text={Array.isArray(question.correctAnswer) ? question.correctAnswer.join(", ") : question.correctAnswer} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+
+      {/* Action Buttons */}
+      <div className="flex gap-2 pt-4 border-t border-slate-800">
+        <button
+          onClick={() => onEdit(exam.id)}
+          className="flex-1 px-3 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 text-sm font-medium transition"
+        >
+          ✏️ Chỉnh sửa
+        </button>
+        <button
+          onClick={() => onViewAttempts(exam)}
+          className="flex-1 px-3 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition"
+        >
+          👥 Kết quả thi
+        </button>
+        <button
+          onClick={() => onDelete(exam.id, exam.title)}
+          className="flex-1 px-3 py-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 text-sm font-medium transition"
+        >
+          🗑️ Xóa
+        </button>
+      </div>
+      </div>
     </>
   )
 }
@@ -261,47 +237,25 @@ function ExamCard({ exam, onEdit, onViewAttempts, onDelete, t }: ExamCardProps) 
 export default function TeacherExamsListPage() {
   const { t } = useLanguage()
   const router = useRouter()
+
+  /* ===== STATE MANAGEMENT ===== */
   const [exams, setExams] = useState<Exam[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
-  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 })
-  const menuButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Variant questions modal
+  const [variantQuestionsOpen, setVariantQuestionsOpen] = useState(false)
+  const [currentExam, setCurrentExam] = useState<Exam | null>(null)
+  const [currentVariant, setCurrentVariant] = useState<any>(null)
+
+  // Attempt history modal
   const [attemptHistoryExam, setAttemptHistoryExam] = useState<Exam | null>(null)
   const [attemptHistory, setAttemptHistory] = useState<ExtractedExamAttempt[]>([])
   const [attemptHistoryLoading, setAttemptHistoryLoading] = useState(false)
   const [selectedAttempt, setSelectedAttempt] = useState<ExtractedExamAttempt | null>(null)
   const [attemptDetailLoading, setAttemptDetailLoading] = useState(false)
-
-  const toExportDate = (value?: string): string => {
-    if (!value) return ""
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return ""
-    return date.toLocaleString("vi-VN")
-  }
-
-  const handleViewAttemptDetail = async (attempt: ExtractedExamAttempt) => {
-    if (!attemptHistoryExam) return
-    // If questionResults are already loaded (they come with getAttempts now), use directly
-    if (attempt.questionResults && attempt.questionResults.length > 0) {
-      setSelectedAttempt(attempt)
-      return
-    }
-    // Otherwise fetch from detail endpoint
-    setAttemptDetailLoading(true)
-    try {
-      const res = await authFetch(`/extracted-exams/${attemptHistoryExam.id}/attempts/${attempt.id}`)
-      if (!res.ok) throw new Error(t("tch_exg_detail_load_fail", "Unable to load attempt detail"))
-      const data = await res.json().catch(() => null)
-      setSelectedAttempt(data)
-    } catch {
-      setSelectedAttempt(attempt)
-    } finally {
-      setAttemptDetailLoading(false)
-    }
-  }
 
   const handleExportAttemptHistoryExcel = () => {
     if (!attemptHistoryExam || attemptHistory.length === 0) return
@@ -314,7 +268,7 @@ export default function TeacherExamsListPage() {
       "Điểm (%)": Number(attempt.score || 0).toFixed(2),
       "Điểm đạt": attempt.passed ? t("tch_exg_attempt_pass", "Đạt") : t("tch_exg_attempt_fail", "Chưa đạt"),
       "Điểm số chi tiết": `${Number(attempt.earnedPoints || 0).toFixed(2)}/${Number(attempt.totalPoints || 0).toFixed(2)}`,
-      "Thời gian nộp": toExportDate(attempt.submittedAt || attempt.createdAt),
+      "Thời gian nộp": new Date(attempt.submittedAt || attempt.createdAt || "").toLocaleString("vi-VN") || "—",
     }))
 
     const worksheet = XLSX.utils.json_to_sheet(rows)
@@ -328,6 +282,25 @@ export default function TeacherExamsListPage() {
       .slice(0, 80) || "bang-diem"
 
     XLSX.writeFile(workbook, `${safeTitle}-bang-diem.xlsx`)
+  }
+
+  const handleViewAttemptDetail = async (attempt: ExtractedExamAttempt) => {
+    if (!attemptHistoryExam) return
+    if (attempt.questionResults && attempt.questionResults.length > 0) {
+      setSelectedAttempt(attempt)
+      return
+    }
+    setAttemptDetailLoading(true)
+    try {
+      const res = await authFetch(`/extracted-exams/${attemptHistoryExam.id}/attempts/${attempt.id}`)
+      if (!res.ok) throw new Error(t("tch_exg_detail_load_fail", "Unable to load attempt detail"))
+      const data = await res.json().catch(() => null)
+      setSelectedAttempt(data)
+    } catch {
+      setSelectedAttempt(attempt)
+    } finally {
+      setAttemptDetailLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -366,34 +339,18 @@ export default function TeacherExamsListPage() {
     const closeOnOutsideClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement
       if (!target.closest("[data-exam-menu]")) {
-        setOpenMenuId(null)
+        // menu handling removed
       }
     }
 
-    document.addEventListener("mousedown", closeOnOutsideClick)
-    return () => document.removeEventListener("mousedown", closeOnOutsideClick)
+    // Listeners removed
   }, [])
 
   const handleEdit = (examId: string) => {
-    setOpenMenuId(null)
     router.push(`/teacher/exams/generate/create?editId=${examId}`)
   }
 
-  const handleMenuToggle = (examId: string, buttonElement: HTMLButtonElement) => {
-    if (openMenuId === examId) {
-      setOpenMenuId(null)
-    } else {
-      const rect = buttonElement.getBoundingClientRect()
-      setMenuPos({
-        top: rect.bottom + window.scrollY,
-        right: window.innerWidth - rect.right,
-      })
-      setOpenMenuId(examId)
-    }
-  }
-
   const handleDelete = async (examId: string, examTitle: string) => {
-    setOpenMenuId(null)
     const message = `Bạn có chắc muốn xóa đề thi "${examTitle}"?`
     const ok = window.confirm(message)
     if (!ok) return
@@ -413,8 +370,13 @@ export default function TeacherExamsListPage() {
     }
   }
 
+  const handleViewVariantQuestions = (exam: Exam, variant: any) => {
+    setCurrentExam(exam)
+    setCurrentVariant(variant)
+    setVariantQuestionsOpen(true)
+  }
+
   const handleViewAttempts = async (exam: Exam) => {
-    setOpenMenuId(null)
     setAttemptHistoryExam(exam)
     setAttemptHistoryLoading(true)
 
@@ -572,65 +534,74 @@ export default function TeacherExamsListPage() {
                 onEdit={handleEdit}
                 onViewAttempts={handleViewAttempts}
                 onDelete={handleDelete}
-                t={t}
+                onViewVariantQuestions={handleViewVariantQuestions}
               />
             ))
           )}
         </div>
       </div>
 
-      {openMenuId && (
-        <div
-          className="fixed z-[9999] min-w-44 rounded-lg border bg-card shadow-lg"
-          style={{
-            top: `${menuPos.top}px`,
-            right: `${menuPos.right}px`,
-          }}
-          data-exam-menu
-        >
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              const exam = exams.find((e) => e.id === openMenuId)
-              if (exam) handleEdit(exam.id)
-            }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-secondary"
-          >
-            <Pencil size={14} />
-            {t("tch_exg_edit", "Sửa cấu hình đề thi")}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              const exam = exams.find((item) => item.id === openMenuId)
-              if (exam) handleViewAttempts(exam)
-            }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-secondary"
-          >
-            <Users size={14} />
-            {t("tch_exg_view_attempts", "Xem học sinh đã làm")}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              const exam = exams.find((e) => e.id === openMenuId)
-              if (exam) handleDelete(exam.id, exam.title)
-            }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-secondary text-red-500 rounded-b-lg"
-          >
-            <Trash2 size={14} />
-            {t("tch_exg_delete", "Xóa đề thi")}
-          </button>
+      {/* Variant Questions Modal */}
+      {variantQuestionsOpen && currentVariant && currentExam && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 p-4" onClick={() => setVariantQuestionsOpen(false)}>
+          <div className="w-full max-w-3xl rounded-2xl border bg-card shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b px-5 py-4">
+              <div>
+                <h3 className="text-lg font-semibold">{currentExam.title}</h3>
+                <p className="text-sm text-muted-foreground">Đề {currentVariant.code} - {currentVariant.questions?.length || 0} câu hỏi</p>
+              </div>
+              <button
+                className="rounded-lg border px-3 py-1 text-sm hover:bg-secondary"
+                onClick={() => setVariantQuestionsOpen(false)}
+              >
+                Đóng
+              </button>
+            </div>
+            
+            <div className="max-h-[60vh] overflow-auto p-5">
+              {!currentVariant.questions || currentVariant.questions.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">Không có câu hỏi</div>
+              ) : (
+                <div className="space-y-4">
+                  {currentVariant.questions.map((question: any, idx: number) => (
+                    <div key={question.id || idx} className="rounded-lg border p-4 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold text-primary shrink-0">Câu {idx + 1}:</span>
+                        <ScientificText
+                          as="p"
+                          className="text-sm whitespace-pre-wrap"
+                          text={normalizeUploadedText(question.question) || "—"}
+                        />
+                      </div>
+                      {question.options && question.options.length > 0 && (
+                        <div className="pl-8 space-y-1">
+                          {question.options.map((option: string, optIdx: number) => (
+                            <div key={optIdx} className="text-sm text-muted-foreground">
+                              {String.fromCharCode(65 + optIdx)}. <ScientificText text={normalizeUploadedText(option)} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="pl-8 text-xs text-green-600">
+                        Đáp án: <ScientificText text={Array.isArray(question.correctAnswer) ? question.correctAnswer.join(", ") : question.correctAnswer} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
+      {/* Attempt History Modal */}
       {attemptHistoryExam && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 p-4" onClick={() => { setAttemptHistoryExam(null); setSelectedAttempt(null) }}>
           <div className="w-full max-w-4xl rounded-2xl border bg-card shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b px-5 py-4">
               <div>
                 <h3 className="text-lg font-semibold">{t("tch_exg_attempt_modal_title", "Học sinh đã làm bài")}</h3>
-                <p className="text-sm text-muted-foreground">{attemptHistoryExam.title}</p>
+                <p className="text-sm text-muted-foreground">{attemptHistoryExam?.title}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Plus, ClipboardList, Users } from "lucide-react"
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { cn } from "@/lib/utils"
 
 type ExamLike = {
   attemptCount?: number
@@ -12,6 +13,9 @@ type ExamLike = {
 
 type TeacherExamsNavbarProps = {
   showCreateButton?: boolean
+  variant?: "card" | "ghost"
+  tone?: "default" | "light"
+  className?: string
 }
 
 const normalizeList = <T,>(payload: any): T[] => {
@@ -21,7 +25,12 @@ const normalizeList = <T,>(payload: any): T[] => {
   return []
 }
 
-export function TeacherExamsNavbar({ showCreateButton = true }: TeacherExamsNavbarProps) {
+export function TeacherExamsNavbar({
+  showCreateButton = true,
+  variant = "card",
+  tone = "default",
+  className,
+}: TeacherExamsNavbarProps) {
   const { t } = useLanguage()
   const [total, setTotal] = useState<number | null>(null)
   const [used, setUsed] = useState<number | null>(null)
@@ -54,15 +63,31 @@ export function TeacherExamsNavbar({ showCreateButton = true }: TeacherExamsNavb
   const totalText = useMemo(() => (total === null ? "—" : String(total)), [total])
   const usedText = useMemo(() => (used === null ? "—" : String(used)), [used])
 
+  const isLight = tone === "light"
+  const titleClass = isLight ? "text-white" : "text-foreground dark:text-white"
+  const metaClass = isLight ? "text-white/80" : "text-muted-foreground dark:text-slate-400"
+  const iconClass = isLight ? "text-white" : "text-primary"
+
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-border dark:border-slate-800 bg-card dark:bg-slate-900/60 px-4 py-3">
+    <div
+      className={cn(
+        "flex items-center justify-between gap-4",
+        variant === "card"
+          ? "rounded-2xl border border-border dark:border-slate-800 bg-card dark:bg-slate-900/60 px-4 py-3"
+          : "",
+        className,
+      )}
+    >
       <Link href="/teacher/exams" className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-          <ClipboardList size={18} className="text-primary" />
+        <div className={cn(
+          "w-10 h-10 rounded-xl flex items-center justify-center",
+          isLight ? "bg-white/15" : "bg-primary/10 dark:bg-primary/20",
+        )}>
+          <ClipboardList size={18} className={iconClass} />
         </div>
         <div>
-          <div className="text-sm font-semibold text-foreground dark:text-white">{t("exam_bank", "Ngân hàng đề thi")}</div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground dark:text-slate-400">
+          <div className={cn("text-sm font-semibold", titleClass)}>{t("exam_bank", "Ngân hàng đề thi")}</div>
+          <div className={cn("flex items-center gap-3 text-xs", metaClass)}>
             <span>{t("exam_total_count", "Đã có")}: {totalText}</span>
             <span className="inline-flex items-center gap-1">
               <Users size={12} /> {t("exam_used_count", "Đã sử dụng")}: {usedText}

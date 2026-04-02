@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
+import { createPortal } from "react-dom"
 import {
   Award,
   BookOpen,
@@ -67,6 +68,9 @@ export default function TeacherStudentsPage() {
   const [filterCourse, setFilterCourse] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties | null>(null)
+  const [isDesktop, setIsDesktop] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "remove" | null>(null)
   const [students, setStudents] = useState<Student[]>([])
@@ -119,6 +123,59 @@ export default function TeacherStudentsPage() {
 
     loadStudents()
   }, [])
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1280px)")
+    const updateMatch = () => {
+      setIsDesktop(media.matches)
+      setOpenMenu(null)
+    }
+
+    updateMatch()
+    media.addEventListener("change", updateMatch)
+    return () => media.removeEventListener("change", updateMatch)
+  }, [])
+
+  useEffect(() => {
+    if (!openMenu) {
+      setMenuStyle(null)
+      return
+    }
+
+    const button = menuButtonRefs.current[openMenu]
+    if (!button) {
+      setMenuStyle(null)
+      return
+    }
+
+    const updatePosition = () => {
+      const rect = button.getBoundingClientRect()
+      const menuWidth = 220
+      const margin = 8
+
+      let left = rect.right - menuWidth
+      left = Math.min(Math.max(left, margin), window.innerWidth - menuWidth - margin)
+
+      const top = rect.bottom + 8
+
+      setMenuStyle({
+        position: "fixed",
+        top,
+        left,
+        width: menuWidth,
+        zIndex: 9999,
+      })
+    }
+
+    updatePosition()
+    window.addEventListener("resize", updatePosition)
+    window.addEventListener("scroll", updatePosition, true)
+
+    return () => {
+      window.removeEventListener("resize", updatePosition)
+      window.removeEventListener("scroll", updatePosition, true)
+    }
+  }, [openMenu])
 
   const courseOptions = useMemo(() => {
     const map = new Map<string, string>()
@@ -415,6 +472,8 @@ export default function TeacherStudentsPage() {
             value={filterCourse}
             onChange={(e) => setFilterCourse(e.target.value)}
             className="px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+            contentClassName="bg-white/90 dark:bg-slate-900/88 backdrop-blur-xl border border-white/45 dark:border-slate-700/80 shadow-[0_20px_60px_rgba(2,6,23,0.45)] ring-1 ring-sky-400/20"
+            portalled
           >
             <option value="all">{t("teacher_students_all_courses", "Tất cả khóa học")}</option>
             {courseOptions.map((course) => (
@@ -427,6 +486,8 @@ export default function TeacherStudentsPage() {
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+            contentClassName="bg-white/90 dark:bg-slate-900/88 backdrop-blur-xl border border-white/45 dark:border-slate-700/80 shadow-[0_20px_60px_rgba(2,6,23,0.45)] ring-1 ring-sky-400/20"
+            portalled
           >
             <option value="all">{t("teacher_students_all_statuses", "Tất cả trạng thái")}</option>
             <option value="active">{t("teacher_dashboard_learning", "Đang học")}</option>
@@ -458,6 +519,9 @@ export default function TeacherStudentsPage() {
                   </div>
                   <div className="relative" data-dropdown>
                     <button
+                      ref={(el) => {
+                        menuButtonRefs.current[student.id] = el
+                      }}
                       onClick={(e) => {
                         e.stopPropagation()
                         setOpenMenu(openMenu === student.id ? null : student.id)
@@ -466,35 +530,38 @@ export default function TeacherStudentsPage() {
                     >
                       <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
                     </button>
-                    {openMenu === student.id && (
+                    {!isDesktop && openMenu === student.id && (
                       <>
-                        <div 
-                          className="fixed inset-0 z-[9998]" 
+                        <div
+                          className="fixed inset-0 z-[9998]"
                           onClick={(e) => {
                             e.stopPropagation()
                             setOpenMenu(null)
                           }}
                         />
-                        <div className="absolute right-0 bottom-full mb-1 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg shadow-2xl z-[9999] min-w-44" data-dropdown>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleViewDetails(student)
-                            }}
-                            className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
-                          >
-                            <Eye size={16} /> {t("teacher_students_view_details", "Xem chi tiết")}
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleRemoveClick(student)
-                            }}
-                            className="w-full text-left px-4 py-3 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg"
-                          >
-                            <UserX size={16} /> {t("teacher_students_remove_student", "Xóa học viên")}
-                          </button>
-                        </div>
+                        {menuStyle && createPortal(
+                          <div className="bg-card/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/45 dark:border-slate-700/85 rounded-lg shadow-[0_20px_60px_rgba(2,6,23,0.45)] ring-1 ring-sky-400/20" style={menuStyle}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleViewDetails(student)
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
+                            >
+                              <Eye size={16} /> {t("teacher_students_view_details", "Xem chi tiết")}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRemoveClick(student)
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg"
+                            >
+                              <UserX size={16} /> {t("teacher_students_remove_student", "Xóa học viên")}
+                            </button>
+                          </div>,
+                          document.body,
+                        )}
                       </>
                     )}
                   </div>
@@ -722,6 +789,9 @@ export default function TeacherStudentsPage() {
                     <td className="py-4 px-6">{getStatusBadge(student.status)}</td>
                     <td className="py-4 px-6 relative" data-dropdown>
                       <button
+                        ref={(el) => {
+                          menuButtonRefs.current[student.id] = el
+                        }}
                         onClick={(e) => {
                           e.stopPropagation()
                           setOpenMenu(openMenu === student.id ? null : student.id)
@@ -730,27 +800,39 @@ export default function TeacherStudentsPage() {
                       >
                         <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
                       </button>
-                      {openMenu === student.id && (
-                        <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-xl z-50 min-w-40" data-dropdown>
-                          <button
+                      {isDesktop && openMenu === student.id && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-[9998]"
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleViewDetails(student)
+                              setOpenMenu(null)
                             }}
-                            className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
-                          >
-                            <Eye size={16} /> {t("teacher_students_view_details", "Xem chi tiết")}
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleRemoveClick(student)
-                            }}
-                            className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg"
-                          >
-                            <UserX size={16} /> {t("teacher_students_remove_student", "Xóa học viên")}
-                          </button>
-                        </div>
+                          />
+                          {menuStyle && createPortal(
+                            <div className="bg-card/90 dark:bg-slate-900/90 border border-border dark:border-slate-800 rounded-lg shadow-xl" style={menuStyle}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleViewDetails(student)
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
+                              >
+                                <Eye size={16} /> {t("teacher_students_view_details", "Xem chi tiết")}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleRemoveClick(student)
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg"
+                              >
+                                <UserX size={16} /> {t("teacher_students_remove_student", "Xóa học viên")}
+                              </button>
+                            </div>,
+                            document.body,
+                          )}
+                        </>
                       )}
                     </td>
                   </tr>

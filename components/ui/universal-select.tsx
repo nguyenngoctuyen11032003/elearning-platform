@@ -22,6 +22,8 @@ type UniversalSelectProps = Omit<
   "onChange"
 > & {
   onChange?: (event: { target: { value: string; name?: string; id?: string } }) => void
+  contentClassName?: string
+  portalled?: boolean
 }
 
 const normalizeOptionValue = (value: string): string =>
@@ -69,6 +71,8 @@ export function UniversalSelect({
   name,
   id,
   className,
+  contentClassName,
+  portalled = false,
   disabled,
   title,
 }: UniversalSelectProps) {
@@ -112,12 +116,13 @@ export function UniversalSelect({
         <SelectTrigger id={id} className={className} title={title}>
           <SelectValue>{selected?.label ?? ""}</SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className={contentClassName} portalled={portalled}>
           {options.map((option) => (
             <SelectItem
               key={`${option.value || "empty"}-${option.label}`}
               value={normalizeOptionValue(option.value)}
               disabled={option.disabled}
+              className="text-white dark:text-white"
             >
               {option.label}
             </SelectItem>

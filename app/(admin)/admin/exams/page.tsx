@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useState, useEffect, useRef, useMemo, Fragment } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import {
   Search,
   MoreVertical,
@@ -16,7 +16,8 @@ import {
   ClipboardList,
   BookOpen,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Pencil
 } from "lucide-react"
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
@@ -83,18 +84,17 @@ export default function AdminExamsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "approved" | "rejected">("all")
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [exams, setExams] = useState<Exam[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
-  const [menuButtonRect, setMenuButtonRect] = useState<{ top: number; right: number } | null>(null)
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "reject" | null>(null)
   const [rejectionReason, setRejectionReason] = useState("")
   const menuRef = useRef<HTMLDivElement | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; action: string; examId?: string }>({ isOpen: false, action: "" })
-  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
-  const cardRef = useRef<HTMLDivElement | null>(null)
   const [certificateTemplates, setCertificateTemplates] = useState<CertificateTemplate[]>([])
 
   const getAuthHeaders = () => {
@@ -104,11 +104,6 @@ export default function AdminExamsPage() {
       headers.Authorization = `Bearer ${token}`
     }
     return headers
-  }
-
-  const getTemplateName = (templateId?: string) => {
-    if (!templateId) return ""
-    return certificateTemplates.find((t) => t.id === templateId)?.title || templateId
   }
 
   const mapExam = (item: any, templates: CertificateTemplate[] = []): Exam => {
@@ -215,7 +210,6 @@ export default function AdminExamsPage() {
         !menuRef.current.contains(event.target as Node)
       ) {
         setOpenMenu(null)
-        setMenuButtonRect(null)
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
@@ -233,7 +227,7 @@ export default function AdminExamsPage() {
   }, [])
 
   useEffect(() => {
-    const closeMenu = () => { setOpenMenu(null); setMenuButtonRect(null) }
+    const closeMenu = () => { setOpenMenu(null) }
     window.addEventListener("scroll", closeMenu)
     window.addEventListener("resize", closeMenu)
     return () => {
@@ -248,7 +242,8 @@ export default function AdminExamsPage() {
         exam.teacher.toLowerCase().includes(searchTerm.toLowerCase()) ||
         exam.course.toLowerCase().includes(searchTerm.toLowerCase())) &&
       (statusFilter === "all" || exam.status === statusFilter) &&
-      (typeFilter === "all" || exam.type === typeFilter)
+      (typeFilter === "all" || exam.type === typeFilter) &&
+      (activeTab === "all" || exam.status === activeTab)
   )
 
   const groupedExams = useMemo<GroupedExamBank[]>(() => {
@@ -301,6 +296,23 @@ export default function AdminExamsPage() {
 
   const canModerateExam = (status: Exam["status"]) => status === "pending"
 
+  const allVisibleVariantIds = groupedExams.flatMap((group) => group.variants.map((variant) => variant.id))
+  const selectedCount = selectedIds.length
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const toggleSelectAllVisible = () => {
+    setSelectedIds((prev) => {
+      if (allVisibleVariantIds.length > 0 && allVisibleVariantIds.every((id) => prev.includes(id))) {
+        return prev.filter((id) => !allVisibleVariantIds.includes(id))
+      }
+      const merged = new Set([...prev, ...allVisibleVariantIds])
+      return Array.from(merged)
+    })
+  }
+
   const handleApproveAndPublish = async (examId: string) => {
     try {
       const res = await fetch(`/api/exams/${examId}/approve`, {
@@ -317,7 +329,6 @@ export default function AdminExamsPage() {
 
       await fetchExams()
       setOpenMenu(null)
-      setMenuButtonRect(null)
       setConfirmDialog({ isOpen: false, action: "" })
       toast.success(t("adm_exam_approve_publish_ok", "Đã duyệt và xuất bản bài thi"))
     } catch (error) {
@@ -344,7 +355,6 @@ export default function AdminExamsPage() {
 
       await fetchExams()
       setOpenMenu(null)
-      setMenuButtonRect(null)
       setViewMode(null)
       setSelectedExam(null)
       setRejectionReason("")
@@ -427,6 +437,42 @@ export default function AdminExamsPage() {
         {labels[type as keyof typeof labels]}
       </span>
     )
+  }
+
+  const handleBulkApprove = async () => {
+    const pendingIds = selectedIds.filter((id) => exams.find((e) => e.id === id)?.status === "pending")
+    if (pendingIds.length === 0) {
+      toast.error(t("adm_exam_bulk_no_pending", "Không có bài thi chờ duyệt trong lựa chọn"))
+      return
+    }
+    await Promise.all(pendingIds.map((id) => handleApproveAndPublish(id)))
+    setSelectedIds([])
+  }
+
+  const handleBulkReject = async () => {
+    const pendingIds = selectedIds.filter((id) => exams.find((e) => e.id === id)?.status === "pending")
+    if (pendingIds.length === 0) {
+      toast.error(t("adm_exam_bulk_no_pending", "Không có bài thi chờ duyệt trong lựa chọn"))
+      return
+    }
+    const reason = window.prompt(t("adm_exam_bulk_reject_reason", "Nhập lý do từ chối cho các bài đã chọn"), "")
+    if (!reason || !reason.trim()) return
+    await Promise.all(
+      pendingIds.map(async (id) => {
+        const res = await fetch(`/api/exams/${id}/reject`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({ reason: reason.trim() }),
+        })
+        if (!res.ok) throw new Error("Reject failed")
+      })
+    )
+    await fetchExams()
+    setSelectedIds([])
+    toast.success(t("adm_exam_bulk_reject_ok", "Đã từ chối các bài thi đã chọn"))
   }
   return (
     <div className="w-full space-y-8">
@@ -517,384 +563,238 @@ export default function AdminExamsPage() {
             </div>
           </div>
         </div>
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4">
+        {/* Search + Filter + Actions */}
+        <div className="flex flex-col xl:flex-row gap-3 items-stretch xl:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
-              placeholder={t("adm_exam_search", "Tìm kiếm bài thi, giáo viên, khóa học...")}
+              placeholder={t("adm_exam_search", "Search exams...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="w-full pl-10 pr-4 py-3 bg-gradient-to-r from-slate-800 to-slate-900 border-2 border-blue-500/50 rounded-xl text-white placeholder:text-slate-300 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 shadow-lg shadow-blue-500/20 focus:shadow-blue-500/40 transition-all duration-300"
             />
           </div>
-          <UniversalSelect
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-          >
-            <option value="all">{t("adm_exam_filter_all_status", "Tất cả trạng thái")}</option>
-            <option value="pending">{t("adm_exam_status_pending", "Chờ duyệt")}</option>
-            <option value="approved">{t("adm_exam_status_approved", "Đã duyệt")}</option>
-            <option value="rejected">{t("adm_exam_status_rejected", "Từ chối")}</option>
-            <option value="draft">{t("adm_exam_status_draft", "Nháp")}</option>
-          </UniversalSelect>
-          <UniversalSelect
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-          >
-            <option value="all">{t("adm_exam_filter_all_type", "Tất cả loại")}</option>
-            <option value="practice">{t("adm_exam_type_practice", "Thi thử")}</option>
-            <option value="official">{t("adm_exam_type_official", "Thi thật")}</option>
-          </UniversalSelect>
         </div>
 
-        {/* Exams Table (Desktop only - xl+) */}
-        <div className="hidden xl:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl animate-slideUp" style={{ animationDelay: "0.2s" }}>
-          <div className="overflow-x-auto rounded-2xl">
-            <table className="w-full">
-              <thead className="bg-white/50 dark:bg-slate-800/50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-foreground dark:text-white">{t("adm_exam_th_exam", "Bài thi")}</th>
-                  <th className="px-3 py-3 text-left text-sm font-semibold text-foreground dark:text-white">{t("adm_exam_th_type", "Loại")}</th>
-                  <th className="px-3 py-3 text-left text-sm font-semibold text-foreground dark:text-white">{t("adm_exam_th_teacher", "Giáo viên")}</th>
-                  <th className="px-3 py-3 text-left text-sm font-semibold text-foreground dark:text-white">{t("adm_exam_th_settings", "Cài đặt")}</th>
-                  <th className="px-3 py-3 text-left text-sm font-semibold text-foreground dark:text-white">{t("adm_exam_th_status", "Trạng thái")}</th>
-                  <th className="px-3 py-3 text-center text-sm font-semibold text-foreground dark:text-white">{t("adm_exam_th_attempts", "Lượt thi")}</th>
-                  <th className="px-3 py-3 text-right text-sm font-semibold text-foreground dark:text-white">{t("adm_exam_th_actions", "Thao tác")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border dark:divide-slate-800">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground dark:text-slate-400">
-                      {t("adm_exam_loading", "Đang tải dữ liệu bài thi...")}
-                    </td>
-                  </tr>
-                ) : (
-                  groupedExams.map((group, groupIndex) => (
-                    <Fragment key={group.key}>
-                      {groupIndex > 0 && (
-                        <tr className="bg-transparent">
-                          <td colSpan={7} className="h-2 p-0 border-0"></td>
-                        </tr>
-                      )}
-                      <tr className="bg-slate-200/80 dark:bg-slate-700/60">
-                        <td colSpan={7} className="px-4 py-3">
-                          {(() => {
-                            const approvedCount = group.variants.filter((exam) => exam.status === "approved").length
-                            const unapprovedCount = group.variants.length - approvedCount
-                            const isExpanded = expandedGroups[group.key] ?? false
+        {/* Tabs */}
+        <div className="border-b border-slate-800 flex items-center gap-5 overflow-x-auto scrollbar-hide">
+          {[
+            { key: "all", label: t("common_all", "All"), count: exams.length },
+            { key: "pending", label: t("adm_exam_status_pending", "Pending"), count: exams.filter(e => e.status === "pending").length },
+            { key: "approved", label: t("adm_exam_status_approved", "Approved"), count: exams.filter(e => e.status === "approved").length },
+            { key: "rejected", label: t("adm_exam_status_rejected", "Rejected"), count: exams.filter(e => e.status === "rejected").length },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as "all" | "pending" | "approved" | "rejected")}
+              className={`pb-3 text-sm font-medium whitespace-nowrap border-b-2 transition-all duration-300 ease-out flex items-center gap-2 ${
+                activeTab === tab.key ? "border-blue-400 text-blue-300 scale-105" : "border-transparent text-slate-400 hover:text-slate-200 scale-100"
+              }`}
+            >
+              {tab.label}
+              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold transition-all duration-300 ${
+                activeTab === tab.key 
+                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/40" 
+                  : "bg-slate-700 text-slate-200"
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
 
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setExpandedGroups((prev) => ({ ...prev, [group.key]: !(prev[group.key] ?? false) }))
-                                }}
-                                className="w-full text-left flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-300/50 dark:hover:bg-slate-600/40 rounded-lg px-2 py-1"
-                              >
-                                <div className="min-w-0">
-                                  <p className="font-semibold text-slate-900 dark:text-white truncate">{group.title}</p>
-                                  <p className="text-xs text-slate-700 dark:text-slate-200 mt-1">
-                                    {group.variants[0]?.course || t("adm_exam_course_label", "Khóa học")} • {group.variants.length} {t("adm_exam_group_variants", "biến thể")}
-                                  </p>
-                                  <p className="text-xs text-slate-700 dark:text-slate-200 mt-1">
-                                    {t("adm_exam_status_approved", "Đã duyệt")}: {approvedCount} • {t("adm_exam_group_unapproved", "Chưa duyệt")}: {unapprovedCount}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <span className="text-xs px-2 py-1 rounded-full border border-slate-400 dark:border-slate-500 bg-slate-300/70 dark:bg-slate-600/70 text-slate-800 dark:text-slate-100">
-                                    {group.isTypeGroup ? t("adm_exam_group_type_variants", "Nhóm biến thể type") : t("adm_exam_group_title_variants", "Nhóm cùng bộ đề")}
-                                  </span>
-                                  <span className="text-slate-700 dark:text-slate-100">{isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}</span>
-                                </div>
-                              </button>
-                            )
-                          })()}
-                        </td>
-                      </tr>
-                      {(expandedGroups[group.key] ?? false) && group.variants.map((exam) => (
-                        <tr key={exam.id} className="hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-300" data-exam-card>
-                          <td className="px-4 py-3 max-w-[280px]">
-                            <div>
-                              <p className="font-medium text-foreground dark:text-white truncate">{exam.title}</p>
-                              <p className="text-sm text-muted-foreground dark:text-slate-400 flex items-center gap-1 mt-1 truncate">
-                                <BookOpen size={14} className="shrink-0" /> <span className="truncate">{exam.course}</span>
-                              </p>
-                              {exam.type === "official" && exam.certificateTemplate && (
-                                <p className="text-xs text-purple-500 flex items-center gap-1 mt-1 truncate">
-                                  <Award size={12} className="shrink-0" /> <span className="truncate">{exam.certificateTemplate}</span>
-                                </p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-3 py-3">
-                            {getTypeBadge(exam.type)}
-                          </td>
-                          <td className="px-3 py-3">
-                            <div>
-                              <p className="font-medium text-foreground dark:text-white text-sm">{exam.teacher}</p>
-                              <p className="text-xs text-muted-foreground dark:text-slate-400 truncate max-w-[120px]">{exam.teacherEmail}</p>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3">
-                            <div className="space-y-0.5 text-xs">
-                              <p className="text-muted-foreground dark:text-slate-400">
-                                <Timer size={12} className="inline mr-1" /> {exam.timeLimit} {t("adm_exam_minutes", "phút")}
-                              </p>
-                              <p className="text-muted-foreground dark:text-slate-400">
-                                {exam.questionsCount} {t("adm_exam_questions_short", "câu")} • {exam.passingScore}%
-                              </p>
-                              <p className="text-muted-foreground dark:text-slate-400">
-                                {t("adm_exam_max", "Tối đa")} {exam.maxAttempts} {t("adm_exam_times", "lần")}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3">
-                            {getStatusBadge(exam.status)}
-                            {exam.status === "rejected" && exam.rejectionReason && (
-                              <button
-                                onClick={() => {
-                                  setSelectedExam(exam)
-                                  setViewMode("view")
-                                }}
-                                className="block mt-1 text-xs text-red-500 hover:underline"
-                              >
-                                {t("adm_exam_view_reason", "Xem lý do")}
-                              </button>
-                            )}
-                          </td>
-                          <td className="px-3 py-3 text-center">
-                            <span className="text-foreground dark:text-white font-medium">
-                              {exam.attemptCount}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={(e) => {
-                                  const card = e.currentTarget.closest('[data-exam-card]') as HTMLElement
-                                  if (card) {
-                                    setAnchorRect(card.getBoundingClientRect())
-                                  }
-                                  setSelectedExam(exam)
-                                  setViewMode("view")
-                                }}
-                                className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary dark:text-accent rounded-lg transition-colors text-sm font-medium"
-                                title={t("adm_exam_preview", "Xem trước")}
-                              >
-                                {t("adm_exam_preview", "Xem trước")}
-                              </button>
-                              <Link
-                                href={`/admin/exams/${exam.id}`}
-                                className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
-                                title={t("adm_exam_full_detail", "Chi tiết đầy đủ")}
-                              >
-                                <Eye size={18} className="text-muted-foreground" />
-                              </Link>
-                              <div className="relative">
-                                <button
-                                  onClick={(e) => {
-                                    if (openMenu === exam.id) {
-                                      setOpenMenu(null)
-                                      setMenuButtonRect(null)
-                                    } else {
-                                      const rect = e.currentTarget.getBoundingClientRect()
-                                      setMenuButtonRect({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
-                                      setOpenMenu(exam.id)
-                                    }
-                                  }}
-                                  className="p-2 hover:bg-secondary dark:hover:bg-slate-700 rounded-lg transition-colors"
-                                >
-                                  <MoreVertical size={18} className="text-muted-foreground" />
-                                </button>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </Fragment>
-                  ))
-                )}
-              </tbody>
-            </table>
+        {/* Status Notes */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 flex items-center gap-3">
+            <Clock size={18} className="text-yellow-400 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-yellow-200">{pendingExams} {t("adm_exam_status_pending", "bài thi chờ duyệt")}</p>
+              <p className="text-xs text-yellow-300/70">{t("adm_exam_pending_note", "Chờ xem xét từ quản trị viên")}</p>
+            </div>
+          </div>
+          <div className="flex-1 rounded-lg border border-green-500/30 bg-green-500/10 p-3 flex items-center gap-3">
+            <CheckCircle size={18} className="text-green-400 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-green-200">{approvedExams} {t("adm_exam_status_approved", "bài thi đã duyệt")}</p>
+              <p className="text-xs text-green-300/70">{t("adm_exam_approved_note", "Sẵn sàng cho học viên")}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bulk Actions */}
+        {selectedCount > 0 && (
+          <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+            <span className="text-sm text-blue-200">{selectedCount} {t("adm_exam_selected", "selected")}</span>
+            <button
+              onClick={handleBulkApprove}
+              className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300 border border-green-500/30 hover:bg-green-500/30 text-sm transition-all duration-200 hover:scale-105"
+            >
+              {t("adm_exam_approve_all", "Approve all")}
+            </button>
+            <button
+              onClick={handleBulkReject}
+              className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 text-sm transition-all duration-200 hover:scale-105"
+            >
+              {t("adm_exam_reject_all", "Reject all")}
+            </button>
+          </div>
+        )}
+
+        {/* Card List */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={allVisibleVariantIds.length > 0 && allVisibleVariantIds.every((id) => selectedIds.includes(id))}
+              onChange={toggleSelectAllVisible}
+              className="w-4 h-4"
+            />
+            <span className="text-sm text-slate-400">{t("adm_exam_select_all_visible", "Chọn tất cả trong danh sách")}</span>
           </div>
 
-          {!isLoading && groupedExams.length === 0 && (
-            <div className="p-12 text-center">
-              <FileText size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
-              <p className="text-muted-foreground dark:text-slate-400">{t("adm_exam_empty", "Không tìm thấy bài thi nào")}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Exams Card Layout (Tablet & Mobile - below xl) */}
-        <div className="block xl:hidden">
           {isLoading ? (
-            <div className="p-12 text-center">
-              <p className="text-muted-foreground dark:text-slate-400">{t("adm_exam_loading", "Đang tải dữ liệu bài thi...")}</p>
+            <div className="space-y-3">
+              {[1, 2, 3].map((idx) => (
+                <div key={idx} className="rounded-[14px] p-5 border border-white/5 bg-[#0f172a] animate-pulse">
+                  <div className="h-5 bg-slate-700 rounded w-1/3 mb-3" />
+                  <div className="h-4 bg-slate-800 rounded w-2/3 mb-4" />
+                  <div className="h-10 bg-slate-800 rounded" />
+                </div>
+              ))}
             </div>
           ) : groupedExams.length === 0 ? (
-            <div className="p-12 text-center">
-              <FileText size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
-              <p className="text-muted-foreground dark:text-slate-400">{t("adm_exam_empty", "Không tìm thấy bài thi nào")}</p>
+            <div className="p-12 text-center rounded-2xl border border-slate-800 bg-[#0f172a]">
+              <FileText size={48} className="mx-auto text-slate-600 mb-4" />
+              <p className="text-slate-400">{t("adm_exam_empty", "Không tìm thấy bài thi nào")}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {groupedExams.map(group => (
-                <div key={group.key} className="bg-slate-900/70 border border-slate-700/60 rounded-xl p-3 space-y-3">
-                  {(() => {
-                    const approvedCount = group.variants.filter((exam) => exam.status === "approved").length
-                    const unapprovedCount = group.variants.length - approvedCount
-                    const isExpanded = expandedGroups[group.key] ?? false
+            groupedExams.map((group) => {
+              const isExpanded = expandedGroups[group.key] ?? false
+              return (
+                <div key={group.key} className="rounded-[14px] p-4 border border-white/5 bg-[#0f172a] transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_10px_30px_rgba(0,0,0,0.4)]">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.key]: !isExpanded }))}
+                    className="w-full flex items-center justify-between gap-3 text-left"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-lg font-semibold text-white">{group.title}</p>
+                      <div className="text-sm text-slate-400 mt-1 flex flex-wrap items-center gap-2">
+                        <span>📘 {group.title} ({group.variants.length} versions)</span>
+                        {(() => {
+                          const pendingCount = group.variants.filter(v => v.status === "pending").length
+                          const approvedCount = group.variants.filter(v => v.status === "approved").length
+                          const rejectedCount = group.variants.filter(v => v.status === "rejected").length
+                          return (
+                            <>
+                              {pendingCount > 0 && <span className="text-yellow-400 text-xs">• {pendingCount} chưa duyệt</span>}
+                              {approvedCount > 0 && <span className="text-green-400 text-xs">• {approvedCount} đã duyệt</span>}
+                              {rejectedCount > 0 && <span className="text-red-400 text-xs">• {rejectedCount} từ chối</span>}
+                            </>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                    <span className="text-slate-300 flex-shrink-0">{isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}</span>
+                  </button>
 
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setExpandedGroups((prev) => ({ ...prev, [group.key]: !(prev[group.key] ?? false) }))
-                        }}
-                        className="w-full px-1 text-left flex items-start justify-between gap-2 cursor-pointer"
-                      >
-                        <div>
-                          <p className="font-semibold text-white leading-snug line-clamp-2">{group.title}</p>
-                          <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                            <BookOpen size={12} /> {group.variants[0]?.course} • {group.variants.length} {t("adm_exam_group_variants", "biến thể")}
-                          </p>
-                          <p className="text-xs text-slate-300 mt-1">
-                            {t("adm_exam_status_approved", "Đã duyệt")}: {approvedCount} • {t("adm_exam_group_unapproved", "Chưa duyệt")}: {unapprovedCount}
-                          </p>
-                        </div>
-                        <span className="text-slate-300 mt-1">{isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}</span>
-                      </button>
-                    )
-                  })()}
-
-                  {(expandedGroups[group.key] ?? false) && <div className="space-y-3">
-                    {group.variants.map(exam => (
-                      <div
-                        key={exam.id}
-                        data-exam-card
-                        ref={openMenu === exam.id || (selectedExam && viewMode === "view" && selectedExam.id === exam.id) ? cardRef : null}
-                        className="bg-slate-800/80 rounded-xl p-4 space-y-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <p className="font-semibold text-white leading-snug line-clamp-2">{exam.title}</p>
-                            <p className="text-xs text-slate-400 mt-1">{exam.teacher}</p>
-                          </div>
-                          <div className="flex flex-col gap-1 items-end shrink-0">
-                            {getTypeBadge(exam.type)}
-                            {getStatusBadge(exam.status)}
-                          </div>
-                        </div>
-
-                        <div className="text-sm text-slate-300 flex items-center gap-2">
-                          <span className="text-slate-500 text-xs truncate">{exam.teacherEmail}</span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 text-sm pt-2">
-                          <div className="flex items-center gap-2">
-                            <Timer size={14} className="text-blue-400" />
-                            <span>{exam.timeLimit} {t("adm_exam_minutes", "phút")}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <ClipboardList size={14} className="text-green-400" />
-                            <span>{exam.questionsCount} {t("adm_exam_questions_short", "câu")}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <CheckCircle size={14} className="text-yellow-400" />
-                            <span>{exam.passingScore}% {t("adm_exam_pass", "đạt")}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Award size={14} className="text-purple-400" />
-                            <span>{exam.maxAttempts} {t("adm_exam_attempts_unit", "lần thi")}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-3 border-t border-slate-700/50">
-                          <span className="text-sm text-slate-400">{exam.attemptCount} {t("adm_exam_th_attempts", "Lượt thi")}</span>
-                          <div className="flex gap-2">
-                            <button
-                              className="px-3 py-1.5 rounded-lg bg-primary/20 text-primary text-sm"
-                              onClick={e => {
-                                const rect = (e.currentTarget.closest('[data-exam-card]') as HTMLElement)?.getBoundingClientRect();
-                                if (rect) setAnchorRect(rect);
-                                setSelectedExam(exam);
-                                setViewMode("view");
-                              }}
-                            >
-                              {t("adm_exam_preview", "Xem trước")}
-                            </button>
-                            <button
-                              className="p-2 rounded-lg bg-slate-700"
-                              onClick={() => setOpenMenu(openMenu === exam.id ? null : exam.id)}
-                            >
-                              <MoreVertical size={16} />
-                            </button>
-                          </div>
-                        </div>
-
-                        {openMenu === exam.id && (
-                          <>
-                            {openMenu && (
-                              <div
-                                className="fixed inset-0 z-[9998] bg-black/10"
-                                onClick={() => setOpenMenu(null)}
+                  <div className={`mt-4 space-y-3 transition-all duration-300 ease-in-out overflow-hidden ${
+                    isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
+                  }`}>
+                      {group.variants.map((exam, index) => (
+                        <div key={exam.id} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.includes(exam.id)}
+                                onChange={() => toggleSelectOne(exam.id)}
+                                className="mt-1 w-4 h-4"
                               />
-                            )}
-                            <div
-                              ref={menuRef}
-                              className="relative right-0 bottom-0 z-[9999] w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg"
-                            >
-                              {canModerateExam(exam.status) && (
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h3 className="text-base md:text-lg font-semibold text-white truncate">{exam.title}</h3>
+                                  {getTypeBadge(exam.type)}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-1">{exam.description || exam.course}</p>
+                                <p className="text-sm text-slate-300 mt-2">👨‍🏫 {exam.teacher || t("adm_exam_no_teacher", "Chưa có giảng viên")}</p>
+                                <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-300">
+                                  <span className="inline-flex items-center gap-1"><Timer size={14} /> {exam.timeLimit}m</span>
+                                  <span className="inline-flex items-center gap-1"><ClipboardList size={14} /> {exam.questionsCount} {t("adm_exam_questions_short", "câu")}</span>
+                                  <span className="inline-flex items-center gap-1"><Award size={14} /> {exam.passingScore}%</span>
+                                  <span className="inline-flex items-center gap-1">🔁 {exam.maxAttempts} {t("adm_exam_times", "lần")}</span>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2">{t("adm_exam_version", "Version")}: {String.fromCharCode(65 + index)}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                              {getStatusBadge(exam.status)}
+                              <div className="flex items-center gap-2 flex-wrap justify-end">
                                 <button
                                   onClick={() => {
-                                    handleApproveAndPublish(exam.id)
+                                    setSelectedExam(exam)
+                                    setViewMode("view")
                                   }}
-                                  className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-green-600 dark:text-green-400"
+                                  className="px-3 h-9 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 text-sm"
                                 >
-                                  <CheckCircle size={16} />
-                                  <span className="font-medium">{t("adm_exam_approve_publish", "Duyệt & xuất bản")}</span>
+                                  {t("adm_exam_preview", "Preview")}
                                 </button>
-                              )}
-                              {canModerateExam(exam.status) && (
+                                <Link
+                                  href={`/admin/exams/${exam.id}`}
+                                  className="px-3 h-9 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 text-sm inline-flex items-center gap-1"
+                                >
+                                  <Pencil size={14} /> {t("adm_exam_edit", "Edit")}
+                                </Link>
+                                <button
+                                  onClick={() => handleApproveAndPublish(exam.id)}
+                                  disabled={exam.status !== "pending"}
+                                  className="px-3 h-9 rounded-lg bg-green-600/20 border border-green-500/30 text-green-300 hover:bg-green-600/30 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  {t("adm_exam_approve", "Approve")}
+                                </button>
                                 <button
                                   onClick={() => {
                                     setSelectedExam(exam)
                                     setViewMode("reject")
                                     setRejectionReason("")
-                                    setOpenMenu(null)
                                   }}
-                                  className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-amber-600 dark:text-amber-400"
+                                  disabled={exam.status !== "pending"}
+                                  className="px-3 h-9 rounded-lg bg-red-600/20 border border-red-500/30 text-red-300 hover:bg-red-600/30 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
-                                  <AlertCircle size={16} />
-                                  <span className="font-medium">{t("adm_exam_reject", "Từ chối")}</span>
+                                  {t("adm_exam_reject", "Reject")}
                                 </button>
-                              )}
-                              <button
-                                onClick={() => {
-                                  setConfirmDialog({ isOpen: true, action: "delete", examId: exam.id })
-                                  setOpenMenu(null)
-                                }}
-                                className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-b-xl"
-                              >
-                                <XCircle size={16} />
-                                <span className="font-medium">{t("adm_exam_delete", "Xóa bài thi")}</span>
-                              </button>
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setOpenMenu(openMenu === exam.id ? null : exam.id)}
+                                    className="h-9 w-9 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 inline-flex items-center justify-center"
+                                  >
+                                    <MoreVertical size={16} />
+                                  </button>
+                                  {openMenu === exam.id && (
+                                    <div ref={menuRef} className="absolute right-0 mt-1 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-lg z-20">
+                                      <button
+                                        onClick={() => {
+                                          setConfirmDialog({ isOpen: true, action: "delete", examId: exam.id })
+                                          setOpenMenu(null)
+                                        }}
+                                        className="w-full px-4 py-2.5 text-left text-red-400 hover:bg-slate-800 text-sm"
+                                      >
+                                        {t("adm_exam_delete", "Xóa bài thi")}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                 </div>
-              ))
-          }
-          </div>
+              )
+            })
           )}
         </div>
 
@@ -1152,51 +1052,6 @@ export default function AdminExamsPage() {
             </div>
           </div>
         )}
-
-        {/* Fixed dropdown for desktop table — rendered outside overflow-x-auto to avoid clip */}
-        {openMenu && menuButtonRect && (() => {
-          const activeExam = filteredExams.find(e => e.id === openMenu)
-          if (!activeExam) return null
-          return (
-            <div
-              ref={menuRef}
-              style={{ top: menuButtonRect.top, right: menuButtonRect.right }}
-              className="hidden xl:block fixed w-52 bg-card dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl shadow-lg z-[9999]"
-            >
-              {canModerateExam(activeExam.status) && (
-                <button
-                  onClick={() => { handleApproveAndPublish(activeExam.id) }}
-                  className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-green-600 dark:text-green-400"
-                >
-                  <CheckCircle size={16} />
-                  <span className="font-medium">{t("adm_exam_approve_publish", "Duyệt & xuất bản")}</span>
-                </button>
-              )}
-              {canModerateExam(activeExam.status) && (
-                <button
-                  onClick={() => {
-                    setSelectedExam(activeExam)
-                    setViewMode("reject")
-                    setRejectionReason("")
-                    setOpenMenu(null)
-                    setMenuButtonRect(null)
-                  }}
-                  className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-amber-600 dark:text-amber-400"
-                >
-                  <AlertCircle size={16} />
-                  <span className="font-medium">{t("adm_exam_reject", "Từ chối")}</span>
-                </button>
-              )}
-              <button
-                onClick={() => { setConfirmDialog({ isOpen: true, action: "delete", examId: activeExam.id }); setOpenMenu(null); setMenuButtonRect(null) }}
-                className="w-full px-4 py-3 text-left hover:bg-secondary dark:hover:bg-slate-700 flex items-center gap-2 text-red-500 rounded-b-xl"
-              >
-                <XCircle size={16} />
-                <span className="font-medium">{t("adm_exam_delete", "Xóa bài thi")}</span>
-              </button>
-            </div>
-          )
-        })()}
     </div>
   )
 }

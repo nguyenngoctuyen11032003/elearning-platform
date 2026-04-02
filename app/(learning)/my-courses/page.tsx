@@ -230,307 +230,271 @@ export default function MyCoursesPage() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Top Navigation Bar */}
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#020617] dark:text-slate-100">
+      <div className="mx-auto w-full max-w-[1500px] px-4 py-6 md:px-8 md:py-8">
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-slate-900/60 border-b border-border dark:border-slate-800 px-4 md:px-8 py-4 md:py-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0"
+          className="mb-8 rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-[#0b1223]/90"
         >
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground dark:text-white">{t("mycourses_title", "Khóa học của tôi")}</h1>
-          </div>
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <div className="relative flex-1 md:flex-none">
-              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder={t("mycourses_search", "Tìm kiếm...")}
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full md:w-auto pl-10 pr-4 py-2 bg-secondary dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 md:text-3xl dark:text-white">{t("mycourses_title", "Khóa học của tôi")}</h1>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                {t("mycourses_total", "Tổng cộng")} <AnimatedNumber value={courses.length} /> {t("mycourses_courses_unit", "khóa học")}
+              </p>
             </div>
-            <button className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0">
-              <Star size={18} />
-            </button>
+            <div className="flex w-full items-center gap-3 md:w-auto">
+              <div className="relative flex-1 md:w-72">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                <input
+                  type="text"
+                  placeholder={t("mycourses_search", "Tìm kiếm...")}
+                  value={searchTerm}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.2)] dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder:text-slate-500"
+                />
+              </div>
+              <button className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:-translate-y-px hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white">
+                <Star size={18} />
+              </button>
+            </div>
           </div>
         </motion.div>
 
-        {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
-          <div className="flex flex-col lg:flex-row gap-4 p-3 sm:p-4 md:p-6">
-            {/* Courses Grid */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex-1 "
-            >
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 mb-8">
-                <div>
-                  <h2 className="text-lg md:text-xl font-bold text-foreground dark:text-white mb-1 md:mb-2">{t("mycourses_active", "Khóa học đang học")}</h2>
-                  <p className="text-xs md:text-sm text-muted-foreground dark:text-slate-400">{t("mycourses_total", "Tổng cộng")} <AnimatedNumber value={courses.length} /> {t("mycourses_courses_unit", "khóa học")}</p>
-                </div>
-                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg px-3 md:px-4 py-2 text-sm md:text-base">
-                  <span className="text-sm font-medium text-foreground dark:text-white">{t("mycourses_sort", "Sắp xếp theo")}</span>
-                  <UniversalSelect
-                    value={filter}
-                    onChange={(e) => handleFilterChange(e.target.value)}
-                    className="bg-transparent border-0 focus:outline-none text-sm font-medium text-muted-foreground dark:text-slate-400"
-                  >
-                    <option value="all">{t("mycourses_all", "Tất cả")}</option>
-                    <option value="in-progress">{t("mycourses_in_progress", "Đang học")}</option>
-                    <option value="completed">{t("mycourses_completed", "Hoàn thành")}</option>
-                    <option value="not-started">{t("mycourses_not_started", "Chưa bắt đầu")}</option>
-                  </UniversalSelect>
-                </div>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between md:p-6 dark:border-slate-800 dark:bg-[#0f172a]">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t("mycourses_active", "Khóa học đang học")}</h2>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("mycourses_total", "Tổng cộng")} {filteredCourses.length} {t("mycourses_courses_unit", "khóa học")}</p>
               </div>
-
-              {filteredCourses.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                  {filteredCourses.map((enrollment, idx) => {
-                    const lessons = enrollment.course.lessons || []
-                    const courseImage = enrollment.course.thumbnail || "/image/logo-ics.jpg"
-
-                    return (
-                      <motion.div
-                        key={enrollment.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.3 }}
-                        whileHover={{ y: -4 }}
-                        className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 group"
-                      >
-                        {/* Header with image */}
-                        <motion.div
-                          className="relative aspect-video bg-gray-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden"
-                          whileHover={{ scale: 1.05 }}
-                        >
-                          <img 
-                            src={courseImage} 
-                            alt={enrollment.course.title}
-                            className="w-full h-full object-cover"
-                          />
-                          {pinnedCourses.has(enrollment.id) && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="absolute top-3 right-3 bg-white dark:bg-slate-900 rounded-full p-2 shadow-lg"
-                            >
-                              <Pin size={16} className="text-yellow-500 fill-yellow-500" />
-                            </motion.div>
-                          )}
-                        </motion.div>
-
-                        {/* Card Content */}
-                        <div className="p-4 md:p-6">
-                          <div className="flex items-start justify-between mb-4 gap-2">
-                            <div>
-                              <h3 className="font-bold text-sm md:text-base text-foreground dark:text-white line-clamp-2 mb-1">
-                                {enrollment.course.title}
-                              </h3>
-                              <p className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded inline-block">
-                                {isCompletedEnrollment(enrollment)
-                                  ? t("mycourses_completed", "Hoàn thành")
-                                  : enrollment.progress === 0
-                                    ? t("mycourses_not_started", "Chưa bắt đầu")
-                                    : t("mycourses_in_progress", "Đang học")}
-                              </p>
-                            </div>
-                            <div className="relative group flex-shrink-0">
-                              <button 
-                                onClick={() => setOpenMenuId(openMenuId === enrollment.id ? null : enrollment.id)}
-                                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-colors opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
-                              >
-                                <MoreVertical size={16} />
-                              </button>
-                              
-                              {/* Dropdown Menu */}
-                              <AnimatePresence>
-                                {openMenuId === enrollment.id && (
-                                  <motion.div
-                                    ref={menuRef}
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    className="absolute right-0 mt-1 bg-white dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden w-48"
-                                  >
-                                    <button
-                                      onClick={() => togglePinCourse(enrollment.id)}
-                                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-secondary dark:hover:bg-slate-700 transition-colors text-sm text-foreground dark:text-white"
-                                    >
-                                      <Pin size={16} />
-                                      {pinnedCourses.has(enrollment.id) ? t("mycourses_unpin", "Bỏ ghim") : t("mycourses_pin", "Ghim khóa học")}
-                                    </button>
-                                    <button
-                                      onClick={() => handleShareCourse(enrollment.course.title)}
-                                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-secondary dark:hover:bg-slate-700 transition-colors text-sm text-foreground dark:text-white border-t border-border dark:border-slate-700"
-                                    >
-                                      <Share2 size={16} />
-                                      {t("mycourses_share", "Chia sẻ")}
-                                    </button>
-                                    <button
-                                      onClick={() => handleRemoveCourse()}
-                                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm text-red-600 dark:text-red-400 border-t border-border dark:border-slate-700"
-                                    >
-                                      <Trash2 size={16} />
-                                      {t("mycourses_delete", "Xóa")}
-                                    </button>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          </div>
-
-                          {/* Lessons Preview */}
-                          <div className="space-y-2 mb-4">
-                            {lessons.length > 0 && (
-                              <p className="text-xs text-primary dark:text-accent font-medium">+{lessons.length} {t("mycourses_more_lessons", "bài khác")}</p>
-                            )}
-                          </div>
-
-                          {/* Progress Bar */}
-                          <div className="mb-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-medium text-foreground dark:text-white">{t("mycourses_progress", "Tiến độ")}</span>
-                              <span className="text-xs font-bold text-primary dark:text-accent">{enrollment.progress}%</span>
-                            </div>
-                            <div className="h-2 bg-secondary dark:bg-slate-800 rounded-full overflow-hidden">
-                              <motion.div
-                                className="h-full bg-gradient-to-r from-primary to-purple-500 rounded-full"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${enrollment.progress}%` }}
-                                transition={{ duration: 0.6 }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Teacher and Avatars */}
-                          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pt-4 border-t border-border dark:border-slate-800">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                {enrollment.course.teacher?.name?.charAt(0) || "T"}
-                              </div>
-                              <div>
-                                <p className="text-xs font-medium text-foreground dark:text-white">
-                                  {enrollment.course.teacher?.name?.split(" ")[0] || t("mycourses_teacher", "Giảng viên")}
-                                </p>
-                                <p className="text-xs text-muted-foreground dark:text-slate-400">{t("mycourses_teacher", "Giảng viên")}</p>
-                              </div>
-                            </div>
-                            <Link
-                              href={`/player/${getFirstLessonId(enrollment)}`}
-                              className="flex items-center gap-1 text-primary dark:text-accent hover:gap-2 transition-all text-xs font-medium whitespace-nowrap"
-                            >
-                              {t("mycourses_continue", "Tiếp tục")}
-                              <ChevronRight size={14} />
-                            </Link>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-12 text-center">
-                  <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <p className="text-muted-foreground dark:text-slate-400">{t("mycourses_no_match", "Không có khóa học phù hợp")}</p>
-                </div>
-              )}
-            </motion.div>
-
-            {/* Right Sidebar - Stats */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="w-full lg:w-80 space-y-4 lg:space-y-6 flex flex-col"
-            >
-              {/* Total Project Card */}
-              <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg">
-                <h3 className="text-base md:text-lg font-bold text-foreground dark:text-white mb-4 md:mb-6">{t("mycourses_total_courses", "Tổng khóa học")}</h3>
-                <div className="flex items-center justify-center mb-4 md:mb-6 relative">
-                  <div className="w-32 h-32 md:w-48 md:h-48">
-                    <svg viewBox="0 0 100 100" className="w-full h-full">
-                      <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" strokeWidth="8" />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="45"
-                        fill="none"
-                        stroke="#8b5cf6"
-                        strokeWidth="8"
-                        strokeDasharray={`${completedRatio * 282.7} 282.7`}
-                        strokeLinecap="round"
-                        transform="rotate(-90 50 50)"
-                      />
-                      <circle cx="50" cy="50" r="35" fill="white" className="dark:fill-slate-900" />
-                    </svg>
-                  </div>
-                  <div className="absolute text-center">
-                    <p className="text-2xl md:text-4xl font-bold text-foreground dark:text-white">{stats.completed}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground dark:text-slate-400">{t("mycourses_completed", "Hoàn thành")}</p>
-                  </div>
-                </div>
-                <div className="space-y-2 text-xs md:text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground dark:text-slate-400">{t("mycourses_total_label", "Tổng cộng")}: {stats.total}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground dark:text-slate-400">{t("mycourses_in_progress", "Đang học")}: {stats.inProgress}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground dark:text-slate-400">{t("mycourses_not_started", "Chưa bắt đầu")}: {stats.notStarted}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Completed Courses List */}
-              <div className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-lg min-h-auto lg:min-h-[350px]">
-                <h3 className="text-base md:text-lg font-bold text-foreground dark:text-white mb-4 md:mb-6">{t("mycourses_completed_list", "Đã hoàn thành")}</h3>
-                <div className="space-y-3 md:space-y-4">
-                  {courses
-                    .filter((course) => isCompletedEnrollment(course))
-                    .map((enrollment) => (
-                      <Link
-                        key={enrollment.id}
-                        href={`/player/${getFirstLessonId(enrollment)}`}
-                        className="group flex items-center gap-3 p-3 rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
-                      >
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground dark:text-white line-clamp-1 group-hover:text-primary transition-colors">
-                            {enrollment.course.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground dark:text-slate-400">
-                            {enrollment.course.teacher?.name?.split(" ")[0] || t("mycourses_teacher", "Giảng viên")}
-                          </p>
-                        </div>
-                        <ChevronRight size={14} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </Link>
-                    ))}
-                  {courses.filter((course) => isCompletedEnrollment(course)).length === 0 && (
-                    <p className="text-sm text-muted-foreground dark:text-slate-400 text-center py-6">{t("mycourses_none_completed", "Chưa hoàn thành khóa học nào")}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Buy More Courses */}
-              <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-4 md:p-8 shadow-lg text-white flex flex-col justify-center">
-                <h3 className="text-lg md:text-2xl font-bold mb-2 md:mb-3">{t("mycourses_buy_more", "Mua thêm khóa học")}</h3>
-                <p className="text-sm md:text-base text-white/90 mb-4 md:mb-6">{t("mycourses_buy_desc", "Khám phá các khóa học mới và nâng cao kỹ năng của bạn")}</p>
-                <Link
-                  href="/courses"
-                  className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-white/90 transition-all w-full text-sm md:text-base"
+              <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-900/70">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t("mycourses_sort", "Sắp xếp theo")}</span>
+                <UniversalSelect
+                  value={filter}
+                  onChange={(e) => handleFilterChange(e.target.value)}
+                  className="border-0 bg-transparent text-sm font-medium text-slate-700 outline-none dark:text-slate-200"
+                  contentClassName="border-blue-500/30 bg-slate-950/92 text-slate-100 backdrop-blur-2xl shadow-[0_20px_50px_rgba(2,6,23,0.75)]"
+                  portalled={true}
                 >
-                  <BookOpen size={16} className="md:w-[18px] md:h-[18px]" />
-                  {t("mycourses_discover_courses", "Khám phá khóa học")}
-                </Link>
+                  <option value="all">{t("mycourses_all", "Tất cả")}</option>
+                  <option value="in-progress">{t("mycourses_in_progress", "Đang học")}</option>
+                  <option value="completed">{t("mycourses_completed", "Hoàn thành")}</option>
+                  <option value="not-started">{t("mycourses_not_started", "Chưa bắt đầu")}</option>
+                </UniversalSelect>
               </div>
-            </motion.div>
-          </div>
+            </div>
+
+            {filteredCourses.length > 0 ? (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {filteredCourses.map((enrollment, idx) => {
+                  const lessons = enrollment.course.lessons || []
+                  const courseImage = enrollment.course.thumbnail || "/image/logo-ics.jpg"
+
+                  return (
+                    <motion.div
+                      key={enrollment.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.28, delay: idx * 0.04 }}
+                      whileHover={{ y: -6 }}
+                      className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-all duration-300 hover:border-blue-500/60 dark:border-slate-800 dark:bg-[#0f172a] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)]"
+                    >
+                      <motion.div className="relative aspect-video overflow-hidden bg-slate-100 dark:bg-slate-900" whileHover={{ scale: 1.03 }}>
+                        <img src={courseImage} alt={enrollment.course.title} className="h-full w-full object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-white/85 via-transparent to-transparent dark:from-[#0f172a]" />
+                        {pinnedCourses.has(enrollment.id) && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="absolute right-3 top-3 rounded-full border border-yellow-400/40 bg-white/90 p-2 dark:bg-slate-900/85"
+                          >
+                            <Pin size={16} className="fill-yellow-400 text-yellow-400" />
+                          </motion.div>
+                        )}
+                      </motion.div>
+
+                      <div className="p-6">
+                        <div className="mb-4 flex items-start justify-between gap-2">
+                          <div>
+                            <h3 className="line-clamp-2 text-base font-bold text-slate-900 dark:text-white">{enrollment.course.title}</h3>
+                            <p className="mt-2 inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300">
+                              {isCompletedEnrollment(enrollment)
+                                ? t("mycourses_completed", "Hoàn thành")
+                                : enrollment.progress === 0
+                                  ? t("mycourses_not_started", "Chưa bắt đầu")
+                                  : t("mycourses_in_progress", "Đang học")}
+                            </p>
+                          </div>
+                          <div className="relative flex-shrink-0">
+                            <button
+                              onClick={() => setOpenMenuId(openMenuId === enrollment.id ? null : enrollment.id)}
+                              className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                            >
+                              <MoreVertical size={16} />
+                            </button>
+
+                            <AnimatePresence>
+                              {openMenuId === enrollment.id && (
+                                <motion.div
+                                  ref={menuRef}
+                                  initial={{ opacity: 0, y: -10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -10 }}
+                                  className="absolute right-0 z-50 mt-1 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white/95 shadow-xl dark:border-slate-700 dark:bg-slate-900/95"
+                                >
+                                  <button
+                                    onClick={() => togglePinCourse(enrollment.id)}
+                                    className="w-full px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                                  >
+                                    {pinnedCourses.has(enrollment.id) ? t("mycourses_unpin", "Bỏ ghim") : t("mycourses_pin", "Ghim khóa học")}
+                                  </button>
+                                  <button
+                                    onClick={() => handleShareCourse(enrollment.course.title)}
+                                    className="w-full border-t border-slate-200 px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                                  >
+                                    {t("mycourses_share", "Chia sẻ")}
+                                  </button>
+                                  <button
+                                    onClick={() => handleRemoveCourse()}
+                                    className="w-full border-t border-slate-200 px-4 py-2 text-left text-sm text-red-500 transition hover:bg-red-50 dark:border-slate-700 dark:text-red-400 dark:hover:bg-red-900/25"
+                                  >
+                                    {t("mycourses_delete", "Xóa")}
+                                  </button>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        </div>
+
+                        <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/70">
+                          <div className="mb-2 flex items-center justify-between">
+                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{t("mycourses_progress", "Tiến độ")}</span>
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">{enrollment.progress}%</span>
+                          </div>
+                          <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                            <motion.div
+                              className="h-full rounded-full bg-gradient-to-r from-[#3b82f6] to-[#22c55e]"
+                              initial={{ width: 0 }}
+                              animate={{ width: `${enrollment.progress}%` }}
+                              transition={{ duration: 0.7 }}
+                            />
+                          </div>
+                          {lessons.length > 0 && (
+                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-500">+{lessons.length} {t("mycourses_more_lessons", "bài khác")}</p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 text-xs font-bold text-white">
+                              {enrollment.course.teacher?.name?.charAt(0) || "T"}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                {enrollment.course.teacher?.name?.split(" ")[0] || t("mycourses_teacher", "Giảng viên")}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-500">{t("mycourses_teacher", "Giảng viên")}</p>
+                            </div>
+                          </div>
+                          <Link
+                            href={`/player/${getFirstLessonId(enrollment)}`}
+                            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-3 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow-[0_10px_25px_rgba(59,130,246,0.35)]"
+                          >
+                            ▶ {t("mycourses_continue", "Tiếp tục học")}
+                          </Link>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm dark:border-slate-800 dark:bg-[#0f172a]">
+                <BookOpen size={48} className="mx-auto mb-4 text-slate-400 dark:text-slate-500" />
+                <p className="text-slate-600 dark:text-slate-400">{t("mycourses_no_match", "Không có khóa học phù hợp")}</p>
+              </div>
+            )}
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.08)] dark:border-slate-800 dark:bg-[#0f172a] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
+              <h3 className="mb-5 text-lg font-bold text-slate-900 dark:text-white">{t("mycourses_total_courses", "Tổng khóa học")}</h3>
+              <div className="relative mb-6 flex items-center justify-center">
+                <div className="h-44 w-44">
+                  <svg viewBox="0 0 100 100" className="h-full w-full">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#1e293b" strokeWidth="8" />
+                    <motion.circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="8"
+                      strokeDasharray="282.7"
+                      strokeDashoffset={282.7 * (1 - completedRatio)}
+                      strokeLinecap="round"
+                      transform="rotate(-90 50 50)"
+                      initial={{ strokeDashoffset: 282.7 }}
+                      animate={{ strokeDashoffset: 282.7 * (1 - completedRatio) }}
+                      transition={{ duration: 1 }}
+                    />
+                  </svg>
+                </div>
+                <div className="absolute text-center">
+                  <p className="text-4xl font-bold text-slate-900 dark:text-white">{stats.completed}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{t("mycourses_completed", "Hoàn thành")}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between rounded-lg bg-slate-100 px-3 py-2 text-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
+                  <span>{t("mycourses_total_label", "Tổng cộng")}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{stats.total}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-lg bg-blue-900/20 px-3 py-2 text-blue-300">
+                  <span>{t("mycourses_in_progress", "Đang học")}</span>
+                  <span className="font-semibold">{stats.inProgress}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-lg bg-emerald-900/20 px-3 py-2 text-emerald-300">
+                  <span>{t("mycourses_completed", "Hoàn thành")}</span>
+                  <span className="font-semibold">{stats.completed}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-lg bg-slate-100 px-3 py-2 text-slate-500 dark:bg-slate-900/70 dark:text-slate-400">
+                  <span>{t("mycourses_not_started", "Chưa bắt đầu")}</span>
+                  <span className="font-semibold">{stats.notStarted}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.08)] dark:border-slate-800 dark:bg-[#0f172a] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
+              <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-white">{t("mycourses_completed_list", "Đã hoàn thành")}</h3>
+              <div className="space-y-3">
+                {courses
+                  .filter((course) => isCompletedEnrollment(course))
+                  .slice(0, 5)
+                  .map((enrollment) => (
+                    <Link
+                      key={enrollment.id}
+                      href={`/player/${getFirstLessonId(enrollment)}`}
+                      className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 transition hover:border-emerald-500/40 hover:bg-white dark:border-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-900"
+                    >
+                      <div className="h-2 w-2 rounded-full bg-emerald-400" />
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-1 text-sm font-medium text-slate-700 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-white">{enrollment.course.title}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-500">{enrollment.course.teacher?.name?.split(" ")[0] || t("mycourses_teacher", "Giảng viên")}</p>
+                      </div>
+                      <ChevronRight size={14} className="text-slate-400 transition group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-200" />
+                    </Link>
+                  ))}
+                {courses.filter((course) => isCompletedEnrollment(course)).length === 0 && (
+                  <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-500">{t("mycourses_none_completed", "Chưa hoàn thành khóa học nào")}</p>
+                )}
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </div>

@@ -763,6 +763,8 @@ useEffect(() => {
                       value={newItem.type}
                       onChange={(e) => setNewItem({ ...newItem, type: e.target.value as any })}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
+                      contentClassName="z-[9999]"
+                      portalled={true}
                     >
                       <option value="lesson">{t("sched_lesson", "Bài học")}</option>
                       <option value="exam">{t("sched_exam", "Bài thi")}</option>
@@ -775,6 +777,8 @@ useEffect(() => {
                       value={newItem.status}
                       onChange={(e) => setNewItem({ ...newItem, status: e.target.value as any })}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
+                      contentClassName="z-[9999]"
+                      portalled={true}
                     >
                       <option value="todo">{t("sched_todo", "Chưa làm")}</option>
                       <option value="in-progress">{t("sched_in_progress", "Đang làm")}</option>
@@ -903,6 +907,8 @@ useEffect(() => {
                       value={editingItem.type}
                       onChange={(e) => setEditingItem({ ...editingItem, type: e.target.value as any })}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
+                      contentClassName="z-[9999]"
+                      portalled={true}
                     >
                       <option value="lesson">{t("sched_lesson", "Bài học")}</option>
                       <option value="exam">{t("sched_exam", "Bài thi")}</option>
@@ -915,6 +921,8 @@ useEffect(() => {
                       value={editingItem.status}
                       onChange={(e) => setEditingItem({ ...editingItem, status: e.target.value as any })}
                       className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent text-sm"
+                      contentClassName="z-[9999]"
+                      portalled={true}
                     >
                       <option value="todo">{t("sched_todo", "Chưa làm")}</option>
                       <option value="in-progress">{t("sched_in_progress", "Đang làm")}</option>
