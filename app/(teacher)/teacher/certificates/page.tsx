@@ -362,8 +362,16 @@ export default function TeacherCertificatesPage() {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
-          <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,#22c55e,transparent_35%),radial-gradient(circle_at_80%_0%,#0ea5e9,transparent_30%),radial-gradient(circle_at_50%_80%,#6366f1,transparent_35%)]" />
+        <section
+          className="relative overflow-hidden rounded-3xl border border-border text-white"
+          style={{
+            backgroundImage: "linear-gradient(rgba(92, 106, 169, 0.72), rgba(2, 6, 23, 0.72)), url('/image/background_certificate_teacher.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
+        >
+          <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_20%_20%,#22c55e,transparent_35%),radial-gradient(circle_at_80%_0%,#0ea5e9,transparent_30%),radial-gradient(circle_at_50%_80%,#6366f1,transparent_35%)]" />
           <div className="relative p-6 md:p-8 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-2">
