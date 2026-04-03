@@ -253,10 +253,10 @@ export default function PaymentHistoryPage() {
               <div className="absolute inset-0 bg-gradient-to-r from-slate-900/28 via-slate-900/14 to-slate-900/28" />
               <div className="relative p-6 sm:p-8">
                 <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] items-start">
-                  <div className="space-y-3 max-w-3xl">
-                    <p className="text-xs uppercase tracking-[0.22em] text-emerald-200/80">{t("pay_header_label", "Ví & giao dịch")}</p>
-                    <h1 className="text-3xl sm:text-4xl font-bold leading-tight">{t("pay_header_title", "Lịch sử thanh toán")}</h1>
-                    <p className="text-white/90 text-sm sm:text-base">{t("pay_header_subtitle", "Theo dõi số dư, chi tiêu và hóa đơn của bạn trên một bảng điều khiển tinh gọn.")}</p>
+                  <div className="space-y-3 max-w-3xl rounded-2xl border border-white/10 bg-slate-900/18 px-4 py-3 backdrop-blur-[2px]">
+                    <p className="text-xs uppercase tracking-[0.22em] text-emerald-100/95">{t("pay_header_label", "Ví & giao dịch")}</p>
+                    <h1 className="text-3xl sm:text-4xl font-bold leading-tight text-white drop-shadow-[0_2px_8px_rgba(15,23,42,0.55)]">{t("pay_header_title", "Lịch sử thanh toán")}</h1>
+                    <p className="text-white/95 text-sm sm:text-base drop-shadow-[0_1px_5px_rgba(15,23,42,0.5)]">{t("pay_header_subtitle", "Theo dõi số dư, chi tiêu và hóa đơn của bạn trên một bảng điều khiển tinh gọn.")}</p>
                     <div className="flex flex-wrap gap-3">
                       <button
                         onClick={() => router.push("/top-up")}
