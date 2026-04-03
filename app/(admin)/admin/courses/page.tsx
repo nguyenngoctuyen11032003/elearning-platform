@@ -397,36 +397,40 @@ export default function AdminCoursesPage() {
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col xl:flex-row gap-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/55 p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-3.5 text-slate-400" size={20} />
+        <div className="relative z-50 bg-white/85 dark:bg-slate-900/55 backdrop-blur-sm border border-slate-200/90 dark:border-slate-800/70 rounded-2xl p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-5 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400" size={20} />
             <input
               type="text"
               placeholder={t("adm_courses_search", "Tìm kiếm khóa học hoặc giảng viên...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400/60 dark:focus:ring-sky-500/45"
+              className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary dark:focus:border-accent transition-all duration-300 text-foreground dark:text-white placeholder:text-muted-foreground/60 shadow-sm"
             />
           </div>
-          <div className="flex gap-2 flex-wrap">
-            {[
-              { value: "all", label: t("adm_courses_all", "Tất cả") },
-              { value: "pending", label: t("adm_courses_pending", "Chờ duyệt") },
-              { value: "published", label: t("adm_courses_approved_label", "Đã duyệt") },
-              { value: "rejected", label: t("adm_courses_rejected_label", "Từ chối") },
-            ].map((option) => (
+          <div className="filter-row gap-y-3 sm:gap-y-4">
+            <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_filter_by", "Lọc theo")}:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
+            >
+              <option value="all">{t("adm_courses_all", "Tất cả")}</option>
+              <option value="pending">{t("adm_courses_pending", "Chờ duyệt")}</option>
+              <option value="published">{t("adm_courses_approved_label", "Đã duyệt")}</option>
+              <option value="rejected">{t("adm_courses_rejected_label", "Từ chối")}</option>
+            </select>
+            {(searchTerm.trim() || statusFilter !== "all") ? (
               <button
-                key={option.value}
-                onClick={() => setStatusFilter(option.value)}
-                className={`px-4 py-3 rounded-2xl transition-all duration-300 font-semibold ${
-                  statusFilter === option.value
-                    ? "bg-primary/90 text-white dark:bg-accent shadow-[0_8px_20px_rgba(15,23,42,0.14)]"
-                    : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/85"
-                }`}
+                onClick={() => {
+                  setSearchTerm("")
+                  setStatusFilter("all")
+                }}
+                className="h-[46px] w-full sm:w-auto md:min-w-[132px] lg:min-w-[148px] inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-muted-foreground hover:text-foreground dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
-                {option.label}
+                {t("common_reset", "Đặt lại")}
               </button>
-            ))}
+            ) : null}
           </div>
         </div>
 

@@ -51,6 +51,7 @@ export default function AdminSettingsPage() {
     return true
   })
   const [isSaving, setIsSaving] = useState(false)
+  const [lastSavedSignature, setLastSavedSignature] = useState("")
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [qrPreview, setQrPreview] = useState<string | null>(null)
@@ -89,6 +90,11 @@ useEffect(() => {
     return { ...prev, language }
   })
 }, [language])
+
+useEffect(() => {
+  if (!settings || lastSavedSignature) return
+  setLastSavedSignature(JSON.stringify(settings))
+}, [settings, lastSavedSignature])
 
 // Initialize dark mode on mount
 useEffect(() => {
@@ -141,6 +147,20 @@ useEffect(() => {
     }
   }
 
+  const handleResetChanges = () => {
+    if (!config) return
+    setSettings({
+      ...DEFAULT_SYSTEM_SETTINGS,
+      ...config,
+      language: config.language,
+    })
+    setLogoFile(null)
+    setQrFile(null)
+    setLogoPreview(null)
+    setQrPreview(null)
+    toast.success(t("adm_set_reset_ok", "Đã hoàn tác các thay đổi chưa lưu"))
+  }
+
 const handleSave = async () => {
   try {
     if (!settings) {
@@ -171,6 +191,8 @@ const handleSave = async () => {
 
     // Cập nhật config cục bộ
     setConfig(updatedSettings)
+    setSettings(updatedSettings)
+    setLastSavedSignature(JSON.stringify(updatedSettings))
     
     // Clear file state sau khi lưu thành công
     setLogoFile(null)
@@ -185,44 +207,67 @@ const handleSave = async () => {
   }
 }
 if (!settings) return null
+  const hasUnsavedChanges =
+    JSON.stringify(settings) !== lastSavedSignature || Boolean(logoFile) || Boolean(qrFile)
+
   return (
     <div className="min-h-screen w-full">
-      <div className="w-full space-y-8">
-        {/* Header */}
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/65 p-5 md:p-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-          <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("adm_set_title", "Cài đặt hệ thống")}</h1>
-          <p className="text-muted-foreground dark:text-slate-400 mt-1">{t("adm_set_subtitle", "Quản lý cấu hình toàn bộ nền tảng")}</p>
-        </div>
+      <div className="w-full space-y-8 pb-28">
+        <section
+          className="relative overflow-hidden rounded-3xl border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl"
+          style={{ backgroundImage: "url('/image/bg_login.png')", backgroundSize: "cover", backgroundPosition: "center" }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/85 dark:via-slate-950/70 dark:to-slate-900/85" />
+          <div className="relative z-10 p-6 md:p-8 lg:p-10 space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-primary">
+              <Shield size={14} />
+              {t("adm_set_title", "Cài đặt hệ thống")}
+            </div>
+            <div>
+              <h1 className="text-3xl lg:text-4xl font-bold text-white drop-shadow-lg">{t("adm_set_title", "Cài đặt hệ thống")}</h1>
+              <p className="text-white/85 mt-2">{t("adm_set_subtitle", "Quản lý cấu hình toàn bộ nền tảng")}</p>
+            </div>
+          </div>
+        </section>
 
         <Tabs defaultValue="payment" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-            <TabsTrigger value="payment" className="text-xs md:text-sm rounded-xl font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
-              {t("adm_set_tab_payment", "Thanh toán")}
-            </TabsTrigger>
-            <TabsTrigger value="general" className="text-xs md:text-sm rounded-xl font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
-              {t("adm_set_tab_general", "Chung")}
-            </TabsTrigger>
-            <TabsTrigger value="contact" className="text-xs md:text-sm rounded-xl font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
-              {t("adm_set_tab_contact", "Liên hệ")}
-            </TabsTrigger>
-            <TabsTrigger value="branding" className="text-xs md:text-sm rounded-xl font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
-              {t("adm_set_tab_branding", "Giao diện")}
-            </TabsTrigger>
-            <TabsTrigger value="security" className="text-xs md:text-sm rounded-xl font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
-              {t("adm_set_tab_security", "Bảo mật")}
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+            <div className="border-b border-slate-200 dark:border-slate-800 p-3 md:p-4">
+              <TabsList className="grid grid-cols-2 md:grid-cols-5 gap-1 bg-slate-50 dark:bg-slate-800/60 rounded-xl p-1">
+                <TabsTrigger value="payment" className="h-10 text-xs md:text-sm rounded-lg font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
+                  {t("adm_set_tab_payment", "Thanh toán")}
+                </TabsTrigger>
+                <TabsTrigger value="general" className="h-10 text-xs md:text-sm rounded-lg font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
+                  {t("adm_set_tab_general", "Chung")}
+                </TabsTrigger>
+                <TabsTrigger value="contact" className="h-10 text-xs md:text-sm rounded-lg font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
+                  {t("adm_set_tab_contact", "Liên hệ")}
+                </TabsTrigger>
+                <TabsTrigger value="branding" className="h-10 text-xs md:text-sm rounded-lg font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
+                  {t("adm_set_tab_branding", "Giao diện")}
+                </TabsTrigger>
+                <TabsTrigger value="security" className="h-10 text-xs md:text-sm rounded-lg font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
+                  {t("adm_set_tab_security", "Bảo mật")}
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
           {/* Payment Settings */}
-          <TabsContent value="payment" className="space-y-6 mt-6">
-            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+          <TabsContent value="payment" className="m-0 p-5 md:p-6 space-y-6">
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-4">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <CreditCard size={24} className="text-primary dark:text-accent" /> {t("adm_set_payment_title", "Thông tin thanh toán")}
+                <CreditCard size={22} className="text-primary dark:text-accent" /> {t("adm_set_payment_title", "Thông tin thanh toán")}
               </h2>
-              <p className="text-muted-foreground dark:text-slate-400 text-sm">
+              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">
                 {t("adm_set_payment_desc", "Thông tin ngân hàng để nhận thanh toán từ học viên")}
               </p>
-              <div className="space-y-4">
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
+              <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("adm_set_payment_title", "Thông tin thanh toán")}
+                </h3>
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_set_bank_name", "Tên ngân hàng")}</label>
                   <input
@@ -230,7 +275,7 @@ if (!settings) return null
                     value={settings.bankName ?? ""}
                     onChange={(e) => handleSettingChange("bankName", e.target.value)}
                     placeholder="VD: Vietcombank"
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                   />
                 </div>
                 <div>
@@ -240,7 +285,7 @@ if (!settings) return null
                     value={settings.bankAccount ?? ""}
                     onChange={(e) => handleSettingChange("bankAccount", e.target.value)}
                     placeholder="VD: 1234567890"
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                   />
                 </div>
                 <div>
@@ -250,82 +295,81 @@ if (!settings) return null
                     value={settings.accountHolder ?? ""}
                     onChange={(e) => handleSettingChange("accountHolder", e.target.value)}
                     placeholder="VD: NGUYEN VAN A"
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                   />
                 </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
-                    <QrCode size={16} /> {t("adm_set_qr_code", "Mã QR thanh toán")}
-                  </label>
-                  <div className="flex items-start gap-4">
-                    <div className="w-32 h-32 bg-secondary dark:bg-slate-800 rounded-lg flex items-center justify-center border-2 border-dashed border-border dark:border-slate-700 overflow-hidden">
-                      {qrPreview || settings.paymentQrCode ? (
-                        <img
-                          src={qrPreview || settings.paymentQrCode}
-                          alt="QR Code"
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <QrCode size={40} className="text-muted-foreground dark:text-slate-400" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <label className="block">
-                        <input
-                          type="file"
-                          accept="image/png, image/jpeg, image/jpg"
-                          onChange={handleQrUpload}
-                          className="hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            const input = e.currentTarget.parentElement?.querySelector('input[type="file"]') as HTMLInputElement
-                            input?.click()
-                          }}
-                          className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth font-medium flex items-center gap-2"
-                        >
-                          <Upload size={16} /> {t("adm_set_upload_qr", "Tải lên mã QR")}
-                        </button>
-                      </label>
-                      <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
-                        {t("adm_set_qr_note", "PNG, JPG (Tối đa 2MB). Mã QR sẽ được hiển thị cho học viên khi thanh toán.")}
-                      </p>
-                    </div>
+              </section>
+
+              <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("adm_set_qr_code", "Mã QR thanh toán")}
+                </h3>
+                <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 p-4 flex items-center justify-center min-h-[200px]">
+                  <div className="w-36 h-36 bg-secondary dark:bg-slate-800 rounded-xl flex items-center justify-center border-2 border-dashed border-border dark:border-slate-700 overflow-hidden">
+                    {qrPreview || settings.paymentQrCode ? (
+                      <img
+                        src={qrPreview || settings.paymentQrCode}
+                        alt="QR Code"
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <QrCode size={44} className="text-muted-foreground dark:text-slate-400" />
+                    )}
                   </div>
                 </div>
-              </div>
+                <div>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
+                    <span className="inline-flex items-center gap-2"><QrCode size={16} /> {t("adm_set_qr_code", "Mã QR thanh toán")}</span>
+                  </label>
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept="image/png, image/jpeg, image/jpg"
+                      onChange={handleQrUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        const input = e.currentTarget.parentElement?.querySelector('input[type="file"]') as HTMLInputElement
+                        input?.click()
+                      }}
+                      className="h-10 px-4 bg-primary hover:bg-primary/90 text-white text-sm rounded-xl transition-all font-semibold flex items-center gap-2"
+                    >
+                      <Upload size={16} /> {t("adm_set_upload_qr", "Tải lên mã QR")}
+                    </button>
+                  </label>
+                  <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
+                    {t("adm_set_qr_note", "PNG, JPG (Tối đa 2MB). Mã QR sẽ được hiển thị cho học viên khi thanh toán.")}
+                  </p>
+                </div>
+              </section>
             </div>
           </TabsContent>
 
           {/* General Settings */}
-          <TabsContent value="general" className="space-y-6 mt-6">
-            {/* About ICS Learning */}
-            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+          <TabsContent value="general" className="m-0 p-5 md:p-6 space-y-6">
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-4">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Heart size={24} className="text-primary dark:text-accent" /> {t("adm_set_about", "Về ICS Learning")}
+                <Heart size={22} className="text-primary dark:text-accent" /> {t("adm_set_about", "Về ICS Learning")}
               </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    {t("adm_set_about_label", "Giới thiệu về ICS Learning")}
-                  </label>
-                  <textarea
-                    value={settings.about_ics}
-                    onChange={(e) => handleSettingChange("about_ics", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-32 resize-none"
-                    placeholder={t("adm_set_about_placeholder", "Mô tả về ICS Learning...")}
-                  />
-                </div>
-              </div>
+              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">Cấu hình nội dung giới thiệu, sứ mệnh và tầm nhìn.</p>
             </div>
 
-            {/* Mission */}
-            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Target size={24} className="text-primary dark:text-accent" /> {t("adm_set_our_mission", "Sứ mệnh của chúng tôi")}
-              </h2>
-              <div className="space-y-4">
+            <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+              <div>
+                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
+                  {t("adm_set_about_label", "Giới thiệu về ICS Learning")}
+                </label>
+                <textarea
+                  value={settings.about_ics}
+                  onChange={(e) => handleSettingChange("about_ics", e.target.value)}
+                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-32 resize-none"
+                  placeholder={t("adm_set_about_placeholder", "Mô tả về ICS Learning...")}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
                     {t("adm_set_mission", "Sứ mệnh")}
@@ -333,7 +377,7 @@ if (!settings) return null
                   <textarea
                     value={settings.mission}
                     onChange={(e) => handleSettingChange("mission", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-32 resize-none"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-32 resize-none"
                     placeholder={t("adm_set_mission_placeholder", "Sứ mệnh của ICS Learning...")}
                   />
                 </div>
@@ -344,21 +388,25 @@ if (!settings) return null
                   <textarea
                     value={settings.vision}
                     onChange={(e) => handleSettingChange("vision", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-24 resize-none"
+                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-32 resize-none"
                     placeholder={t("adm_set_vision_placeholder", "Tầm nhìn của ICS Learning...")}
                   />
                 </div>
               </div>
-            </div>
+            </section>
           </TabsContent>
 
           {/* Contact Settings */}
-          <TabsContent value="contact" className="space-y-6 mt-6">
-            {/* Contact Information */}
-            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+          <TabsContent value="contact" className="m-0 p-5 md:p-6 space-y-6">
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-4">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Mail size={24} className="text-primary dark:text-accent" /> {t("adm_set_contact_info", "Thông tin liên hệ")}
+                <Mail size={22} className="text-primary dark:text-accent" /> {t("adm_set_contact_info", "Thông tin liên hệ")}
               </h2>
+              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">Quản lý kênh liên hệ vận hành và hệ thống mạng xã hội.</p>
+            </div>
+
+            <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Liên hệ vận hành</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
@@ -368,7 +416,7 @@ if (!settings) return null
                     type="email"
                     value={settings.supportEmail}
                     onChange={(e) => handleSettingChange("supportEmail", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                   />
                 </div>
                 <div>
@@ -379,7 +427,7 @@ if (!settings) return null
                     type="tel"
                     value={settings.hotline}
                     onChange={(e) => handleSettingChange("hotline", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                   />
                 </div>
               </div>
@@ -391,16 +439,13 @@ if (!settings) return null
                   type="text"
                   value={settings.address}
                   onChange={(e) => handleSettingChange("address", e.target.value)}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                  className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                 />
               </div>
-            </div>
+            </section>
 
-            {/* Social Media */}
-            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Globe size={24} className="text-primary dark:text-accent" /> {t("adm_set_social_media", "Mạng xã hội")}
-              </h2>
+            <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Mạng xã hội</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
@@ -410,7 +455,7 @@ if (!settings) return null
                     type="url"
                     value={settings.facebook}
                     onChange={(e) => handleSettingChange("facebook", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                     placeholder="https://facebook.com/..."
                   />
                 </div>
@@ -422,7 +467,7 @@ if (!settings) return null
                     type="url"
                     value={settings.instagram}
                     onChange={(e) => handleSettingChange("instagram", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                     placeholder="https://instagram.com/..."
                   />
                 </div>
@@ -437,7 +482,7 @@ if (!settings) return null
                     type="url"
                     value={settings.tiktok}
                     onChange={(e) => handleSettingChange("tiktok", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                     placeholder="https://tiktok.com/@..."
                   />
                 </div>
@@ -449,11 +494,10 @@ if (!settings) return null
                     type="url"
                     value={settings.youtube}
                     onChange={(e) => handleSettingChange("youtube", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                     placeholder="https://youtube.com/..."
                   />
                 </div>
-                
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
                     <Linkedin size={16} className="text-blue-700" /> LinkedIn
@@ -462,28 +506,28 @@ if (!settings) return null
                     type="url"
                     value={settings.linkedin}
                     onChange={(e) => handleSettingChange("linkedin", e.target.value)}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                     placeholder="https://linkedin.com/company/..."
                   />
                 </div>
               </div>
-            </div>
+            </section>
           </TabsContent>
 
           {/* Branding Settings */}
-          <TabsContent value="branding" className="space-y-6 mt-6">
-            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+          <TabsContent value="branding" className="m-0 p-5 md:p-6 space-y-6">
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-4">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Palette size={24} className="text-primary dark:text-accent" /> {t("adm_set_branding_title", "Giao diện hệ thống")}
+                <Palette size={22} className="text-primary dark:text-accent" /> {t("adm_set_branding_title", "Giao diện hệ thống")}
               </h2>
               <div className="space-y-4">
                 <div>
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-3">{t("adm_set_logo", "Logo")}</label>
                   <div className="flex items-center gap-4">
                     <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-700 border-2 border-border dark:border-slate-600 flex items-center justify-center">
-                      {logoPreview || settings.site_logo ? (
+                      {logoPreview ? (
                         <img
-                          src={logoPreview || settings.site_logo}
+                          src={logoPreview}
                           alt="Logo preview"
                           className="w-full h-full object-cover object-center"
                         />
@@ -494,7 +538,7 @@ if (!settings) return null
                         </div>
                       )}
                     </div>
-                    <div className="flex-1 space-y-2">
+                    <div className="flex-1">
                       <label className="block">
                         <span className="sr-only">{t("adm_set_choose_logo", "Chọn logo")}</span>
                         <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
@@ -510,31 +554,21 @@ if (!settings) return null
                           {t("adm_set_upload_logo", "Tải lên logo")}
                         </button>
                       </label>
-                      <button
-                        onClick={() => {
-                          if (settings.site_logo) {
-                            setLogoPreview(settings.site_logo)
-                            toast.success(t("adm_set_logo_reloaded", "Logo đã được reload"))
-                          }
-                        }}
-                        className="px-4 py-2 bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg transition-smooth font-medium text-sm"
-                      >
-                        {t("adm_set_reload_logo", "Reload logo hiện tại")}
-                      </button>
                       <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">PNG, JPG (Max 2MB)</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Language Selection */}
-                <div>
+                <div className="relative z-50 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 p-4">
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
                     <Globe size={16} /> {t("adm_set_language", "Ngôn ngữ")}
                   </label>
                   <UniversalSelect
                     value={settings.language}
                     onChange={(e) => handleLanguageSelect(e.target.value as LanguageCode)}
-                    className="w-full md:w-64 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                    className="w-full md:w-80 h-11 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-xl px-4 border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent shadow-sm"
+                    contentClassName="z-[60] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700"
+                    portalled={true}
                   >
                     {(supportedLanguages || ["en", "vi"]).map((langItem) => {
                       const code = typeof langItem === "string" ? (langItem as LanguageCode) : langItem.code
@@ -546,9 +580,12 @@ if (!settings) return null
                       )
                     })}
                   </UniversalSelect>
+                  <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+                    Chọn ngôn ngữ hiển thị mặc định cho toàn bộ nền tảng.
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl">
                   <div className="flex items-center gap-3">
                     {isDarkMode ? (
                       <Moon size={24} className="text-primary dark:text-accent" />
@@ -580,106 +617,137 @@ if (!settings) return null
                     />
                   </button>
                 </div>
-              </div>
+              </section>
             </div>
           </TabsContent>
 
           {/* Security Settings */}
-          <TabsContent value="security" className="space-y-6 mt-6">
-            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+          <TabsContent value="security" className="m-0 p-5 md:p-6 space-y-6">
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-4">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <Shield size={24} className="text-primary dark:text-accent" /> {t("adm_set_security_title", "Bảo mật hệ thống")}
+                <Shield size={22} className="text-primary dark:text-accent" /> {t("adm_set_security_title", "Bảo mật hệ thống")}
               </h2>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Globe size={20} className="text-orange-500" />
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">{t("adm_set_maintenance", "Chế độ bảo trì")}</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("adm_set_maintenance_desc", "Tắt trang web để bảo trì")}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleSettingChange("maintenanceMode", !settings.maintenanceMode)}
-                    className={`w-12 h-6 rounded-full transition-all ${
-                      settings.maintenanceMode ? "bg-destructive" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        settings.maintenanceMode ? "translate-x-6" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Mail size={20} className="text-blue-500" />
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">{t("adm_set_email_notif", "Thông báo Email")}</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("adm_set_email_notif_desc", "Gửi thông báo qua email")}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleSettingChange("emailNotifications", !settings.emailNotifications)}
-                    className={`w-12 h-6 rounded-full transition-all ${
-                      settings.emailNotifications ? "bg-primary dark:bg-accent" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        settings.emailNotifications ? "translate-x-6" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Database size={20} className="text-purple-500" />
-                    <div>
-                      <p className="text-foreground dark:text-white font-semibold">AI Assistant</p>
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("adm_set_ai_desc", "Kích hoạt trợ lý AI")}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleSettingChange("aiAssistantEnabled", !settings.aiAssistantEnabled)}
-                    className={`w-12 h-6 rounded-full transition-all ${
-                      settings.aiAssistantEnabled ? "bg-primary dark:bg-accent" : "bg-slate-400"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        settings.aiAssistantEnabled ? "translate-x-6" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="p-4 bg-blue-50/90 dark:bg-blue-900/20 border border-blue-200/80 dark:border-blue-800 rounded-xl">
-                  <p className="text-sm text-blue-900 dark:text-blue-200">
-                    {t("adm_set_security_note", "Các cài đặt bảo mật được mã hóa và lưu trữ an toàn. Chỉ quản trị viên mới có thể truy cập và thay đổi các cài đặt này.")}
-                  </p>
-                </div>
-              </div>
+              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">Tách riêng cấu hình rủi ro cao và cấu hình bảo vệ thường xuyên.</p>
             </div>
 
+            <section className="bg-white/85 dark:bg-slate-900/70 border border-red-200/80 dark:border-red-900/50 rounded-2xl p-6 space-y-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-red-600 dark:text-red-300">Danger zone</h3>
+              <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Globe size={20} className="text-orange-500" />
+                  <div>
+                    <p className="text-foreground dark:text-white font-semibold">{t("adm_set_maintenance", "Chế độ bảo trì")}</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("adm_set_maintenance_desc", "Tắt trang web để bảo trì")}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleSettingChange("maintenanceMode", !settings.maintenanceMode)}
+                  className={`w-12 h-6 rounded-full transition-all ${
+                    settings.maintenanceMode ? "bg-destructive" : "bg-slate-400"
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                      settings.maintenanceMode ? "translate-x-6" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+            </section>
+
+            <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Protection & automation</h3>
+              <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Mail size={20} className="text-blue-500" />
+                  <div>
+                    <p className="text-foreground dark:text-white font-semibold">{t("adm_set_email_notif", "Thông báo Email")}</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("adm_set_email_notif_desc", "Gửi thông báo qua email")}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleSettingChange("emailNotifications", !settings.emailNotifications)}
+                  className={`w-12 h-6 rounded-full transition-all ${
+                    settings.emailNotifications ? "bg-primary dark:bg-accent" : "bg-slate-400"
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                      settings.emailNotifications ? "translate-x-6" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Database size={20} className="text-purple-500" />
+                  <div>
+                    <p className="text-foreground dark:text-white font-semibold">AI Assistant</p>
+                    <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("adm_set_ai_desc", "Kích hoạt trợ lý AI")}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleSettingChange("aiAssistantEnabled", !settings.aiAssistantEnabled)}
+                  className={`w-12 h-6 rounded-full transition-all ${
+                    settings.aiAssistantEnabled ? "bg-primary dark:bg-accent" : "bg-slate-400"
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                      settings.aiAssistantEnabled ? "translate-x-6" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+            </section>
+
+            <div className="p-4 bg-blue-50/90 dark:bg-blue-900/20 border border-blue-200/80 dark:border-blue-800 rounded-xl">
+              <p className="text-sm text-blue-900 dark:text-blue-200">
+                {t("adm_set_security_note", "Các cài đặt bảo mật được mã hóa và lưu trữ an toàn. Chỉ quản trị viên mới có thể truy cập và thay đổi các cài đặt này.")}
+              </p>
+            </div>
           </TabsContent>
+          </div>
         </Tabs>
 
-        {/* Save Button */}
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="w-full h-11 px-6 bg-primary/90 dark:bg-accent text-white rounded-xl text-sm shadow-[0_8px_20px_rgba(15,23,42,0.14)] hover:shadow-[0_12px_26px_rgba(15,23,42,0.18)] transition-all font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
-        >
-          <Save size={20} />
-          {isSaving ? t("adm_set_saving", "Đang lưu...") : t("adm_set_save", "Lưu cài đặt")}
-        </button>
+        <div className="sticky bottom-4 z-30">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl shadow-[0_18px_42px_rgba(15,23,42,0.16)] p-3 md:p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="inline-flex items-center gap-2 text-sm font-medium">
+                <Clock size={16} className={hasUnsavedChanges ? "text-amber-500" : "text-emerald-500"} />
+                <span className={hasUnsavedChanges ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300"}>
+                  {hasUnsavedChanges
+                    ? t("adm_set_unsaved", "Có thay đổi chưa lưu")
+                    : t("adm_set_synced", "Đã đồng bộ với cấu hình mới nhất")}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 md:gap-3">
+                <button
+                  type="button"
+                  onClick={handleResetChanges}
+                  disabled={isSaving || !hasUnsavedChanges}
+                  className="h-10 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50"
+                >
+                  {t("adm_set_reset", "Hoàn tác")}
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving || !hasUnsavedChanges}
+                  className="h-11 px-6 bg-gradient-to-r from-primary to-accent text-white rounded-xl text-sm shadow-[0_10px_28px_rgba(15,23,42,0.12)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.18)] transition-all font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Save size={18} />
+                  {isSaving ? t("adm_set_saving", "Đang lưu...") : t("adm_set_save", "Lưu cài đặt")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
+
 
 
