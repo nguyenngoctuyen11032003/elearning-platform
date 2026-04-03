@@ -37,7 +37,7 @@ function DropdownFilter({ options, value, onChange, className = "", width = 180 
     <div ref={ref} className={`relative ${className}`} style={{ minWidth: width }}>
       <button
         type="button"
-        className={`w-full flex items-center justify-between px-4 py-2 rounded-xl font-medium text-sm filter-select bg-opacity-90 border transition-all duration-200 shadow-sm ${open ? "ring-2 ring-primary" : ""}`}
+        className={`w-full flex items-center justify-between px-4 py-2 rounded-xl font-medium text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 transition-all duration-200 shadow-sm ${open ? "ring-2 ring-primary/40 border-primary/50" : "hover:border-slate-300 dark:hover:border-slate-600"}`}
         onClick={() => setOpen(v => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -46,7 +46,7 @@ function DropdownFilter({ options, value, onChange, className = "", width = 180 
         <svg className={`ml-2 w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : "rotate-0"}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div
-        className={`absolute left-0 mt-2 w-full z-[9999] rounded-xl shadow-lg bg-card dark:bg-[#181f2a] border border-border dark:border-slate-700 overflow-hidden transition-all duration-200 ${open ? "max-h-60 opacity-100 scale-100" : "max-h-0 opacity-0 scale-95 pointer-events-none"}`}
+        className={`absolute left-0 mt-2 w-full z-[9999] rounded-xl shadow-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 overflow-hidden transition-all duration-200 ${open ? "max-h-60 opacity-100 scale-100" : "max-h-0 opacity-0 scale-95 pointer-events-none"}`}
         style={{ boxShadow: open ? "0 8px 32px 0 rgba(0,0,0,0.12)" : undefined }}
       >
         <ul className="divide-y divide-border dark:divide-slate-800" role="listbox">
@@ -626,7 +626,7 @@ const getLastActiveDisplay = (user: UserData): string => {
 
   return (
     <div className="min-h-screen w-full">
-      <div className="w-full space-y-8">
+      <div className="w-full max-w-[1400px] mx-auto space-y-8">
         {/* Header with Stats */}
         <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/bg_login.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
@@ -702,7 +702,7 @@ const getLastActiveDisplay = (user: UserData): string => {
         </div>
 
         {/* Search & Filter - Redesigned (OUTSIDE overflow-hidden) */}
-        <div className="relative z-50 bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-border/50 dark:border-slate-800/50 rounded-2xl p-6 space-y-4">
+        <div className="relative z-50 bg-white/85 dark:bg-slate-900/55 backdrop-blur-sm border border-slate-200/90 dark:border-slate-800/70 rounded-2xl p-6 space-y-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
           {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400" size={20} />
@@ -711,7 +711,7 @@ const getLastActiveDisplay = (user: UserData): string => {
               placeholder={t("user_search_placeholder", "Tìm kiếm theo tên, email hoặc số điện thoại...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border-2 border-border/60 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary dark:focus:border-accent transition-all duration-300 text-foreground dark:text-white placeholder:text-muted-foreground/60"
+              className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary dark:focus:border-accent transition-all duration-300 text-foreground dark:text-white placeholder:text-muted-foreground/60 shadow-sm"
             />
           </div>
           {/* Filters */}
@@ -743,7 +743,7 @@ const getLastActiveDisplay = (user: UserData): string => {
         </div>
 
         {/* ===== DESKTOP TABLE ===== */}
-        <div className="relative z-10 hidden xl:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp" style={{ animationDelay: "0.2s" }}>
+        <div className="relative z-10 hidden xl:block bg-white dark:bg-slate-900/72 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp shadow-[0_10px_28px_rgba(15,23,42,0.12)]" style={{ animationDelay: "0.2s" }}>
           <div className="overflow-x-auto overflow-y-visible">
             <table className="w-full text-sm">
               {/* TOÀN BỘ TABLE CŨ GIỮ NGUYÊN */}
@@ -762,7 +762,7 @@ const getLastActiveDisplay = (user: UserData): string => {
                 {filteredUsers.map((user) => (
                   <tr
                     key={user.id}
-                    className="border-b border-border dark:border-slate-800 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-300"
+                    className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all duration-300"
                   >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
@@ -873,7 +873,7 @@ const getLastActiveDisplay = (user: UserData): string => {
             <div
               key={user.id}
               ref={(el) => { cardRefs.current[user.id] = el; }}
-              className="bg-white/80 dark:bg-slate-900/70 border border-border dark:border-slate-800 rounded-2xl p-4 shadow-sm"
+              className="bg-white dark:bg-slate-900/72 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-[0_8px_22px_rgba(15,23,42,0.10)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)]"
             >
               {/* Avatar + Name */}
               <div className="flex flex-col items-center text-center gap-2 mb-4">
@@ -994,7 +994,7 @@ const getLastActiveDisplay = (user: UserData): string => {
       {openMenu && menuPos && (
   <div
     ref={menuRef}
-    className="absolute z-[9999] bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg min-w-48"
+    className="absolute z-[9999] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-[0_12px_32px_rgba(15,23,42,0.18)] min-w-48"
     style={{
       top: menuPos.y + 8,
       left: menuPos.x,

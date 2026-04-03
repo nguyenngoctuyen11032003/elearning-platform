@@ -278,37 +278,37 @@ export default function AdminCoursesPage() {
       case "published":
       case "approved":
         return (
-          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+          <span className="px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 w-fit bg-emerald-50 dark:bg-emerald-900/25 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-700/40">
             <CheckCircle size={14} /> {t("adm_courses_approved_label", "Đã duyệt")}
           </span>
         )
       case "pending":
         return (
-          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
+          <span className="px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 w-fit bg-amber-50 dark:bg-amber-900/25 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-700/40">
             <Clock size={14} /> {t("adm_courses_pending", "Chờ duyệt")}
           </span>
         )
       case "draft":
         return (
-          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-slate-100 dark:bg-slate-700/40 text-slate-700 dark:text-slate-300">
+          <span className="px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 w-fit bg-slate-100 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
             <Clock size={14} /> {t("adm_courses_draft", "Nháp")}
           </span>
         )
       case "archived":
         return (
-          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-slate-100 dark:bg-slate-700/40 text-slate-700 dark:text-slate-300">
+          <span className="px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 w-fit bg-slate-100 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
             <XCircle size={14} /> {t("adm_courses_archived", "Đã lưu trữ")}
           </span>
         )
       case "rejected":
         return (
-          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+          <span className="px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 w-fit bg-rose-50 dark:bg-rose-900/25 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-700/40">
             <XCircle size={14} /> {t("adm_courses_rejected_label", "Từ chối")}
           </span>
         )
       default:
         return (
-          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-slate-100 dark:bg-slate-700/40 text-slate-700 dark:text-slate-300">
+          <span className="px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 w-fit bg-slate-100 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
             {status}
           </span>
         )
@@ -341,7 +341,7 @@ export default function AdminCoursesPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
+            <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalCourses") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
@@ -397,15 +397,15 @@ export default function AdminCoursesPage() {
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col xl:flex-row gap-4">
+        <div className="flex flex-col xl:flex-row gap-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/55 p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
+            <Search className="absolute left-4 top-3.5 text-slate-400" size={20} />
             <input
               type="text"
               placeholder={t("adm_courses_search", "Tìm kiếm khóa học hoặc giảng viên...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+              className="w-full pl-12 pr-4 py-3.5 bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400/60 dark:focus:ring-sky-500/45"
             />
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -418,10 +418,10 @@ export default function AdminCoursesPage() {
               <button
                 key={option.value}
                 onClick={() => setStatusFilter(option.value)}
-                className={`px-4 py-3 rounded-lg transition-smooth font-medium ${
+                className={`px-4 py-3 rounded-2xl transition-all duration-300 font-semibold ${
                   statusFilter === option.value
-                    ? "bg-primary text-white"
-                    : "bg-card dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
+                    ? "bg-primary/90 text-white dark:bg-accent shadow-[0_8px_20px_rgba(15,23,42,0.14)]"
+                    : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/85"
                 }`}
               >
                 {option.label}
@@ -431,7 +431,7 @@ export default function AdminCoursesPage() {
         </div>
 
         {/* Courses Table (Desktop) */}
-        <div className="hidden xl:block bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp w-full" style={{ animationDelay: "0.2s" }}>
+        <div className="hidden xl:block bg-white/90 dark:bg-slate-900/70 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden animate-slideUp shadow-[0_10px_28px_rgba(15,23,42,0.12)] w-full" style={{ animationDelay: "0.2s" }}>
           <div className="relative w-full">
             <table className="w-full min-w-[500px] text-sm table-fixed">
               <thead>
@@ -443,51 +443,47 @@ export default function AdminCoursesPage() {
                   <th className="px-6 py-4 min-w-[100px]">{t("adm_courses_col_students", "Học viên")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("adm_courses_col_status", "Trạng thái")}</th>
                   <th className="px-6 py-4 min-w-[100px]">{t("adm_courses_col_date", "Ngày tạo")}</th>
-                  <th
-  className=" right-0 top-auto z-20 min-w-[140px]
-             bg-white/90 dark:bg-slate-900/90 backdrop-blur
-             text-left py-4 px-6 font-semibold"
->
-  {t("adm_courses_actions", "Hành động")}
-</th>
+                  <th className="min-w-[140px] bg-slate-50/90 dark:bg-slate-900/90 text-left py-4 px-6 font-semibold text-slate-700 dark:text-slate-200">
+                    {t("adm_courses_actions", "Hành động")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredCourses.map((course) => (
                   <tr
                     key={course.id}
-                    className="border-b border-border dark:border-slate-800 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-300"
+                    className="border-b border-slate-200/80 dark:border-slate-800 hover:bg-slate-100/60 dark:hover:bg-slate-800/55 transition-colors duration-300"
                   >
-                    <td className="py-4 px-6" data-label={t("adm_courses_col_course", "Khóa học")}>
-                      <div className="flex items-center gap-3">
+                    <td className="py-5 px-6" data-label={t("adm_courses_col_course", "Khóa học")}>
+                      <div className="flex items-center gap-4">
                         <img
                           src={course.thumbnail || "/image/course-placeholder.png"}
                           alt={course.title}
-                          className="w-12 h-12 rounded-lg object-cover bg-secondary"
+                          className="w-12 h-12 rounded-xl object-cover bg-slate-100 dark:bg-slate-800"
                         />
                         <div>
-                          <p className="text-foreground dark:text-white font-medium line-clamp-2 break-words">{course.title}</p>
+                          <p className="text-foreground dark:text-white font-medium leading-7 line-clamp-2 break-words">{course.title}</p>
                           <p className="text-muted-foreground dark:text-slate-400 text-xs">{course.lessons} {t("adm_courses_lessons_unit", "bài học")} • {course.duration}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400" data-label={t("adm_courses_col_instructor", "Giảng viên")}>{course.instructor}</td>
-                    <td className="py-4 px-6" data-label={t("adm_courses_col_category", "Danh mục")}>
-                      <span className="px-2 py-1 bg-secondary dark:bg-slate-800 rounded text-foreground dark:text-white text-xs">
+                    <td className="py-5 px-6 text-muted-foreground dark:text-slate-400" data-label={t("adm_courses_col_instructor", "Giảng viên")}>{course.instructor}</td>
+                    <td className="py-5 px-6" data-label={t("adm_courses_col_category", "Danh mục")}> 
+                      <span className="px-2.5 py-1.5 bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800/60 rounded-lg text-sky-700 dark:text-sky-300 text-xs font-medium">
                         {course.category}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white font-medium" data-label={t("adm_courses_col_price", "Giá")}>
+                    <td className="py-5 px-6 text-foreground dark:text-white font-medium" data-label={t("adm_courses_col_price", "Giá")}>
                       {formatCurrencyByLanguage(course.price, language)}
                     </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white" data-label={t("adm_courses_col_students", "Học viên")}>{formatStudentCount(course.students)}</td>
-                    <td className="py-4 px-6" data-label={t("adm_courses_col_status", "Trạng thái")}>{getStatusBadge(course.status)}</td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400" data-label={t("adm_courses_col_date", "Ngày tạo")}>{formatDate(course.createdAt)}</td>
-                    <td className="py-4 px-6 relative">
+                    <td className="py-5 px-6 text-foreground dark:text-white" data-label={t("adm_courses_col_students", "Học viên")}>{formatStudentCount(course.students)}</td>
+                    <td className="py-5 px-6" data-label={t("adm_courses_col_status", "Trạng thái")}>{getStatusBadge(course.status)}</td>
+                    <td className="py-5 px-6 text-muted-foreground dark:text-slate-400" data-label={t("adm_courses_col_date", "Ngày tạo")}>{formatDate(course.createdAt)}</td>
+                    <td className="py-5 px-6 relative">
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/admin/courses/${course.id}`}
-                          className="p-2 hover:bg-blue-500/20 dark:hover:bg-blue-500/20 rounded-lg transition-smooth text-blue-600 dark:text-blue-400"
+                          className="p-2 rounded-xl border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-300 bg-blue-50/70 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/35 transition-colors"
                           title={t("adm_courses_view_details", "Xem chi tiết khóa học")}
                         >
                           <Eye size={18} />
@@ -508,9 +504,9 @@ export default function AdminCoursesPage() {
                             });
                             setOpenMenu(course.id);
                           }}
-                          className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                          className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
-                          <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
+                          <MoreVertical size={18} className="text-slate-500 dark:text-slate-300" />
                         </button>
                       </div>
                     </td>
@@ -529,7 +525,7 @@ export default function AdminCoursesPage() {
         </div>
 
         {/* Courses Card Layout (Mobile/Tablet) */}
-        <div className="block xl:hidden space-y-4">
+        <div className="block xl:hidden space-y-5">
           {filteredCourses.length === 0 ? (
             <div className="py-12 text-center">
               <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -537,41 +533,38 @@ export default function AdminCoursesPage() {
             </div>
           ) : (
             filteredCourses.map(course => (
-              <div
-                key={course.id}
-                className="bg-slate-800/80 rounded-xl p-4 space-y-3"
-              >
+              <div key={course.id} className="bg-white/95 dark:bg-slate-900/75 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)]">
                 <div className="flex gap-3">
                   <img className="w-12 h-12 rounded-lg object-cover" src={course.thumbnail || "/image/course-placeholder.png"} alt={course.title} />
                   <div className="flex-1">
-                    <p className="font-semibold text-white line-clamp-2">{course.title}</p>
-                    <p className="text-xs text-slate-400">{course.instructor}</p>
+                    <p className="font-semibold text-slate-900 dark:text-white line-clamp-2">{course.title}</p>
+                    <p className="text-xs text-slate-500/80 dark:text-slate-500/80">{course.instructor}</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <p className="text-slate-400">{t("adm_courses_col_price", "Giá")}</p>
-                    <p className="font-medium">{formatCurrencyByLanguage(course.price, language)}</p>
+                    <p className="text-slate-500/80 dark:text-slate-500/80">{t("adm_courses_col_price", "Giá")}</p>
+                    <p className="font-medium text-slate-800 dark:text-slate-100">{formatCurrencyByLanguage(course.price, language)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-400">{t("adm_courses_students", "Học viên")}</p>
-                    <p>{formatStudentCount(course.students)}</p>
+                    <p className="text-slate-500/80 dark:text-slate-500/80">{t("adm_courses_students", "Học viên")}</p>
+                    <p className="text-slate-800 dark:text-slate-100">{formatStudentCount(course.students)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-400">{t("adm_courses_col_status", "Trạng thái")}</p>
+                    <p className="text-slate-500/80 dark:text-slate-500/80">{t("adm_courses_col_status", "Trạng thái")}</p>
                     {getStatusBadge(course.status)}
                   </div>
                   <div>
-                    <p className="text-slate-400">{t("adm_courses_col_date", "Ngày tạo")}</p>
-                    <p>{formatDate(course.createdAt)}</p>
+                    <p className="text-slate-500/80 dark:text-slate-500/80">{t("adm_courses_col_date", "Ngày tạo")}</p>
+                    <p className="text-slate-700 dark:text-slate-200">{formatDate(course.createdAt)}</p>
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-2 pt-3">
                   <Link
                     href={`/admin/courses/${course.id}`}
-                    className="flex-1 bg-blue-500/20 text-blue-300 py-2 rounded-lg flex items-center justify-center gap-1"
+                    className="flex-1 bg-blue-50 dark:bg-blue-900/25 border border-blue-100 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 py-2 rounded-xl flex items-center justify-center gap-1 font-medium"
                     title={t("adm_courses_view_details", "Xem chi tiết khóa học")}
                   >
                     <Eye size={16} />
@@ -579,7 +572,7 @@ export default function AdminCoursesPage() {
                   </Link>
                   <button
                     data-course-menu-trigger="true"
-                    className="p-2 bg-slate-700 rounded-lg"
+                    className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl"
                     onClick={e => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const menuWidth = 208;
@@ -595,7 +588,7 @@ export default function AdminCoursesPage() {
                       setOpenMenu(course.id);
                     }}
                   >
-                    <MoreVertical size={18} className="text-white" />
+                    <MoreVertical size={18} className="text-slate-600 dark:text-slate-300" />
                   </button>
                 </div>
               </div>
@@ -608,12 +601,12 @@ export default function AdminCoursesPage() {
       {openMenu && menuPos && (
         <div
           ref={menuRef}
-          className="fixed z-[9999] bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg min-w-52"
+          className="fixed z-[9999] bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_18px_44px_rgba(15,23,42,0.18)] min-w-52 overflow-hidden"
           style={{ top: menuPos.y + 8, left: menuPos.x }}
         >
           <Link
             href={`/admin/courses/${openMenu}`}
-            className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
+            className="w-full text-left px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-white"
             onClick={() => { setOpenMenu(null); setMenuPos(null); }}
           >
             <Eye size={16} /> <span className="font-medium">{t("adm_courses_full_detail", "Chi tiết đầy đủ")}</span>
@@ -627,7 +620,7 @@ export default function AdminCoursesPage() {
                   setOpenMenu(null);
                   setMenuPos(null);
                 }}
-                className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-green-600 dark:text-green-400 border-t border-border dark:border-slate-800"
+                className="w-full text-left px-4 py-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 flex items-center gap-2 text-emerald-600 dark:text-emerald-300 border-t border-slate-200 dark:border-slate-800"
               >
                 <CheckCircle size={16} /> <span className="font-medium">{t("adm_courses_approve", "Duyệt khóa học")}</span>
               </button>
@@ -637,7 +630,7 @@ export default function AdminCoursesPage() {
                   setOpenMenu(null);
                   setMenuPos(null);
                 }}
-                className="w-full text-left px-4 py-3 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-yellow-600 dark:text-yellow-400 border-t border-border dark:border-slate-800"
+                className="w-full text-left px-4 py-3 hover:bg-amber-50 dark:hover:bg-amber-900/20 flex items-center gap-2 text-amber-600 dark:text-amber-300 border-t border-slate-200 dark:border-slate-800"
               >
                 <XCircle size={16} /> <span className="font-medium">{t("adm_courses_rejected_label", "Từ chối")}</span>
               </button>
@@ -651,7 +644,7 @@ export default function AdminCoursesPage() {
               setOpenMenu(null);
               setMenuPos(null);
             }}
-            className="w-full text-left px-4 py-3 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive border-t border-border dark:border-slate-800 rounded-b-lg"
+            className="w-full text-left px-4 py-3 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center gap-2 text-rose-600 dark:text-rose-300 border-t border-slate-200 dark:border-slate-800"
           >
             <Trash2 size={16} /> <span className="font-medium">{t("adm_courses_delete", "Xóa khóa học")}</span>
           </button>
@@ -660,17 +653,17 @@ export default function AdminCoursesPage() {
 
       {viewMode === "view" && selectedCourse && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 border-b border-border dark:border-slate-800 p-4 md:p-6 flex items-center justify-between">
+          <div className="bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_30px_70px_rgba(15,23,42,0.24)] max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-sky-50 to-blue-50 dark:from-slate-900 dark:to-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 md:p-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-cyan-500 flex items-center justify-center shadow-[0_10px_25px_rgba(14,165,233,0.35)]">
                   <BookOpen className="text-white" size={20} />
                 </div>
                 <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_courses_preview_title", "Xem trước khóa học")}</h2>
               </div>
               <button
                 onClick={() => { setViewMode(null); setSelectedCourse(null); }}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
               >
                 <X size={20} className="text-muted-foreground" />
               </button>
@@ -678,12 +671,12 @@ export default function AdminCoursesPage() {
 
             <div className="p-4 md:p-6 space-y-4 md:space-y-6">
               {/* Course Header */}
-              <div className="bg-gradient-to-br from-primary/5 to-accent/5 p-4 md:p-6 rounded-xl">
+              <div className="bg-gradient-to-br from-sky-50 to-cyan-50 dark:from-slate-800/70 dark:to-slate-800/50 border border-sky-100 dark:border-slate-700 p-4 md:p-6 rounded-2xl">
                 <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                   <img
                     src={selectedCourse.thumbnail || "/image/course-placeholder.png"}
                     alt={selectedCourse.title}
-                    className="w-full md:w-48 h-40 md:h-32 rounded-xl object-cover bg-secondary"
+                    className="w-full md:w-48 h-40 md:h-32 rounded-xl object-cover bg-slate-100 dark:bg-slate-800"
                   />
                   <div className="flex-1">
                     <h3 className="text-xl md:text-2xl font-bold break-words mb-2 text-foreground dark:text-white">
@@ -698,7 +691,7 @@ export default function AdminCoursesPage() {
 
               {/* Rejection Reason if rejected */}
               {selectedCourse.status === "rejected" && selectedCourse.rejectionReason && (
-                <div className="bg-red-500/10 border-2 border-red-500/30 rounded-xl p-6">
+                <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 rounded-2xl p-6">
                   <div className="flex items-start gap-3">
                     <AlertCircle size={24} className="text-red-500 flex-shrink-0 mt-0.5" />
                     <div>
@@ -712,26 +705,26 @@ export default function AdminCoursesPage() {
               {/* Course Performance */}
               <div>
                 <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4 flex items-center gap-2">
-                  <BarChart3 size={20} className="text-primary dark:text-accent" />
+                  <BarChart3 size={20} className="text-sky-600 dark:text-sky-300" />
                   {t("adm_courses_performance", "Hiệu quả khóa học")}
                 </h4>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-                  <div className="bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 p-5 rounded-xl">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/45 p-5 rounded-2xl">
                     <Users size={24} className="text-blue-500 mb-3" />
                     <p className="text-3xl font-bold text-foreground dark:text-white">{formatStudentCount(selectedCourse.students)}</p>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{t("adm_courses_students", "Học viên")}</p>
                   </div>
-                  <div className="bg-green-500/5 dark:bg-green-500/10 border border-green-500/20 p-5 rounded-xl">
+                  <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/45 p-5 rounded-2xl">
                     <BookOpen size={24} className="text-green-500 mb-3" />
                     <p className="text-3xl font-bold text-foreground dark:text-white">{selectedCourse.lessons}</p>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{t("adm_courses_lessons", "Bài học")}</p>
                   </div>
-                  <div className="bg-yellow-500/5 dark:bg-yellow-500/10 border border-yellow-500/20 p-5 rounded-xl">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/45 p-5 rounded-2xl">
                     <Star size={24} className="text-yellow-500 mb-3" />
                     <p className="text-3xl font-bold text-foreground dark:text-white">{selectedCourse.rating || "N/A"}</p>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{selectedCourse.reviewCount} {t("adm_courses_reviews", "đánh giá")}</p>
                   </div>
-                  <div className="bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/20 p-5 rounded-xl">
+                  <div className="bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/45 p-5 rounded-2xl">
                     <DollarSign size={24} className="text-purple-500 mb-3" />
                     <p className="text-3xl font-bold text-foreground dark:text-white">₫{(selectedCourse.revenue / 1000000).toFixed(1)}M</p>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{t("adm_courses_revenue", "Doanh thu")}</p>
@@ -743,7 +736,7 @@ export default function AdminCoursesPage() {
               <div>
                 <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("adm_courses_detail_info", "Thông tin chi tiết")}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 flex items-center gap-2">
                       <Users size={16} />
                       {t("adm_courses_col_instructor", "Giảng viên")}
@@ -751,21 +744,21 @@ export default function AdminCoursesPage() {
                     <p className="text-foreground dark:text-white font-semibold">{selectedCourse.instructor}</p>
                     <p className="text-muted-foreground dark:text-slate-400 text-sm">{selectedCourse.instructorEmail}</p>
                   </div>
-                  <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 flex items-center gap-2">
                       <DollarSign size={16} />
                       {t("adm_courses_price_label", "Giá khóa học")}
                     </p>
                     <p className="text-foreground dark:text-white font-semibold text-xl">{formatCurrencyByLanguage(selectedCourse.price, language)}</p>
                   </div>
-                  <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 flex items-center gap-2">
                       <Clock size={16} />
                       {t("adm_courses_duration", "Thời lượng")}
                     </p>
                     <p className="text-foreground dark:text-white font-semibold">{selectedCourse.duration}</p>
                   </div>
-                  <div className="bg-secondary/50 dark:bg-slate-800/50 rounded-xl p-4 border border-border dark:border-slate-700">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2">{ t("adm_courses_col_date", "Ngày tạo")}</p>
                     <p className="text-foreground dark:text-white font-semibold">{formatDate(selectedCourse.createdAt)}</p>
                   </div>
@@ -774,21 +767,21 @@ export default function AdminCoursesPage() {
 
               {/* Actions */}
               {selectedCourse.status === "pending" && (
-                <div className="flex gap-3 pt-4 border-t border-border dark:border-slate-800">
+                <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
                   <button
                     onClick={() => {
                       handleCourseAction("approve", selectedCourse.id, selectedCourse)
                       setViewMode(null)
                       setSelectedCourse(null)
                     }}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 shadow-[0_12px_24px_rgba(16,185,129,0.35)]"
                   >
                     <CheckCircle size={20} />
                     {t("adm_courses_approve", "Duyệt khóa học")}
                   </button>
                   <button
                     onClick={() => setViewMode("reject")}
-                    className="flex-1 px-6 py-3 bg-secondary hover:bg-secondary/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-foreground dark:text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 border border-border dark:border-slate-700"
+                    className="flex-1 px-6 py-3 bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-900/25 text-rose-600 dark:text-rose-300 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 border border-rose-200 dark:border-rose-800/50"
                   >
                     <XCircle size={20} />
                     {t("adm_courses_rejected_label", "Từ chối")}
@@ -799,7 +792,7 @@ export default function AdminCoursesPage() {
               {/* View Full Details Link */}
               <Link
                 href={`/admin/courses/${selectedCourse.id}`}
-                className="block w-full text-center px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary dark:text-accent rounded-xl font-medium transition-all"
+                className="block w-full text-center px-6 py-3 bg-sky-50 dark:bg-sky-900/25 hover:bg-sky-100 dark:hover:bg-sky-900/40 text-sky-700 dark:text-sky-300 rounded-2xl font-medium transition-all border border-sky-100 dark:border-sky-800/50"
               >
                 {t("adm_courses_view_full_detail", "Xem chi tiết đầy đủ (nội dung, bài học)")} →
               </Link>
@@ -811,12 +804,12 @@ export default function AdminCoursesPage() {
       {/* Edit Course Modal */}
       {viewMode === "edit" && selectedCourse && (
         <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
+          <div className="bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_26px_62px_rgba(15,23,42,0.24)] max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white/95 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-6 flex items-center justify-between">
               <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_courses_edit_title", "Chỉnh sửa khóa học")}</h2>
               <button
                 onClick={() => { setViewMode(null); setSelectedCourse(null); }}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
               >
                 <X size={20} className="text-muted-foreground" />
               </button>
@@ -829,7 +822,7 @@ export default function AdminCoursesPage() {
                   type="text"
                   value={selectedCourse.title}
                   onChange={(e) => setSelectedCourse({ ...selectedCourse, title: e.target.value })}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
                 />
               </div>
               <div>
@@ -837,7 +830,7 @@ export default function AdminCoursesPage() {
                 <textarea
                   value={selectedCourse.description}
                   onChange={(e) => setSelectedCourse({ ...selectedCourse, description: e.target.value })}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary h-24 resize-none"
+                  className="w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/60 h-24 resize-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -846,7 +839,7 @@ export default function AdminCoursesPage() {
                   <UniversalSelect
                     value={selectedCourse.category}
                     onChange={(e) => setSelectedCourse({ ...selectedCourse, category: e.target.value })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
                   >
                     <option value="Lập trình">{t("adm_courses_cat_programming", "Lập trình")}</option>
                     <option value="Thiết kế">{t("adm_courses_cat_design", "Thiết kế")}</option>
@@ -861,7 +854,7 @@ export default function AdminCoursesPage() {
                     type="number"
                     value={selectedCourse.price}
                     onChange={(e) => setSelectedCourse({ ...selectedCourse, price: Number(e.target.value) })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
                   />
                 </div>
               </div>
@@ -870,7 +863,7 @@ export default function AdminCoursesPage() {
                 <UniversalSelect
                   value={selectedCourse.status}
                   onChange={(e) => setSelectedCourse({ ...selectedCourse, status: e.target.value as Course["status"] })}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
                 >
                   <option value="pending">{t("adm_courses_pending", "Chờ duyệt")}</option>
                   <option value="published">{t("adm_courses_approved_label", "Đã duyệt")}</option>
@@ -880,7 +873,7 @@ export default function AdminCoursesPage() {
 
               <button
                 onClick={handleSaveEdit}
-                className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
+                className="w-full px-6 py-3 bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-2xl font-semibold hover:shadow-[0_16px_30px_rgba(14,165,233,0.35)] transition-all flex items-center justify-center gap-2"
               >
                 <Edit size={18} /> {t("adm_courses_save", "Lưu thay đổi")}
               </button>
@@ -892,8 +885,8 @@ export default function AdminCoursesPage() {
       {/* Reject Course Modal */}
       {viewMode === "reject" && selectedCourse && (
         <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full">
-            <div className="p-6 border-b border-border dark:border-slate-800">
+          <div className="bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_26px_62px_rgba(15,23,42,0.24)] max-w-lg w-full">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <XCircle size={24} className="text-red-500" /> {t("adm_courses_reject_title", "Từ chối khóa học")}
               </h2>
@@ -903,7 +896,7 @@ export default function AdminCoursesPage() {
             </div>
 
             <div className="p-6 space-y-4">
-              <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+              <div className="bg-rose-50 dark:bg-rose-900/15 border border-rose-100 dark:border-rose-800/40 rounded-2xl p-4">
                 <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">{t("adm_courses_col_course", "Khóa học")}</p>
                 <p className="text-foreground dark:text-white font-medium">{selectedCourse.title}</p>
                 <p className="text-muted-foreground dark:text-slate-400 text-xs mt-1">{t("adm_courses_col_instructor", "Giảng viên")}: {selectedCourse.instructor}</p>
@@ -917,7 +910,7 @@ export default function AdminCoursesPage() {
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder={t("adm_courses_reject_placeholder", "Nhập lý do từ chối khóa học này...")}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500 h-32 resize-none"
+                  className="w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400/70 h-32 resize-none"
                 />
                 <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
                   {t("adm_courses_reject_email_note", "Lý do này sẽ được gửi đến email của giảng viên")}
@@ -927,14 +920,14 @@ export default function AdminCoursesPage() {
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={() => { setViewMode("view"); setRejectionReason(""); }}
-                  className="flex-1 py-3 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
+                  className="flex-1 py-3 rounded-xl font-medium border border-slate-200 dark:border-slate-700 text-foreground dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   {t("adm_courses_back", "Quay lại")}
                 </button>
                 <button
                   onClick={handleReject}
                   disabled={!rejectionReason.trim()}
-                  className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-[0_10px_24px_rgba(225,29,72,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <XCircle size={18} /> {t("adm_courses_confirm_reject", "Xác nhận từ chối")}
                 </button>
@@ -959,4 +952,6 @@ export default function AdminCoursesPage() {
     </div>
   )
 }
+
+
 

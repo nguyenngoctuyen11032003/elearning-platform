@@ -4,7 +4,6 @@ import { Plus, Edit, Trash2, Save, X, Search, BookOpen, TrendingUp, FolderOpen, 
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { useRouter } from "next/navigation"
-import { UniversalSelect } from "@/components/ui/universal-select"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
 import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
 import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
@@ -372,7 +371,7 @@ useEffect(() => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_icon_label", "Icon (tuỳ chọn)")}</label>
-                    <UniversalSelect
+                    <select
                       value={newCategory.icon}
                       onChange={(e) => {
                         setImageFile(null) // Reset file khi chọn icon
@@ -382,13 +381,13 @@ useEffect(() => {
                           image: undefined
                         })
                       }}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 text-xl"
+                      className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-4 py-3 border border-slate-200 dark:border-slate-700 text-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
                     >
                       <option value="">{t("adm_cat_no_icon", "Không chọn icon")}</option>
                       {iconOptions.map((icon) => (
                         <option key={icon} value={icon}>{icon}</option>
                       ))}
-                    </UniversalSelect>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_img_label", "Ảnh danh mục (tuỳ chọn)")}</label>
@@ -496,7 +495,7 @@ useEffect(() => {
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold">{t("adm_cat_icon", "Icon")}</label>
 
-                    <UniversalSelect
+                    <select
                       value={category.icon || ""}
                       onChange={(e) => {
                         setEditImageFile(null) // Reset file ảnh khi chọn icon
@@ -512,7 +511,7 @@ useEffect(() => {
                           )
                         )
                       }}
-                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-3 py-2 border border-border dark:border-slate-800 text-base"
+                      className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 border border-slate-200 dark:border-slate-700 text-base focus:outline-none focus:ring-2 focus:ring-primary/40"
                     >
                       <option value="">{t("adm_cat_no_icon", "Không chọn icon")}</option>
                       {iconOptions.map((icon) => (
@@ -520,7 +519,7 @@ useEffect(() => {
                           {icon}
                         </option>
                       ))}
-                    </UniversalSelect>
+                    </select>
                   </div>
 
                   {/* IMAGE */}
@@ -588,7 +587,7 @@ useEffect(() => {
               ) : (
                 <>
                   {/* New Card Design */}
-                  <div className="p-6 flex flex-col h-full bg-[#0f172a] border border-white/6 rounded-2xl hover:shadow-[0_10px_30px_rgba(0,0,0,0.4)] active:shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 ease-out hover:-translate-y-1">
+                  <div className="p-6 flex flex-col h-full bg-white dark:bg-slate-900/75 border border-slate-200 dark:border-slate-700 rounded-2xl hover:shadow-[0_10px_28px_rgba(15,23,42,0.16)] active:shadow-[0_4px_12px_rgba(15,23,42,0.12)] transition-all duration-200 ease-out hover:-translate-y-1">
                     
                     {/* Header: Icon + Title + Menu */}
                     <div className="flex items-center justify-between mb-3 gap-3">
@@ -613,7 +612,7 @@ useEffect(() => {
                         </div>
                         
                         {/* Title */}
-                        <h3 className="text-white font-bold text-lg line-clamp-1">{category.name}</h3>
+                        <h3 className="text-slate-900 dark:text-white font-bold text-lg line-clamp-1">{category.name}</h3>
                       </div>
                       
                       {/* Menu Button */}
@@ -623,20 +622,20 @@ useEffect(() => {
                             e.stopPropagation()
                             setOpenMenu(openMenu === category.id ? null : category.id)
                           }}
-                          className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-150 flex-shrink-0"
+                          className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors duration-150 flex-shrink-0"
                           aria-label="Menu"
                         >
-                          <MoreVertical size={18} className="text-white/60" />
+                          <MoreVertical size={18} className="text-slate-500 dark:text-white/60" />
                         </button>
                         {openMenu === category.id && (
-                          <div className="absolute right-0 top-full mt-1 bg-slate-900 border border-white/10 rounded-lg shadow-2xl z-10 min-w-40 overflow-hidden">
+                          <div className="absolute right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg shadow-2xl z-10 min-w-40 overflow-hidden">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setEditingId(category.id)
                                 setOpenMenu(null)
                               }}
-                              className="w-full text-left px-4 py-2.5 hover:bg-white/10 flex items-center gap-3 text-white text-sm font-medium transition-colors duration-150"
+                              className="w-full text-left px-4 py-2.5 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-3 text-slate-800 dark:text-white text-sm font-medium transition-colors duration-150"
                             >
                               <Edit size={16} /> {t("adm_cat_edit", "Chỉnh sửa")}
                             </button>
@@ -655,7 +654,7 @@ useEffect(() => {
                     </div>
 
                     {/* Description (1 line, centered, italic) */}
-                    <p className="text-white/50 text-sm italic text-center line-clamp-1 mb-4 px-2">
+                    <p className="text-slate-500 dark:text-white/55 text-sm italic text-center line-clamp-1 mb-4 px-2">
                       {category.description}
                     </p>
 
@@ -663,10 +662,10 @@ useEffect(() => {
                     <div className="flex gap-3 justify-center mb-4 px-2">
                       {/* Courses Badge */}
                       <div 
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium text-white"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium text-slate-700 dark:text-slate-100"
                         style={{ 
-                          backgroundColor: `rgba(${parseInt((category.color || '#2563eb').slice(1, 3), 16)}, ${parseInt((category.color || '#2563eb').slice(3, 5), 16)}, ${parseInt((category.color || '#2563eb').slice(5, 7), 16)}, 0.15)`,
-                          borderColor: `rgba(${parseInt((category.color || '#2563eb').slice(1, 3), 16)}, ${parseInt((category.color || '#2563eb').slice(3, 5), 16)}, ${parseInt((category.color || '#2563eb').slice(5, 7), 16)}, 0.2)`
+                          backgroundColor: `rgba(${parseInt((category.color || '#2563eb').slice(1, 3), 16)}, ${parseInt((category.color || '#2563eb').slice(3, 5), 16)}, ${parseInt((category.color || '#2563eb').slice(5, 7), 16)}, 0.10)`,
+                          borderColor: `rgba(${parseInt((category.color || '#2563eb').slice(1, 3), 16)}, ${parseInt((category.color || '#2563eb').slice(3, 5), 16)}, ${parseInt((category.color || '#2563eb').slice(5, 7), 16)}, 0.22)`
                         }}
                       >
                         <span>📚</span>
@@ -674,19 +673,14 @@ useEffect(() => {
                       </div>
                       
                       {/* Students Badge */}
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-500/20 bg-blue-500/15 text-sm font-medium text-white">
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-200 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-500/15 text-sm font-medium text-slate-700 dark:text-slate-100">
                         <span>👨‍🎓</span>
                         <span>{(category.students ?? 0).toLocaleString('en-US')} {t("adm_cat_students_unit", "học viên")}</span>
                       </div>
                     </div>
 
                     {/* Divider */}
-                    <div 
-                      className="h-px mx-0 mb-4"
-                      style={{ 
-                        background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)`
-                      }}
-                    />
+                    <div className="h-px mx-0 mb-4 bg-slate-200 dark:bg-slate-700/60" />
 
                     {/* Action Buttons */}
                     <div className="grid grid-cols-2 gap-3 mt-auto">
@@ -695,7 +689,7 @@ useEffect(() => {
                           e.stopPropagation()
                           router.push(`/admin/categories/${category.id}`)
                         }}
-                        className="px-4 py-2.5 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 text-white font-medium text-sm transition-all duration-150 hover:shadow-lg active:scale-95"
+                        className="px-4 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/50 dark:hover:bg-slate-700/50 text-slate-800 dark:text-white font-medium text-sm transition-all duration-150 hover:shadow-lg active:scale-95"
                       >
                         {t("adm_cat_view", "Xem")}
                       </button>
@@ -704,7 +698,7 @@ useEffect(() => {
                           e.stopPropagation()
                           setEditingId(category.id)
                         }}
-                        className="px-4 py-2.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 font-medium text-sm transition-all duration-150 hover:shadow-lg active:scale-95"
+                        className="px-4 py-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-600/20 dark:hover:bg-blue-600/30 text-blue-700 dark:text-blue-400 font-medium text-sm transition-all duration-150 hover:shadow-lg active:scale-95"
                       >
                         {t("adm_cat_edit", "Chỉnh sửa")}
                       </button>
