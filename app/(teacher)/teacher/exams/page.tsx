@@ -549,8 +549,8 @@ export default function TeacherExamsPage() {
                   </div>
                 </div>
 
-                <div className={`mt-4 space-y-3 transition-all duration-300 ease-in-out overflow-hidden ${
-                  isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
+                <div className={`mt-4 space-y-3 transition-all duration-300 ease-in-out ${
+                  isExpanded ? 'max-h-[2000px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'
                 }`}>
                     {group.variants.map((exam) => {
                       const parsed = extractTypeFromTitle(exam.title)
