@@ -47,7 +47,7 @@ export default function ProgressPage() {
       lastAccessed: t("prog_2h_ago", "2 giờ trước"),
       estimatedCompletion: t("prog_7d", "7 ngày"),
       icon: "🚴",
-      bgColor: "bg-purple-100 dark:bg-purple-900/30",
+      bgColor: "bg-cyan-100 dark:bg-cyan-900/30",
       image: "/image/logo-ics.jpg"
     },
     {
@@ -98,10 +98,10 @@ export default function ProgressPage() {
   const achievements = [
     { icon: Flame, title: t("prog_ach_streak7", "Chuỗi 7 ngày"), description: t("prog_ach_streak7_desc", "Học liên tục 7 ngày"), unlocked: true, color: "text-orange-500" },
     { icon: Trophy, title: t("prog_ach_first", "Hoàn thành đầu tiên"), description: t("prog_ach_first_desc", "Hoàn thành khóa học đầu tiên"), unlocked: true, color: "text-yellow-500" },
-    { icon: Star, title: t("prog_ach_highscore", "Điểm cao"), description: t("prog_ach_highscore_desc", "Đạt 90%+ trong bài thi"), unlocked: true, color: "text-purple-500" },
+    { icon: Star, title: t("prog_ach_highscore", "Điểm cao"), description: t("prog_ach_highscore_desc", "Đạt 90%+ trong bài thi"), unlocked: true, color: "text-amber-500" },
     { icon: Target, title: t("prog_ach_weekly", "Mục tiêu tuần"), description: t("prog_ach_weekly_desc", "Đạt mục tiêu học tập tuần"), unlocked: false, color: "text-green-500" },
     { icon: BookOpen, title: t("prog_ach_reader", "Đọc giả"), description: t("prog_ach_reader_desc", "Hoàn thành 50 bài học"), unlocked: false, color: "text-blue-500" },
-    { icon: Award, title: t("prog_ach_collector", "Collector"), description: t("prog_ach_collector_desc", "Thu thập 5 chứng chỉ"), unlocked: false, color: "text-pink-500" },
+    { icon: Award, title: t("prog_ach_collector", "Collector"), description: t("prog_ach_collector_desc", "Thu thập 5 chứng chỉ"), unlocked: false, color: "text-cyan-500" },
   ]
 
   const totalHours = weeklyProgress.reduce((sum, day) => sum + day.hours, 0)
@@ -118,7 +118,7 @@ export default function ProgressPage() {
   }
 
   // Data for course completion pie chart
-  const COLORS = ["#1E90FF", "#00C9A7", "#FFB84D", "#FF6B9D", "#9D4EDD", "#3A86FF"]
+  const COLORS = ["#06B6D4", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#14B8A6"]
   const allCourses = [...courseProgress, ...completedCourses]
   const courseCompletionData = allCourses.map((course) => ({
     name: course.title.substring(0, 20),
@@ -127,7 +127,20 @@ export default function ProgressPage() {
   }))
 
   return (
-    <div className="space-y-8">
+    <div className="relative space-y-8">
+      <motion.div
+        aria-hidden
+        animate={{ opacity: [0.22, 0.34, 0.22], y: [0, -14, 0] }}
+        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+        className="pointer-events-none absolute -left-14 top-8 h-72 w-72 rounded-full bg-cyan-300/35 blur-3xl dark:bg-cyan-900/20"
+      />
+      <motion.div
+        aria-hidden
+        animate={{ opacity: [0.2, 0.3, 0.2], y: [0, 18, 0] }}
+        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+        className="pointer-events-none absolute right-0 top-20 h-80 w-80 rounded-full bg-emerald-300/25 blur-3xl dark:bg-emerald-900/20"
+      />
+
       <PageHero
         title={t("prog_title", "Tiến độ học tập")}
         subtitle={t("prog_subtitle", "Theo dõi và phân tích quá trình học của bạn")}
@@ -135,7 +148,7 @@ export default function ProgressPage() {
       >
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+            <div className="group flex h-full items-center justify-between rounded-2xl border border-cyan-100/80 bg-white/85 p-5 shadow-[0_14px_34px_rgba(8,145,178,0.14)] backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-white hover:shadow-[0_22px_46px_rgba(6,182,212,0.2)] dark:border-slate-700 dark:bg-slate-800/70 dark:hover:bg-slate-800/90">
               <div>
                 <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_weekly_hours", "Giờ học tuần này")}</p>
                 <p className="text-2xl font-bold text-foreground dark:text-white mt-1">
@@ -148,7 +161,7 @@ export default function ProgressPage() {
             </div>
           </div>
           <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+            <div className="group flex h-full items-center justify-between rounded-2xl border border-emerald-100/80 bg-white/85 p-5 shadow-[0_14px_34px_rgba(5,150,105,0.14)] backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-white hover:shadow-[0_22px_46px_rgba(16,185,129,0.2)] dark:border-slate-700 dark:bg-slate-800/70 dark:hover:bg-slate-800/90">
               <div>
                 <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_lessons_done", "Bài học hoàn thành")}</p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
@@ -161,7 +174,7 @@ export default function ProgressPage() {
             </div>
           </div>
           <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+            <div className="group flex h-full items-center justify-between rounded-2xl border border-amber-100/80 bg-white/85 p-5 shadow-[0_14px_34px_rgba(245,158,11,0.14)] backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-white hover:shadow-[0_22px_46px_rgba(245,158,11,0.2)] dark:border-slate-700 dark:bg-slate-800/70 dark:hover:bg-slate-800/90">
               <div>
                 <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_streak", "Ngày liên tiếp")}</p>
                 <p className="text-2xl font-bold text-orange-500 dark:text-orange-400 mt-1">
@@ -174,15 +187,15 @@ export default function ProgressPage() {
             </div>
           </div>
           <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-            <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out">
+            <div className="group flex h-full items-center justify-between rounded-2xl border border-sky-100/80 bg-white/85 p-5 shadow-[0_14px_34px_rgba(14,165,233,0.14)] backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-white hover:shadow-[0_22px_46px_rgba(14,165,233,0.2)] dark:border-slate-700 dark:bg-slate-800/70 dark:hover:bg-slate-800/90">
               <div>
                 <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_certs", "Chứng chỉ đạt được")}</p>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
+                <p className="text-2xl font-bold text-sky-600 dark:text-sky-400 mt-1">
                   <AnimatedNumber value={3} />
                 </p>
               </div>
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                <Award size={20} className="text-purple-600 dark:text-purple-400" />
+              <div className="w-10 h-10 bg-sky-100 dark:bg-sky-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                <Award size={20} className="text-sky-600 dark:text-sky-400" />
               </div>
             </div>
           </div>
@@ -196,7 +209,7 @@ export default function ProgressPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 flex flex-col"
+          className="rounded-2xl border border-cyan-100/70 bg-white/85 p-6 shadow-[0_16px_42px_rgba(14,116,144,0.12)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/70"
         >
           <div className="flex items-center justify-between mb-10">
             <h2 className="text-xl font-bold text-foreground dark:text-white">{t("prog_weekly_activity", "Hoạt động trong tuần")}</h2>
@@ -252,7 +265,7 @@ export default function ProgressPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 flex flex-col"
+          className="rounded-2xl border border-emerald-100/70 bg-white/85 p-6 shadow-[0_16px_42px_rgba(5,150,105,0.12)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/70"
         >
           <h2 className="text-xl font-bold text-foreground dark:text-white mb-6">{t("prog_course_completion", "Hoàn thành khóa học")}</h2>
           <div className="flex-1 flex flex-col items-center justify-between min-h-[400px]">
@@ -316,7 +329,7 @@ export default function ProgressPage() {
             {courseProgress.map((course, idx) => (
               <div 
                 key={course.id}
-                className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-3xl p-6 hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/30 transition-all duration-300 flex flex-col items-center text-center"
+                className="flex flex-col items-center rounded-3xl border border-slate-200/80 bg-white/85 p-6 text-center shadow-[0_14px_32px_rgba(15,23,42,0.1)] transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/60 hover:shadow-[0_22px_46px_rgba(14,165,233,0.2)] dark:border-slate-800 dark:bg-slate-900/70"
               >
                 {/* Course Image */}
                 <div className="w-full h-32 rounded-2xl overflow-hidden mb-4 bg-secondary dark:bg-slate-800 flex items-center justify-center">
@@ -344,7 +357,7 @@ export default function ProgressPage() {
                       initial={{ width: 0 }}
                       animate={{ width: `${course.progress}%` }}
                       transition={{ delay: 0.3 + idx * 0.1, duration: 0.8 }}
-                      className="h-full bg-gradient-to-r from-primary via-blue-500 to-accent rounded-full"
+                      className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-sky-500 to-emerald-500"
                     />
                   </div>
                 </div>
@@ -376,7 +389,7 @@ export default function ProgressPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6"
+          className="rounded-2xl border border-slate-200/80 bg-white/85 p-6 shadow-[0_16px_42px_rgba(15,23,42,0.1)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/70"
         >
           <h2 className="text-xl font-bold text-foreground dark:text-white mb-6">{t("prog_achievements", "Thành tựu")}</h2>
           <div className="grid grid-cols-2 gap-3">
