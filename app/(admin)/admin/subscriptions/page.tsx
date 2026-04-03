@@ -205,8 +205,16 @@ export default function AdminTeacherSubscriptionPage() {
 
   return (
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-3xl border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-900/80" />
+      <section
+        className="relative overflow-hidden rounded-3xl border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] text-white"
+        style={{
+          backgroundImage: "url('/image/bg_qli_gv%20(2).png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/45 via-slate-900/30 to-slate-900/45 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-900/80" />
         <div className="relative grid gap-6 p-6 md:p-8 lg:grid-cols-[1.3fr_1fr] items-start">
           <div className="space-y-4 max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-emerald-100 border border-white/10">
