@@ -10,6 +10,7 @@ import { useLanguage } from "@/lib/i18n/language-context"
 import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
 import { parseExamQuestionsFileWithReport } from "@/lib/utils/exam-import"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { DialogSelect } from "@/components/ui/dialog-select"
 
 interface Section {
   id: string
@@ -1800,16 +1801,15 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{tr("Danh mục", "Category")}</label>
-                <UniversalSelect
+                <DialogSelect
                   value={course.categoryId}
-                  onChange={(e) => setCourse({ ...course, categoryId: e.target.value })}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                  onChange={(value) => setCourse({ ...course, categoryId: value })}
                 >
                   <option value="">{tr("Chọn danh mục", "Select category")}</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
-                </UniversalSelect>
+                </DialogSelect>
               </div>
             </div>
 

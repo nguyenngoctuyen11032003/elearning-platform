@@ -38,7 +38,18 @@ import { UniversalSelect } from "@/components/ui/universal-select"
 
 export default function AdminSettingsPage() {
   const { t, language, setLanguage, supportedLanguages } = useLanguage()
-  const [isDarkMode, setIsDarkMode] = useState(true)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Load dark mode preference from localStorage on mount
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode')
+      if (saved !== null) {
+        return saved === 'true'
+      }
+      // Default to true if no preference saved
+      return true
+    }
+    return true
+  })
   const [isSaving, setIsSaving] = useState(false)
   const [lastSavedSignature, setLastSavedSignature] = useState("")
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
@@ -69,10 +80,21 @@ useEffect(() => {
   })
 }, [language])
 
+<<<<<<< HEAD
 useEffect(() => {
   if (!settings || lastSavedSignature) return
   setLastSavedSignature(JSON.stringify(settings))
 }, [settings, lastSavedSignature])
+=======
+// Initialize dark mode on mount
+useEffect(() => {
+  if (isDarkMode) {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+  }
+}, [isDarkMode])
+>>>>>>> e6988dcc8e546e9004314c9c422038d23e08b603
 
   const handleSettingChange = (key: string, value: string | boolean) => {
     setSettings((prev) => ({
@@ -576,12 +598,10 @@ if (!settings) return null
                   </div>
                   <button
                     onClick={() => {
-                      setIsDarkMode(!isDarkMode)
-                      if (!isDarkMode) {
-                        document.documentElement.classList.add("dark")
-                      } else {
-                        document.documentElement.classList.remove("dark")
-                      }
+                      const newDarkMode = !isDarkMode
+                      setIsDarkMode(newDarkMode)
+                      // Save preference to localStorage
+                      localStorage.setItem('darkMode', String(newDarkMode))
                     }}
                     className={`w-12 h-6 rounded-full transition-all ${
                       isDarkMode ? "bg-primary dark:bg-accent" : "bg-slate-400"
