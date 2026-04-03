@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { LayoutDashboard, Users, BookOpen, CreditCard, BarChart3, Settings, LogOut, User, FolderOpen, Award, FileText, ChevronRight, ShieldCheck } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { UserAvatar } from "@/components/ui/user-avatar"
@@ -24,29 +24,91 @@ export function AdminSidebar() {
   const [isHovering, setIsHovering] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { config, loading } = useSystemConfig()
+  const isCollapsedRef = useRef(isCollapsed)
+  const isHoveringRef = useRef(isHovering)
+  const collapseRafRef = useRef<number | null>(null)
+  const idleCollapseTimerRef = useRef<number | null>(null)
   const isExpanded = isHovering || !isCollapsed
 
   useEffect(() => {
-    if (isCollapsed) return
+    isCollapsedRef.current = isCollapsed
+  }, [isCollapsed])
 
+  useEffect(() => {
+    isHoveringRef.current = isHovering
+  }, [isHovering])
+
+  useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1280px)")
-    if (!desktopQuery.matches) return
-
-    const mainContent = document.querySelector("main[data-dashboard-main='true']")
+    const mainContent = document.querySelector<HTMLElement>("main[data-dashboard-main='true']")
     if (!mainContent) return
 
-    const collapseSidebar = () => setIsCollapsed(true)
+    let lastScrollTop = mainContent.scrollTop
 
-    mainContent.addEventListener("pointerdown", collapseSidebar, { passive: true })
-    mainContent.addEventListener("wheel", collapseSidebar, { passive: true })
-    mainContent.addEventListener("touchstart", collapseSidebar, { passive: true })
+    const clearIdleCollapseTimer = () => {
+      if (idleCollapseTimerRef.current !== null) {
+        window.clearTimeout(idleCollapseTimerRef.current)
+        idleCollapseTimerRef.current = null
+      }
+    }
+
+    const collapseSidebar = () => {
+      if (isCollapsedRef.current || isHoveringRef.current) return
+      isCollapsedRef.current = true
+      setIsCollapsed(true)
+      setIsHovering(false)
+    }
+
+    const scheduleIdleCollapse = () => {
+      if (!desktopQuery.matches || isCollapsedRef.current) return
+      clearIdleCollapseTimer()
+      idleCollapseTimerRef.current = window.setTimeout(collapseSidebar, 1200)
+    }
+
+    const collapseOnScroll = () => {
+      if (!desktopQuery.matches || isCollapsedRef.current) return
+      if (collapseRafRef.current !== null) return
+
+      collapseRafRef.current = window.requestAnimationFrame(() => {
+        const currentScrollTop = mainContent.scrollTop
+        const delta = Math.abs(currentScrollTop - lastScrollTop)
+        const isScrollingDown = currentScrollTop > lastScrollTop
+        lastScrollTop = currentScrollTop
+        collapseRafRef.current = null
+
+        if (isScrollingDown && currentScrollTop > 0 && delta > 4) {
+          collapseSidebar()
+          return
+        }
+
+        scheduleIdleCollapse()
+      })
+    }
+
+    const onMainActivity = () => {
+      scheduleIdleCollapse()
+    }
+
+    mainContent.addEventListener("scroll", collapseOnScroll, { passive: true })
+    mainContent.addEventListener("pointerdown", onMainActivity, { passive: true })
+    mainContent.addEventListener("wheel", onMainActivity, { passive: true })
+    mainContent.addEventListener("touchstart", onMainActivity, { passive: true })
+    mainContent.addEventListener("keydown", onMainActivity)
+
+    scheduleIdleCollapse()
 
     return () => {
-      mainContent.removeEventListener("pointerdown", collapseSidebar)
-      mainContent.removeEventListener("wheel", collapseSidebar)
-      mainContent.removeEventListener("touchstart", collapseSidebar)
+      mainContent.removeEventListener("scroll", collapseOnScroll)
+      mainContent.removeEventListener("pointerdown", onMainActivity)
+      mainContent.removeEventListener("wheel", onMainActivity)
+      mainContent.removeEventListener("touchstart", onMainActivity)
+      mainContent.removeEventListener("keydown", onMainActivity)
+      if (collapseRafRef.current !== null) {
+        window.cancelAnimationFrame(collapseRafRef.current)
+      }
+      clearIdleCollapseTimer()
     }
-  }, [isCollapsed])
+  }, [])
 
   const menuItems = [
     { icon: LayoutDashboard, label: t("admin_menu_dashboard", "Dashboard"), href: "/admin/dashboard" },
@@ -89,7 +151,7 @@ export function AdminSidebar() {
       <aside
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={`fixed left-0 top-0 h-screen bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-500 ease-out z-30 xl:sticky xl:top-0 flex flex-col ${
+        className={`fixed left-0 top-0 h-screen bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-[width,transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none will-change-[width,transform] z-30 xl:sticky xl:top-0 flex flex-col ${
           isExpanded ? "w-64" : "w-20"
         } ${
           isOpen ? "translate-x-0" : "-translate-x-full"
@@ -125,7 +187,7 @@ export function AdminSidebar() {
         </div>
 
         {/* Scrollable Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 scrollbar-thin scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/40 scrollbar-track-transparent">
+        <nav className="flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] px-3 py-4 space-y-1.5 scrollbar-thin scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/40 scrollbar-track-transparent">
           {menuItems.map((item) => {
             const isActive = pathname === item.href
             return (
