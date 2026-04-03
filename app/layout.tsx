@@ -10,6 +10,7 @@ import "./globals.css"
 import { SystemConfigProvider } from "@/lib/system-config/system-config-context"
 import { MaintenanceWatcher } from "@/lib/system-config/maintenance-watcher"
 import { LanguageProvider } from "@/lib/i18n/language-context"
+import { DynamicFavicon } from "@/components/ui/dynamic-favicon"
 const roboto = Roboto({ 
   subsets: ["latin", "vietnamese"],
   weight: ["300", "400", "500", "700", "900"],
@@ -40,6 +41,7 @@ export default function RootLayout({
             <LanguageProvider>
               <SystemConfigProvider>
               <MaintenanceWatcher />
+              <DynamicFavicon />
               {children}
               </SystemConfigProvider>
             </LanguageProvider>

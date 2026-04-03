@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation"
 import { LayoutDashboard, Users, BookOpen, CreditCard, BarChart3, Settings, LogOut, User, FolderOpen, Award, FileText, ChevronRight, ShieldCheck } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
-import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { LogoDisplay } from "@/components/ui/logo-display"
@@ -22,8 +21,10 @@ export function AdminSidebar() {
   const { t } = useLanguage()
   const { isOpen, setIsOpen } = useSidebarContext()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isHovering, setIsHovering] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { config, loading } = useSystemConfig()
+  const isExpanded = isHovering || !isCollapsed
 
   useEffect(() => {
     if (isCollapsed) return
@@ -63,24 +64,41 @@ export function AdminSidebar() {
   if (loading) {
     return null
   }
-  const logoSrc = config?.site_logo || "/image/logo-ics.jpg"
+
   const handleLogout = async () => {
     await logout()
     router.push("/login")
   }
+
+  const handleMouseEnter = () => {
+    const canHover = window.matchMedia("(hover: hover)").matches
+    if (canHover && isCollapsed) {
+      setIsHovering(true)
+    }
+  }
+
+  const handleMouseLeave = () => {
+    const canHover = window.matchMedia("(hover: hover)").matches
+    if (canHover) {
+      setIsHovering(false)
+    }
+  }
+
   return (
     <>
       <aside
-        className={`fixed left-0 top-0 h-screen bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-300 z-30 xl:sticky xl:top-0 flex flex-col ${
-          isCollapsed ? "w-20" : "w-64"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={`fixed left-0 top-0 h-screen bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-500 ease-out z-30 xl:sticky xl:top-0 flex flex-col ${
+          isExpanded ? "w-64" : "w-20"
         } ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } xl:translate-x-0`}
       >
-        {/* Toggle Collapse Button - Desktop Only */}
+        {/* Toggle Collapse Button - Mobile/Tablet Only */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hidden xl:flex absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
+          className="flex xl:hidden absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
           title={isCollapsed ? t("sidebar_expand", "Mở rộng") : t("sidebar_collapse", "Thu gọn")}
         >
           <ChevronRight size={14} className={`text-white transition-transform duration-300 ${
@@ -93,12 +111,12 @@ export function AdminSidebar() {
           <Link href="/" className="flex items-center justify-center">
             <LogoDisplay 
               src={config?.site_logo}
-              size={isCollapsed ? "md" : "lg"}
+              size={isExpanded ? "lg" : "md"}
               variant="icon"
               showText={false}
             />
           </Link>
-          {!isCollapsed && (
+          {isExpanded && (
             <div className="mt-2 text-center">
               <h3 className="text-sm font-bold text-foreground dark:text-white">{t("admin_portal", "Admin Portal")}</h3>
               <p className="text-xs text-muted-foreground dark:text-slate-400">ICS E-Learning</p>
@@ -115,15 +133,15 @@ export function AdminSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 ease-out group relative ${
                   isActive
                     ? "bg-gradient-to-r from-primary/15 to-accent/10 dark:from-primary/20 dark:to-accent/15 text-primary dark:text-accent border-l-4 border-primary dark:border-accent shadow-sm"
                     : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white hover:bg-secondary/60 dark:hover:bg-slate-800/60 hover:border-l-4 hover:border-transparent hover:pl-3"
                 }`}
-                title={isCollapsed ? item.label : ""}
+                title={!isExpanded ? item.label : ""}
               >
-                <item.icon size={18} className={isActive ? "" : "group-hover:scale-110 transition-transform"} />
-                {!isCollapsed && <span className="font-medium text-sm">{item.label}</span>}
+                <item.icon size={18} className={isActive ? "" : "group-hover:scale-110 transition-transform duration-300 ease-out"} />
+                {isExpanded && <span className="font-medium text-sm transition-opacity duration-300 ease-out">{item.label}</span>}
               </Link>
             )
           })}
@@ -132,7 +150,7 @@ export function AdminSidebar() {
         {/* Fixed Footer - User Info & Logout */}
         <div className="flex-shrink-0 px-3 py-4 border-t border-border/50 dark:border-slate-800/50 space-y-2.5 bg-card/50 dark:bg-slate-900/50 backdrop-blur-sm">
           {/* User Info - Clickable to Profile */}
-          {user && !isCollapsed && (
+          {user && isExpanded && (
             <Link
               href="/admin/profile"
               className="block bg-gradient-to-br from-secondary/40 to-secondary/20 dark:from-slate-800/40 dark:to-slate-800/20 rounded-xl p-3 border border-border/70 dark:border-slate-700/70 hover:border-primary/50 dark:hover:border-accent/50 hover:shadow-md transition-all cursor-pointer group"
@@ -157,7 +175,7 @@ export function AdminSidebar() {
             </Link>
           )}
 
-          {user && isCollapsed && (
+          {user && !isExpanded && (
             <Link
               href="/admin/profile"
               className="flex justify-center"
@@ -176,12 +194,12 @@ export function AdminSidebar() {
             <button
               onClick={() => setShowLogoutConfirm(true)}
               className={`w-full flex items-center gap-3 py-2.5 text-muted-foreground dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all group border border-transparent hover:border-red-200 dark:hover:border-red-900/50 ${
-                isCollapsed ? "justify-center px-2" : "px-3"
+                isExpanded ? "px-3" : "justify-center px-2"
               }`}
-              title={isCollapsed ? t("nav_logout", "Đăng xuất") : ""}
+              title={!isExpanded ? t("nav_logout", "Đăng xuất") : ""}
             >
               <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
-              {!isCollapsed && <span className="font-medium text-sm">{t("nav_logout", "Đăng xuất")}</span>}
+              {isExpanded && <span className="font-medium text-sm">{t("nav_logout", "Đăng xuất")}</span>}
             </button>
 
             {/* Logout Confirmation Modal - anchored to button */}

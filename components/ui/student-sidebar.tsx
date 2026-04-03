@@ -18,7 +18,7 @@ import {
   CreditCard,
   Settings,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { LogoDisplay } from "@/components/ui/logo-display"
@@ -36,8 +36,47 @@ export function StudentSidebar() {
   const { t } = useLanguage()
   const { isOpen, setIsOpen } = useSidebarContext()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isHovering, setIsHovering] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { config } = useSystemConfig()
+
+  // Expand sidebar on hover (desktop only)
+  const handleMouseEnter = () => {
+    const canHover = window.matchMedia("(hover: hover)").matches
+    if (canHover) {
+      setIsHovering(true)
+    }
+  }
+
+  // Collapse sidebar on hover out (desktop only)
+  const handleMouseLeave = () => {
+    const canHover = window.matchMedia("(hover: hover)").matches
+    if (canHover) {
+      setIsHovering(false)
+    }
+  }
+
+  useEffect(() => {
+    if (isCollapsed) return
+
+    const desktopQuery = window.matchMedia("(min-width: 1280px)")
+    if (!desktopQuery.matches) return
+
+    const mainContent = document.querySelector("main[data-dashboard-main='true']")
+    if (!mainContent) return
+
+    const collapseSidebar = () => setIsCollapsed(true)
+
+    mainContent.addEventListener("pointerdown", collapseSidebar, { passive: true })
+    mainContent.addEventListener("wheel", collapseSidebar, { passive: true })
+    mainContent.addEventListener("touchstart", collapseSidebar, { passive: true })
+
+    return () => {
+      mainContent.removeEventListener("pointerdown", collapseSidebar)
+      mainContent.removeEventListener("wheel", collapseSidebar)
+      mainContent.removeEventListener("touchstart", collapseSidebar)
+    }
+  }, [isCollapsed])
 
   const menuItems = [
     { icon: LayoutDashboard, label: t("student_menu_overview", "Tổng quan"), href: "/userdb" },
@@ -69,16 +108,18 @@ export function StudentSidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-screen z-40 bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-300 xl:sticky xl:top-0 flex flex-col ${
-          isCollapsed ? "w-20" : "w-64"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={`fixed top-0 left-0 h-screen z-40 bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-500 ease-out xl:sticky xl:top-0 flex flex-col ${
+          isHovering || !isCollapsed ? "w-64" : "w-20"
         } ${
           isOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"
         }`}
       >
-        {/* Toggle Collapse Button - Desktop Only */}
+        {/* Toggle Collapse Button - Mobile/Tablet Only */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hidden xl:flex absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
+          className="flex xl:hidden absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
           title={isCollapsed ? t("sidebar_expand", "Mở rộng") : t("sidebar_collapse", "Thu gọn")}
         >
           <ChevronRight size={14} className={`text-white transition-transform duration-300 ${
@@ -96,7 +137,7 @@ export function StudentSidebar() {
               showText={false}
             />
           </Link>
-          {!isCollapsed && (
+          {(isHovering || !isCollapsed) && (
             <div className="mt-2 text-center">
               <h3 className="text-sm font-bold text-foreground dark:text-white">{t("student_portal", "Student Portal")}</h3>
               <p className="text-xs text-muted-foreground dark:text-slate-400">ICS E-Learning</p>
@@ -113,15 +154,15 @@ export function StudentSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 ease-out group relative ${
                   isActive
                     ? "bg-gradient-to-r from-primary/15 to-accent/10 dark:from-primary/20 dark:to-accent/15 text-primary dark:text-accent border-l-4 border-primary dark:border-accent shadow-sm"
                     : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white hover:bg-secondary/60 dark:hover:bg-slate-800/60 hover:border-l-4 hover:border-transparent hover:pl-3"
                 }`}
-                title={isCollapsed ? item.label : ""}
+                title={!isHovering && isCollapsed ? item.label : ""}
               >
-                <item.icon size={18} className={isActive ? "" : "group-hover:scale-110 transition-transform"} />
-                {!isCollapsed && <span className="font-medium text-sm">{item.label}</span>}
+                <item.icon size={18} className={isActive ? "" : "group-hover:scale-110 transition-transform duration-300 ease-out"} />
+                {(isHovering || !isCollapsed) && <span className="font-medium text-sm transition-opacity duration-300 ease-out">{item.label}</span>}
               </Link>
             )
           })}
@@ -129,7 +170,7 @@ export function StudentSidebar() {
         {/* Fixed Footer - User Info & Logout */}
         <div className="flex-shrink-0 px-3 py-4 border-t border-border/50 dark:border-slate-800/50 space-y-2.5 bg-card/50 dark:bg-slate-900/50 backdrop-blur-sm">
           {/* User Info - Clickable to Profile */}
-          {user && !isCollapsed && (
+          {user && (isHovering || !isCollapsed) && (
             <Link
               href="/profile"
               className="block bg-gradient-to-br from-secondary/40 to-secondary/20 dark:from-slate-800/40 dark:to-slate-800/20 rounded-xl p-3 border border-border/70 dark:border-slate-700/70 hover:border-primary/50 dark:hover:border-accent/50 hover:shadow-md transition-all cursor-pointer group"
@@ -173,12 +214,12 @@ export function StudentSidebar() {
             <button
               onClick={() => setShowLogoutConfirm(true)}
               className={`w-full flex items-center gap-3 py-2.5 text-muted-foreground dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all group border border-transparent hover:border-red-200 dark:hover:border-red-900/50 ${
-                isCollapsed ? "justify-center px-2" : "px-3"
+                isHovering || !isCollapsed ? "px-3" : "justify-center px-2"
               }`}
-              title={isCollapsed ? t("nav_logout", "Đăng xuất") : ""}
+              title={!isHovering && isCollapsed ? t("nav_logout", "Đăng xuất") : ""}
             >
-              <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
-              {!isCollapsed && <span className="font-medium text-sm">{t("nav_logout", "Đăng xuất")}</span>}
+              <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform duration-300 ease-out" />
+              {(isHovering || !isCollapsed) && <span className="font-medium text-sm transition-opacity duration-300 ease-out">{t("nav_logout", "Đăng xuất")}</span>}
             </button>
 
             {/* Logout Confirmation Modal - anchored to button */}

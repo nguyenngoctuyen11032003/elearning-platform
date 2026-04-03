@@ -59,40 +59,51 @@ export default function AdminSettingsPage() {
   const { refresh } = useSystemConfig()
   const { config } = useSystemConfig()
   const { setConfig } = useSystemConfig()
-const [settings, setSettings] = useState<SystemSettings | null>(null)
+  const [settings, setSettings] = useState<SystemSettings | null>(null)
 
-useEffect(() => {
-  if (config && !settings) {
-    setSettings({
-      ...DEFAULT_SYSTEM_SETTINGS,
-      ...config,
-      language: config.language,
+  // Load config khi component mount hoặc khi branding tab được mở
+  useEffect(() => {
+    if (config && !settings) {
+      setSettings({
+        ...DEFAULT_SYSTEM_SETTINGS,
+        ...config,
+        language: config.language,
+      })
+      // Nếu có logo từ server, set preview
+      if (config.site_logo) {
+        setLogoPreview(config.site_logo)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config])
+
+  // Khi component mount, load config từ server để lấy logo mới nhất
+  useEffect(() => {
+    refresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    setSettings((prev) => {
+      if (!prev) return prev
+      if (prev.language === language) return prev
+      return { ...prev, language }
     })
-  }
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [config])
+  }, [language])
 
-useEffect(() => {
-  setSettings((prev) => {
-    if (!prev) return prev
-    if (prev.language === language) return prev
-    return { ...prev, language }
-  })
-}, [language])
+  useEffect(() => {
+    if (!settings || lastSavedSignature) return
+    setLastSavedSignature(JSON.stringify(settings))
+  }, [settings, lastSavedSignature])
 
-useEffect(() => {
-  if (!settings || lastSavedSignature) return
-  setLastSavedSignature(JSON.stringify(settings))
-}, [settings, lastSavedSignature])
-
-// Initialize dark mode on mount
-useEffect(() => {
-  if (isDarkMode) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-  }
-}, [isDarkMode])
+  // Initialize dark mode on mount
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [isDarkMode])
 
   const handleSettingChange = (key: string, value: string | boolean) => {
     setSettings((prev) => ({
@@ -107,17 +118,17 @@ useEffect(() => {
   }
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0]
-  if (file) {
-    setLogoFile(file)
+    const file = e.target.files?.[0]
+    if (file) {
+      setLogoFile(file)
 
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setLogoPreview(reader.result as string)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
     }
-    reader.readAsDataURL(file)
   }
-}
 
   const handleQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -195,7 +206,9 @@ const handleSave = async () => {
     setIsSaving(false)
   }
 }
-if (!settings) return null
+
+  if (!settings) return null
+
   const hasUnsavedChanges =
     JSON.stringify(settings) !== lastSavedSignature || Boolean(logoFile) || Boolean(qrFile)
 
@@ -509,50 +522,44 @@ if (!settings) return null
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <Palette size={22} className="text-primary dark:text-accent" /> {t("adm_set_branding_title", "Giao diện hệ thống")}
               </h2>
-              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">Quản lý logo, ngôn ngữ và trải nghiệm hiển thị hệ thống.</p>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-6">
-              <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Logo hệ thống</h3>
-                <div className="flex items-center gap-4">
-                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-700 border-2 border-border dark:border-slate-600 flex items-center justify-center">
-                    {logoPreview ? (
-                      <img
-                        src={logoPreview}
-                        alt="Logo preview"
-                        className="w-full h-full object-cover object-center"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <Upload size={24} className="text-muted-foreground dark:text-slate-400 mb-1" />
-                        <span className="text-xs text-muted-foreground dark:text-slate-400 font-medium">ICS</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <label className="block">
-                      <span className="sr-only">{t("adm_set_choose_logo", "Chọn logo")}</span>
-                      <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                      <button
-                        onClick={(e) => {
-                          const input = e.currentTarget.parentElement?.querySelector(
-                            'input[type="file"]',
-                          ) as HTMLInputElement
-                          input?.click()
-                        }}
-                        className="h-10 px-4 bg-primary hover:bg-primary/90 text-white text-sm rounded-xl transition-all font-semibold"
-                      >
-                        {t("adm_set_upload_logo", "Tải lên logo")}
-                      </button>
-                    </label>
-                    <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">PNG, JPG (Max 2MB)</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-3">{t("adm_set_logo", "Logo")}</label>
+                  <div className="flex items-center gap-4">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-700 border-2 border-border dark:border-slate-600 flex items-center justify-center">
+                      {logoPreview ? (
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="w-full h-full object-cover object-center"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center">
+                          <Upload size={24} className="text-muted-foreground dark:text-slate-400 mb-1" />
+                          <span className="text-xs text-muted-foreground dark:text-slate-400 font-medium">ICS</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <label className="block">
+                        <span className="sr-only">{t("adm_set_choose_logo", "Chọn logo")}</span>
+                        <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                        <button
+                          onClick={(e) => {
+                            const input = e.currentTarget.parentElement?.querySelector(
+                              'input[type="file"]',
+                            ) as HTMLInputElement
+                            input?.click()
+                          }}
+                          className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth font-medium"
+                        >
+                          {t("adm_set_upload_logo", "Tải lên logo")}
+                        </button>
+                      </label>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">PNG, JPG (Max 2MB)</p>
+                    </div>
                   </div>
                 </div>
-              </section>
-
-              <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">System experience</h3>
 
                 <div className="relative z-50 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 p-4">
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
@@ -612,7 +619,7 @@ if (!settings) return null
                     />
                   </button>
                 </div>
-              </section>
+            </div>
             </div>
           </TabsContent>
 
