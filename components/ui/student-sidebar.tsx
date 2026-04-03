@@ -195,21 +195,6 @@ export function StudentSidebar() {
             </Link>
           )}
 
-          {user && isCollapsed && (
-            <Link
-              href="/profile"
-              className="flex justify-center"
-              title={user.name || t("role_student", "Học viên")}
-            >
-              <UserAvatar 
-                src={user.avatar}
-                name={user.name || t("role_student", "Student")}
-                size="md"
-                className="hover:scale-105 transition-all shadow-md"
-              />
-            </Link>
-          )}
-
           <div className="relative">
             <button
               onClick={() => setShowLogoutConfirm(true)}
