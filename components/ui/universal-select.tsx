@@ -122,7 +122,7 @@ export function UniversalSelect({
               key={`${option.value || "empty"}-${option.label}`}
               value={normalizeOptionValue(option.value)}
               disabled={option.disabled}
-              className="text-white dark:text-white"
+              className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
             >
               {option.label}
             </SelectItem>

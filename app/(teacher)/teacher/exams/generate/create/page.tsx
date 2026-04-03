@@ -18,6 +18,7 @@ import { toast } from "sonner"
 import { authFetch } from "@/lib/authfetch"
 import { ScientificText } from "@/components/scientific-text"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { DialogSelect } from "@/components/ui/dialog-select"
 
 type Difficulty = "easy" | "medium" | "hard"
 
@@ -720,16 +721,16 @@ function TeacherGenerateExamCreatePageContent() {
     : 0
 
   const inputClass = "w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-500/20"
-  const sectionCardClass = "rounded-2xl border border-slate-700 bg-slate-800 p-5 shadow-[0_10px_25px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(0,0,0,0.3)]"
+  const sectionCardClass = "overflow-visible rounded-2xl border border-slate-700 bg-slate-800 p-5 shadow-[0_10px_25px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(0,0,0,0.3)]"
 
   return (
-    <div className="relative min-h-screen overflow-hidden rounded-3xl bg-slate-900 p-4 md:p-6">
+    <div className="relative min-h-screen overflow-visible rounded-3xl bg-slate-900 p-4 md:p-6">
       <div className="pointer-events-none absolute inset-0 opacity-70">
         <div className="absolute -top-32 left-1/3 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-cyan-500/15 blur-3xl" />
       </div>
 
-      <div className="relative z-10 space-y-5">
+      <div className="relative space-y-5">
         <div className="flex items-start gap-3 rounded-2xl border border-slate-700 bg-slate-800/50 p-4 md:p-5">
           <Link href="/teacher/exams/generate" className="rounded-xl border border-slate-700 p-2.5 text-slate-300 transition hover:bg-slate-700 hover:text-white">
             <ArrowLeft size={18} />
@@ -800,45 +801,61 @@ function TeacherGenerateExamCreatePageContent() {
                     <div className="space-y-5">
                       <div>
                         <p className="mb-3 text-xs uppercase tracking-wide text-slate-400">Thông tin cơ bản</p>
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="overflow-visible grid gap-4 md:grid-cols-2">
                           <div>
                             <label className="mb-1.5 block text-xs text-slate-400">Tiêu đề đề thi</label>
                             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nhập tiêu đề đề thi" className={inputClass} />
                           </div>
-                          <div className="relative z-[80] overflow-visible">
+                          <div className="overflow-visible">
                             <label className="mb-1.5 block text-xs text-slate-400">Chọn khóa học</label>
-                            <UniversalSelect
+                            <DialogSelect
                               value={selectedCourseId}
                               onChange={(e) => {
-                                setSelectedCourseId(e.target.value)
+                                setSelectedCourseId(e)
                                 setCertificateTemplateId("")
                               }}
-                              className={`${inputClass} relative z-[90]`}
-                              style={{ zIndex: 30 }}
                             >
                               <option value="">Chọn khóa học</option>
                               {courseOptions.map((course) => (
                                 <option key={course.id} value={course.id}>{course.title}</option>
                               ))}
-                            </UniversalSelect>
+                            </DialogSelect>
                           </div>
-                          <div className="relative overflow-visible">
-                            <label className="mb-1.5 block text-xs text-slate-400">Loại bài thi</label>
-                            <UniversalSelect
-                              value={type}
-                              onChange={(e) => {
-                                const nextType = e.target.value as "practice" | "official"
-                                setType(nextType)
-                                if (nextType === "practice") {
-                                  setCertificateTemplateId("")
-                                }
-                              }}
-                              className={inputClass}
-                              style={{ zIndex: 20 }}
-                            >
-                              <option value="practice">Thi thử</option>
-                              <option value="official">Thi thật</option>
-                            </UniversalSelect>
+                          <div className="overflow-visible space-y-3">
+                            <div>
+                              <label className="mb-1.5 block text-xs text-slate-400">Loại bài thi</label>
+                              <DialogSelect
+                                value={type}
+                                onChange={(nextValue) => {
+                                  const nextType = nextValue as "practice" | "official"
+                                  setType(nextType)
+                                  if (nextType === "practice") {
+                                    setCertificateTemplateId("")
+                                  }
+                                }}
+                              >
+                                <option value="practice">Thi thử</option>
+                                <option value="official">Thi thật</option>
+                              </DialogSelect>
+                            </div>
+
+                            {type === "official" && (
+                              <div>
+                                <label className="mb-1.5 block text-xs text-slate-400">Chứng chỉ cho bài thi thật</label>
+                                <DialogSelect
+                                  value={certificateTemplateId}
+                                  onChange={(e) => setCertificateTemplateId(e)}
+                                >
+                                  <option value="">Chọn chứng chỉ</option>
+                                  {certificateTemplateId && !availableCertificates.some((cert) => cert.id === certificateTemplateId) && (
+                                    <option value={certificateTemplateId}>Chứng chỉ đã chọn (không còn trong danh sách hiện tại)</option>
+                                  )}
+                                  {availableCertificates.map((cert) => (
+                                    <option key={cert.id} value={cert.id}>{cert.title}</option>
+                                  ))}
+                                </DialogSelect>
+                              </div>
+                            )}
                           </div>
                           <div>
                             <label className="mb-1.5 block text-xs text-slate-400">Mô tả ngắn</label>
@@ -897,20 +914,6 @@ function TeacherGenerateExamCreatePageContent() {
                         </div>
                       </div>
 
-                      {type === "official" && (
-                        <div>
-                          <label className="mb-1.5 block text-xs text-slate-400">Chứng chỉ cho bài thi thật</label>
-                          <UniversalSelect value={certificateTemplateId} onChange={(e) => setCertificateTemplateId(e.target.value)} className={inputClass}>
-                            <option value="">Chọn chứng chỉ</option>
-                            {certificateTemplateId && !availableCertificates.some((cert) => cert.id === certificateTemplateId) && (
-                              <option value={certificateTemplateId}>Chứng chỉ đã chọn (không còn trong danh sách hiện tại)</option>
-                            )}
-                            {availableCertificates.map((cert) => (
-                              <option key={cert.id} value={cert.id}>{cert.title}</option>
-                            ))}
-                          </UniversalSelect>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
