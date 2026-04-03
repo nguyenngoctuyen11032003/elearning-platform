@@ -416,10 +416,10 @@ export default function AdminExamsPage() {
 
   const getStatusBadge = (status: string) => {
     const styles = {
-      pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-      approved: "bg-green-500/10 text-green-500 border-green-500/20",
-      rejected: "bg-red-500/10 text-red-500 border-red-500/20",
-      draft: "bg-gray-500/10 text-gray-500 border-gray-500/20",
+      pending: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20",
+      approved: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20",
+      rejected: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20",
+      draft: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-gray-500/10 dark:text-gray-400 dark:border-gray-500/20",
     }
     const labels = {
       pending: t("adm_exam_status_pending", "Chờ duyệt"),
@@ -444,8 +444,8 @@ export default function AdminExamsPage() {
 
   const getTypeBadge = (type: string) => {
     const styles = {
-      practice: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-      official: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+      practice: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
+      official: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20",
     }
     const labels = {
       practice: t("adm_exam_type_practice", "Thi thử"),
@@ -511,7 +511,7 @@ export default function AdminExamsPage() {
             </div>
 
             {/* Stats Cards: grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 */}
-            <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
+            <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalExams") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
@@ -590,7 +590,7 @@ export default function AdminExamsPage() {
           </div>
         </div>
         {/* Search + Filter + Actions */}
-        <div className="flex flex-col xl:flex-row gap-3 items-stretch xl:items-center">
+        <div className="flex flex-col xl:flex-row gap-3 items-stretch xl:items-center rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/55 p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
@@ -598,13 +598,13 @@ export default function AdminExamsPage() {
               placeholder={t("adm_exam_search", "Search exams...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gradient-to-r from-slate-800 to-slate-900 border-2 border-blue-500/50 rounded-xl text-white placeholder:text-slate-300 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 shadow-lg shadow-blue-500/20 focus:shadow-blue-500/40 transition-all duration-300"
+              className="w-full pl-10 pr-4 py-3.5 bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-300 focus:ring-2 focus:ring-sky-400/60 dark:focus:ring-sky-500/45 shadow-sm transition-all duration-300"
             />
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-slate-800 flex items-center gap-5 overflow-x-auto scrollbar-hide">
+        <div className="border-b border-slate-200 dark:border-slate-800 flex items-center gap-5 overflow-x-auto scrollbar-hide">
           {[
             { key: "all", label: t("common_all", "All"), count: exams.length },
             { key: "pending", label: t("adm_exam_status_pending", "Pending"), count: exams.filter(e => e.status === "pending").length },
@@ -614,15 +614,15 @@ export default function AdminExamsPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as "all" | "pending" | "approved" | "rejected")}
-              className={`pb-3 text-sm font-medium whitespace-nowrap border-b-2 transition-all duration-300 ease-out flex items-center gap-2 ${
-                activeTab === tab.key ? "border-blue-400 text-blue-300 scale-105" : "border-transparent text-slate-400 hover:text-slate-200 scale-100"
+              className={`pb-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-all duration-300 ease-out flex items-center gap-2 ${
+                activeTab === tab.key ? "border-primary text-primary dark:text-accent" : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
               }`}
             >
               {tab.label}
               <span className={`px-2 py-0.5 rounded-full text-xs font-semibold transition-all duration-300 ${
                 activeTab === tab.key 
-                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/40" 
-                  : "bg-slate-700 text-slate-200"
+                  ? "bg-primary/90 text-white dark:bg-accent" 
+                  : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200"
               }`}>
                 {tab.count}
               </span>
@@ -632,35 +632,35 @@ export default function AdminExamsPage() {
 
         {/* Status Notes */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 flex items-center gap-3">
+          <div className="flex-1 rounded-2xl border border-amber-200 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-900/20 p-3 flex items-center gap-3">
             <Clock size={18} className="text-yellow-400 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-yellow-200">{pendingExams} {t("adm_exam_status_pending", "bài thi chờ duyệt")}</p>
-              <p className="text-xs text-yellow-300/70">{t("adm_exam_pending_note", "Chờ xem xét từ quản trị viên")}</p>
+              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-200">{pendingExams} {t("adm_exam_status_pending", "bài thi chờ duyệt")}</p>
+              <p className="text-xs text-yellow-600 dark:text-yellow-300/70">{t("adm_exam_pending_note", "Chờ xem xét từ quản trị viên")}</p>
             </div>
           </div>
-          <div className="flex-1 rounded-lg border border-green-500/30 bg-green-500/10 p-3 flex items-center gap-3">
+          <div className="flex-1 rounded-2xl border border-emerald-200 dark:border-emerald-700/40 bg-emerald-50 dark:bg-emerald-900/20 p-3 flex items-center gap-3">
             <CheckCircle size={18} className="text-green-400 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-green-200">{approvedExams} {t("adm_exam_status_approved", "bài thi đã duyệt")}</p>
-              <p className="text-xs text-green-300/70">{t("adm_exam_approved_note", "Sẵn sàng cho học viên")}</p>
+              <p className="text-sm font-medium text-green-700 dark:text-green-200">{approvedExams} {t("adm_exam_status_approved", "bài thi đã duyệt")}</p>
+              <p className="text-xs text-green-600 dark:text-green-300/70">{t("adm_exam_approved_note", "Sẵn sàng cho học viên")}</p>
             </div>
           </div>
         </div>
 
         {/* Bulk Actions */}
         {selectedCount > 0 && (
-          <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-            <span className="text-sm text-blue-200">{selectedCount} {t("adm_exam_selected", "selected")}</span>
+          <div className="rounded-2xl border border-primary/30 dark:border-accent/35 bg-primary/5 dark:bg-accent/10 p-3 flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+            <span className="text-sm text-primary dark:text-accent">{selectedCount} {t("adm_exam_selected", "selected")}</span>
             <button
               onClick={handleBulkApprove}
-              className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300 border border-green-500/30 hover:bg-green-500/30 text-sm transition-all duration-200 hover:scale-105"
+              className="h-9 px-3.5 rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30 dark:hover:bg-green-500/30 text-sm font-semibold transition-all duration-200 hover:scale-105"
             >
               {t("adm_exam_approve_all", "Approve all")}
             </button>
             <button
               onClick={handleBulkReject}
-              className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 text-sm transition-all duration-200 hover:scale-105"
+              className="h-9 px-3.5 rounded-lg bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30 dark:hover:bg-red-500/30 text-sm font-semibold transition-all duration-200 hover:scale-105"
             >
               {t("adm_exam_reject_all", "Reject all")}
             </button>
@@ -668,7 +668,7 @@ export default function AdminExamsPage() {
         )}
 
         {/* Card List */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -676,37 +676,37 @@ export default function AdminExamsPage() {
               onChange={toggleSelectAllVisible}
               className="w-4 h-4"
             />
-            <span className="text-sm text-slate-400">{t("adm_exam_select_all_visible", "Chọn tất cả trong danh sách")}</span>
+            <span className="text-sm text-slate-600 dark:text-slate-400">{t("adm_exam_select_all_visible", "Chọn tất cả trong danh sách")}</span>
           </div>
 
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((idx) => (
-                <div key={idx} className="rounded-[14px] p-5 border border-white/5 bg-[#0f172a] animate-pulse">
-                  <div className="h-5 bg-slate-700 rounded w-1/3 mb-3" />
-                  <div className="h-4 bg-slate-800 rounded w-2/3 mb-4" />
-                  <div className="h-10 bg-slate-800 rounded" />
+                <div key={idx} className="rounded-2xl p-5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/72 animate-pulse shadow-[0_4px_14px_rgba(15,23,42,0.08)]">
+                  <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mb-3" />
+                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3 mb-4" />
+                  <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded" />
                 </div>
               ))}
             </div>
           ) : groupedExams.length === 0 ? (
-            <div className="p-12 text-center rounded-2xl border border-slate-800 bg-[#0f172a]">
-              <FileText size={48} className="mx-auto text-slate-600 mb-4" />
-              <p className="text-slate-400">{t("adm_exam_empty", "Không tìm thấy bài thi nào")}</p>
+            <div className="p-12 text-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/72">
+              <FileText size={48} className="mx-auto text-slate-400 dark:text-slate-600 mb-4" />
+              <p className="text-slate-600 dark:text-slate-400">{t("adm_exam_empty", "Không tìm thấy bài thi nào")}</p>
             </div>
           ) : (
             groupedExams.map((group) => {
               const isExpanded = expandedGroups[group.key] ?? false
               return (
-                <div key={group.key} className="rounded-[14px] p-4 border border-white/5 bg-[#0f172a] transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_10px_30px_rgba(0,0,0,0.4)]">
+                <div key={group.key} className="rounded-2xl p-5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/72 transition-all duration-200 hover:-translate-y-[2px] shadow-[0_10px_28px_rgba(15,23,42,0.12)] hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)]">
                   <button
                     type="button"
                     onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.key]: !isExpanded }))}
                     className="w-full flex items-center justify-between gap-3 text-left"
                   >
                     <div className="min-w-0">
-                      <p className="text-lg font-semibold text-white">{group.title}</p>
-                      <div className="text-sm text-slate-400 mt-1 flex flex-wrap items-center gap-2">
+                      <p className="text-lg font-semibold text-slate-900 dark:text-white">{group.title}</p>
+                      <div className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-2">
                         <span>📘 {group.title} ({group.variants.length} versions)</span>
                         {(() => {
                           const pendingCount = group.variants.filter(v => v.status === "pending").length
@@ -722,14 +722,14 @@ export default function AdminExamsPage() {
                         })()}
                       </div>
                     </div>
-                    <span className="text-slate-300 flex-shrink-0">{isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}</span>
+                    <span className="text-slate-500 dark:text-slate-300 flex-shrink-0">{isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}</span>
                   </button>
 
-                  <div className={`mt-4 space-y-3 transition-all duration-300 ease-in-out overflow-hidden ${
+                  <div className={`mt-5 space-y-4 transition-all duration-300 ease-in-out overflow-hidden ${
                     isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
                   }`}>
                       {group.variants.map((exam, index) => (
-                        <div key={exam.id} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div key={exam.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-4 animate-in fade-in slide-in-from-top-2 duration-300 shadow-[0_2px_10px_rgba(15,23,42,0.06)]">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3 min-w-0">
                               <input
@@ -740,12 +740,12 @@ export default function AdminExamsPage() {
                               />
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <h3 className="text-base md:text-lg font-semibold text-white truncate">{exam.title}</h3>
+                                  <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-white truncate">{exam.title}</h3>
                                   {getTypeBadge(exam.type)}
                                 </div>
-                                <p className="text-sm text-slate-400 mt-1">{exam.description || exam.course}</p>
-                                <p className="text-sm text-slate-300 mt-2">👨‍🏫 {exam.teacher || t("adm_exam_no_teacher", "Chưa có giảng viên")}</p>
-                                <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-300">
+                                <p className="text-sm leading-6 text-slate-500 dark:text-slate-400 mt-1">{exam.description || exam.course}</p>
+                                <p className="text-sm text-slate-700 dark:text-slate-300 mt-2">👨‍🏫 {exam.teacher || t("adm_exam_no_teacher", "Chưa có giảng viên")}</p>
+                                <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-700 dark:text-slate-300">
                                   <span className="inline-flex items-center gap-1"><Timer size={14} /> {exam.timeLimit}m</span>
                                   <span className="inline-flex items-center gap-1"><ClipboardList size={14} /> {exam.questionsCount} {t("adm_exam_questions_short", "câu")}</span>
                                   <span className="inline-flex items-center gap-1"><Award size={14} /> {exam.passingScore}%</span>
@@ -763,20 +763,20 @@ export default function AdminExamsPage() {
                                     setSelectedExam(exam)
                                     setViewMode("view")
                                   }}
-                                  className="px-3 h-9 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 text-sm"
+                                  className="px-3 h-9 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm"
                                 >
                                   {t("adm_exam_preview", "Preview")}
                                 </button>
                                 <Link
                                   href={`/admin/exams/${exam.id}`}
-                                  className="px-3 h-9 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 text-sm inline-flex items-center gap-1"
+                                  className="px-3 h-9 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm inline-flex items-center gap-1"
                                 >
                                   <Pencil size={14} /> {t("adm_exam_edit", "Edit")}
                                 </Link>
                                 <button
                                   onClick={() => handleApproveAndPublish(exam.id)}
                                   disabled={exam.status !== "pending"}
-                                  className="px-3 h-9 rounded-lg bg-green-600/20 border border-green-500/30 text-green-300 hover:bg-green-600/30 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                                  className="px-3 h-9 rounded-lg bg-emerald-100 border border-emerald-200 text-emerald-700 hover:bg-emerald-200 dark:bg-green-600/20 dark:border-green-500/30 dark:text-green-300 dark:hover:bg-green-600/30 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                   {t("adm_exam_approve", "Approve")}
                                 </button>
@@ -787,25 +787,25 @@ export default function AdminExamsPage() {
                                     setRejectionReason("")
                                   }}
                                   disabled={exam.status !== "pending"}
-                                  className="px-3 h-9 rounded-lg bg-red-600/20 border border-red-500/30 text-red-300 hover:bg-red-600/30 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                                  className="px-3 h-9 rounded-lg bg-rose-100 border border-rose-200 text-rose-700 hover:bg-rose-200 dark:bg-red-600/20 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-600/30 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                   {t("adm_exam_reject", "Reject")}
                                 </button>
                                 <div className="relative">
                                   <button
                                     onClick={() => setOpenMenu(openMenu === exam.id ? null : exam.id)}
-                                    className="h-9 w-9 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 inline-flex items-center justify-center"
+                                    className="h-9 w-9 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex items-center justify-center"
                                   >
                                     <MoreVertical size={16} />
                                   </button>
                                   {openMenu === exam.id && (
-                                    <div ref={menuRef} className="absolute right-0 mt-1 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-lg z-20">
+                                    <div ref={menuRef} className="absolute right-0 mt-1 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20">
                                       <button
                                         onClick={() => {
                                           setConfirmDialog({ isOpen: true, action: "delete", examId: exam.id })
                                           setOpenMenu(null)
                                         }}
-                                        className="w-full px-4 py-2.5 text-left text-red-400 hover:bg-slate-800 text-sm"
+                                        className="w-full px-4 py-2.5 text-left text-red-500 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm"
                                       >
                                         {t("adm_exam_delete", "Xóa bài thi")}
                                       </button>
@@ -841,7 +841,7 @@ export default function AdminExamsPage() {
                     setSelectedExam(null)
                     setRejectionReason("")
                   }}
-                  className="p-2 rounded-full hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+                  className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-border/60 dark:border-slate-700 hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -968,7 +968,7 @@ export default function AdminExamsPage() {
                     {/* View Full Details Link */}
                     <Link
                       href={`/admin/exams/${selectedExam.id}`}
-                      className="block w-full text-center px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary dark:text-accent rounded-xl font-medium transition-all"
+                      className="w-full h-11 inline-flex items-center justify-center px-6 bg-primary/10 hover:bg-primary/20 text-primary dark:text-accent rounded-xl text-sm font-semibold transition-all"
                     >
                       {t("adm_exam_view_full_detail", "Xem chi tiết đầy đủ (câu hỏi, đáp án)")} →
                     </Link>
@@ -976,7 +976,7 @@ export default function AdminExamsPage() {
                       <div className="flex flex-wrap gap-3">
                         <button
                           onClick={() => handleApproveAndPublish(selectedExam.id)}
-                          className="flex-1 px-4 py-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-medium"
+                          className="flex-1 h-10 px-4 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors text-sm font-semibold"
                         >
                           {t("adm_exam_approve_publish", "Duyệt & xuất bản")}
                         </button>
@@ -985,7 +985,7 @@ export default function AdminExamsPage() {
                             setViewMode("reject")
                             setRejectionReason("")
                           }}
-                          className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-medium"
+                          className="flex-1 h-10 px-4 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors text-sm font-semibold"
                         >
                           {t("adm_exam_reject", "Từ chối")}
                         </button>
@@ -1021,7 +1021,7 @@ export default function AdminExamsPage() {
                     <div className="flex gap-3 justify-end">
                       <button
                         onClick={() => handleApproveAndPublish(selectedExam.id)}
-                        className="px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors"
+                        className="h-10 px-4 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors text-sm font-semibold"
                       >
                         {t("adm_exam_approve_publish", "Duyệt & xuất bản")}
                       </button>
@@ -1031,14 +1031,14 @@ export default function AdminExamsPage() {
                           setSelectedExam(null)
                           setRejectionReason("")
                         }}
-                        className="px-4 py-2 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+                        className="h-10 px-4 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors text-sm font-semibold"
                       >
                         {t("adm_exam_cancel", "Hủy")}
                       </button>
                       <button
                         onClick={handleReject}
                         disabled={!rejectionReason.trim()}
-                        className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="h-10 px-4 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {t("adm_exam_confirm_reject", "Xác nhận từ chối")}
                       </button>
@@ -1064,13 +1064,13 @@ export default function AdminExamsPage() {
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setConfirmDialog({ isOpen: false, action: "" })}
-                  className="px-4 py-2 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+                  className="h-10 px-4 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors text-sm font-semibold"
                 >
                   {t("adm_exam_cancel", "Hủy")}
                 </button>
                 <button
                   onClick={() => handleDelete(confirmDialog.examId!)}
-                  className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
+                  className="h-10 px-4 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors text-sm font-semibold"
                 >
                   {t("adm_exam_delete", "Xóa bài thi")}
                 </button>
@@ -1081,3 +1081,4 @@ export default function AdminExamsPage() {
     </div>
   )
 }
+

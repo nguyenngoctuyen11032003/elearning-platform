@@ -205,8 +205,8 @@ export default function AdminTeacherSubscriptionPage() {
 
   return (
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl">
-        <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_10%_20%,#22c55e,transparent_32%),radial-gradient(circle_at_90%_15%,#0ea5e9,transparent_30%),radial-gradient(circle_at_50%_80%,#6366f1,transparent_35%)]" />
+      <section className="relative overflow-hidden rounded-3xl border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-900/80" />
         <div className="relative grid gap-6 p-6 md:p-8 lg:grid-cols-[1.3fr_1fr] items-start">
           <div className="space-y-4 max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-emerald-100 border border-white/10">
@@ -219,11 +219,11 @@ export default function AdminTeacherSubscriptionPage() {
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={exportPayments}
-                className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur hover:bg-white/25"
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-white/90 px-4 text-sm font-semibold text-primary shadow-lg backdrop-blur hover:shadow-xl"
               >
                 <FileText size={16} /> {t("adm_sub_export", "Xuất báo cáo")}
               </button>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm text-emerald-100">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/15 px-4 py-2 text-sm text-white">
                 <CreditCard size={16} /> {t("adm_sub_tx_code", "Mã thanh toán")}: <span className="font-semibold">{metrics.latestTransactionId}</span>
               </div>
             </div>
@@ -289,7 +289,7 @@ export default function AdminTeacherSubscriptionPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card/80 backdrop-blur p-5 space-y-4 shadow-lg">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 backdrop-blur p-5 space-y-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center"><Plus size={18} /></div>
@@ -298,7 +298,7 @@ export default function AdminTeacherSubscriptionPage() {
               <p className="text-sm text-muted-foreground">{t("adm_sub_create_hint", "Định giá, giới hạn và tính năng cho giảng viên.")}</p>
             </div>
           </div>
-          <button onClick={createPlan} disabled={creating} className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow hover:shadow-md disabled:opacity-60">
+          <button onClick={createPlan} disabled={creating} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary/90 dark:bg-accent px-4 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(15,23,42,0.14)] hover:shadow-[0_12px_26px_rgba(15,23,42,0.18)] disabled:opacity-60">
             {creating ? t("adm_sub_creating", "Đang tạo...") : t("adm_sub_create_btn", "Tạo gói")}
           </button>
         </div>
@@ -331,11 +331,11 @@ export default function AdminTeacherSubscriptionPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card/80 backdrop-blur p-5 space-y-4 shadow-lg">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 backdrop-blur p-5 space-y-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
         <h2 className="text-xl font-semibold flex items-center gap-2"><ShieldCheck size={18} /> {t("adm_sub_plan_management", "Quản lý gói")}</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           {plans.map((plan) => (
-            <div key={plan.id} className="rounded-2xl border border-border bg-gradient-to-br from-white via-white to-primary/5 p-4 space-y-3 shadow-sm dark:from-slate-900 dark:via-slate-900 dark:to-primary/5">
+            <div key={plan.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-white via-white to-primary/5 p-4 space-y-3 shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)] dark:from-slate-900 dark:via-slate-900 dark:to-primary/5">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1">
                   <p className="text-sm font-semibold">{plan.name || t("adm_sub_plan_name", "Tên gói")}</p>
@@ -358,15 +358,15 @@ export default function AdminTeacherSubscriptionPage() {
               </div>
 
               <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-                <button className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white flex items-center justify-center gap-1 text-sm" onClick={() => updatePlan(plan.id, plan)}><Save size={14} /> {t("adm_sub_save", "Lưu")}</button>
-                <button className="px-3 py-1.5 rounded-lg bg-red-500 text-white flex items-center justify-center gap-1 text-sm" onClick={() => deletePlan(plan.id)}><Trash2 size={14} /> {t("adm_sub_delete_btn", "Xóa")}</button>
+                <button className="h-9 px-3.5 rounded-lg bg-emerald-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md" onClick={() => updatePlan(plan.id, plan)}><Save size={14} /> {t("adm_sub_save", "Lưu")}</button>
+                <button className="h-9 px-3.5 rounded-lg bg-rose-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md" onClick={() => deletePlan(plan.id)}><Trash2 size={14} /> {t("adm_sub_delete_btn", "Xóa")}</button>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card/80 backdrop-blur p-5 space-y-4 shadow-lg">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 backdrop-blur p-5 space-y-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center"><CreditCard size={18} /></div>
@@ -375,13 +375,13 @@ export default function AdminTeacherSubscriptionPage() {
               <p className="text-sm text-muted-foreground">{t("adm_sub_payment_hint", "Giám sát giao dịch, xác nhận và hoàn tiền")}</p>
             </div>
           </div>
-          <button onClick={exportPayments} className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow hover:shadow-md">
+          <button onClick={exportPayments} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary/90 dark:bg-accent px-4 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(15,23,42,0.14)] hover:shadow-[0_12px_26px_rgba(15,23,42,0.18)]">
             <FileText size={16} /> {t("adm_sub_export", "Xuất báo cáo")}
           </button>
         </div>
         <div className="space-y-3">
           {payments.map((p) => (
-            <div key={p.id} className="rounded-2xl border border-border p-4 flex flex-col gap-3 bg-gradient-to-br from-white via-white to-slate-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900/30">
+            <div key={p.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-3 bg-gradient-to-br from-white via-white to-slate-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900/30 shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)]">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                 <div className="space-y-1">
                   <p className="font-semibold text-base tracking-tight">{p.transactionId}</p>
@@ -393,10 +393,10 @@ export default function AdminTeacherSubscriptionPage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 justify-between md:justify-start">
-                <button className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs inline-flex items-center gap-1" onClick={() => confirmPayment(p.id)}>
+                <button className="h-9 px-3.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold inline-flex items-center gap-1" onClick={() => confirmPayment(p.id)}>
                   <CheckCircle2 size={14} /> {t("adm_sub_confirm_btn", "Xác nhận")}
                 </button>
-                <button className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs inline-flex items-center gap-1" onClick={() => refundPayment(p.id)}>
+                <button className="h-9 px-3.5 rounded-lg bg-red-500 text-white text-xs font-semibold inline-flex items-center gap-1" onClick={() => refundPayment(p.id)}>
                   <Trash2 size={14} /> {t("adm_sub_refund", "Hoàn tiền")}
                 </button>
                 <span className="text-xs text-muted-foreground inline-flex items-center gap-1"><Clock3 size={12} /> {new Date(p.createdAt).toLocaleString("vi-VN")}</span>
@@ -407,11 +407,11 @@ export default function AdminTeacherSubscriptionPage() {
         <p className="text-sm text-muted-foreground">{t("adm_sub_paid_count", "Đã thanh toán:")} {paidPayments.length} {t("adm_sub_transactions", "giao dịch.")}</p>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card/80 backdrop-blur p-5 space-y-4 shadow-lg">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 backdrop-blur p-5 space-y-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
         <h2 className="text-xl font-semibold flex items-center gap-2"><ShieldCheck size={18} /> {t("adm_sub_instructor_access", "Quyền truy cập giảng viên")}</h2>
         <div className="grid gap-3 md:grid-cols-2">
           {subscriptions.map((s) => (
-            <div key={s.id} className="rounded-2xl border border-border p-4 bg-gradient-to-br from-white via-white to-emerald-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-900/20">
+            <div key={s.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-gradient-to-br from-white via-white to-emerald-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-900/20 shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)]">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-semibold text-base">{s.teacher?.name || s.teacher?.email}</p>
@@ -434,7 +434,7 @@ export default function AdminTeacherSubscriptionPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card/80 backdrop-blur p-5 space-y-3 shadow-lg">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 backdrop-blur p-5 space-y-3 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
         <h2 className="text-xl font-semibold flex items-center gap-2"><BarChart3 size={18} /> {t("adm_sub_other_modules", "Các module quản trị khác")}</h2>
         <p className="text-sm text-muted-foreground">{t("adm_sub_other_desc", "Các mục theo yêu cầu hệ thống đã có sẵn trong Admin:")}</p>
         <div className="grid sm:grid-cols-2 gap-3 text-sm text-muted-foreground">
@@ -487,3 +487,5 @@ function ModulePill({ label, path }: ModulePillProps) {
     </div>
   )
 }
+
+

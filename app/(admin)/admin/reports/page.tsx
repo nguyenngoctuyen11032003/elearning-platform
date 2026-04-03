@@ -374,7 +374,7 @@ export default function AdminReportsPage() {
                     <button
                       key={period.value}
                       onClick={() => setFilterPeriod(period.value)}
-                      className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-all duration-300 backdrop-blur-sm shadow-sm ${
+                      className={`px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all duration-300 backdrop-blur-sm shadow-sm ${
                         filterPeriod === period.value
                           ? "bg-white text-primary border-white shadow-lg scale-[1.02]"
                           : "bg-white/20 text-white border-white/40 hover:bg-white/30"
@@ -386,14 +386,14 @@ export default function AdminReportsPage() {
                 </div>
                 <button
                   onClick={(event) => handleExport("revenue", event.currentTarget)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 text-primary font-semibold shadow-lg hover:shadow-xl transition-smooth backdrop-blur"
+                  className="inline-flex h-10 items-center gap-2 px-4 rounded-xl bg-white/90 text-primary text-sm font-semibold shadow-lg hover:shadow-xl transition-colors backdrop-blur"
                 >
                   <Download size={16} /> {t("adm_rpt_export", "Xuất báo cáo")}
                 </button>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/20 dark:bg-white/5 backdrop-blur-xl p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.16)] space-y-4">
+            <div className="rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/20 dark:bg-white/5 backdrop-blur-xl p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)] space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
                   { key: "totalRevenue", label: t("adm_rpt_total_revenue", "Tổng doanh thu"), value: totals.totalRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-primary/20 to-accent/25", icon: DollarSign },
@@ -401,7 +401,7 @@ export default function AdminReportsPage() {
                   { key: "totalStudents", label: t("adm_rpt_total_students", "Tổng học viên"), value: totals.totalStudents, formatter: formatNumber, tone: "from-green-200/25 to-teal-200/30", icon: TrendingUp },
                   { key: "totalCourses", label: t("adm_rpt_courses", "Khóa học"), value: totals.totalCourses, formatter: formatNumber, tone: "from-orange-200/30 to-yellow-200/25", icon: BookOpen },
                 ].map(({ key, label, value, formatter, tone, icon: Icon }) => (
-                  <div key={label} className={`group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border p-4 shadow-[0_10px_26px_rgba(15,23,42,0.16)] transition-all duration-700 ${isOverviewChanged(key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/60 dark:border-slate-800"}`}>
+                  <div key={label} className={`group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border p-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all duration-700 ${isOverviewChanged(key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/60 dark:border-slate-800"}`}>
                     <div className={`absolute inset-0 bg-gradient-to-br ${tone} opacity-70 group-hover:opacity-90 transition-opacity duration-300`} />
                     <div className="relative flex items-center justify-between">
                       <div className="space-y-1">
@@ -448,7 +448,7 @@ export default function AdminReportsPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+          <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
             <div className="flex items-start justify-between mb-6 gap-3">
               <div className="space-y-2">
                 <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_revenue_chart", "Biểu đồ doanh thu")}</h2>
@@ -465,7 +465,7 @@ export default function AdminReportsPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={(event) => handleExport("revenue", event.currentTarget)}
-                  className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth border border-border/60 dark:border-slate-700"
+                  className="h-10 w-10 inline-flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors border border-border/60 dark:border-slate-700"
                 >
                   <Download size={18} className="text-muted-foreground dark:text-slate-400" />
                 </button>
@@ -484,7 +484,7 @@ export default function AdminReportsPage() {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+          <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
             <div className="flex items-start justify-between mb-6 gap-3">
               <div className="space-y-2">
                 <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_category_dist", "Phân bố theo danh mục")}</h2>
@@ -500,7 +500,7 @@ export default function AdminReportsPage() {
               </div>
               <button
                 onClick={(event) => handleExport("category", event.currentTarget)}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth border border-border/60 dark:border-slate-700"
+                className="h-10 w-10 inline-flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors border border-border/60 dark:border-slate-700"
               >
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
@@ -531,7 +531,7 @@ export default function AdminReportsPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+          <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
             <div className="flex items-start justify-between mb-6 gap-3">
               <div className="space-y-2">
                 <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_teacher_growth", "Tăng trưởng giáo viên")}</h2>
@@ -547,7 +547,7 @@ export default function AdminReportsPage() {
               </div>
               <button
                 onClick={(event) => handleExport("teachers", event.currentTarget)}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth border border-border/60 dark:border-slate-700"
+                className="h-10 w-10 inline-flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors border border-border/60 dark:border-slate-700"
               >
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
@@ -564,7 +564,7 @@ export default function AdminReportsPage() {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+          <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
             <div className="flex items-start justify-between mb-6 gap-3">
               <div className="space-y-2">
                 <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_student_growth", "Tăng trưởng học viên")}</h2>
@@ -580,7 +580,7 @@ export default function AdminReportsPage() {
               </div>
               <button
                 onClick={(event) => handleExport("students", event.currentTarget)}
-                className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth border border-border/60 dark:border-slate-700"
+                className="h-10 w-10 inline-flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors border border-border/60 dark:border-slate-700"
               >
                 <Download size={18} className="text-muted-foreground dark:text-slate-400" />
               </button>
@@ -598,7 +598,7 @@ export default function AdminReportsPage() {
           </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+        <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
           <div className="flex items-start justify-between mb-6 gap-3">
             <div className="space-y-2">
               <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_course_perf", "Hiệu suất khóa học")}</h2>
@@ -610,7 +610,7 @@ export default function AdminReportsPage() {
             </div>
             <button
               onClick={(event) => handleExport("courses", event.currentTarget)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-xl transition-smooth hover:shadow-lg shadow-primary/30"
+              className="inline-flex h-10 items-center gap-2 px-4 bg-gradient-to-r from-primary to-accent text-white text-sm font-semibold rounded-xl transition-colors hover:shadow-lg shadow-primary/30"
             >
               <Download size={16} /> {t("adm_rpt_export", "Xuất báo cáo")}
             </button>
@@ -638,7 +638,7 @@ export default function AdminReportsPage() {
                 {coursePerformance.map((course) => (
                   <tr
                     key={course.courseId}
-                    className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
+                    className="border-b border-border dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors"
                   >
                     <td className="py-3 px-4 text-foreground dark:text-white font-medium">{course.courseTitle}</td>
                     <td className="py-3 px-4 text-muted-foreground dark:text-slate-400">{course.teacherName}</td>
@@ -653,14 +653,14 @@ export default function AdminReportsPage() {
           </div>
 
           {/* Mobile/Tablet Card View */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:hidden">
             {coursePerformance.length === 0 ? (
               <div className="col-span-full py-8 text-center text-muted-foreground">{t("adm_rpt_no_data", "Chưa có dữ liệu")}</div>
             ) : (
               coursePerformance.map((course) => (
                 <div
                   key={course.courseId}
-                  className="bg-white dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl p-4 space-y-3 hover:shadow-md transition-shadow"
+                  className="bg-white dark:bg-slate-800 border border-border dark:border-slate-700 rounded-2xl p-4 space-y-3 shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)]"
                 >
                   <div>
                     <p className="text-xs font-medium text-muted-foreground dark:text-slate-400 mb-1">{t("adm_rpt_th_course", "Khóa học")}</p>
@@ -694,7 +694,7 @@ export default function AdminReportsPage() {
           </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_12px_35px_rgba(15,23,42,0.12)]">
+        <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border/70 dark:border-slate-800 rounded-2xl p-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
           <div className="flex items-start justify-between mb-6 gap-3">
             <div className="space-y-2">
               <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_completion_rate", "Tỷ lệ hoàn thành theo danh mục")}</h2>
@@ -740,14 +740,14 @@ export default function AdminReportsPage() {
           </div>
 
           {/* Mobile/Tablet Card View */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:hidden">
             {completionRates.length === 0 ? (
               <div className="col-span-full py-8 text-center text-muted-foreground">{t("adm_rpt_no_data", "Chưa có dữ liệu")}</div>
             ) : (
               completionRates.map((item) => (
                 <div
                   key={item.categoryName}
-                  className="bg-white dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl p-4 space-y-3 hover:shadow-md transition-shadow"
+                  className="bg-white dark:bg-slate-800 border border-border dark:border-slate-700 rounded-2xl p-4 space-y-3 shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)]"
                 >
                   <div>
                     <p className="text-xs font-medium text-muted-foreground dark:text-slate-400 mb-1">{t("adm_rpt_th_category", "Danh mục")}</p>
@@ -793,7 +793,7 @@ export default function AdminReportsPage() {
                   <h2 className="text-xl font-bold text-foreground dark:text-white">
                     {t("adm_rpt_export", "Xuất báo cáo")}: {selectedReport === "revenue" ? t("adm_rpt_name_revenue", "Báo cáo doanh thu") : selectedReport === "category" ? t("adm_rpt_name_category", "Báo cáo danh mục") : selectedReport === "teachers" ? t("adm_rpt_name_teachers", "Báo cáo giáo viên") : selectedReport === "students" ? t("adm_rpt_name_students", "Báo cáo học viên") : t("adm_rpt_name_courses", "Báo cáo khóa học")}
                   </h2>
-                  <button onClick={() => setIsExportOpen(false)} className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth">
+                  <button onClick={() => setIsExportOpen(false)} className="h-10 w-10 inline-flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors border border-border/60 dark:border-slate-700">
                     <X size={20} className="text-muted-foreground" />
                   </button>
                 </div>
@@ -802,7 +802,7 @@ export default function AdminReportsPage() {
                   <p className="text-sm text-muted-foreground">{t("adm_rpt_export_desc", "File Excel sẽ chứa toàn bộ dữ liệu đang hiển thị.")}</p>
                   <button
                     onClick={executeExport}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-medium hover:shadow-lg transition-smooth flex items-center justify-center gap-2"
+                    className="w-full h-11 px-6 bg-gradient-to-r from-primary to-accent text-white rounded-xl text-sm font-semibold hover:shadow-lg transition-colors flex items-center justify-center gap-2"
                   >
                     <Download size={20} /> {t("adm_rpt_export_excel", "Xuất báo cáo Excel")}
                   </button>
@@ -815,4 +815,7 @@ export default function AdminReportsPage() {
     </div>
   )
 }
+
+
+
 

@@ -348,7 +348,7 @@ const formatDate = (date?: string) => {
             </div>
 
             {/* Stats Cards */}
-            <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
+            <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalCertificates") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
@@ -416,35 +416,35 @@ const formatDate = (date?: string) => {
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col md:flex-row gap-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/55 p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
+            <Search className="absolute left-4 top-3.5 text-slate-400" size={20} />
             <input
               type="text"
               placeholder={t("adm_cert_search", "Tìm kiếm chứng chỉ, khóa học hoặc giảng viên...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+              className="w-full pl-12 pr-4 py-3.5 bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400/60 dark:focus:ring-sky-500/45"
             />
           </div>
           <div className="flex gap-2 flex-wrap">
             {/* Tab Filters - Blue */}
             <button
               onClick={() => setViewTab("templates")}
-              className={`px-4 py-3 rounded-lg transition-smooth font-medium ${
+              className={`h-10 px-4 rounded-xl text-sm transition-all duration-300 font-semibold ${
                 viewTab === "templates"
-                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md"
-                  : "bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  ? "bg-primary/90 text-white dark:bg-accent shadow-[0_8px_20px_rgba(15,23,42,0.14)]"
+                  : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
               {t("adm_cert_tab_templates", "Mẫu chứng chỉ")}
             </button>
             <button
               onClick={() => setViewTab("issued")}
-              className={`px-4 py-3 rounded-lg transition-smooth font-medium ${
+              className={`h-10 px-4 rounded-xl text-sm transition-all duration-300 font-semibold ${
                 viewTab === "issued"
-                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md"
-                  : "bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  ? "bg-primary/90 text-white dark:bg-accent shadow-[0_8px_20px_rgba(15,23,42,0.14)]"
+                  : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
               {t("adm_cert_tab_issued", "Chứng chỉ đã cấp")}
@@ -459,10 +459,10 @@ const formatDate = (date?: string) => {
               <button
                 key={option.value}
                 onClick={() => setStatusFilter(option.value)}
-                className={`px-4 py-3 rounded-lg transition-smooth font-medium ${
+                className={`h-10 px-4 rounded-xl text-sm transition-all duration-300 font-semibold ${
                   statusFilter === option.value
-                    ? "bg-purple-600 hover:bg-purple-700 text-white shadow-md"
-                    : "bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    ? "bg-primary/90 text-white dark:bg-accent shadow-[0_8px_20px_rgba(15,23,42,0.14)]"
+                    : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
                 {option.label}
@@ -472,7 +472,7 @@ const formatDate = (date?: string) => {
         </div>
 
         {/* Certificates Table */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-visible">
+        <div className="bg-white/90 dark:bg-slate-900/72 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-visible shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
           {isLoading ? (
             <div className="py-12 text-center">
               <Award size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -491,22 +491,22 @@ const formatDate = (date?: string) => {
                     <div
                       key={cert.id}
                       ref={(el) => { cardRefs.current[cert.id] = el; }}
-                      className={`relative bg-white/90 dark:bg-slate-900/70 border border-border dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-lg transition-shadow ${openMenu === cert.id ? "z-20" : "z-0"} ${activeCertId === cert.id ? "ring-2 ring-green-500" : ""}`}
+                      className={`relative bg-white dark:bg-slate-900/72 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)] ${openMenu === cert.id ? "z-20" : "z-0"} ${activeCertId === cert.id ? "ring-2 ring-green-500" : ""}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>{getStatusBadge(cert.status)}</div>
                         <div className="relative">
                           <button
                             onClick={() => setOpenMenu(openMenu === cert.id ? null : cert.id)}
-                            className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                            className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                           >
-                            <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
+                            <MoreVertical size={18} className="text-slate-500 dark:text-slate-300" />
                           </button>
                           {openMenu === cert.id && (
-                            <div className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-lg z-30 min-w-48">
+                            <div className="absolute right-0 top-full mt-2 bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_18px_44px_rgba(15,23,42,0.18)] z-30 min-w-48 overflow-hidden">
                               <button
                                 onClick={() => handleAction("view", cert.id, cert)}
-                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
+                                className="w-full text-left px-4 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-white"
                               >
                                 <Eye size={16} /> {t("adm_cert_view", "Xem chi tiết")}
                               </button>
@@ -514,13 +514,13 @@ const formatDate = (date?: string) => {
                                 <>
                                   <button
                                     onClick={() => handleAction("approve", cert.id, cert)}
-                                    className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-green-600 dark:text-green-400"
+                                    className="w-full text-left px-4 py-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 flex items-center gap-2 text-emerald-600 dark:text-emerald-300 border-t border-slate-200 dark:border-slate-800"
                                   >
                                     <CheckCircle size={16} /> {t("adm_cert_approve_btn", "Duyệt chứng chỉ")}
                                   </button>
                                   <button
                                     onClick={() => handleAction("reject", cert.id, cert)}
-                                    className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-red-600 dark:text-red-400"
+                                    className="w-full text-left px-4 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center gap-2 text-rose-600 dark:text-rose-300 border-t border-slate-200 dark:border-slate-800"
                                   >
                                     <XCircle size={16} /> {t("adm_cert_rejected", t("adm_cert_rejected", "Từ chối"))}
                                   </button>
@@ -681,7 +681,7 @@ const formatDate = (date?: string) => {
                   {filteredIssuedCertificates.map((cert) => (
                     <tr
                       key={cert.id}
-                      className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth"
+                      className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-colors"
                     >
                       <td className="py-4 px-6 text-foreground dark:text-white">
                         {cert.certificateNumber || "—"}
@@ -1004,4 +1004,6 @@ const formatDate = (date?: string) => {
 }
 
 function setDetailPopoverStyle(_arg0: { top: any; left: any; width: any } | null) {}
+
+
 

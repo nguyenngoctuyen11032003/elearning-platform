@@ -158,33 +158,33 @@ if (!settings) return null
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
         {/* Header */}
-        <div>
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/65 p-5 md:p-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
           <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("adm_set_title", "Cài đặt hệ thống")}</h1>
-          <p className="text-muted-foreground dark:text-slate-400">{t("adm_set_subtitle", "Quản lý cấu hình toàn bộ nền tảng")}</p>
+          <p className="text-muted-foreground dark:text-slate-400 mt-1">{t("adm_set_subtitle", "Quản lý cấu hình toàn bộ nền tảng")}</p>
         </div>
 
         <Tabs defaultValue="payment" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
-            <TabsTrigger value="payment" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
+          <TabsList className="grid w-full grid-cols-5 bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+            <TabsTrigger value="payment" className="text-xs md:text-sm rounded-xl font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
               {t("adm_set_tab_payment", "Thanh toán")}
             </TabsTrigger>
-            <TabsTrigger value="general" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
+            <TabsTrigger value="general" className="text-xs md:text-sm rounded-xl font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
               {t("adm_set_tab_general", "Chung")}
             </TabsTrigger>
-            <TabsTrigger value="contact" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
+            <TabsTrigger value="contact" className="text-xs md:text-sm rounded-xl font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
               {t("adm_set_tab_contact", "Liên hệ")}
             </TabsTrigger>
-            <TabsTrigger value="branding" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
+            <TabsTrigger value="branding" className="text-xs md:text-sm rounded-xl font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
               {t("adm_set_tab_branding", "Giao diện")}
             </TabsTrigger>
-            <TabsTrigger value="security" className="text-xs md:text-sm hover:border hover:border-[#0b9bde] hover:text-[#0b9bde] data-[state=active]:bg-[#0b9bde] data-[state=active]:text-white transition-colors">
+            <TabsTrigger value="security" className="text-xs md:text-sm rounded-xl font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
               {t("adm_set_tab_security", "Bảo mật")}
             </TabsTrigger>
           </TabsList>
 
           {/* Payment Settings */}
           <TabsContent value="payment" className="space-y-6 mt-6">
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
+            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <CreditCard size={24} className="text-primary dark:text-accent" /> {t("adm_set_payment_title", "Thông tin thanh toán")}
               </h2>
@@ -270,7 +270,7 @@ if (!settings) return null
           {/* General Settings */}
           <TabsContent value="general" className="space-y-6 mt-6">
             {/* About ICS Learning */}
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
+            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <Heart size={24} className="text-primary dark:text-accent" /> {t("adm_set_about", "Về ICS Learning")}
               </h2>
@@ -290,7 +290,7 @@ if (!settings) return null
             </div>
 
             {/* Mission */}
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
+            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <Target size={24} className="text-primary dark:text-accent" /> {t("adm_set_our_mission", "Sứ mệnh của chúng tôi")}
               </h2>
@@ -324,7 +324,7 @@ if (!settings) return null
           {/* Contact Settings */}
           <TabsContent value="contact" className="space-y-6 mt-6">
             {/* Contact Information */}
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
+            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <Mail size={24} className="text-primary dark:text-accent" /> {t("adm_set_contact_info", "Thông tin liên hệ")}
               </h2>
@@ -366,7 +366,7 @@ if (!settings) return null
             </div>
 
             {/* Social Media */}
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
+            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <Globe size={24} className="text-primary dark:text-accent" /> {t("adm_set_social_media", "Mạng xã hội")}
               </h2>
@@ -441,7 +441,7 @@ if (!settings) return null
 
           {/* Branding Settings */}
           <TabsContent value="branding" className="space-y-6 mt-6">
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
+            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <Palette size={24} className="text-primary dark:text-accent" /> {t("adm_set_branding_title", "Giao diện hệ thống")}
               </h2>
@@ -546,7 +546,7 @@ if (!settings) return null
 
           {/* Security Settings */}
           <TabsContent value="security" className="space-y-6 mt-6">
-            <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
+            <div className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <Shield size={24} className="text-primary dark:text-accent" /> {t("adm_set_security_title", "Bảo mật hệ thống")}
               </h2>
@@ -617,7 +617,7 @@ if (!settings) return null
                   </button>
                 </div>
 
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="p-4 bg-blue-50/90 dark:bg-blue-900/20 border border-blue-200/80 dark:border-blue-800 rounded-xl">
                   <p className="text-sm text-blue-900 dark:text-blue-200">
                     {t("adm_set_security_note", "Các cài đặt bảo mật được mã hóa và lưu trữ an toàn. Chỉ quản trị viên mới có thể truy cập và thay đổi các cài đặt này.")}
                   </p>
@@ -632,7 +632,7 @@ if (!settings) return null
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full h-11 px-6 bg-primary/90 dark:bg-accent text-white rounded-xl text-sm shadow-[0_8px_20px_rgba(15,23,42,0.14)] hover:shadow-[0_12px_26px_rgba(15,23,42,0.18)] transition-all font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Save size={20} />
           {isSaving ? t("adm_set_saving", "Đang lưu...") : t("adm_set_save", "Lưu cài đặt")}
@@ -641,3 +641,5 @@ if (!settings) return null
     </div>
   )
 }
+
+
