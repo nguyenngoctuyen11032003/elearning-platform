@@ -1,11 +1,12 @@
 ﻿"use client"
 
 import { useState, useEffect } from "react"
-import { Star, MessageSquare, ThumbsUp, Search, BookOpen, TrendingUp, Users, X, Send, StarIcon } from "lucide-react"
+import { Star, MessageSquare, ThumbsUp, Search, TrendingUp, Send } from "lucide-react"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
-import { autoTranslateData, getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
+import { getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { apiClient } from "@/lib/api/client"
 
 interface Review {
   id: string
@@ -18,128 +19,88 @@ interface Review {
   comment: string
   createdAt: string
   helpful: number
-  response?: string
-  responseDate?: string
+  teacherReply?: string
+  repliedAt?: string
+}
+
+interface TeacherReviewPayload {
+  stats?: {
+    totalReviews: number
+    averageRating: number
+    fiveStarCount: number
+    responseRate: number
+  }
+  courses?: Array<{ id: string; name: string }>
+  reviews?: Review[]
 }
 
 export default function TeacherReviewsPage() {
   const { language, t } = useLanguage()
   const [reviews, setReviews] = useState<Review[]>([])
+  const [stats, setStats] = useState({ totalReviews: 0, averageRating: 0, fiveStarCount: 0, responseRate: 0 })
+  const [courses, setCourses] = useState<Array<{ id: string; name: string }>>([])
   const [loading, setLoading] = useState(true)
   const [ratingFilter, setRatingFilter] = useState("all")
   const [courseFilter, setCourseFilter] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
-  const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState("")
   const [selectedReview, setSelectedReview] = useState<Review | null>(null)
   const [activeTab, setActiveTab] = useState<"all" | "waiting" | "replied" | "low">("all")
   const [isReplying, setIsReplying] = useState(false)
 
-  // Mock data
+  // Load teacher reviews from DB
   useEffect(() => {
     let isMounted = true
-
-    const mockReviews: Review[] = [
-      {
-        id: "1",
-        courseName: t("tch_rev_mock_course_next", "Lập trình Next.js từ cơ bản đến nâng cao"),
-        courseId: "course-1",
-        studentName: t("tch_rev_mock_student_a", "Nguyễn Văn A"),
-        studentAvatar: "/placeholder-user.jpg",
-        studentEmail: "nguyenvana@email.com",
-        rating: 5,
-        comment: t("tch_rev_mock_comment_1", "Khóa học tuyệt vời! Giảng viên giảng dạy rất dễ hiểu và chi tiết. Tôi đã học được rất nhiều kiến thức mới về Next.js, đặc biệt là App Router và Server Components. Highly recommend!"),
-        createdAt: "2024-12-15T10:30:00Z",
-        helpful: 12,
-        response: t("tch_rev_mock_response_1", "Cảm ơn bạn đã đánh giá! Rất vui vì khóa học đã giúp ích cho bạn trong việc học Next.js."),
-        responseDate: "2024-12-16T08:00:00Z"
-      },
-      {
-        id: "2",
-        courseName: "React Hooks & State Management",
-        courseId: "course-2",
-        studentName: t("tch_rev_mock_student_b", "Trần Thị B"),
-        studentAvatar: "/placeholder-user.jpg",
-        studentEmail: "tranthib@email.com",
-        rating: 4,
-        comment: t("tch_rev_mock_comment_2", "Nội dung khóa học rất hay và chi tiết về React Hooks. Tuy nhiên tôi mong có thêm nhiều bài tập thực hành hơn để củng cố kiến thức."),
-        createdAt: "2024-12-14T15:45:00Z",
-        helpful: 8
-      },
-      {
-        id: "3",
-        courseName: t("tch_rev_mock_course_next", "Lập trình Next.js từ cơ bản đến nâng cao"),
-        courseId: "course-1",
-        studentName: t("tch_rev_mock_student_c", "Lê Văn C"),
-        studentAvatar: "/placeholder-user.jpg",
-        studentEmail: "levanc@email.com",
-        rating: 5,
-        comment: t("tch_rev_mock_comment_3", "Đây là khóa học tốt nhất về Next.js mà tôi từng học. Giảng viên nhiệt tình, nội dung cập nhật liên tục. Highly recommend cho mọi người!"),
-        createdAt: "2024-12-13T09:20:00Z",
-        helpful: 15,
-        response: t("tch_rev_mock_response_3", "Cảm ơn bạn rất nhiều! Mình sẽ tiếp tục cập nhật nội dung mới nhất cho khóa học."),
-        responseDate: "2024-12-14T07:00:00Z"
-      },
-      {
-        id: "4",
-        courseName: "React Hooks & State Management",
-        courseId: "course-2",
-        studentName: t("tch_rev_mock_student_d", "Phạm Thị D"),
-        studentAvatar: "/placeholder-user.jpg",
-        studentEmail: "phamthid@email.com",
-        rating: 3,
-        comment: t("tch_rev_mock_comment_4", "Khóa học ổn nhưng cần cập nhật thêm các tính năng mới của React như Server Components và use() hook."),
-        createdAt: "2024-12-12T14:00:00Z",
-        helpful: 3
-      },
-      {
-        id: "5",
-        courseName: t("tch_rev_mock_course_next", "Lập trình Next.js từ cơ bản đến nâng cao"),
-        courseId: "course-1",
-        studentName: t("tch_rev_mock_student_e", "Hoàng Văn E"),
-        studentAvatar: "/placeholder-user.jpg",
-        studentEmail: "hoangvane@email.com",
-        rating: 4,
-        comment: t("tch_rev_mock_comment_5", "Khóa học rất tốt cho người mới bắt đầu. Giảng viên giải thích rõ ràng từng concept."),
-        createdAt: "2024-12-11T11:30:00Z",
-        helpful: 6
+    const loadReviews = async () => {
+      try {
+        setLoading(true)
+        const payload = (await apiClient.getTeacherReviews()) as TeacherReviewPayload
+        if (!isMounted) return
+        const normalizedReviews = Array.isArray(payload?.reviews)
+          ? payload.reviews.map((item) => ({
+              ...item,
+              teacherReply: item.teacherReply || (item as any).response || "",
+              repliedAt: item.repliedAt || (item as any).responseDate,
+            }))
+          : []
+        setReviews(normalizedReviews)
+        setCourses(Array.isArray(payload?.courses) ? payload.courses : [])
+        setStats(
+          payload?.stats || {
+            totalReviews: 0,
+            averageRating: 0,
+            fiveStarCount: 0,
+            responseRate: 0,
+          },
+        )
+      } catch (error) {
+        console.error("Failed to load teacher reviews", error)
+        if (!isMounted) return
+        setReviews([])
+        setCourses([])
+        setStats({ totalReviews: 0, averageRating: 0, fiveStarCount: 0, responseRate: 0 })
+        toast.error(t("tch_rev_load_failed", "Không thể tải danh sách đánh giá"))
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
       }
-    ]
+    }
 
-    setTimeout(async () => {
-      // Don't translate review data
-      if (!isMounted) return
-      setReviews(mockReviews)
-      setLoading(false)
-    }, 500)
-
+    loadReviews()
     return () => {
       isMounted = false
     }
-  }, [language])
-
-  // Stats
-  const avgRating = reviews.length > 0
-    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-    : "0.0"
-  const fiveStarCount = reviews.filter(r => r.rating === 5).length
-  const responseRate = reviews.length > 0
-    ? Math.round((reviews.filter(r => r.response).length / reviews.length) * 100)
-    : 0
-
-  const courses = [...new Set(reviews.map(r => ({ id: r.courseId, name: r.courseName })))]
-    .filter((course, index, self) =>
-      index === self.findIndex(c => c.id === course.id)
-    )
+  }, [])
 
   // Filter by tab
   const getTabFilteredReviews = () => {
     let filtered = reviews
     
     if (activeTab === "waiting") {
-      filtered = reviews.filter(r => !r.response)
+      filtered = reviews.filter(r => !r.teacherReply)
     } else if (activeTab === "replied") {
-      filtered = reviews.filter(r => r.response)
+      filtered = reviews.filter(r => r.teacherReply)
     } else if (activeTab === "low") {
       filtered = reviews.filter(r => r.rating <= 3)
     }
@@ -159,44 +120,41 @@ export default function TeacherReviewsPage() {
   // Get tab counts
   const getCounts = () => ({
     all: reviews.length,
-    waiting: reviews.filter(r => !r.response).length,
-    replied: reviews.filter(r => r.response).length,
+    waiting: reviews.filter(r => !r.teacherReply).length,
+    replied: reviews.filter(r => r.teacherReply).length,
     low: reviews.filter(r => r.rating <= 3).length
   })
 
-  const handleReply = (reviewId: string) => {
+  const handleReply = async (reviewId: string) => {
     if (!replyText.trim()) {
       toast.error(t("tch_rev_enter_reply", "Vui lòng nhập nội dung phản hồi"))
       return
     }
 
-    setReviews(prev => prev.map(review =>
-      review.id === reviewId
-        ? { ...review, response: replyText, responseDate: new Date().toISOString() }
-        : review
-    ))
-    setReplyText("")
-    setReplyingTo(null)
-    setIsReplying(false)
-    setSelectedReview(prev => prev && prev.id === reviewId ? { ...prev, response: replyText, responseDate: new Date().toISOString() } : prev)
-    toast.success(t("tch_rev_reply_sent", "Phản hồi đã được gửi!"))
-  }
+    try {
+      const result = await apiClient.replyTeacherReview(reviewId, replyText.trim())
+      const replyValue = result?.response || result?.teacherReply || replyText.trim()
+      const repliedAtValue = result?.responseDate || result?.repliedAt || new Date().toISOString()
 
-  const handleMarkResolved = (reviewId: string) => {
-    setReviews(prev => prev.map(review =>
-      review.id === reviewId
-        ? { ...review, response: review.response || "Đã đánh dấu là đã xử lý", responseDate: new Date().toISOString() }
-        : review
-    ))
-    toast.success(t("tch_rev_marked_resolved", "Đã đánh dấu là đã xử lý"))
-  }
-
-  const handleDeleteReview = (reviewId: string) => {
-    setReviews(prev => prev.filter(r => r.id !== reviewId))
-    if (selectedReview?.id === reviewId) {
-      setSelectedReview(null)
+      setReviews((prev) =>
+        prev.map((review) =>
+          review.id === reviewId
+            ? { ...review, teacherReply: replyValue, repliedAt: repliedAtValue }
+            : review,
+        ),
+      )
+      setSelectedReview((prev) =>
+        prev && prev.id === reviewId
+          ? { ...prev, teacherReply: replyValue, repliedAt: repliedAtValue }
+          : prev,
+      )
+      setReplyText("")
+      setIsReplying(false)
+      toast.success(t("tch_rev_reply_sent", "Phản hồi đã được gửi!"))
+    } catch (error) {
+      console.error("Failed to reply review", error)
+      toast.error(t("tch_rev_reply_failed", "Không thể gửi phản hồi"))
     }
-    toast.success(t("tch_rev_deleted", "Đánh giá đã được xóa"))
   }
 
   const formatDate = (dateString: string) => {
@@ -205,20 +163,6 @@ export default function TeacherReviewsPage() {
       month: '2-digit',
       year: 'numeric'
     })
-  }
-
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            size={16}
-            className={`${star <= rating ? "text-yellow-500 fill-yellow-500" : "text-slate-300 dark:text-slate-600"}`}
-          />
-        ))}
-      </div>
-    )
   }
 
   if (loading) {
@@ -260,7 +204,7 @@ export default function TeacherReviewsPage() {
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tch_rev_total", "Tổng đánh giá")}</p>
-                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{reviews.length}</p>
+                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{stats.totalReviews}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <MessageSquare size={20} className="text-blue-600 dark:text-blue-400" />
@@ -272,7 +216,7 @@ export default function TeacherReviewsPage() {
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tch_rev_avg", "Điểm TB")}</p>
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1 flex items-center gap-1">
-                      {avgRating} <Star size={18} className="fill-yellow-500 text-yellow-500" />
+                      {stats.averageRating.toFixed(1)} <Star size={18} className="fill-yellow-500 text-yellow-500" />
                     </p>
                   </div>
                   <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -284,7 +228,7 @@ export default function TeacherReviewsPage() {
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tch_rev_5star", "5 sao")}</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{fiveStarCount}</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{stats.fiveStarCount}</p>
                   </div>
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <TrendingUp size={20} className="text-green-600 dark:text-green-400" />
@@ -295,7 +239,7 @@ export default function TeacherReviewsPage() {
                 <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tch_rev_responded", "Đã phản hồi")}</p>
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{responseRate}%</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{stats.responseRate}%</p>
                   </div>
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <Send size={20} className="text-purple-600 dark:text-purple-400" />
@@ -372,7 +316,10 @@ export default function TeacherReviewsPage() {
               filteredReviews.map((review) => (
                 <div
                   key={review.id}
-                  onClick={() => setSelectedReview(review)}
+                  onClick={() => {
+                    setSelectedReview(review)
+                    setReplyText(review.teacherReply || "")
+                  }}
                   className={`p-3 rounded-lg border-l-3 cursor-pointer transition-all hover:bg-slate-100/60 dark:hover:bg-slate-800/60 ${
                     selectedReview?.id === review.id
                       ? 'bg-blue-500/10 dark:bg-blue-500/15 border-l-blue-500 border border-blue-500/30'
@@ -399,11 +346,11 @@ export default function TeacherReviewsPage() {
                       <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1 mt-1">{review.comment}</p>
                       <div className="flex items-center gap-2 mt-2">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${
-                          review.response
+                          review.teacherReply
                             ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                             : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
                         }`}>
-                          {review.response ? '✓ Đã' : '⏱ Chờ'}
+                          {review.teacherReply ? '✓ Đã' : '⏱ Chờ'}
                         </span>
                       </div>
                     </div>
@@ -443,11 +390,11 @@ export default function TeacherReviewsPage() {
                         <span className="ml-1 font-bold text-yellow-600 dark:text-yellow-400">{selectedReview.rating}</span>
                       </div>
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${
-                        selectedReview.response
+                        selectedReview.teacherReply
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                           : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
                       }`}>
-                        {selectedReview.response ? '✓ Đã trả lời' : '⏱ Chờ xử lý'}
+                        {selectedReview.teacherReply ? '✓ Đã trả lời' : '⏱ Chờ xử lý'}
                       </span>
                     </div>
                   </div>
@@ -488,13 +435,13 @@ export default function TeacherReviewsPage() {
                     </div>
                     
                     {/* Teacher Response */}
-                    {selectedReview.response && (
+                    {selectedReview.teacherReply && (
                       <div className="flex justify-end">
                         <div className="max-w-[70%] bg-blue-500/20 dark:bg-blue-500/30 rounded-2xl p-3 border border-blue-500/30">
                           <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">Bạn</p>
-                          <p className="text-sm text-foreground dark:text-white">{selectedReview.response}</p>
-                          {selectedReview.responseDate && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{formatDate(selectedReview.responseDate)}</p>
+                          <p className="text-sm text-foreground dark:text-white">{selectedReview.teacherReply}</p>
+                          {selectedReview.repliedAt && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{formatDate(selectedReview.repliedAt)}</p>
                           )}
                         </div>
                       </div>
@@ -503,7 +450,7 @@ export default function TeacherReviewsPage() {
                 </div>
 
                 {/* Reply Box */}
-                {!isReplying && !selectedReview.response ? (
+                {!isReplying && !selectedReview.teacherReply ? (
                   <div className="flex gap-2">
                     <button
                       onClick={() => setIsReplying(true)}
@@ -511,7 +458,7 @@ export default function TeacherReviewsPage() {
                     >
                       <MessageSquare size={16} /> Trả lời
                     </button>
-                    {selectedReview.response && (
+                    {selectedReview.teacherReply && (
                       <button
                         onClick={() => setIsReplying(true)}
                         className="px-4 py-2.5 rounded-lg font-semibold text-sm border border-slate-300 dark:border-slate-600 text-foreground dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
@@ -548,22 +495,6 @@ export default function TeacherReviewsPage() {
                     </div>
                   </div>
                 ) : null}
-
-                {/* Action Buttons */}
-                <div className="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                  <button
-                    onClick={() => handleMarkResolved(selectedReview.id)}
-                    className="flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm text-green-600 dark:text-green-400 border border-green-300 dark:border-green-600/50 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
-                  >
-                    ✓ Đánh dấu đã xử lý
-                  </button>
-                  <button
-                    onClick={() => handleDeleteReview(selectedReview.id)}
-                    className="px-4 py-2.5 rounded-lg font-semibold text-sm text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
-                  >
-                    🗑️ Xóa
-                  </button>
-                </div>
               </div>
             ) : (
               <div className="h-full flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl">

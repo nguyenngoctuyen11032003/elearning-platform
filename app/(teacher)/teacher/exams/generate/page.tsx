@@ -127,12 +127,12 @@ function ExamCard({ exam, onEdit, onViewAttempts, onDelete, onViewVariantQuestio
   
   return (
     <>
-      <div className="rounded-[14px] p-5 border border-white/5 bg-[#0f172a] transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
+      <div className="rounded-[14px] p-5 border border-slate-200 dark:border-white/5 bg-white dark:bg-[#0f172a] transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_10px_30px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-white truncate">{exam.title}</h3>
-            <p className="text-sm text-slate-400 mt-1">{exam.courseName || "—"}</p>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white truncate">{exam.title}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{exam.courseName || "—"}</p>
           </div>
           <div className={`px-3 py-1 rounded-full text-xs font-semibold border inline-flex items-center gap-1 whitespace-nowrap ${getStatusColor(exam.status)}`}>
             {getStatusLabel(exam.status)}
@@ -142,18 +142,18 @@ function ExamCard({ exam, onEdit, onViewAttempts, onDelete, onViewVariantQuestio
         {/* Type badge */}
         <div className="mb-3">
           <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-            exam.type === "official" ? "bg-purple-500/10 text-purple-400 border border-purple-500/30" : "bg-blue-500/10 text-blue-400 border border-blue-500/30"
+            exam.type === "official" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30"
           }`}>
             {exam.type === "official" ? "📋 Thi thật" : "📝 Thi thử"}
           </span>
         </div>
 
         {/* Info stats */}
-        <div className="flex flex-wrap gap-4 text-sm text-slate-300 mb-4 pb-4 border-b border-slate-800">
+        <div className="flex flex-wrap gap-4 text-sm text-slate-700 dark:text-slate-300 mb-4 pb-4 border-b border-slate-200 dark:border-slate-800">
           <span className="flex items-center gap-1"><FileText size={14} /> {exam.questionsCount ?? "—"} câu</span>
           <span className="flex items-center gap-1"><Users size={14} /> {exam.attemptCount ?? 0} lượt thi</span>
           <span className="inline-flex items-center gap-1">
-            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-700/50 text-xs">
+            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-200/50 dark:bg-slate-700/50 text-xs text-slate-700 dark:text-slate-300">
               {variants.length}
             </span>
             Đề con
@@ -163,11 +163,11 @@ function ExamCard({ exam, onEdit, onViewAttempts, onDelete, onViewVariantQuestio
         {/* Variants section */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-slate-300">Danh sách đề con ({variants.length})</span>
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Danh sách đề con ({variants.length})</span>
             {hasMoreVariants && (
               <button
                 onClick={() => setIsVariantsExpanded(!isVariantsExpanded)}
-                className="text-xs text-slate-400 hover:text-slate-200 transition"
+                className="text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition"
               >
                 {isVariantsExpanded ? "▼ Thu gọn" : "▶ Xem"}
               </button>
@@ -177,21 +177,21 @@ function ExamCard({ exam, onEdit, onViewAttempts, onDelete, onViewVariantQuestio
           {/* Show variants: first 3 always when collapsed, all when expanded */}
           <div className="space-y-2">
             {(isVariantsExpanded ? variants : displayVariants).map((variant) => (
-              <div key={variant.code} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition">
-                <span className="text-sm text-slate-300">
-                  <span className="font-medium text-blue-400">Đề {variant.code}</span>
+              <div key={variant.code} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 transition">
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  <span className="font-medium text-blue-600 dark:text-blue-400">Đề {variant.code}</span>
                   <span className="text-slate-500 ml-2">• {variant.questions?.length || 0} câu</span>
                 </span>
                 <div className="flex gap-1">
                   <button
                     onClick={() => onViewVariantQuestions(exam, variant)}
-                    className="px-2 py-1 text-xs rounded border border-slate-700 text-slate-300 hover:bg-slate-800 transition"
+                    className="px-2 py-1 text-xs rounded border border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
                   >
                     Xem
                   </button>
                   <button
                     onClick={() => onEdit(exam.id)}
-                    className="px-2 py-1 text-xs rounded border border-slate-700 text-slate-300 hover:bg-slate-800 transition"
+                    className="px-2 py-1 text-xs rounded border border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
                   >
                     Sửa
                   </button>
@@ -202,29 +202,29 @@ function ExamCard({ exam, onEdit, onViewAttempts, onDelete, onViewVariantQuestio
 
           {/* Show more indicator */}
           {hasMoreVariants && !isVariantsExpanded && (
-            <div className="text-xs text-slate-500 text-center py-2 mt-2">
+            <div className="text-xs text-slate-600 dark:text-slate-500 text-center py-2 mt-2">
               +{variants.length - 3} đề con khác
             </div>
           )}
         </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2 pt-4 border-t border-slate-800">
+      <div className="flex gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
         <button
           onClick={() => onEdit(exam.id)}
-          className="flex-1 px-3 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 text-sm font-medium transition"
+          className="flex-1 px-3 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-300 hover:bg-blue-500/20 text-sm font-medium transition"
         >
           ✏️ Chỉnh sửa
         </button>
         <button
           onClick={() => onViewAttempts(exam)}
-          className="flex-1 px-3 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition"
+          className="flex-1 px-3 py-2 rounded-lg border border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 text-sm font-medium transition"
         >
           👥 Kết quả thi
         </button>
         <button
           onClick={() => onDelete(exam.id, exam.title)}
-          className="flex-1 px-3 py-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 text-sm font-medium transition"
+          className="flex-1 px-3 py-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300 hover:bg-red-500/20 text-sm font-medium transition"
         >
           🗑️ Xóa
         </button>
@@ -447,12 +447,19 @@ export default function TeacherExamsListPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+      <section 
+        className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white"
+        style={{
+          backgroundImage: "url('/image/bgr_exams_teacher.jpg')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
         <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,#22c55e,transparent_35%),radial-gradient(circle_at_80%_0%,#0ea5e9,transparent_30%),radial-gradient(circle_at_50%_80%,#6366f1,transparent_35%)]" />
         <div className="relative p-6 md:p-8 space-y-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-emerald-200/80">{t("tch_exg_label", "Quản lý ngân hàng đề")}</p>
               <h1 className="text-3xl md:text-4xl font-bold leading-tight">{t("tch_exg_title", "Đề thi đã sinh")}</h1>
               <p className="text-slate-200 max-w-2xl">{t("tch_exg_subtitle", "Theo dõi đề thi được trích xuất, quản lý mã đề và kết quả thi trong một bảng điều khiển duy nhất.")}</p>
             </div>

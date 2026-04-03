@@ -128,22 +128,31 @@ export default function TeacherSettingsPage() {
 
       <section className="space-y-6">
         {/* Gói hiện tại */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800 p-7 shadow-[0_10px_30px_rgba(0,0,0,0.4)] mb-6">
+        <div 
+          className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800 p-7 shadow-[0_10px_30px_rgba(0,0,0,0.4)] mb-6"
+          style={{
+            backgroundImage: "url('/image/bgr_setting_teacher.jpg')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundAttachment: 'fixed'
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/75 to-slate-800/80 rounded-2xl" />
           <div className="absolute right-4 top-4 rounded-full bg-emerald-500/20 px-2.5 py-1 text-xs font-semibold text-emerald-300">
             {t("teacher_settings_current_plan", "Current Plan")}
           </div>
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-100">
+          <h2 className="relative z-10 flex items-center gap-2 text-lg font-semibold text-slate-100">
             <CreditCard size={18} className="text-emerald-300" />
             {t("teacher_settings_current_plan_label", "Gói hiện tại")}
           </h2>
-          <p className="mt-3 text-2xl font-bold text-white">{subscriptionData?.subscription?.plan?.name || t("common_free", "Free")}</p>
-          <p className="mt-4 text-sm text-slate-300">
+          <p className="relative z-10 mt-3 text-2xl font-bold text-white">{subscriptionData?.subscription?.plan?.name || t("common_free", "Free")}</p>
+          <p className="relative z-10 mt-4 text-sm text-slate-300">
             {t("teacher_settings_course_limit", "Hạn mức khóa học")}: <strong>{usage.coursesCreated}</strong> / <strong>{usage.courseLimit}</strong>
           </p>
-          <div className="mt-3 h-4 overflow-hidden rounded-full bg-slate-700/80">
+          <div className="relative z-10 mt-3 h-4 overflow-hidden rounded-full bg-slate-700/80">
             <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-400" style={{ width: `${usagePercent}%` }} />
           </div>
-          <p className="mt-3 text-sm text-slate-300">
+          <p className="relative z-10 mt-3 text-sm text-slate-300">
             {t("teacher_settings_usage_remaining", "Usage: còn {n} khóa học có thể tạo.").replace("{n}", String(usage.remainingCourses))}
           </p>
         </div>

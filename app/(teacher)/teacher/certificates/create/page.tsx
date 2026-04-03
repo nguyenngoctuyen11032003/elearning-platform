@@ -1345,7 +1345,7 @@ export default function CreateCertificatePage() {
                   {errors.title && <p className="text-red-500 text-sm mt-2 flex items-center gap-1"><AlertCircle size={14}/>{errors.title}</p>}
                 </div>
 
-                <div>
+                <div className="relative z-50">
                   <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">
                     {t("tch_cert_label_course", "Khóa học")} <span className="text-red-500">*</span>
                   </label>
@@ -1356,7 +1356,7 @@ export default function CreateCertificatePage() {
                       const selected = courses.find(c => String(c.id) === selectedId)
                       setFormData({ ...formData, courseId: selectedId })
                     }}
-                    className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 rounded-xl text-foreground dark:text-white transition-all focus:ring-4 focus:ring-primary/20 ${
+                    className={`relative z-50 w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 rounded-xl text-foreground dark:text-white transition-all focus:ring-4 focus:ring-primary/20 ${
                       errors.courseId ? "border-red-500" : "border-border dark:border-slate-700 focus:border-primary"
                     }`}
                   >

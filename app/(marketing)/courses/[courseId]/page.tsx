@@ -6,8 +6,7 @@ import { Footer } from "@/components/ui/footer"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { PremiumCard } from "@/components/ui/premium-card"
 import { Star, Heart, Share2, Users, Clock, Award, ChevronDown } from "lucide-react"
-import Link from "next/link"
-import { formatPrice, formatStudentCount, formatCurrencyByLanguage } from "@/lib/format"
+import { formatStudentCount, formatCurrencyByLanguage } from "@/lib/format"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
@@ -17,6 +16,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   const router = useRouter()
   const resolvedParams = use(params)
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [wishLoading, setWishLoading] = useState(false)
   const [expandedReview, setExpandedReview] = useState<string | null>(null)
@@ -29,6 +29,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [myReview, setMyReview] = useState<any>(null)
   const [expandedReplies, setExpandedReplies] = useState<string | null>(null)
+  const [replyingReviewId, setReplyingReviewId] = useState<string | null>(null)
+  const [replyDraftByReview, setReplyDraftByReview] = useState<Record<string, string>>({})
+  const [replySubmittingReviewId, setReplySubmittingReviewId] = useState<string | null>(null)
 
   // ---- Real data ----
   const { t, language } = useLanguage()
@@ -41,14 +44,27 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     try {
       const rawUser = localStorage.getItem("user")
       const rawRole = localStorage.getItem("userRole")
-      const parsedRole = rawUser ? JSON.parse(rawUser)?.role : null
-      setUserRole(parsedRole || rawRole || null)
+      const parsedUser = rawUser ? JSON.parse(rawUser) : null
+      const parsedRole = parsedUser?.role || rawRole || null
+      const normalizedRole = typeof parsedRole === "string" ? parsedRole.toLowerCase() : null
+      setUserRole(normalizedRole)
+      setCurrentUserId(parsedUser?.id || parsedUser?.userId || null)
     } catch {
-      setUserRole(localStorage.getItem("userRole"))
+      const fallbackRole = localStorage.getItem("userRole")
+      setUserRole(fallbackRole ? fallbackRole.toLowerCase() : null)
+      setCurrentUserId(null)
     }
   }, [])
 
   const isAdmin = userRole === "admin"
+  const isTeacher = userRole === "teacher"
+  const isPrivilegedViewer = isAdmin || isTeacher
+  const courseTeacherId = courseData?.teacherId || courseData?.teacher?.id || null
+  const isTeacherOwner =
+    isTeacher &&
+    !!currentUserId &&
+    !!courseTeacherId &&
+    String(currentUserId) === String(courseTeacherId)
 
   useEffect(() => {
     const id = resolvedParams.courseId
@@ -84,7 +100,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
   useEffect(() => {
     const id = resolvedParams.courseId
-    if (isAdmin) {
+    if (isPrivilegedViewer) {
       setIsWishlisted(false)
       return
     }
@@ -97,7 +113,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
       }
     }
     checkWishlistStatus()
-  }, [resolvedParams.courseId, isAdmin])
+  }, [resolvedParams.courseId, isPrivilegedViewer])
 
   useEffect(() => {
     const id = resolvedParams.courseId
@@ -214,10 +230,71 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     }
   }
 
+  const handleSubmitTeacherReply = async (reviewId: string) => {
+    const token = localStorage.getItem("auth_token")
+    const replyText = (replyDraftByReview[reviewId] || "").trim()
+
+    if (!isTeacherOwner) {
+      toast.error(t("mk_course_reply_not_allowed", "Bạn không có quyền phản hồi đánh giá này."))
+      return
+    }
+
+    if (!token) {
+      toast.error(t("mk_course_login_to_reply", "Bạn cần đăng nhập để phản hồi đánh giá."))
+      return
+    }
+
+    if (!replyText) {
+      toast.error(t("mk_course_reply_empty", "Vui lòng nhập nội dung phản hồi."))
+      return
+    }
+
+    try {
+      setReplySubmittingReviewId(reviewId)
+      const response = await fetch(`/api/reviews/${reviewId}/reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reply: replyText }),
+      })
+
+      const payload = await response.json()
+      if (!response.ok) {
+        toast.error(
+          payload?.message ||
+            payload?.error?.message ||
+            t("mk_course_reply_failed", "Không thể gửi phản hồi."),
+        )
+        return
+      }
+
+      const updated = payload?.data ?? payload
+      setReviews((prev) =>
+        prev.map((review) =>
+          review.id === reviewId
+            ? {
+                ...review,
+                teacherReply: updated?.teacherReply || updated?.response || replyText,
+                repliedAt: updated?.repliedAt || updated?.responseDate || new Date().toISOString(),
+              }
+            : review,
+        ),
+      )
+      setReplyingReviewId(null)
+      toast.success(t("mk_course_reply_success", "Đã gửi phản hồi đánh giá."))
+    } catch {
+      toast.error(t("mk_course_reply_failed", "Không thể gửi phản hồi."))
+    } finally {
+      setReplySubmittingReviewId(null)
+    }
+  }
+
   const toggleWishlistStatus = async () => {
     if (!course?.id) return
-    if (isAdmin) {
-      toast.error(t("mk_course_admin_view_only", "Admin chỉ có quyền xem khóa học"))
+    if (isPrivilegedViewer) {
+      toast.error(t("mk_course_teacher_admin_view_only", "Giảng viên và admin chỉ có quyền xem khóa học"))
       return
     }
     setWishLoading(true)
@@ -270,15 +347,15 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   )
 
   return (
-    <div className="min-h-screen bg-background dark:bg-slate-950 flex flex-col">
-      <main className="flex-1 py-8 md:py-12 px-4 sm:px-6">
-        <div className="page-shell">
-          {/* Hero Section */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col">
+      <main className="flex-1 px-4 sm:px-6 py-10 md:py-12">
+        <div className="mx-auto w-full max-w-[1200px]">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] gap-8 xl:gap-10">
               {/* Course Info */}
-              <div className="lg:col-span-2">
-                <div className="relative w-full h-56 sm:h-72 md:h-96 rounded-2xl overflow-hidden mb-6 mt-6 md:mt-12">
+              <div className="space-y-10">
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                <div className="relative w-full h-56 sm:h-72 md:h-96 rounded-2xl overflow-hidden mb-7">
                   <img
                     src={course.image || "/image/python.png"}
                     alt={course.title}
@@ -293,11 +370,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                     />
                   </div>
                 </div>
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground dark:text-white mb-4">{course.title}</h1>
-                <p className="text-base sm:text-lg text-muted-foreground dark:text-slate-400 mb-6">{course.description}</p>
+                <h1 className="text-[32px] md:text-[36px] leading-tight font-bold text-[#0F172A] mb-3">{course.title}</h1>
+                <p className="text-base md:text-[16px] text-slate-500 mb-6">{course.description}</p>
 
                 {/* Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                   {[
                     { icon: Star, label: t("mk_course_rating", "Đánh giá"), value: `${course.rating}/5` },
                     { icon: Users, label: t("mk_course_students", "Học viên"), value: formatStudentCount(course.students) },
@@ -306,17 +383,19 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                   ].map((stat, idx) => (
                     <div
                       key={idx}
-                      className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-lg p-4"
+                      className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm"
                     >
-                      <stat.icon size={20} className="text-primary dark:text-accent mb-2" />
-                      <p className="text-xs text-muted-foreground dark:text-slate-400">{stat.label}</p>
-                      <p className="font-semibold text-foreground dark:text-white">{stat.value}</p>
+                      <stat.icon size={18} className="text-[#2563EB] mb-2" />
+                      <p className="text-xs text-slate-500">{stat.label}</p>
+                      <p className="font-semibold text-[#0F172A]">{stat.value}</p>
                     </div>
                   ))}
                 </div>
+                </section>
 
                 {/* Instructor */}
-                <PremiumCard className="mb-8">
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                  <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-5">{t("teachers_label_instructor", "Giảng viên")}</h2>
                   <div className="flex items-center gap-4">
                     <img
                       src={course.teacherAvatar}
@@ -325,23 +404,24 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                       loading="lazy"
                       decoding="async"
                     />
-                    <div>
-                      <p className="text-sm text-muted-foreground dark:text-slate-400">{t("teachers_label_instructor", "Giảng viên")}</p>
-                      <p className="font-semibold text-foreground dark:text-white text-lg">{course.teacher}</p>
+                    <div className="space-y-1">
+                      <p className="font-semibold text-[#0F172A] text-lg">{course.teacher}</p>
+                      <p className="text-sm text-slate-500">{t("teachers_label_instructor", "Giảng viên")}</p>
+                      <p className="text-sm text-slate-500">{t("mk_course_instructor_short_bio", "Giảng viên đồng hành cùng bạn qua lộ trình học thực chiến.")}</p>
                     </div>
                   </div>
-                </PremiumCard>
+                </section>
 
                 {/* Course Content */}
-                <div className="mb-8">
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-6">{t("mk_course_content", "Nội dung khóa học")}</h2>
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                  <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-6">{t("mk_course_content", "Nội dung khóa học")}</h2>
                   <div className="space-y-3">
                     {pageLoading ? (
                       [...Array(5)].map((_, i) => (
-                        <div key={i} className="animate-pulse bg-card dark:bg-slate-900/60 rounded-lg h-16 border border-border dark:border-slate-800" />
+                        <div key={i} className="animate-pulse bg-slate-100 rounded-xl h-20 border border-slate-200" />
                       ))
                     ) : lessons.length === 0 ? (
-                      <p className="text-muted-foreground dark:text-slate-400 text-sm py-4">{t("mk_course_no_lessons", "Khóa học chưa có bài học nào.")}</p>
+                      <p className="text-slate-500 text-sm py-4">{t("mk_course_no_lessons", "Khóa học chưa có bài học nào.")}</p>
                     ) : (
                       lessons.map((lesson: any, idx: number) => {
                         const typeConfig: Record<string, { icon: string; color: string; label: string }> = {
@@ -357,7 +437,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                           <div key={lesson.id}>
                             <div
                               onClick={() => setExpandedLesson(expandedLesson === lesson.id ? null : lesson.id)}
-                              className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-lg p-4 hover:border-primary dark:hover:border-accent transition-smooth cursor-pointer"
+                              className="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-5 hover:bg-white hover:border-[#2563EB]/30 transition-all duration-200 cursor-pointer"
                             >
                               <div className="flex items-center gap-3">
                                 <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm ${tc.color}`}>
@@ -390,14 +470,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                   initial={{ opacity: 0, height: 0 }}
                                   animate={{ opacity: 1, height: "auto" }}
                                   exit={{ opacity: 0, height: 0 }}
-                                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                                  className="bg-slate-50 dark:bg-slate-800/30 border border-t-0 border-border dark:border-slate-800 rounded-b-lg p-4 space-y-3"
+                                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                                  className="bg-slate-50 border border-t-0 border-slate-200 rounded-b-xl p-4 space-y-3"
                                 >
                                   {lesson.description && (
-                                    <p className="text-sm text-muted-foreground dark:text-slate-400">{lesson.description}</p>
+                                    <p className="text-sm text-slate-600">{lesson.description}</p>
                                   )}
                                   {lesson.content && (
-                                    <div className="text-sm text-foreground dark:text-white whitespace-pre-wrap bg-white dark:bg-slate-900/50 rounded-lg p-3 border border-border dark:border-slate-700">
+                                    <div className="text-sm text-slate-700 whitespace-pre-wrap bg-white rounded-lg p-3 border border-slate-200">
                                       {lesson.content}
                                     </div>
                                   )}
@@ -406,7 +486,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                       <p className="text-xs font-medium text-foreground dark:text-white mb-2">📦 {lesson.resources.length} {t("mk_course_resources", "tài nguyên")}:</p>
                                       <div className="space-y-1">
                                         {lesson.resources.map((r: any, ri: number) => (
-                                          <p key={ri} className="text-xs text-slate-600 dark:text-slate-400">
+                                          <p key={ri} className="text-xs text-slate-600">
                                             • {typeof r === "string" ? r : r.name ?? r.url ?? JSON.stringify(r)}
                                           </p>
                                         ))}
@@ -424,74 +504,76 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                       })
                     )}
                   </div>
-                </div>
+                </section>
 
                 {/* Reviews */}
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white mb-6">{t("mk_course_reviews_from_students", "Đánh giá từ học viên")}</h2>
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                  <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-6">{t("mk_course_reviews_from_students", "Đánh giá từ học viên")}</h2>
                   
                   {/* Write / Edit Review Section */}
-                  <div className="mb-8">
-                    <PremiumCard>
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-foreground dark:text-white">
-                          {myReview ? t("mk_course_your_review", "Đánh giá của bạn") : t("mk_course_write_your_review", "Ghi đánh giá của bạn")}
-                        </h3>
-                        {myReview && (
-                          <button
-                            onClick={handleDeleteReview}
-                            className="text-xs text-red-500 hover:text-red-600 hover:underline"
-                          >
-                            {t("mk_course_delete_review", "Xóa đánh giá")}
-                          </button>
-                        )}
-                      </div>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-sm text-muted-foreground dark:text-slate-400 mb-2 block">{t("mk_course_rating", "Đánh giá")}</label>
-                          <div className="flex gap-2">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <button
-                                key={star}
-                                onClick={() => setNewReview({ ...newReview, rating: star })}
-                                className="text-2xl transition-transform hover:scale-125"
-                              >
-                                <Star
-                                  size={24}
-                                  className={
-                                    star <= newReview.rating
-                                      ? "fill-yellow-400 text-yellow-400"
-                                      : "text-slate-400"
-                                  }
-                                />
-                              </button>
-                            ))}
-                          </div>
+                  {!isTeacherOwner && (
+                    <div className="mb-8">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-[#0F172A]">
+                            {myReview ? t("mk_course_your_review", "Đánh giá của bạn") : t("mk_course_write_your_review", "Ghi đánh giá của bạn")}
+                          </h3>
+                          {myReview && (
+                            <button
+                              onClick={handleDeleteReview}
+                              className="text-xs text-red-500 hover:text-red-600 hover:underline"
+                            >
+                              {t("mk_course_delete_review", "Xóa đánh giá")}
+                            </button>
+                          )}
                         </div>
-                        <textarea
-                          placeholder={t("mk_course_comment_placeholder", "Chia sẻ trải nghiệm của bạn về khóa học này...")}
-                          value={newReview.comment}
-                          onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                          className="w-full px-4 py-2 rounded-lg bg-background dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white placeholder-slate-500 focus:outline-none focus:border-primary dark:focus:border-accent"
-                          rows={4}
-                        />
-                        {reviewError && (
-                          <p className="text-sm text-red-500">{reviewError}</p>
-                        )}
-                        <button
-                          onClick={handleSubmitReview}
-                          disabled={reviewSubmitting}
-                          className="px-6 py-2 bg-primary dark:bg-accent text-white rounded-lg hover:opacity-90 transition-smooth disabled:opacity-60"
-                        >
-                          {reviewSubmitting
-                            ? t("mk_course_saving", "Đang lưu...")
-                            : myReview
-                              ? t("mk_course_update_review", "Cập nhật đánh giá")
-                              : t("mk_course_send_review", "Gửi đánh giá")}
-                        </button>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-sm text-muted-foreground dark:text-slate-400 mb-2 block">{t("mk_course_rating", "Đánh giá")}</label>
+                            <div className="flex gap-2">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  onClick={() => setNewReview({ ...newReview, rating: star })}
+                                  className="text-2xl transition-transform hover:scale-125"
+                                >
+                                  <Star
+                                    size={24}
+                                    className={
+                                      star <= newReview.rating
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "text-slate-400"
+                                    }
+                                  />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <textarea
+                            placeholder={t("mk_course_comment_placeholder", "Chia sẻ trải nghiệm của bạn về khóa học này...")}
+                            value={newReview.comment}
+                            onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#2563EB]"
+                            rows={4}
+                          />
+                          {reviewError && (
+                            <p className="text-sm text-red-500">{reviewError}</p>
+                          )}
+                          <button
+                            onClick={handleSubmitReview}
+                            disabled={reviewSubmitting}
+                            className="px-6 h-12 bg-gradient-to-r from-[#2563EB] to-[#06B6D4] text-white rounded-xl hover:scale-[1.01] transition-all duration-200 disabled:opacity-60"
+                          >
+                            {reviewSubmitting
+                              ? t("mk_course_saving", "Đang lưu...")
+                              : myReview
+                                ? t("mk_course_update_review", "Cập nhật đánh giá")
+                                : t("mk_course_send_review", "Gửi đánh giá")}
+                          </button>
+                        </div>
                       </div>
-                    </PremiumCard>
-                  </div>
+                    </div>
+                  )}
 
                   {/* Reviews List */}
                   <div className="space-y-4">
@@ -504,10 +586,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                     ) : (
                       reviews.map((review) => (
                         <div key={review.id}>
-                          <PremiumCard>
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
-                                <p className="font-semibold text-foreground dark:text-white">{review.student?.name || t("mk_course_anonymous", "Ẩn danh")}</p>
+                                <p className="font-semibold text-[#0F172A]">{review.student?.name || t("mk_course_anonymous", "Ẩn danh")}</p>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                                   <div className="flex gap-1">
                                     {[...Array(5)].map((_, i) => (
@@ -522,7 +604,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                       />
                                     ))}
                                   </div>
-                                  <span className="text-sm text-muted-foreground dark:text-slate-400">
+                                  <span className="text-sm text-slate-500">
                                     {new Date(review.createdAt).toLocaleDateString(activeLocale)}
                                   </span>
                                   {review.isVerifiedPurchase && (
@@ -531,13 +613,13 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                 </div>
                               </div>
                             </div>
-                            <p className="text-muted-foreground dark:text-slate-300 mb-4">{review.comment}</p>
+                            <p className="text-slate-600 mb-4">{review.comment}</p>
                             {/* Teacher Reply */}
                             {review.teacherReply && (
                               <div>
                                 <button
                                   onClick={() => setExpandedReplies(expandedReplies === review.id ? null : review.id)}
-                                  className="text-sm text-primary dark:text-accent hover:underline transition-smooth"
+                                  className="text-sm text-[#2563EB] hover:underline transition-smooth"
                                 >
                                   {expandedReplies === review.id ? t("mk_course_hide_reply", "Ẩn phản hồi") : t("mk_course_teacher_reply", "Phản hồi từ giảng viên (1)")}
                                 </button>
@@ -548,14 +630,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                       animate={{ opacity: 1, height: "auto" }}
                                       exit={{ opacity: 0, height: 0 }}
                                       transition={{ duration: 0.4, ease: "easeInOut" }}
-                                      className="mt-4 pt-4 border-t border-border dark:border-slate-700"
+                                      className="mt-4 pt-4 border-t border-slate-200"
                                     >
-                                      <div className="bg-slate-50 dark:bg-slate-800/60 rounded-lg p-3 ml-0 sm:ml-4 border border-border dark:border-slate-700"
+                                      <div className="bg-white rounded-lg p-3 ml-0 sm:ml-4 border border-slate-200"
                                       >
-                                        <p className="font-semibold text-sm text-foreground dark:text-white mb-1">{t("teachers_label_instructor", "Giảng viên")}</p>
-                                        <p className="text-sm text-muted-foreground dark:text-slate-300">{review.teacherReply}</p>
+                                        <p className="font-semibold text-sm text-[#0F172A] mb-1">{t("teachers_label_instructor", "Giảng viên")}</p>
+                                        <p className="text-sm text-slate-600">{review.teacherReply}</p>
                                         {review.repliedAt && (
-                                          <span className="text-xs text-muted-foreground dark:text-slate-400 mt-1 block">
+                                          <span className="text-xs text-slate-500 mt-1 block">
                                             {new Date(review.repliedAt).toLocaleDateString(activeLocale)}
                                           </span>
                                         )}
@@ -565,30 +647,78 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                                 </AnimatePresence>
                               </div>
                             )}
-                          </PremiumCard>
+
+                            {isTeacherOwner && !review.teacherReply && (
+                              <div className="mt-4 pt-4 border-t border-slate-200 space-y-3">
+                                {replyingReviewId === review.id ? (
+                                  <>
+                                    <textarea
+                                      value={replyDraftByReview[review.id] || ""}
+                                      onChange={(e) =>
+                                        setReplyDraftByReview((prev) => ({
+                                          ...prev,
+                                          [review.id]: e.target.value,
+                                        }))
+                                      }
+                                      placeholder={t("mk_course_reply_placeholder", "Nhập phản hồi của giảng viên...")}
+                                      className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#2563EB]"
+                                      rows={3}
+                                    />
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={() => handleSubmitTeacherReply(review.id)}
+                                        disabled={replySubmittingReviewId === review.id}
+                                        className="px-4 h-11 bg-gradient-to-r from-[#2563EB] to-[#06B6D4] text-white rounded-xl hover:scale-[1.01] transition-all duration-200 disabled:opacity-60"
+                                      >
+                                        {replySubmittingReviewId === review.id
+                                          ? t("mk_course_saving", "Đang lưu...")
+                                          : t("mk_course_reply_review", "Gửi phản hồi")}
+                                      </button>
+                                      <button
+                                        onClick={() => setReplyingReviewId(null)}
+                                        className="px-4 h-11 rounded-xl border border-slate-300 text-sm text-slate-700"
+                                      >
+                                        {t("mk_course_cancel_reply", "Hủy")}
+                                      </button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setReplyingReviewId(review.id)
+                                      setReplyDraftByReview((prev) => ({ ...prev, [review.id]: prev[review.id] || "" }))
+                                    }}
+                                    className="text-sm text-[#2563EB] hover:underline"
+                                  >
+                                    {t("mk_course_reply_review", "Phản hồi đánh giá")}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))
                     )}
                   </div>
-                </div>
+                </section>
               </div>
 
               {/* Sidebar */}
-              <div className="lg:col-span-1">
-                <PremiumCard className="lg:sticky lg:top-24 space-y-6">
+              <div>
+                <div className="lg:sticky lg:top-24 rounded-[20px] border border-slate-200 bg-white p-5 md:p-6 shadow-lg space-y-6">
                   {/* Price */}
                   <div>
-                    <p className="text-4xl font-bold text-foreground dark:text-white">
+                    <p className="text-4xl font-bold text-[#0F172A]">
                       {formatCurrencyByLanguage(course.price, language)}
                     </p>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">{t("mk_course_feature_lifetime", "Truy cập trọn đời")}</p>
+                    <p className="text-sm text-slate-500 mt-2">{t("mk_course_feature_lifetime", "Truy cập trọn đời")}</p>
                   </div>
 
                   {/* Buttons */}
-                  {!isAdmin && (
+                  {!isPrivilegedViewer && (
                     <>
                       <AnimatedButton
-                        className="w-full"
+                        className="w-full h-12 bg-gradient-to-r from-[#2563EB] to-[#06B6D4] hover:shadow-lg hover:scale-[1.01]"
                         onClick={() => {
                           const checkoutData = {
                             id: course.id,
@@ -613,10 +743,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                       <button
                         onClick={toggleWishlistStatus}
                         disabled={wishLoading}
-                        className={`w-full min-h-11 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 transition-smooth ${
+                        className={`w-full h-12 flex items-center justify-center gap-2 px-6 rounded-xl border-2 transition-all duration-200 hover:-translate-y-0.5 ${
                           isWishlisted
                             ? "border-red-500 bg-red-500/10 text-red-500"
-                            : "border-border dark:border-slate-800 text-foreground dark:text-white hover:border-red-500 dark:hover:bg-slate-800/40"
+                            : "border-slate-200 text-slate-700 hover:border-red-500 hover:bg-red-50"
                         } ${wishLoading ? "opacity-70 cursor-wait" : ""}`}
                       >
                         <Heart size={20} fill={isWishlisted ? "currentColor" : "none"} />
@@ -625,31 +755,31 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                     </>
                   )}
 
-                  {isAdmin && (
-                    <div className="w-full rounded-lg border border-border px-4 py-3 text-sm text-muted-foreground dark:border-slate-800 dark:text-slate-300">
-                      {t("mk_course_admin_view_only", "Admin chỉ có quyền xem khóa học")}
+                  {isPrivilegedViewer && (
+                    <div className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-600 bg-slate-50">
+                      {t("mk_course_teacher_admin_view_only", "Giảng viên và admin chỉ có quyền xem khóa học")}
                     </div>
                   )}
 
-                  <button className="w-full min-h-11 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 border-border dark:border-slate-800 text-foreground dark:text-white hover:border-primary dark:hover:border-accent dark:hover:bg-slate-800/40 transition-smooth">
+                  <button className="w-full h-12 flex items-center justify-center gap-2 px-6 rounded-xl border-2 border-slate-200 text-slate-700 hover:border-[#2563EB] hover:bg-blue-50 transition-all duration-200">
                     <Share2 size={20} />
                     {t("mk_course_share", "Chia sẻ")}
                   </button>
 
                   {/* Features */}
-                  <div className="border-t border-border dark:border-slate-800 pt-6 space-y-3">
+                  <div className="border-t border-slate-200 pt-6 space-y-3">
                     {sidebarFeatures.map(
                       (feature, idx) => (
                         <div key={idx} className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-primary dark:bg-accent flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full bg-[#2563EB] flex items-center justify-center">
                             <span className="text-white text-xs">✓</span>
                           </div>
-                          <span className="text-sm text-foreground dark:text-white">{feature}</span>
+                          <span className="text-sm text-slate-700">{feature}</span>
                         </div>
                       ),
                     )}
                   </div>
-                </PremiumCard>
+                </div>
               </div>
             </div>
           </motion.div>
