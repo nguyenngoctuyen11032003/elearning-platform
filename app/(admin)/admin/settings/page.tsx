@@ -38,7 +38,18 @@ import { UniversalSelect } from "@/components/ui/universal-select"
 
 export default function AdminSettingsPage() {
   const { t, language, setLanguage, supportedLanguages } = useLanguage()
-  const [isDarkMode, setIsDarkMode] = useState(true)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Load dark mode preference from localStorage on mount
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode')
+      if (saved !== null) {
+        return saved === 'true'
+      }
+      // Default to true if no preference saved
+      return true
+    }
+    return true
+  })
   const [isSaving, setIsSaving] = useState(false)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -67,6 +78,15 @@ useEffect(() => {
     return { ...prev, language }
   })
 }, [language])
+
+// Initialize dark mode on mount
+useEffect(() => {
+  if (isDarkMode) {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+  }
+}, [isDarkMode])
 
   const handleSettingChange = (key: string, value: string | boolean) => {
     setSettings((prev) => ({
@@ -522,12 +542,10 @@ if (!settings) return null
                   </div>
                   <button
                     onClick={() => {
-                      setIsDarkMode(!isDarkMode)
-                      if (!isDarkMode) {
-                        document.documentElement.classList.add("dark")
-                      } else {
-                        document.documentElement.classList.remove("dark")
-                      }
+                      const newDarkMode = !isDarkMode
+                      setIsDarkMode(newDarkMode)
+                      // Save preference to localStorage
+                      localStorage.setItem('darkMode', String(newDarkMode))
                     }}
                     className={`w-12 h-6 rounded-full transition-all ${
                       isDarkMode ? "bg-primary dark:bg-accent" : "bg-slate-400"
