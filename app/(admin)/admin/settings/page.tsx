@@ -80,12 +80,11 @@ useEffect(() => {
   })
 }, [language])
 
-<<<<<<< HEAD
 useEffect(() => {
   if (!settings || lastSavedSignature) return
   setLastSavedSignature(JSON.stringify(settings))
 }, [settings, lastSavedSignature])
-=======
+
 // Initialize dark mode on mount
 useEffect(() => {
   if (isDarkMode) {
@@ -94,7 +93,6 @@ useEffect(() => {
     document.documentElement.classList.remove('dark')
   }
 }, [isDarkMode])
->>>>>>> e6988dcc8e546e9004314c9c422038d23e08b603
 
   const handleSettingChange = (key: string, value: string | boolean) => {
     setSettings((prev) => ({
