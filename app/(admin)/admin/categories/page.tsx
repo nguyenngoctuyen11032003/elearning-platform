@@ -264,7 +264,7 @@ useEffect(() => {
     <div className="min-h-screen w-full">
       <div className="w-full max-w-[1400px] mx-auto space-y-6 lg:space-y-8">
         {/* Header with Stats */}
-        <div className="relative overflow-hidden p-5 md:p-7 rounded-3xl animate-fadeIn border border-white/25 dark:border-white/10" style={{ backgroundImage: "url('/image/Categories2.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div className="relative overflow-hidden p-5 md:p-7 rounded-3xl animate-fadeIn border border-white/25 dark:border-white/10" style={{ backgroundImage: "url('/image/bg_students.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
           <div className="absolute inset-0 bg-black/20 dark:bg-black/55 rounded-3xl"></div>
           
