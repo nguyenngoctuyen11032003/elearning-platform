@@ -1,25 +1,25 @@
 "use client"
 
-import { StatCard } from "@/components/ui/stat-card"
-import { TrendingUp, Users, BookOpen, Star } from "lucide-react"
+import { UserAvatar } from "@/components/ui/user-avatar"
+import { TrendingUp, Users, BookOpen, Star, ArrowUpRight, Search } from "lucide-react"
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
+  ComposedChart,
+  CartesianGrid,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
+  Area,
+  BarChart,
+  Bar,
   PieChart,
   Pie,
   Cell,
-  AreaChart,
-  Area,
+  LineChart,
+  Line,
+  Legend,
 } from "recharts"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState, type ComponentType } from "react"
 import { formatPrice, formatNumber } from "@/lib/format"
 import { apiClient } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -28,15 +28,110 @@ import { useLanguage } from "@/lib/i18n/language-context"
 type ChartPoint = { label: string; value: number }
 type PieItem = { name: string; value: number; color?: string }
 type WeeklyPoint = { day: string; revenue: number; target: number }
-type EnrollmentRow = { id: string; studentName: string; courseName: string; createdAt: string; status?: string }
+type EnrollmentRow = {
+  id: string
+  studentName: string
+  courseName: string
+  createdAt: string
+  createdAtRaw: number
+  status?: string
+}
 
-const PIE_COLORS = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#22c55e"]
+type KpiCardProps = {
+  title: string
+  value: string
+  icon: ComponentType<{ className?: string }>
+  trend: string
+  trendData: number[]
+  colorClass: string
+  iconBgClass: string
+}
+
+const PIE_COLORS = ["#22c55e", "#0ea5e9", "#8b5cf6", "#f59e0b", "#ec4899", "#14b8a6"]
+
+function KpiCard({ title, value, icon: Icon, trend, trendData, colorClass, iconBgClass }: KpiCardProps) {
+  return (
+    <article className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.12)] dark:hover:shadow-[0_12px_30px_rgba(2,6,23,0.55)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">{title}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+        </div>
+        <div className={`rounded-xl p-2.5 ${iconBgClass}`}>
+          <Icon className={`h-5 w-5 ${colorClass}`} />
+        </div>
+      </div>
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <p className={`text-xs font-semibold ${colorClass}`}>{trend}</p>
+        <div className="h-10 w-24">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trendData.map((point, idx) => ({ idx, point }))}>
+              <Line
+                type="monotone"
+                dataKey="point"
+                strokeWidth={2}
+                stroke="currentColor"
+                className={colorClass}
+                dot={false}
+                isAnimationActive
+                animationDuration={900}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function ChartSkeleton({ title }: { title: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] animate-pulse">
+      <div className="h-5 w-44 rounded bg-slate-200 dark:bg-slate-700" aria-label={title} />
+      <div className="mt-4 h-[250px] rounded-xl bg-slate-100 dark:bg-slate-800" />
+    </div>
+  )
+}
+
+function TableBadge({ status, t }: { status?: string; t: (key: string, fallback?: string) => string }) {
+  const normalized = String(status || "").toLowerCase()
+
+  if (normalized === "completed") {
+    return (
+      <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+        {t("teacher_dashboard_completed", "Completed")}
+      </span>
+    )
+  }
+
+  if (normalized === "pending") {
+    return (
+      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+        {t("teacher_dashboard_pending", "Pending")}
+      </span>
+    )
+  }
+
+  return (
+    <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+      {t("teacher_dashboard_learning", "�ang h?c")}
+    </span>
+  )
+}
+
+function computeGrowth(series: number[], windowSize: number) {
+  if (!series.length || !windowSize) return 0
+  const current = series.slice(-windowSize).reduce((sum, n) => sum + Number(n || 0), 0)
+  const previous = series.slice(-(windowSize * 2), -windowSize).reduce((sum, n) => sum + Number(n || 0), 0)
+  if (previous <= 0) return current > 0 ? 100 : 0
+  return Math.round(((current - previous) / previous) * 100)
+}
 
 export default function TeacherDashboard() {
-  const [filterPeriod, setFilterPeriod] = useState("month")
   const { user } = useAuth()
   const { language, t } = useLanguage()
 
+  const [filterPeriod, setFilterPeriod] = useState("month")
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
   const [revenueChart, setRevenueChart] = useState<ChartPoint[]>([])
@@ -44,6 +139,8 @@ export default function TeacherDashboard() {
   const [pieData, setPieData] = useState<PieItem[]>([])
   const [weeklyPerformance, setWeeklyPerformance] = useState<WeeklyPoint[]>([])
   const [recentEnrollments, setRecentEnrollments] = useState<EnrollmentRow[]>([])
+  const [searchKeyword, setSearchKeyword] = useState("")
+  const [tablePage, setTablePage] = useState(1)
 
   const localeByLanguage: Record<string, string> = {
     vi: "vi-VN",
@@ -76,7 +173,7 @@ export default function TeacherDashboard() {
         setPieData(
           (dashboard.courseDistribution ?? []).map((item: any, idx: number) => ({
             name: item.name,
-            value: item.value,
+            value: Number(item.value ?? 0),
             color: PIE_COLORS[idx % PIE_COLORS.length],
           }))
         )
@@ -84,13 +181,17 @@ export default function TeacherDashboard() {
         setWeeklyPerformance(Array.isArray(dashboard.weeklyPerformance) ? dashboard.weeklyPerformance : [])
 
         setRecentEnrollments(
-          (dashboard.recentEnrollments ?? []).map((item: any) => ({
-            id: item.id,
-            studentName: item.studentName,
-            courseName: item.courseName,
-            createdAt: new Date(item.createdAt).toLocaleDateString(localeByLanguage[language] || "vi-VN"),
-            status: item.status,
-          }))
+          (dashboard.recentEnrollments ?? []).map((item: any) => {
+            const createdAtDate = new Date(item.createdAt)
+            return {
+              id: item.id,
+              studentName: item.studentName,
+              courseName: item.courseName,
+              createdAt: createdAtDate.toLocaleDateString(localeByLanguage[language] || "vi-VN"),
+              createdAtRaw: createdAtDate.getTime(),
+              status: item.status,
+            }
+          })
         )
       } catch (error) {
         console.error("Teacher dashboard loading error:", error)
@@ -102,42 +203,207 @@ export default function TeacherDashboard() {
     loadDashboard()
   }, [language])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>{t("teacher_dashboard_loading", "Đang tải dữ liệu dashboard...")}</p>
-      </div>
+  const chartWindow = useMemo(() => {
+    const total = Math.max(revenueChart.length, studentChart.length, weeklyPerformance.length)
+    if (!total) return 0
+
+    if (filterPeriod === "day") return 1
+    if (filterPeriod === "week") return Math.min(7, total)
+    if (filterPeriod === "month") {
+      if (total >= 12) return 6
+      return Math.min(total, Math.max(3, Math.floor(total / 2)))
+    }
+    return total
+  }, [filterPeriod, revenueChart.length, studentChart.length, weeklyPerformance.length])
+
+  const filteredRevenueChart = useMemo(() => revenueChart.slice(-chartWindow), [revenueChart, chartWindow])
+  const filteredStudentChart = useMemo(() => studentChart.slice(-chartWindow), [studentChart, chartWindow])
+  const filteredWeeklyPerformance = useMemo(() => weeklyPerformance.slice(-chartWindow), [weeklyPerformance, chartWindow])
+
+  const periodStart = useMemo(() => {
+    const now = new Date()
+    const start = new Date(now)
+    if (filterPeriod === "day") start.setDate(now.getDate() - 1)
+    if (filterPeriod === "week") start.setDate(now.getDate() - 7)
+    if (filterPeriod === "month") start.setMonth(now.getMonth() - 1)
+    if (filterPeriod === "year") start.setFullYear(now.getFullYear() - 1)
+    return start.getTime()
+  }, [filterPeriod])
+
+  const enrollmentsByPeriod = useMemo(
+    () => recentEnrollments.filter((row) => row.createdAtRaw >= periodStart),
+    [recentEnrollments, periodStart]
+  )
+
+  const pieDataByPeriod = useMemo(() => {
+    // If no enrollments in period, use overall pie data
+    if (!enrollmentsByPeriod.length) return pieData
+
+    const counts = new Map<string, number>()
+    for (const row of enrollmentsByPeriod) {
+      const key = row.courseName || "Unknown"
+      counts.set(key, (counts.get(key) || 0) + 1)
+    }
+
+    const periodCourses = Array.from(counts.entries()).map(([name, value], idx) => ({
+      name,
+      value,
+      color: PIE_COLORS[idx % PIE_COLORS.length],
+    }))
+
+    // If period data is significantly less than overall data and we're not in "day" mode,
+    // prefer overall pie data (backend has comprehensive data)
+    if (filterPeriod !== "day" && pieData.length > periodCourses.length * 1.5) {
+      return pieData
+    }
+
+    return periodCourses
+  }, [enrollmentsByPeriod, pieData, filterPeriod])
+
+  const revenueSeries = useMemo(
+    () => filteredRevenueChart.map((item) => ({ month: item.label, revenue: item.value })),
+    [filteredRevenueChart]
+  )
+
+  const studentSeries = useMemo(
+    () => filteredStudentChart.map((item) => ({ month: item.label, students: item.value })),
+    [filteredStudentChart]
+  )
+
+  const revenueGrowthByPeriod = useMemo(
+    () => computeGrowth(revenueChart.map((i) => i.value), Math.max(1, chartWindow)),
+    [revenueChart, chartWindow]
+  )
+
+  const studentGrowthByPeriod = useMemo(
+    () => computeGrowth(studentChart.map((i) => i.value), Math.max(1, chartWindow)),
+    [studentChart, chartWindow]
+  )
+
+  const revenueInPeriod = useMemo(
+    () => filteredRevenueChart.reduce((sum, item) => sum + Number(item.value || 0), 0),
+    [filteredRevenueChart]
+  )
+
+  const studentsInPeriod = useMemo(
+    () => filteredStudentChart.reduce((sum, item) => sum + Number(item.value || 0), 0),
+    [filteredStudentChart]
+  )
+
+  const peakRevenue = useMemo(() => {
+    if (!filteredRevenueChart.length) return null
+    return filteredRevenueChart.reduce((max, item) => (item.value > max.value ? item : max), filteredRevenueChart[0])
+  }, [filteredRevenueChart])
+
+  const totalPie = useMemo(() => pieDataByPeriod.reduce((sum, item) => sum + Number(item.value || 0), 0), [pieDataByPeriod])
+
+  const bestCourse = useMemo(() => {
+    if (!pieDataByPeriod.length) return "-"
+    return [...pieDataByPeriod].sort((a, b) => b.value - a.value)[0]?.name || "-"
+  }, [pieDataByPeriod])
+
+  const mostActiveDay = useMemo(() => {
+    if (!filteredWeeklyPerformance.length) return "-"
+    return [...filteredWeeklyPerformance].sort((a, b) => b.revenue - a.revenue)[0]?.day || "-"
+  }, [filteredWeeklyPerformance])
+
+  const filteredEnrollments = useMemo(() => {
+    const keyword = searchKeyword.trim().toLowerCase()
+    if (!keyword) return enrollmentsByPeriod
+    return enrollmentsByPeriod.filter(
+      (row) =>
+        row.studentName?.toLowerCase().includes(keyword) ||
+        row.courseName?.toLowerCase().includes(keyword)
     )
-  }
+  }, [enrollmentsByPeriod, searchKeyword])
+
+  const pageSize = 6
+  const totalPages = Math.max(1, Math.ceil(filteredEnrollments.length / pageSize))
+
+  useEffect(() => {
+    setTablePage(1)
+  }, [searchKeyword, filterPeriod])
+
+  useEffect(() => {
+    if (tablePage > totalPages) setTablePage(totalPages)
+  }, [tablePage, totalPages])
+
+  const pagedEnrollments = useMemo(() => {
+    const start = (tablePage - 1) * pageSize
+    return filteredEnrollments.slice(start, start + pageSize)
+  }, [filteredEnrollments, tablePage])
+
+  const kpiCards: KpiCardProps[] = [
+    {
+      title: t("teacher_dashboard_total_revenue", "T?ng doanh thu"),
+      value: `VND ${formatPrice(Number(revenueInPeriod ?? 0))}`,
+      icon: TrendingUp,
+      trend: `${revenueGrowthByPeriod >= 0 ? "+" : ""}${revenueGrowthByPeriod}% ${t("teacher_dashboard_vs_previous", "vs k? tru?c")}`,
+      trendData: filteredRevenueChart.map((item) => item.value),
+      colorClass: "text-emerald-500",
+      iconBgClass: "bg-emerald-100 dark:bg-emerald-900/30",
+    },
+    {
+      title: t("teacher_dashboard_students", "H?c vi�n"),
+      value: formatNumber(Number(studentsInPeriod ?? 0)),
+      icon: Users,
+      trend: `${studentGrowthByPeriod >= 0 ? "+" : ""}${studentGrowthByPeriod}% ${t("teacher_dashboard_vs_previous", "vs k? tru?c")}`,
+      trendData: filteredStudentChart.map((item) => item.value),
+      colorClass: "text-sky-500",
+      iconBgClass: "bg-sky-100 dark:bg-sky-900/30",
+    },
+    {
+      title: t("teacher_dashboard_courses", "Kh�a h?c"),
+      value: formatNumber(Number(pieDataByPeriod.length || 0)),
+      icon: BookOpen,
+      trend: `${enrollmentsByPeriod.length} ${t("teacher_dashboard_enrollments", "enrollments")}`,
+      trendData: [8, 9, 10, 12, 11, 12, 14],
+      colorClass: "text-violet-500",
+      iconBgClass: "bg-violet-100 dark:bg-violet-900/30",
+    },
+    {
+      title: t("teacher_dashboard_average_rating", "��nh gi�"),
+      value: `${Number(stats?.averageRating ?? 0).toFixed(1)}*`,
+      icon: Star,
+      trend: `${t("teacher_dashboard_from", "T?")} ${formatNumber(Number(stats?.totalStudents ?? 0))} ${t("teacher_dashboard_students", "h?c vi�n")}`,
+      trendData: [4.2, 4.3, 4.4, 4.4, 4.6, 4.7, 4.8],
+      colorClass: "text-amber-500",
+      iconBgClass: "bg-amber-100 dark:bg-amber-900/30",
+    },
+  ]
 
   return (
     <div className="min-h-screen w-full">
-      <div className="w-full space-y-6 md:space-y-8">
-        {/* Stats with Header */}
-        <div className="relative overflow-hidden rounded-3xl p-4 sm:p-6 lg:p-8 animate-fadeIn" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-          {/* Overlay for better readability */}
-          <div className="absolute inset-0 bg-black/15 dark:bg-black/45 rounded-3xl"></div>
-          
-          <div className="relative z-10 space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("teacher_dashboard_welcome", "Chào mừng")}, {user?.name || t("role_teacher", "Giáo viên")}</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("teacher_dashboard_overview", "Tổng quan hoạt động của bạn")}</p>
+      <div className="space-y-8">
+        <header className="relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-gradient-to-br from-sky-500/20 via-cyan-500/10 to-indigo-500/15 dark:from-sky-900/25 dark:via-cyan-900/15 dark:to-indigo-900/20 p-6 md:p-8 shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+          <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-cyan-400/20 blur-3xl" />
+          <div className="absolute -bottom-8 left-10 h-32 w-32 rounded-full bg-sky-500/15 blur-3xl" />
+          <div className="relative grid grid-cols-1 gap-5 lg:grid-cols-10 lg:items-center">
+            <div className="lg:col-span-7">
+              <div className="flex items-center gap-3">
+                <UserAvatar src={user?.avatar} name={user?.name || t("role_teacher", "Teacher")} size="md" />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">Teacher</p>
+                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t("teacher_dashboard_welcome", "Ch�o m?ng")}, {user?.name || t("role_teacher", "Gi�o vi�n")}</h1>
+                </div>
               </div>
-              <div className="flex gap-2 flex-wrap">
+              <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">{t("teacher_dashboard_overview", "T?ng quan ho?t d?ng gi?ng d?y, doanh thu v� tuong t�c h?c vi�n c?a b?n")}</p>
+            </div>
+            <div className="lg:col-span-3">
+              <div className="flex w-full rounded-xl bg-white/60 p-1 shadow-inner backdrop-blur-md dark:bg-slate-900/55">
                 {[
-                  { value: "day", label: t("period_day", "Ngày") },
-                  { value: "week", label: t("period_week", "Tuần") },
-                  { value: "month", label: t("period_month", "Tháng") },
-                  { value: "year", label: t("period_year", "Năm") },
+                  { value: "day", label: t("period_day", "Ng�y") },
+                  { value: "week", label: t("period_week", "Tu?n") },
+                  { value: "month", label: t("period_month", "Th�ng") },
+                  { value: "year", label: t("period_year", "Nam") },
                 ].map((period) => (
                   <button
                     key={period.value}
                     onClick={() => setFilterPeriod(period.value)}
-                    className={`px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
+                    className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-[0.98] ${
                       filterPeriod === period.value
-                        ? "bg-white text-primary shadow-lg"
-                        : "bg-white/30 dark:bg-white/20 text-slate-900 dark:text-white hover:bg-white/45"
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-[0_8px_18px_rgba(59,130,246,0.35)]"
+                        : "text-slate-700 hover:bg-white/70 dark:text-slate-200 dark:hover:bg-slate-800/70"
                     }`}
                   >
                     {period.label}
@@ -145,330 +411,270 @@ export default function TeacherDashboard() {
                 ))}
               </div>
             </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <StatCard
-                  icon={TrendingUp}
-                  title={t("teacher_dashboard_total_revenue", "Tổng doanh thu")}
-                  value={Number(stats?.totalRevenue ?? 0)}
-                  formatter={(val) => `₫${formatPrice(val)}`}
-                  change={`+${stats?.revenueGrowth ?? 0}% ${t("teacher_dashboard_vs_previous", "so với kỳ trước")}`}
-                />
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <StatCard
-                  icon={Users}
-                  title={t("teacher_dashboard_students", "Học viên")}
-                  value={stats?.totalStudents ?? 0}
-                  formatter={formatNumber}
-                  change={`+${stats?.studentGrowth ?? 0}% ${t("teacher_dashboard_vs_previous", "so với kỳ trước")}`}
-                />
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <StatCard
-                  icon={BookOpen}
-                  title={t("teacher_dashboard_courses", "Khóa học")}
-                  value={stats?.totalCourses ?? 0}
-                  formatter={formatNumber}
-                  change={t("teacher_dashboard_active_courses", "Số khóa đang hoạt động")}
-                />
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <StatCard
-                  icon={Star}
-                  title={t("teacher_dashboard_average_rating", "Đánh giá trung bình")}
-                  value={Number(stats?.averageRating ?? 0)}
-                  decimals={1}
-                  suffix="★"
-                  change={`${t("teacher_dashboard_from", "Từ")} ${formatNumber(stats?.totalStudents ?? 0)} ${t("teacher_dashboard_students", "học viên")}`}
-                />
-              </div>
-            </div>
           </div>
-        </div>
+        </header>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Revenue Chart */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("teacher_dashboard_revenue", "Doanh thu")}</h3>
-            {revenueChart.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">{t("teacher_dashboard_no_revenue", "Chưa có dữ liệu doanh thu")}</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={revenueChart.map(item => ({ month: item.label, revenue: item.value }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="month" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1e293b",
-                      border: "1px solid #334155",
-                      borderRadius: "8px",
-                    }}
-                    formatter={(value) => [`₫${formatPrice(Number(value ?? 0))}`, ""]}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#2563eb"
-                    strokeWidth={2}
-                    dot={{ fill: "#2563eb" }}
-                    isAnimationActive
-                    animationDuration={900}
-                    animationEasing="ease-out"
-                    name={t("teacher_dashboard_revenue", "Doanh thu")}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </div>
+        <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {kpiCards.map((card) => (
+            <KpiCard key={card.title} {...card} />
+          ))}
+        </section>
 
-          {/* Student Growth Chart */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("teacher_dashboard_new_students", "Học viên mới")}</h3>
-            {studentChart.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">{t("teacher_dashboard_no_students", "Chưa có dữ liệu học viên")}</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={studentChart.map(item => ({ month: item.label, students: item.value }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="month" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1e293b",
-                      border: "1px solid #334155",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Legend />
-                  <Bar
-                    dataKey="students"
-                    fill="#06b6d4"
-                    name={t("teacher_dashboard_new_students", "Học viên mới")}
-                    radius={[8, 8, 0, 0]}
-                    isAnimationActive
-                    animationDuration={900}
-                    animationEasing="ease-out"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          {loading ? (
+            <>
+              <div className="lg:col-span-6"><ChartSkeleton title="Revenue chart" /></div>
+              <div className="lg:col-span-6"><ChartSkeleton title="Student chart" /></div>
+            </>
+          ) : (
+            <>
+              <article className="lg:col-span-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">{t("teacher_dashboard_revenue", "Doanh thu")}</h3>
+                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                    {peakRevenue ? `${t("teacher_dashboard_peak_month", "Peak")}: ${peakRevenue.label}` : "-"}
+                  </span>
+                </div>
+                {revenueSeries.length === 0 ? (
+                  <p className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">{t("teacher_dashboard_no_revenue", "Chua c� d? li?u doanh thu")}</p>
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height={270}>
+                      <ComposedChart data={revenueSeries}>
+                        <defs>
+                          <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.35} />
+                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0.02} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.35} />
+                        <XAxis dataKey="month" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: 12,
+                            border: "1px solid rgba(148,163,184,0.25)",
+                            backgroundColor: "rgba(15,23,42,0.92)",
+                            color: "#fff",
+                          }}
+                          formatter={(value) => [`?${formatPrice(Number(value || 0))}`, t("teacher_dashboard_revenue", "Doanh thu")]}
+                        />
+                        <Area type="monotone" dataKey="revenue" stroke="none" fill="url(#revenueFill)" />
+                        <Line type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={3} dot={{ r: 3 }} isAnimationActive animationDuration={900} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                    <p className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                      <ArrowUpRight className="h-4 w-4" />
+                      {revenueGrowthByPeriod >= 0 ? "+" : ""}{revenueGrowthByPeriod}% {t("teacher_dashboard_vs_previous", "vs last month")}
+                    </p>
+                  </>
+                )}
+              </article>
 
-        {/* Additional Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Pie Chart - Course Distribution */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("teacher_dashboard_course_distribution", "Phân bố khóa học")}</h3>
-            {pieData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">{t("teacher_dashboard_no_courses", "Chưa có dữ liệu khóa học")}</p>
+              <article className="lg:col-span-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+                <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">{t("teacher_dashboard_new_students", "H?c vi�n m?i")}</h3>
+                {studentSeries.length === 0 ? (
+                  <p className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">{t("teacher_dashboard_no_students", "Chua c� d? li?u h?c vi�n")}</p>
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height={270}>
+                      <BarChart data={studentSeries}>
+                        <defs>
+                          <linearGradient id="studentGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.95} />
+                            <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.7} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.35} />
+                        <XAxis dataKey="month" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: 12,
+                            border: "1px solid rgba(148,163,184,0.25)",
+                            backgroundColor: "rgba(15,23,42,0.92)",
+                            color: "#fff",
+                          }}
+                        />
+                        <Bar dataKey="students" fill="url(#studentGradient)" radius={[10, 10, 0, 0]} isAnimationActive animationDuration={900} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <p className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-sky-600 dark:text-sky-400">
+                      <ArrowUpRight className="h-4 w-4" />
+                      {studentGrowthByPeriod >= 0 ? "+" : ""}{studentGrowthByPeriod}% {t("teacher_dashboard_vs_previous", "vs last month")}
+                    </p>
+                  </>
+                )}
+              </article>
+            </>
+          )}
+        </section>
+
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <article className="lg:col-span-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+            <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">{t("teacher_dashboard_course_distribution", "Ph�n b? kh�a h?c")}</h3>
+            {pieDataByPeriod.length === 0 ? (
+              <p className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">{t("teacher_dashboard_no_courses", "Chua c� d? li?u kh�a h?c")}</p>
             ) : (
               <>
-                <ResponsiveContainer width="100%" height={280}>
+                <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
                     <Pie
-                      data={pieData}
+                      data={pieDataByPeriod}
+                      dataKey="value"
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={3}
-                      dataKey="value"
+                      outerRadius={90}
+                      innerRadius={55}
+                      label={(entry) => {
+                        const percentage = totalPie ? Math.round((Number(entry.value || 0) / totalPie) * 100) : 0
+                        return `${percentage}%`
+                      }}
                       labelLine={false}
                       isAnimationActive
                       animationDuration={900}
-                      animationEasing="ease-out"
                     >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color || PIE_COLORS[index % PIE_COLORS.length]} />
+                      {pieDataByPeriod.map((entry, idx) => (
+                        <Cell key={`${entry.name}-${idx}`} fill={entry.color || PIE_COLORS[idx % PIE_COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip
+                      formatter={(value, name) => [`${Number(value || 0)}`, String(name || "")]}
                       contentStyle={{
-                        backgroundColor: "#1e293b",
-                        border: "1px solid #334155",
-                        borderRadius: "8px",
-                        color: "#fff"
+                        borderRadius: 12,
+                        border: "1px solid rgba(148,163,184,0.25)",
+                        backgroundColor: "rgba(15,23,42,0.92)",
+                        color: "#fff",
                       }}
-                      itemStyle={{ color: "#fff" }}
-                      formatter={(value, name) => [`${Number(value ?? 0)}`, String(name ?? "")]}
                     />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                  {pieData.map((item, index) => (
-                    <div key={index} className="flex items-center gap-1.5 text-xs">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color || PIE_COLORS[index % PIE_COLORS.length] }} />
-                      <span className="text-muted-foreground dark:text-slate-400">{item.name}</span>
-                    </div>
-                  ))}
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {pieDataByPeriod.map((item, idx) => {
+                    const percentage = totalPie ? Math.round((Number(item.value || 0) / totalPie) * 100) : 0
+                    return (
+                      <div key={item.name} className="flex items-center justify-between rounded-lg bg-slate-100/80 dark:bg-slate-800/70 px-3 py-2 text-xs">
+                        <span className="inline-flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color || PIE_COLORS[idx % PIE_COLORS.length] }} />
+                          {item.name}
+                        </span>
+                        <span className="font-semibold text-slate-900 dark:text-white">{percentage}%</span>
+                      </div>
+                    )
+                  })}
                 </div>
               </>
             )}
-          </div>
+          </article>
 
-          {/* Area Chart - Weekly Performance */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 animate-fadeIn">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("teacher_dashboard_weekly_performance", "Hiệu suất tuần này")}</h3>
-            {weeklyPerformance.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">{t("teacher_dashboard_no_weekly", "Chưa có dữ liệu tuần này")}</p>
+          <article className="lg:col-span-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+            <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">{t("teacher_dashboard_weekly_performance", "Hi?u su?t tu?n n�y")}</h3>
+            {filteredWeeklyPerformance.length === 0 ? (
+              <p className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">{t("teacher_dashboard_no_weekly", "Chua c� d? li?u tu?n n�y")}</p>
             ) : (
               <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={weeklyPerformance}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <LineChart data={filteredWeeklyPerformance}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.35} />
                   <XAxis dataKey="day" stroke="#94a3b8" />
                   <YAxis stroke="#94a3b8" />
                   <Tooltip
+                    formatter={(value) => [`?${formatPrice(Number(value || 0))}`, ""]}
                     contentStyle={{
-                      backgroundColor: "#1e293b",
-                      border: "1px solid #334155",
-                      borderRadius: "8px",
-                      color: "#fff"
+                      borderRadius: 12,
+                      border: "1px solid rgba(148,163,184,0.25)",
+                      backgroundColor: "rgba(15,23,42,0.92)",
+                      color: "#fff",
                     }}
-                    formatter={(value) => [`₫${formatPrice(Number(value ?? 0))}`, ""]}
                   />
                   <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#2563eb"
-                    fillOpacity={1}
-                    fill="url(#colorRevenue)"
-                    name={t("teacher_dashboard_actual", "Thực tế")}
-                    isAnimationActive
-                    animationDuration={900}
-                    animationEasing="ease-out"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="target"
-                    stroke="#ef4444"
-                    fillOpacity={1}
-                    fill="url(#colorTarget)"
-                    name={t("teacher_dashboard_target", "Mục tiêu")}
-                    isAnimationActive
-                    animationDuration={900}
-                    animationEasing="ease-out"
-                  />
-                </AreaChart>
+                  <Line type="monotone" dataKey="revenue" name={t("teacher_dashboard_actual", "Actual")} stroke="#2563eb" strokeWidth={3} dot={{ r: 3 }} isAnimationActive animationDuration={900} />
+                  <Line type="monotone" dataKey="target" name={t("teacher_dashboard_target", "Target")} stroke="#f97316" strokeWidth={2.5} strokeDasharray="7 6" dot={false} isAnimationActive animationDuration={900} />
+                </LineChart>
               </ResponsiveContainer>
             )}
-          </div>
-        </div>
+          </article>
+        </section>
 
-        {/* Recent Enrollments - Mobile: Cards, Desktop: Table */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-          <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("teacher_dashboard_recent_enrollments", "Đăng ký gần đây")}</h3>
-          {/* Mobile: Cards */}
-          <div className="block md:hidden">
-            {recentEnrollments.length === 0 ? (
-              <div className="py-4 text-center text-muted-foreground">{t("teacher_dashboard_no_enrollments", "Chưa có đăng ký nào")}</div>
-            ) : (
-              <div className="grid grid-cols-1 gap-6">
-                {recentEnrollments.map((enrollment) => (
-                  <div
-                    key={enrollment.id}
-                    className="border border-border dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-900 shadow-sm flex flex-col gap-2 animate-fadeIn"
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
-                        {enrollment.studentName?.charAt(0) || "?"}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-foreground dark:text-white text-base">{enrollment.studentName}</div>
-                        <div className="text-xs text-muted-foreground dark:text-slate-400">{enrollment.courseName}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_dashboard_enrolled_date", "Ngày đăng ký")}: </span>
-                      <span className="text-sm text-foreground dark:text-white">{enrollment.createdAt}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_dashboard_status", "Trạng thái")}: </span>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          enrollment.status === "completed"
-                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                            : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                        }`}
-                      >
-                        {enrollment.status === "completed" ? t("teacher_dashboard_completed", "Hoàn thành") : t("teacher_dashboard_learning", "Đang học")}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        <section className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t("teacher_dashboard_insights", "Insights")}</h3>
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 p-3 text-sm font-medium text-emerald-700 dark:text-emerald-300">{revenueGrowthByPeriod >= 0 ? "+" : ""}{revenueGrowthByPeriod}% {t("teacher_dashboard_vs_previous", "vs last month")}</div>
+            <div className="rounded-xl bg-violet-50 dark:bg-violet-900/20 p-3 text-sm font-medium text-violet-700 dark:text-violet-300">{t("teacher_dashboard_best_course", "Best performing course")}: {bestCourse}</div>
+            <div className="rounded-xl bg-sky-50 dark:bg-sky-900/20 p-3 text-sm font-medium text-sky-700 dark:text-sky-300">{t("teacher_dashboard_most_active_day", "Most active day")}: {mostActiveDay}</div>
           </div>
-          {/* Desktop: Table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
+        </section>
+
+        <section className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <h3 className="font-semibold text-slate-900 dark:text-white">{t("teacher_dashboard_recent_enrollments", "Recent enrollments")}</h3>
+            <div className="relative w-full md:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                placeholder={t("teacher_dashboard_search_students", "Search student or course")}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 py-2 pl-9 pr-3 text-sm text-slate-800 dark:text-slate-100 outline-none transition focus:border-primary/60"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
-                <tr className="border-b border-border dark:border-slate-800">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">
-                    {t("teacher_dashboard_students", "Học viên")}
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">
-                    {t("teacher_dashboard_courses", "Khóa học")}
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">
-                    {t("teacher_dashboard_enrolled_date", "Ngày đăng ký")}
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">
-                    {t("teacher_dashboard_status", "Trạng thái")}
-                  </th>
+                <tr className="border-b border-slate-200 dark:border-slate-800">
+                  <th className="px-4 py-3 text-left font-medium text-slate-500 dark:text-slate-400">{t("teacher_dashboard_students", "H?c vi�n")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-slate-500 dark:text-slate-400">{t("teacher_dashboard_courses", "Kh�a h?c")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-slate-500 dark:text-slate-400">{t("teacher_dashboard_enrolled_date", "Ng�y dang k�")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-slate-500 dark:text-slate-400">{t("teacher_dashboard_status", "Tr?ng th�i")}</th>
                 </tr>
               </thead>
               <tbody>
-                {recentEnrollments.length === 0 ? (
+                {pagedEnrollments.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-4 text-center text-muted-foreground">
-                      {t("teacher_dashboard_no_enrollments", "Chưa có đăng ký nào")}
-                    </td>
+                    <td colSpan={4} className="px-4 py-10 text-center text-slate-500 dark:text-slate-400">{t("teacher_dashboard_no_enrollments", "Chua c� dang k� n�o")}</td>
                   </tr>
                 ) : (
-                  recentEnrollments.map((enrollment) => (
-                    <tr
-                      key={enrollment.id}
-                      className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
-                    >
-                      <td className="py-3 px-4 text-foreground dark:text-white">{enrollment.studentName}</td>
-                      <td className="py-3 px-4 text-foreground dark:text-white">{enrollment.courseName}</td>
-                      <td className="py-3 px-4 text-muted-foreground dark:text-slate-400">{enrollment.createdAt}</td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            enrollment.status === "completed"
-                              ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                              : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                          }`}
-                        >
-                        {enrollment.status === "completed" ? t("teacher_dashboard_completed", "Hoàn thành") : t("teacher_dashboard_learning", "Đang học")}
-                        </span>
+                  pagedEnrollments.map((enrollment) => (
+                    <tr key={enrollment.id} className="border-b border-slate-200/70 dark:border-slate-800 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <UserAvatar src={undefined} name={enrollment.studentName} size="sm" />
+                          <span className="font-medium text-slate-800 dark:text-slate-100">{enrollment.studentName}</span>
+                        </div>
                       </td>
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-200">{enrollment.courseName}</td>
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{enrollment.createdAt}</td>
+                      <td className="px-4 py-3"><TableBadge status={enrollment.status} t={t} /></td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+
+          <div className="mt-4 flex items-center justify-between">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {filteredEnrollments.length} {t("teacher_dashboard_results", "results")}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setTablePage((prev) => Math.max(1, prev - 1))}
+                disabled={tablePage <= 1}
+                className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 disabled:opacity-40"
+              >
+                {t("common_prev", "Prev")}
+              </button>
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{tablePage}/{totalPages}</span>
+              <button
+                onClick={() => setTablePage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={tablePage >= totalPages}
+                className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 disabled:opacity-40"
+              >
+                {t("common_next", "Next")}
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   )

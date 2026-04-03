@@ -60,6 +60,7 @@ export default function AdminSettingsPage() {
   const { setConfig } = useSystemConfig()
 const [settings, setSettings] = useState<SystemSettings | null>(null)
 
+// Load config khi component mount hoặc khi branding tab được mở
 useEffect(() => {
   if (config && !settings) {
     setSettings({
@@ -67,9 +68,19 @@ useEffect(() => {
       ...config,
       language: config.language,
     })
+    // Nếu có logo từ server, set preview
+    if (config.site_logo) {
+      setLogoPreview(config.site_logo)
+    }
   }
 // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [config])
+
+// Khi component mount, load config từ server để lấy logo mới nhất
+useEffect(() => {
+  refresh()
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [])
 
 useEffect(() => {
   setSettings((prev) => {
@@ -470,9 +481,9 @@ if (!settings) return null
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-3">{t("adm_set_logo", "Logo")}</label>
                   <div className="flex items-center gap-4">
                     <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-700 border-2 border-border dark:border-slate-600 flex items-center justify-center">
-                      {logoPreview ? (
+                      {logoPreview || settings.site_logo ? (
                         <img
-                          src={logoPreview}
+                          src={logoPreview || settings.site_logo}
                           alt="Logo preview"
                           className="w-full h-full object-cover object-center"
                         />
@@ -483,7 +494,7 @@ if (!settings) return null
                         </div>
                       )}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 space-y-2">
                       <label className="block">
                         <span className="sr-only">{t("adm_set_choose_logo", "Chọn logo")}</span>
                         <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
@@ -499,6 +510,17 @@ if (!settings) return null
                           {t("adm_set_upload_logo", "Tải lên logo")}
                         </button>
                       </label>
+                      <button
+                        onClick={() => {
+                          if (settings.site_logo) {
+                            setLogoPreview(settings.site_logo)
+                            toast.success(t("adm_set_logo_reloaded", "Logo đã được reload"))
+                          }
+                        }}
+                        className="px-4 py-2 bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg transition-smooth font-medium text-sm"
+                      >
+                        {t("adm_set_reload_logo", "Reload logo hiện tại")}
+                      </button>
                       <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">PNG, JPG (Max 2MB)</p>
                     </div>
                   </div>
