@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
 const EMPTY_SENTINEL = "__UNIVERSAL_SELECT_EMPTY__"
 
@@ -116,13 +117,19 @@ export function UniversalSelect({
         <SelectTrigger id={id} className={className} title={title}>
           <SelectValue>{selected?.label ?? ""}</SelectValue>
         </SelectTrigger>
-        <SelectContent className={contentClassName} portalled={portalled}>
+        <SelectContent
+          className={cn(
+            "!bg-white !text-slate-800 !border-slate-200 [&_[data-slot=select-item]]:!bg-white [&_[data-slot=select-item]]:!text-slate-800",
+            contentClassName,
+          )}
+          portalled={portalled}
+        >
           {options.map((option) => (
             <SelectItem
               key={`${option.value || "empty"}-${option.label}`}
               value={normalizeOptionValue(option.value)}
               disabled={option.disabled}
-              className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+              className="!bg-white !text-[#1f2937] transition-all duration-200 ease-out hover:!bg-[#f3f4f6] hover:!text-[#111827] data-[highlighted]:!bg-[#f3f4f6] data-[highlighted]:!text-[#111827] focus-visible:!bg-[#f3f4f6] focus-visible:!text-[#111827] data-[state=checked]:!bg-[#e5e7eb] data-[state=checked]:!text-[#111827] data-[state=checked]:font-medium active:!bg-[#e5e7eb] active:!text-[#111827]"
             >
               {option.label}
             </SelectItem>
