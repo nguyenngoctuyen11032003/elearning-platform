@@ -448,7 +448,7 @@ export default function AdminTeacherSubscriptionPage() {
   return (
     <div className="space-y-6 md:space-y-8">
       <section
-        className="relative overflow-hidden rounded-3xl border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] text-white"
+        className="relative overflow-hidden rounded-3xl p-8 lg:p-10 animate-fadeIn border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl"
         style={{
           backgroundImage: "url('/image/bg_qli_gv%20(2).png')",
           backgroundSize: "cover",
@@ -456,85 +456,106 @@ export default function AdminTeacherSubscriptionPage() {
           backgroundRepeat: "no-repeat",
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/45 via-slate-900/30 to-slate-900/45 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-900/80" />
-        <div className="relative grid gap-4 md:gap-6 p-4 sm:p-6 md:p-8 lg:grid-cols-[1.3fr_1fr] items-start">
-          <div className="space-y-4 max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-emerald-100 border border-white/10 leading-none">
-              <ShieldCheck size={14} className="shrink-0" /> {t("adm_sub_payment_center", "Quản lý thanh toán")}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-900/80" />
+
+        <div className="relative z-10 space-y-6">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="space-y-3 animate-slideDown" style={{ animationDelay: "0.1s" }}>
+              <div className="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold uppercase tracking-wide rounded-full bg-white/80 text-primary shadow-sm backdrop-blur">
+                {t("adm_sub_plan_management", "Quản lý gói")}
+              </div>
+              <div className="space-y-2">
+                <h1 className="text-3xl lg:text-4xl font-bold text-white drop-shadow-lg">{t("adm_sub_title", "Quản lý gói & truy cập giảng viên")}</h1>
+                <p className="text-base text-white/85 max-w-2xl drop-shadow">{t("adm_sub_desc", "Theo dõi giao dịch, doanh thu và quyền truy cập giảng viên trong một bảng điều khiển duy nhất.")}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="px-3 py-1 rounded-full bg-white/90 text-primary text-sm font-semibold shadow-sm backdrop-blur">
+                  {t("adm_sub_total_tx", "Tổng giao dịch")}: <AnimatedNumber value={metrics.totalTransactions} formatter={formatNumber} />
+                </span>
+                <span className="px-3 py-1 rounded-full bg-black/15 text-white text-sm font-medium backdrop-blur">
+                  {t("adm_sub_live_sync", "Đồng bộ gần nhất")}
+                  {lastSyncedAt ? ` • ${lastSyncedAt.toLocaleTimeString("vi-VN")}` : ""}
+                </span>
+              </div>
             </div>
-            <div className="space-y-2">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">{t("adm_sub_title", "Quản lý gói & thanh toán giảng viên")}</h1>
-              <p className="text-slate-200/90 text-sm md:text-base leading-relaxed">{t("adm_sub_desc", "Theo dõi giao dịch, doanh thu và quyền truy cập giảng viên trong một bảng điều khiển duy nhất.")}</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
+
+            <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center gap-3 animate-slideDown" style={{ animationDelay: "0.2s" }}>
               <button
                 onClick={exportPayments}
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-white/90 px-4 text-sm font-semibold text-primary shadow-lg backdrop-blur hover:shadow-xl"
+                className="inline-flex h-10 items-center gap-2 px-4 rounded-xl bg-white/90 text-primary text-sm font-semibold shadow-lg hover:shadow-xl transition-smooth backdrop-blur"
               >
                 <FileText size={16} /> {t("adm_sub_export", "Xuất báo cáo")}
               </button>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/15 px-4 py-2 text-sm text-white">
-                <CreditCard size={16} /> {t("adm_sub_tx_code", "Mã thanh toán")}: <span className="font-semibold">{metrics.latestTransactionId}</span>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 rounded-full bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-200 text-xs font-semibold">
+                  {t("adm_sub_tx_success", "Giao dịch thành công")}: <AnimatedNumber value={metrics.successCount} formatter={formatNumber} />
+                </span>
+                <span className="px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200 text-xs font-semibold">
+                  {t("adm_sub_pending", "Đang chờ xử lý")}: <AnimatedNumber value={metrics.pendingAmount} formatter={formatNumber} prefix="₫" />
+                </span>
+                <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 text-xs font-semibold">
+                  {t("adm_sub_paid_users", "Người dùng trả phí")}: <AnimatedNumber value={displayPaidUsers} formatter={formatNumber} />
+                </span>
               </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
-              {[{
-                key: "totalRevenue",
-                title: t("adm_sub_total_revenue", "Tổng doanh thu"),
-                value: <AnimatedNumber value={displayTotalRevenue} formatter={formatNumber} prefix="₫" />,
-                icon: <Wallet size={16} />, tone: "from-emerald-500/25 to-emerald-400/20 border-emerald-300/60"
-              }, {
-                key: "monthlyRevenue",
-                title: t("adm_sub_monthly_revenue", "Doanh thu tháng"),
-                value: <AnimatedNumber value={displayMonthlyRevenue} formatter={formatNumber} prefix="₫" />,
-                icon: <BarChart3 size={16} />, tone: "from-sky-500/25 to-sky-400/20 border-sky-300/60"
-              }, {
-                key: "paidUsers",
-                title: t("adm_sub_paid_users", "Người dùng trả phí"),
-                value: <AnimatedNumber value={displayPaidUsers} formatter={formatNumber} />,
-                icon: <CheckCircle2 size={16} />, tone: "from-indigo-500/25 to-indigo-400/20 border-indigo-300/60"
-              }, {
-                key: "conversionRate",
-                title: t("adm_sub_conversion", "Tỉ lệ chuyển đổi"),
-                value: <AnimatedNumber value={displayConversionRate} decimals={1} suffix="%" />,
-                icon: <ArrowRight size={16} />, tone: "from-violet-500/25 to-violet-400/20 border-violet-300/60"
-              }].map((card) => (
-                <div key={card.title} className={`rounded-2xl border bg-gradient-to-br ${card.tone} p-2.5 sm:p-3 lg:p-4 shadow-sm backdrop-blur transition-all duration-700 ${isOverviewChanged(card.key) ? "ring-2 ring-emerald-300/40 border-emerald-300/80" : ""}`}> 
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] sm:text-xs font-semibold text-white/80 leading-tight">{card.title}</p>
-                    <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white/80 shrink-0">{card.icon}</div>
-                  </div>
-                  <p className="text-xl sm:text-2xl md:text-3xl font-bold mt-2">{card.value}</p>
-                  <MetricTrendBadge trend={getOverviewTrend(card.key)} />
-                </div>
-              ))}
             </div>
           </div>
 
-          <div className="space-y-3 rounded-2xl border border-white/15 bg-white/5 p-3 sm:p-4 backdrop-blur">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm text-slate-100/90">{t("adm_sub_payment_status", "Trạng thái thanh toán")}</p>
-              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-100 bg-white/5 px-2.5 py-1 rounded-full border border-white/10 leading-none">
-                <CreditCard size={12} />{t("adm_sub_tx_code", "Mã thanh toán")}: <span className="font-semibold">{metrics.latestTransactionId}</span>
-              </span>
+          <div className="rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/20 dark:bg-white/5 backdrop-blur-xl p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)] space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                {
+                  key: "totalRevenue",
+                  label: t("adm_sub_total_revenue", "Tổng doanh thu"),
+                  value: displayTotalRevenue,
+                  formatter: (val: number) => `₫${formatNumber(val)}`,
+                  tone: "from-green-200/40 to-emerald-100/30",
+                  icon: Wallet,
+                },
+                {
+                  key: "monthlyRevenue",
+                  label: t("adm_sub_monthly_revenue", "Doanh thu tháng"),
+                  value: displayMonthlyRevenue,
+                  formatter: (val: number) => `₫${formatNumber(val)}`,
+                  tone: "from-blue-200/45 to-indigo-100/35",
+                  icon: BarChart3,
+                },
+                {
+                  key: "paidUsers",
+                  label: t("adm_sub_paid_users", "Người dùng trả phí"),
+                  value: displayPaidUsers,
+                  formatter: formatNumber,
+                  tone: "from-purple-200/40 to-pink-100/35",
+                  icon: CheckCircle2,
+                },
+                {
+                  key: "conversionRate",
+                  label: t("adm_sub_conversion", "Tỉ lệ chuyển đổi"),
+                  value: displayConversionRate,
+                  formatter: (val: number) => `${Number(val).toFixed(1)}%`,
+                  tone: "from-amber-200/45 to-yellow-100/35",
+                  icon: ArrowRight,
+                },
+              ].map(({ key, label, value, formatter, tone, icon: Icon }) => (
+                <div
+                  key={label}
+                  className={`group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border p-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all duration-700 ${isOverviewChanged(key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/60 dark:border-slate-800"}`}
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-br ${tone} opacity-70 group-hover:opacity-90 transition-opacity duration-300`} />
+                  <div className="relative flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{label}</p>
+                      <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                        <AnimatedNumber value={value} formatter={formatter} disableAnimation={!isOverviewChanged(key)} />
+                      </p>
+                      <MetricTrendBadge trend={getOverviewTrend(key)} />
+                    </div>
+                    <div className="w-11 h-11 rounded-2xl bg-white/70 dark:bg-slate-800/80 border border-white/60 dark:border-slate-700 flex items-center justify-center shadow-inner">
+                      <Icon size={20} className="text-primary" />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              <div className="rounded-xl border border-white/10 bg-white/10 p-2.5 sm:p-3">
-                <p className="text-xs text-amber-100/90">{t("adm_sub_pending", "Đang chờ xử lý")}</p>
-                <p className="text-lg sm:text-xl font-semibold"><AnimatedNumber value={metrics.pendingAmount} formatter={formatNumber} prefix="₫" /></p>
-                <span className="inline-flex items-center gap-1 text-[11px] text-amber-100/90"><Clock3 size={12} />{t("adm_sub_total_tx", "Tổng giao dịch")}: {metrics.totalTransactions}</span>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/10 p-2.5 sm:p-3">
-                <p className="text-xs text-emerald-100/90">{t("adm_sub_tx_success", "Giao dịch thành công")}</p>
-                <p className="text-lg sm:text-xl font-semibold">{metrics.successCount}</p>
-                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-100/90"><ShieldCheck size={12} />{t("adm_sub_paid_users", "Người dùng trả phí")}: {displayPaidUsers}</span>
-              </div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-100/80 flex items-center justify-between">
-              <span className="inline-flex items-center gap-1"><BarChart3 size={12} /> {t("adm_sub_recent_tx", "Giao dịch mới nhất")}</span>
-              <span className="font-semibold text-white whitespace-nowrap">{metrics.latestTransactionId}</span>
-            </div>
-            <div className="text-[11px] text-slate-200/80">{t("adm_sub_live_sync", "Đồng bộ gần nhất")}: {lastSyncedAt ? lastSyncedAt.toLocaleTimeString("vi-VN") : "--:--:--"}</div>
           </div>
         </div>
       </section>
