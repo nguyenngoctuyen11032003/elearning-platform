@@ -456,17 +456,18 @@ export default function TeacherExamsListPage() {
           backgroundAttachment: 'fixed'
         }}
       >
-        <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,#22c55e,transparent_35%),radial-gradient(circle_at_80%_0%,#0ea5e9,transparent_30%),radial-gradient(circle_at_50%_80%,#6366f1,transparent_35%)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-slate-900/45 to-slate-950/60" />
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_20%,#22c55e,transparent_35%),radial-gradient(circle_at_80%_0%,#0ea5e9,transparent_30%),radial-gradient(circle_at_50%_80%,#6366f1,transparent_35%)]" />
         <div className="relative p-6 md:p-8 space-y-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="space-y-2">
-              <h1 className="text-3xl md:text-4xl font-bold leading-tight">{t("tch_exg_title", "Đề thi đã sinh")}</h1>
-              <p className="text-slate-200 max-w-2xl">{t("tch_exg_subtitle", "Theo dõi đề thi được trích xuất, quản lý mã đề và kết quả thi trong một bảng điều khiển duy nhất.")}</p>
+              <h1 className="text-3xl md:text-4xl font-bold leading-tight drop-shadow-[0_2px_10px_rgba(15,23,42,0.55)]">{t("tch_exg_title", "Đề thi đã sinh")}</h1>
+              <p className="text-white/90 max-w-2xl drop-shadow-[0_1px_8px_rgba(15,23,42,0.5)]">{t("tch_exg_subtitle", "Theo dõi đề thi được trích xuất, quản lý mã đề và kết quả thi trong một bảng điều khiển duy nhất.")}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => router.push("/teacher/exams/generate/create")}
-                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
+                className="inline-flex items-center gap-2 rounded-full bg-white/18 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/28"
               >
                 <Plus size={16} /> {t("tch_exg_create", "Tạo đề thi")}
               </button>
@@ -475,14 +476,14 @@ export default function TeacherExamsListPage() {
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {cards.map((card) => (
-              <div key={card.title} className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur shadow-md">
+              <div key={card.title} className="rounded-2xl border border-white/25 bg-slate-900/45 p-4 backdrop-blur shadow-md">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
                     <card.icon size={18} className={`${card.accent} drop-shadow`} />
                   </div>
                   <div>
-                    <p className="text-sm text-white/80">{card.title}</p>
-                    <p className="text-2xl font-semibold">{card.value}</p>
+                    <p className="text-sm text-white/90">{card.title}</p>
+                    <p className="text-2xl font-semibold text-white">{card.value}</p>
                   </div>
                 </div>
               </div>
