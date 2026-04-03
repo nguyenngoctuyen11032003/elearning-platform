@@ -33,6 +33,7 @@ export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
 
   const [searchQuery, setSearchQuery] = useState("")
+  const [coursesFilter, setCoursesFilter] = useState<"all" | "has_courses" | "empty">("all")
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [newCategory, setNewCategory] = useState({
@@ -54,7 +55,9 @@ export default function AdminCategoriesPage() {
 const filteredCategories = categories.filter((category) =>
   `${category.name ?? ""} ${category.description ?? ""}`
     .toLowerCase()
-    .includes(q)
+    .includes(q) &&
+  (coursesFilter === "all" ||
+    (coursesFilter === "has_courses" ? category.courses > 0 : category.courses === 0))
 )
 
 const [imageFile, setImageFile] = useState<File | null>(null)
@@ -325,16 +328,41 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-3xl">
-          <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
-          <input
-            type="text"
-            placeholder={t("adm_cat_search", "Tìm kiếm danh mục...")}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900/80 border border-border dark:border-slate-800 rounded-xl text-foreground dark:text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition-all"
-          />
+        {/* Search & Filter */}
+        <div className="relative z-50 bg-white/85 dark:bg-slate-900/55 backdrop-blur-sm border border-slate-200/90 dark:border-slate-800/70 rounded-2xl p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-5 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400" size={20} />
+            <input
+              type="text"
+              placeholder={t("adm_cat_search", "Tìm kiếm danh mục...")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary dark:focus:border-accent transition-all duration-300 text-foreground dark:text-white placeholder:text-muted-foreground/60 shadow-sm"
+            />
+          </div>
+          <div className="filter-row gap-y-3 sm:gap-y-4">
+            <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_filter_by", "Lọc theo")}:</span>
+            <select
+              value={coursesFilter}
+              onChange={(e) => setCoursesFilter(e.target.value as "all" | "has_courses" | "empty")}
+              className="filter-select h-[46px] w-full sm:w-auto min-w-[240px] md:min-w-[260px] lg:min-w-[280px] rounded-xl px-4 text-sm"
+            >
+              <option value="all">{t("common_all", "Tất cả")}</option>
+              <option value="has_courses">{t("adm_cat_total_courses", "Tổng khóa học")}: &gt; 0</option>
+              <option value="empty">{t("adm_cat_total_courses", "Tổng khóa học")}: = 0</option>
+            </select>
+            {(searchQuery.trim() || coursesFilter !== "all") ? (
+              <button
+                onClick={() => {
+                  setSearchQuery("")
+                  setCoursesFilter("all")
+                }}
+                className="h-[46px] w-full sm:w-auto md:min-w-[132px] lg:min-w-[148px] inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-muted-foreground hover:text-foreground dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              >
+                {t("common_reset", "Đặt lại")}
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {/* Add Category Modal */}

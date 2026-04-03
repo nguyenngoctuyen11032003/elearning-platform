@@ -12,6 +12,7 @@ import {
   CreditCard,
   FileText,
   Plus,
+  Search,
   Save,
   ShieldCheck,
   Trash2,
@@ -681,21 +682,25 @@ export default function AdminTeacherSubscriptionPage() {
                 </button>
               </div>
 
-              <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-4 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.3fr_0.7fr_0.8fr] gap-3">
+              <div className="relative z-50 bg-white/85 dark:bg-slate-900/55 backdrop-blur-sm border border-slate-200/90 dark:border-slate-800/70 rounded-2xl p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-5 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400" size={20} />
                   <input
                     type="text"
                     value={paymentSearchQuery}
                     onChange={(e) => setPaymentSearchQuery(e.target.value)}
                     placeholder={t("adm_sub_payment_search", "Tìm theo mã giao dịch, email/giảng viên, tên gói...")}
-                    className="w-full h-11 rounded-xl border border-border dark:border-slate-700 bg-white dark:bg-slate-950 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary dark:focus:border-accent transition-all duration-300 text-foreground dark:text-white placeholder:text-muted-foreground/60 shadow-sm"
                   />
+                </div>
+                <div className="filter-row gap-y-3 sm:gap-y-4">
+                  <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_filter_by", "Lọc theo")}:</span>
                   <select
                     value={paymentStatusFilter}
                     onChange={(e) => setPaymentStatusFilter(e.target.value)}
-                    className="w-full h-11 rounded-xl border border-border dark:border-slate-700 bg-white dark:bg-slate-950 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
                   >
-                    <option value="all">{t("common_all", "Tất cả trạng thái")}</option>
+                    <option value="all">{t("common_all", "Tất cả")}</option>
                     <option value="pending">{t("adm_sub_pending", "Đang chờ xử lý")}</option>
                     <option value="paid">{t("adm_sub_paid", "Đã thanh toán")}</option>
                     <option value="refunded">{t("adm_sub_refunded", "Đã hoàn tiền")}</option>
@@ -703,13 +708,25 @@ export default function AdminTeacherSubscriptionPage() {
                   <select
                     value={paymentSortBy}
                     onChange={(e) => setPaymentSortBy(e.target.value as "newest" | "oldest" | "amount_desc" | "amount_asc")}
-                    className="w-full h-11 rounded-xl border border-border dark:border-slate-700 bg-white dark:bg-slate-950 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="filter-select h-[46px] w-full sm:w-auto min-w-[240px] md:min-w-[260px] lg:min-w-[300px] rounded-xl px-4 text-sm"
                   >
                     <option value="newest">{t("adm_sub_sort_newest", "Mới nhất")}</option>
                     <option value="oldest">{t("adm_sub_sort_oldest", "Cũ nhất")}</option>
                     <option value="amount_desc">{t("adm_sub_sort_amount_desc", "Số tiền giảm dần")}</option>
                     <option value="amount_asc">{t("adm_sub_sort_amount_asc", "Số tiền tăng dần")}</option>
                   </select>
+                  {(paymentSearchQuery.trim() || paymentStatusFilter !== "all" || paymentSortBy !== "newest") ? (
+                    <button
+                      onClick={() => {
+                        setPaymentSearchQuery("")
+                        setPaymentStatusFilter("all")
+                        setPaymentSortBy("newest")
+                      }}
+                      className="h-[46px] w-full sm:w-auto md:min-w-[132px] lg:min-w-[148px] inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-muted-foreground hover:text-foreground dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                    >
+                      {t("common_reset", "Đặt lại")}
+                    </button>
+                  ) : null}
                 </div>
                 <div className="text-xs text-slate-600 dark:text-slate-300">
                   {t("adm_sub_showing", "Hiển thị")}: <span className="font-semibold">{filteredPayments.length}</span> / {payments.length} {t("adm_sub_transactions", "giao dịch.")}
@@ -769,7 +786,15 @@ export default function AdminTeacherSubscriptionPage() {
 
           <TabsContent value="access" className="m-0 p-4 sm:p-5 md:p-6 space-y-5 md:space-y-6">
             <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 backdrop-blur p-4 sm:p-5 space-y-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-              <h2 className="text-lg md:text-xl font-semibold flex items-center gap-2"><ShieldCheck size={18} /> {t("adm_sub_instructor_access", "Quyền truy cập giảng viên")}</h2>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg md:text-xl font-semibold flex items-center gap-2"><ShieldCheck size={18} /> {t("adm_sub_instructor_access", "Quyền truy cập giảng viên")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("adm_sub_access_desc", "Theo dõi hạn mức sử dụng và vòng đời gói theo từng giảng viên.")}</p>
+                </div>
+                <span className="w-fit rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                  {subscriptions.length} {t("adm_sub_teachers", "giảng viên")}
+                </span>
+              </div>
               <div className="grid gap-3 lg:grid-cols-2">
                 {subscriptions.map((s) => {
                   const courseQuota = getQuotaMeta(s?.usage?.coursesCreated || 0, s?.usage?.courseLimit || s?.plan?.courseLimit || 0)
@@ -781,9 +806,15 @@ export default function AdminTeacherSubscriptionPage() {
                   return (
                     <div key={s.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-gradient-to-br from-white via-white to-emerald-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-900/20 shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)] space-y-3">
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-semibold text-base">{s.teacher?.name || s.teacher?.email}</p>
-                          <p className="text-sm text-muted-foreground">{t("adm_sub_plan_label", "Gói")}: {s.plan?.name}</p>
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 inline-flex items-center justify-center text-sm font-bold text-slate-700 dark:text-slate-200">
+                            {(s.teacher?.name || s.teacher?.email || "?").slice(0, 1).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-base">{s.teacher?.name || s.teacher?.email}</p>
+                            <p className="text-xs text-muted-foreground">{s.teacher?.email || "--"}</p>
+                            <p className="text-sm text-muted-foreground">{t("adm_sub_plan_label", "Gói")}: {s.plan?.name}</p>
+                          </div>
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
                           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${accessStatus.className}`}>
@@ -824,6 +855,11 @@ export default function AdminTeacherSubscriptionPage() {
                   )
                 })}
               </div>
+              {subscriptions.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-center text-sm text-muted-foreground">
+                  {t("adm_sub_no_access_data", "Chưa có dữ liệu quyền truy cập giảng viên.")}
+                </div>
+              ) : null}
             </section>
           </TabsContent>
 

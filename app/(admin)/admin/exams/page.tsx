@@ -589,45 +589,48 @@ export default function AdminExamsPage() {
             </div>
           </div>
         </div>
-        {/* Search + Filter + Actions */}
-        <div className="flex flex-col xl:flex-row gap-3 items-stretch xl:items-center rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/55 p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        {/* Search & Filter */}
+        <div className="relative z-50 bg-white/85 dark:bg-slate-900/55 backdrop-blur-sm border border-slate-200/90 dark:border-slate-800/70 rounded-2xl p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-5 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400" size={20} />
             <input
               type="text"
               placeholder={t("adm_exam_search", "Search exams...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3.5 bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-300 focus:ring-2 focus:ring-sky-400/60 dark:focus:ring-sky-500/45 shadow-sm transition-all duration-300"
+              className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary dark:focus:border-accent transition-all duration-300 text-foreground dark:text-white placeholder:text-muted-foreground/60 shadow-sm"
             />
           </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="border-b border-slate-200 dark:border-slate-800 flex items-center gap-5 overflow-x-auto scrollbar-hide">
-          {[
-            { key: "all", label: t("common_all", "All"), count: exams.length },
-            { key: "pending", label: t("adm_exam_status_pending", "Pending"), count: exams.filter(e => e.status === "pending").length },
-            { key: "approved", label: t("adm_exam_status_approved", "Approved"), count: exams.filter(e => e.status === "approved").length },
-            { key: "rejected", label: t("adm_exam_status_rejected", "Rejected"), count: exams.filter(e => e.status === "rejected").length },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as "all" | "pending" | "approved" | "rejected")}
-              className={`pb-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-all duration-300 ease-out flex items-center gap-2 ${
-                activeTab === tab.key ? "border-primary text-primary dark:text-accent" : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-              }`}
+          <div className="filter-row gap-y-3 sm:gap-y-4">
+            <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_filter_by", "Lọc theo")}:</span>
+            <select
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value as "all" | "pending" | "approved" | "rejected")}
+              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
             >
-              {tab.label}
-              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold transition-all duration-300 ${
-                activeTab === tab.key 
-                  ? "bg-primary/90 text-white dark:bg-accent" 
-                  : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200"
-              }`}>
-                {tab.count}
-              </span>
-            </button>
-          ))}
+              <option value="all">{t("common_all", "All")}</option>
+              <option value="pending">{t("adm_exam_status_pending", "Pending")}</option>
+              <option value="approved">{t("adm_exam_status_approved", "Approved")}</option>
+              <option value="rejected">{t("adm_exam_status_rejected", "Rejected")}</option>
+            </select>
+
+            <span className="rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+              {filteredExams.length}
+            </span>
+
+            {(searchTerm.trim() || activeTab !== "all") ? (
+              <button
+                onClick={() => {
+                  setSearchTerm("")
+                  setActiveTab("all")
+                }}
+                className="h-[46px] w-full sm:w-auto md:min-w-[132px] lg:min-w-[148px] inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-muted-foreground hover:text-foreground dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              >
+                {t("common_reset", "Đặt lại")}
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {/* Status Notes */}

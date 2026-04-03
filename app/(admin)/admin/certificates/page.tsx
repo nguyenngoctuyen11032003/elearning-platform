@@ -194,6 +194,8 @@ export default function AdminCertificatesPage() {
     return matchesSearch && (statusFilter === "all" || cert.status === statusFilter)
   })
 
+  const activeResultCount = viewTab === "templates" ? filteredCertificates.length : filteredIssuedCertificates.length
+
   // Stats
   const totalCertificates = certificates.length
   const pendingCertificates = certificates.filter(c => c.status === "pending").length
@@ -416,58 +418,55 @@ const formatDate = (date?: string) => {
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col md:flex-row gap-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/55 p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-3.5 text-slate-400" size={20} />
+        <div className="relative z-50 bg-white/85 dark:bg-slate-900/55 backdrop-blur-sm border border-slate-200/90 dark:border-slate-800/70 rounded-2xl p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-5 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400" size={20} />
             <input
               type="text"
               placeholder={t("adm_cert_search", "Tìm kiếm chứng chỉ, khóa học hoặc giảng viên...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400/60 dark:focus:ring-sky-500/45"
+              className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary dark:focus:border-accent transition-all duration-300 text-foreground dark:text-white placeholder:text-muted-foreground/60 shadow-sm"
             />
           </div>
-          <div className="flex gap-2 flex-wrap">
-            {/* Tab Filters - Blue */}
-            <button
-              onClick={() => setViewTab("templates")}
-              className={`h-10 px-4 rounded-xl text-sm transition-all duration-300 font-semibold ${
-                viewTab === "templates"
-                  ? "bg-primary/90 text-white dark:bg-accent shadow-[0_8px_20px_rgba(15,23,42,0.14)]"
-                  : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-              }`}
+          <div className="filter-row gap-y-3 sm:gap-y-4">
+            <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_view", "Chế độ xem")}:</span>
+            <select
+              value={viewTab}
+              onChange={(e) => setViewTab(e.target.value as "templates" | "issued")}
+              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
             >
-              {t("adm_cert_tab_templates", "Mẫu chứng chỉ")}
-            </button>
-            <button
-              onClick={() => setViewTab("issued")}
-              className={`h-10 px-4 rounded-xl text-sm transition-all duration-300 font-semibold ${
-                viewTab === "issued"
-                  ? "bg-primary/90 text-white dark:bg-accent shadow-[0_8px_20px_rgba(15,23,42,0.14)]"
-                  : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-              }`}
+              <option value="templates">{t("adm_cert_tab_templates", "Mẫu chứng chỉ")}</option>
+              <option value="issued">{t("adm_cert_tab_issued", "Chứng chỉ đã cấp")}</option>
+            </select>
+
+            <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_filter_by", "Lọc theo")}:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
             >
-              {t("adm_cert_tab_issued", "Chứng chỉ đã cấp")}
-            </button>
-            {/* Status Filters - Purple */}
-            {[
-              { value: "all", label: t("adm_cert_all", "Tất cả") },
-              { value: "pending", label: t("adm_cert_pending", "Chờ duyệt") },
-              { value: "approved", label: t("adm_cert_approved", "Đã duyệt") },
-              { value: "rejected", label: t("adm_cert_rejected", "Từ chối") },
-            ].map((option) => (
+              <option value="all">{t("adm_cert_all", "Tất cả")}</option>
+              <option value="pending">{t("adm_cert_pending", "Chờ duyệt")}</option>
+              <option value="approved">{t("adm_cert_approved", "Đã duyệt")}</option>
+              <option value="rejected">{t("adm_cert_rejected", "Từ chối")}</option>
+            </select>
+
+            <span className="rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+              {activeResultCount}
+            </span>
+
+            {(searchTerm.trim() || statusFilter !== "all") ? (
               <button
-                key={option.value}
-                onClick={() => setStatusFilter(option.value)}
-                className={`h-10 px-4 rounded-xl text-sm transition-all duration-300 font-semibold ${
-                  statusFilter === option.value
-                    ? "bg-primary/90 text-white dark:bg-accent shadow-[0_8px_20px_rgba(15,23,42,0.14)]"
-                    : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
+                onClick={() => {
+                  setSearchTerm("")
+                  setStatusFilter("all")
+                }}
+                className="h-[46px] w-full sm:w-auto md:min-w-[132px] lg:min-w-[148px] inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-muted-foreground hover:text-foreground dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
-                {option.label}
+                {t("common_reset", "Đặt lại")}
               </button>
-            ))}
+            ) : null}
           </div>
         </div>
 
