@@ -1257,8 +1257,9 @@ if (typeof window !== 'undefined' && token) {
     return this.request('/instructor-subscriptions/admin/revenue-dashboard');
   }
 
-  async getTeacherDashboardStats(): Promise<any> {
-    return this.request('/teacher/dashboard/stats');
+  async getTeacherDashboardStats(period?: 'day' | 'week' | 'month' | 'year'): Promise<any> {
+    const query = period ? `?period=${encodeURIComponent(period)}` : '';
+    return this.request(`/teacher/dashboard/stats${query}`);
   }
 
   async getStudentDashboardStats(): Promise<any> {

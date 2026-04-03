@@ -48,6 +48,7 @@ type KpiCardProps = {
 }
 
 const PIE_COLORS = ["#22c55e", "#0ea5e9", "#8b5cf6", "#f59e0b", "#ec4899", "#14b8a6"]
+const CHART_RESIZE_DEBOUNCE = 180
 
 function KpiCard({ title, value, icon: Icon, trend, trendData, colorClass, iconBgClass }: KpiCardProps) {
   return (
@@ -64,7 +65,7 @@ function KpiCard({ title, value, icon: Icon, trend, trendData, colorClass, iconB
       <div className="mt-4 flex items-center justify-between gap-3">
         <p className={`text-xs font-semibold ${colorClass}`}>{trend}</p>
         <div className="h-10 w-24">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={CHART_RESIZE_DEBOUNCE}>
             <LineChart data={trendData.map((point, idx) => ({ idx, point }))}>
               <Line
                 type="monotone"
@@ -333,44 +334,78 @@ export default function TeacherDashboard() {
     return filteredEnrollments.slice(start, start + pageSize)
   }, [filteredEnrollments, tablePage])
 
-  const kpiCards: KpiCardProps[] = [
-    {
-      title: t("teacher_dashboard_total_revenue", "T?ng doanh thu"),
-      value: `VND ${formatPrice(Number(revenueInPeriod ?? 0))}`,
-      icon: TrendingUp,
-      trend: `${revenueGrowthByPeriod >= 0 ? "+" : ""}${revenueGrowthByPeriod}% ${t("teacher_dashboard_vs_previous", "vs k? tru?c")}`,
-      trendData: filteredRevenueChart.map((item) => item.value),
-      colorClass: "text-emerald-500",
-      iconBgClass: "bg-emerald-100 dark:bg-emerald-900/30",
-    },
-    {
-      title: t("teacher_dashboard_students", "H?c vi�n"),
-      value: formatNumber(Number(studentsInPeriod ?? 0)),
-      icon: Users,
-      trend: `${studentGrowthByPeriod >= 0 ? "+" : ""}${studentGrowthByPeriod}% ${t("teacher_dashboard_vs_previous", "vs k? tru?c")}`,
-      trendData: filteredStudentChart.map((item) => item.value),
-      colorClass: "text-sky-500",
-      iconBgClass: "bg-sky-100 dark:bg-sky-900/30",
-    },
-    {
-      title: t("teacher_dashboard_courses", "Kh�a h?c"),
-      value: formatNumber(Number(pieDataByPeriod.length || 0)),
-      icon: BookOpen,
-      trend: `${enrollmentsByPeriod.length} ${t("teacher_dashboard_enrollments", "enrollments")}`,
-      trendData: [8, 9, 10, 12, 11, 12, 14],
-      colorClass: "text-violet-500",
-      iconBgClass: "bg-violet-100 dark:bg-violet-900/30",
-    },
-    {
-      title: t("teacher_dashboard_average_rating", "��nh gi�"),
-      value: `${Number(stats?.averageRating ?? 0).toFixed(1)}*`,
-      icon: Star,
-      trend: `${t("teacher_dashboard_from", "T?")} ${formatNumber(Number(stats?.totalStudents ?? 0))} ${t("teacher_dashboard_students", "h?c vi�n")}`,
-      trendData: [4.2, 4.3, 4.4, 4.4, 4.6, 4.7, 4.8],
-      colorClass: "text-amber-500",
-      iconBgClass: "bg-amber-100 dark:bg-amber-900/30",
-    },
-  ]
+  const kpiCards = useMemo<KpiCardProps[]>(
+    () => [
+      {
+        title: t("teacher_dashboard_total_revenue", "T?ng doanh thu"),
+        value: `VND ${formatPrice(Number(revenueInPeriod ?? 0))}`,
+        icon: TrendingUp,
+        trend: `${revenueGrowthByPeriod >= 0 ? "+" : ""}${revenueGrowthByPeriod}% ${t("teacher_dashboard_vs_previous", "vs k? tru?c")}`,
+        trendData: filteredRevenueChart.map((item) => item.value),
+        colorClass: "text-emerald-500",
+        iconBgClass: "bg-emerald-100 dark:bg-emerald-900/30",
+      },
+      {
+        title: t("teacher_dashboard_students", "H?c vi�n"),
+        value: formatNumber(Number(studentsInPeriod ?? 0)),
+        icon: Users,
+        trend: `${studentGrowthByPeriod >= 0 ? "+" : ""}${studentGrowthByPeriod}% ${t("teacher_dashboard_vs_previous", "vs k? tru?c")}`,
+        trendData: filteredStudentChart.map((item) => item.value),
+        colorClass: "text-sky-500",
+        iconBgClass: "bg-sky-100 dark:bg-sky-900/30",
+      },
+      {
+        title: t("teacher_dashboard_courses", "Kh�a h?c"),
+        value: formatNumber(Number(pieDataByPeriod.length || 0)),
+        icon: BookOpen,
+        trend: `${enrollmentsByPeriod.length} ${t("teacher_dashboard_enrollments", "enrollments")}`,
+        trendData: [8, 9, 10, 12, 11, 12, 14],
+        colorClass: "text-violet-500",
+        iconBgClass: "bg-violet-100 dark:bg-violet-900/30",
+      },
+      {
+        title: t("teacher_dashboard_average_rating", "��nh gi�"),
+        value: `${Number(stats?.averageRating ?? 0).toFixed(1)}*`,
+        icon: Star,
+        trend: `${t("teacher_dashboard_from", "T?")} ${formatNumber(Number(stats?.totalStudents ?? 0))} ${t("teacher_dashboard_students", "h?c vi�n")}`,
+        trendData: [4.2, 4.3, 4.4, 4.4, 4.6, 4.7, 4.8],
+        colorClass: "text-amber-500",
+        iconBgClass: "bg-amber-100 dark:bg-amber-900/30",
+      },
+    ],
+    [
+      t,
+      revenueInPeriod,
+      revenueGrowthByPeriod,
+      filteredRevenueChart,
+      studentsInPeriod,
+      studentGrowthByPeriod,
+      filteredStudentChart,
+      pieDataByPeriod.length,
+      enrollmentsByPeriod.length,
+      stats?.averageRating,
+      stats?.totalStudents,
+    ]
+  )
+
+  const periodOptions = useMemo(
+    () => [
+      { value: "day", label: t("period_day", "Date") },
+      { value: "week", label: t("period_week", "Week") },
+      { value: "month", label: t("period_month", "Month") },
+      { value: "year", label: t("period_year", "Year") },
+    ],
+    [t]
+  )
+
+  const activePeriodIndex = useMemo(
+    () => Math.max(0, periodOptions.findIndex((period) => period.value === filterPeriod)),
+    [periodOptions, filterPeriod]
+  )
+
+  const periodItemPercentage = useMemo(() => 100 / periodOptions.length, [periodOptions.length])
+
+  const teacherDisplayName = (user?.name || "").trim() || t("role_teacher", "Teacher")
 
   return (
     <div className="min-h-screen w-full">
@@ -378,37 +413,49 @@ export default function TeacherDashboard() {
         <header className="relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-gradient-to-br from-sky-500/20 via-cyan-500/10 to-indigo-500/15 dark:from-sky-900/25 dark:via-cyan-900/15 dark:to-indigo-900/20 p-6 md:p-8 shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
           <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-cyan-400/20 blur-3xl" />
           <div className="absolute -bottom-8 left-10 h-32 w-32 rounded-full bg-sky-500/15 blur-3xl" />
-          <div className="relative grid grid-cols-1 gap-5 lg:grid-cols-10 lg:items-center">
-            <div className="lg:col-span-7">
-              <div className="flex items-center gap-3">
-                <UserAvatar src={user?.avatar} name={user?.name || t("role_teacher", "Teacher")} size="md" />
+          <div className="relative w-full">
+            <div className="flex w-full flex-col gap-5 lg:flex-row lg:items-center">
+              <div className="flex flex-1 items-center gap-5">
+                <div className="h-14 w-14 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 p-[2px] shadow-[0_10px_22px_rgba(244,63,94,0.35)]">
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm">
+                    <UserAvatar src={user?.avatar} name={teacherDisplayName} size="md" />
+                  </div>
+                </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">Teacher</p>
-                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t("teacher_dashboard_welcome", "Ch�o m?ng")}, {user?.name || t("role_teacher", "Gi�o vi�n")}</h1>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300">TEACHER</p>
+                  <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+                    {t("teacher_dashboard_welcome", "Welcome")}, {teacherDisplayName}
+                  </h1>
+                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                    {t("teacher_dashboard_overview", "Your activity overview")}
+                  </p>
                 </div>
               </div>
-              <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">{t("teacher_dashboard_overview", "T?ng quan ho?t d?ng gi?ng d?y, doanh thu v� tuong t�c h?c vi�n c?a b?n")}</p>
-            </div>
-            <div className="lg:col-span-3">
-              <div className="flex w-full rounded-xl bg-white/60 p-1 shadow-inner backdrop-blur-md dark:bg-slate-900/55">
-                {[
-                  { value: "day", label: t("period_day", "Ng�y") },
-                  { value: "week", label: t("period_week", "Tu?n") },
-                  { value: "month", label: t("period_month", "Th�ng") },
-                  { value: "year", label: t("period_year", "Nam") },
-                ].map((period) => (
-                  <button
-                    key={period.value}
-                    onClick={() => setFilterPeriod(period.value)}
-                    className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-[0.98] ${
-                      filterPeriod === period.value
-                        ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-[0_8px_18px_rgba(59,130,246,0.35)]"
-                        : "text-slate-700 hover:bg-white/70 dark:text-slate-200 dark:hover:bg-slate-800/70"
-                    }`}
-                  >
-                    {period.label}
-                  </button>
-                ))}
+
+              <div className="flex flex-1 justify-end">
+                <div className="ml-auto relative flex w-full max-w-[500px] rounded-xl bg-white/60 p-1 shadow-inner backdrop-blur-md dark:bg-slate-900/55">
+                  <div
+                    className="pointer-events-none absolute inset-y-1 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 shadow-[0_8px_18px_rgba(59,130,246,0.35)] transition-all duration-300 ease-out"
+                    style={{
+                      left: `calc(${activePeriodIndex} * ${periodItemPercentage}% + 4px)`,
+                      width: `calc(${periodItemPercentage}% - 8px)`,
+                    }}
+                  />
+
+                  {periodOptions.map((period) => (
+                    <button
+                      key={period.value}
+                      onClick={() => setFilterPeriod(period.value)}
+                      className={`relative z-10 flex-1 rounded-lg py-2 text-sm font-semibold transition-colors duration-200 hover:scale-105 active:scale-[0.98] ${
+                        filterPeriod === period.value
+                          ? "text-white"
+                          : "text-slate-700 hover:bg-white/70 dark:text-slate-200 dark:hover:bg-slate-800/70"
+                      }`}
+                    >
+                      {period.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -439,7 +486,7 @@ export default function TeacherDashboard() {
                   <p className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">{t("teacher_dashboard_no_revenue", "Chua c� d? li?u doanh thu")}</p>
                 ) : (
                   <>
-                    <ResponsiveContainer width="100%" height={270}>
+                    <ResponsiveContainer width="100%" height={270} debounce={CHART_RESIZE_DEBOUNCE}>
                       <ComposedChart data={revenueSeries}>
                         <defs>
                           <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
@@ -477,7 +524,7 @@ export default function TeacherDashboard() {
                   <p className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">{t("teacher_dashboard_no_students", "Chua c� d? li?u h?c vi�n")}</p>
                 ) : (
                   <>
-                    <ResponsiveContainer width="100%" height={270}>
+                    <ResponsiveContainer width="100%" height={270} debounce={CHART_RESIZE_DEBOUNCE}>
                       <BarChart data={studentSeries}>
                         <defs>
                           <linearGradient id="studentGradient" x1="0" y1="0" x2="0" y2="1">
@@ -517,7 +564,7 @@ export default function TeacherDashboard() {
               <p className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">{t("teacher_dashboard_no_courses", "Chua c� d? li?u kh�a h?c")}</p>
             ) : (
               <>
-                <ResponsiveContainer width="100%" height={250}>
+                <ResponsiveContainer width="100%" height={250} debounce={CHART_RESIZE_DEBOUNCE}>
                   <PieChart>
                     <Pie
                       data={pieDataByPeriod}
@@ -572,7 +619,7 @@ export default function TeacherDashboard() {
             {filteredWeeklyPerformance.length === 0 ? (
               <p className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">{t("teacher_dashboard_no_weekly", "Chua c� d? li?u tu?n n�y")}</p>
             ) : (
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={280} debounce={CHART_RESIZE_DEBOUNCE}>
                 <LineChart data={filteredWeeklyPerformance}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.35} />
                   <XAxis dataKey="day" stroke="#94a3b8" />

@@ -101,6 +101,9 @@ export default function TeacherExamsPage() {
   const [viewMode, setViewMode] = useState<"view" | "delete" | null>(null)
   const [modalPos, setModalPos] = useState<{ top: number; left: number } | null>(null)
   const detailBtnRefs = React.useRef<{ [key: string]: HTMLButtonElement | null }>({})
+  const tabContainerRef = React.useRef<HTMLDivElement | null>(null)
+  const tabButtonRefs = React.useRef<Record<string, HTMLButtonElement | null>>({})
+  const [activeTabStyle, setActiveTabStyle] = useState({ left: 0, width: 0, ready: false })
 
   useEffect(() => {
     fetchExams()
@@ -225,6 +228,40 @@ export default function TeacherExamsPage() {
         return ad < bd ? 1 : -1
       })
   }, [filteredExams])
+
+  const tabOptions = useMemo(
+    () => [
+      { key: "all", label: t("common_all", "Tất cả"), count: totalExams },
+      { key: "draft", label: t("te_status_draft", "Nháp"), count: draftExams },
+      { key: "pending", label: t("te_status_pending", "Chờ duyệt"), count: pendingExams },
+      { key: "approved", label: t("te_status_approved", "Đã duyệt"), count: approvedExams },
+      { key: "rejected", label: t("te_status_rejected", "Từ chối"), count: rejectedExams },
+    ],
+    [t, totalExams, draftExams, pendingExams, approvedExams, rejectedExams],
+  )
+
+  useEffect(() => {
+    const updateActiveTabIndicator = () => {
+      const container = tabContainerRef.current
+      const activeButton = tabButtonRefs.current[activeTab]
+      if (!container || !activeButton) {
+        setActiveTabStyle((prev) => ({ ...prev, ready: false }))
+        return
+      }
+
+      const containerRect = container.getBoundingClientRect()
+      const buttonRect = activeButton.getBoundingClientRect()
+      setActiveTabStyle({
+        left: buttonRect.left - containerRect.left,
+        width: buttonRect.width,
+        ready: true,
+      })
+    }
+
+    updateActiveTabIndicator()
+    window.addEventListener("resize", updateActiveTabIndicator)
+    return () => window.removeEventListener("resize", updateActiveTabIndicator)
+  }, [activeTab, tabOptions])
 
   const getTemplateName = (templateId?: string) => {
     if (!templateId) return ""
@@ -359,145 +396,108 @@ export default function TeacherExamsPage() {
 
   return (
     <div className="min-h-screen w-full">
-      <div className="w-full space-y-8">
-        {/* Header with Stats */}
-        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/bg_exams.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-          {/* Overlay for better readability */}
-          <div className="absolute inset-0 bg-black/15 dark:bg-black/45 rounded-3xl"></div>
-          
-          <div className="relative z-10 space-y-8">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+      <div className="w-full space-y-6">
+        <section
+          className="relative overflow-hidden rounded-[2rem] border border-blue-100/70 p-6 shadow-[0_24px_60px_rgba(3,105,161,0.16)] md:p-8"
+          style={{
+            backgroundImage: "url('/image/bg_exams.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
+          <div className="absolute inset-0 bg-slate-900/35 dark:bg-slate-950/55" />
+          <div className="absolute inset-0 bg-[radial-gradient(120%_110%_at_0%_0%,rgba(59,130,246,0.24),transparent_45%),radial-gradient(100%_90%_at_90%_0%,rgba(34,211,238,0.2),transparent_48%)]" />
+          <div className="relative z-10 space-y-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("te_title", "Ngân hàng đề thi")}</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("te_subtitle", "Quản lý kho câu hỏi và cấu hình đề thi cho khóa học của bạn")}</p>
+                <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-200/45 bg-cyan-100/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-cyan-100">
+                  <FileText className="h-4 w-4" />
+                  {t("te_title", "Ngân hàng đề thi")}
+                </p>
+                <h1 className="text-3xl font-black text-white md:text-5xl">{t("te_title", "Ngân hàng đề thi")}</h1>
+                <p className="mt-2 text-sm text-slate-200 md:text-base">{t("te_subtitle", "Quản lý kho câu hỏi và cấu hình đề thi cho khóa học của bạn")}</p>
               </div>
+
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-3 py-2 rounded-lg bg-white/70 dark:bg-slate-800/60 text-foreground dark:text-white text-sm font-medium backdrop-blur-sm">
-                    {t("te_total_count", "Đã có:")}{" "}{totalExams}
-                  </span>
-                  <span className="px-3 py-2 rounded-lg bg-white/70 dark:bg-slate-800/60 text-foreground dark:text-white text-sm font-medium backdrop-blur-sm">
-                    {t("te_used_count", "Đã sử dụng:")}{" "}{usedExams}
-                  </span>
-                </div>
+                <span className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-700 dark:border-cyan-700/60 dark:bg-cyan-900/30 dark:text-cyan-200">
+                  {t("te_total_count", "Đã có:")} {totalExams}
+                </span>
+                <span className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-700 dark:border-violet-700/60 dark:bg-violet-900/30 dark:text-violet-200">
+                  {t("te_used_count", "Đã sử dụng:")} {usedExams}
+                </span>
                 <Link
                   href="/teacher/exams/create"
-                  className="flex items-center gap-2 bg-white text-primary px-5 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
+                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-cyan-600 px-4 text-sm font-semibold text-white transition hover:bg-cyan-500"
                 >
-                  <Plus size={20} /> {t("te_create_exam", "Tạo ngân hàng đề thi")}
+                  <Plus size={18} /> {t("te_create_exam", "Tạo ngân hàng đề thi")}
                 </Link>
               </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("te_stat_total", "Tổng bài thi")}</p>
-                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalExams}</p>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+              {[
+                { label: t("te_stat_total", "Tổng bài thi"), value: totalExams, icon: FileText, tone: "border-cyan-200 bg-cyan-50/75 text-cyan-700 dark:border-cyan-700/60 dark:bg-cyan-900/30 dark:text-cyan-200" },
+                { label: t("te_stat_draft", "Nháp"), value: draftExams, icon: FileText, tone: "border-slate-200 bg-slate-50/85 text-slate-700 dark:border-slate-700/60 dark:bg-slate-800/55 dark:text-slate-200" },
+                { label: t("te_stat_practice", "Thi thử"), value: practiceExams, icon: ClipboardList, tone: "border-blue-200 bg-blue-50/80 text-blue-700 dark:border-blue-700/60 dark:bg-blue-900/30 dark:text-blue-200" },
+                { label: t("te_stat_active", "Hoạt động"), value: approvedExams, icon: CheckCircle, tone: "border-emerald-200 bg-emerald-50/80 text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-200" },
+                { label: t("te_stat_official", "Thi thật"), value: officialExams, icon: Award, tone: "border-violet-200 bg-violet-50/80 text-violet-700 dark:border-violet-700/60 dark:bg-violet-900/30 dark:text-violet-200" },
+              ].map((item) => (
+                <article key={item.label} className={`rounded-xl border p-3 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${item.tone}`}>
+                  <div className="mb-1 flex items-center gap-2">
+                    <item.icon className="h-4 w-4" />
+                    <p className="text-[11px] font-medium uppercase tracking-[0.08em]">{item.label}</p>
                   </div>
-                  <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <FileText size={20} className="text-primary" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("te_stat_draft", "Nháp")}</p>
-                    <p className="text-2xl font-bold text-gray-600 dark:text-gray-400 mt-1">{draftExams}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <FileText size={20} className="text-gray-600 dark:text-gray-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("te_stat_practice", "Thi thử")}</p>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{practiceExams}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <ClipboardList size={20} className="text-blue-600 dark:text-blue-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("te_stat_active", "Hoạt động")}</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{approvedExams}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.65s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("te_stat_official", "Thi thật")}</p>
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{officialExams}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <Award size={20} className="text-purple-600 dark:text-purple-400" />
-                  </div>
-                </div>
-              </div>
-              </div>
+                  <p className="text-2xl font-black">{item.value}</p>
+                </article>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Search */}
-        <div className="flex flex-col xl:flex-row gap-3 items-stretch xl:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400" size={18} />
-            <input
-              type="text"
-              placeholder={t("te_search_placeholder", "Tìm kiếm bài thi...")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gradient-to-r from-slate-800 to-slate-900 border-2 border-blue-500/50 rounded-xl text-white placeholder:text-slate-300 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 shadow-lg shadow-blue-500/20 focus:shadow-blue-500/40 transition-all duration-300"
-            />
+        <section className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-[0_12px_35px_rgba(2,132,199,0.09)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/65">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative w-full lg:max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder={t("te_search_placeholder", "Tìm kiếm bài thi...")}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-cyan-500 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.2)] dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+              />
+            </div>
+
+            <div ref={tabContainerRef} className="relative inline-flex w-full flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-900/70 md:w-auto md:flex-nowrap">
+              <div
+                className="pointer-events-none absolute inset-y-1 rounded-md bg-cyan-600 shadow-[0_8px_20px_rgba(8,145,178,0.35)] transition-all duration-300"
+                style={{
+                  left: `${activeTabStyle.left}px`,
+                  width: `${activeTabStyle.width}px`,
+                  opacity: activeTabStyle.ready ? 1 : 0,
+                }}
+              />
+              {tabOptions.map((tab) => (
+                <button
+                  key={tab.key}
+                  ref={(node) => {
+                    tabButtonRefs.current[tab.key] = node
+                  }}
+                  onClick={() => setActiveTab(tab.key as "all" | "draft" | "pending" | "approved" | "rejected")}
+                  className={`relative z-10 inline-flex min-w-fit items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition-all duration-300 ${
+                    activeTab === tab.key
+                      ? "text-white"
+                      : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  {tab.label}
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${activeTab === tab.key ? "bg-white/25 text-white" : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200"}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="border-b border-slate-800 flex items-center gap-5 overflow-x-auto scrollbar-hide">
-          {[
-            { key: "all", label: t("common_all", "Tất cả"), count: totalExams },
-            { key: "draft", label: t("te_status_draft", "Nháp"), count: draftExams },
-            { key: "pending", label: t("te_status_pending", "Chờ duyệt"), count: pendingExams },
-            { key: "approved", label: t("te_status_approved", "Đã duyệt"), count: approvedExams },
-            { key: "rejected", label: t("te_status_rejected", "Từ chối"), count: rejectedExams },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as "all" | "draft" | "pending" | "approved" | "rejected")}
-              className={`pb-3 text-sm font-medium whitespace-nowrap border-b-2 transition-all duration-300 ease-out flex items-center gap-2 ${
-                activeTab === tab.key
-                  ? "border-blue-400 text-blue-300 scale-105"
-                  : "border-transparent text-slate-400 hover:text-slate-200 scale-100"
-              }`}
-            >
-              {tab.label}
-              <span
-                className={`px-2 py-0.5 rounded-full text-xs font-semibold transition-all duration-300 ${
-                  activeTab === tab.key 
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/40" 
-                    : "bg-slate-700 text-slate-200"
-                }`}
-              >
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
+        </section>
 
         {/* Exams List */}
         <div className="space-y-4">
