@@ -226,7 +226,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 stagger-items">
       {/* Hero Section - Premium Education Platform */}
-      <section className="relative pt-24 sm:pt-28 md:pt-32 pb-16 sm:pb-20 md:pb-24 px-4 sm:px-6 md:px-8 overflow-hidden">
+      <section className="relative pt-24 sm:pt-28 md:pt-32 pb-20 sm:pb-24 md:pb-28 px-4 sm:px-6 md:px-8 overflow-hidden">
         {/* Animated Background */}
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,rgba(37,99,235,0.1),transparent_50%)]" />
@@ -245,6 +245,8 @@ export default function Home() {
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
           className="absolute bottom-20 right-[10%] w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"
         />
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(180deg,rgba(248,250,252,0)_0%,rgba(240,246,252,0.78)_60%,#edf3fb_100%)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0)_0%,rgba(15,23,42,0.75)_60%,#0f172a_100%)]" />
 
         <div className="page-shell relative">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -417,37 +419,41 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trust Bar - Partner Logos */}
-      <section className="py-12 px-4 sm:px-6 md:px-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-y border-slate-200 dark:border-slate-800">
-        <div className="page-shell">
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center text-sm font-semibold text-slate-600 dark:text-slate-400 mb-8 uppercase tracking-wider"
-          >
-            {t("home_trust_bar", "Được tin dùng bởi các tổ chức hàng đầu")}
-          </motion.p>
-          <div className="flex flex-wrap items-center justify-center gap-12">
-            {partners.map((partner, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md dark:hover:bg-slate-800/70 transition-shadow"
-              >
-                <span className="text-3xl">{partner.logo}</span>
-                <span className="font-bold text-slate-900 dark:text-white">{partner.name}</span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <div className="relative -mt-14 pt-16 overflow-hidden bg-[linear-gradient(180deg,#edf3fb_0%,#f2f6fc_26%,#f5f8fd_52%,#f7f9fc_74%,#f8f9fa_100%)] dark:bg-[linear-gradient(180deg,#0f172a_0%,#111827_45%,#0f172a_100%)]">
+        <div className="pointer-events-none absolute inset-0 opacity-80 [background:radial-gradient(120%_90%_at_8%_0%,rgba(59,130,246,0.16)_0%,rgba(59,130,246,0)_52%),radial-gradient(115%_85%_at_92%_8%,rgba(14,165,233,0.14)_0%,rgba(14,165,233,0)_48%),radial-gradient(100%_85%_at_50%_100%,rgba(147,197,253,0.1)_0%,rgba(147,197,253,0)_52%)]" />
+        <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:44px_44px]" />
 
-      {/* Value Propositions - Why Choose Us */}
-      <section className="py-20 md:py-24 px-4 sm:px-6 md:px-8 relative">
+        {/* Trust Bar - Partner Logos */}
+        <section className="relative py-12 px-4 sm:px-6 md:px-8">
+          <div className="page-shell">
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="text-center text-sm font-semibold text-slate-600 dark:text-slate-400 mb-8 uppercase tracking-wider"
+            >
+              {t("home_trust_bar", "Được tin dùng bởi các tổ chức hàng đầu")}
+            </motion.p>
+            <div className="flex flex-wrap items-center justify-center gap-12">
+              {partners.map((partner, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="flex items-center gap-3 px-6 py-3 bg-white/84 dark:bg-slate-900/85 backdrop-blur-sm rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-[0_8px_20px_-14px_rgba(15,23,42,0.4)] hover:shadow-[0_12px_24px_-14px_rgba(15,23,42,0.45)] dark:hover:bg-slate-800/75 transition-all"
+                >
+                  <span className="text-3xl">{partner.logo}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{partner.name}</span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Value Propositions - Why Choose Us */}
+        <section className="py-20 md:py-24 px-4 sm:px-6 md:px-8 relative">
         <div className="page-shell">
           {/* Section Header */}
           <motion.div
@@ -484,9 +490,9 @@ export default function Home() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.08 }}
-                    className={`group relative p-8 ${feature.bgColor} rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1`}
+                    className={`group relative p-8 ${feature.bgColor} rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 shadow-[0_16px_40px_-22px_rgba(15,23,42,0.45)] hover:shadow-[0_22px_55px_-24px_rgba(15,23,42,0.6)] transition-all duration-300 hover:-translate-y-1 flex flex-col items-center text-center`}
                   >
-                    <div className={`inline-flex p-4 bg-gradient-to-br ${feature.color} rounded-2xl mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
+                    <div className={`inline-flex p-4 bg-gradient-to-br ${feature.color} rounded-2xl mb-6 shadow-[0_18px_34px_-10px_rgba(2,6,23,0.65)] group-hover:scale-110 group-hover:shadow-[0_24px_42px_-10px_rgba(2,6,23,0.75)] transition-all`}>
                       <feature.icon size={28} className="text-white" />
                     </div>
 
@@ -494,7 +500,7 @@ export default function Home() {
                       {feature.title}
                     </h3>
 
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-[26ch] mx-auto">
                       {feature.description}
                     </p>
 
@@ -532,7 +538,8 @@ export default function Home() {
           </div>
 
         </div>
-      </section>
+        </section>
+      </div>
 
       {/* Featured Courses */}
       <section className="py-20 md:py-24 px-4 sm:px-6 md:px-8 bg-gradient-to-b from-white to-slate-50 dark:from-slate-950 dark:to-slate-900">
