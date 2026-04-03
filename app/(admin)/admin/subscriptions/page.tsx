@@ -20,6 +20,8 @@ import {
 import { useLanguage } from "@/lib/i18n/language-context"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
 import { formatNumber } from "@/lib/format"
+import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
+import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
 
 const emptyPlan = {
   name: "",
@@ -31,6 +33,8 @@ const emptyPlan = {
   features: "",
 }
 
+const SUBSCRIPTIONS_REALTIME_MS = 45000
+
 export default function AdminTeacherSubscriptionPage() {
   const { t } = useLanguage()
   const [loading, setLoading] = useState(true)
@@ -38,11 +42,12 @@ export default function AdminTeacherSubscriptionPage() {
   const [subscriptions, setSubscriptions] = useState<any[]>([])
   const [payments, setPayments] = useState<any[]>([])
   const [dashboard, setDashboard] = useState<any>(null)
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
   const [creating, setCreating] = useState(false)
   const [newPlan, setNewPlan] = useState<any>(emptyPlan)
 
-  const loadAll = async () => {
-    setLoading(true)
+  const loadAll = async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const [planRes, subRes, payRes, dashRes] = await Promise.all([
         apiClient.getAdminInstructorPlans(),
@@ -55,15 +60,20 @@ export default function AdminTeacherSubscriptionPage() {
       setSubscriptions(Array.isArray(subRes) ? subRes : [])
       setPayments(Array.isArray(payRes) ? payRes : [])
       setDashboard(dashRes || null)
+      setLastSyncedAt(new Date())
     } catch (error) {
       toast.error(t("adm_sub_load_fail", "Không thể tải dữ liệu quản lý gói"))
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
   useEffect(() => {
     loadAll()
+    const timer = setInterval(() => {
+      void loadAll(true)
+    }, SUBSCRIPTIONS_REALTIME_MS)
+    return () => clearInterval(timer)
   }, [])
 
   const createPlan = async () => {
@@ -176,6 +186,19 @@ export default function AdminTeacherSubscriptionPage() {
     }
   }, [dashboard?.totalRevenue, paidPayments, payments, pendingPayments])
 
+  const subscriptionOverviewMetrics = {
+    totalRevenue: Number(displayTotalRevenue || 0),
+    monthlyRevenue: Number(displayMonthlyRevenue || 0),
+    paidUsers: Number(displayPaidUsers || 0),
+    conversionRate: Number(displayConversionRate || 0),
+    pendingAmount: Number(metrics.pendingAmount || 0),
+    successCount: Number(metrics.successCount || 0),
+  }
+
+  const { isChanged: isOverviewChanged, getTrend: getOverviewTrend } = useMetricChangeHighlight(subscriptionOverviewMetrics, {
+    flashDurationMs: 1300,
+  })
+
   if (loading) {
     return <div className="h-64 rounded-2xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
   }
@@ -206,28 +229,33 @@ export default function AdminTeacherSubscriptionPage() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               {[{
+                key: "totalRevenue",
                 title: t("adm_sub_total_revenue", "Tổng doanh thu"),
                 value: <AnimatedNumber value={displayTotalRevenue} formatter={formatNumber} prefix="₫" />,
                 icon: <Wallet size={16} />, tone: "from-emerald-500/25 to-emerald-400/20 border-emerald-300/60"
               }, {
+                key: "monthlyRevenue",
                 title: t("adm_sub_monthly_revenue", "Doanh thu tháng"),
                 value: <AnimatedNumber value={displayMonthlyRevenue} formatter={formatNumber} prefix="₫" />,
                 icon: <BarChart3 size={16} />, tone: "from-sky-500/25 to-sky-400/20 border-sky-300/60"
               }, {
+                key: "paidUsers",
                 title: t("adm_sub_paid_users", "Người dùng trả phí"),
                 value: <AnimatedNumber value={displayPaidUsers} formatter={formatNumber} />,
                 icon: <CheckCircle2 size={16} />, tone: "from-indigo-500/25 to-indigo-400/20 border-indigo-300/60"
               }, {
+                key: "conversionRate",
                 title: t("adm_sub_conversion", "Tỉ lệ chuyển đổi"),
                 value: <AnimatedNumber value={displayConversionRate} decimals={1} suffix="%" />,
                 icon: <ArrowRight size={16} />, tone: "from-violet-500/25 to-violet-400/20 border-violet-300/60"
               }].map((card) => (
-                <div key={card.title} className={`rounded-2xl border bg-gradient-to-br ${card.tone} p-3 sm:p-4 shadow-sm backdrop-blur`}> 
+                <div key={card.title} className={`rounded-2xl border bg-gradient-to-br ${card.tone} p-3 sm:p-4 shadow-sm backdrop-blur transition-all duration-700 ${isOverviewChanged(card.key) ? "ring-2 ring-emerald-300/40 border-emerald-300/80" : ""}`}> 
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-semibold text-white/80 whitespace-nowrap">{card.title}</p>
                     <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white/80">{card.icon}</div>
                   </div>
                   <p className="text-2xl md:text-3xl font-bold mt-2 whitespace-nowrap">{card.value}</p>
+                  <MetricTrendBadge trend={getOverviewTrend(card.key)} />
                 </div>
               ))}
             </div>
@@ -256,6 +284,7 @@ export default function AdminTeacherSubscriptionPage() {
               <span className="inline-flex items-center gap-1"><BarChart3 size={12} /> {t("adm_sub_recent_tx", "Giao dịch mới nhất")}</span>
               <span className="font-semibold text-white whitespace-nowrap">{metrics.latestTransactionId}</span>
             </div>
+            <div className="text-[11px] text-slate-200/80">{t("adm_sub_live_sync", "Đồng bộ gần nhất")}: {lastSyncedAt ? lastSyncedAt.toLocaleTimeString("vi-VN") : "--:--:--"}</div>
           </div>
         </div>
       </section>

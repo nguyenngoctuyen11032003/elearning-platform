@@ -23,12 +23,14 @@ import {
   PolarRadiusAxis,
 } from "recharts"
 import { BookOpen, DollarSign, TrendingUp, Users } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { formatNumber, formatCurrency, formatCurrencyByLanguage } from "@/lib/format"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { apiClient } from "@/lib/api/client"
 import { format } from "date-fns/format"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
+import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
+import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
 
 // const revenueData = [
 //   { month: "1", revenue: 24000, teachers: 45, students: 400 },
@@ -59,6 +61,33 @@ type RadarMetric = { metric: string; value: number }
 type CoursePerformance = { courseId: string; courseTitle: string; teacherName: string; enrollments: number; revenue: number; averageRating: number; completionRate: number }
 
 const pieColors = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"]
+const chartTooltipStyle = {
+  backgroundColor: "#0f172a",
+  border: "1px solid #1e293b",
+  borderRadius: "10px",
+  color: "#e2e8f0",
+}
+const chartTooltipLabelStyle = { color: "#e2e8f0", fontWeight: 600 }
+const chartTooltipItemStyle = { color: "#e2e8f0" }
+const DASHBOARD_REALTIME_MS = 45000
+
+const LIVE_CLOCK_ANIMATION_STYLE: "light" | "clear" = "clear"
+const LIVE_CLOCK_ANIMATION_PRESETS = {
+  light: {
+    durationMs: 260,
+    fromY: 3,
+    fromBlur: 0,
+    fromOpacity: 0.55,
+  },
+  clear: {
+    durationMs: 480,
+    fromY: 5,
+    fromBlur: 1.5,
+    fromOpacity: 0.35,
+  },
+} as const
+
+const isSameData = <T,>(a: T, b: T) => JSON.stringify(a) === JSON.stringify(b)
 
 const fallbackOverviewMetrics = {
   totalRevenue: 1897000,
@@ -207,6 +236,87 @@ export default function AdminDashboard() {
   const [topStudentsCertificates, setTopStudentsCertificates] = useState<StudentCertificate[]>([])
   const [radarMetrics, setRadarMetrics] = useState<RadarMetric[]>([])
   const [coursePerformanceTop, setCoursePerformanceTop] = useState<CoursePerformance[]>([])
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
+  const [liveClock, setLiveClock] = useState(() => new Date())
+  const [chartMotionCycle, setChartMotionCycle] = useState(0)
+  const [chartAnimationFlags, setChartAnimationFlags] = useState({
+    revenue: true,
+    category: true,
+    radar: true,
+  })
+  const chartSignaturesRef = useRef<{ revenue: string; category: string; radar: string } | null>(null)
+  const liveClockTextRef = useRef<HTMLSpanElement | null>(null)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveClock(new Date())
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    const el = liveClockTextRef.current
+    if (!el || typeof el.animate !== "function") return
+
+    const preset = LIVE_CLOCK_ANIMATION_PRESETS[LIVE_CLOCK_ANIMATION_STYLE]
+
+    el.animate(
+      [
+        {
+          opacity: preset.fromOpacity,
+          transform: `translateY(${preset.fromY}px)`,
+          filter: `blur(${preset.fromBlur}px)`,
+        },
+        { opacity: 1, transform: "translateY(0px)", filter: "blur(0px)" },
+      ],
+      {
+        duration: preset.durationMs,
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+      },
+    )
+  }, [liveClock])
+
+  const revenueSignature = useMemo(() => JSON.stringify(revenueData), [revenueData])
+  const categorySignature = useMemo(() => JSON.stringify(categoryData), [categoryData])
+  const radarSignature = useMemo(() => JSON.stringify(radarMetrics), [radarMetrics])
+
+  useEffect(() => {
+    const prev = chartSignaturesRef.current
+    const next = {
+      revenue: revenueSignature,
+      category: categorySignature,
+      radar: radarSignature,
+    }
+
+    chartSignaturesRef.current = next
+    if (!prev) return
+
+    const changed = {
+      revenue: prev.revenue !== next.revenue,
+      category: prev.category !== next.category,
+      radar: prev.radar !== next.radar,
+    }
+
+    if (!changed.revenue && !changed.category && !changed.radar) return
+
+    setChartMotionCycle((value) => value + 1)
+    setChartAnimationFlags((current) => ({
+      revenue: changed.revenue ? true : current.revenue,
+      category: changed.category ? true : current.category,
+      radar: changed.radar ? true : current.radar,
+    }))
+
+    const timer = setTimeout(() => {
+      setChartAnimationFlags((current) => ({
+        revenue: changed.revenue ? false : current.revenue,
+        category: changed.category ? false : current.category,
+        radar: changed.radar ? false : current.radar,
+      }))
+    }, 1700)
+
+    return () => clearTimeout(timer)
+  }, [revenueSignature, categorySignature, radarSignature])
 
   const teacherRankingData = topTeachers.map((item) => ({
     name: item.teacherName,
@@ -262,8 +372,8 @@ function buildRevenueChart(transactions: { createdAt: string; amount: number }[]
 }
 
 useEffect(() => {
-  const loadDashboard = async () => {
-    setLoading(true)
+  const loadDashboard = async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const [dashboardRes, growthRes, revenueRes, userRes] = await Promise.allSettled([
         apiClient.getAdminDashboardStats(),
@@ -304,12 +414,11 @@ useEffect(() => {
         dashboard.revenueChart?.data?.length
       ) {
         const chart = dashboard.revenueChart
-        setRevenueData(
-          chart.labels.map((label: string, i: number) => ({
-            month: label,
-            revenue: Number(chart.data?.[i] ?? 0),
-          }))
-        )
+        const nextRevenue = chart.labels.map((label: string, i: number) => ({
+          month: label,
+          revenue: Number(chart.data?.[i] ?? 0),
+        }))
+        setRevenueData((prev) => (isSameData(prev, nextRevenue) ? prev : nextRevenue))
       } else if (dashboard.recentTransactions?.length) {
         const revenueChart = buildRevenueChart(
           dashboard.recentTransactions.map((t: any) => ({
@@ -318,41 +427,38 @@ useEffect(() => {
           }))
         )
 
-        setRevenueData(
-          revenueChart.labels.map((label: string, i: number) => ({
-            month: label,
-            revenue: revenueChart.data?.[i] ?? 0,
-          }))
-        )
+        const nextRevenue = revenueChart.labels.map((label: string, i: number) => ({
+          month: label,
+          revenue: revenueChart.data?.[i] ?? 0,
+        }))
+        setRevenueData((prev) => (isSameData(prev, nextRevenue) ? prev : nextRevenue))
       } else {
-        setRevenueData([])
+        setRevenueData((prev) => (prev.length ? [] : prev))
       }
 
       /* ================== WEEKLY STATS ================== */
-      setWeeklyStats(
-        Array.isArray(dashboard.weeklyStats)
-          ? dashboard.weeklyStats.map((item: any) => ({
-              day: item.day,
-              activeUsers: Number(item.activeUsers ?? 0),
-              newSignups: Number(item.newSignups ?? 0),
-            }))
-          : []
-      )
+      const nextWeeklyStats = Array.isArray(dashboard.weeklyStats)
+        ? dashboard.weeklyStats.map((item: any) => ({
+            day: item.day,
+            activeUsers: Number(item.activeUsers ?? 0),
+            newSignups: Number(item.newSignups ?? 0),
+          }))
+        : []
+      setWeeklyStats((prev) => (isSameData(prev, nextWeeklyStats) ? prev : nextWeeklyStats))
 
       /* ================== GROWTH CHART ================== */
-      setGrowthData(growthSource)
+      setGrowthData((prev) => (isSameData(prev, growthSource) ? prev : growthSource))
 
       /* ================== CATEGORY DISTRIBUTION ================== */
-      setCategoryData(
-        Array.isArray(dashboard.categoryDistribution)
-          ? dashboard.categoryDistribution.map((item: any, idx: number) => ({
-              name: item.categoryName,
-              value: Number(item.courseCount ?? 0),
-              percentage: Number(item.percentage ?? 0),
-              color: pieColors[idx % pieColors.length],
-            }))
-          : []
-      )
+      const nextCategoryData = Array.isArray(dashboard.categoryDistribution)
+        ? dashboard.categoryDistribution.map((item: any, idx: number) => ({
+            name: item.categoryName,
+            value: Number(item.courseCount ?? 0),
+            percentage: Number(item.percentage ?? 0),
+            color: pieColors[idx % pieColors.length],
+          }))
+        : []
+      setCategoryData((prev) => (isSameData(prev, nextCategoryData) ? prev : nextCategoryData))
 
       /* ================== PLAN & CERTIFICATE BREAKDOWN ================== */
       const planSummary: TeacherPlanSummary = {
@@ -439,7 +545,7 @@ useEffect(() => {
         { metric: t("adm_dash_students_no_cert", "HV chưa có chứng chỉ"), value: certSummary.withoutCertificate },
         { metric: t("adm_dash_top_completion", "HV hoàn thành nhiều khóa"), value: toNumber(topCompletion?.completedCourses) },
       ].filter((item) => item.value > 0)
-      setRadarMetrics(radarSource)
+      setRadarMetrics((prev) => (isSameData(prev, radarSource) ? prev : radarSource))
 
       /* ================== RECENT TRANSACTIONS ================== */
       setRecentTransactions(
@@ -464,6 +570,7 @@ useEffect(() => {
             ),
         }))
       )
+      setLastSyncedAt(new Date())
     } catch (err) {
       console.warn("Dashboard temporarily unavailable:", err)
       setStats(null)
@@ -482,11 +589,16 @@ useEffect(() => {
       setRadarMetrics([])
       setCoursePerformanceTop([])
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
   loadDashboard()
+  const refreshTimer = setInterval(() => {
+    void loadDashboard(true)
+  }, DASHBOARD_REALTIME_MS)
+
+  return () => clearInterval(refreshTimer)
 }, [])
 
 const safeTotalRevenue = Number(stats?.totalRevenue ?? 0)
@@ -595,6 +707,22 @@ const secondaryOverviewCards = [
   },
 ]
 
+const overviewMetrics = {
+  totalRevenue: finalTotalRevenue,
+  totalTeachers: finalTotalTeachers,
+  totalStudents: finalTotalStudents,
+  totalCourses: finalTotalCourses,
+  platformRevenue: finalPlatformRevenue,
+  teacherRevenue: finalTeacherRevenue,
+  totalUsers: finalTotalUsers,
+  teacherGrowth: finalTeacherGrowthPeople,
+  studentGrowth: finalStudentGrowthPeople,
+}
+
+const { isChanged: isOverviewChanged, getTrend: getOverviewTrend } = useMetricChangeHighlight(overviewMetrics, {
+  flashDurationMs: 1300,
+})
+
 if (loading) {
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -650,7 +778,13 @@ if (loading) {
                   </span>
                   <span className="px-3 py-1 rounded-full bg-black/15 text-white text-sm font-medium backdrop-blur">
                     {t("adm_dash_live", "Dữ liệu cập nhật tức thời")}
+                    <span ref={liveClockTextRef} className="inline-block will-change-transform">{` • ${liveClock.toLocaleTimeString("vi-VN")}`}</span>
                   </span>
+                  {lastSyncedAt ? (
+                    <span className="px-3 py-1 rounded-full bg-white/75 text-slate-700 text-xs font-semibold shadow-sm backdrop-blur">
+                      {t("adm_dash_last_sync", "Lần đồng bộ gần nhất")}: {lastSyncedAt.toLocaleTimeString("vi-VN")}
+                    </span>
+                  ) : null}
                 </div>
               </div>
 
@@ -682,18 +816,19 @@ if (loading) {
                 {primaryOverviewCards.map((item, index) => {
                   const Icon = item.icon
                   return (
-                  <div key={item.key} className="group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-white/60 dark:border-slate-800 p-4 shadow-[0_10px_26px_rgba(15,23,42,0.16)]">
+                  <div key={item.key} className={`group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border p-4 shadow-[0_10px_26px_rgba(15,23,42,0.16)] transition-all duration-700 ${isOverviewChanged(item.key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/50 dark:ring-emerald-500/30" : "border-white/60 dark:border-slate-800"}`}>
                     <div className={`absolute inset-0 bg-gradient-to-br ${item.tone} opacity-70 group-hover:opacity-90 transition-opacity duration-300`} />
                     <div className="relative flex items-center justify-between">
                       <div className="space-y-1">
                         <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{item.label}</p>
                         <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                          <AnimatedNumber value={item.value} formatter={item.formatter} durationMs={950} delayMs={index * 70} />
+                          <AnimatedNumber value={item.value} formatter={item.formatter} durationMs={950} delayMs={index * 70} disableAnimation={!isOverviewChanged(item.key)} />
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                           {t("adm_dash_periodic_update", "Cập nhật theo kỳ")}
                         </p>
+                        <MetricTrendBadge trend={getOverviewTrend(item.key)} />
                       </div>
                       <div className="w-11 h-11 rounded-2xl bg-white/70 dark:bg-slate-800/80 border border-white/60 dark:border-slate-700 flex items-center justify-center shadow-inner">
                         <Icon size={20} className="text-primary" />
@@ -705,7 +840,7 @@ if (loading) {
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {secondaryOverviewCards.map((item, index) => (
-                  <div key={item.key} className="relative overflow-hidden rounded-xl px-3 py-3 bg-white/75 dark:bg-slate-900/70 border border-white/60 dark:border-slate-800 shadow-sm backdrop-blur">
+                  <div key={item.key} className={`relative overflow-hidden rounded-xl px-3 py-3 bg-white/75 dark:bg-slate-900/70 border shadow-sm backdrop-blur transition-all duration-700 ${isOverviewChanged(item.key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/60 dark:border-slate-800"}`}>
                     <div className={`absolute inset-0 bg-gradient-to-br ${item.badgeClass} opacity-70`} />
                     <div className="relative space-y-1">
                       <p className="text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-300 font-semibold">{item.label}</p>
@@ -716,8 +851,10 @@ if (loading) {
                           suffix={item.suffix}
                           durationMs={950}
                           delayMs={index * 70}
+                          disableAnimation={!isOverviewChanged(item.key)}
                         />
                       </p>
+                      <MetricTrendBadge trend={getOverviewTrend(item.key)} />
                     </div>
                   </div>
                 ))}
@@ -748,13 +885,9 @@ if (loading) {
                 <XAxis dataKey="month" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1e293b",
-                    border: "1px solid #334155",
-                    borderRadius: "8px",
-                    color: "#fff"
-                  }}
-                  itemStyle={{ color: "#fff" }}
+                  contentStyle={chartTooltipStyle}
+                  labelStyle={chartTooltipLabelStyle}
+                  itemStyle={chartTooltipItemStyle}
                   formatter={(value) => [formatCurrency(Math.round(Number(value ?? 0))), t("adm_dash_revenue", "Doanh thu")]}
                 />
                 <Legend />
@@ -764,9 +897,11 @@ if (loading) {
                   stroke="#2563eb"
                   fillOpacity={1}
                   fill="url(#colorRevenue)"
-                  isAnimationActive
-                  animationDuration={900}
+                  isAnimationActive={chartAnimationFlags.revenue}
+                  animationBegin={90 + (chartMotionCycle % 2) * 10}
+                  animationDuration={1250}
                   animationEasing="ease-out"
+                  strokeWidth={2.6}
                   name={t("adm_dash_revenue", "Doanh thu")}
                 />
               </AreaChart>
@@ -792,19 +927,19 @@ if (loading) {
                       paddingAngle={3}
                       dataKey="value"
                       labelLine={false}
+                      isAnimationActive={chartAnimationFlags.category}
+                      animationBegin={240 + (chartMotionCycle % 2) * 15}
+                      animationDuration={1150}
+                      animationEasing="ease-out"
                     >
                       {categoryData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#1e293b",
-                        border: "1px solid #334155",
-                        borderRadius: "8px",
-                        color: "#fff"
-                      }}
-                      itemStyle={{ color: "#fff" }}
+                      contentStyle={chartTooltipStyle}
+                      labelStyle={chartTooltipLabelStyle}
+                      itemStyle={chartTooltipItemStyle}
                       formatter={(value, name, _props, index) => [
                         `${Number(value ?? 0)} ${t("adm_dash_courses_unit", "khóa")} (${categoryData[index]?.percentage ?? 0}%)`,
                         String(name ?? ""),
@@ -851,12 +986,9 @@ if (loading) {
                 <XAxis dataKey="day" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1e293b",
-                    border: "1px solid #334155",
-                    borderRadius: "8px",
-                    color: "#fff"
-                  }}
+                  contentStyle={chartTooltipStyle}
+                  labelStyle={chartTooltipLabelStyle}
+                  itemStyle={chartTooltipItemStyle}
                 />
                 <Legend />
                 <Area
@@ -865,6 +997,9 @@ if (loading) {
                   stroke="#06b6d4"
                   fillOpacity={1}
                   fill="url(#colorActive)"
+                  isAnimationActive
+                  animationDuration={850}
+                  animationEasing="ease-out"
                   name={t("adm_dash_active_users", "Người dùng hoạt động")}
                 />
                 <Area
@@ -873,6 +1008,9 @@ if (loading) {
                   stroke="#8b5cf6"
                   fillOpacity={1}
                   fill="url(#colorSignups)"
+                  isAnimationActive
+                  animationDuration={950}
+                  animationEasing="ease-out"
                   name={t("adm_dash_new_signups", "Đăng ký mới")}
                 />
               </AreaChart>
@@ -894,12 +1032,9 @@ if (loading) {
                 <XAxis dataKey="month" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1e293b",
-                    border: "1px solid #334155",
-                    borderRadius: "8px",
-                    color: "#fff"
-                  }}
+                  contentStyle={chartTooltipStyle}
+                  labelStyle={chartTooltipLabelStyle}
+                  itemStyle={chartTooltipItemStyle}
                 />
                 <Legend />
                 <Line 
@@ -908,6 +1043,10 @@ if (loading) {
                   stroke="#8b5cf6" 
                   strokeWidth={2} 
                   dot={{ fill: "#8b5cf6" }}
+                  activeDot={{ r: 6 }}
+                  isAnimationActive
+                  animationDuration={900}
+                  animationEasing="ease-out"
                   name={t("adm_dash_teachers", "Giáo viên")} 
                 />
                 <Line 
@@ -916,6 +1055,10 @@ if (loading) {
                   stroke="#06b6d4" 
                   strokeWidth={2} 
                   dot={{ fill: "#06b6d4" }}
+                  activeDot={{ r: 6 }}
+                  isAnimationActive
+                  animationDuration={980}
+                  animationEasing="ease-out"
                   name={t("adm_dash_students", "Học viên")} 
                 />
               </LineChart>
@@ -951,14 +1094,15 @@ if (loading) {
                     stroke="#6366f1"
                     fill="#6366f1"
                     fillOpacity={0.35}
+                    isAnimationActive={chartAnimationFlags.radar}
+                    animationBegin={420 + (chartMotionCycle % 2) * 20}
+                    animationDuration={1300}
+                    animationEasing="ease-out"
                   />
                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#0f172a",
-                      border: "1px solid #1e293b",
-                      borderRadius: "10px",
-                      color: "#e2e8f0",
-                    }}
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={chartTooltipLabelStyle}
+                    itemStyle={chartTooltipItemStyle}
                   />
                 </RadarChart>
               </ResponsiveContainer>
@@ -973,33 +1117,43 @@ if (loading) {
               <div className="flex flex-col items-center gap-4">
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={teacherPlanData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label>
+                    <Pie data={teacherPlanData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive animationDuration={900} animationEasing="ease-out">
                       {teacherPlanData.map((entry, idx) => (
                         <Cell key={`plan-${idx}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip
                       formatter={(value, name) => [formatNumber(Number(value ?? 0)), String(name)]}
-                      contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                      contentStyle={chartTooltipStyle}
+                      labelStyle={chartTooltipLabelStyle}
+                      itemStyle={chartTooltipItemStyle}
                     />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full text-sm">
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#22c55e" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_paid_teachers", "GV trả phí")}: {formatNumber(teacherPlanSummary?.paid || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_paid_teachers", "GV trả phí")}: <AnimatedNumber value={teacherPlanSummary?.paid || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#3b82f6" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_free_teachers", "GV miễn phí")}: {formatNumber(teacherPlanSummary?.free || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_free_teachers", "GV miễn phí")}: <AnimatedNumber value={teacherPlanSummary?.free || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#f97316" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_unsub_teachers", "Chưa đăng ký")}: {formatNumber(teacherPlanSummary?.unsubscribed || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_unsub_teachers", "Chưa đăng ký")}: <AnimatedNumber value={teacherPlanSummary?.unsubscribed || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#94a3b8" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_total_teachers", "Tổng GV")}: {formatNumber(teacherPlanSummary?.total || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_total_teachers", "Tổng GV")}: <AnimatedNumber value={teacherPlanSummary?.total || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1014,29 +1168,37 @@ if (loading) {
               <div className="flex flex-col items-center gap-4">
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={certificateData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label>
+                    <Pie data={certificateData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive animationDuration={950} animationEasing="ease-out">
                       {certificateData.map((entry, idx) => (
                         <Cell key={`cert-${idx}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip
                       formatter={(value, name) => [formatNumber(Number(value ?? 0)), String(name)]}
-                      contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                      contentStyle={chartTooltipStyle}
+                      labelStyle={chartTooltipLabelStyle}
+                      itemStyle={chartTooltipItemStyle}
                     />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full text-sm">
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#a855f7" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_students_with_cert", "HV có chứng chỉ")}: {formatNumber(certificateSummary?.withCertificate || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_students_with_cert", "HV có chứng chỉ")}: <AnimatedNumber value={certificateSummary?.withCertificate || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#f59e0b" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_students_no_cert", "HV chưa có")}: {formatNumber(certificateSummary?.withoutCertificate || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_students_no_cert", "HV chưa có")}: <AnimatedNumber value={certificateSummary?.withoutCertificate || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#0ea5e9" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_cert_total", "Tổng chứng chỉ")}: {formatNumber(certificateSummary?.totalCertificates || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_cert_total", "Tổng chứng chỉ")}: <AnimatedNumber value={certificateSummary?.totalCertificates || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1058,9 +1220,11 @@ if (loading) {
                   <YAxis type="category" dataKey="name" stroke="#94a3b8" width={120} />
                   <Tooltip
                     formatter={(value, name, props) => [formatNumber(Number(value ?? 0)), props?.payload?.subtitle]}
-                    contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={chartTooltipLabelStyle}
+                    itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#22c55e" radius={[6, 6, 6, 6]}>
+                  <Bar dataKey="value" fill="#22c55e" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={920} animationEasing="ease-out">
                     {teacherRankingData.map((entry, index) => (
                       <Cell key={`teacher-${index}`} fill={index === 0 ? "#22c55e" : "#16a34a"} />
                     ))}
@@ -1082,9 +1246,11 @@ if (loading) {
                   <YAxis type="category" dataKey="name" stroke="#94a3b8" width={120} />
                   <Tooltip
                     formatter={(value, name, props) => [formatNumber(Number(value ?? 0)), props?.payload?.subtitle]}
-                    contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={chartTooltipLabelStyle}
+                    itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 6, 6]}>
+                  <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={980} animationEasing="ease-out">
                     {studentCompletionData.map((entry, index) => (
                       <Cell key={`student-comp-${index}`} fill={index === 0 ? "#06b6d4" : "#0ea5e9"} />
                     ))}
@@ -1106,9 +1272,11 @@ if (loading) {
                   <YAxis type="category" dataKey="name" stroke="#94a3b8" width={120} />
                   <Tooltip
                     formatter={(value, name, props) => [formatNumber(Number(value ?? 0)), props?.payload?.subtitle]}
-                    contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={chartTooltipLabelStyle}
+                    itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#f97316" radius={[6, 6, 6, 6]}>
+                  <Bar dataKey="value" fill="#f97316" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={1030} animationEasing="ease-out">
                     {studentCertificateData.map((entry, index) => (
                       <Cell key={`student-cert-${index}`} fill={index === 0 ? "#f97316" : "#fb923c"} />
                     ))}

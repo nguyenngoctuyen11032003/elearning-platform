@@ -10,6 +10,10 @@ import { formatPrice, formatNumber, formatCurrencyByLanguage } from "@/lib/forma
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
+import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
+import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
+
+const PAYMENTS_REALTIME_MS = 15000
 
 interface Payment {
   id: string
@@ -75,6 +79,7 @@ export default function AdminPaymentsPage() {
   const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [exportMenuPos, setExportMenuPos] = useState<{ top: number; left: number } | null>(null)
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
 
   // Export filters
   const [exportStatus, setExportStatus] = useState<string>("all")
@@ -85,8 +90,8 @@ export default function AdminPaymentsPage() {
   const [exportDateTo, setExportDateTo] = useState<string>("")
   const { t, language } = useLanguage()
 
-  const loadPayments = async () => {
-    setLoading(true)
+  const loadPayments = async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const [listRes, statsRes, subscriptionPaymentRes] = await Promise.all([
         apiClient.getAdminPayments({ limit: 200 }),
@@ -158,6 +163,7 @@ export default function AdminPaymentsPage() {
         failedTransactions: Number(statsRes?.failedTransactions ?? mapped.filter((p) => p.status === "failed").length),
         totalTransactions: Number(statsRes?.totalTransactions ?? mapped.length),
       })
+      setLastSyncedAt(new Date())
     } catch (error: any) {
       console.error("Error loading payments", error)
       const isTimeout = typeof error?.message === "string" && error.message.toLowerCase().includes("timeout")
@@ -177,12 +183,16 @@ export default function AdminPaymentsPage() {
         toast.error(t("pay_load_error", "Không thể tải dữ liệu thanh toán"))
       }
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
   useEffect(() => {
     loadPayments()
+    const timer = setInterval(() => {
+      void loadPayments(true)
+    }, PAYMENTS_REALTIME_MS)
+    return () => clearInterval(timer)
   }, [])
 
   useEffect(() => {
@@ -226,6 +236,19 @@ export default function AdminPaymentsPage() {
   const pendingAmount = payments.filter((p) => p.status === "pending").reduce((sum, p) => sum + p.amount, 0)
   const successCount = stats.completedTransactions || payments.filter((p) => p.status === "success").length
   const totalTransactions = stats.totalTransactions || payments.length
+
+  const paymentOverviewMetrics = {
+    totalRevenue,
+    pendingAmount,
+    successCount,
+    totalTransactions,
+    pendingTransactions: stats.pendingTransactions,
+    failedTransactions: stats.failedTransactions,
+  }
+
+  const { isChanged: isOverviewChanged, getTrend: getOverviewTrend } = useMetricChangeHighlight(paymentOverviewMetrics, {
+    flashDurationMs: 1300,
+  })
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -328,6 +351,7 @@ export default function AdminPaymentsPage() {
                   </span>
                   <span className="px-3 py-1 rounded-full bg-black/15 text-white text-sm font-medium backdrop-blur">
                     {t("pay_live_badge", "Cập nhật tức thời")}
+                    {lastSyncedAt ? ` • ${lastSyncedAt.toLocaleTimeString("vi-VN")}` : ""}
                   </span>
                 </div>
               </div>
@@ -364,24 +388,25 @@ export default function AdminPaymentsPage() {
 
             <div className="rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/20 dark:bg-white/5 backdrop-blur-xl p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.16)] space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[ 
-                  { label: t("pay_total_revenue", "Tổng doanh thu"), value: totalRevenue, formatter: (val: number) => formatCurrencyByLanguage(val, language), tone: "from-green-200/40 to-emerald-100/30", icon: DollarSign },
-                  { label: t("pay_pending_total", "Đang chờ xử lý"), value: pendingAmount, formatter: (val: number) => formatCurrencyByLanguage(val, language), tone: "from-amber-200/45 to-yellow-100/35", icon: Clock },
-                  { label: t("pay_success_count", "Giao dịch thành công"), value: successCount, formatter: formatNumber, tone: "from-blue-200/45 to-indigo-100/35", icon: TrendingUp },
-                  { label: t("pay_total_transactions", "Tổng giao dịch"), value: totalTransactions, formatter: formatNumber, tone: "from-purple-200/40 to-pink-100/35", icon: CreditCard },
-                ].map(({ label, value, formatter, tone, icon: Icon }, idx) => (
-                  <div key={label} className="group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-white/60 dark:border-slate-800 p-4 shadow-[0_10px_26px_rgba(15,23,42,0.16)]">
+                {[
+                  { key: "totalRevenue", label: t("pay_total_revenue", "Tổng doanh thu"), value: totalRevenue, formatter: (val: number) => formatCurrencyByLanguage(val, language), tone: "from-green-200/40 to-emerald-100/30", icon: DollarSign },
+                  { key: "pendingAmount", label: t("pay_pending_total", "Đang chờ xử lý"), value: pendingAmount, formatter: (val: number) => formatCurrencyByLanguage(val, language), tone: "from-amber-200/45 to-yellow-100/35", icon: Clock },
+                  { key: "successCount", label: t("pay_success_count", "Giao dịch thành công"), value: successCount, formatter: formatNumber, tone: "from-blue-200/45 to-indigo-100/35", icon: TrendingUp },
+                  { key: "totalTransactions", label: t("pay_total_transactions", "Tổng giao dịch"), value: totalTransactions, formatter: formatNumber, tone: "from-purple-200/40 to-pink-100/35", icon: CreditCard },
+                ].map(({ key, label, value, formatter, tone, icon: Icon }) => (
+                  <div key={label} className={`group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border p-4 shadow-[0_10px_26px_rgba(15,23,42,0.16)] transition-all duration-700 ${isOverviewChanged(key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/60 dark:border-slate-800"}`}>
                     <div className={`absolute inset-0 bg-gradient-to-br ${tone} opacity-70 group-hover:opacity-90 transition-opacity duration-300`} />
                     <div className="relative flex items-center justify-between">
                       <div className="space-y-1">
                         <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{label}</p>
                         <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                          <AnimatedNumber value={value} formatter={formatter} />
+                          <AnimatedNumber value={value} formatter={formatter} disableAnimation={!isOverviewChanged(key)} />
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                           {t("pay_live_badge", "Cập nhật tức thời")}
                         </p>
+                        <MetricTrendBadge trend={getOverviewTrend(key)} />
                       </div>
                       <div className="w-11 h-11 rounded-2xl bg-white/70 dark:bg-slate-800/80 border border-white/60 dark:border-slate-700 flex items-center justify-center shadow-inner">
                         <Icon size={20} className="text-primary" />

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { animate, useMotionValue, useReducedMotion } from "framer-motion"
 
 type AnimatedNumberProps = {
@@ -36,6 +36,7 @@ export function AnimatedNumber({
   const prefersReducedMotion = useReducedMotion()
   const motionValue = useMotionValue(0)
   const target = useMemo(() => parseNumeric(value), [value])
+  const previousTargetRef = useRef<number | null>(null)
   const [display, setDisplay] = useState<string>(() => {
     if (target === null) return String(value)
     const formatFn = formatter || ((val: number) => defaultFormatter(val, decimals))
@@ -49,7 +50,9 @@ export function AnimatedNumber({
     }
 
     const formatFn = formatter || ((val: number) => defaultFormatter(val, decimals))
-    const shouldAnimate = !disableAnimation && !prefersReducedMotion
+    const hasChanged = previousTargetRef.current === null || previousTargetRef.current !== target
+    previousTargetRef.current = target
+    const shouldAnimate = !disableAnimation && !prefersReducedMotion && hasChanged
 
     if (!shouldAnimate) {
       setDisplay(`${prefix}${formatFn(target)}${suffix}`)
@@ -79,6 +82,7 @@ export function useRollingNumber(value: number | string, options?: Omit<Animated
   const prefersReducedMotion = useReducedMotion()
   const motionValue = useMotionValue(0)
   const target = useMemo(() => parseNumeric(value), [value])
+  const previousTargetRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (target === null) {
@@ -87,7 +91,9 @@ export function useRollingNumber(value: number | string, options?: Omit<Animated
     }
 
     const formatFn = options?.formatter || ((val: number) => defaultFormatter(val, options?.decimals ?? 0))
-    const shouldAnimate = !options?.disableAnimation && !prefersReducedMotion
+    const hasChanged = previousTargetRef.current === null || previousTargetRef.current !== target
+    previousTargetRef.current = target
+    const shouldAnimate = !options?.disableAnimation && !prefersReducedMotion && hasChanged
 
     if (!shouldAnimate) {
       setFormatted(`${options?.prefix ?? ""}${formatFn(target)}${options?.suffix ?? ""}`)

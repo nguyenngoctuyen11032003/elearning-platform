@@ -8,6 +8,9 @@ import { getApiBaseUrl } from "@/lib/api/config"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
+import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
+import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
 // DropdownFilter: custom dropdown with slide-down effect
 type DropdownOption = { value: string; label: string }
 type DropdownFilterProps = {
@@ -357,6 +360,10 @@ const fetchUsers = async () => {
 }
   useEffect(() => {
     fetchUsers()
+    const timer = setInterval(() => {
+      void fetchUsers()
+    }, 45000)
+    return () => clearInterval(timer)
   }, [])
 
   // ================= FILTER =================
@@ -605,6 +612,18 @@ const getLastActiveDisplay = (user: UserData): string => {
   const totalAdmins = userList.filter((u) => u.role === "admin").length
   const activeUsers = userList.filter((u) => u.status === "active").length
 
+  const userOverviewMetrics = {
+    totalUsers,
+    totalStudents,
+    totalTeachers,
+    totalAdmins,
+    activeUsers,
+  }
+
+  const { isChanged: isOverviewChanged, getTrend: getOverviewTrend } = useMetricChangeHighlight(userOverviewMetrics, {
+    flashDurationMs: 1300,
+  })
+
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
@@ -630,10 +649,11 @@ const getLastActiveDisplay = (user: UserData): string => {
             <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalUsers") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("user_total", "Tổng người dùng")}</p>
-                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalUsers}</p>
+                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1"><AnimatedNumber value={totalUsers} disableAnimation={!isOverviewChanged("totalUsers")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("totalUsers")} />
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <User size={20} className="text-blue-600 dark:text-blue-400" />
@@ -641,10 +661,11 @@ const getLastActiveDisplay = (user: UserData): string => {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalStudents") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("user_students", "Học viên")}</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{totalStudents}</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1"><AnimatedNumber value={totalStudents} disableAnimation={!isOverviewChanged("totalStudents")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("totalStudents")} />
                   </div>
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <BookOpen size={20} className="text-green-600 dark:text-green-400" />
@@ -652,10 +673,11 @@ const getLastActiveDisplay = (user: UserData): string => {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalTeachers") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("user_instructors", "Giảng viên")}</p>
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{totalTeachers}</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1"><AnimatedNumber value={totalTeachers} disableAnimation={!isOverviewChanged("totalTeachers")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("totalTeachers")} />
                   </div>
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <Award size={20} className="text-purple-600 dark:text-purple-400" />
@@ -663,10 +685,11 @@ const getLastActiveDisplay = (user: UserData): string => {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalAdmins") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("user_admins", "Quản trị viên")}</p>
-                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">{totalAdmins}</p>
+                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1"><AnimatedNumber value={totalAdmins} disableAnimation={!isOverviewChanged("totalAdmins")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("totalAdmins")} />
                   </div>
                   <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <Users size={20} className="text-orange-600 dark:text-orange-400" />

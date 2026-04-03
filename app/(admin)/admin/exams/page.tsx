@@ -23,6 +23,9 @@ import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { toast } from "sonner"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
+import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
+import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
 
 interface Exam {
   id: string
@@ -174,8 +177,8 @@ export default function AdminExamsPage() {
     }
   }
 
-  const fetchExams = async (templates: CertificateTemplate[] = certificateTemplates) => {
-    setIsLoading(true)
+  const fetchExams = async (templates: CertificateTemplate[] = certificateTemplates, silent = false) => {
+    if (!silent) setIsLoading(true)
     try {
       const res = await fetch("/api/admin/exams", {
         headers: getAuthHeaders(),
@@ -198,7 +201,7 @@ export default function AdminExamsPage() {
       console.error("Failed to fetch admin exams", error)
       setExams([])
     } finally {
-      setIsLoading(false)
+      if (!silent) setIsLoading(false)
     }
   }
 
@@ -224,6 +227,10 @@ export default function AdminExamsPage() {
       await fetchExams(templates)
     }
     initialize()
+    const timer = setInterval(() => {
+      void fetchExams(certificateTemplates, true)
+    }, 45000)
+    return () => clearInterval(timer)
   }, [])
 
   useEffect(() => {
@@ -293,6 +300,19 @@ export default function AdminExamsPage() {
   const rejectedExams = exams.filter(e => e.status === "rejected").length
   const practiceExams = exams.filter(e => e.type === "practice").length
   const officialExams = exams.filter(e => e.type === "official").length
+
+  const examOverviewMetrics = {
+    totalExams,
+    pendingExams,
+    approvedExams,
+    rejectedExams,
+    practiceExams,
+    officialExams,
+  }
+
+  const { isChanged: isOverviewChanged, getTrend: getOverviewTrend } = useMetricChangeHighlight(examOverviewMetrics, {
+    flashDurationMs: 1300,
+  })
 
   const canModerateExam = (status: Exam["status"]) => status === "pending"
 
@@ -494,10 +514,11 @@ export default function AdminExamsPage() {
             <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalExams") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_exam_stat_total", "Tổng bài thi")}</p>
-                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalExams}</p>
+                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1"><AnimatedNumber value={totalExams} disableAnimation={!isOverviewChanged("totalExams")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("totalExams")} />
                   </div>
                   <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <FileText size={20} className="text-primary" />
@@ -505,10 +526,11 @@ export default function AdminExamsPage() {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("pendingExams") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_exam_status_pending", "Chờ duyệt")}</p>
-                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingExams}</p>
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1"><AnimatedNumber value={pendingExams} disableAnimation={!isOverviewChanged("pendingExams")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("pendingExams")} />
                   </div>
                   <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
@@ -516,10 +538,11 @@ export default function AdminExamsPage() {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("approvedExams") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_exam_status_approved", "Đã duyệt")}</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{approvedExams}</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1"><AnimatedNumber value={approvedExams} disableAnimation={!isOverviewChanged("approvedExams")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("approvedExams")} />
                   </div>
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
@@ -527,10 +550,11 @@ export default function AdminExamsPage() {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("rejectedExams") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_exam_status_rejected", "Từ chối")}</p>
-                    <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{rejectedExams}</p>
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1"><AnimatedNumber value={rejectedExams} disableAnimation={!isOverviewChanged("rejectedExams")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("rejectedExams")} />
                   </div>
                   <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <XCircle size={20} className="text-red-600 dark:text-red-400" />
@@ -538,10 +562,11 @@ export default function AdminExamsPage() {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.65s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("practiceExams") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_exam_type_practice", "Thi thử")}</p>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{practiceExams}</p>
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1"><AnimatedNumber value={practiceExams} disableAnimation={!isOverviewChanged("practiceExams")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("practiceExams")} />
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <ClipboardList size={20} className="text-blue-600 dark:text-blue-400" />
@@ -549,10 +574,11 @@ export default function AdminExamsPage() {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.75s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("officialExams") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_exam_type_official", "Thi thật")}</p>
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{officialExams}</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1"><AnimatedNumber value={officialExams} disableAnimation={!isOverviewChanged("officialExams")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("officialExams")} />
                   </div>
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <Award size={20} className="text-purple-600 dark:text-purple-400" />
