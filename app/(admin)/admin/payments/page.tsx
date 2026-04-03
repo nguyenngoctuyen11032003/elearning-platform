@@ -253,7 +253,7 @@ export default function AdminPaymentsPage() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     if (Number.isNaN(date.getTime())) {
-      return t("common_not_updated", "ChÆ°a cáº­p nháº­t")
+      return t("common_not_updated", "Chưa cập nhật")
     }
 
     return date.toLocaleDateString(language === "en" ? "en-US" : "vi-VN", {
@@ -350,8 +350,8 @@ export default function AdminPaymentsPage() {
                     {t("pay_total_transactions", "Tá»•ng giao dá»‹ch")}: <AnimatedNumber value={totalTransactions} formatter={formatNumber} />
                   </span>
                   <span className="px-3 py-1 rounded-full bg-black/15 text-white text-sm font-medium backdrop-blur">
-                    {t("pay_live_badge", "Cáº­p nháº­t tá»©c thá»i")}
-                    {lastSyncedAt ? ` â€¢ ${lastSyncedAt.toLocaleTimeString("vi-VN")}` : ""}
+                    {t("pay_live_badge", "Cập nhật tức thời")}
+                    {lastSyncedAt ? ` • ${lastSyncedAt.toLocaleTimeString("vi-VN")}` : ""}
                   </span>
                 </div>
               </div>
@@ -404,7 +404,7 @@ export default function AdminPaymentsPage() {
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                          {t("pay_live_badge", "Cáº­p nháº­t tá»©c thá»i")}
+                          {t("pay_live_badge", "Cập nhật tức thời")}
                         </p>
                         <MetricTrendBadge trend={getOverviewTrend(key)} />
                       </div>
