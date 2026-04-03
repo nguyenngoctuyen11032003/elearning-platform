@@ -11,13 +11,12 @@ import {
   ChevronRight,
   Plus,
   CheckCircle,
-  Edit2,
   Trash2,
   X,
   Save,
   ClipboardList,
   MoreVertical,
-  Tag
+  Sparkles
 } from "lucide-react"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
@@ -42,6 +41,7 @@ interface ScheduleItem {
 export default function SchedulePage() {
   const { t, language } = useLanguage()
   const currentLocale = language === 'en' ? 'en-US' : 'vi-VN'
+  const defaultDuration = t('sched_default_duration', '30 minutes')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([
     // {
@@ -102,7 +102,7 @@ export default function SchedulePage() {
     type: "lesson",
     status: "todo",
     time: "09:00",
-    duration: "30 phút",
+    duration: defaultDuration,
     completed: false,
     description: ""
   })
@@ -190,7 +190,7 @@ const handleCreateItem = async () => {
       type: newItem.type ?? 'lesson',
       status: newItem.status ?? 'todo',
       time: newItem.time ?? '09:00',
-      duration: newItem.duration ?? '30 phút',
+      duration: newItem.duration ?? defaultDuration,
       dueDate,
       completed: newItem.status === 'completed',
       description: newItem.description ?? '',
@@ -204,7 +204,7 @@ const handleCreateItem = async () => {
       type: "lesson",
       status: "todo",
       time: "09:00",
-      duration: "30 phút",
+      duration: defaultDuration,
       completed: false,
       description: "",
       dueDate: undefined,
@@ -341,7 +341,7 @@ const handleQuickStatusChange = async (
     switch (type) {
       case 'lesson': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
       case 'exam': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-      case 'live': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+      case 'live': return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300'
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
     }
   }
@@ -446,16 +446,35 @@ useEffect(() => {
 // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [])
   return (
-    <div className="flex flex-col xl:flex-row gap-4 sm:gap-5 lg:gap-5 xl:gap-4 min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 sm:p-5 lg:p-6 xl:p-6">
+    <div className="relative flex min-h-screen flex-col gap-4 bg-gradient-to-br from-slate-50 via-cyan-50/45 to-emerald-50/45 p-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 sm:gap-5 sm:p-5 lg:gap-5 lg:p-6 xl:flex-row xl:gap-4 xl:p-6">
+      <motion.div
+        aria-hidden
+        animate={{ opacity: [0.2, 0.34, 0.2], y: [0, -14, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="pointer-events-none absolute -left-14 top-8 h-72 w-72 rounded-full bg-cyan-300/35 blur-3xl dark:bg-cyan-900/20"
+      />
+      <motion.div
+        aria-hidden
+        animate={{ opacity: [0.2, 0.3, 0.2], y: [0, 18, 0] }}
+        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        className="pointer-events-none absolute right-0 top-24 h-80 w-80 rounded-full bg-emerald-300/30 blur-3xl dark:bg-emerald-900/20"
+      />
+
       {/* Main Content - Kanban Board */}
-      <div className="flex-1 w-full xl:flex-[3] min-w-0">
+      <div className="relative min-w-0 w-full flex-1 xl:flex-[3]">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
+          className="mb-5 overflow-hidden rounded-[2rem] border border-cyan-100/70 bg-white/85 p-5 shadow-[0_24px_60px_rgba(8,47,73,0.12)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-900/70 sm:p-6"
         >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6 lg:mb-8">
+          <div className="absolute inset-0 bg-[radial-gradient(130%_120%_at_0%_0%,rgba(34,211,238,0.2),transparent_45%),radial-gradient(120%_120%_at_100%_0%,rgba(16,185,129,0.18),transparent_45%)]" />
+          <div className="relative z-10 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
             <div className="min-w-0 flex-1">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+              <span className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-cyan-50/75 px-3 py-1 text-xs font-semibold uppercase tracking-[0.11em] text-cyan-700 dark:border-cyan-700/50 dark:bg-cyan-900/25 dark:text-cyan-200">
+                <Sparkles className="h-3.5 w-3.5" />
+                {t('sched_title_badge', 'Study Planner')}
+              </span>
+              <h1 className="bg-gradient-to-r from-cyan-600 via-sky-600 to-emerald-500 bg-clip-text text-2xl font-bold text-transparent sm:text-3xl lg:text-4xl">
                 {t('sched_title', 'Lịch học hàng ngày')}
               </h1>
               <p className="text-xs sm:text-sm lg:text-base text-muted-foreground dark:text-slate-400 mt-1 truncate">
@@ -475,7 +494,7 @@ useEffect(() => {
             </div>
             <button 
               onClick={() => setIsCreating(true)}
-              className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg whitespace-nowrap flex-shrink-0 text-sm sm:text-base"
+              className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-gradient-to-r from-cyan-600 via-sky-600 to-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-xl hover:shadow-cyan-500/30 sm:px-6 sm:py-3 sm:text-base"
             >
               <Plus size={18} />
               <span className="hidden sm:inline">{t('sched_add_task', 'Thêm công việc')}</span>
@@ -497,7 +516,7 @@ useEffect(() => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className={`p-3 sm:p-4 bg-card dark:bg-slate-900 border-2 rounded-xl cursor-pointer group hover:shadow-lg transition-all ${getStatusColor(item.status)} border-border dark:border-slate-700`}
+                className={`group cursor-pointer rounded-xl border p-3 transition-all hover:-translate-y-0.5 hover:shadow-lg sm:p-4 ${getStatusColor(item.status)} border-border bg-white/85 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/75`}
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                   {/* Type Badge */}
@@ -599,10 +618,10 @@ useEffect(() => {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.2 }}
-        className="w-full md:w-full lg:w-64 xl:w-80 space-y-4 sm:space-y-5 lg:space-y-5"
+        className="relative w-full space-y-4 sm:space-y-5 lg:w-64 lg:space-y-5 xl:w-80"
       >
         {/* Calendar */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-5 lg:p-6 shadow-lg max-h-[280px] overflow-y-auto">
+        <div className="max-h-[280px] overflow-y-auto rounded-2xl border border-slate-200/75 bg-white/85 p-4 shadow-lg backdrop-blur-xl dark:border-slate-800/75 dark:bg-slate-900/70 sm:p-5 lg:p-6">
           <div className="flex items-center justify-between mb-4 lg:mb-6 gap-2">
             <button 
               onClick={prevMonth}
@@ -668,7 +687,7 @@ useEffect(() => {
         </div>
 
         {/* Your Task */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-3 sm:p-4 lg:p-5 shadow-lg">
+        <div className="rounded-2xl border border-slate-200/75 bg-white/85 p-3 shadow-lg backdrop-blur-xl dark:border-slate-800/75 dark:bg-slate-900/70 sm:p-4 lg:p-5">
           <h3 className="text-xs sm:text-sm lg:text-base font-bold text-foreground dark:text-white mb-2 sm:mb-2 lg:mb-3">{t("sched_your_tasks", "Công việc của bạn")}</h3>
           <div className="flex flex-wrap gap-1.5">
             <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full text-xs font-medium">
@@ -681,7 +700,7 @@ useEffect(() => {
         </div>
 
         {/* Upcoming Activity */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-3 sm:p-4 lg:p-5 shadow-lg max-h-[220px] overflow-hidden flex flex-col">
+        <div className="flex max-h-[220px] flex-col overflow-hidden rounded-2xl border border-slate-200/75 bg-white/85 p-3 shadow-lg backdrop-blur-xl dark:border-slate-800/75 dark:bg-slate-900/70 sm:p-4 lg:p-5">
           <h3 className="text-xs sm:text-sm lg:text-base font-bold text-foreground dark:text-white mb-2 sm:mb-2 lg:mb-3 flex-shrink-0">{t("sched_upcoming_activity", "Hoạt động sắp tới")}</h3>
           <div className="space-y-1.5 sm:space-y-2 overflow-y-auto flex-1">
             {scheduleItems
@@ -838,7 +857,7 @@ useEffect(() => {
                   </button>
                   <button
                     onClick={handleCreateItem}
-                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-600 px-3 py-2 text-sm font-medium text-white transition-all hover:shadow-lg sm:px-4 sm:py-3"
                   >
                     <Save size={16} />
                     {t('common_save', 'Lưu')}
@@ -980,7 +999,7 @@ useEffect(() => {
                   </button>
                   <button
                     onClick={handleUpdateItem}
-                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-600 px-3 py-2 text-sm font-medium text-white transition-all hover:shadow-lg sm:px-4 sm:py-3"
                   >
                     <Save size={16} />
                     {t('common_update', 'Cập nhật')}
