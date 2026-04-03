@@ -1,13 +1,12 @@
 ﻿"use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { authFetch } from "@/lib/authfetch"
-import { CheckCircle, Clock, FileText, Loader2, Pencil, Plus, Search, ShieldCheck, Trash2, Users } from "lucide-react"
+import { BarChart3, ChevronDown, ChevronRight, Clock, FileText, Loader2, Pencil, Plus, Search, ShieldCheck, Trash2, Users } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { ScientificText } from "@/components/scientific-text"
 import * as XLSX from "xlsx"
-import { UniversalSelect } from "@/components/ui/universal-select"
 
 type Exam = {
   id: string
@@ -92,14 +91,20 @@ const normalizeUploadedText = (value?: string) => {
 
 interface ExamCardProps {
   exam: Exam
+  compactMode?: boolean
   onEdit: (examId: string) => void
   onViewAttempts: (exam: Exam) => void
   onDelete: (examId: string, title: string) => void
   onViewVariantQuestions: (exam: Exam, variant: any) => void
 }
 
-function ExamCard({ exam, onEdit, onViewAttempts, onDelete, onViewVariantQuestions }: ExamCardProps) {
+function ExamCard({ exam, compactMode = false, onEdit, onViewAttempts, onDelete, onViewVariantQuestions }: ExamCardProps) {
+  const [isCardExpanded, setIsCardExpanded] = useState(!compactMode)
   const [isVariantsExpanded, setIsVariantsExpanded] = useState(false)
+
+  useEffect(() => {
+    setIsCardExpanded(!compactMode)
+  }, [compactMode, exam.id])
   
   const variants = (exam.variants || []).sort((a, b) => a.code - b.code)
   const displayVariants = variants.slice(0, 3)
@@ -117,10 +122,10 @@ function ExamCard({ exam, onEdit, onViewAttempts, onDelete, onViewVariantQuestio
 
   const getStatusLabel = (status: Exam["status"]) => {
     const map = {
-      draft: "🔵 Nháp",
-      pending: "🟡 Chờ duyệt",
-      approved: "🟢 Đã duyệt",
-      rejected: "🔴 Từ chối",
+      draft: "Nháp",
+      pending: "Chờ duyệt",
+      approved: "Đã duyệt",
+      rejected: "Từ chối",
     } as const
     return map[status]
   }
@@ -128,107 +133,148 @@ function ExamCard({ exam, onEdit, onViewAttempts, onDelete, onViewVariantQuestio
   return (
     <>
       <div className="rounded-[14px] p-5 border border-slate-200 dark:border-white/5 bg-white dark:bg-[#0f172a] transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_10px_30px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-4">
+        {/* Header - Clickable to expand */}
+        <div 
+          onClick={() => compactMode && setIsCardExpanded((prev) => !prev)}
+          className={`flex items-start justify-between gap-4 mb-4 ${compactMode ? 'cursor-pointer group' : ''}`}
+        >
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white truncate">{exam.title}</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{exam.courseName || "—"}</p>
+            <h3 className={`text-lg font-semibold text-slate-900 dark:text-white truncate ${compactMode ? 'group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors' : ''}`}>{exam.title}</h3>
+            <p className={`text-sm text-slate-600 dark:text-slate-400 mt-1 ${compactMode ? 'group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors' : ''}`}>{exam.courseName || "—"}</p>
           </div>
-          <div className={`px-3 py-1 rounded-full text-xs font-semibold border inline-flex items-center gap-1 whitespace-nowrap ${getStatusColor(exam.status)}`}>
-            {getStatusLabel(exam.status)}
-          </div>
-        </div>
-
-        {/* Type badge */}
-        <div className="mb-3">
-          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-            exam.type === "official" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30"
-          }`}>
-            {exam.type === "official" ? "📋 Thi thật" : "📝 Thi thử"}
-          </span>
-        </div>
-
-        {/* Info stats */}
-        <div className="flex flex-wrap gap-4 text-sm text-slate-700 dark:text-slate-300 mb-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-          <span className="flex items-center gap-1"><FileText size={14} /> {exam.questionsCount ?? "—"} câu</span>
-          <span className="flex items-center gap-1"><Users size={14} /> {exam.attemptCount ?? 0} lượt thi</span>
-          <span className="inline-flex items-center gap-1">
-            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-200/50 dark:bg-slate-700/50 text-xs text-slate-700 dark:text-slate-300">
-              {variants.length}
-            </span>
-            Đề con
-          </span>
-        </div>
-
-        {/* Variants section */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Danh sách đề con ({variants.length})</span>
-            {hasMoreVariants && (
+          <div className="flex items-center gap-2">
+            <div className={`px-3 py-1 rounded-full text-xs font-semibold border inline-flex items-center gap-1 whitespace-nowrap ${getStatusColor(exam.status)}`}>
+              {getStatusLabel(exam.status)}
+            </div>
+            {compactMode && (
               <button
-                onClick={() => setIsVariantsExpanded(!isVariantsExpanded)}
-                className="text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsCardExpanded((prev) => !prev)
+                }}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-all duration-200"
+                aria-label={isCardExpanded ? "Thu gọn đề" : "Mở rộng đề"}
               >
-                {isVariantsExpanded ? "▼ Thu gọn" : "▶ Xem"}
+                {isCardExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </button>
             )}
           </div>
-
-          {/* Show variants: first 3 always when collapsed, all when expanded */}
-          <div className="space-y-2">
-            {(isVariantsExpanded ? variants : displayVariants).map((variant) => (
-              <div key={variant.code} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 transition">
-                <span className="text-sm text-slate-700 dark:text-slate-300">
-                  <span className="font-medium text-blue-600 dark:text-blue-400">Đề {variant.code}</span>
-                  <span className="text-slate-500 ml-2">• {variant.questions?.length || 0} câu</span>
-                </span>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => onViewVariantQuestions(exam, variant)}
-                    className="px-2 py-1 text-xs rounded border border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
-                  >
-                    Xem
-                  </button>
-                  <button
-                    onClick={() => onEdit(exam.id)}
-                    className="px-2 py-1 text-xs rounded border border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
-                  >
-                    Sửa
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Show more indicator */}
-          {hasMoreVariants && !isVariantsExpanded && (
-            <div className="text-xs text-slate-600 dark:text-slate-500 text-center py-2 mt-2">
-              +{variants.length - 3} đề con khác
-            </div>
-          )}
         </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
-        <button
-          onClick={() => onEdit(exam.id)}
-          className="flex-1 px-3 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-300 hover:bg-blue-500/20 text-sm font-medium transition"
-        >
-          ✏️ Chỉnh sửa
-        </button>
-        <button
-          onClick={() => onViewAttempts(exam)}
-          className="flex-1 px-3 py-2 rounded-lg border border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 text-sm font-medium transition"
-        >
-          👥 Kết quả thi
-        </button>
-        <button
-          onClick={() => onDelete(exam.id, exam.title)}
-          className="flex-1 px-3 py-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300 hover:bg-red-500/20 text-sm font-medium transition"
-        >
-          🗑️ Xóa
-        </button>
-      </div>
+        {/* Compact summary for All tab */}
+        {compactMode && !isCardExpanded && (
+          <div className="flex flex-wrap gap-3 text-sm text-slate-700 dark:text-slate-300 animate-in fade-in duration-200">
+            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+              exam.type === "official" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30"
+            }`}>
+              {exam.type === "official" ? "📋 Thi thật" : "📝 Thi thử"}
+            </span>
+            <span className="flex items-center gap-1"><FileText size={14} /> {exam.questionsCount ?? "—"} câu</span>
+            <span className="flex items-center gap-1"><Users size={14} /> {exam.attemptCount ?? 0} lượt thi</span>
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-200/50 dark:bg-slate-700/50 text-xs text-slate-700 dark:text-slate-300">
+                {variants.length}
+              </span>
+              Đề con
+            </span>
+          </div>
+        )}
+
+        {isCardExpanded && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
+            {/* Type badge */}
+            <div className="mb-3">
+              <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                exam.type === "official" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30"
+              }`}>
+                {exam.type === "official" ? "📋 Thi thật" : "📝 Thi thử"}
+              </span>
+            </div>
+
+            {/* Info stats */}
+            <div className="flex flex-wrap gap-4 text-sm text-slate-700 dark:text-slate-300 mb-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+              <span className="flex items-center gap-1"><FileText size={14} /> {exam.questionsCount ?? "—"} câu</span>
+              <span className="flex items-center gap-1"><Users size={14} /> {exam.attemptCount ?? 0} lượt thi</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-200/50 dark:bg-slate-700/50 text-xs text-slate-700 dark:text-slate-300">
+                  {variants.length}
+                </span>
+                Đề con
+              </span>
+            </div>
+
+            {/* Variants section */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Danh sách đề con ({variants.length})</span>
+                {hasMoreVariants && (
+                  <button
+                    onClick={() => setIsVariantsExpanded(!isVariantsExpanded)}
+                    className="text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition"
+                  >
+                    {isVariantsExpanded ? "▼ Thu gọn" : "▶ Xem"}
+                  </button>
+                )}
+              </div>
+
+              {/* Show variants: first 3 always when collapsed, all when expanded */}
+              <div className="space-y-2">
+                {(isVariantsExpanded ? variants : displayVariants).map((variant) => (
+                  <div key={variant.code} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 transition">
+                    <span className="text-sm text-slate-700 dark:text-slate-300">
+                      <span className="font-medium text-blue-600 dark:text-blue-400">Đề {variant.code}</span>
+                      <span className="text-slate-500 ml-2">• {variant.questions?.length || 0} câu</span>
+                    </span>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => onViewVariantQuestions(exam, variant)}
+                        className="px-2 py-1 text-xs rounded border border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                      >
+                        Xem
+                      </button>
+                      <button
+                        onClick={() => onEdit(exam.id)}
+                        className="px-2 py-1 text-xs rounded border border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                      >
+                        Sửa
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Show more indicator */}
+              {hasMoreVariants && !isVariantsExpanded && (
+                <div className="text-xs text-slate-600 dark:text-slate-500 text-center py-2 mt-2">
+                  +{variants.length - 3} đề con khác
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => onEdit(exam.id)}
+                className="flex-1 px-3 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-300 hover:bg-blue-500/20 text-sm font-medium transition"
+              >
+                ✏️ Chỉnh sửa
+              </button>
+              <button
+                onClick={() => onViewAttempts(exam)}
+                className="flex-1 px-3 py-2 rounded-lg border border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 text-sm font-medium transition"
+              >
+                👥 Kết quả thi
+              </button>
+              <button
+                onClick={() => onDelete(exam.id, exam.title)}
+                className="flex-1 px-3 py-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300 hover:bg-red-500/20 text-sm font-medium transition"
+              >
+                🗑️ Xóa
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   )
@@ -242,8 +288,10 @@ export default function TeacherExamsListPage() {
   const [exams, setExams] = useState<Exam[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
+  const typeContainerRef = useRef<HTMLDivElement | null>(null)
+  const typeButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [activeTypeStyle, setActiveTypeStyle] = useState({ left: 0, width: 0, ready: false })
 
   // Variant questions modal
   const [variantQuestionsOpen, setVariantQuestionsOpen] = useState(false)
@@ -401,11 +449,10 @@ export default function TeacherExamsListPage() {
     return exams.filter((exam) => {
       const matchesSearch = exam.title.toLowerCase().includes(search.toLowerCase()) ||
         (exam.courseName || "").toLowerCase().includes(search.toLowerCase())
-      const matchesStatus = statusFilter === "all" || exam.status === statusFilter
       const matchesType = typeFilter === "all" || exam.type === typeFilter
-      return matchesSearch && matchesStatus && matchesType
+      return matchesSearch && matchesType
     })
-  }, [exams, search, statusFilter, typeFilter])
+  }, [exams, search, typeFilter])
 
   const stats = useMemo(() => {
     const total = exams.length
@@ -415,35 +462,42 @@ export default function TeacherExamsListPage() {
     const pending = exams.filter((e) => e.status === "pending").length
     const approved = exams.filter((e) => e.status === "approved").length
     const rejected = exams.filter((e) => e.status === "rejected").length
-    return { total, practice, official, draft, pending, approved, rejected }
+    const totalAttempts = exams.reduce((sum, e) => sum + (e.attemptCount || 0), 0)
+    return { total, practice, official, draft, pending, approved, rejected, totalAttempts }
   }, [exams])
-
-  const StatusBadge = ({ status }: { status: Exam["status"] }) => {
-    const map = {
-      draft: { label: t("tch_exg_draft", "Nháp"), className: "bg-gray-500/10 text-gray-500" },
-      pending: { label: t("tch_exg_pending", "Chờ duyệt"), className: "bg-amber-500/10 text-amber-600" },
-      approved: { label: t("tch_exg_approved", "Đã duyệt"), className: "bg-green-500/10 text-green-600" },
-      rejected: { label: t("tch_exg_rejected", "Từ chối"), className: "bg-red-500/10 text-red-600" },
-    } as const
-    const item = map[status]
-    return <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.className}`}>{item.label}</span>
-  }
-
-  const TypeBadge = ({ type }: { type: Exam["type"] }) => {
-    const map = {
-      practice: { label: t("tch_exg_practice", "Thi thử"), className: "bg-blue-500/10 text-blue-600" },
-      official: { label: t("tch_exg_official", "Thi thật"), className: "bg-purple-500/10 text-purple-600" },
-    } as const
-    const item = map[type]
-    return <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.className}`}>{item.label}</span>
-  }
 
   const cards = [
     { title: t("tch_exg_total", "Tổng đề thi"), value: stats.total, icon: FileText, accent: "text-primary" },
     { title: t("tch_exg_practice", "Thi thử"), value: stats.practice, icon: Clock, accent: "text-blue-500" },
     { title: t("tch_exg_official", "Thi thật"), value: stats.official, icon: ShieldCheck, accent: "text-purple-500" },
-    { title: t("tch_exg_approved", "Đã duyệt"), value: stats.approved, icon: CheckCircle, accent: "text-green-500" },
+    { title: t("tch_exg_attempts", "Lượt đã thi"), value: stats.totalAttempts, icon: BarChart3, accent: "text-cyan-500" },
   ]
+
+  const typeOptions = [
+    { value: "all", label: t("tch_exg_all_type", "Tất cả loại") },
+    { value: "practice", label: t("tch_exg_practice", "Thi thử") },
+    { value: "official", label: t("tch_exg_official", "Thi thật") },
+  ]
+
+  useEffect(() => {
+    const updateFilterIndicators = () => {
+      const typeContainer = typeContainerRef.current
+      const activeTypeButton = typeButtonRefs.current[typeFilter]
+      if (typeContainer && activeTypeButton) {
+        const containerRect = typeContainer.getBoundingClientRect()
+        const buttonRect = activeTypeButton.getBoundingClientRect()
+        setActiveTypeStyle({
+          left: buttonRect.left - containerRect.left,
+          width: buttonRect.width,
+          ready: true,
+        })
+      }
+    }
+
+    updateFilterIndicators()
+    window.addEventListener("resize", updateFilterIndicators)
+    return () => window.removeEventListener("resize", updateFilterIndicators)
+  }, [typeFilter])
 
   return (
     <div className="space-y-6">
@@ -503,27 +557,34 @@ export default function TeacherExamsListPage() {
               className="w-full bg-transparent outline-none text-sm"
             />
           </div>
-          <div className="flex gap-2 w-full md:w-auto">
-            <UniversalSelect
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border rounded-lg px-3 py-2 text-sm w-1/2 md:w-auto"
-            >
-              <option value="all">{t("tch_exg_all_status", "Tất cả trạng thái")}</option>
-              <option value="approved">{t("tch_exg_approved", "Đã duyệt")}</option>
-              <option value="pending">{t("tch_exg_pending", "Chờ duyệt")}</option>
-              <option value="draft">{t("tch_exg_draft", "Nháp")}</option>
-              <option value="rejected">{t("tch_exg_rejected", "Từ chối")}</option>
-            </UniversalSelect>
-            <UniversalSelect
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="border rounded-lg px-3 py-2 text-sm w-1/2 md:w-auto"
-            >
-              <option value="all">{t("tch_exg_all_type", "Tất cả loại")}</option>
-              <option value="practice">{t("tch_exg_practice", "Thi thử")}</option>
-              <option value="official">{t("tch_exg_official", "Thi thật")}</option>
-            </UniversalSelect>
+          <div className="flex w-full flex-col gap-2 md:w-auto">
+            <div ref={typeContainerRef} className="relative inline-flex w-full flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-900/70 md:w-auto md:flex-nowrap">
+              <div
+                className="pointer-events-none absolute inset-y-1 rounded-md bg-cyan-600 shadow-[0_8px_20px_rgba(8,145,178,0.35)] transition-all duration-300"
+                style={{
+                  left: `${activeTypeStyle.left}px`,
+                  width: `${activeTypeStyle.width}px`,
+                  opacity: activeTypeStyle.ready ? 1 : 0,
+                }}
+              />
+              {typeOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  ref={(node) => {
+                    typeButtonRefs.current[option.value] = node
+                  }}
+                  onClick={() => setTypeFilter(option.value)}
+                  className={`relative z-10 inline-flex min-w-fit items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition-all duration-300 ${
+                    typeFilter === option.value
+                      ? "text-white"
+                      : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -539,6 +600,7 @@ export default function TeacherExamsListPage() {
               <ExamCard
                 key={exam.id}
                 exam={exam}
+                compactMode
                 onEdit={handleEdit}
                 onViewAttempts={handleViewAttempts}
                 onDelete={handleDelete}

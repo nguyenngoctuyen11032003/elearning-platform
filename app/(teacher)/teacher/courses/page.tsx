@@ -2,7 +2,7 @@
 
 import { Plus, Edit2, Trash2, Eye, MoreVertical, Search, BookOpen, Users, DollarSign, Clock, CheckCircle, XCircle, Send, AlertCircle, Video, FileText, BarChart3 } from "lucide-react"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { formatPrice, formatCurrencyByLanguage } from "@/lib/format"
 import { authFetch } from "@/lib/authfetch"
@@ -125,7 +125,6 @@ export default function TeacherCoursesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "delete" | null>(null)
   const [menuCourse, setMenuCourse] = useState<Course | null>(null)
@@ -141,7 +140,10 @@ export default function TeacherCoursesPage() {
     averageScore: number
     totalStudents: number
   } | null>(null)
-  const menuButtonRefs = React.useRef<Map<string, React.RefObject<HTMLButtonElement>>>(new Map());
+  const menuButtonRefs = React.useRef<Map<string, React.RefObject<HTMLButtonElement>>>(new Map())
+  const filterContainerRef = React.useRef<HTMLDivElement | null>(null)
+  const filterButtonRefs = React.useRef<Record<string, HTMLButtonElement | null>>({})
+  const [activeFilterStyle, setActiveFilterStyle] = useState({ left: 0, width: 0, ready: false })
 
   const normalizeList = (data: any): BackendCourse[] => {
     if (Array.isArray(data)) return data
@@ -278,15 +280,48 @@ export default function TeacherCoursesPage() {
       (statusFilter === "all" || course.status === statusFilter),
   )
 
+  const filterOptions = useMemo(
+    () => [
+      { value: "all", label: t("tc_filter_all", "Tất cả") },
+      { value: "draft", label: t("tc_filter_draft", "Nháp") },
+      { value: "pending", label: t("tc_filter_pending", "Chờ duyệt") },
+      { value: "approved", label: t("tc_filter_approved", "Đã duyệt") },
+      { value: "rejected", label: t("tc_filter_rejected", "Từ chối") },
+    ],
+    [t],
+  )
+
+  useEffect(() => {
+    const updateActiveFilter = () => {
+      const container = filterContainerRef.current
+      const activeButton = filterButtonRefs.current[statusFilter]
+      if (!container || !activeButton) {
+        setActiveFilterStyle((prev) => ({ ...prev, ready: false }))
+        return
+      }
+
+      const containerRect = container.getBoundingClientRect()
+      const buttonRect = activeButton.getBoundingClientRect()
+
+      setActiveFilterStyle({
+        left: buttonRect.left - containerRect.left,
+        width: buttonRect.width,
+        ready: true,
+      })
+    }
+
+    updateActiveFilter()
+    window.addEventListener("resize", updateActiveFilter)
+    return () => window.removeEventListener("resize", updateActiveFilter)
+  }, [statusFilter, filterOptions])
+
   const handleViewDetails = (course: Course) => {
     setSelectedCourse(course)
     setViewMode("view")
-    setMenuOpenId(null)
   }
 
   const handleEdit = (courseId: string) => {
     router.push(`/teacher/courses/${courseId}/edit`)
-    setMenuOpenId(null)
   }
 
   const canEditCourse = (status: Course["status"]) => status !== "approved"
@@ -294,7 +329,6 @@ export default function TeacherCoursesPage() {
   const handleDeleteClick = (course: Course) => {
     setSelectedCourse(course)
     setViewMode("delete")
-    setMenuOpenId(null)
   }
 
   const handleDeleteConfirm = async () => {
@@ -325,7 +359,9 @@ export default function TeacherCoursesPage() {
     } catch (error) {
       console.error("Error submitting course:", error)
     } finally {
-      setMenuOpenId(null)
+      setMenuCourse(null)
+      setMenuRect(null)
+      setMenuAnchorId(null)
     }
   }
 
@@ -335,7 +371,6 @@ export default function TeacherCoursesPage() {
     setStudentsProgressLoading(true)
     setCourseStudentsProgress([])
     setStudentsProgressSummary(null)
-    setMenuOpenId(null)
     setMenuCourse(null)
     setMenuRect(null)
     setMenuAnchorId(null)
@@ -373,22 +408,6 @@ export default function TeacherCoursesPage() {
       setStudentsProgressLoading(false)
     }
   }
-
-// Close dropdown when clicking outside
-// Only close dropdown on desktop, not mobile
-useEffect(() => {
-  const handleClickOutside = (event: MouseEvent) => {
-    if (window.innerWidth < 768) return // ⬅️ CHỐT CHẶN MOBILE
-
-    const target = event.target as Element
-    if (!target.closest('[data-dropdown]')) {
-      setMenuOpenId(null)
-    }
-  }
-
-  document.addEventListener("click", handleClickOutside)
-  return () => document.removeEventListener("click", handleClickOutside)
-}, [])
 
 // Recalculate menuRect only once when menu is open (mobile)
 useEffect(() => {
@@ -440,559 +459,165 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen w-full">
-      <div className="w-full space-y-8">
-        {/* Header with Stats */}
-        <div className="relative overflow-hidden p-8 rounded-3xl animate-fadeIn" style={{ backgroundImage: "url('/image/bg_mycourses.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-          {/* Overlay for better readability */}
-          <div className="absolute inset-0 bg-black/15 dark:bg-black/45 rounded-3xl"></div>
-          
-          <div className="relative z-10 space-y-8">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slideDown" style={{ animationDelay: "0.15s" }}>
+      <div className="w-full space-y-6">
+        <section className="relative overflow-hidden rounded-[2rem] border border-blue-100/70 bg-white/85 p-6 shadow-[0_24px_60px_rgba(3,105,161,0.16)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-900/70 md:p-8">
+          <div className="absolute inset-0 bg-[radial-gradient(120%_110%_at_0%_0%,rgba(59,130,246,0.25),transparent_45%),radial-gradient(100%_90%_at_90%_0%,rgba(34,211,238,0.22),transparent_48%)]" />
+          <div className="relative z-10 space-y-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("tc_my_courses", "Khóa học của tôi")}</h1>
-                <p className="text-black/70 dark:text-white/80 drop-shadow">{t("tc_manage_courses", "Quản lý và tạo khóa học mới")}</p>
+                <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-200/70 bg-cyan-50/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-cyan-700 dark:border-cyan-700/50 dark:bg-cyan-900/30 dark:text-cyan-200">
+                  <BookOpen className="h-4 w-4" />
+                  {t("tc_teacher_center", "Trung tâm khóa học")}
+                </p>
+                <h1 className="text-3xl font-black text-slate-900 dark:text-white md:text-5xl">{t("tc_my_courses", "Khóa học của tôi")}</h1>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 md:text-base">{t("tc_manage_courses", "Quản lý và tạo khóa học mới")}</p>
               </div>
-              <Link
-                href="/teacher/courses/create"
-                className="flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-[1.02] w-fit backdrop-blur-sm"
-              >
-                <Plus size={20} /> {t("tc_create_course", "Tạo khóa học mới")}
-              </Link>
-            </div>
 
-            {/* Stats Cards */}
-            <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tc_stat_total", "Tổng")}</p>
-                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalCourses}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <BookOpen size={20} className="text-blue-600 dark:text-blue-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tc_stat_draft", "Nháp")}</p>
-                    <p className="text-2xl font-bold text-slate-600 dark:text-slate-400 mt-1">{draftCourses}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <Edit2 size={20} className="text-slate-600 dark:text-slate-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tc_stat_pending", "Chờ duyệt")}</p>
-                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingCourses}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tc_stat_approved", "Đã duyệt")}</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{approvedCourses}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.65s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("tc_stat_rejected", "Từ chối")}</p>
-                    <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{rejectedCourses}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <XCircle size={20} className="text-red-600 dark:text-red-400" />
-                  </div>
-                </div>
-              </div>
-            </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Search & Filter */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-3.5 text-muted-foreground" size={20} />
-            <input
-              type="text"
-              placeholder={t("tc_search_placeholder", "Tìm kiếm khóa học...")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            />
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {[
-              { value: "all", label: t("tc_filter_all", "Tất cả") },
-              { value: "draft", label: t("tc_filter_draft", "Nháp") },
-              { value: "pending", label: t("tc_filter_pending", "Chờ duyệt") },
-              { value: "approved", label: t("tc_filter_approved", "Đã duyệt") },
-              { value: "rejected", label: t("tc_filter_rejected", "Từ chối") },
-            ].map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setStatusFilter(option.value)}
-                className={`px-4 py-3 rounded-lg transition-smooth font-medium ${
-                  statusFilter === option.value
-                    ? "bg-primary text-white"
-                    : "bg-card dark:bg-slate-900 border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Courses List - Mobile/Tablet: Cards, Desktop: Table */}
-        {/* Mobile & Tablet: Cards */}
-        <div className="block xl:hidden">
-          {isLoading ? (
-            <div className="py-8 text-center text-muted-foreground dark:text-slate-400">
-              {t("tc_loading_courses", "Đang tải khóa học...")}
-            </div>
-          ) : filteredCourses.length === 0 ? (
-            <div className="py-12 text-center">
-              <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground dark:text-slate-400">{t("tc_no_courses_found", "Không tìm thấy khóa học nào")}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {filteredCourses.map((course) => (
-                <div
-                  key={course.id}
-                  data-course-card-id={course.id}
-                  className={`relative border border-border dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-900 shadow-sm flex flex-col gap-2 animate-fadeIn ${menuCourse?.id === course.id ? "z-[9999]" : "z-0"}`}
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/teacher/courses/create"
+                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-cyan-600 px-4 text-sm font-semibold text-white transition hover:bg-cyan-500"
                 >
-                  <div className="flex items-center gap-3 mb-2">
-                    <img
-                      src={course.thumbnail}
-                      alt={course.title}
-                      className="w-16 h-16 rounded-lg object-cover bg-secondary"
-                    />
-                    <div className="flex-1">
-                      <div className="font-semibold text-foreground dark:text-white text-base">{course.title}</div>
-                      <div className="text-xs text-muted-foreground dark:text-slate-400">{course.lessons} {t("tc_lessons", "bài học")} • {course.duration}</div>
-                    </div>
+                  <Plus size={17} /> {t("tc_create_course", "Tạo khóa học mới")}
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+              {[
+                { label: t("tc_stat_total", "Tổng"), value: totalCourses, icon: BookOpen, tone: "border-cyan-200 bg-cyan-50/75 text-cyan-700 dark:border-cyan-700/60 dark:bg-cyan-900/30 dark:text-cyan-200" },
+                { label: t("tc_filter_draft", "Nháp"), value: draftCourses, icon: Edit2, tone: "border-slate-200 bg-slate-50/85 text-slate-700 dark:border-slate-700/60 dark:bg-slate-800/55 dark:text-slate-200" },
+                { label: t("tc_filter_pending", "Chờ duyệt"), value: pendingCourses, icon: Clock, tone: "border-amber-200 bg-amber-50/80 text-amber-700 dark:border-amber-700/60 dark:bg-amber-900/30 dark:text-amber-200" },
+                { label: t("tc_filter_approved", "Đã duyệt"), value: approvedCourses, icon: CheckCircle, tone: "border-emerald-200 bg-emerald-50/80 text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-200" },
+                { label: t("tc_filter_rejected", "Từ chối"), value: rejectedCourses, icon: XCircle, tone: "border-rose-200 bg-rose-50/80 text-rose-700 dark:border-rose-700/60 dark:bg-rose-900/30 dark:text-rose-200" },
+              ].map((item) => (
+                <article key={item.label} className={`rounded-xl border p-3 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${item.tone}`}>
+                  <div className="mb-1 flex items-center gap-2">
+                    <item.icon className="h-4 w-4" />
+                    <p className="text-[11px] font-medium uppercase tracking-[0.08em]">{item.label}</p>
+                  </div>
+                  <p className="text-2xl font-black">{item.value}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <div>
+          <section className="space-y-4">
+            <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-[0_12px_35px_rgba(2,132,199,0.09)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/65">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="relative w-full lg:max-w-md">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder={t("tc_search_placeholder", "Tìm kiếm khóa học...")}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-cyan-500 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.2)] dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+                  />
+                </div>
+
+                <div ref={filterContainerRef} className="relative inline-flex w-full flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-900/70 md:w-auto md:flex-nowrap">
+                  <div
+                    className="pointer-events-none absolute inset-y-1 rounded-md bg-cyan-600 shadow-[0_8px_20px_rgba(8,145,178,0.35)] transition-all duration-300"
+                    style={{
+                      left: `${activeFilterStyle.left}px`,
+                      width: `${activeFilterStyle.width}px`,
+                      opacity: activeFilterStyle.ready ? 1 : 0,
+                    }}
+                  />
+                  {filterOptions.map((option) => (
                     <button
-                      ref={(() => {
-                        if (!menuButtonRefs.current.has(course.id)) {
-                          menuButtonRefs.current.set(course.id, React.createRef<HTMLButtonElement>())
-                        }
-                        return menuButtonRefs.current.get(course.id);
-                      })()}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (window.innerWidth < 768) {
+                      key={option.value}
+                      ref={(node) => {
+                        filterButtonRefs.current[option.value] = node
+                      }}
+                      onClick={() => setStatusFilter(option.value)}
+                      className={`relative z-10 inline-flex min-w-fit items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition-all duration-300 ${
+                        statusFilter === option.value
+                          ? "text-white"
+                          : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300">
+                {t("tc_loading_courses", "Đang tải khóa học...")}
+              </div>
+            ) : filteredCourses.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300">
+                <BookOpen size={42} className="mx-auto mb-3 opacity-60" />
+                {t("tc_no_courses_found", "Không tìm thấy khóa học nào")}
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {filteredCourses.map((course) => (
+                  <article
+                    key={course.id}
+                    data-course-card-id={course.id}
+                    className={`relative rounded-xl border border-slate-200 bg-slate-50/85 p-4 transition hover:border-cyan-400/60 hover:shadow-lg dark:border-slate-700 dark:bg-slate-800/45 ${menuCourse?.id === course.id ? "z-[9999]" : "z-0"}`}
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <h3 className="line-clamp-2 text-base font-semibold text-slate-900 dark:text-white">{course.title}</h3>
+                      <button
+                        ref={(() => {
+                          if (!menuButtonRefs.current.has(course.id)) {
+                            menuButtonRefs.current.set(course.id, React.createRef<HTMLButtonElement>())
+                          }
+                          return menuButtonRefs.current.get(course.id)
+                        })()}
+                        onClick={(e) => {
+                          e.stopPropagation()
                           const rect = e.currentTarget.getBoundingClientRect()
                           setMenuRect(rect)
                           setMenuCourse(course)
                           setMenuAnchorId(course.id)
-                        } else {
-                          setMenuOpenId(menuOpenId === course.id ? null : course.id)
-                        }
-                      }}
-                      className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-                    >
-                      <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_category_label", "Danh mục:")}</span>
-                    <span className="text-sm text-foreground dark:text-white">{course.category}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_students_label", "Học viên:")}</span>
-                    <span className="text-sm text-foreground dark:text-white">{course.students}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_rating_label", "Đánh giá:")}</span>
-                    <span className="text-sm text-yellow-500">{course.rating > 0 ? `${course.rating}★` : t("tc_no_rating", "Chưa có")}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_price_label", "Giá:")}</span>
-                    <span className="text-sm text-foreground dark:text-white">{formatCurrencyByLanguage(course.price, language)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground dark:text-slate-400">{t("tc_status_label", "Trạng thái:")}</span>
-                    {getStatusBadge(course.status)}
-                  </div>
-                  {/* INLINE DETAIL – NEO THEO CARD */}
-{viewMode === "view" && selectedCourse?.id === course.id && (
-  <div className="mt-4 rounded-xl border border-border bg-secondary p-4 animate-slideDown">
-
-    {/* Header */}
-    <div className="flex items-start gap-3 mb-3">
-      <img
-        src={course.thumbnail}
-        alt={course.title || t("tc_course_thumbnail_alt", "Ảnh khóa học")}
-        className="w-20 h-14 rounded-lg object-cover"
-      />
-
-      <div className="flex-1">
-        <h3 className="font-semibold text-sm">
-          {course.title}
-        </h3>
-        <p className="text-xs text-muted-foreground">
-          {course.description}
-        </p>
-        <div className="mt-1">
-          {getStatusBadge(course.status)}
-        </div>
-      </div>
-
-      <button
-        onClick={() => {
-          setViewMode(null)
-          setSelectedCourse(null)
-        }}
-        className="text-muted-foreground"
-      >
-        <XCircle size={18} />
-      </button>
-    </div>
-
-    {/* Stats */}
-    <div className="grid grid-cols-2 gap-2 mb-3">
-      <InfoItem icon={<Users size={14} />} label={t("tc_info_students", "Học viên")} value={course.students} />
-      <InfoItem icon={<BookOpen size={14} />} label={t("tc_info_lessons", "Bài học")} value={course.lessons} />
-      <InfoItem icon={<Clock size={14} />} label={t("tc_info_duration", "Thời lượng")} value={course.duration} />
-      <InfoItem
-        icon={<DollarSign size={14} />}
-        label={t("tc_info_price", "Giá")}
-        value={formatCurrencyByLanguage(course.price, language)}
-      />
-    </div>
-
-    <div className="border-t border-border pt-3 mb-3">
-      <p className="text-xs font-semibold text-foreground">{t("tc_course_content", "Nội dung khóa học")}</p>
-      {isLessonsLoading ? (
-        <p className="text-xs text-muted-foreground mt-2">{t("tc_loading_lessons", "Đang tải bài học...")}</p>
-      ) : selectedCourseLessons.length === 0 ? (
-        <p className="text-xs text-muted-foreground mt-2">{t("tc_no_lessons", "Chưa có bài học nào")}</p>
-      ) : (
-        <div className="mt-2 space-y-2">
-          {selectedCourseLessons.map((lesson, idx) => (
-            <div key={lesson.id} className="rounded-lg border border-border bg-background px-3 py-2">
-              <p className="text-xs font-medium text-foreground">
-                {idx + 1}. {lesson.title}
-              </p>
-              <div className="mt-1 flex flex-wrap gap-2">
-                {lesson.videoUrl && (
-                  <a
-                    href={lesson.videoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-1 text-[11px] text-blue-600"
-                  >
-                    <Video size={12} /> Video
-                  </a>
-                )}
-                {(lesson.documents || []).map((doc, docIdx) => (
-                  <a
-                    key={`${lesson.id}-doc-${docIdx}`}
-                    href={doc.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    download={doc.name || true}
-                    className="inline-flex items-center gap-1 rounded-md bg-red-500/10 px-2 py-1 text-[11px] text-red-600"
-                  >
-                    <FileText size={12} /> {doc.name || t("tc_document", "Tài liệu")}
-                  </a>
-                ))}
-                {lesson.quizQuestions && lesson.quizQuestions.length > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600">
-                     {lesson.quizQuestions.length} {t("tc_questions", "câu hỏi")}
-                  </span>
-                )}
-              </div>
-              {lesson.quizQuestions && lesson.quizQuestions.length > 0 && (
-                <div className="mt-2 space-y-2 rounded-lg border border-amber-100 bg-amber-50/60 p-2">
-                  {lesson.quizQuestions.map((quiz, qIdx) => (
-                    <div key={`${lesson.id}-quiz-${qIdx}`}>
-                      <p className="text-[11px] font-semibold text-foreground">
-                        {qIdx + 1}. <ScientificText text={quiz.question || t("tc_no_content", "(Chưa có nội dung)")} />
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {quiz.type === "true-false"
-                          ? t("tc_true_false", "Đúng/Sai")
-                          : quiz.type === "multiple-select"
-                          ? t("tc_multiple_answers", "Nhiều đáp án")
-                          : t("tc_single_answer", "1 đáp án")}
-                      </p>
-                      {quiz.options && quiz.options.length > 0 && (
-                        <div className="mt-1 grid gap-1 text-[11px]">
-                          {quiz.options.map((opt, optIdx) => {
-                            const isMulti = quiz.type === "multiple-select"
-                            const isCorrect = isMulti
-                              ? (quiz.correctAnswers || []).includes(optIdx)
-                              : quiz.correctAnswer === optIdx
-                            return (
-                              <label key={`${lesson.id}-quiz-${qIdx}-opt-${optIdx}`} className="flex items-center gap-2 text-muted-foreground">
-                                <input
-                                  type={isMulti ? "checkbox" : "radio"}
-                                  checked={isCorrect}
-                                  readOnly
-                                  className="h-3 w-3"
-                                />
-                                <span className={isCorrect ? "font-semibold text-foreground" : undefined}>
-                                  <ScientificText text={opt} />
-                                </span>
-                              </label>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-
-    {/* Actions */}
-    <div className="flex gap-2">
-      {canEditCourse(course.status) && (
-        <button
-          onClick={() => handleEdit(course.id)}
-          className="flex-1 py-2 rounded-lg bg-background border text-sm"
-        >
-          {t("tc_edit", "Chỉnh sửa")}
-        </button>
-      )}
-
-      {(course.status === "draft" || course.status === "rejected") && (
-        <button
-          onClick={() => handleSubmitForReview(course.id)}
-          className="flex-1 py-2 rounded-lg bg-primary text-white text-sm"
-        >
-          {course.status === "rejected"
-            ? t("tc_resubmit", "Gửi duyệt lại")
-            : t("tc_submit", "Gửi duyệt")}
-        </button>
-      )}
-    </div>
-  </div>
-)}
-                  {viewMode === "delete" && selectedCourse && selectedCourse.id === course.id && (
-                    <div className="fixed inset-0 z-[9999] bg-black/0 backdrop-blur-sm" style={{pointerEvents: 'auto'}}>
-                      <div
-                        className="absolute max-w-xs w-full bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl p-6 animate-fadeIn"
-                        style={menuRect ? {
-                          left: `calc(${menuRect.left + menuRect.width / 2}px - 160px)`,
-                          top: `calc(${menuRect.top + menuRect.height / 2}px - 180px)`,
-                        } : {left: '50%', top: '50%', transform: 'translate(-50%, -50%)'}}
+                        }}
+                        className="rounded-lg bg-white p-2 text-slate-500 hover:bg-slate-100 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-800"
                       >
-                        <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Trash2 size={32} className="text-red-600 dark:text-red-400" />
-                        </div>
-                        <h2 className="text-xl font-bold text-foreground dark:text-white mb-2 text-center">{t("tc_delete_title", "Xóa khóa học?")}</h2>
-                        <p className="text-muted-foreground dark:text-slate-400 mb-6 text-center">
-                          {t("tc_delete_confirm", "Bạn có chắc chắn muốn xóa khóa học")} "<strong>{selectedCourse.title}</strong>"? {t("tc_delete_warning", "Hành động này không thể hoàn tác.")}
-                        </p>
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => { setViewMode(null); setSelectedCourse(null); }}
-                            className="flex-1 py-3 rounded-lg font-medium border border-border dark:border-slate-800 text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800"
-                          >
-                            {t("tc_cancel", "Hủy")}
-                          </button>
-                          <button
-                            onClick={handleDeleteConfirm}
-                            className="flex-1 py-3 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white"
-                          >
-                            {t("tc_delete_course", "Xóa khóa học")}
-                          </button>
-                        </div>
+                        <MoreVertical size={16} />
+                      </button>
+                    </div>
+
+                    <img src={course.thumbnail} alt={course.title} className="mb-3 h-28 w-full rounded-xl border border-slate-200 object-cover dark:border-slate-700" />
+
+                    <p className="mb-3 line-clamp-2 min-h-[36px] text-xs text-slate-500 dark:text-slate-400">
+                      {course.description || t("tc_course_no_description", "Không có mô tả chi tiết")}
+                    </p>
+
+                    <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-lg bg-white px-2 py-1.5 text-slate-600 dark:bg-slate-900/60 dark:text-slate-300">
+                        <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {course.duration}</span>
+                      </div>
+                      <div className="rounded-lg bg-white px-2 py-1.5 text-slate-600 dark:bg-slate-900/60 dark:text-slate-300">
+                        {course.lessons} {t("tc_lessons", "bài học")}
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        {/* Desktop: Table */}
-        <div className="hidden xl:block bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl overflow-visible">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_course", "Khóa học")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_category", "Danh mục")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_students", "Học viên")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_rating", "Đánh giá")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_price", "Giá")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_status", "Trạng thái")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("tc_th_actions", "Hành động")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-muted-foreground dark:text-slate-400">
-                      {t("tc_loading_courses", "Đang tải khóa học...")}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredCourses.map((course) => (
-                    <tr
-                      key={course.id}
-                      className={`border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth relative ${
-                        menuOpenId === course.id ? "z-20" : "z-0"
-                      }`}
-                    >
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={course.thumbnail}
-                          alt={course.title}
-                          className="w-12 h-12 rounded-lg object-cover bg-secondary"
-                        />
-                        <div>
-                          <p className="font-medium text-foreground dark:text-white line-clamp-1">{course.title}</p>
-                          <p className="text-xs text-muted-foreground dark:text-slate-400">{course.lessons} {t("tc_lessons", "bài học")} • {course.duration}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="px-2 py-1 bg-secondary dark:bg-slate-800 rounded text-foreground dark:text-white text-xs">
-                        {course.category}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white">{course.students}</td>
-                    <td className="py-4 px-6">
-                      {course.rating > 0 ? (
-                        <span className="text-foreground dark:text-white flex items-center gap-1">
-                          {course.rating}
-                          <span className="text-yellow-500">★</span>
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground dark:text-slate-400">{t("tc_no_rating", "Chưa có")}</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-6 text-foreground dark:text-white font-medium">{formatCurrencyByLanguage(course.price, language)}</td>
-                    <td className="py-4 px-6">{getStatusBadge(course.status)}</td>
-                    <td className="py-4 px-6" data-dropdown>
-                      <div className="relative inline-flex" data-dropdown>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setMenuOpenId(menuOpenId === course.id ? null : course.id)
-                          }}
-                          className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-                        >
-                          <MoreVertical size={18} className="text-muted-foreground dark:text-slate-400" />
-                        </button>
-                        {menuOpenId === course.id && (
-                          <div
-                            className="absolute right-0 top-full mt-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg shadow-xl z-[99999] min-w-48"
-                            data-dropdown
-                          >
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleViewDetails(course)
-                              }}
-                              className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white rounded-t-lg"
-                            >
-                              <Eye size={16} /> {t("tc_view_details", "Xem chi tiết")}
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleViewStudentsProgress(course)
-                              }}
-                              className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
-                            >
-                              <BarChart3 size={16} /> {t("tc_view_students_progress_score", "Xem điểm & tiến độ")}
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(`/teacher/assignments?courseId=${course.id}`)
-                                setMenuOpenId(null)
-                              }}
-                              className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
-                            >
-                              <FileText size={16} /> {t("tc_grade_writing", "Chấm writing")}
-                            </button>
-                            {canEditCourse(course.status) && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleEdit(course.id)
-                                }}
-                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-foreground dark:text-white"
-                              >
-                                <Edit2 size={16} /> {t("tc_edit", "Chỉnh sửa")}
-                              </button>
-                            )}
-                            {course.status === "draft" && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleSubmitForReview(course.id)
-                                }}
-                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-primary dark:text-accent"
-                              >
-                                <Send size={16} /> {t("tc_submit", "Gửi duyệt")}
-                              </button>
-                            )}
-                            {course.status === "rejected" && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleSubmitForReview(course.id)
-                                }}
-                                className="w-full text-left px-4 py-2 hover:bg-secondary dark:hover:bg-slate-800 flex items-center gap-2 text-primary dark:text-accent"
-                              >
-                                <Send size={16} /> {t("tc_resubmit", "Gửi duyệt lại")}
-                              </button>
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDeleteClick(course)
-                              }}
-                              className="w-full text-left px-4 py-2 hover:bg-destructive/10 dark:hover:bg-destructive/20 flex items-center gap-2 text-destructive rounded-b-lg"
-                            >
-                              <Trash2 size={16} /> {t("tc_delete_course", "Xóa khóa học")}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          {!isLoading && filteredCourses.length === 0 && (
-            <div className="py-12 text-center">
-              <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground dark:text-slate-400">{t("tc_no_courses_found", "Không tìm thấy khóa học nào")}</p>
-            </div>
-          )}
+
+                    <div className="mb-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <span>{t("tc_students_label", "Học viên")}: {course.students}</span>
+                      <span>{course.rating > 0 ? `${course.rating}★` : t("tc_no_rating", "Chưa có")}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{formatCurrencyByLanguage(course.price, language)}</span>
+                      {getStatusBadge(course.status)}
+                    </div>
+
+                    <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{course.category}</p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
         </div>
       </div>
 
@@ -1259,8 +884,9 @@ useEffect(() => {
     const card = document.querySelector(`[data-course-card-id="${menuCourse.id}"]`)
     if (!card || !menuRect) return null
     const cardRect = card.getBoundingClientRect()
-    // Tính vị trí tương đối
-    const left = menuRect.left - cardRect.left
+    // Tính vị trí tương đối to card (card có position: relative)
+    const buttonRight = menuRect.right - cardRect.left
+    const menuLeft = Math.max(0, buttonRight - 220)  // 220px = menu width, align right vs button
     const top = menuRect.bottom - cardRect.top + 6
     return createPortal(
       <>
@@ -1271,35 +897,41 @@ useEffect(() => {
         />
         {/* Menu */}
         <div
-          className="absolute z-[100001] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden"
-          style={{ right: window.innerWidth - menuRect.right, top, width: 220 }}
+          className="absolute z-[100001] w-56 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
+          style={{ left: menuLeft, top, minWidth: 220 }}
         >
           <button
             onClick={() => {
               handleViewDetails(menuCourse)
               setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
             }}
-            className="w-full px-4 py-4 flex items-center gap-3 hover:bg-secondary"
+            className="w-full border-b border-gray-100 px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-gray-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
           >
-            <Eye size={18} /> {t("tc_view_details", "Xem chi tiết")}
+            <div className="flex items-center gap-3">
+              <Eye size={18} /> {t("tc_view_details", "Xem chi tiết")}
+            </div>
           </button>
           <button
             onClick={() => {
               handleViewStudentsProgress(menuCourse)
               setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
             }}
-            className="w-full px-4 py-4 flex items-center gap-3 hover:bg-secondary"
+            className="w-full border-b border-gray-100 px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-gray-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
           >
-            <BarChart3 size={18} /> {t("tc_view_students_progress_score", "Xem điểm & tiến độ")}
+            <div className="flex items-center gap-3">
+              <BarChart3 size={18} /> {t("tc_view_students_progress_score", "Xem điểm & tiến độ")}
+            </div>
           </button>
           <button
             onClick={() => {
               router.push(`/teacher/assignments?courseId=${menuCourse.id}`)
               setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
             }}
-            className="w-full px-4 py-4 flex items-center gap-3 hover:bg-secondary"
+            className="w-full border-b border-gray-100 px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-gray-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
           >
-            <FileText size={18} /> {t("tc_grade_writing", "Chấm writing")}
+            <div className="flex items-center gap-3">
+              <FileText size={18} /> {t("tc_grade_writing", "Chấm writing")}
+            </div>
           </button>
           {canEditCourse(menuCourse.status) && (
             <button
@@ -1307,9 +939,11 @@ useEffect(() => {
                 handleEdit(menuCourse.id)
                 setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
               }}
-              className="w-full px-4 py-4 flex items-center gap-3 hover:bg-secondary"
+              className="w-full border-b border-gray-100 px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-gray-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
             >
-              <Edit2 size={18} /> {t("tc_edit", "Chỉnh sửa")}
+              <div className="flex items-center gap-3">
+                <Edit2 size={18} /> {t("tc_edit", "Chỉnh sửa")}
+              </div>
             </button>
           )}
           {(menuCourse.status === "draft" || menuCourse.status === "rejected") && (
@@ -1318,9 +952,11 @@ useEffect(() => {
                 handleSubmitForReview(menuCourse.id)
                 setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
               }}
-              className="w-full px-4 py-4 flex items-center gap-3 text-primary hover:bg-secondary"
+              className="w-full border-b border-gray-100 px-4 py-3 text-left text-sm text-primary transition-colors hover:bg-blue-50 dark:border-slate-700 dark:text-accent dark:hover:bg-slate-800"
             >
-              <Send size={18} /> {menuCourse.status === "rejected" ? t("tc_resubmit", "Gửi duyệt lại") : t("tc_submit", "Gửi duyệt")}
+              <div className="flex items-center gap-3">
+                <Send size={18} /> {menuCourse.status === "rejected" ? t("tc_resubmit", "Gửi duyệt lại") : t("tc_submit", "Gửi duyệt")}
+              </div>
             </button>
           )}
           <button
@@ -1328,9 +964,11 @@ useEffect(() => {
               handleDeleteClick(menuCourse)
               setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
             }}
-            className="w-full px-4 py-4 flex items-center gap-3 text-red-600 hover:bg-red-50"
+            className="w-full px-4 py-3 text-left text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
           >
-            <Trash2 size={18} /> {t("tc_delete_course", "Xóa khóa học")}
+            <div className="flex items-center gap-3">
+              <Trash2 size={18} /> {t("tc_delete_course", "Xóa khóa học")}
+            </div>
           </button>
         </div>
       </>,

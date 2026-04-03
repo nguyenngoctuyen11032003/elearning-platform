@@ -1,13 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import {
   DollarSign,
   Eye,
   Clock,
   Star,
-  ArrowUp,
-  ArrowDown,
   Users,
   BookOpen
 } from "lucide-react"
@@ -42,8 +40,23 @@ export default function TeacherAnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [coursePerformance, setCoursePerformance] = useState<CoursePerformance[]>([])
   const [loading, setLoading] = useState(true)
+  const hasLoadedOnceRef = useRef(false)
   const [dateRange, setDateRange] = useState("month")
+  const [isFetchingPeriod, setIsFetchingPeriod] = useState(false)
+  const periodContainerRef = useRef<HTMLDivElement | null>(null)
+  const periodButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [activePeriodStyle, setActivePeriodStyle] = useState({ left: 0, width: 0, ready: false })
   const { language, t } = useLanguage()
+
+  const periodOptions = useMemo(
+    () => [
+      { value: "day", label: t("period_day", "Ngày") },
+      { value: "week", label: t("period_week", "Tuần") },
+      { value: "month", label: t("period_month", "Tháng") },
+      { value: "year", label: t("period_year", "Năm") },
+    ],
+    [t],
+  )
 
   const localeByLanguage: Record<string, string> = {
     vi: "vi-VN",
@@ -54,9 +67,14 @@ export default function TeacherAnalyticsPage() {
 
   useEffect(() => {
     const loadAnalytics = async () => {
-      setLoading(true)
+      const isFirstLoad = !hasLoadedOnceRef.current
+      if (isFirstLoad) {
+        setLoading(true)
+      } else {
+        setIsFetchingPeriod(true)
+      }
       try {
-        const res = await apiClient.getTeacherDashboardStats()
+        const res = await apiClient.getTeacherDashboardStats(dateRange as "day" | "week" | "month" | "year")
         setAnalytics({
           totalStudents: Number(res?.totalStudents ?? 0),
           totalCourses: Number(res?.totalCourses ?? 0),
@@ -85,12 +103,42 @@ export default function TeacherAnalyticsPage() {
         })
         setCoursePerformance([])
       } finally {
-        setLoading(false)
+        if (isFirstLoad) {
+          setLoading(false)
+          hasLoadedOnceRef.current = true
+        }
+        setIsFetchingPeriod(false)
       }
     }
 
     loadAnalytics()
-  }, [dateRange])
+  }, [dateRange, t])
+
+  useEffect(() => {
+    const updateActivePeriodIndicator = () => {
+      const container = periodContainerRef.current
+      const activeButton = periodButtonRefs.current[dateRange]
+      if (!container || !activeButton) return
+
+      const containerRect = container.getBoundingClientRect()
+      const buttonRect = activeButton.getBoundingClientRect()
+
+      setActivePeriodStyle({
+        left: buttonRect.left - containerRect.left,
+        width: buttonRect.width,
+        ready: true,
+      })
+    }
+
+    updateActivePeriodIndicator()
+    window.addEventListener("resize", updateActivePeriodIndicator)
+    return () => window.removeEventListener("resize", updateActivePeriodIndicator)
+  }, [dateRange, periodOptions])
+
+  const handleDateRangeChange = (nextRange: string) => {
+    if (nextRange === dateRange) return
+    setDateRange(nextRange)
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat(activeLocale, {
@@ -130,20 +178,26 @@ export default function TeacherAnalyticsPage() {
                 <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("teacher_analytics_title", "Phân tích & Thống kê")}</h1>
                 <p className="text-black/70 dark:text-white/80 drop-shadow">{t("teacher_analytics_subtitle", "Theo dõi hiệu suất khóa học của bạn")}</p>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                {[
-                  { value: "day", label: t("period_day", "Ngày") },
-                  { value: "week", label: t("period_week", "Tuần") },
-                  { value: "month", label: t("period_month", "Tháng") },
-                  { value: "year", label: t("period_year", "Năm") },
-                ].map((period) => (
+              <div ref={periodContainerRef} className="relative inline-flex gap-1 rounded-xl bg-white/25 p-1 backdrop-blur-sm">
+                <div
+                  className={`pointer-events-none absolute top-1 bottom-1 rounded-lg bg-white shadow-lg transition-all duration-300 ease-out ${activePeriodStyle.ready ? "opacity-100" : "opacity-0"}`}
+                  style={{
+                    left: activePeriodStyle.left,
+                    width: activePeriodStyle.width,
+                  }}
+                />
+                {periodOptions.map((period) => (
                   <button
                     key={period.value}
-                    onClick={() => setDateRange(period.value)}
-                    className={`px-4 py-2 rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
+                    type="button"
+                    ref={(el) => {
+                      periodButtonRefs.current[period.value] = el
+                    }}
+                    onClick={() => handleDateRangeChange(period.value)}
+                    className={`relative z-10 px-4 py-2 rounded-lg transition-colors duration-300 font-medium ${
                       dateRange === period.value
-                        ? "bg-white text-primary shadow-lg"
-                        : "bg-white/30 dark:bg-white/20 text-slate-900 dark:text-white hover:bg-white/45"
+                        ? "text-primary"
+                        : "text-slate-900 dark:text-white/90 hover:text-slate-900"
                     }`}
                   >
                     {period.label}
@@ -153,7 +207,7 @@ export default function TeacherAnalyticsPage() {
             </div>
 
             {/* Main Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 transition-opacity duration-200 ${isFetchingPeriod ? "opacity-95" : "opacity-100"}`}>
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <StatCard 
                   icon={Users} 

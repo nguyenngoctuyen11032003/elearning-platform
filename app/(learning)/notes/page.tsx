@@ -529,12 +529,24 @@ useEffect(() => {
 }, [fetchNotes])
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      <motion.div
+        aria-hidden
+        animate={{ opacity: [0.2, 0.33, 0.2], y: [0, -14, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="pointer-events-none absolute -left-12 top-8 h-64 w-64 rounded-full bg-cyan-300/35 blur-3xl dark:bg-cyan-900/20"
+      />
+      <motion.div
+        aria-hidden
+        animate={{ opacity: [0.2, 0.3, 0.2], y: [0, 20, 0] }}
+        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        className="pointer-events-none absolute right-0 top-20 h-72 w-72 rounded-full bg-emerald-300/25 blur-3xl dark:bg-emerald-900/20"
+      />
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+            <h1 className="bg-gradient-to-r from-cyan-600 via-sky-600 to-emerald-500 bg-clip-text text-3xl font-bold text-transparent">
               {t("notes_title", "Ghi chú của tôi")}
             </h1>
             <p className="text-muted-foreground dark:text-slate-400 mt-1 flex items-center gap-3">
@@ -567,7 +579,7 @@ useEffect(() => {
             </button>
             <button 
               onClick={() => setIsCreating(true)}
-              className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 via-sky-600 to-emerald-600 px-6 py-3 font-medium text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-xl hover:shadow-cyan-500/30"
             >
               <Plus size={20} />
               {t("notes_new", "Ghi chú mới")}
@@ -611,7 +623,7 @@ useEffect(() => {
                   onClick={() => handleTagSelect(tag)}
                   className={`px-3.5 py-1.5 rounded-full font-medium text-sm transition-all ${
                     selectedTags.includes(tag)
-                      ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg'
+                      ? 'bg-gradient-to-r from-cyan-600 to-emerald-600 text-white shadow-lg'
                       : 'bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 text-foreground dark:text-white hover:border-primary dark:hover:border-accent'
                   }`}
                 >
@@ -632,7 +644,7 @@ useEffect(() => {
             disabled={selectedTags.length === 0}
             className={`px-3.5 py-1.5 rounded-full mr-5 font-medium text-sm transition-all flex items-center gap-1.5 ${
               selectedTags.length > 0
-                ? 'bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30'
+                ? 'bg-gradient-to-r from-cyan-600 to-emerald-600 text-white shadow-lg shadow-cyan-500/25 hover:shadow-xl hover:shadow-cyan-500/30'
                 : 'bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 text-muted-foreground cursor-not-allowed opacity-50'
             }`}
             title={t("notes_clear_all_filters", "Xóa tất cả bộ lọc")}
@@ -650,7 +662,7 @@ useEffect(() => {
           animate={{ opacity: 1 }}
           className="bg-gradient-to-br from-card to-card/50 dark:from-slate-900/60 dark:to-slate-900/30 border-2 border-dashed border-border dark:border-slate-800 rounded-2xl p-12 text-center"
         >
-          <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-purple-600/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/10 to-emerald-500/10">
             <StickyNote size={40} className="text-primary dark:text-accent" />
           </div>
           <h3 className="text-xl font-bold text-foreground dark:text-white mb-2">
@@ -664,7 +676,7 @@ useEffect(() => {
           {!searchTerm && selectedCourse === "all" && (
             <button 
               onClick={() => setIsCreating(true)}
-              className="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+              className="rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-600 px-6 py-3 font-medium text-white transition-all hover:shadow-lg"
             >
               {t("notes_create_first", "Tạo ghi chú đầu tiên")}
             </button>
@@ -802,7 +814,7 @@ useEffect(() => {
                   {note.tags.slice(0, 3).map((tag, i) => (
                     <span 
                       key={i}
-                      className="px-2.5 py-1 bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary dark:text-accent text-xs rounded-full font-medium"
+                      className="rounded-full bg-gradient-to-r from-cyan-500/10 to-emerald-500/10 px-2.5 py-1 text-xs font-medium text-cyan-700 dark:text-cyan-300"
                     >
                       #{tag}
                     </span>
@@ -1103,7 +1115,7 @@ useEffect(() => {
                       {newNote.tags.map((tag, i) => (
                         <div
                           key={`new-tag-${i}-${tag}`}
-                          className="px-3 py-1.5 bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary dark:text-accent text-sm rounded-full font-medium flex items-center gap-2 group"
+                          className="group flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500/10 to-emerald-500/10 px-3 py-1.5 text-sm font-medium text-cyan-700 dark:text-cyan-300"
                         >
                           #{tag}
                           <button
@@ -1379,7 +1391,7 @@ useEffect(() => {
                       {editingNote.tags?.map((tag, i) => (
                         <div
                           key={`edit-tag-${i}-${tag}`}
-                          className="px-3 py-1.5 bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary dark:text-accent text-sm rounded-full font-medium flex items-center gap-2 group"
+                          className="group flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500/10 to-emerald-500/10 px-3 py-1.5 text-sm font-medium text-cyan-700 dark:text-cyan-300"
                         >
                           #{tag}
                           <button
@@ -1646,7 +1658,7 @@ useEffect(() => {
                     {viewingNote.tags?.map((tag, i) => (
                       <span 
                         key={`view-tag-${i}-${tag}`}
-                        className="px-3 py-1.5 bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary dark:text-accent text-sm rounded-full font-medium"
+                        className="rounded-full bg-gradient-to-r from-cyan-500/10 to-emerald-500/10 px-3 py-1.5 text-sm font-medium text-cyan-700 dark:text-cyan-300"
                       >
                         #{tag}
                       </span>

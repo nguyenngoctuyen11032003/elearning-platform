@@ -64,13 +64,40 @@ interface ExamItem {
   }
 }
 
+interface IssuedCertificate {
+  id: string
+  certificateNumber: string
+  issueDate: string
+  status: "approved" | "pending" | "rejected"
+  pdfUrl?: string
+  imageUrl?: string
+  course?: { id?: string; title?: string }
+  student?: { id?: string; name?: string }
+  metadata?: {
+    studentName?: string
+    courseName?: string
+    snapshot?: {
+      template?: {
+        title?: string
+        description?: string
+        backgroundColor?: string
+        borderColor?: string
+        borderStyle?: string
+        textColor?: string
+        templateImageUrl?: string
+        logoUrl?: string
+      }
+    }
+  }
+}
+
 export default function TeacherCertificatesPage() {
   const router = useRouter()
   const { t } = useLanguage()
   const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
-    const cardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
-    const [anchorStyle, setAnchorStyle] = useState<React.CSSProperties | null>(null)
+  const cardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
+  const [anchorStyle, setAnchorStyle] = useState<React.CSSProperties | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -83,11 +110,24 @@ export default function TeacherCertificatesPage() {
   const [selectedExamId, setSelectedExamId] = useState("")
   const [assignError, setAssignError] = useState<string | null>(null)
   const [isAssigning, setIsAssigning] = useState(false)
+  const [activeTab, setActiveTab] = useState<"templates" | "issued">("templates")
+  const [issuedCertificates, setIssuedCertificates] = useState<IssuedCertificate[]>([])
+  const [issuedLoading, setIssuedLoading] = useState(false)
+  const [verifyInput, setVerifyInput] = useState("")
+  const [verifyResult, setVerifyResult] = useState<boolean | null>(null)
+  const [isVerifying, setIsVerifying] = useState(false)
+  const tabContainerRef = useRef<HTMLDivElement | null>(null)
+  const tabButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [activeTabStyle, setActiveTabStyle] = useState({ left: 0, width: 0, ready: false })
+  const statusContainerRef = useRef<HTMLDivElement | null>(null)
+  const statusButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [activeStatusStyle, setActiveStatusStyle] = useState({ left: 0, width: 0, ready: false })
 
   // Fetch templates from API
   useEffect(() => {
     fetchTemplates()
     fetchExams()
+    fetchIssuedCertificates()
   }, [])
 
   const fetchTemplates = async () => {
@@ -155,6 +195,31 @@ export default function TeacherCertificatesPage() {
     }
   }
 
+  const fetchIssuedCertificates = async () => {
+    try {
+      setIssuedLoading(true)
+      const response = await authFetch("/certificates/teacher/my-issued")
+      if (!response.ok) {
+        setIssuedCertificates([])
+        return
+      }
+
+      const payload = await response.json()
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : []
+
+      setIssuedCertificates(list)
+    } catch (error) {
+      console.error("Error fetching teacher issued certificates:", error)
+      setIssuedCertificates([])
+    } finally {
+      setIssuedLoading(false)
+    }
+  }
+
   const formatDateTime = (value?: string) => {
     if (!value) return "-"
     const parsed = new Date(value)
@@ -173,26 +238,34 @@ export default function TeacherCertificatesPage() {
       title: t("teacher_cert_total_templates", "Tổng mẫu"),
       value: totalTemplates,
       badge: t("teacher_cert_ready", "Đủ kho"),
-      tone: "from-emerald-500/20 to-emerald-600/20 border-emerald-500/40 text-emerald-100",
+      tone: "border-cyan-200 bg-cyan-50/75 text-cyan-700 dark:border-cyan-700/60 dark:bg-cyan-900/30 dark:text-cyan-200",
     },
     {
       title: t("teacher_cert_pending", "Chờ duyệt"),
       value: pendingTemplates,
       badge: t("teacher_cert_reviewing", "Review"),
-      tone: "from-amber-500/20 to-amber-600/20 border-amber-500/40 text-amber-100",
+      tone: "border-amber-200 bg-amber-50/80 text-amber-700 dark:border-amber-700/60 dark:bg-amber-900/30 dark:text-amber-200",
     },
     {
       title: t("teacher_cert_active", "Hoạt động"),
       value: approvedTemplates,
       badge: t("teacher_cert_live", "Live"),
-      tone: "from-sky-500/20 to-sky-600/20 border-sky-500/40 text-sky-100",
+      tone: "border-emerald-200 bg-emerald-50/80 text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-200",
     },
     {
       title: t("teacher_cert_issued", "Đã cấp"),
       value: totalIssued,
       badge: t("teacher_cert_trusted", "Trusted"),
-      tone: "from-purple-500/20 to-purple-600/20 border-purple-500/40 text-purple-100",
+      tone: "border-violet-200 bg-violet-50/80 text-violet-700 dark:border-violet-700/60 dark:bg-violet-900/30 dark:text-violet-200",
     },
+  ]
+
+  const statusFilterOptions = [
+    { value: "all", label: t("teacher_cert_all_status", "Tất cả trạng thái") },
+    { value: "draft", label: t("status_draft", "Nháp") },
+    { value: "pending", label: t("status_pending", "Chờ duyệt") },
+    { value: "approved", label: t("status_approved", "Đã duyệt") },
+    { value: "rejected", label: t("status_rejected", "Từ chối") },
   ]
 
   const filteredTemplates = templates.filter(
@@ -201,9 +274,50 @@ export default function TeacherCertificatesPage() {
       (statusFilter === "all" || template.status === statusFilter)
   )
 
+  const filteredIssued = issuedCertificates.filter((certificate) => {
+    const title = String(certificate.course?.title || certificate.metadata?.courseName || "").toLowerCase()
+    const student = String(certificate.student?.name || certificate.metadata?.studentName || "").toLowerCase()
+    const certNo = String(certificate.certificateNumber || "").toLowerCase()
+    const term = searchTerm.toLowerCase()
+    const statusMatched = statusFilter === "all" || certificate.status === statusFilter
+    return statusMatched && (title.includes(term) || student.includes(term) || certNo.includes(term))
+  })
+
   const officialExams = exams.filter(
     (exam) => String(exam.type || "").toLowerCase() === "official"
   )
+
+  useEffect(() => {
+    const updateIndicators = () => {
+      const tabContainer = tabContainerRef.current
+      const activeTabButton = tabButtonRefs.current[activeTab]
+      if (tabContainer && activeTabButton) {
+        const containerRect = tabContainer.getBoundingClientRect()
+        const buttonRect = activeTabButton.getBoundingClientRect()
+        setActiveTabStyle({
+          left: buttonRect.left - containerRect.left,
+          width: buttonRect.width,
+          ready: true,
+        })
+      }
+
+      const statusContainer = statusContainerRef.current
+      const activeStatusButton = statusButtonRefs.current[statusFilter]
+      if (statusContainer && activeStatusButton) {
+        const containerRect = statusContainer.getBoundingClientRect()
+        const buttonRect = activeStatusButton.getBoundingClientRect()
+        setActiveStatusStyle({
+          left: buttonRect.left - containerRect.left,
+          width: buttonRect.width,
+          ready: true,
+        })
+      }
+    }
+
+    updateIndicators()
+    window.addEventListener("resize", updateIndicators)
+    return () => window.removeEventListener("resize", updateIndicators)
+  }, [activeTab, statusFilter])
 
   const handleEdit = (templateId: string) => {
     const template = templates.find((item) => item.id === templateId)
@@ -331,6 +445,48 @@ export default function TeacherCertificatesPage() {
     }
   }
 
+  const handleDownloadIssued = (certificate: IssuedCertificate) => {
+    if (certificate.pdfUrl) {
+      window.open(certificate.pdfUrl, "_blank")
+      return
+    }
+    if (certificate.imageUrl) {
+      window.open(certificate.imageUrl, "_blank")
+      return
+    }
+    toast.error(t("teacher_cert_download_unavailable", "Chưa có file để tải xuống"))
+  }
+
+  const handleShareIssued = async (certificate: IssuedCertificate) => {
+    const verifyUrl = `${window.location.origin}/verify?certificate=${encodeURIComponent(certificate.certificateNumber || "")}`
+    try {
+      await navigator.clipboard.writeText(verifyUrl)
+      toast.success(t("teacher_cert_share_copied", "Đã sao chép liên kết xác minh"))
+    } catch {
+      toast.error(t("teacher_cert_share_failed", "Không thể sao chép liên kết"))
+    }
+  }
+
+  const handleVerifyCertificate = async (certificateNumber?: string) => {
+    const value = String(certificateNumber || verifyInput).trim()
+    if (!value) return
+
+    try {
+      setIsVerifying(true)
+      const response = await authFetch(`/certificates/verify/${encodeURIComponent(value)}`)
+      if (!response.ok) {
+        setVerifyResult(false)
+        return
+      }
+      const payload = await response.json()
+      setVerifyResult(Boolean(payload))
+    } catch {
+      setVerifyResult(false)
+    } finally {
+      setIsVerifying(false)
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const styles = {
       draft: "bg-gray-500/10 text-gray-500 border-gray-500/20",
@@ -361,27 +517,23 @@ export default function TeacherCertificatesPage() {
 
   return (
     <div className="min-h-screen w-full">
-      <div className="w-full space-y-8">
+      <div className="w-full space-y-6">
         <section
-          className="relative overflow-hidden rounded-3xl border border-border text-white"
+          className="relative overflow-hidden rounded-[2rem] border border-blue-100/70 bg-white/85 p-6 shadow-[0_24px_60px_rgba(3,105,161,0.16)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-900/70 md:p-8"
           style={{
-            backgroundImage: "linear-gradient(rgba(92, 106, 169, 0.72), rgba(2, 6, 23, 0.72)), url('/image/background_certificate_teacher.jpg')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
+            backgroundImage: "radial-gradient(120% 110% at 0% 0%, rgba(59,130,246,0.25), transparent 45%), radial-gradient(100% 90% at 90% 0%, rgba(34,211,238,0.22), transparent 48%)",
           }}
         >
-          <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_20%_20%,#22c55e,transparent_35%),radial-gradient(circle_at_80%_0%,#0ea5e9,transparent_30%),radial-gradient(circle_at_50%_80%,#6366f1,transparent_35%)]" />
-          <div className="relative p-6 md:p-8 space-y-6">
+          <div className="relative space-y-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-emerald-200/80">{t("teacher_cert_label", "Chứng chỉ & mẫu")}</p>
-                <h1 className="text-3xl md:text-4xl font-bold leading-tight">{t("teacher_cert_manage_title", "Quản lý Chứng chỉ")}</h1>
-                <p className="text-slate-200 max-w-2xl">{t("teacher_cert_manage_subtitle", "Thiết kế mẫu chứng chỉ, theo dõi trạng thái duyệt và gán cho bài thi chính thức.")}</p>
+                <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-200/70 bg-cyan-50/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-cyan-700 dark:border-cyan-700/50 dark:bg-cyan-900/30 dark:text-cyan-200">{t("teacher_cert_label", "Chứng chỉ & mẫu")}</p>
+                <h1 className="text-3xl font-black text-slate-900 dark:text-white md:text-5xl leading-tight">{t("teacher_cert_manage_title", "Quản lý Chứng chỉ")}</h1>
+                <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300 md:text-base">{t("teacher_cert_manage_subtitle", "Thiết kế mẫu chứng chỉ, theo dõi trạng thái duyệt và gán cho bài thi chính thức.")}</p>
               </div>
               <Link
                 href="/teacher/certificates/create"
-                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-cyan-600 px-4 text-sm font-semibold text-white transition hover:bg-cyan-500"
               >
                 <Plus size={18} /> {t("teacher_cert_create_template", "Tạo mẫu chứng chỉ")}
               </Link>
@@ -389,44 +541,107 @@ export default function TeacherCertificatesPage() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {heroCards.map((card) => (
-                <div key={card.title} className={`rounded-2xl border ${card.tone} bg-white/10 p-4 backdrop-blur shadow-md`}>
+                <div key={card.title} className={`rounded-xl border p-3 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${card.tone}`}>
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-white/90">{card.title}</p>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-white/20 text-white/80">{card.badge}</span>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.08em]">{card.title}</p>
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-white/70 text-current dark:bg-slate-800/70">{card.badge}</span>
                   </div>
-                  <p className="text-2xl font-bold mt-2">{card.value}</p>
+                  <p className="text-2xl font-black mt-2">{card.value}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
+        <div ref={tabContainerRef} className="relative inline-flex w-full flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-900/70 md:w-auto md:flex-nowrap">
+          <div
+            className="pointer-events-none absolute inset-y-1 rounded-md bg-cyan-600 shadow-[0_8px_20px_rgba(8,145,178,0.35)] transition-all duration-300"
+            style={{
+              left: `${activeTabStyle.left}px`,
+              width: `${activeTabStyle.width}px`,
+              opacity: activeTabStyle.ready ? 1 : 0,
+            }}
+          />
+          <div className="relative z-10 flex w-full flex-wrap gap-1 md:w-auto md:flex-nowrap">
+            <button
+              type="button"
+              ref={(node) => {
+                tabButtonRefs.current.templates = node
+              }}
+              onClick={() => setActiveTab("templates")}
+              className={`inline-flex min-w-fit items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition-all duration-300 ${
+                activeTab === "templates"
+                  ? "text-white"
+                  : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800"
+              }`}
+            >
+              {t("teacher_cert_tab_templates", "Template Library")}
+            </button>
+            <button
+              type="button"
+              ref={(node) => {
+                tabButtonRefs.current.issued = node
+              }}
+              onClick={() => setActiveTab("issued")}
+              className={`inline-flex min-w-fit items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition-all duration-300 ${
+                activeTab === "issued"
+                  ? "text-white"
+                  : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800"
+              }`}
+            >
+              {t("teacher_cert_tab_issued", "Issued Certificates (Locked)")}
+            </button>
+          </div>
+        </div>
+
         {/* Filters */}
-        <div className="rounded-2xl border border-border/80 bg-card/80 dark:bg-slate-900/70 backdrop-blur p-4 md:p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-5 shadow-[0_12px_35px_rgba(2,132,199,0.09)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/65 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
             <input
               type="text"
-              placeholder={t("teacher_cert_search_placeholder", "Tìm kiếm mẫu chứng chỉ...")}
+              placeholder={
+                activeTab === "templates"
+                  ? t("teacher_cert_search_placeholder", "Tìm kiếm mẫu chứng chỉ...")
+                  : t("teacher_cert_search_issued_placeholder", "Tìm theo học viên, khóa học, mã chứng chỉ...")
+              }
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-background/80 border border-border focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-cyan-500 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.2)] dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-          >
-            <option value="all">{t("teacher_cert_all_status", "Tất cả trạng thái")}</option>
-            <option value="draft">{t("status_draft", "Nháp")}</option>
-            <option value="pending">{t("status_pending", "Chờ duyệt")}</option>
-            <option value="approved">{t("status_approved", "Đã duyệt")}</option>
-            <option value="rejected">{t("status_rejected", "Từ chối")}</option>
-          </select>
+
+          <div ref={statusContainerRef} className="relative inline-flex w-full flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-900/70 md:w-auto md:flex-nowrap">
+            <div
+              className="pointer-events-none absolute inset-y-1 rounded-md bg-cyan-600 shadow-[0_8px_20px_rgba(8,145,178,0.35)] transition-all duration-300"
+              style={{
+                left: `${activeStatusStyle.left}px`,
+                width: `${activeStatusStyle.width}px`,
+                opacity: activeStatusStyle.ready ? 1 : 0,
+              }}
+            />
+            {statusFilterOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                ref={(node) => {
+                  statusButtonRefs.current[option.value] = node
+                }}
+                onClick={() => setStatusFilter(option.value)}
+                className={`relative z-10 inline-flex min-w-fit items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition-all duration-300 ${
+                  statusFilter === option.value
+                    ? "text-white"
+                    : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Templates Grid */}
+        {activeTab === "templates" && (
         <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
           {filteredTemplates.length === 0 ? (
             <div className="text-center py-10">
@@ -573,6 +788,157 @@ export default function TeacherCertificatesPage() {
             </div>
           )}
         </div>
+        )}
+
+        {activeTab === "issued" && (
+          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+            {issuedLoading ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                {t("teacher_cert_loading_issued", "Đang tải chứng chỉ đã cấp...")}
+              </div>
+            ) : filteredIssued.length === 0 ? (
+              <div className="py-10 text-center">
+                <FileText size={42} className="mx-auto mb-3 text-muted-foreground" />
+                <h3 className="text-lg font-semibold text-foreground dark:text-white">
+                  {t("teacher_cert_issued_empty_title", "Chưa có chứng chỉ nào được cấp")}
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground dark:text-slate-400">
+                  {t("teacher_cert_issued_empty_desc", "Khi học viên vượt qua bài thi chính thức, chứng chỉ sẽ xuất hiện tại đây dưới dạng snapshot không chỉnh sửa.")}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                <div className="rounded-xl border border-border bg-background/70 p-4 dark:border-slate-700 dark:bg-slate-950/50">
+                  <h3 className="text-sm font-semibold text-foreground dark:text-white">
+                    {t("teacher_cert_verify_title", "Verify Certificate")}
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">
+                    {t("teacher_cert_verify_subtitle", "Nhập Certificate ID để kiểm tra tính hợp lệ.")}
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      value={verifyInput}
+                      onChange={(e) => {
+                        setVerifyInput(e.target.value)
+                        setVerifyResult(null)
+                      }}
+                      placeholder="CERT-XXXX"
+                      className="h-10 flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleVerifyCertificate()}
+                      disabled={isVerifying || !verifyInput.trim()}
+                      className="h-10 rounded-md border border-border px-4 text-sm font-medium hover:bg-secondary disabled:opacity-60"
+                    >
+                      {isVerifying ? t("common_loading", "Đang kiểm tra...") : t("common_verify", "Verify")}
+                    </button>
+                  </div>
+                  {verifyResult !== null && (
+                    <p className={`mt-2 text-xs font-medium ${verifyResult ? "text-emerald-600" : "text-red-500"}`}>
+                      {verifyResult
+                        ? t("teacher_cert_verify_valid", "Certificate hợp lệ")
+                        : t("teacher_cert_verify_invalid", "Certificate không hợp lệ")}
+                    </p>
+                  )}
+                </div>
+
+                {filteredIssued.map((certificate) => {
+                  const studentName = certificate.student?.name || certificate.metadata?.studentName || "-"
+                  const courseName = certificate.course?.title || certificate.metadata?.courseName || "-"
+                  const issueDate = formatDateTime(certificate.issueDate)
+                  const snapshotTemplate = certificate.metadata?.snapshot?.template
+                  const previewImage = certificate.imageUrl || snapshotTemplate?.templateImageUrl
+
+                  return (
+                    <article key={certificate.id} className="mx-auto w-full max-w-5xl rounded-2xl border border-border bg-background/80 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/50">
+                      <div className="rounded-xl border border-border bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+                        <div
+                          className="relative mx-auto w-full max-w-3xl overflow-hidden border border-border bg-white"
+                          style={{ aspectRatio: "4 / 3" }}
+                        >
+                          {previewImage ? (
+                            <img
+                              src={previewImage}
+                              alt={certificate.certificateNumber}
+                              className="h-full w-full object-contain"
+                            />
+                          ) : (
+                            <div
+                              className="absolute inset-6 flex items-center justify-center border"
+                              style={{
+                                borderColor: snapshotTemplate?.borderColor || "#d4af37",
+                                borderStyle: (snapshotTemplate?.borderStyle as any) || "double",
+                                backgroundColor: snapshotTemplate?.backgroundColor || "#1a1a2e",
+                                color: snapshotTemplate?.textColor || "#ffffff",
+                              }}
+                            >
+                              <div className="text-center px-6">
+                                <p className="text-xs uppercase tracking-[0.2em] opacity-80">Certificate Snapshot</p>
+                                <h4 className="mt-3 text-lg font-semibold">{snapshotTemplate?.title || t("teacher_cert_snapshot_title", "Certificate")}</h4>
+                                <p className="mt-2 text-sm opacity-80">{studentName}</p>
+                                <p className="mt-1 text-xs opacity-70">{courseName}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-1 gap-4 text-sm text-gray-600 dark:text-slate-300 md:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                          <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-slate-500">Student</div>
+                          <div className="mt-1 font-medium text-foreground dark:text-white">{studentName}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-slate-500">Course</div>
+                          <div className="mt-1 font-medium text-foreground dark:text-white">{courseName}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-slate-500">Date</div>
+                          <div className="mt-1 font-medium text-foreground dark:text-white">{issueDate}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-slate-500">Certificate ID</div>
+                          <div className="mt-1 font-mono font-medium text-foreground dark:text-white">{certificate.certificateNumber || "-"}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadIssued(certificate)}
+                          className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-secondary dark:border-slate-700 dark:hover:bg-slate-800"
+                        >
+                          <Download size={16} /> {t("teacher_cert_download_pdf", "Download PDF")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setVerifyInput(certificate.certificateNumber || "")
+                            handleVerifyCertificate(certificate.certificateNumber)
+                          }}
+                          className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-secondary dark:border-slate-700 dark:hover:bg-slate-800"
+                        >
+                          <CheckCircle size={16} /> {t("common_verify", "Verify")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleShareIssued(certificate)}
+                          className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-secondary dark:border-slate-700 dark:hover:bg-slate-800"
+                        >
+                          <Share2 size={16} /> {t("common_share", "Share link")}
+                        </button>
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          {t("teacher_cert_locked_notice", "Issued certificate is locked and cannot be edited")}
+                        </span>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Use Template Modal */}
         {useTemplate && (

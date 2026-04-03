@@ -11,6 +11,161 @@ import { parseExamQuestionsFileWithReport } from "@/lib/utils/exam-import"
 import { ScientificText } from "@/components/scientific-text"
 import { UniversalSelect } from "@/components/ui/universal-select"
 
+const stepperStyles = `
+  @keyframes stepPulse {
+    0% {
+      box-shadow: 0 0 0 0 rgb(37, 99, 235, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgb(37, 99, 235, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgb(37, 99, 235, 0);
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes lineExpand {
+    from {
+      transform: scaleX(0);
+      transform-origin: left;
+    }
+    to {
+      transform: scaleX(1);
+      transform-origin: left;
+    }
+  }
+
+  @keyframes checkPop {
+    0% {
+      opacity: 0;
+      transform: scale(0.5) rotate(-90deg);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  @keyframes successCircleGrow {
+    0% {
+      opacity: 0;
+      transform: scale(0) rotate(-180deg);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.15) rotate(10deg);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  @keyframes successCheckPulse {
+    0% {
+      transform: scale(0.5) rotate(-30deg);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  @keyframes textFadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes buttonFadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes confetti {
+    0% {
+      transform: translate(0, 0) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(var(--tx), var(--ty)) rotate(360deg);
+      opacity: 0;
+    }
+  }
+
+  .success-circle {
+    animation: successCircleGrow 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .success-check {
+    animation: successCheckPulse 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .success-title {
+    animation: textFadeInDown 0.6s ease-out 0.3s backwards;
+  }
+
+  .success-desc {
+    animation: textFadeInDown 0.6s ease-out 0.4s backwards;
+  }
+
+  .success-note {
+    animation: textFadeInDown 0.6s ease-out 0.5s backwards;
+  }
+
+  .success-button {
+    animation: buttonFadeInUp 0.6s ease-out 0.6s backwards;
+  }
+
+  .success-container {
+    animation: textFadeInDown 0.6s ease-out;
+  }
+
+  .step-badge-current {
+    animation: stepPulse 2s infinite, slideIn 0.4s ease-out;
+  }
+
+  .step-badge {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  .step-line-active {
+    animation: lineExpand 0.5s ease-out;
+  }
+
+  .step-check-icon {
+    animation: checkPop 0.5s ease-out;
+  }
+`
+
 interface Section {
   id: string
   title: string
@@ -1087,33 +1242,36 @@ export default function CreateCoursePage() {
 
   return (
     <div className="min-h-screen w-full">
-      <div className="w-full space-y-8">
+      <style dangerouslySetInnerHTML={{ __html: stepperStyles }} />
+      <div className="w-full space-y-4">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("tc_create_title", "Tạo khóa học mới")}</h1>
-          <p className="text-muted-foreground dark:text-slate-400">{t("tc_create_subtitle", "Hướng dẫn từng bước để tạo khóa học")}</p>
+        <div className="rounded-md border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t("tc_create_title", "Tạo khóa học mới")}</h1>
+          <p className="text-sm text-gray-600 dark:text-slate-400">{t("tc_create_subtitle", "Hướng dẫn từng bước để tạo khóa học")}</p>
         </div>
 
         {/* Steps */}
-        <div className="flex items-center justify-between">
+        <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900/60 flex items-center justify-between">
           {steps.map((step, index) => (
             <div key={index} className="flex items-center flex-1">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-smooth ${
+                className={`h-8 w-8 rounded-md flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
                   index <= currentStep
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary dark:bg-slate-800 text-muted-foreground dark:text-slate-400"
+                    ? index === currentStep
+                      ? "step-badge-current bg-blue-600 text-white"
+                      : "step-badge bg-blue-600 text-white"
+                    : "step-badge bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-slate-400"
                 }`}
               >
-                {index < currentStep ? <Check size={20} /> : index + 1}
+                {index < currentStep ? <Check size={20} className="step-check-icon" /> : index + 1}
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-foreground dark:text-white">{t(step.key, step.fallback)}</p>
+                <p className="text-xs font-medium text-gray-700 dark:text-slate-300 transition-colors duration-300">{t(step.key, step.fallback)}</p>
               </div>
               {index < steps.length - 1 && (
                 <div
-                  className={`flex-1 h-1 mx-4 rounded-full transition-smooth ${
-                    index < currentStep ? "bg-primary" : "bg-secondary dark:bg-slate-800"
+                  className={`mx-4 h-[1px] flex-1 transition-all duration-500 ${
+                    index < currentStep ? "step-line-active bg-blue-500" : "bg-gray-200 dark:bg-slate-700"
                   }`}
                 />
               )}
@@ -1122,142 +1280,136 @@ export default function CreateCoursePage() {
         </div>
 
         {/* Form Content */}
-        <div className={`bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-8 ${showLessonModal && currentStep === 1 ? 'pb-[600px]' : ''}`}>
+        <div className={`rounded-md border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60 ${showLessonModal && currentStep === 1 ? 'pb-[600px]' : ''}`}>
           {currentStep === 0 && (
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_course_name", "Tên khóa học")}</label>
-                <input
-                  type="text"
-                  placeholder={t("tc_create_course_name_placeholder", "Nhập tên khóa học")}
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_course_desc", "Mô tả khóa học")}</label>
-                <textarea
-                  placeholder={t("tc_create_course_desc_placeholder", "Mô tả chi tiết về khóa học")}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={5}
-                  className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_category", "Danh mục")}</label>
-                <UniversalSelect
-                  value={formData.categoryId}
-                  onChange={(e) => {
-                    const selectedCategoryId = e.target.value
-                    setFormData({ ...formData, categoryId: selectedCategoryId })
-                    if (selectedCategoryId) {
-                      setCategoryError(null)
-                    }
-                  }}
-                  className={`w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white ${
-                    categoryError ? "border-destructive" : "border-border dark:border-slate-700"
-                  }`}
-                  contentClassName="bg-white/90 dark:bg-slate-900/88 backdrop-blur-xl border border-white/45 dark:border-slate-700/80 shadow-[0_20px_60px_rgba(2,6,23,0.45)] ring-1 ring-sky-400/20"
-                  portalled
-                >
-                  <option value="">{t("tc_create_select_category", "Chọn danh mục")}</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </UniversalSelect>
-                {categoryError && (
-                  <p className="mt-2 text-sm text-destructive">{categoryError}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_course_image", "Ảnh hình khóa học")}</label>
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <input
-                      ref={thumbnailInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          setFormData({ ...formData, thumbnail: file })
-                          const reader = new FileReader()
-                          reader.onloadend = () => {
-                            setThumbnailPreview(reader.result as string)
-                          }
-                          reader.readAsDataURL(file)
-                        }
-                      }}
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => thumbnailInputRef.current?.click()}
-                      className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
-                    >
-                      {formData.thumbnail?.name || t("tc_create_choose_file", "Chọn tệp")}
-                    </button>
-                    <p className="mt-2 text-xs text-muted-foreground dark:text-slate-400">
-                      {formData.thumbnail ? formData.thumbnail.name : t("tc_create_no_file_selected", "Chưa có tệp nào được chọn")}
-                    </p>
-                  </div>
-                  {thumbnailPreview && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setThumbnailPreview(null)
-                        setFormData({ ...formData, thumbnail: null })
-                      }}
-                      className="p-3 bg-destructive/20 hover:bg-destructive/30 text-destructive rounded-lg transition-smooth"
-                      title={t("tc_create_remove_image", "Xóa ảnh")}
-                    >
-                      <X size={20} />
-                    </button>
+            <div className="grid gap-4 lg:grid-cols-12">
+              <div className="space-y-5 lg:col-span-8">
+                <div>
+                  <label className="text-sm font-medium text-gray-600 dark:text-slate-300">{t("tc_create_course_name", "Tên khóa học")}</label>
+                  <input
+                    type="text"
+                    placeholder={t("tc_create_course_name_placeholder", "Nhập tên khóa học")}
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="mt-1 h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600 dark:text-slate-300">{t("tc_create_course_desc", "Mô tả khóa học")}</label>
+                  <textarea
+                    placeholder={t("tc_create_course_desc_placeholder", "Mô tả chi tiết về khóa học")}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={5}
+                    className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600 dark:text-slate-300">{t("tc_create_category", "Danh mục")}</label>
+                  <UniversalSelect
+                    value={formData.categoryId}
+                    onChange={(e) => {
+                      const selectedCategoryId = e.target.value
+                      setFormData({ ...formData, categoryId: selectedCategoryId })
+                      if (selectedCategoryId) {
+                        setCategoryError(null)
+                      }
+                    }}
+                    className={`mt-1 h-10 w-full rounded-md border bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-950 dark:text-white ${
+                      categoryError ? "border-destructive" : "border-gray-300 dark:border-slate-700"
+                    }`}
+                    contentClassName="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow-xl"
+                    portalled
+                  >
+                    <option value="">{t("tc_create_select_category", "Chọn danh mục")}</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </UniversalSelect>
+                  {categoryError && (
+                    <p className="mt-2 text-sm text-destructive">{categoryError}</p>
                   )}
                 </div>
-                {thumbnailPreview && (
-                  <div className="mt-4 max-w-xs">
-                    <p className="text-xs text-muted-foreground dark:text-slate-400 mb-2">{t("tc_create_preview", "Xem trước:")}</p>
-                    <div className="rounded-2xl overflow-hidden border border-border dark:border-slate-800 bg-card dark:bg-slate-900/60 shadow-lg">
-                      <div className="relative h-48 w-full overflow-hidden bg-secondary dark:bg-slate-800">
-                        <img
-                          src={thumbnailPreview}
-                          alt={t("tc_create_course_image_preview", "Xem trước ảnh khóa học")}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="p-4 space-y-3">
-                        <h3 className="text-foreground dark:text-white font-semibold line-clamp-2">
-                          {formData.title || t("tc_create_course_name", "Tên khóa học")}
-                        </h3>
-                        <p className="text-sm text-muted-foreground dark:text-slate-400">
-                          {formData.categoryId || t("tc_create_category", "Danh mục")}
-                        </p>
-                        <div className="flex justify-between items-center pt-2 border-t border-border dark:border-slate-800">
-                          <span className="text-primary dark:text-accent font-bold">
-                            {formData.price === 0 ? t("tc_create_free", "Miễn phí") : `₫${formData.price.toLocaleString("vi-VN")}`}
-                          </span>
-                          <button className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 rounded-full transition-smooth">
-                            {t("tc_create_preview_action", "Xem")}
-                          </button>
-                        </div>
-                      </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-600 dark:text-slate-300">{t("tc_create_course_image", "Ảnh hình khóa học")}</label>
+                  <input
+                    ref={thumbnailInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setFormData({ ...formData, thumbnail: file })
+                        const reader = new FileReader()
+                        reader.onloadend = () => {
+                          setThumbnailPreview(reader.result as string)
+                        }
+                        reader.readAsDataURL(file)
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => thumbnailInputRef.current?.click()}
+                    className="mt-2 w-full rounded-md border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    {formData.thumbnail?.name || t("tc_create_choose_file", "Drag & drop image or click to upload")}
+                  </button>
+                  {thumbnailPreview && (
+                    <div className="mt-3 flex items-start gap-2">
+                      <img
+                        src={thumbnailPreview}
+                        alt={t("tc_create_course_image_preview", "Xem trước ảnh khóa học")}
+                        className="h-28 w-44 rounded-md border border-gray-200 object-cover dark:border-slate-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setThumbnailPreview(null)
+                          setFormData({ ...formData, thumbnail: null })
+                        }}
+                        className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-900/20"
+                        title={t("tc_create_remove_image", "Xóa ảnh")}
+                      >
+                        <X size={14} />
+                      </button>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
+
+              <aside className="space-y-3 lg:col-span-4">
+                <div className="rounded-md border border-gray-200 p-3 dark:border-slate-700">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">{t("tc_create_step_info", "Thông tin")}</div>
+                  <div className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{t("tc_create_title", "Tạo khóa học mới")}</div>
+                </div>
+                <div className="rounded-md border border-gray-200 p-3 dark:border-slate-700">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">{t("tc_create_plan_current", "Gói giảng viên hiện tại")}</div>
+                  <div className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{subscriptionSnapshot?.planName || "-"}</div>
+                </div>
+                <div className="rounded-md border border-gray-200 p-3 dark:border-slate-700">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">{t("tc_create_plan_usage", "Sử dụng khóa học")}</div>
+                  <div className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                    {subscriptionSnapshot ? `${subscriptionSnapshot.usage.coursesCreated}/${subscriptionSnapshot.usage.courseLimit}` : "-"}
+                  </div>
+                </div>
+                <div className="rounded-md border border-gray-200 p-3 dark:border-slate-700">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">{t("tc_create_plan_remaining", "Còn lại")}</div>
+                  <div className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{subscriptionSnapshot?.usage.remainingCourses ?? "-"}</div>
+                </div>
+              </aside>
             </div>
           )}
 
           {currentStep === 1 && (
             <div className="space-y-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-semibold text-foreground dark:text-white">{t("tc_create_content_title", "Nội dung khóa học")}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("tc_create_content_title", "Nội dung khóa học")}</h3>
                 <button
                   onClick={addSection}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth"
+                  className="flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   <Plus size={18} />
                   {t("tc_create_add_section", "Thêm phần")}
@@ -1271,27 +1423,27 @@ export default function CreateCoursePage() {
               ) : (
                 <div className="space-y-4">
                   {sections.map((section) => (
-                    <div key={section.id} className="border border-border dark:border-slate-700 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-4">
+                    <div key={section.id} className="rounded-md border border-gray-200 dark:border-slate-700 overflow-hidden">
+                      <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
                         <input
                           type="text"
                           value={section.title}
                           onChange={(e) => updateSection(section.id, e.target.value)}
-                          className="flex-1 px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white font-semibold"
+                          className="flex-1 bg-transparent text-sm font-semibold text-gray-900 outline-none dark:text-white"
                         />
                         <button
                           onClick={() => deleteSection(section.id)}
-                          className="ml-2 p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-smooth"
+                          className="ml-2 p-1.5 text-destructive hover:bg-destructive/10 rounded-md transition-smooth"
                         >
                           <Trash2 size={18} />
                         </button>
                       </div>
 
-                      <div className="space-y-3 ml-4">
+                      <div className="space-y-2 p-3">
                         {section.lessons.map((lesson) => (
                           <div key={lesson.id}>
                             <div
-                              className="flex items-center justify-between p-3 bg-background dark:bg-slate-950 rounded-lg cursor-pointer hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
+                              className="flex items-center justify-between rounded-md border border-gray-200 bg-white p-2.5 cursor-pointer hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:bg-slate-800 transition-smooth"
                               onClick={() => {
                                 setCurrentSectionId(section.id)
                                 setCurrentLessonId(lesson.id)
@@ -1307,7 +1459,7 @@ export default function CreateCoursePage() {
                                   e.stopPropagation()
                                   deleteLesson(section.id, lesson.id)
                                 }}
-                                className="p-1 text-destructive hover:bg-destructive/10 rounded transition-smooth"
+                                className="p-1 text-destructive hover:bg-destructive/10 rounded-md transition-smooth"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -1315,15 +1467,15 @@ export default function CreateCoursePage() {
                             
                             {/* Lesson Details */}
                             {(getLessonVideos(lesson).length > 0 || lesson.documentFile || lesson.documentUrl || (lesson.extraDocuments && lesson.extraDocuments.length > 0) || lesson.quizzes.length > 0) && (
-                              <div className="mt-2 ml-2 p-3 bg-secondary/30 dark:bg-slate-900/30 rounded-lg border border-border/50 dark:border-slate-800/50">
+                              <div className="mt-2 ml-3 border-l border-gray-300 pl-3 text-sm dark:border-slate-700">
                                 {getLessonVideos(lesson).length > 0 && (
-                                  <div className="text-sm text-muted-foreground dark:text-slate-400 mb-2">
+                                  <div className="text-xs text-muted-foreground dark:text-slate-400 mb-1">
                                     <span className="font-medium">{t("tc_create_video_label", "Video:")}</span>{" "}
                                     {getLessonVideos(lesson).map((item) => item.name).join(", ")}
                                   </div>
                                 )}
                                 {(lesson.documentFile || lesson.documentUrl || (lesson.extraDocuments && lesson.extraDocuments.length > 0)) && (
-                                  <div className="text-sm text-muted-foreground dark:text-slate-400 mb-2">
+                                  <div className="text-xs text-muted-foreground dark:text-slate-400 mb-1">
                                     <span className="font-medium">{t("tc_create_document_short_label", "Tài liệu:")}</span>{" "}
                                     {[lesson.documentFileName || lesson.documentFile?.name, ...(lesson.extraDocuments || []).map((item) => item.name)]
                                       .filter(Boolean)
@@ -1331,7 +1483,7 @@ export default function CreateCoursePage() {
                                   </div>
                                 )}
                                 {lesson.quizzes.length > 0 && (
-                                  <div className="text-sm text-muted-foreground dark:text-slate-400">
+                                  <div className="text-xs text-muted-foreground dark:text-slate-400">
                                     <span className="font-medium">{t("tc_create_quiz_label", "Quiz:")}</span> {lesson.quizzes.length} {t("tc_create_question_count", "câu hỏi")}
                                     <div className="mt-1 space-y-1">
                                       {lesson.quizzes.map((q, idx) => (
@@ -1343,7 +1495,7 @@ export default function CreateCoursePage() {
                                   </div>
                                 )}
                                 {hasWritingContent(lesson) && (
-                                  <div className="text-sm text-muted-foreground dark:text-slate-400">
+                                  <div className="text-xs text-muted-foreground dark:text-slate-400">
                                     <span className="font-medium">{t("tc_create_writing_label", "Writing:")}</span> {t("tc_create_writing_enabled", "Đã cấu hình")}
                                   </div>
                                 )}
@@ -1353,7 +1505,7 @@ export default function CreateCoursePage() {
                         ))}
                         <button
                           onClick={() => addLesson(section.id)}
-                          className="w-full py-2 border-2 border-dashed border-border dark:border-slate-700 rounded-lg text-primary dark:text-accent hover:bg-primary/5 dark:hover.bg-primary/10 transition-smooth font-medium"
+                          className="w-full rounded-md border border-dashed border-gray-300 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
                           {t("tc_create_add_lesson", "+ Thêm bài học")}
                         </button>
@@ -2071,68 +2223,47 @@ export default function CreateCoursePage() {
           )}
 
           {currentStep === 2 && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-foreground dark:text-white mb-4">
+                <label className="text-sm font-medium text-gray-600 dark:text-slate-300">
                   {t("tc_create_price_label", "Giá khóa học (VND)")}
                 </label>
-                <div className="space-y-6">
-                  {/* Price Display */}
-                  <div className="text-center">
-                    <span className="text-3xl font-bold text-primary dark:text-accent">
-                      {formData.price.toLocaleString("vi-VN")}
-                    </span>
-                    <span className="text-2xl font-semibold text-foreground dark:text-white ml-2">
-                      {t("currency_vnd", "VNĐ")}
-                    </span>
-                  </div>
-
-                  {/* Price Input */}
-                  <div className="flex gap-3 items-center">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="0"
-                      value={formData.price?.toString() || ""}
-                      onKeyDown={(e) => {
-                       
-                        const allowedKeys = [
-                          "Backspace",
-                          "Delete",
-                          "ArrowLeft",
-                          "ArrowRight",
-                          "Tab",
-                        ]
-
-                        if (!/^[0-9]$/.test(e.key) && !allowedKeys.includes(e.key)) {
-                          e.preventDefault()
-                        }
-                      }}
-                      onChange={(e) => {
-                        
-                        const onlyNumber = e.target.value.replace(/\D/g, "")
-                        setFormData({ ...formData, price: Number(onlyNumber || 0) })
-                      }}
-                      className="flex-1 px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
-                    />
-
-                    <div className="text-lg font-semibold text-foreground dark:text-white">
-                      {t("currency_vnd", "VNĐ")}
-                    </div>
-                  </div>
-
-                  {/* Free Option */}
-                  <div className="flex items-center gap-3 p-4 bg-secondary/30 dark:bg-slate-900/30 rounded-lg border border-border/50 dark:border-slate-800/50">
-                    <input
-                      type="checkbox"
-                      id="freePrice"
-                      checked={formData.price === 0}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.checked ? 0 : 100000 })}
-                      className="w-4 h-4 rounded cursor-pointer"
-                    />
-                    <label htmlFor="freePrice" className="text-sm font-medium text-foreground dark:text-white cursor-pointer">
-                      {t("tc_create_free", "Miễn phí")}
-                    </label>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, price: 0 })}
+                    className={`rounded-md border px-3 py-1 text-sm ${formData.price === 0 ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300" : "border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"}`}
+                  >
+                    {t("tc_create_free", "Free")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, price: formData.price > 0 ? formData.price : 100000 })}
+                    className={`rounded-md border px-3 py-1 text-sm ${formData.price > 0 ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300" : "border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"}`}
+                  >
+                    {t("tc_create_paid", "Paid")}
+                  </button>
+                </div>
+                <div className="mt-2 flex items-center overflow-hidden rounded-md border border-gray-300 dark:border-slate-700">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={formData.price?.toString() || ""}
+                    onKeyDown={(e) => {
+                      const allowedKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"]
+                      if (!/^[0-9]$/.test(e.key) && !allowedKeys.includes(e.key)) {
+                        e.preventDefault()
+                      }
+                    }}
+                    onChange={(e) => {
+                      const onlyNumber = e.target.value.replace(/\D/g, "")
+                      setFormData({ ...formData, price: Number(onlyNumber || 0) })
+                    }}
+                    className="h-10 w-full bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:bg-slate-950 dark:text-white"
+                  />
+                  <div className="border-l border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    {t("currency_vnd", "VND")}
                   </div>
                 </div>
               </div>
@@ -2158,16 +2289,18 @@ export default function CreateCoursePage() {
           )}
 
           {currentStep === 3 && (
-            <div className="space-y-6 text-center">
-              <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
-                <Check size={40} className="text-green-600 dark:text-green-400" />
+            <div className="success-container space-y-6 text-center py-12">
+              <div className="relative flex justify-center">
+                <div className="success-circle w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                  <Check size={40} className="success-check text-green-600 dark:text-green-400" />
+                </div>
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-foreground dark:text-white mb-3">{t("tc_create_success_title", "Đã tạo thành công khóa học!")}</h3>
-                <p className="text-lg text-muted-foreground dark:text-slate-400 mb-2">
+                <h3 className="success-title text-3xl font-bold text-gray-900 dark:text-white mb-3">{t("tc_create_success_title", "Đã tạo thành công khóa học!")}</h3>
+                <p className="success-desc text-lg text-gray-600 dark:text-slate-400 mb-2">
                   {t("tc_create_success_desc", "Khóa học của bạn đã được tạo thành công")}
                 </p>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">
+                <p className="success-note text-sm text-gray-500 dark:text-slate-400">
                   {t("tc_create_success_note", "Khóa học sẽ được gửi đến admin để duyệt trước khi xuất bản")}
                 </p>
               </div>
@@ -2180,14 +2313,14 @@ export default function CreateCoursePage() {
           <button
             onClick={handlePrev}
             disabled={currentStep === 0}
-            className="px-6 py-3 border border-border dark:border-slate-800 rounded-lg font-medium text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-smooth"
+            className={`success-button px-6 py-3 border border-border dark:border-slate-800 rounded-lg font-medium text-foreground dark:text-white hover:bg-secondary dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-smooth ${currentStep === 3 ? 'opacity-0' : 'opacity-100'}`}
           >
             {t("common_back", "Quay lại")}
           </button>
           <button
             onClick={handleNext}
             disabled={isSubmitting}
-            className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth disabled:opacity-60 disabled:cursor-not-allowed"
+            className={`success-button flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth disabled:opacity-60 disabled:cursor-not-allowed`}
           >
             {isSubmitting ? (
               <><Loader2 size={18} className="animate-spin" /> {t("tc_create_creating", "Đang tạo...")}</>

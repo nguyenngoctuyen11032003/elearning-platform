@@ -1,21 +1,23 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { motion } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import Link from "next/link"
 import {
-  BookOpen,
-  TrendingUp,
-  Award,
-  Clock,
-  Play,
-  ChevronRight,
-  Calendar,
-  Target,
-  Flame,
-  Star,
-  CheckCircle,
+  Activity,
   ArrowRight,
+  Award,
+  BookOpen,
+  Calendar,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Flame,
+  Play,
+  Sparkles,
+  Star,
+  Target,
+  TrendingUp,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
@@ -65,18 +67,34 @@ type DashboardStats = {
   weeklyGoal: number
 }
 
+type StatCard = {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  value: number
+  suffix?: string
+  formatter?: (value: number) => string
+  detail: string
+  accent: string
+  orbit: number
+}
+
 const formatRelativeTime = (value: string | Date | undefined, t: (key: string, fallback: string) => string) => {
   if (!value) return t("userdb_no_data", "Chưa có dữ liệu")
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return t("userdb_no_data", "Chưa có dữ liệu")
+
   const diffMs = Date.now() - date.getTime()
   const diffMinutes = Math.floor(diffMs / 60000)
+
   if (diffMinutes < 1) return t("userdb_just_now", "Vừa xong")
   if (diffMinutes < 60) return `${diffMinutes} ${t("userdb_min_ago", "phút trước")}`
+
   const diffHours = Math.floor(diffMinutes / 60)
   if (diffHours < 24) return `${diffHours} ${t("userdb_hours_ago", "giờ trước")}`
+
   const diffDays = Math.floor(diffHours / 24)
   if (diffDays < 30) return `${diffDays} ${t("userdb_days_ago", "ngày trước")}`
+
   return date.toLocaleDateString("vi-VN")
 }
 
@@ -96,6 +114,7 @@ const formatHours = (hours: number, t: (key: string, fallback: string) => string
 const computeStreak = (courses: DashboardCourse[]) => {
   const today = new Date()
   const dayOffsets = new Set<number>()
+
   courses.forEach((course) => {
     if (!course.lastAccessed) return
     const diff = Math.floor((today.getTime() - course.lastAccessed.getTime()) / (1000 * 60 * 60 * 24))
@@ -103,12 +122,81 @@ const computeStreak = (courses: DashboardCourse[]) => {
       dayOffsets.add(diff)
     }
   })
+
   return dayOffsets.size
+}
+
+const dueBadge = (dueDate: string | undefined, t: (key: string, fallback: string) => string) => {
+  if (!dueDate) return t("userdb_no_deadline", "Chưa có hạn")
+  const now = Date.now()
+  const target = new Date(dueDate).getTime()
+  const daysLeft = Math.ceil((target - now) / (1000 * 60 * 60 * 24))
+
+  if (daysLeft <= 0) return t("userdb_due_now", "Đến hạn hôm nay")
+  if (daysLeft === 1) return t("userdb_due_tomorrow", "Còn 1 ngày")
+  if (daysLeft <= 7) return `${t("userdb_due_in", "Còn")} ${daysLeft} ${t("userdb_days", "ngày")}`
+  return formatDate(dueDate, t)
+}
+
+function StatOrbitCard({ card, index }: { card: StatCard; index: number }) {
+  const ringRadius = 23
+  const ringLength = 2 * Math.PI * ringRadius
+  const clampedOrbit = Math.max(4, Math.min(100, card.orbit))
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.08 + index * 0.06, duration: 0.34 }}
+      whileHover={{ y: -4, scale: 1.01 }}
+      className="relative overflow-hidden rounded-2xl border border-white/40 bg-white/70 p-4 shadow-[0_10px_30px_rgba(8,47,73,0.12)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/70"
+    >
+      <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-gradient-to-br opacity-20 blur-2xl" style={{ backgroundImage: card.accent }} />
+      <div className="relative z-10 flex items-start gap-3">
+        <div className="relative h-14 w-14 shrink-0">
+          <svg viewBox="0 0 56 56" className="h-14 w-14 -rotate-90">
+            <circle cx="28" cy="28" r={ringRadius} stroke="currentColor" strokeWidth="4" className="text-slate-200 dark:text-slate-700" fill="none" />
+            <motion.circle
+              cx="28"
+              cy="28"
+              r={ringRadius}
+              stroke="url(#stat-ring-gradient)"
+              strokeWidth="4"
+              strokeLinecap="round"
+              fill="none"
+              strokeDasharray={ringLength}
+              initial={{ strokeDashoffset: ringLength }}
+              animate={{ strokeDashoffset: ringLength - (ringLength * clampedOrbit) / 100 }}
+              transition={{ delay: 0.2 + index * 0.04, duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+            />
+            <defs>
+              <linearGradient id="stat-ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#0ea5e9" />
+                <stop offset="100%" stopColor="#10b981" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <card.icon className="h-5 w-5 text-slate-700 dark:text-slate-200" />
+          </div>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">{card.label}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+            <AnimatedNumber value={card.value} suffix={card.suffix} formatter={card.formatter} />
+          </p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{card.detail}</p>
+        </div>
+      </div>
+    </motion.article>
+  )
 }
 
 export default function StudentDashboardPage() {
   const { user } = useAuth()
   const { t } = useLanguage()
+
   const [greeting, setGreeting] = useState("")
   const [stats, setStats] = useState<DashboardStats>({
     activeCourses: 0,
@@ -120,6 +208,7 @@ export default function StudentDashboardPage() {
     streakDays: 0,
     weeklyGoal: 0,
   })
+
   const [courses, setCourses] = useState<DashboardCourse[]>([])
   const [upcomingAssignments, setUpcomingAssignments] = useState<AssignmentItem[]>([])
   const [activities, setActivities] = useState<ActivityItem[]>([])
@@ -130,7 +219,7 @@ export default function StudentDashboardPage() {
     if (hour < 12) setGreeting(t("userdb_morning", "Chào buổi sáng"))
     else if (hour < 18) setGreeting(t("userdb_afternoon", "Chào buổi chiều"))
     else setGreeting(t("userdb_evening", "Chào buổi tối"))
-  }, [])
+  }, [t])
 
   const loadData = async () => {
     if (!user?.id) {
@@ -140,191 +229,179 @@ export default function StudentDashboardPage() {
 
     try {
       setLoading(true)
+
       const [enrollmentsResponse, certificates] = await Promise.all([
         apiClient.getMyEnrollments(),
         apiClient.getMyCertificates(),
       ])
 
-        const enrollments = Array.isArray(enrollmentsResponse)
-          ? enrollmentsResponse
-          : (enrollmentsResponse as any)?.data || []
+      const enrollments = Array.isArray(enrollmentsResponse)
+        ? enrollmentsResponse
+        : (enrollmentsResponse as any)?.data || []
 
-        const validEnrollments = enrollments.filter((enrollment: any) => enrollment?.course)
-        const activityEvents: ActivityItem[] = []
+      const validEnrollments = enrollments.filter((enrollment: any) => enrollment?.course)
+      const activityEvents: ActivityItem[] = []
 
-        const coursesData: DashboardCourse[] = await Promise.all(
-          validEnrollments.map(async (enrollment: any) => {
-            const lessons = await apiClient.getLessonsByCourse(enrollment.courseId)
-            const progressEntries = await apiClient.getLessonProgress(enrollment.id)
+      const coursesData: DashboardCourse[] = await Promise.all(
+        validEnrollments.map(async (enrollment: any) => {
+          const lessons = await apiClient.getLessonsByCourse(enrollment.courseId)
+          const progressEntries = await apiClient.getLessonProgress(enrollment.id)
 
-            const totalLessons = Array.isArray(lessons) ? lessons.length : 0
-            const completedLessons = Array.isArray(progressEntries)
-              ? progressEntries.filter((p: any) => p?.isCompleted).length
-              : Math.round(totalLessons * (Number(enrollment.progress || 0) / 100))
+          const totalLessons = Array.isArray(lessons) ? lessons.length : 0
+          const completedLessons = Array.isArray(progressEntries)
+            ? progressEntries.filter((p: any) => p?.isCompleted).length
+            : Math.round(totalLessons * (Number(enrollment.progress || 0) / 100))
 
-            const latestCompleted = Array.isArray(progressEntries)
-              ? [...progressEntries]
-                  .filter((p: any) => p?.completedAt)
-                  .sort(
-                    (a: any, b: any) =>
-                      new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
-                  )[0]
-              : undefined
+          const latestCompleted = Array.isArray(progressEntries)
+            ? [...progressEntries]
+                .filter((p: any) => p?.completedAt)
+                .sort(
+                  (a: any, b: any) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
+                )[0]
+            : undefined
 
-            if (latestCompleted) {
-              activityEvents.push({
-                id: `${enrollment.id}-${latestCompleted.lessonId}`,
-                title: `${t("userdb_completed", "Hoàn thành")}: ${latestCompleted.lesson?.title || t("userdb_lesson", "Bài học")}`,
-                courseTitle: enrollment.course.title,
-                type: "lesson",
-                timestamp: latestCompleted.completedAt,
-              })
-            }
+          if (latestCompleted) {
+            activityEvents.push({
+              id: `${enrollment.id}-${latestCompleted.lessonId}`,
+              title: `${t("userdb_completed", "Hoàn thành")}: ${latestCompleted.lesson?.title || t("userdb_lesson", "Bài học")}`,
+              courseTitle: enrollment.course.title,
+              type: "lesson",
+              timestamp: latestCompleted.completedAt,
+            })
+          }
 
-            const nextLesson = Array.isArray(progressEntries)
-              ? progressEntries.find((p: any) => !p?.isCompleted)?.lesson?.title ||
-                lessons.find((lesson: any) => lesson?.order === completedLessons + 1)?.title ||
-                t("userdb_continue_next", "Tiếp tục học bài tiếp theo")
-              : t("userdb_continue_next", "Tiếp tục học bài tiếp theo")
+          const nextLesson = Array.isArray(progressEntries)
+            ? progressEntries.find((p: any) => !p?.isCompleted)?.lesson?.title ||
+              lessons.find((lesson: any) => lesson?.order === completedLessons + 1)?.title ||
+              t("userdb_continue_next", "Tiếp tục học bài tiếp theo")
+            : t("userdb_continue_next", "Tiếp tục học bài tiếp theo")
 
-            const nextLessonId = Array.isArray(progressEntries)
-              ? String(
-                  progressEntries.find((p: any) => !p?.isCompleted)?.lessonId ||
-                    lessons.find((lesson: any) => Number(lesson?.order) === completedLessons + 1)?.id ||
-                    lessons[0]?.id ||
-                    enrollment.courseId,
-                )
-              : String(lessons?.[0]?.id || enrollment.courseId)
+          const nextLessonId = Array.isArray(progressEntries)
+            ? String(
+                progressEntries.find((p: any) => !p?.isCompleted)?.lessonId ||
+                  lessons.find((lesson: any) => Number(lesson?.order) === completedLessons + 1)?.id ||
+                  lessons[0]?.id ||
+                  enrollment.courseId,
+              )
+            : String(lessons?.[0]?.id || enrollment.courseId)
 
-            const totalDurationSeconds = Array.isArray(lessons)
-              ? lessons.reduce((sum: number, lesson: any) => sum + (lesson.duration || 0), 0)
-              : 0
-            const estimatedHours = (totalDurationSeconds * (Number(enrollment.progress || 0) / 100)) / 3600
+          const totalDurationSeconds = Array.isArray(lessons)
+            ? lessons.reduce((sum: number, lesson: any) => sum + (lesson.duration || 0), 0)
+            : 0
 
-            return {
-              id: enrollment.id,
-              courseId: enrollment.courseId,
-              nextLessonId,
-              title: enrollment.course.title,
-              instructor: enrollment.course.teacher?.name || t("userdb_instructor", "Giảng viên"),
-              image: enrollment.course.thumbnail || "/image/logo-ics.jpg",
-              progress: Math.round(Number(enrollment.progress) || 0),
-              totalLessons,
-              completedLessons,
-              nextLesson,
-              lastAccessed: enrollment.lastAccessedAt
-                ? new Date(enrollment.lastAccessedAt)
-                : enrollment.updatedAt
+          const estimatedHours = (totalDurationSeconds * (Number(enrollment.progress || 0) / 100)) / 3600
+
+          return {
+            id: enrollment.id,
+            courseId: enrollment.courseId,
+            nextLessonId,
+            title: enrollment.course.title,
+            instructor: enrollment.course.teacher?.name || t("userdb_instructor", "Giảng viên"),
+            image: enrollment.course.thumbnail || "/image/logo-ics.jpg",
+            progress: Math.round(Number(enrollment.progress) || 0),
+            totalLessons,
+            completedLessons,
+            nextLesson,
+            lastAccessed: enrollment.lastAccessedAt
+              ? new Date(enrollment.lastAccessedAt)
+              : enrollment.updatedAt
                 ? new Date(enrollment.updatedAt)
                 : null,
-              estimatedHours,
-            }
-          })
-        )
+            estimatedHours,
+          }
+        }),
+      )
 
-        // Assignments coming soon
-        const now = new Date()
-        const assignmentsNested = await Promise.all(
-          validEnrollments.map(async (enrollment: any) => {
-            try {
-              return await apiClient.getAssignments(enrollment.courseId)
-            } catch (error) {
-              console.error("Error fetching assignments", error)
-              return []
-            }
-          })
-        )
+      const now = new Date()
+      const assignmentsNested = await Promise.all(
+        validEnrollments.map(async (enrollment: any) => {
+          try {
+            return await apiClient.getAssignments(enrollment.courseId)
+          } catch (error) {
+            console.error("Error fetching assignments", error)
+            return []
+          }
+        }),
+      )
 
-        const assignments: AssignmentItem[] = assignmentsNested
-          .flat()
-          .filter((item: any) => item?.dueDate && new Date(item.dueDate) > now)
-          .sort(
-            (a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-          )
-          .slice(0, 3)
-          .map((assignment: any) => ({
-            id: assignment.id,
-            title: assignment.title,
-            courseTitle:
-              coursesData.find((c) => c.courseId === assignment.courseId)?.title || t("userdb_course", "Khóa học"),
-            dueDate: assignment.dueDate,
-            maxScore: assignment.maxScore,
-          }))
+      const assignments: AssignmentItem[] = assignmentsNested
+        .flat()
+        .filter((item: any) => item?.dueDate && new Date(item.dueDate) > now)
+        .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+        .slice(0, 3)
+        .map((assignment: any) => ({
+          id: assignment.id,
+          title: assignment.title,
+          courseTitle:
+            coursesData.find((c) => c.courseId === assignment.courseId)?.title || t("userdb_course", "Khóa học"),
+          dueDate: assignment.dueDate,
+          maxScore: assignment.maxScore,
+        }))
 
-        assignments.forEach((assignment) => {
+      assignments.forEach((assignment) => {
+        activityEvents.push({
+          id: `assignment-${assignment.id}`,
+          title: `${t("userdb_due_soon", "Sắp đến hạn")}: ${assignment.title}`,
+          courseTitle: assignment.courseTitle,
+          type: "assignment",
+          timestamp: assignment.dueDate,
+        })
+      })
+
+      if (Array.isArray(certificates)) {
+        certificates.forEach((certificate: any) => {
           activityEvents.push({
-            id: `assignment-${assignment.id}`,
-            title: `${t("userdb_due_soon", "Sắp đến hạn")}: ${assignment.title}`,
-            courseTitle: assignment.courseTitle,
-            type: "assignment",
-            timestamp: assignment.dueDate,
+            id: certificate.id,
+            title: `${t("userdb_got_cert", "Nhận chứng chỉ")}: ${certificate.course?.title || t("userdb_course", "Khóa học")}`,
+            courseTitle: certificate.course?.title,
+            type: "certificate",
+            timestamp: certificate.issueDate,
           })
         })
-
-        // Activities from certificates
-        if (Array.isArray(certificates)) {
-          certificates.forEach((certificate: any) => {
-            activityEvents.push({
-              id: certificate.id,
-              title: `${t("userdb_got_cert", "Nhận chứng chỉ")}: ${certificate.course?.title || t("userdb_course", t("userdb_course", "Khóa học"))}`,
-              courseTitle: certificate.course?.title,
-              type: "certificate",
-              timestamp: certificate.issueDate,
-            })
-          })
-        }
-
-        const sortedActivities = activityEvents
-          .sort(
-            (a, b) =>
-              new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
-          )
-          .slice(0, 6)
-
-        setCourses(
-          coursesData.sort(
-            (a, b) => (b.lastAccessed?.getTime() || 0) - (a.lastAccessed?.getTime() || 0)
-          )
-        )
-        setUpcomingAssignments(assignments)
-        setActivities(sortedActivities)
-
-        const averageProgress = coursesData.length
-          ? Math.round(coursesData.reduce((sum, c) => sum + c.progress, 0) / coursesData.length)
-          : 0
-        const totalHours = Number(
-          coursesData.reduce((sum, c) => sum + (c.estimatedHours || 0), 0).toFixed(1)
-        )
-        const completedCourses = coursesData.filter((c) => c.progress >= 99).length
-        const inProgress = coursesData.filter((c) => c.progress > 0 && c.progress < 99).length
-
-        setStats({
-          activeCourses: coursesData.length,
-          averageProgress,
-          certificates: Array.isArray(certificates) ? certificates.length : 0,
-          totalHours,
-          completedCourses,
-          inProgress,
-          streakDays: computeStreak(coursesData),
-          weeklyGoal: Math.min(100, averageProgress + inProgress * 5),
-        })
-      } catch (error) {
-        console.error("Error loading dashboard", error)
-        toast.error(t("userdb_load_error", "Không thể tải dữ liệu bảng điều khiển"))
-      } finally {
-        setLoading(false)
       }
+
+      const sortedActivities = activityEvents
+        .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())
+        .slice(0, 6)
+
+      setCourses(coursesData.sort((a, b) => (b.lastAccessed?.getTime() || 0) - (a.lastAccessed?.getTime() || 0)))
+      setUpcomingAssignments(assignments)
+      setActivities(sortedActivities)
+
+      const averageProgress = coursesData.length
+        ? Math.round(coursesData.reduce((sum, c) => sum + c.progress, 0) / coursesData.length)
+        : 0
+
+      const totalHours = Number(coursesData.reduce((sum, c) => sum + (c.estimatedHours || 0), 0).toFixed(1))
+      const completedCourses = coursesData.filter((c) => c.progress >= 99).length
+      const inProgress = coursesData.filter((c) => c.progress > 0 && c.progress < 99).length
+
+      setStats({
+        activeCourses: coursesData.length,
+        averageProgress,
+        certificates: Array.isArray(certificates) ? certificates.length : 0,
+        totalHours,
+        completedCourses,
+        inProgress,
+        streakDays: computeStreak(coursesData),
+        weeklyGoal: Math.min(100, averageProgress + inProgress * 5),
+      })
+    } catch (error) {
+      console.error("Error loading dashboard", error)
+      toast.error(t("userdb_load_error", "Không thể tải dữ liệu bảng điều khiển"))
+    } finally {
+      setLoading(false)
     }
+  }
 
   useEffect(() => {
     setLoading(true)
     loadData()
   }, [user?.id])
 
-  // Refetch data when page becomes visible (user returns from other page)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         loadData()
       }
     }
@@ -333,287 +410,466 @@ export default function StudentDashboardPage() {
       loadData()
     }
 
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("focus", handleFocus)
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("focus", handleFocus)
     }
   }, [user?.id, t])
 
-  const statCards = useMemo(
+  const statCards = useMemo<StatCard[]>(
     () => [
       {
         icon: BookOpen,
         label: t("userdb_active_courses", "Khóa học đang học"),
         value: stats.activeCourses,
         formatter: (val: number) => Math.round(val).toLocaleString("vi-VN"),
-        sublabel: `${stats.inProgress} ${t("userdb_in_progress", "đang diễn ra")}`,
-        color: "bg-blue-500",
+        detail: `${stats.inProgress} ${t("userdb_in_progress", "đang diễn ra")}`,
+        accent: "linear-gradient(135deg, rgba(14,165,233,0.65), rgba(59,130,246,0.4))",
+        orbit: Math.min(100, stats.activeCourses * 18),
       },
       {
         icon: TrendingUp,
         label: t("userdb_avg_progress", "Tiến độ trung bình"),
         value: stats.averageProgress,
         suffix: "%",
-        sublabel: `${stats.completedCourses} ${t("userdb_completed_count", "đã hoàn thành")}`,
-        color: "bg-purple-500",
+        detail: `${stats.completedCourses} ${t("userdb_completed_count", "đã hoàn thành")}`,
+        accent: "linear-gradient(135deg, rgba(59,130,246,0.65), rgba(16,185,129,0.45))",
+        orbit: stats.averageProgress,
       },
       {
         icon: Award,
         label: t("userdb_certs", "Chứng chỉ đạt được"),
         value: stats.certificates,
         formatter: (val: number) => Math.round(val).toLocaleString("vi-VN"),
-        sublabel: `${stats.completedCourses} ${t("userdb_courses_done", "khóa hoàn tất")}`,
-        color: "bg-green-500",
+        detail: `${stats.completedCourses} ${t("userdb_courses_done", "khóa hoàn tất")}`,
+        accent: "linear-gradient(135deg, rgba(245,158,11,0.68), rgba(16,185,129,0.45))",
+        orbit: Math.min(100, stats.certificates * 25),
       },
       {
         icon: Clock,
         label: t("userdb_est_hours", "Giờ học ước tính"),
         value: stats.totalHours,
         formatter: (val: number) => formatHours(val, t),
-        sublabel: `${stats.activeCourses} ${t("userdb_enrolled", "khóa đang theo học")}`,
-        color: "bg-orange-500",
+        detail: `${stats.activeCourses} ${t("userdb_enrolled", "khóa đang theo học")}`,
+        accent: "linear-gradient(135deg, rgba(20,184,166,0.62), rgba(14,165,233,0.4))",
+        orbit: Math.min(100, Math.round((stats.totalHours / 20) * 100)),
       },
     ],
-    [stats]
+    [stats, t],
+  )
+
+  const focusCourses = useMemo(() => courses.slice(0, 4), [courses])
+  const momentumCourses = useMemo(() => [...courses].sort((a, b) => b.progress - a.progress).slice(0, 5), [courses])
+  const vitality = useMemo(
+    () => Math.min(100, Math.round(stats.averageProgress * 0.65 + stats.streakDays * 6 + stats.completedCourses * 4)),
+    [stats],
   )
 
   if (loading) {
     return (
-      <div className="space-y-8">
-        <div className="relative overflow-hidden rounded-3xl p-8 bg-gradient-to-r from-slate-200 to-slate-100 dark:from-slate-900 dark:to-slate-800 animate-pulse h-64" />
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-6">
+      <div className="space-y-6">
+        <div className="h-72 animate-pulse rounded-[2rem] bg-gradient-to-br from-slate-200 via-slate-100 to-cyan-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+            <div key={i} className="h-36 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
           ))}
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2 h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
-          <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className="h-[520px] animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800 xl:col-span-2" />
+          <div className="h-[520px] animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
+    <AnimatePresence mode="wait">
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        key="dashboard-loaded"
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-3xl p-8"
-        style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+        className="relative space-y-8"
       >
-        <div className="absolute inset-0 bg-black/15 dark:bg-black/45" />
-
-        <div className="relative z-10 space-y-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <p className="text-black/70 dark:text-white/80 drop-shadow mb-1">{greeting}</p>
-              <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">
-                {user?.name || t("userdb_student", "Học viên")}! 👋
-              </h1>
-              <p className="text-black/70 dark:text-white/80 drop-shadow">
-                {t("userdb_hero_desc", "Tiếp tục hành trình học tập của bạn. Dữ liệu đang lấy trực tiếp từ khóa học của bạn.")}
-              </p>
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="text-center px-4 py-2 sm:px-6 sm:py-3 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl">
-                <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500 mx-auto mb-1 drop-shadow" />
-                <p className="text-xl sm:text-2xl font-bold text-white drop-shadow"><AnimatedNumber value={stats.streakDays} /></p>
-                <p className="text-[10px] sm:text-xs text-black/70 dark:text-white/80 drop-shadow whitespace-nowrap">{t("userdb_recent_days", "Ngày gần đây")}</p>
-              </div>
-              <div className="text-center px-4 py-2 sm:px-6 sm:py-3 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl">
-                <Target className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 mx-auto mb-1 drop-shadow" />
-                <p className="text-xl sm:text-2xl font-bold text-white drop-shadow"><AnimatedNumber value={stats.weeklyGoal} suffix="%" /></p>
-                <p className="text-[10px] sm:text-xs text-black/70 dark:text-white/80 drop-shadow whitespace-nowrap">{t("userdb_weekly_goal", "Mục tiêu tuần")}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 xl:gap-6">
-            {statCards.map((stat, idx) => (
-              <div
-                key={idx}
-                className="group flex flex-col xl:flex-row items-center xl:items-start gap-2 xl:gap-4 p-3 sm:p-4 xl:p-6 bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl hover:bg-white/50 dark:hover:bg-slate-900/40 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer text-center xl:text-left"
-              >
-                <div className={`p-2 sm:p-3 ${stat.color} rounded-lg group-hover:scale-110 transition-all duration-300`}>
-                  <stat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] sm:text-xs xl:text-sm text-black/70 dark:text-white/80 mb-0.5 sm:mb-1 drop-shadow">{stat.label}</p>
-                  <p className="text-lg sm:text-xl xl:text-2xl font-bold text-white drop-shadow">
-                    <AnimatedNumber value={stat.value} formatter={stat.formatter} suffix={stat.suffix} />
-                  </p>
-                  <p className="text-[9px] sm:text-[10px] xl:text-xs text-green-600 dark:text-green-400 mt-0.5 sm:mt-1 drop-shadow">{stat.sublabel}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </motion.div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          aria-hidden
+          animate={{ y: [0, -10, 0], opacity: [0.28, 0.42, 0.28] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="pointer-events-none absolute -top-24 -right-10 h-72 w-72 rounded-full bg-cyan-300/40 blur-3xl dark:bg-cyan-500/15"
+        />
+        <motion.div
+          aria-hidden
+          animate={{ y: [0, 12, 0], opacity: [0.2, 0.32, 0.2] }}
+          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
+          className="pointer-events-none absolute bottom-16 -left-16 h-72 w-72 rounded-full bg-emerald-300/35 blur-3xl dark:bg-emerald-500/12"
+        />
+
+        <motion.section
+          initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="xl:col-span-2 group bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl p-6 hover:bg-white/50 dark:hover:bg-slate-900/40 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.01] transition-all duration-300 ease-out"
+          transition={{ duration: 0.35 }}
+          className="relative overflow-hidden rounded-[2rem] border border-cyan-100/70 bg-white/80 p-6 shadow-[0_25px_65px_rgba(3,105,161,0.15)] backdrop-blur-xl dark:border-cyan-900/40 dark:bg-slate-900/65 md:p-8"
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-foreground dark:text-white drop-shadow">{t("userdb_continue", "Tiếp tục học")}</h2>
-            <Link href="/my-courses" className="text-sm text-primary dark:text-accent hover:underline flex items-center gap-1 drop-shadow">
-              {t("userdb_view_all", "Xem tất cả")} <ChevronRight size={16} />
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {courses.length === 0 && (
-              <p className="text-sm text-muted-foreground">{t("userdb_no_courses", "Chưa có khóa học nào. Hãy bắt đầu một khóa học mới!")}</p>
-            )}
-            {courses.map((course, idx) => (
+          <div className="absolute inset-0 bg-[radial-gradient(120%_100%_at_20%_0%,rgba(14,165,233,0.18),transparent_46%),radial-gradient(100%_90%_at_90%_8%,rgba(16,185,129,0.22),transparent_50%)] dark:bg-[radial-gradient(120%_100%_at_20%_0%,rgba(14,165,233,0.16),transparent_46%),radial-gradient(100%_90%_at_90%_8%,rgba(16,185,129,0.16),transparent_52%)]" />
+          <div className="relative z-10 grid gap-8 lg:grid-cols-[1.45fr_1fr]">
+            <div className="space-y-5">
+              <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/60 bg-cyan-50/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-cyan-700 dark:border-cyan-800/70 dark:bg-cyan-950/30 dark:text-cyan-200">
+                <Sparkles className="h-4 w-4" />
+                {greeting}
+              </span>
+
+              <div>
+                <h1 className="text-3xl font-black leading-tight text-slate-900 dark:text-white md:text-5xl">
+                  {user?.name || t("userdb_student", "Học viên")}
+                </h1>
+                <p className="mt-3 max-w-2xl text-sm text-slate-600 dark:text-slate-300 md:text-base">
+                  {t("userdb_hero_desc", "Tiếp tục hành trình học tập của bạn. Dữ liệu đang lấy trực tiếp từ khóa học của bạn.")}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/my-courses"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(2,132,199,0.35)] transition-transform hover:-translate-y-0.5"
+                >
+                  <Play className="h-4 w-4" />
+                  {t("userdb_resume", "Học tiếp")}
+                </Link>
+                <Link
+                  href="/progress"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-5 py-2.5 text-sm font-semibold text-slate-700 transition-transform hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200"
+                >
+                  <Target className="h-4 w-4" />
+                  {t("student_menu_progress", "Tiến độ học tập")}
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               <motion.div
-                key={course.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 + idx * 0.05 }}
-                className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm border border-white/30 dark:border-slate-600/30 rounded-xl p-4 hover:bg-white/60 dark:hover:bg-slate-800/60 hover:shadow-lg transition-all duration-300 group/course"
+                whileHover={{ y: -2 }}
+                className="rounded-2xl border border-white/50 bg-white/65 p-4 backdrop-blur-lg dark:border-slate-700/60 dark:bg-slate-800/60"
               >
-                <div className="flex gap-4">
-                  <div className="relative w-32 h-24 rounded-xl overflow-hidden flex-shrink-0">
-                    <img
-                      src={course.image}
-                      alt={course.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/course:opacity-100 transition-opacity flex items-center justify-center">
-                      <Play className="text-white drop-shadow-lg" size={32} />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground dark:text-white mb-1 line-clamp-1 drop-shadow-sm">{course.title}</h3>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 drop-shadow-sm">{course.instructor}</p>
-                    <p className="text-xs text-muted-foreground dark:text-slate-500 mb-2 drop-shadow-sm">
-                      {t("userdb_next", "Tiếp theo")}: <span className="text-primary dark:text-accent">{course.nextLesson}</span>
-                    </p>
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-muted-foreground dark:text-slate-400 drop-shadow-sm">{course.completedLessons}/{course.totalLessons} bài</span>
-                          <span className="font-medium text-foreground dark:text-white drop-shadow-sm">{course.progress}%</span>
-                        </div>
-                        <div className="h-2 bg-white/40 dark:bg-slate-700/40 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all shadow-sm"
-                            style={{ width: `${course.progress}%` }}
-                          />
-                        </div>
-                        <p className="text-[11px] text-muted-foreground dark:text-slate-400 mt-1 drop-shadow-sm">
-                          {t("userdb_updated", "Cập nhật")} {formatRelativeTime(course.lastAccessed || undefined, t)} • {t("userdb_estimated", "Ước tính")} {formatHours(course.estimatedHours, t)} {t("userdb_studied", "đã học")}
-                        </p>
-                      </div>
-                      <Link
-                        href={`/player/${course.nextLessonId || course.courseId}`}
-                        className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-2"
-                      >
-                        <Play size={16} />
-                        {t("userdb_resume", "Học tiếp")}
-                      </Link>
-                    </div>
-                  </div>
+                <div className="mb-3 flex items-center gap-2 text-orange-500">
+                  <Flame className="h-5 w-5" />
+                  <span className="text-xs font-semibold uppercase tracking-[0.08em]">{t("userdb_recent_days", "Ngày gần đây")}</span>
+                </div>
+                <p className="text-3xl font-black text-slate-900 dark:text-white">
+                  <AnimatedNumber value={stats.streakDays} />
+                </p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("userdb_streak_hint", "Mức độ ổn định học tập của bạn")}</p>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ y: -2 }}
+                className="rounded-2xl border border-white/50 bg-white/65 p-4 backdrop-blur-lg dark:border-slate-700/60 dark:bg-slate-800/60"
+              >
+                <div className="mb-3 flex items-center gap-2 text-emerald-500">
+                  <Target className="h-5 w-5" />
+                  <span className="text-xs font-semibold uppercase tracking-[0.08em]">{t("userdb_weekly_goal", "Mục tiêu tuần")}</span>
+                </div>
+                <p className="text-3xl font-black text-slate-900 dark:text-white">
+                  <AnimatedNumber value={stats.weeklyGoal} suffix="%" />
+                </p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("userdb_goal_hint", "Độ sát mục tiêu theo tuần")}</p>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ y: -2 }}
+                className="rounded-2xl border border-white/50 bg-white/65 p-4 backdrop-blur-lg dark:border-slate-700/60 dark:bg-slate-800/60 sm:col-span-2 lg:col-span-1 xl:col-span-2"
+              >
+                <div className="mb-3 flex items-center gap-2 text-sky-600 dark:text-sky-300">
+                  <Activity className="h-5 w-5" />
+                  <span className="text-xs font-semibold uppercase tracking-[0.08em]">{t("userdb_vitality", "Nhịp học hiện tại")}</span>
+                </div>
+                <div className="mb-2 flex items-end justify-between">
+                  <p className="text-3xl font-black text-slate-900 dark:text-white">
+                    <AnimatedNumber value={vitality} suffix="%" />
+                  </p>
+                  <span className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">{t("userdb_vitality_note", "Duy trì rất tốt")}</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${vitality}%` }}
+                    transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500"
+                  />
                 </div>
               </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="space-y-6"
-        >
-          <div className="group bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl p-6 hover:bg-white/50 dark:hover:bg-slate-900/40 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.01] transition-all duration-300 ease-out">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-foreground dark:text-white drop-shadow">{t("userdb_upcoming", "Bài tập/Bài thi sắp tới")}</h3>
-              <Link href="/exams" className="text-xs text-primary dark:text-accent hover:underline drop-shadow">{t("userdb_view_all", "Xem tất cả")}</Link>
-            </div>
-            <div className="space-y-3">
-              {upcomingAssignments.length === 0 && (
-                <p className="text-sm text-muted-foreground">{t("userdb_no_assignments", "Chưa có bài tập hoặc bài thi sắp đến hạn.")}</p>
-              )}
-              {upcomingAssignments.map((assignment) => (
-                <div key={assignment.id} className="p-3 bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm rounded-xl">
-                  <h4 className="font-medium text-foreground dark:text-white text-sm mb-1 drop-shadow-sm">{assignment.title}</h4>
-                  <p className="text-xs text-muted-foreground dark:text-slate-400 mb-2 drop-shadow-sm">{assignment.courseTitle}</p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground dark:text-slate-400">
-                    <span className="flex items-center gap-1 drop-shadow-sm">
-                      <Calendar size={12} />
-                      {formatDate(assignment.dueDate, t)}
-                    </span>
-                    {assignment.maxScore && (
-                      <span className="flex items-center gap-1 drop-shadow-sm">
-                        <Star size={12} />
-                        {t("userdb_max_score", "Tối đa")} {assignment.maxScore} {t("userdb_points", "điểm")}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
+        </motion.section>
 
-          <div className="group bg-white/30 dark:bg-slate-900/20 backdrop-blur-md border border-white/20 dark:border-slate-700/20 rounded-2xl p-6 hover:bg-white/50 dark:hover:bg-slate-900/40 hover:shadow-xl hover:shadow-primary/10 hover:scale-[1.01] transition-all duration-300 ease-out">
-            <h3 className="font-bold text-foreground dark:text-white mb-4 drop-shadow">{t("userdb_recent_activity", "Hoạt động gần đây")}</h3>
-            <div className="space-y-3">
-              {activities.length === 0 && (
-                <p className="text-sm text-muted-foreground">{t("userdb_no_activity", "Chưa có hoạt động mới.")}</p>
-              )}
-              {activities.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 backdrop-blur-sm ${
-                      activity.type === "lesson"
-                        ? "bg-blue-500/20 text-blue-500"
-                        : activity.type === "assignment"
-                        ? "bg-green-500/20 text-green-500"
-                        : "bg-yellow-500/20 text-yellow-500"
-                    }`}
-                  >
-                    {activity.type === "lesson" ? (
-                      <CheckCircle size={16} />
-                    ) : activity.type === "assignment" ? (
-                      <Star size={16} />
-                    ) : (
-                      <Award size={16} />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground dark:text-white line-clamp-1 drop-shadow-sm">{activity.title}</p>
-                    <p className="text-xs text-muted-foreground dark:text-slate-400 drop-shadow-sm">
-                      {activity.courseTitle || ""} {activity.courseTitle ? "• " : ""}
-                      {formatRelativeTime(activity.timestamp, t)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {statCards.map((card, index) => (
+            <StatOrbitCard key={card.label} card={card} index={index} />
+          ))}
+        </section>
 
-          <div className="bg-gradient-to-br from-primary to-accent rounded-2xl p-6 text-white hover:shadow-xl hover:shadow-primary/20 hover:scale-[1.01] transition-all duration-300 ease-out">
-            <h3 className="font-bold mb-2 drop-shadow">{t("userdb_discover", "Khám phá khóa học mới")}</h3>
-            <p className="text-sm text-white/90 mb-4 drop-shadow">
-              {t("userdb_discover_desc", "Hàng trăm khóa học chất lượng đang chờ bạn")}
-            </p>
-            <Link
-              href="/courses"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-all backdrop-blur-sm hover:scale-105"
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className="space-y-6 xl:col-span-2">
+            <motion.article
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.3 }}
+              className="overflow-hidden rounded-2xl border border-white/40 bg-white/75 p-6 shadow-[0_12px_40px_rgba(2,132,199,0.12)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/72"
             >
-              {t("userdb_discover_btn", "Khám phá ngay")} <ArrowRight size={16} />
-            </Link>
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t("userdb_continue", "Tiếp tục học")}</h2>
+                <Link href="/my-courses" className="inline-flex items-center gap-1 text-sm font-medium text-cyan-600 hover:underline dark:text-cyan-300">
+                  {t("userdb_view_all", "Xem tất cả")}
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              </div>
+
+              {focusCourses.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-8 text-center dark:border-slate-700 dark:bg-slate-800/30"
+                >
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t("userdb_no_courses", "Chưa có khóa học nào. Hãy bắt đầu một khóa học mới!")}</p>
+                </motion.div>
+              ) : (
+                <div className="space-y-4">
+                  {focusCourses.map((course, idx) => (
+                    <motion.div
+                      key={course.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 + idx * 0.06, duration: 0.26 }}
+                      whileHover={{ y: -2 }}
+                      className="group rounded-xl border border-slate-200/80 bg-white/70 p-4 transition-all hover:border-cyan-300 hover:shadow-lg dark:border-slate-700/70 dark:bg-slate-800/50"
+                    >
+                      <div className="flex gap-4">
+                        <div className="relative h-24 w-32 overflow-hidden rounded-xl bg-slate-200 dark:bg-slate-700">
+                          <img src={course.image} alt={course.title} className="h-full w-full object-cover" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
+                            <Play className="h-8 w-8 text-white" />
+                          </div>
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <h3 className="line-clamp-1 text-base font-semibold text-slate-900 dark:text-white">{course.title}</h3>
+                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{course.instructor}</p>
+                          <p className="mt-2 line-clamp-1 text-xs text-slate-500 dark:text-slate-400">
+                            {t("userdb_next", "Tiếp theo")}: <span className="text-cyan-600 dark:text-cyan-300">{course.nextLesson}</span>
+                          </p>
+
+                          <div className="mt-2">
+                            <div className="mb-1 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                              <span>
+                                {course.completedLessons}/{course.totalLessons} {t("userdb_lessons", "bài")}
+                              </span>
+                              <span className="font-semibold text-slate-700 dark:text-slate-200">{course.progress}%</span>
+                            </div>
+                            <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${course.progress}%` }}
+                                transition={{ duration: 0.8, delay: 0.25 + idx * 0.05 }}
+                                className="h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex items-center justify-between">
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                              {formatRelativeTime(course.lastAccessed || undefined, t)} • {formatHours(course.estimatedHours, t)}
+                            </p>
+                            <Link
+                              href={`/player/${course.nextLessonId || course.courseId}`}
+                              className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-cyan-500"
+                            >
+                              {t("userdb_resume", "Học tiếp")}
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.article>
+
+            <motion.article
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+              className="rounded-2xl border border-white/40 bg-white/75 p-6 shadow-[0_12px_40px_rgba(8,47,73,0.1)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/72"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t("userdb_momentum", "Động lực học tập")}</h3>
+                <span className="text-xs text-slate-500 dark:text-slate-400">{t("userdb_top_courses", "Top khóa học theo tiến độ")}</span>
+              </div>
+
+              {momentumCourses.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t("userdb_no_data", "Chưa có dữ liệu")}</p>
+              ) : (
+                <div className="space-y-3">
+                  {momentumCourses.map((course, idx) => (
+                    <motion.div
+                      key={`momentum-${course.id}`}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.24 + idx * 0.05 }}
+                    >
+                      <div className="mb-1 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                        <span className="line-clamp-1 max-w-[76%] font-medium">{course.title}</span>
+                        <span className="font-bold">{course.progress}%</span>
+                      </div>
+                      <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${course.progress}%` }}
+                          transition={{ duration: 0.9, delay: 0.3 + idx * 0.06 }}
+                          className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500"
+                        />
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.article>
           </div>
-        </motion.div>
-      </div>
-    </div>
+
+          <div className="space-y-6">
+            <motion.article
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.18, duration: 0.3 }}
+              className="rounded-2xl border border-white/40 bg-white/75 p-6 shadow-[0_12px_40px_rgba(8,47,73,0.1)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/72"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 dark:text-white">{t("userdb_upcoming", "Bài tập/Bài thi sắp tới")}</h3>
+                <Link href="/exams" className="text-xs font-medium text-cyan-600 hover:underline dark:text-cyan-300">
+                  {t("userdb_view_all", "Xem tất cả")}
+                </Link>
+              </div>
+
+              {upcomingAssignments.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t("userdb_no_assignments", "Chưa có bài tập hoặc bài thi sắp đến hạn.")}</p>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingAssignments.map((assignment, idx) => (
+                    <motion.div
+                      key={assignment.id}
+                      initial={{ opacity: 0, x: 8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.24 + idx * 0.06 }}
+                      className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/45"
+                    >
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <p className="line-clamp-1 text-sm font-semibold text-slate-900 dark:text-white">{assignment.title}</p>
+                        <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-900/35 dark:text-rose-300">
+                          {dueBadge(assignment.dueDate, t)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{assignment.courseTitle}</p>
+                      <div className="mt-2 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5" />
+                          {formatDate(assignment.dueDate, t)}
+                        </span>
+                        {assignment.maxScore ? (
+                          <span className="inline-flex items-center gap-1">
+                            <Star className="h-3.5 w-3.5" />
+                            {assignment.maxScore} {t("userdb_points", "điểm")}
+                          </span>
+                        ) : null}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.article>
+
+            <motion.article
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.22, duration: 0.3 }}
+              className="rounded-2xl border border-white/40 bg-white/75 p-6 shadow-[0_12px_40px_rgba(8,47,73,0.1)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/72"
+            >
+              <h3 className="mb-4 font-bold text-slate-900 dark:text-white">{t("userdb_recent_activity", "Hoạt động gần đây")}</h3>
+
+              {activities.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t("userdb_no_activity", "Chưa có hoạt động mới.")}</p>
+              ) : (
+                <div className="relative space-y-4">
+                  <div className="absolute left-3.5 top-1 h-[calc(100%-1rem)] w-px bg-gradient-to-b from-cyan-300 to-emerald-300 dark:from-cyan-700 dark:to-emerald-700" />
+                  {activities.map((activity, idx) => {
+                    const iconColor =
+                      activity.type === "lesson"
+                        ? "bg-cyan-500"
+                        : activity.type === "assignment"
+                          ? "bg-emerald-500"
+                          : "bg-amber-500"
+
+                    const Icon =
+                      activity.type === "lesson"
+                        ? CheckCircle2
+                        : activity.type === "assignment"
+                          ? Target
+                          : Award
+
+                    return (
+                      <motion.div
+                        key={activity.id}
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.25 + idx * 0.05 }}
+                        className="relative flex gap-3"
+                      >
+                        <span className={`relative z-10 mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white ${iconColor}`}>
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <p className="line-clamp-1 text-sm font-medium text-slate-800 dark:text-slate-100">{activity.title}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {activity.courseTitle ? `${activity.courseTitle} • ` : ""}
+                            {formatRelativeTime(activity.timestamp, t)}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+              )}
+            </motion.article>
+
+            <motion.article
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.26, duration: 0.3 }}
+              whileHover={{ y: -2 }}
+              className="relative overflow-hidden rounded-2xl border border-cyan-200/60 bg-gradient-to-br from-cyan-500 to-emerald-500 p-6 text-white shadow-[0_18px_40px_rgba(14,165,233,0.38)]"
+            >
+              <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-white/15 blur-2xl" />
+              <div className="relative z-10">
+                <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {t("userdb_recommendation", "Gợi ý cho bạn")}
+                </p>
+                <h3 className="text-xl font-black leading-tight">{t("userdb_discover", "Khám phá khóa học mới")}</h3>
+                <p className="mt-2 text-sm text-white/90">{t("userdb_discover_desc", "Hàng trăm khóa học chất lượng đang chờ bạn")}</p>
+                <Link
+                  href="/courses"
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/30"
+                >
+                  {t("userdb_discover_btn", "Khám phá ngay")}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </motion.article>
+          </div>
+        </section>
+      </motion.div>
+    </AnimatePresence>
   )
 }

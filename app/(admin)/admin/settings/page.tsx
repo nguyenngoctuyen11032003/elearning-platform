@@ -217,7 +217,7 @@ const handleSave = async () => {
       <div className="w-full space-y-8 pb-28">
         <section
           className="relative overflow-hidden rounded-3xl border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl"
-          style={{ backgroundImage: "url('/image/bg_login.png')", backgroundSize: "cover", backgroundPosition: "center" }}
+          style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/85 dark:via-slate-950/70 dark:to-slate-900/85" />
           <div className="relative z-10 p-6 md:p-8 lg:p-10 space-y-4">

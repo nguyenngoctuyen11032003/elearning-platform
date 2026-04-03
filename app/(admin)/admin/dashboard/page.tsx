@@ -59,6 +59,17 @@ type StudentCompletion = { studentId: string; studentName: string; completedCour
 type StudentCertificate = { studentId: string; studentName: string; certificateCount: number; completedCourses: number }
 type RadarMetric = { metric: string; value: number }
 type CoursePerformance = { courseId: string; courseTitle: string; teacherName: string; enrollments: number; revenue: number; averageRating: number; completionRate: number }
+type InstructorPaymentHistory = {
+  id: string
+  transactionId: string
+  teacherName: string
+  planName: string
+  amount: number
+  status: string
+  paymentMethod: string
+  createdAt: string | null
+  paidAt: string | null
+}
 
 const pieColors = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"]
 const chartTooltipStyle = {
@@ -70,6 +81,11 @@ const chartTooltipStyle = {
 const chartTooltipLabelStyle = { color: "#e2e8f0", fontWeight: 600 }
 const chartTooltipItemStyle = { color: "#e2e8f0" }
 const DASHBOARD_REALTIME_MS = 45000
+const CHART_CINEMATIC = {
+  durationMs: 980,
+  easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+} as const
+const DASHBOARD_MOTION_SCALE_SESSION_KEY = "admin-dashboard-motion-scale"
 
 const LIVE_CLOCK_ANIMATION_STYLE: "light" | "clear" = "clear"
 const LIVE_CLOCK_ANIMATION_PRESETS = {
@@ -90,15 +106,15 @@ const LIVE_CLOCK_ANIMATION_PRESETS = {
 const isSameData = <T,>(a: T, b: T) => JSON.stringify(a) === JSON.stringify(b)
 
 const fallbackOverviewMetrics = {
-  totalRevenue: 1897000,
-  totalTeachers: 3,
-  totalStudents: 4,
-  totalCourses: 9,
-  platformRevenue: 569100,
-  teacherRevenue: 1327900,
-  totalUsers: 10,
+  totalRevenue: 0,
+  totalTeachers: 0,
+  totalStudents: 0,
+  totalCourses: 0,
+  platformRevenue: 0,
+  teacherRevenue: 0,
+  totalUsers: 0,
   teacherGrowthPeople: 0,
-  studentGrowthPeople: 1,
+  studentGrowthPeople: 0,
 }
 
 const toNumber = (value: unknown): number => {
@@ -216,14 +232,55 @@ function formatSafeLocalDate(...values: unknown[]): string {
   return "--/--/----"
 }
 
+function getPeriodDateRange(period: "day" | "week" | "month" | "year") {
+  const end = new Date()
+  const start = new Date(end)
+
+  if (period === "day") {
+    start.setHours(0, 0, 0, 0)
+  } else if (period === "week") {
+    const day = start.getDay()
+    const diff = day === 0 ? 6 : day - 1
+    start.setDate(start.getDate() - diff)
+    start.setHours(0, 0, 0, 0)
+  } else if (period === "month") {
+    start.setDate(1)
+    start.setHours(0, 0, 0, 0)
+  } else {
+    start.setMonth(0, 1)
+    start.setHours(0, 0, 0, 0)
+  }
+
+  return { start, end }
+}
+
+function isInRange(value: unknown, start: Date, end: Date): boolean {
+  if (!value) return false
+  const parsed = new Date(String(value))
+  if (Number.isNaN(parsed.getTime())) return false
+  return parsed >= start && parsed <= end
+}
+
+function formatSafeDateTime(...values: unknown[]): string {
+  for (const value of values) {
+    if (!value) continue
+    const parsed = new Date(String(value))
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleString("vi-VN")
+    }
+  }
+  return "--/--/----"
+}
+
 export default function AdminDashboard() {
   const { t, language } = useLanguage()
-  const [filterPeriod, setFilterPeriod] = useState("month")
+  const [filterPeriod, setFilterPeriod] = useState<"day" | "week" | "month" | "year">("year")
 
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
   const [revenueData, setRevenueData] = useState<RevenuePoint[]>([])
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
+  const [instructorPayments, setInstructorPayments] = useState<InstructorPaymentHistory[]>([])
   const [weeklyStats, setWeeklyStats] = useState<WeeklyPoint[]>([])
   const [growthData, setGrowthData] = useState<GrowthPoint[]>([])
   const [categoryData, setCategoryData] = useState<CategoryItem[]>([])
@@ -239,6 +296,12 @@ export default function AdminDashboard() {
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
   const [liveClock, setLiveClock] = useState(() => new Date())
   const [chartMotionCycle, setChartMotionCycle] = useState(0)
+  const [motionScale, setMotionScale] = useState(1)
+  const chartSeriesOffset = {
+    weekly: 74,
+    growth: 88,
+  } as const
+  const [periodSwitching, setPeriodSwitching] = useState(false)
   const [chartAnimationFlags, setChartAnimationFlags] = useState({
     revenue: true,
     category: true,
@@ -253,6 +316,62 @@ export default function AdminDashboard() {
     }, 1000)
 
     return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    let cancelled = false
+    let rafId = 0
+
+    const cachedScale = window.sessionStorage.getItem(DASHBOARD_MOTION_SCALE_SESSION_KEY)
+    if (cachedScale) {
+      const parsed = Number(cachedScale)
+      if (Number.isFinite(parsed)) {
+        setMotionScale(Math.min(1, Math.max(0.62, parsed)))
+        return
+      }
+    }
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const isMobile = window.matchMedia("(max-width: 768px)").matches
+    const hw = Number((navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8)
+    const memory = Number((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8)
+    const stamps: number[] = []
+
+    const tick = (ts: number) => {
+      if (cancelled) return
+      stamps.push(ts)
+      if (stamps.length < 12) {
+        rafId = window.requestAnimationFrame(tick)
+        return
+      }
+
+      const deltas = stamps.slice(1).map((value, idx) => value - stamps[idx])
+      const avgDelta = deltas.reduce((sum, value) => sum + value, 0) / Math.max(deltas.length, 1)
+      const fps = avgDelta > 0 ? 1000 / avgDelta : 60
+
+      let scale = 1
+      if (isMobile) scale *= 0.9
+      if (hw <= 4) scale *= 0.9
+      if (memory <= 4) scale *= 0.9
+      if (fps < 45) scale *= 0.8
+      else if (fps < 55) scale *= 0.9
+      if (reducedMotion) scale *= 0.75
+
+      const next = Math.min(1, Math.max(0.62, Number(scale.toFixed(2))))
+      if (!cancelled) {
+        setMotionScale(next)
+        window.sessionStorage.setItem(DASHBOARD_MOTION_SCALE_SESSION_KEY, String(next))
+      }
+    }
+
+    rafId = window.requestAnimationFrame(tick)
+
+    return () => {
+      cancelled = true
+      if (rafId) window.cancelAnimationFrame(rafId)
+    }
   }, [])
 
   useEffect(() => {
@@ -336,6 +455,37 @@ export default function AdminDashboard() {
     subtitle: `${t("adm_dash_completed_courses", "Khóa hoàn thành")}: ${item.completedCourses}`,
   }))
 
+  const staggerSeed = `${filterPeriod}-${chartMotionCycle}`
+  const cinematicDuration = Math.round(CHART_CINEMATIC.durationMs * motionScale)
+  const adaptiveSeriesOffset = {
+    weekly: Math.max(48, Math.round(chartSeriesOffset.weekly * motionScale)),
+    growth: Math.max(56, Math.round(chartSeriesOffset.growth * motionScale)),
+  } as const
+  const getStaggerStyle = (index: number, baseMs = 70) => ({
+    animationDelay: `${Math.max(index, 0) * Math.round(baseMs * motionScale)}ms`,
+  })
+  const getCinematicStyle = (layer: "kpi" | "chart" | "table", index: number) => {
+    if (layer === "kpi") {
+      return {
+        ...getStaggerStyle(index, 52),
+        animationDuration: `${Math.round(460 * motionScale)}ms`,
+        animationTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+      }
+    }
+    if (layer === "chart") {
+      return {
+        ...getStaggerStyle(index, 86),
+        animationDuration: `${Math.round(760 * motionScale)}ms`,
+        animationTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+      }
+    }
+    return {
+      ...getStaggerStyle(index, 108),
+      animationDuration: `${Math.round(920 * motionScale)}ms`,
+      animationTimingFunction: "cubic-bezier(0.19, 1, 0.22, 1)",
+    }
+  }
+
   const coursePerformanceData = coursePerformanceTop.map((item) => ({
     name: item.courseTitle,
     teacher: item.teacherName,
@@ -375,17 +525,22 @@ useEffect(() => {
   const loadDashboard = async (silent = false) => {
     if (!silent) setLoading(true)
     try {
-      const [dashboardRes, growthRes, revenueRes, userRes] = await Promise.allSettled([
-        apiClient.getAdminDashboardStats(),
-        apiClient.getAdminGrowthStats(),
-        apiClient.getAdminRevenueReport(),
-        apiClient.getAdminUserReport(),
+      const periodRange = getPeriodDateRange(filterPeriod)
+      const [dashboardRes, growthRes, revenueRes, userRes, instructorPaymentsRes] = await Promise.allSettled([
+        apiClient.getAdminDashboardStats(filterPeriod),
+        apiClient.getAdminGrowthStats(filterPeriod),
+        apiClient.getAdminRevenueReport(filterPeriod),
+        apiClient.getAdminUserReport(filterPeriod),
+        apiClient.getAdminInstructorPayments(),
       ])
 
       const dashboard = dashboardRes.status === "fulfilled" ? (dashboardRes.value?.data ?? dashboardRes.value ?? {}) : {}
       const growthStats = growthRes.status === "fulfilled" ? (growthRes.value?.data ?? growthRes.value ?? null) : null
       const revenueReport = revenueRes.status === "fulfilled" ? (revenueRes.value?.data ?? revenueRes.value ?? null) : null
       const userReport = userRes.status === "fulfilled" ? (userRes.value?.data ?? userRes.value ?? null) : null
+      const instructorPaymentsRaw = instructorPaymentsRes.status === "fulfilled"
+        ? (instructorPaymentsRes.value?.data ?? instructorPaymentsRes.value ?? [])
+        : []
 
       const mergedGrowth = mergeGrowthSeries(growthStats)
       const dashboardGrowth = normalizeDashboardGrowth(dashboard?.growthChart)
@@ -570,6 +725,24 @@ useEffect(() => {
             ),
         }))
       )
+
+      const nextInstructorPayments: InstructorPaymentHistory[] = Array.isArray(instructorPaymentsRaw)
+        ? instructorPaymentsRaw
+            .filter((item: any) => isInRange(item?.createdAt, periodRange.start, periodRange.end))
+            .map((item: any) => ({
+              id: String(item?.id || ""),
+              transactionId: String(item?.transactionId || "-"),
+              teacherName: String(item?.teacher?.name || item?.teacher?.email || "-"),
+              planName: String(item?.plan?.name || "-"),
+              amount: Number(item?.amount || 0),
+              status: String(item?.status || "pending"),
+              paymentMethod: String(item?.paymentMethod || "-"),
+              createdAt: item?.createdAt ? String(item.createdAt) : null,
+              paidAt: item?.paidAt ? String(item.paidAt) : null,
+            }))
+        : []
+
+      setInstructorPayments((prev) => (isSameData(prev, nextInstructorPayments) ? prev : nextInstructorPayments))
       setLastSyncedAt(new Date())
     } catch (err) {
       console.warn("Dashboard temporarily unavailable:", err)
@@ -588,18 +761,21 @@ useEffect(() => {
       setTopStudentsCertificates([])
       setRadarMetrics([])
       setCoursePerformanceTop([])
+      setInstructorPayments([])
     } finally {
+      setPeriodSwitching(false)
       if (!silent) setLoading(false)
     }
   }
 
+  setPeriodSwitching(true)
   loadDashboard()
   const refreshTimer = setInterval(() => {
     void loadDashboard(true)
   }, DASHBOARD_REALTIME_MS)
 
   return () => clearInterval(refreshTimer)
-}, [])
+}, [filterPeriod, language])
 
 const safeTotalRevenue = Number(stats?.totalRevenue ?? 0)
 const safeTotalTeachers = Number(stats?.totalTeachers ?? 0)
@@ -631,6 +807,14 @@ const studentGrowthPeople = growthData.at(-1)?.students ?? Number(stats?.student
 
 const finalTeacherGrowthPeople = showFallbackMetrics ? fallbackOverviewMetrics.teacherGrowthPeople : teacherGrowthPeople
 const finalStudentGrowthPeople = showFallbackMetrics ? fallbackOverviewMetrics.studentGrowthPeople : studentGrowthPeople
+
+const getPaymentStatusClass = (status: string) => {
+  const normalized = status.toLowerCase()
+  if (normalized === "completed" || normalized === "paid") return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+  if (normalized === "pending") return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
+  if (normalized === "refunded") return "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200"
+  return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+}
 
 const primaryOverviewCards = [
   {
@@ -730,35 +914,12 @@ if (loading) {
     </div>
   )
 }
-  // TransactionInfoRow: reuse InfoRow for transaction cards
-  type TransactionInfoRowProps = {
-    label: string;
-    value: string;
-    highlight?: boolean;
-  };
-
-  function TransactionInfoRow({ label, value, highlight = false }: TransactionInfoRowProps) {
-    return (
-      <div className="flex justify-between items-center">
-        <span className="text-muted-foreground text-sm">{label}</span>
-        <span
-          className={
-            highlight
-              ? "font-semibold text-primary"
-              : "font-medium text-foreground"
-          }
-        >
-          {value}
-        </span>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <div className="w-full space-y-8">
         {/* Header with Background */}
-        <div className="relative overflow-hidden rounded-3xl p-8 lg:p-10 animate-fadeIn border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl" style={{ backgroundImage: "url('/image/bg_login.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div className="relative overflow-hidden rounded-3xl p-8 lg:p-10 animate-fadeIn border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
           <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-900/80"></div>
           
@@ -816,7 +977,7 @@ if (loading) {
                 {primaryOverviewCards.map((item, index) => {
                   const Icon = item.icon
                   return (
-                  <div key={item.key} className={`group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border p-4 shadow-[0_10px_26px_rgba(15,23,42,0.16)] transition-all duration-700 ${isOverviewChanged(item.key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/50 dark:ring-emerald-500/30" : "border-white/60 dark:border-slate-800"}`}>
+                  <div key={`${item.key}-${staggerSeed}`} style={getCinematicStyle("kpi", index)} className={`group animate-fadeIn relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border p-4 shadow-[0_10px_26px_rgba(15,23,42,0.16)] transition-all duration-700 ${isOverviewChanged(item.key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/50 dark:ring-emerald-500/30" : "border-white/60 dark:border-slate-800"}`}>
                     <div className={`absolute inset-0 bg-gradient-to-br ${item.tone} opacity-70 group-hover:opacity-90 transition-opacity duration-300`} />
                     <div className="relative flex items-center justify-between">
                       <div className="space-y-1">
@@ -840,7 +1001,7 @@ if (loading) {
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {secondaryOverviewCards.map((item, index) => (
-                  <div key={item.key} className={`relative overflow-hidden rounded-xl px-3 py-3 bg-white/75 dark:bg-slate-900/70 border shadow-sm backdrop-blur transition-all duration-700 ${isOverviewChanged(item.key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/60 dark:border-slate-800"}`}>
+                  <div key={`${item.key}-${staggerSeed}`} style={getCinematicStyle("kpi", index + primaryOverviewCards.length)} className={`animate-fadeIn relative overflow-hidden rounded-xl px-3 py-3 bg-white/75 dark:bg-slate-900/70 border shadow-sm backdrop-blur transition-all duration-700 ${isOverviewChanged(item.key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/60 dark:border-slate-800"}`}>
                     <div className={`absolute inset-0 bg-gradient-to-br ${item.badgeClass} opacity-70`} />
                     <div className="relative space-y-1">
                       <p className="text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-300 font-semibold">{item.label}</p>
@@ -864,16 +1025,24 @@ if (loading) {
         </div>
 
         {/* Main Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 transition-all duration-500 ${periodSwitching ? "opacity-70 translate-y-[2px]" : "opacity-100 translate-y-0"}`}>
           {/* Revenue Chart */}
-          <div className="lg:col-span-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_revenue_monthly", "Doanh thu theo tháng")}</h3>
+          <div key={`dash-revenue-panel-${staggerSeed}`} style={getCinematicStyle("chart", 1)} className="animate-fadeIn lg:col-span-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">
+              {filterPeriod === "day"
+                ? t("adm_dash_revenue_daily", "Doanh thu theo ngày")
+                : filterPeriod === "week"
+                  ? t("adm_dash_revenue_weekly", "Doanh thu theo tuần")
+                  : filterPeriod === "month"
+                    ? t("adm_dash_revenue_monthly", "Doanh thu theo tháng")
+                    : t("adm_dash_revenue_yearly", "Doanh thu theo năm")}
+            </h3>
             {revenueData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">
                 {t("adm_dash_no_revenue_data", "Chưa có dữ liệu doanh thu")}
               </p>
             ) : (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={300} key={`revenue-${filterPeriod}-${chartMotionCycle}`}>
               <AreaChart data={revenueData}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -899,8 +1068,8 @@ if (loading) {
                   fill="url(#colorRevenue)"
                   isAnimationActive={chartAnimationFlags.revenue}
                   animationBegin={90 + (chartMotionCycle % 2) * 10}
-                  animationDuration={1250}
-                  animationEasing="ease-out"
+                  animationDuration={cinematicDuration}
+                  animationEasing={CHART_CINEMATIC.easing}
                   strokeWidth={2.6}
                   name={t("adm_dash_revenue", "Doanh thu")}
                 />
@@ -910,7 +1079,7 @@ if (loading) {
           </div>
 
           {/* Category Distribution */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
+          <div key={`dash-category-panel-${staggerSeed}`} style={getCinematicStyle("chart", 2)} className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_course_dist", "Phân bố khóa học")}</h3>
             {categoryData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_cat_data", "Chưa có dữ liệu danh mục")}</p>
@@ -929,8 +1098,8 @@ if (loading) {
                       labelLine={false}
                       isAnimationActive={chartAnimationFlags.category}
                       animationBegin={240 + (chartMotionCycle % 2) * 15}
-                      animationDuration={1150}
-                      animationEasing="ease-out"
+                      animationDuration={cinematicDuration}
+                      animationEasing={CHART_CINEMATIC.easing}
                     >
                       {categoryData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -963,14 +1132,14 @@ if (loading) {
         {/* Additional Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* User Activity Chart */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_weekly_activity", "Hoạt động người dùng tuần này")}</h3>
+          <div key={`dash-activity-panel-${staggerSeed}`} style={getCinematicStyle("chart", 3)} className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_activity_by_period", "Hoạt động người dùng theo kỳ")}</h3>
             {weeklyStats.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center">
               {t("adm_dash_no_weekly_data", "Chưa có dữ liệu tuần này")}
             </p>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={280} key={`weekly-${filterPeriod}-${chartMotionCycle}`}>
               <AreaChart data={weeklyStats}>
                 <defs>
                   <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">
@@ -998,8 +1167,9 @@ if (loading) {
                   fillOpacity={1}
                   fill="url(#colorActive)"
                   isAnimationActive
-                  animationDuration={850}
-                  animationEasing="ease-out"
+                  animationBegin={110 + (chartMotionCycle % 2) * 10}
+                  animationDuration={cinematicDuration}
+                  animationEasing={CHART_CINEMATIC.easing}
                   name={t("adm_dash_active_users", "Người dùng hoạt động")}
                 />
                 <Area
@@ -1009,8 +1179,9 @@ if (loading) {
                   fillOpacity={1}
                   fill="url(#colorSignups)"
                   isAnimationActive
-                  animationDuration={950}
-                  animationEasing="ease-out"
+                  animationBegin={110 + adaptiveSeriesOffset.weekly + (chartMotionCycle % 2) * 10}
+                  animationDuration={cinematicDuration}
+                  animationEasing={CHART_CINEMATIC.easing}
                   name={t("adm_dash_new_signups", "Đăng ký mới")}
                 />
               </AreaChart>
@@ -1019,14 +1190,14 @@ if (loading) {
           </div>
 
           {/* Teacher & Student Growth */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
-            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_growth_monthly", "Tăng trưởng theo tháng")}</h3>
+          <div key={`dash-growth-panel-${staggerSeed}`} style={getCinematicStyle("chart", 4)} className="animate-fadeIn bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+            <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_growth_by_period", "Tăng trưởng theo kỳ")}</h3>
             {growthData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">
                 {t("adm_dash_no_growth_data", "Chưa có dữ liệu tăng trưởng")}
               </p>
             ) : (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={280} key={`growth-${filterPeriod}-${chartMotionCycle}`}>
               <LineChart data={growthData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" stroke="#94a3b8" />
@@ -1045,8 +1216,9 @@ if (loading) {
                   dot={{ fill: "#8b5cf6" }}
                   activeDot={{ r: 6 }}
                   isAnimationActive
-                  animationDuration={900}
-                  animationEasing="ease-out"
+                  animationBegin={120 + (chartMotionCycle % 2) * 10}
+                  animationDuration={cinematicDuration}
+                  animationEasing={CHART_CINEMATIC.easing}
                   name={t("adm_dash_teachers", "Giáo viên")} 
                 />
                 <Line 
@@ -1057,8 +1229,9 @@ if (loading) {
                   dot={{ fill: "#06b6d4" }}
                   activeDot={{ r: 6 }}
                   isAnimationActive
-                  animationDuration={980}
-                  animationEasing="ease-out"
+                  animationBegin={120 + adaptiveSeriesOffset.growth + (chartMotionCycle % 2) * 10}
+                  animationDuration={cinematicDuration}
+                  animationEasing={CHART_CINEMATIC.easing}
                   name={t("adm_dash_students", "Học viên")} 
                 />
               </LineChart>
@@ -1069,7 +1242,7 @@ if (loading) {
 
         {/* Adoption & Certificates */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+          <div style={getCinematicStyle("chart", 5)} className="animate-fadeIn bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-foreground dark:text-white">{t("adm_dash_radar_title", "Tổng quan sức khỏe")}</h3>
               {teacherPlanSummary?.payingRate ? (
@@ -1083,7 +1256,7 @@ if (loading) {
                 {t("adm_dash_no_radar", "Chưa đủ dữ liệu để hiển thị")}
               </p>
             ) : (
-              <ResponsiveContainer width="100%" height={320}>
+              <ResponsiveContainer width="100%" height={320} key={`radar-${filterPeriod}-${chartMotionCycle}`}>
                 <RadarChart data={radarMetrics} outerRadius={120}>
                   <PolarGrid stroke="#e2e8f0" />
                   <PolarAngleAxis dataKey="metric" tick={{ fill: '#475569', fontSize: 12 }} />
@@ -1096,8 +1269,8 @@ if (loading) {
                     fillOpacity={0.35}
                     isAnimationActive={chartAnimationFlags.radar}
                     animationBegin={420 + (chartMotionCycle % 2) * 20}
-                    animationDuration={1300}
-                    animationEasing="ease-out"
+                    animationDuration={cinematicDuration}
+                    animationEasing={CHART_CINEMATIC.easing}
                   />
                   <Tooltip
                     contentStyle={chartTooltipStyle}
@@ -1109,15 +1282,15 @@ if (loading) {
             )}
           </div>
 
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+          <div style={getCinematicStyle("chart", 6)} className="animate-fadeIn bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_plan_breakdown", "Tỷ lệ giáo viên theo gói")}</h3>
             {teacherPlanData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_plan_data", "Chưa có dữ liệu gói")}</p>
             ) : (
               <div className="flex flex-col items-center gap-4">
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={220} key={`teacher-plan-${filterPeriod}-${chartMotionCycle}`}>
                   <PieChart>
-                    <Pie data={teacherPlanData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive animationDuration={900} animationEasing="ease-out">
+                    <Pie data={teacherPlanData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive animationDuration={cinematicDuration} animationEasing={CHART_CINEMATIC.easing}>
                       {teacherPlanData.map((entry, idx) => (
                         <Cell key={`plan-${idx}`} fill={entry.color} />
                       ))}
@@ -1160,15 +1333,15 @@ if (loading) {
             )}
           </div>
 
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+          <div style={getCinematicStyle("chart", 7)} className="animate-fadeIn bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_cert_breakdown", "Tỷ lệ chứng chỉ học viên")}</h3>
             {certificateData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_cert_data", "Chưa có dữ liệu chứng chỉ")}</p>
             ) : (
               <div className="flex flex-col items-center gap-4">
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={220} key={`cert-${filterPeriod}-${chartMotionCycle}`}>
                   <PieChart>
-                    <Pie data={certificateData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive animationDuration={950} animationEasing="ease-out">
+                    <Pie data={certificateData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive animationDuration={cinematicDuration} animationEasing={CHART_CINEMATIC.easing}>
                       {certificateData.map((entry, idx) => (
                         <Cell key={`cert-${idx}`} fill={entry.color} />
                       ))}
@@ -1213,7 +1386,7 @@ if (loading) {
             {teacherRankingData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_teacher_rank", "Chưa có dữ liệu")}</p>
             ) : (
-              <ResponsiveContainer width="100%" height={320}>
+              <ResponsiveContainer width="100%" height={320} key={`teacher-rank-${filterPeriod}-${chartMotionCycle}`}>
                 <BarChart data={teacherRankingData} layout="vertical" margin={{ left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis type="number" stroke="#94a3b8" hide />
@@ -1224,7 +1397,7 @@ if (loading) {
                     labelStyle={chartTooltipLabelStyle}
                     itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#22c55e" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={920} animationEasing="ease-out">
+                  <Bar dataKey="value" fill="#22c55e" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={cinematicDuration} animationEasing={CHART_CINEMATIC.easing}>
                     {teacherRankingData.map((entry, index) => (
                       <Cell key={`teacher-${index}`} fill={index === 0 ? "#22c55e" : "#16a34a"} />
                     ))}
@@ -1239,7 +1412,7 @@ if (loading) {
             {studentCompletionData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_student_rank", "Chưa có dữ liệu")}</p>
             ) : (
-              <ResponsiveContainer width="100%" height={320}>
+              <ResponsiveContainer width="100%" height={320} key={`student-completion-${filterPeriod}-${chartMotionCycle}`}>
                 <BarChart data={studentCompletionData} layout="vertical" margin={{ left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis type="number" stroke="#94a3b8" hide />
@@ -1250,7 +1423,7 @@ if (loading) {
                     labelStyle={chartTooltipLabelStyle}
                     itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={980} animationEasing="ease-out">
+                  <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={cinematicDuration} animationEasing={CHART_CINEMATIC.easing}>
                     {studentCompletionData.map((entry, index) => (
                       <Cell key={`student-comp-${index}`} fill={index === 0 ? "#06b6d4" : "#0ea5e9"} />
                     ))}
@@ -1265,7 +1438,7 @@ if (loading) {
             {studentCertificateData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_cert_rank", "Chưa có dữ liệu")}</p>
             ) : (
-              <ResponsiveContainer width="100%" height={320}>
+              <ResponsiveContainer width="100%" height={320} key={`student-cert-${filterPeriod}-${chartMotionCycle}`}>
                 <BarChart data={studentCertificateData} layout="vertical" margin={{ left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis type="number" stroke="#94a3b8" hide />
@@ -1276,7 +1449,7 @@ if (loading) {
                     labelStyle={chartTooltipLabelStyle}
                     itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#f97316" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={1030} animationEasing="ease-out">
+                  <Bar dataKey="value" fill="#f97316" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={cinematicDuration} animationEasing={CHART_CINEMATIC.easing}>
                     {studentCertificateData.map((entry, index) => (
                       <Cell key={`student-cert-${index}`} fill={index === 0 ? "#f97316" : "#fb923c"} />
                     ))}
@@ -1286,7 +1459,7 @@ if (loading) {
             )}
           </div>
 
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 xl:col-span-3">
+          <div style={getCinematicStyle("table", 8)} className="animate-fadeIn bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 xl:col-span-3">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-foreground dark:text-white">{t("adm_dash_course_perf", "Hiệu suất khóa học")}</h3>
               <span className="text-xs text-muted-foreground">{t("adm_dash_top5", "Top 5 theo doanh thu")}</span>
@@ -1324,110 +1497,100 @@ if (loading) {
           </div>
         </div>
 
-        {/* Recent Transactions */}
-
-        {/* ===== MOBILE TRANSACTION CARDS ===== */}
-        <div className="lg:hidden bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-          <h3 className="font-semibold text-foreground dark:text-white mb-4">
-            {t("adm_dash_recent_tx", "Giao dịch gần đây")}
-          </h3>
-          <div className="space-y-4">
-            {recentTransactions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {t("adm_dash_no_tx", "Chưa có giao dịch nào")}
-              </div>
-            ) : (
-              recentTransactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  className="bg-white/80 dark:bg-slate-900/70 border border-border dark:border-slate-800 rounded-2xl p-4 shadow-sm"
-                >
-                  {/* Header */}
-                  <div className="text-center mb-4">
-                    <p className="font-semibold text-foreground dark:text-white">
-                      {tx.user}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {tx.course}
-                    </p>
-                  </div>
-                  {/* Info rows */}
-                  <div className="space-y-2 text-sm">
-                    <TransactionInfoRow
-                      label={t("adm_dash_amount", "Số tiền")}
-                      value={formatCurrencyByLanguage(tx.amount, language)}
-                      highlight
-                    />
-                    <TransactionInfoRow
-                      label={t("adm_dash_status", "Trạng thái")}
-                      value={
-                        tx.status === "success"
-                          ? t("adm_dash_success", "Thành công")
-                          : tx.status === "pending"
-                          ? t("adm_dash_pending", "Chờ xử lý")
-                          : t("adm_dash_failed", "Thất bại")
-                      }
-                    />
-                    <TransactionInfoRow
-                      label={t("adm_dash_date", "Ngày")}
-                      value={tx.date}
-                    />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* ===== DESKTOP TABLE ===== */}
-        <div className="hidden lg:block bg-card dark:bg-slate-900/60 rounded-2xl p-6">
-          <h3 className="font-semibold text-foreground dark:text-white mb-4">
-            {t("adm_dash_recent_tx", "Giao dịch gần đây")}
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead>
-                <tr className="border-b border-border dark:border-slate-800">
-                  <th className="whitespace-nowrap py-3 px-4">{t("adm_dash_user", "Người dùng")}</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">{t("adm_dash_course", "Khóa học")}</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">{t("adm_dash_amount", "Số tiền")}</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">{t("adm_dash_status", "Trạng thái")}</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground dark:text-slate-400">{t("adm_dash_date", "Ngày")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentTransactions.map((transaction) => (
-                  <tr
-                    key={transaction.id}
-                    className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
-                  >
-                    <td className="whitespace-nowrap py-3 px-4">{transaction.user}</td>
-                    <td className="py-3 px-4 text-foreground dark:text-white">{transaction.course}</td>
-                    <td className="py-3 px-4 text-foreground dark:text-white">{formatCurrencyByLanguage(transaction.amount, language)}</td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          transaction.status === "success"
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                            : transaction.status === "pending"
-                              ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
-                              : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                        }`}
-                      >
-                        {transaction.status === "success"
-                          ? t("adm_dash_success", "Thành công")
-                          : transaction.status === "pending"
-                            ? t("adm_dash_pending", "Chờ xử lý")
-                            : t("adm_dash_failed", "Thất bại")}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground dark:text-slate-400">{transaction.date}</td>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div style={getCinematicStyle("table", 9)} className="animate-fadeIn bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+            <div className="mb-4 space-y-2">
+              <h3 className="font-semibold text-foreground dark:text-white">{t("adm_dash_recent_tx", "Giao dịch gần đây")}</h3>
+              <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_dash_recent_tx_desc", "Danh sách giao dịch mới nhất theo kỳ lọc hiện tại")}</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead>
+                  <tr className="border-b border-border dark:border-slate-800">
+                    <th className="text-left py-3 px-3">{t("adm_dash_user", "Người dùng")}</th>
+                    <th className="text-left py-3 px-3">{t("adm_dash_course", "Khóa học")}</th>
+                    <th className="text-left py-3 px-3">{t("adm_dash_amount", "Số tiền")}</th>
+                    <th className="text-left py-3 px-3">{t("adm_dash_status", "Trạng thái")}</th>
+                    <th className="text-left py-3 px-3">{t("adm_dash_date", "Ngày")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {recentTransactions.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-4 px-3 text-center text-muted-foreground">{t("adm_dash_no_tx", "Chưa có giao dịch nào")}</td>
+                    </tr>
+                  )}
+                  {recentTransactions.map((transaction) => (
+                    <tr key={transaction.id} className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth">
+                      <td className="py-3 px-3 text-foreground dark:text-white">{transaction.user}</td>
+                      <td className="py-3 px-3 text-foreground dark:text-white">{transaction.course}</td>
+                      <td className="py-3 px-3 text-foreground dark:text-white">{formatCurrencyByLanguage(transaction.amount, language)}</td>
+                      <td className="py-3 px-3">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            transaction.status === "success"
+                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                              : transaction.status === "pending"
+                                ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
+                                : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                          }`}
+                        >
+                          {transaction.status === "success"
+                            ? t("adm_dash_success", "Thành công")
+                            : transaction.status === "pending"
+                              ? t("adm_dash_pending", "Chờ xử lý")
+                              : t("adm_dash_failed", "Thất bại")}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-muted-foreground dark:text-slate-400 whitespace-nowrap">{transaction.date}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style={getCinematicStyle("table", 10)} className="animate-fadeIn bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+            <div className="mb-4 space-y-2">
+              <h3 className="font-semibold text-foreground dark:text-white">{t("adm_rpt_instructor_plan_payment_history", "Lịch sử thanh toán gói giảng viên")}</h3>
+              <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_instructor_plan_payment_history_desc", "Danh sách giao dịch nâng cấp gói giảng viên theo kỳ lọc hiện tại")}</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px] text-sm">
+                <thead>
+                  <tr className="border-b border-border dark:border-slate-800">
+                    <th className="text-left py-3 px-3">{t("adm_rpt_time", "Thời gian")}</th>
+                    <th className="text-left py-3 px-3">{t("adm_dash_teacher", "Giảng viên")}</th>
+                    <th className="text-left py-3 px-3">{t("adm_rpt_plan", "Gói")}</th>
+                    <th className="text-left py-3 px-3">{t("adm_rpt_method", "Phương thức")}</th>
+                    <th className="text-left py-3 px-3">{t("adm_dash_amount", "Số tiền")}</th>
+                    <th className="text-left py-3 px-3">{t("adm_dash_status", "Trạng thái")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {instructorPayments.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-4 px-3 text-center text-muted-foreground">{t("adm_dash_no_tx", "Chưa có giao dịch nào")}</td>
+                    </tr>
+                  )}
+                  {instructorPayments.map((payment) => (
+                    <tr key={payment.id} className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth">
+                      <td className="py-3 px-3 whitespace-nowrap">{formatSafeDateTime(payment.paidAt, payment.createdAt)}</td>
+                      <td className="py-3 px-3 text-foreground dark:text-white">{payment.teacherName}</td>
+                      <td className="py-3 px-3 text-foreground dark:text-white">{payment.planName}</td>
+                      <td className="py-3 px-3 uppercase">{payment.paymentMethod.replace(/_/g, " ")}</td>
+                      <td className="py-3 px-3 text-foreground dark:text-white">{formatCurrencyByLanguage(payment.amount, language)}</td>
+                      <td className="py-3 px-3">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusClass(payment.status)}`}>{payment.status}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   )

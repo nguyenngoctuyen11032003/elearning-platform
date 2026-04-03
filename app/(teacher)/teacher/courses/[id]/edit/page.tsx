@@ -1744,79 +1744,114 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="p-6 md:p-8 overflow-y-auto">
+    <div className="p-4 md:p-5 overflow-y-auto">
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="animate-spin text-primary" size={40} />
         </div>
       ) : (
-        <div className="w-full space-y-8">
+        <div className="w-full space-y-4">
           {/* Header */}
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-3 rounded-md border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground dark:text-white">{tr("Chỉnh sửa khóa học", "Edit course")}</h1>
-              <p className="text-muted-foreground dark:text-slate-400">{tr("Cập nhật thông tin và nội dung khóa học", "Update course information and content")}</p>
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{tr("Chỉnh sửa khóa học", "Edit course")}</h1>
+              <p className="text-sm text-gray-600 dark:text-slate-400">{tr("Cập nhật thông tin và nội dung khóa học", "Update course information and content")}</p>
             </div>
-            {courseStatus === "draft" && (
-              <button
-                onClick={handleSubmitForReview}
-                disabled={isSubmitting}
-                className="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-smooth disabled:opacity-60"
-              >
-                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                {tr("Gửi duyệt", "Submit for review")}
-              </button>
-            )}
-            {courseStatus === "pending" && (
-              <span className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-lg text-sm font-medium">{tr("Chờ duyệt", "Pending review")}</span>
-            )}
-            {courseStatus === "published" && (
-              <span className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-medium">{tr("Đã xuất bản", "Published")}</span>
-            )}
+            <div className="flex items-center gap-2">
+              {courseStatus === "draft" && (
+                <button
+                  onClick={handleSubmitForReview}
+                  disabled={isSubmitting}
+                  className="flex items-center gap-2 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm font-medium text-yellow-800 transition-colors hover:bg-yellow-100 disabled:opacity-60 dark:border-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300"
+                >
+                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                  {tr("Gửi duyệt", "Submit for review")}
+                </button>
+              )}
+              {courseStatus === "pending" && (
+                <span className="rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm font-medium text-yellow-700 dark:border-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300">{tr("Chờ duyệt", "Pending review")}</span>
+              )}
+              {courseStatus === "published" && (
+                <span className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">{tr("Đã xuất bản", "Published")}</span>
+              )}
+            </div>
           </div>
 
           {/* Course Info */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-            <h2 className="text-xl font-bold text-foreground dark:text-white">{tr("Thông tin khóa học", "Course information")}</h2>
+          <div className="rounded-md border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
+            <div className="grid gap-4 lg:grid-cols-12">
+              <div className="space-y-4 lg:col-span-8">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">{tr("Thông tin khóa học", "Course information")}</h2>
 
-            <div>
-              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{tr("Tiêu đề", "Title")}</label>
-              <input
-                type="text"
-                value={course.title}
-                onChange={(e) => setCourse({ ...course, title: e.target.value })}
-                className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-              />
-            </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600 dark:text-slate-300">{tr("Tiêu đề", "Title")}</label>
+                  <input
+                    type="text"
+                    value={course.title}
+                    onChange={(e) => setCourse({ ...course, title: e.target.value })}
+                    className="mt-1 h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{tr("Mô tả", "Description")}</label>
-              <textarea
-                value={course.description}
-                onChange={(e) => setCourse({ ...course, description: e.target.value })}
-                className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-24"
-              />
-            </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600 dark:text-slate-300">{tr("Mô tả", "Description")}</label>
+                  <textarea
+                    value={course.description}
+                    onChange={(e) => setCourse({ ...course, description: e.target.value })}
+                    rows={5}
+                    className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{tr("Danh mục", "Category")}</label>
-                <DialogSelect
-                  value={course.categoryId}
-                  onChange={(value) => setCourse({ ...course, categoryId: value })}
-                >
-                  <option value="">{tr("Chọn danh mục", "Select category")}</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </DialogSelect>
-              </div>
-            </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600 dark:text-slate-300">{tr("Danh mục", "Category")}</label>
+                  <div className="mt-1">
+                    <DialogSelect
+                      value={course.categoryId}
+                      onChange={(value) => setCourse({ ...course, categoryId: value })}
+                    >
+                      <option value="">{tr("Chọn danh mục", "Select category")}</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </DialogSelect>
+                  </div>
+                </div>
 
-            <div>
-              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{tr("Ảnh khóa học", "Course thumbnail")}</label>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1">
+                <div>
+                  <label className="text-sm font-medium text-gray-600 dark:text-slate-300">{tr("Giá khóa học", "Course price")} (VND)</label>
+                  <div className="mt-1 flex items-center overflow-hidden rounded-md border border-gray-300 dark:border-slate-700">
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={course.price}
+                      onChange={(e) => setCourse({ ...course, price: Number(e.target.value) })}
+                      className="h-10 w-full bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:bg-slate-950 dark:text-white"
+                    />
+                    <div className="border-l border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      VND
+                    </div>
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCourse({ ...course, price: 0 })}
+                      className={`rounded-md border px-3 py-1 text-xs font-medium ${course.price === 0 ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300" : "border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"}`}
+                    >
+                      {tr("Miễn phí", "Free")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCourse({ ...course, price: course.price > 0 ? course.price : 100000 })}
+                      className={`rounded-md border px-3 py-1 text-xs font-medium ${course.price > 0 ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300" : "border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"}`}
+                    >
+                      {tr("Trả phí", "Paid")}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-600 dark:text-slate-300">{tr("Ảnh khóa học", "Course thumbnail")}</label>
                   <input
                     id="course-thumbnail-input"
                     type="file"
@@ -1836,90 +1871,61 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   />
                   <label
                     htmlFor="course-thumbnail-input"
-                    className="inline-flex w-full items-center justify-center rounded-lg border border-border dark:border-slate-800 bg-background dark:bg-slate-950 px-4 py-2 text-sm text-foreground dark:text-white cursor-pointer hover:bg-secondary dark:hover:bg-slate-800 transition-smooth"
+                    className="mt-2 block cursor-pointer rounded-md border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
-                    {tr("Chọn ảnh khóa học", "Choose course thumbnail")}
+                    {tr("Kéo thả ảnh hoặc nhấn để tải lên", "Drag & drop image or click to upload")}
                   </label>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {thumbnailFile?.name || tr("Chưa có tệp nào được chọn", "No file selected")}
-                  </p>
-                </div>
-                {(thumbnailPreview || course.thumbnail !== "/placeholder.jpg") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setThumbnailFile(null)
-                      setThumbnailPreview(null)
-                      setThumbnailDirty(true)
-                      setCourse((prev) => ({ ...prev, thumbnail: "/placeholder.jpg" }))
-                    }}
-                    className="px-3 py-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-smooth"
-                    title="Xóa ảnh"
-                  >
-                    <X size={18} />
-                  </button>
-                )}
-              </div>
-              {(thumbnailPreview || course.thumbnail !== "/placeholder.jpg") && (
-                <div className="mt-3 max-w-sm">
-                  <div className="rounded-xl overflow-hidden border border-border dark:border-slate-800 bg-card dark:bg-slate-900/60">
-                    <div className="relative h-40 w-full overflow-hidden bg-secondary dark:bg-slate-800">
+                  {(thumbnailPreview || course.thumbnail !== "/placeholder.jpg") && (
+                    <div className="mt-3 max-w-sm rounded-md border border-gray-200 dark:border-slate-700">
                       <img
                         src={thumbnailPreview || course.thumbnail}
                         alt={tr("Ảnh khóa học", "Course thumbnail")}
-                        className="w-full h-full object-cover"
+                        className="h-40 w-full rounded-md object-cover"
                       />
                     </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-3">{tr("Giá khóa học", "Course price")}</label>
-                <div className="text-center mb-4">
-                  <span className="text-3xl font-bold text-primary dark:text-accent">
-                    {course.price.toLocaleString("vi-VN")}
-                  </span>
-                  <span className="text-2xl font-semibold text-foreground dark:text-white ml-2">
-                    VNĐ
-                  </span>
-                </div>
-                <div className="flex gap-3 items-center">
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={course.price}
-                    onChange={(e) => setCourse({ ...course, price: Number(e.target.value) })}
-                    className="flex-1 px-4 py-3 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                  <div className="text-lg font-semibold text-foreground dark:text-white">
-                    VNĐ
-                  </div>
+                  )}
                 </div>
               </div>
+
+              <aside className="space-y-3 lg:col-span-4">
+                <div className="rounded-md border border-gray-200 p-3 dark:border-slate-700">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">{tr("Trạng thái", "Status")}</div>
+                  <div className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{courseStatus}</div>
+                </div>
+                <div className="rounded-md border border-gray-200 p-3 dark:border-slate-700">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">{tr("Số phần", "Sections")}</div>
+                  <div className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{sections.length}</div>
+                </div>
+                <div className="rounded-md border border-gray-200 p-3 dark:border-slate-700">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">{tr("Số bài giảng", "Lessons")}</div>
+                  <div className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{lessons.length}</div>
+                </div>
+                <div className="rounded-md border border-gray-200 p-3 dark:border-slate-700">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">{tr("Giá hiện tại", "Current price")}</div>
+                  <div className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{Number(course.price || 0).toLocaleString("vi-VN")} VND</div>
+                </div>
+              </aside>
             </div>
           </div>
 
           {/* Upload Content - Removed, now integrated in lesson items */}
 
           {/* Lessons */}
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-3 sm:p-6 space-y-4 sm:space-y-6">
+          <div className="rounded-md border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60 space-y-4">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg sm:text-xl font-bold text-foreground dark:text-white">{tr("Bài giảng", "Lessons")}</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">{tr("Bài giảng", "Lessons")}</h2>
               <button
                 onClick={addSection}
-                className="px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-smooth flex items-center gap-1 text-sm sm:text-base whitespace-nowrap">
+                className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition-smooth flex items-center gap-1 text-sm whitespace-nowrap">
                 <Plus size={16} /> <span>{tr("Thêm phần mới", "Add section")}</span>
               </button>
             </div>
 
             <div className="space-y-4">
               {sections.map((section) => (
-                <div key={section.id} className="border border-border dark:border-slate-800 rounded-xl overflow-hidden">
+                <div key={section.id} className="rounded-md border border-gray-200 dark:border-slate-700 overflow-hidden">
                   {/* Section header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-secondary dark:bg-slate-800 px-3 py-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-gray-50 dark:bg-slate-800 px-3 py-2 border-b border-gray-200 dark:border-slate-700">
                     <input
                       value={section.title}
                       onChange={(e) => updateSection(section.id, e.target.value)}
@@ -1929,7 +1935,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => addLesson(section.id)}
-                        className="flex-1 sm:flex-none px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-xs sm:text-sm font-medium hover:bg-primary/20 transition-smooth flex items-center justify-center gap-1 whitespace-nowrap">
+                        className="flex-1 sm:flex-none px-3 py-1.5 border border-gray-300 text-gray-700 dark:border-slate-700 dark:text-slate-200 rounded-md text-xs sm:text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-smooth flex items-center justify-center gap-1 whitespace-nowrap">
                         <Plus size={13} /> {tr("Thêm bài học", "Add lesson")}
                       </button>
                       <button
@@ -1939,22 +1945,22 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                       </button>
                     </div>
                   </div>
-                  <div className="space-y-3 p-4">
+                  <div className="space-y-2 p-3">
                   {section.lessons.map((lesson) => {
                     const isExpanded = expandedLessonId === lesson.id
                 
                 return (
                   <div
                     key={lesson.id}
-                    className={`bg-background dark:bg-slate-950 border-2 rounded-lg overflow-hidden transition-all duration-300 ${
+                    className={`bg-white dark:bg-slate-950 border rounded-md overflow-hidden transition-all duration-300 ${
                       isExpanded 
-                        ? 'border-primary dark:border-accent shadow-lg shadow-primary/20' 
-                        : 'border-border dark:border-slate-800'
+                        ? 'border-blue-500 dark:border-blue-400' 
+                        : 'border-gray-200 dark:border-slate-700'
                     }`}
                   >
                     {/* Header */}
                     <div
-                      className="flex items-start justify-between p-3 sm:p-4 cursor-pointer hover:bg-secondary dark:hover:bg-slate-900 transition-smooth"
+                      className="flex items-start justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-smooth"
                       onClick={() => setExpandedLessonId(isExpanded ? null : lesson.id)}
                     >
                       <div className="flex-1 flex items-start gap-2">
@@ -2011,7 +2017,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
                     {/* Expandable Content */}
                     {isExpanded && (
-                      <div className="border-t border-border dark:border-slate-800 bg-card dark:bg-slate-900/60 p-3 sm:p-6 space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-top-2 duration-300"
+                      <div className="border-t border-gray-200 dark:border-slate-700 bg-gray-50/60 dark:bg-slate-900/50 p-3 sm:p-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300"
                         style={{
                           animation: 'slideDown 0.3s ease-out'
                         }}
@@ -2679,7 +2685,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           <button 
             onClick={handleSaveCourse}
             disabled={isSaving}
-            className="w-full px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-60">
+            className="w-full px-6 py-3 border border-blue-600 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-60">
             {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
             {isSaving ? tr("Đang lưu...", "Saving...") : tr("Lưu thay đổi", "Save changes")}
           </button>

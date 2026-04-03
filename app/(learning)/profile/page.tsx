@@ -1,12 +1,14 @@
 ﻿"use client"
 
 import { useState, useEffect } from "react"
-import { Save, Lock, User, Mail, Phone, Eye, EyeOff, Upload, Camera, MapPin, Award, BookOpen, Calendar, FileText } from "lucide-react"
+import Link from "next/link"
+import { Save, Lock, User, Mail, Phone, Eye, EyeOff, Upload, Camera, MapPin, Award, BookOpen, Calendar, FileText, ArrowLeft, Loader2 } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
-import { getRoleAvatar, getRoleDisplayName } from "@/lib/utils/avatar"
+import { getRoleDisplayName } from "@/lib/utils/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { UserAvatar } from "@/components/ui/user-avatar"
 import { useLanguage } from "@/lib/i18n/language-context"
 
 interface UserStats {
@@ -26,6 +28,7 @@ export default function StudentProfilePage() {
     totalHours: 0
   })
   const [statsLoading, setStatsLoading] = useState(true)
+  const [submitTarget, setSubmitTarget] = useState<"profile" | "password" | null>(null)
 
   const [showPassword, setShowPassword] = useState({
     current: false,
@@ -47,6 +50,8 @@ export default function StudentProfilePage() {
     newPassword: "",
     confirmPassword: "",
   })
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   // Fetch user statistics
   useEffect(() => {
@@ -108,8 +113,6 @@ export default function StudentProfilePage() {
     setPasswordData(prev => ({ ...prev, [name]: value }))
   }
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -136,6 +139,7 @@ export default function StudentProfilePage() {
     if (!user) return
 
     try {
+      setSubmitTarget("profile")
       setSaving(true)
 
       // Upload avatar if a new one is selected
@@ -168,6 +172,7 @@ export default function StudentProfilePage() {
       toast.error(t("profile_update_error", "Có lỗi xảy ra khi cập nhật hồ sơ"))
     } finally {
       setSaving(false)
+      setSubmitTarget(null)
     }
   }
 
@@ -185,6 +190,7 @@ export default function StudentProfilePage() {
     }
 
     try {
+      setSubmitTarget("password")
       setSaving(true)
 
       await apiClient.changePassword({
@@ -203,6 +209,7 @@ export default function StudentProfilePage() {
       toast.error(t("profile_pwd_error", "Có lỗi xảy ra khi đổi mật khẩu. Vui lòng kiểm tra mật khẩu hiện tại."))
     } finally {
       setSaving(false)
+      setSubmitTarget(null)
     }
   }
 
@@ -210,13 +217,21 @@ export default function StudentProfilePage() {
     setShowPassword(prev => ({ ...prev, [field]: !prev[field] }))
   }
 
+  const hasMinLength = passwordData.newPassword.length >= 6
+  const hasPasswordMatch =
+    passwordData.confirmPassword.length > 0 &&
+    passwordData.newPassword === passwordData.confirmPassword
+  const isProfileSaving = saving && submitTarget === "profile"
+  const isPasswordSaving = saving && submitTarget === "password"
+
   if (loading) {
     return (
       <div className="min-h-screen w-full">
-        <div className="w-full space-y-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-300 dark:bg-slate-700 rounded w-1/3 mb-6"></div>
-            <div className="h-96 bg-gray-300 dark:bg-slate-700 rounded"></div>
+        <div className="w-full space-y-8 animate-pulse">
+          <div className="rounded-3xl h-48 bg-slate-200/80 dark:bg-slate-800/70" />
+          <div className="grid grid-cols-1 xl:grid-cols-[330px_1fr] gap-6">
+            <div className="rounded-2xl h-[440px] bg-slate-200/80 dark:bg-slate-800/70" />
+            <div className="rounded-2xl h-[440px] bg-slate-200/80 dark:bg-slate-800/70" />
           </div>
         </div>
       </div>
@@ -226,11 +241,11 @@ export default function StudentProfilePage() {
   if (!user) {
     return (
       <div className="min-h-screen w-full">
-        <div className="w-full text-center">
+        <div className="w-full text-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-10 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
           <h1 className="text-3xl font-bold text-foreground dark:text-white">
             {t("profile_not_found", "Không tìm thấy thông tin người dùng")}
           </h1>
-          <p className="text-muted-foreground">{t("profile_login_again", "Vui lòng đăng nhập lại")}</p>
+          <p className="text-muted-foreground mt-2">{t("profile_login_again", "Vui lòng đăng nhập lại")}</p>
         </div>
       </div>
     )
@@ -239,353 +254,349 @@ export default function StudentProfilePage() {
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            {t("profile_title", "Hồ sơ cá nhân")}
-          </h1>
-          <p className="text-muted-foreground dark:text-slate-400 mt-1">
-            {t("profile_desc", "Quản lý thông tin và cài đặt tài khoản của bạn")}
-          </p>
-      </div>
-
-      {/* Avatar Section with Upload */}
-      <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-8">
-        <div className="flex flex-col md:flex-row items-center gap-6">
-          {/* Avatar with Upload Button */}
-          <div className="relative group">
-            <div className="w-28 h-28 rounded-full overflow-hidden bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-lg">
-              {avatarPreview ? (
-                <img
-                  src={avatarPreview}
-                  alt={`${user.name || t('profile_student', 'Học viên')} Avatar`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    // Show initials fallback
-                    const fallback = target.parentElement?.querySelector('.avatar-fallback') as HTMLElement;
-                    if (fallback) fallback.style.display = 'flex';
-                  }}
-                />
-              ) : user.avatar && !user.avatar.includes('ui-avatars.com') ? (
-                <img
-                  src={user.avatar}
-                  alt={`${user.name || t('profile_student', 'Học viên')} Avatar`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    // Show initials fallback
-                    const fallback = target.parentElement?.querySelector('.avatar-fallback') as HTMLElement;
-                    if (fallback) fallback.style.display = 'flex';
-                  }}
-                />
-              ) : null}
-              <div 
-                className="avatar-fallback w-full h-full flex items-center justify-center text-white text-3xl font-bold"
-                style={{
-                  display: (avatarPreview || (user.avatar && !user.avatar.includes('ui-avatars.com'))) ? 'none' : 'flex'
-                }}
-              >
-                {user.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
+        <section
+          className="relative overflow-hidden rounded-3xl border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl"
+          style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/85 dark:via-slate-950/70 dark:to-slate-900/85" />
+          <div className="relative z-10 p-6 md:p-8 lg:p-10 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+              <div className="space-y-3">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex h-10 items-center gap-2 px-4 rounded-xl bg-white/90 text-primary text-sm font-semibold shadow-lg hover:shadow-xl transition-all"
+                >
+                  <ArrowLeft size={18} />
+                  {t("profile_back_dashboard", "Về trang học tập")}
+                </Link>
+                <div>
+                  <h1 className="text-3xl lg:text-4xl font-bold text-white drop-shadow-lg">{t("profile_title", "Hồ sơ cá nhân")}</h1>
+                  <p className="text-white/85 mt-2">{t("profile_desc", "Quản lý thông tin và bảo mật tài khoản")}</p>
+                </div>
               </div>
-            </div>
-            {/* Upload Overlay */}
-            <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-              <input
-                type="file"
-                accept="image/png, image/jpeg, image/jpg"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
-              <Camera size={24} className="text-white" />
-            </label>
-            {/* Upload Badge */}
-            <label className="absolute bottom-0 right-0 w-9 h-9 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 rounded-full flex items-center justify-center cursor-pointer shadow-lg transition-all">
-              <input
-                type="file"
-                accept="image/png, image/jpeg, image/jpg"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
-              <Upload size={16} className="text-white" />
-            </label>
-          </div>
-
-          <div className="flex-1 text-center md:text-left">
-            <h2 className="text-2xl font-bold text-foreground dark:text-white">{user.name || t('profile_student', 'Học viên')}</h2>
-            <p className="text-muted-foreground dark:text-slate-400">{user.email}</p>
-            <div className="mt-2">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary dark:text-accent">
-                {getRoleDisplayName(user.role)}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground dark:text-slate-500 mt-2">
-              {t("profile_avatar_hint", "Nhấn vào ảnh đại diện để thay đổi (PNG, JPG - Tối đa 2MB)")}
-            </p>
-          </div>
-
-          {/* Statistics */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 dark:bg-accent/10 rounded-xl flex items-center justify-center mx-auto mb-2">
-                <BookOpen size={24} className="text-primary dark:text-accent" />
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-white/90 text-primary shadow-sm">
+                  {getRoleDisplayName(user.role)}
+                </span>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
+                  {t("profile_status_active", "Tài khoản hoạt động")}
+                </span>
               </div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">
-                {statsLoading ? "..." : userStats.coursesEnrolled}
-              </p>
-              <p className="text-xs text-muted-foreground">{t("profile_stats_courses", "Khóa học")}</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 dark:bg-accent/10 rounded-xl flex items-center justify-center mx-auto mb-2">
-                <Award size={24} className="text-primary dark:text-accent" />
-              </div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">
-                {statsLoading ? "..." : userStats.certificatesEarned}
-              </p>
-              <p className="text-xs text-muted-foreground">{t("profile_stats_certificates", "Chứng chỉ")}</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 dark:bg-accent/10 rounded-xl flex items-center justify-center mx-auto mb-2">
-                <Calendar size={24} className="text-primary dark:text-accent" />
-              </div>
-              <p className="text-2xl font-bold text-foreground dark:text-white">
-                {statsLoading ? "..." : `${userStats.totalHours}h`}
-              </p>
-              <p className="text-xs text-muted-foreground">{t("profile_stats_hours", "Giờ học")}</p>
             </div>
           </div>
+        </section>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[330px_1fr] gap-6">
+          <aside className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 p-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)] space-y-6">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="relative group">
+                <div className="w-32 h-32 border-4 border-white dark:border-slate-800 shadow-[0_10px_28px_rgba(15,23,42,0.12)] rounded-full">
+                  <UserAvatar
+                    src={avatarPreview || user?.avatar}
+                    name={user?.name || t("profile_student", "Học viên")}
+                    size="xl"
+                    className="w-full h-full"
+                  />
+                </div>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/55 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/jpg"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+                  <Camera size={24} className="text-white" />
+                </label>
+                <label className="absolute -bottom-1 -right-1 h-10 w-10 bg-primary hover:bg-primary/90 rounded-full inline-flex items-center justify-center cursor-pointer shadow-lg transition-colors border-2 border-white dark:border-slate-900">
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/jpg"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+                  <Upload size={16} className="text-white" />
+                </label>
+              </div>
+
+              <div className="space-y-1">
+                <h2 className="text-2xl font-bold text-foreground dark:text-white">{user.name || t("profile_student", "Học viên")}</h2>
+                <p className="text-sm text-muted-foreground dark:text-slate-400 break-all">{user.email}</p>
+              </div>
+
+              <p className="text-xs text-muted-foreground dark:text-slate-500 max-w-xs">
+                {t("profile_avatar_hint", "Nhấn vào ảnh đại diện để thay đổi (PNG, JPG - Tối đa 2MB)")}
+              </p>
+            </div>
+
+            <div className="space-y-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("profile_role", "Vai trò")}
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-semibold">
+                  {getRoleDisplayName(user.role)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("profile_sync", "Đồng bộ")}
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold">
+                  {t("profile_live", "Trực tuyến")}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {t("profile_security_note", "Nên đổi mật khẩu định kỳ để tăng mức độ an toàn tài khoản.")}
+              </p>
+            </div>
+
+            <div className="space-y-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {t("profile_learning_stats", "Thống kê học tập")}
+              </p>
+              <div className="grid grid-cols-1 gap-2">
+                <div className="flex items-center justify-between rounded-lg bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 px-3 py-2">
+                  <span className="inline-flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300"><BookOpen size={14} /> {t("profile_stats_courses", "Khóa học")}</span>
+                  <span className="text-sm font-semibold text-foreground dark:text-white">{statsLoading ? "..." : userStats.coursesEnrolled}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-lg bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 px-3 py-2">
+                  <span className="inline-flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300"><Award size={14} /> {t("profile_stats_certificates", "Chứng chỉ")}</span>
+                  <span className="text-sm font-semibold text-foreground dark:text-white">{statsLoading ? "..." : userStats.certificatesEarned}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-lg bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 px-3 py-2">
+                  <span className="inline-flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300"><Calendar size={14} /> {t("profile_stats_hours", "Giờ học")}</span>
+                  <span className="text-sm font-semibold text-foreground dark:text-white">{statsLoading ? "..." : `${userStats.totalHours}h`}</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <Tabs defaultValue="profile" className="w-full">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
+              <div className="p-4 md:p-5 border-b border-slate-200 dark:border-slate-800">
+                <TabsList className="grid w-full grid-cols-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl p-1">
+                  <TabsTrigger value="profile" className="h-10 rounded-lg text-xs md:text-sm font-semibold data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent">
+                    <User size={16} className="mr-2" />
+                    {t("profile_tab_info", "Thông tin cá nhân")}
+                  </TabsTrigger>
+                  <TabsTrigger value="password" className="h-10 rounded-lg text-xs md:text-sm font-semibold data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent">
+                    <Lock size={16} className="mr-2" />
+                    {t("profile_tab_password", "Đổi mật khẩu")}
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="profile" className="m-0">
+                <div className="p-6 md:p-8 border-t border-slate-200 dark:border-slate-800">
+                  <form onSubmit={handleProfileSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                          <User size={16} /> {t("profile_name", "Họ và tên")}
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={profileData.name}
+                          onChange={handleProfileChange}
+                          required
+                          className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:focus:ring-accent/50 transition-all"
+                          placeholder={t("profile_name_placeholder", "Nhập họ và tên của bạn")}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                          <Mail size={16} /> {t("profile_email", "Email")}
+                        </label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={profileData.email}
+                          readOnly
+                          className="w-full h-11 bg-muted dark:bg-slate-800 text-muted-foreground cursor-not-allowed rounded-xl px-4 border border-border dark:border-slate-800"
+                        />
+                        <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
+                          {t("profile_email_note", "Email không thể thay đổi vì lý do bảo mật")}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                          <Phone size={16} /> {t("profile_phone", "Số điện thoại")}
+                        </label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={profileData.phone}
+                          onChange={handleProfileChange}
+                          className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:focus:ring-accent/50 transition-all"
+                          placeholder={t("profile_phone_placeholder", "Nhập số điện thoại (tùy chọn)")}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                          <Calendar size={16} /> {t("profile_dob", "Ngày sinh")}
+                        </label>
+                        <input
+                          type="date"
+                          name="dateOfBirth"
+                          value={profileData.dateOfBirth}
+                          onChange={handleProfileChange}
+                          className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:focus:ring-accent/50 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                        <MapPin size={16} /> {t("profile_address", "Địa chỉ")}
+                      </label>
+                      <input
+                        type="text"
+                        name="address"
+                        value={profileData.address}
+                        onChange={handleProfileChange}
+                        className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:focus:ring-accent/50 transition-all"
+                        placeholder={t("profile_address_placeholder", "Nhập địa chỉ của bạn (tùy chọn)")}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                        <FileText size={16} /> {t("profile_bio", "Giới thiệu")}
+                      </label>
+                      <textarea
+                        name="bio"
+                        value={profileData.bio}
+                        onChange={handleProfileChange}
+                        rows={4}
+                        className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:focus:ring-accent/50 transition-all resize-none"
+                        placeholder={t("profile_bio_placeholder", "Viết đôi dòng giới thiệu về bạn")}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="group w-full h-11 px-6 bg-gradient-to-r from-primary to-accent text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all duration-200 active:scale-[0.99] active:translate-y-px flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isProfileSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} className="transition-transform group-active:scale-95" />}
+                      <span className="transition-opacity duration-200">
+                        {isProfileSaving ? t("profile_saving", "Đang lưu...") : t("profile_save", "Lưu thay đổi")}
+                      </span>
+                    </button>
+                  </form>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="password" className="m-0">
+                <div className="p-6 md:p-8 border-t border-slate-200 dark:border-slate-800">
+                  <form onSubmit={handlePasswordSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 gap-5">
+                      <div>
+                        <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                          <Lock size={16} /> {t("profile_current_pwd_label", "Mật khẩu hiện tại")}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword.current ? "text" : "password"}
+                            name="currentPassword"
+                            value={passwordData.currentPassword}
+                            onChange={handlePasswordChange}
+                            required
+                            className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 pr-12 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:focus:ring-accent/50 transition-all"
+                            placeholder={t("profile_current_pwd_placeholder", "Nhập mật khẩu hiện tại")}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility("current")}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg inline-flex items-center justify-center text-muted-foreground dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          >
+                            {showPassword.current ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                          <Lock size={16} /> {t("profile_new_pwd_label", "Mật khẩu mới")}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword.new ? "text" : "password"}
+                            name="newPassword"
+                            value={passwordData.newPassword}
+                            onChange={handlePasswordChange}
+                            required
+                            className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 pr-12 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:focus:ring-accent/50 transition-all"
+                            placeholder={t("profile_new_pwd_placeholder", "Nhập mật khẩu mới")}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility("new")}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg inline-flex items-center justify-center text-muted-foreground dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          >
+                            {showPassword.new ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                          <Lock size={16} /> {t("profile_confirm_pwd_label", "Xác nhận mật khẩu mới")}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword.confirm ? "text" : "password"}
+                            name="confirmPassword"
+                            value={passwordData.confirmPassword}
+                            onChange={handlePasswordChange}
+                            required
+                            className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 pr-12 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:focus:ring-accent/50 transition-all"
+                            placeholder={t("profile_confirm_pwd_placeholder", "Nhập lại mật khẩu mới")}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility("confirm")}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg inline-flex items-center justify-center text-muted-foreground dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          >
+                            {showPassword.confirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-4 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        {t("profile_password_requirements", "Yêu cầu mật khẩu")}
+                      </p>
+                      <p className={`text-sm ${hasMinLength ? "text-emerald-600 dark:text-emerald-300" : "text-slate-500 dark:text-slate-400"}`}>
+                        {hasMinLength ? "• " + t("profile_pwd_rule_len_ok", "Đã đạt: tối thiểu 6 ký tự") : "• " + t("profile_pwd_rule_len", "Tối thiểu 6 ký tự")}
+                      </p>
+                      <p className={`text-sm ${hasPasswordMatch ? "text-emerald-600 dark:text-emerald-300" : "text-slate-500 dark:text-slate-400"}`}>
+                        {hasPasswordMatch ? "• " + t("profile_pwd_rule_match_ok", "Đã đạt: xác nhận mật khẩu khớp") : "• " + t("profile_pwd_rule_match", "Xác nhận mật khẩu phải khớp")}
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="group w-full h-11 px-6 bg-gradient-to-r from-primary to-accent text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all duration-200 active:scale-[0.99] active:translate-y-px flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isPasswordSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} className="transition-transform group-active:scale-95" />}
+                      <span className="transition-opacity duration-200">
+                        {isPasswordSaving ? t("profile_changing_pwd", "Đang cập nhật...") : t("profile_change_pwd", "Đổi mật khẩu")}
+                      </span>
+                    </button>
+                  </form>
+                </div>
+              </TabsContent>
+            </div>
+          </Tabs>
         </div>
       </div>
-
-      {/* Tabs for Profile, Password and Settings */}
-      <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 p-1">
-          <TabsTrigger value="profile" className="text-xs md:text-sm">
-            <User size={16} className="mr-2" />
-            {t("profile_tab_info", "Thông tin")}
-          </TabsTrigger>
-          <TabsTrigger value="password" className="text-xs md:text-sm">
-            <Lock size={16} className="mr-2" />
-            {t("profile_tab_password", "Mật khẩu")}
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Profile Tab */}
-        <TabsContent value="profile" className="mt-6">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-8">
-            <form onSubmit={handleProfileSubmit} className="space-y-6">
-              {/* Name Field */}
-              <div>
-                <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                  <User size={16} /> {t("profile_name", "Họ và tên")}
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={profileData.name}
-                  onChange={handleProfileChange}
-                  required
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                  placeholder={t("profile_name_placeholder", "Nhập họ và tên của bạn")}
-                />
-              </div>
-
-              {/* Email Field (Read-only) */}
-              <div>
-                <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                  <Mail size={16} /> {t("profile_email", "Email")}
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={profileData.email}
-                  readOnly
-                  className="w-full bg-muted dark:bg-slate-800 text-muted-foreground cursor-not-allowed rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800"
-                />
-                <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
-                  {t("profile_email_note", "Email không thể thay đổi vì lý do bảo mật")}
-                </p>
-              </div>
-
-              {/* Phone Field */}
-              <div>
-                <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                  <Phone size={16} /> {t("profile_phone", "Số điện thoại")}
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={profileData.phone}
-                  onChange={handleProfileChange}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                  placeholder={t("profile_phone_placeholder", "Nhập số điện thoại (tùy chọn)")}
-                />
-              </div>
-
-              {/* Address Field */}
-              <div>
-                <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                  <MapPin size={16} /> {t("profile_address", "Địa chỉ")}
-                </label>
-                <input
-                  type="text"
-                  name="address"
-                  value={profileData.address}
-                  onChange={handleProfileChange}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                  placeholder={t("profile_address_placeholder", "Nhập địa chỉ của bạn (tùy chọn)")}
-                />
-              </div>
-
-              {/* Bio Field */}
-              <div>
-                <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                  <FileText size={16} /> {t("profile_bio", "Giới thiệu")}
-                </label>
-                <textarea
-                  name="bio"
-                  value={profileData.bio}
-                  onChange={handleProfileChange}
-                  rows={4}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors resize-none"
-                  placeholder={t("profile_bio_placeholder", "Viết đôi dòng giới thiệu về bạn")}
-                />
-              </div>
-
-              {/* Date of Birth Field */}
-              <div>
-                <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
-                  <Calendar size={16} /> {t("profile_dob", "Ngày sinh")}
-                </label>
-                <input
-                  type="date"
-                  name="dateOfBirth"
-                  value={profileData.dateOfBirth}
-                  onChange={handleProfileChange}
-                  className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                />
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full px-6 py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Save size={18} />
-                {saving ? t("profile_saving", "Đang lưu...") : t("profile_save", "Lưu thay đổi")}
-              </button>
-            </form>
-          </div>
-        </TabsContent>
-
-        {/* Password Tab */}
-        <TabsContent value="password" className="mt-6">
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-8">
-            <form onSubmit={handlePasswordSubmit} className="space-y-6">
-              <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                <Lock size={20} className="text-amber-500 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                    {t("profile_security", "Bảo mật tài khoản")}
-                  </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                    {t("profile_pwd_hint", "Mật khẩu mới phải có ít nhất 6 ký tự và khác mật khẩu cũ")}
-                  </p>
-                </div>
-              </div>
-
-              {/* Current Password */}
-              <div>
-                <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">
-                  {t("profile_current_pwd_label", "Mật khẩu hiện tại")}
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword.current ? "text" : "password"}
-                    name="currentPassword"
-                    value={passwordData.currentPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 pr-12 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                    placeholder={t("profile_current_pwd_placeholder", "Nhập mật khẩu hiện tại")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility("current")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showPassword.current ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* New Password */}
-              <div>
-                <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">
-                  {t("profile_new_pwd_label", "Mật khẩu mới")}
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword.new ? "text" : "password"}
-                    name="newPassword"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 pr-12 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                    placeholder={t("profile_new_pwd_placeholder", "Nhập mật khẩu mới")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility("new")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showPassword.new ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm Password */}
-              <div>
-                <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">
-                  {t("profile_confirm_pwd_label", "Xác nhận mật khẩu mới")}
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword.confirm ? "text" : "password"}
-                    name="confirmPassword"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 pr-12 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
-                    placeholder={t("profile_confirm_pwd_placeholder", "Nhập lại mật khẩu mới")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility("confirm")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showPassword.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full px-6 py-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Lock size={18} />
-                {saving ? t("profile_changing_pwd", "Đang cập nhật...") : t("profile_change_pwd", "Đổi mật khẩu")}
-              </button>
-            </form>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
     </div>
   )
 }

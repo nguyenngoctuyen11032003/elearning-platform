@@ -87,7 +87,7 @@ export function TeacherSidebar() {
       <aside
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={`fixed left-0 top-0 h-screen bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-500 ease-out z-30 xl:sticky xl:top-0 flex flex-col ${
+        className={`fixed left-0 top-0 h-screen bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-[width,transform] duration-500 ease-out transform-gpu z-30 xl:sticky xl:top-0 flex flex-col ${
           isHovering || !isCollapsed ? "w-64" : "w-20"
         } ${
           isOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"

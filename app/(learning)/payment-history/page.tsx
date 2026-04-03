@@ -1,14 +1,23 @@
-﻿"use client"
+"use client"
 
-import { useEffect, useState } from "react"
-import { useAuth } from "@/lib/auth/auth-context"
-import { useTheme } from "next-themes"
-import { motion } from "framer-motion"
-import { Download, Search, CreditCard, Wallet, Plus } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import {
+  Clock3,
+  CreditCard,
+  Download,
+  Eye,
+  FileText,
+  Plus,
+  Search,
+  Wallet,
+  X,
+} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth/auth-context"
 import { useLanguage } from "@/lib/i18n/language-context"
-import { autoTranslateData, getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
+import { getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
 import { generateInvoicePdf } from "@/lib/utils/invoice-pdf"
 
 interface PaymentHistory {
@@ -25,40 +34,20 @@ interface PaymentHistory {
   enrolledAt: string
 }
 
+type StatusFilter = "all" | "completed" | "pending" | "failed"
+
 export default function PaymentHistoryPage() {
   const { user } = useAuth()
-  const { theme, setTheme, resolvedTheme } = useTheme()
   const router = useRouter()
-  const [mounted, setMounted] = useState(false)
-  const [payments, setPayments] = useState<PaymentHistory[]>([])
-  const [filteredPayments, setFilteredPayments] = useState<PaymentHistory[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusTab, setStatusTab] = useState("all")
-  const [selectedPayment, setSelectedPayment] = useState<PaymentHistory | null>(null)
-  const [viewingDetails, setViewingDetails] = useState(false)
-  const [balance, setBalance] = useState(5000000)
   const { language, t } = useLanguage()
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const [loading, setLoading] = useState(true)
+  const [payments, setPayments] = useState<PaymentHistory[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
+  const [selectedPayment, setSelectedPayment] = useState<PaymentHistory | null>(null)
 
-  const isDarkMode = mounted && resolvedTheme === "dark"
-
-  const totalSpent = payments
-    .filter(p => p.status === "completed")
-    .reduce((sum, p) => sum + p.finalAmount, 0)
-  const dailySpend = payments
-    .filter(p => {
-      const date = new Date(p.enrolledAt)
-      const today = new Date()
-      return date.toDateString() === today.toDateString()
-    })
-    .reduce((sum, p) => sum + p.finalAmount, 0)
-  const completedCount = payments.filter(p => p.status === "completed").length
-  const pendingCount = payments.filter(p => p.status === "pending").length
-  const failedCount = payments.filter(p => p.status === "failed").length
+  const [balance] = useState(5000000)
 
   const mockPaymentHistory: PaymentHistory[] = [
     {
@@ -78,7 +67,7 @@ export default function PaymentHistoryPage() {
       id: "pay-2",
       courseTitle: "Python for Data Science",
       courseSlug: "python-data-science",
-      courseThumbnail: "/image/courses/python.jpg",
+      courseThumbnail: "/image/logo-ics.jpg",
       amount: 199000,
       discountAmount: 0,
       finalAmount: 199000,
@@ -91,7 +80,7 @@ export default function PaymentHistoryPage() {
       id: "pay-3",
       courseTitle: "Web Design Fundamentals",
       courseSlug: "web-design",
-      courseThumbnail: "/image/courses/design.jpg",
+      courseThumbnail: "/image/logo-ics.jpg",
       amount: 149000,
       discountAmount: 29000,
       finalAmount: 120000,
@@ -104,7 +93,7 @@ export default function PaymentHistoryPage() {
       id: "pay-4",
       courseTitle: "JavaScript Mastery",
       courseSlug: "js-mastery",
-      courseThumbnail: "/image/courses/javascript.jpg",
+      courseThumbnail: "/image/logo-ics.jpg",
       amount: 279000,
       discountAmount: 39000,
       finalAmount: 240000,
@@ -117,78 +106,88 @@ export default function PaymentHistoryPage() {
       id: "pay-5",
       courseTitle: "Machine Learning Fundamentals",
       courseSlug: "ml-fundamentals",
-      courseThumbnail: "/image/courses/ml.jpg",
+      courseThumbnail: "/image/logo-ics.jpg",
       amount: 399000,
       discountAmount: 0,
       finalAmount: 399000,
-      status: "completed",
+      status: "failed",
       paymentMethod: "Visa",
       transactionId: "TXN-6Q7R8S9T",
       enrolledAt: "2024-11-25T11:00:00Z",
     },
   ]
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    let active = true
+    setLoading(true)
+    setPayments(mockPaymentHistory)
+    setLoading(false)
+  }, [])
 
-    const localizePayments = async () => {
-      // Don't translate payment data
-      if (!active) return
-      setPayments(mockPaymentHistory)
-      setFilteredPayments(mockPaymentHistory)
-      setLoading(false)
-    }
+  const locale = getLocaleByLanguage(language)
 
-    localizePayments()
+  const filteredPayments = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase()
 
-    return () => {
-      active = false
-    }
-  }, [language])
+    return payments.filter((payment) => {
+      const matchStatus = statusFilter === "all" || payment.status === statusFilter
+      if (!matchStatus) return false
 
-  useEffect(() => {
-    let filtered = payments
-    if (searchTerm) {
-      filtered = filtered.filter(p =>
-        p.courseTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.transactionId.toLowerCase().includes(searchTerm.toLowerCase())
+      if (!keyword) return true
+      return (
+        payment.courseTitle.toLowerCase().includes(keyword) ||
+        payment.transactionId.toLowerCase().includes(keyword)
       )
-    }
-    if (statusTab !== "all") {
-      filtered = filtered.filter(p => p.status === statusTab)
-    }
-    setFilteredPayments(filtered)
-  }, [searchTerm, statusTab, payments])
+    })
+  }, [payments, searchTerm, statusFilter])
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "completed":
-        return t("pay_status_completed", "Thành công")
-      case "pending":
-        return t("pay_status_pending", "Đang xử lý")
-      case "failed":
-        return t("pay_status_failed", "Thất bại")
-      default:
-        return t("pay_status_unknown", "Không xác định")
+  const stats = useMemo(() => {
+    const completed = payments.filter((p) => p.status === "completed")
+    const pending = payments.filter((p) => p.status === "pending").length
+    const failed = payments.filter((p) => p.status === "failed").length
+
+    const totalSpent = completed.reduce((sum, p) => sum + p.finalAmount, 0)
+
+    const today = new Date().toDateString()
+    const dailySpent = completed
+      .filter((p) => new Date(p.enrolledAt).toDateString() === today)
+      .reduce((sum, p) => sum + p.finalAmount, 0)
+
+    return {
+      total: payments.length,
+      completed: completed.length,
+      pending,
+      failed,
+      totalSpent,
+      dailySpent,
     }
+  }, [payments])
+
+  const getStatusLabel = (status: PaymentHistory["status"]) => {
+    if (status === "completed") return t("pay_status_completed", "Thành công")
+    if (status === "pending") return t("pay_status_pending", "Đang xử lý")
+    return t("pay_status_failed", "Thất bại")
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString(getLocaleByLanguage(language), {
+  const getStatusClass = (status: PaymentHistory["status"]) => {
+    if (status === "completed") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/35 dark:text-emerald-300"
+    if (status === "pending") return "bg-amber-100 text-amber-700 dark:bg-amber-900/35 dark:text-amber-300"
+    return "bg-rose-100 text-rose-700 dark:bg-rose-900/35 dark:text-rose-300"
+  }
+
+  const formatDate = (value: string) => {
+    return new Date(value).toLocaleDateString(locale, {
+      day: "2-digit",
+      month: "2-digit",
       year: "numeric",
-      month: "numeric",
-      day: "numeric",
     })
   }
 
-  const formatCurrency = (amount: number) => {
-    const locale = getLocaleByLanguage(language)
+  const formatCurrency = (value: number) => {
     return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "VND",
-    }).format(amount)
+      maximumFractionDigits: 0,
+    }).format(value)
   }
 
   const handleDownloadInvoice = async (payment: PaymentHistory) => {
@@ -212,454 +211,275 @@ export default function PaymentHistoryPage() {
         total: Number(payment.finalAmount || 0),
       })
     } catch (error) {
-      console.error('Error generating invoice:', error)
+      console.error("Error generating invoice:", error)
     }
-  }
-
-  const handleViewDetails = (payment: PaymentHistory) => {
-    setSelectedPayment(payment)
-    setViewingDetails(true)
   }
 
   if (loading) {
     return (
-      <div className={`min-h-screen transition-colors duration-300 flex items-center justify-center ${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50'}`}>
+      <div className="flex min-h-[55vh] items-center justify-center rounded-3xl border border-slate-200/80 bg-white/80 dark:border-slate-800 dark:bg-slate-900/70">
         <div className="text-center">
-          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${isDarkMode ? 'border-blue-400' : 'border-blue-600'} mx-auto mb-4`}></div>
-          <p className={isDarkMode ? "text-blue-400" : "text-blue-600"}>{t("pay_loading", "Đang tải...")}</p>
+          <div className="mx-auto mb-3 h-11 w-11 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent" />
+          <p className="text-sm text-slate-600 dark:text-slate-300">{t("pay_loading", "Đang tải...")}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white' : 'bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 text-gray-900'}`}>
+    <div className="relative min-h-screen space-y-6">
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="w-full overflow-y-auto [&::-webkit-scrollbar]:hidden [&::-moz-scrollbar]:hidden [-ms-overflow-style:none]"
+        aria-hidden
+        animate={{ opacity: [0.2, 0.34, 0.2], y: [0, -16, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="pointer-events-none absolute -left-16 top-10 h-72 w-72 rounded-full bg-cyan-300/35 blur-3xl dark:bg-cyan-900/20"
+      />
+      <motion.div
+        aria-hidden
+        animate={{ opacity: [0.2, 0.3, 0.2], y: [0, 20, 0] }}
+        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        className="pointer-events-none absolute right-0 top-24 h-80 w-80 rounded-full bg-emerald-300/30 blur-3xl dark:bg-emerald-900/20"
+      />
+
+      <motion.section
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-[2rem] border border-cyan-100/70 bg-white/85 p-6 shadow-[0_24px_60px_rgba(14,116,144,0.14)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-900/70 md:p-8"
       >
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 text-white shadow-xl">
-              <div
-                className="absolute inset-0"
-                style={{
-                  backgroundImage: "url('/image/bg_payment_student.png')",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  backgroundRepeat: "no-repeat",
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-900/28 via-slate-900/14 to-slate-900/28" />
-              <div className="relative p-6 sm:p-8">
-                <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] items-start">
-                  <div className="space-y-3 max-w-3xl rounded-2xl border border-white/10 bg-slate-900/18 px-4 py-3 backdrop-blur-[2px]">
-                    <p className="text-xs uppercase tracking-[0.22em] text-emerald-100/95">{t("pay_header_label", "Ví & giao dịch")}</p>
-                    <h1 className="text-3xl sm:text-4xl font-bold leading-tight text-white drop-shadow-[0_2px_8px_rgba(15,23,42,0.55)]">{t("pay_header_title", "Lịch sử thanh toán")}</h1>
-                    <p className="text-white/95 text-sm sm:text-base drop-shadow-[0_1px_5px_rgba(15,23,42,0.5)]">{t("pay_header_subtitle", "Theo dõi số dư, chi tiêu và hóa đơn của bạn trên một bảng điều khiển tinh gọn.")}</p>
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        onClick={() => router.push("/top-up")}
-                        className="inline-flex items-center gap-2 rounded-full bg-white/22 px-4 py-2 text-sm font-semibold text-white backdrop-blur hover:bg-white/30"
-                      >
-                        <Plus size={16} /> {t("pay_topup", "Nạp tiền")}
-                      </button>
-                      <button
-                        onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
-                      >
-                        <Download size={14} /> {t("pay_scroll_tx", "Xem giao dịch")}
-                      </button>
-                    </div>
-                  </div>
+        <div className="absolute inset-0 bg-[radial-gradient(120%_120%_at_0%_0%,rgba(34,211,238,0.2),transparent_45%),radial-gradient(100%_110%_at_100%_0%,rgba(16,185,129,0.2),transparent_42%)]" />
 
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {[{
-                        label: t("pay_completed", "Hoàn tất"),
-                        value: completedCount,
-                        tone: "from-emerald-500/20 to-emerald-600/20 border-emerald-500/40 text-emerald-100"
-                      }, {
-                        label: t("pay_pending", "Chờ xử lý"),
-                        value: pendingCount,
-                        tone: "from-amber-500/20 to-amber-600/20 border-amber-500/40 text-amber-100"
-                      }, {
-                        label: t("pay_failed", "Thất bại"),
-                        value: failedCount,
-                        tone: "from-rose-500/20 to-rose-600/20 border-rose-500/40 text-rose-100"
-                      }].map(card => (
-                        <div key={card.label} className={`rounded-2xl border bg-gradient-to-br ${card.tone} p-4 sm:p-5 shadow-sm backdrop-blur`}> 
-                          <p className="text-xs uppercase tracking-[0.15em] opacity-80">{card.label}</p>
-                          <p className="text-2xl sm:text-3xl font-bold mt-2">{card.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div className="relative z-10 grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+          <div>
+            <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-cyan-700 dark:border-cyan-900/60 dark:bg-cyan-900/30 dark:text-cyan-200">
+              <FileText className="h-3.5 w-3.5" />
+              {t("pay_header_label", "Ví & giao dịch")}
+            </p>
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white md:text-5xl">{t("pay_header_title", "Lịch sử thanh toán")}</h1>
+            <p className="mt-3 max-w-2xl text-sm text-slate-600 dark:text-slate-300 md:text-base">
+              {t("pay_header_subtitle", "Theo dõi số dư, chi tiêu và hóa đơn của bạn trên một bảng điều khiển tinh gọn.")}
+            </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              <div className="rounded-2xl bg-white/95 text-gray-900 dark:bg-slate-900/80 dark:text-white border border-border/60 p-4 sm:p-5 shadow-lg backdrop-blur">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("pay_balance", "SỐ DƯ HIỆN TẠI")}</p>
-                <p className="text-2xl sm:text-3xl font-bold whitespace-nowrap">{formatCurrency(balance)}</p>
-              </div>
-              <div className="rounded-2xl bg-white/95 text-gray-900 dark:bg-slate-900/80 dark:text-white border border-border/60 p-4 sm:p-5 shadow-lg backdrop-blur">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("pay_total_spent", "TỔNG ĐÃ CHI")}</p>
-                <p className="text-2xl sm:text-3xl font-bold whitespace-nowrap">{formatCurrency(totalSpent)}</p>
-              </div>
-              <div className="rounded-2xl bg-white/95 text-gray-900 dark:bg-slate-900/80 dark:text-white border border-border/60 p-4 sm:p-5 shadow-lg backdrop-blur">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("pay_daily_spend", "CHI TIÊU HÀNG NGÀY")}</p>
-                <p className="text-xl sm:text-2xl font-bold whitespace-nowrap">{formatCurrency(dailySpend)}</p>
-              </div>
-            </div>
-
-            {/* Transactions Section */}
-            <div className={`${isDarkMode ? 'bg-slate-900/80 border-gray-700/70' : 'bg-white/95 border-gray-200' } rounded-3xl p-4 sm:p-6 border shadow-lg backdrop-blur`}>
-              <div className="flex flex-col gap-4 sm:gap-5 mb-4 sm:mb-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-white/20 flex items-center justify-center">
-                      <Download size={18} className="text-blue-400" />
-                    </div>
-                    <div>
-                      <h2 className={`text-lg sm:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t("pay_recent_tx", "Giao dịch gần đây")}</h2>
-                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t("pay_recent_tx_hint", "Lọc theo trạng thái hoặc tìm theo mã giao dịch")}</p>
-                    </div>
-                  </div>
-                  <div className="relative w-full sm:w-64">
-                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} size={16} />
-                    <input
-                      type="text"
-                      placeholder={t("pay_search", "Tìm kiếm...")}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className={`w-full pl-10 pr-4 py-2 text-sm ${isDarkMode ? 'bg-slate-800 border-gray-700 text-white placeholder-gray-500' : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'} border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400`}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {[{key:"all", label:t("pay_all_status","Tất cả")}, {key:"completed", label:getStatusText("completed")}, {key:"pending", label:getStatusText("pending")}, {key:"failed", label:getStatusText("failed")}].map(tab => (
-                    <button
-                      key={tab.key}
-                      onClick={() => setStatusTab(tab.key)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
-                        statusTab === tab.key
-                          ? 'bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-500/20'
-                          : isDarkMode
-                            ? 'bg-slate-800 border-gray-700 text-gray-200 hover:border-blue-500/50'
-                            : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {filteredPayments.length === 0 ? (
-                <div className="text-center py-8">
-                  <CreditCard className={`w-12 h-12 ${isDarkMode ? 'text-gray-600' : 'text-gray-300'} mx-auto mb-3`} />
-                  <p className={isDarkMode ? "text-gray-400" : "text-gray-500"}>{t("pay_no_tx", "Không có giao dịch nào")}</p>
-                </div>
-              ) : (
-                <div className="space-y-2 overflow-x-auto">
-                  {/* Table Header */}
-                  <div className={`hidden sm:grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-3 text-xs sm:text-sm ${isDarkMode ? 'text-gray-400 border-gray-700' : 'text-gray-600 border-gray-200'} font-medium border-b`}>
-                    <div className="col-span-4">{t("pay_col_tx", "Giao dịch")}</div>
-                    <div className="col-span-2">{t("pay_col_date", "Ngày")}</div>
-                    <div className="col-span-2">{t("pay_col_status", "Trạng thái")}</div>
-                    <div className="col-span-2">{t("pay_col_amount", "Số tiền")}</div>
-                    <div className="col-span-2 text-right">{t("pay_col_actions", "Thao tác")}</div>
-                  </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              {[{
-                label: t("pay_completed", "Hoàn tất"),
-                value: completedCount,
-                tone: isDarkMode ? "from-emerald-500/20 to-emerald-600/20 border-emerald-500/40 text-emerald-200" : "from-emerald-50 to-white border-emerald-100 text-emerald-700"
-              }, {
-                label: t("pay_pending", "Đang xử lý"),
-                value: pendingCount,
-                tone: isDarkMode ? "from-amber-500/20 to-amber-600/20 border-amber-500/40 text-amber-100" : "from-amber-50 to-white border-amber-100 text-amber-700"
-              }, {
-                label: t("pay_failed", "Thất bại"),
-                value: failedCount,
-                tone: isDarkMode ? "from-rose-500/20 to-rose-600/20 border-rose-500/40 text-rose-100" : "from-rose-50 to-white border-rose-100 text-rose-700"
-              }].map(card => (
-                <div key={card.label} className={`rounded-2xl border bg-gradient-to-br ${card.tone} p-4 sm:p-5 shadow-sm hover:shadow-lg transition-all`}>
-                  <p className="text-xs uppercase tracking-[0.15em] opacity-80">{card.label}</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-2">{card.value}</p>
-                </div>
-              ))}
-            </div>
-
-                  {/* Table Rows */}
-                  {filteredPayments.map((payment) => (
-                    <motion.div
-                      key={payment.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`hidden sm:grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-4 ${isDarkMode ? 'bg-gray-700 border-gray-600 hover:bg-gray-600' : 'bg-gray-50 border-gray-100 hover:bg-blue-50'} rounded-lg transition-all border hover:border-blue-200`}
-                    >
-                      <div className={`col-span-4 text-xs sm:text-sm line-clamp-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} title={payment.courseTitle}>{payment.courseTitle}</div>
-                      <div className={`col-span-2 text-xs sm:text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{formatDate(payment.enrolledAt)}</div>
-                      <div className="col-span-2">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                          payment.status === "completed" ? (isDarkMode ? "bg-emerald-900/50 text-emerald-300" : "bg-emerald-100 text-emerald-700") :
-                          payment.status === "pending" ? (isDarkMode ? "bg-yellow-900/50 text-yellow-300" : "bg-yellow-100 text-yellow-700") :
-                          (isDarkMode ? "bg-red-900/50 text-red-300" : "bg-red-100 text-red-700")
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                            payment.status === "completed" ? "bg-emerald-400" :
-                            payment.status === "pending" ? "bg-yellow-400" :
-                            "bg-red-400"
-                          }`}></span>
-                          {getStatusText(payment.status)}
-                        </span>
-                      </div>
-                      <div className={`col-span-2 font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatCurrency(payment.finalAmount)}</div>
-                      <div className="col-span-2 flex justify-end gap-1 sm:gap-2">
-                        <button
-                          onClick={() => handleViewDetails(payment)}
-                          className={`p-1.5 rounded transition-all text-sm ${isDarkMode ? 'hover:bg-gray-500 text-gray-300' : 'hover:bg-gray-200 text-gray-600'}`}
-                        >
-                          →
-                        </button>
-                        {payment.status === "completed" && (
-                          <button
-                            onClick={() => handleDownloadInvoice(payment)}
-                            className={`p-1.5 rounded transition-all ${isDarkMode ? 'hover:bg-gray-500 text-gray-300' : 'hover:bg-gray-200 text-gray-600'}`}
-                          >
-                            <Download size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-
-                  {/* Mobile View */}
-                  {filteredPayments.map((payment) => (
-                    <motion.div
-                      key={`mobile-${payment.id}`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`sm:hidden px-4 py-4 ${isDarkMode ? 'bg-gray-700 border-gray-600 hover:bg-gray-600' : 'bg-gray-50 border-gray-100 hover:bg-blue-50'} rounded-lg transition-all border hover:border-blue-200`}
-                    >
-                      <div className="space-y-2">
-                        <h4 className={`font-semibold text-sm line-clamp-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} title={payment.courseTitle}>{payment.courseTitle}</h4>
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-1">
-                            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{formatDate(payment.enrolledAt)}</p>
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                              payment.status === "completed" ? (isDarkMode ? "bg-emerald-900/50 text-emerald-300" : "bg-emerald-100 text-emerald-700") :
-                              payment.status === "pending" ? (isDarkMode ? "bg-yellow-900/50 text-yellow-300" : "bg-yellow-100 text-yellow-700") :
-                              (isDarkMode ? "bg-red-900/50 text-red-300" : "bg-red-100 text-red-700")
-                            }`}>
-                              <span className={`w-1 h-1 rounded-full ${
-                                payment.status === "completed" ? "bg-emerald-400" :
-                                payment.status === "pending" ? "bg-yellow-400" :
-                                "bg-red-400"
-                              }`}></span>
-                              {getStatusText(payment.status)}
-                            </span>
-                          </div>
-                          <div className="text-right space-y-2">
-                            <p className={`font-semibold text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatCurrency(payment.finalAmount)}</p>
-                            <div className="flex justify-end gap-1">
-                              <button
-                                onClick={() => handleViewDetails(payment)}
-                                className={`p-1.5 rounded transition-all ${isDarkMode ? 'hover:bg-gray-500 text-gray-300' : 'hover:bg-gray-200 text-gray-600'}`}
-                              >
-                                →
-                              </button>
-                              {payment.status === "completed" && (
-                                <button
-                                  onClick={() => handleDownloadInvoice(payment)}
-                                  className={`p-1.5 rounded transition-all ${isDarkMode ? 'hover:bg-gray-500 text-gray-300' : 'hover:bg-gray-200 text-gray-600'}`}
-                                >
-                                  <Download size={14} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Your Courses Section */}
-            <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-4 sm:p-6 border shadow-sm`}>
-              <div className="flex items-center justify-between mb-6 sm:mb-8">
-                <h2 className={`text-lg sm:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t("pay_your_courses", "Khóa học của bạn")}</h2>
-                <button className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm whitespace-nowrap">
-                  <span>+</span>
-                  {t("pay_add_course", "Thêm khóa học")}
-                </button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {payments.slice(0, 6).map((payment, idx) => (
-                  <motion.div
-                    key={payment.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    whileHover={{ scale: 1.02, translateY: -4 }}
-                    onClick={() => handleViewDetails(payment)}
-                    className={`${isDarkMode ? 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600 hover:from-gray-600 hover:to-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border-gray-200 hover:from-blue-50 to-cyan-50'} rounded-xl border cursor-pointer transition-all overflow-hidden`}
-                  >
-                    {/* Header with Logo */}
-                    <div className={`${isDarkMode ? 'bg-gray-800/50' : 'bg-gradient-to-r from-orange-400 to-orange-500'} p-4 flex items-center gap-3`}>
-                      <div className={`w-12 h-12 rounded-lg flex-shrink-0 flex items-center justify-center font-bold text-white text-lg ${isDarkMode ? 'bg-gradient-to-br from-orange-500 to-orange-600' : 'bg-gradient-to-br from-orange-300 to-orange-400'}`}>
-                        {payment.courseTitle.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className={`text-sm sm:text-base font-semibold line-clamp-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{payment.courseTitle.substring(0, 30)}</h4>
-                        <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>{formatCurrency(payment.finalAmount)}</p>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-4 space-y-3 sm:space-y-4">
-                      {/* Progress */}
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t("pay_progress", "Tiến độ")}</p>
-                          <p className={`text-xs font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>75%</p>
-                        </div>
-                        <div className={`w-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-2 overflow-hidden`}>
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: '75%' }}
-                            transition={{ duration: 1, delay: 0.2 }}
-                            className="bg-gradient-to-r from-emerald-400 to-teal-500 h-full rounded-full"
-                          ></motion.div>
-                        </div>
-                      </div>
-
-                      {/* Stats */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-lg p-3 text-center`}>
-                          <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t("pay_lessons", "Bài học")}</p>
-                          <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>12</p>
-                        </div>
-                        <div className={`${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-lg p-3 text-center`}>
-                          <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t("pay_completed", "Hoàn thành")}</p>
-                          <p className={`text-lg font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>9</p>
-                        </div>
-                      </div>
-
-                      {/* Button */}
-                      <button className={`w-full py-2.5 rounded-lg font-medium transition-all text-sm ${isDarkMode ? 'bg-blue-600/20 text-blue-300 hover:bg-blue-600/30' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}>
-                        {t("pay_continue", "Tiếp tục học")}
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                onClick={() => router.push("/top-up")}
+                className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-500"
+              >
+                <Plus className="h-4 w-4" />
+                {t("pay_topup", "Nạp tiền")}
+              </button>
             </div>
           </div>
-        </motion.div>
 
-      {/* Payment Details Modal */}
-      {viewingDetails && selectedPayment && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto`}
-          >
-            <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-cyan-500 border-b text-white p-4 sm:p-6">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-xl sm:text-2xl font-bold flex-1">{t("pay_detail_title", "Chi tiết giao dịch")}</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
+            {[
+              { label: t("pay_balance", "Số dư"), value: formatCurrency(balance), icon: Wallet },
+              { label: t("pay_total_spent", "Tổng đã chi"), value: formatCurrency(stats.totalSpent), icon: CreditCard },
+              { label: t("pay_daily_spend", "Chi tiêu hôm nay"), value: formatCurrency(stats.dailySpent), icon: Clock3 },
+              { label: t("pay_completed", "Hoàn tất"), value: String(stats.completed), icon: FileText },
+            ].map((item) => {
+              const StatIcon = item.icon || CreditCard
+
+              return (
+                <div key={item.label} className="rounded-xl border border-white/60 bg-white/75 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/60">
+                <p className="mb-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">
+                    <StatIcon className="h-3.5 w-3.5" />
+                  {item.label}
+                </p>
+                <p className="line-clamp-1 text-sm font-black text-slate-900 dark:text-white md:text-base">{item.value}</p>
+              </div>
+              )
+            })}
+          </div>
+        </div>
+      </motion.section>
+
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-slate-200/75 bg-white/85 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-800/75 dark:bg-slate-900/70"
+      >
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full lg:max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t("pay_search", "Tìm theo tên khóa học hoặc mã giao dịch...")}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-cyan-500 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.2)] dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {[
+              { key: "all", label: t("pay_all_status", "Tất cả") },
+              { key: "completed", label: t("pay_status_completed", "Thành công") },
+              { key: "pending", label: t("pay_status_pending", "Đang xử lý") },
+              { key: "failed", label: t("pay_status_failed", "Thất bại") },
+            ].map((tab) => {
+              const active = statusFilter === tab.key
+              return (
                 <button
-                  onClick={() => setViewingDetails(false)}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-all flex-shrink-0"
+                  key={tab.key}
+                  onClick={() => setStatusFilter(tab.key as StatusFilter)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                    active
+                      ? "border-cyan-500 bg-cyan-500 text-white"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-cyan-400 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300"
+                  }`}
                 >
-                  ✕
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </motion.section>
+
+      <section className="grid gap-3">
+        {filteredPayments.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-900/70">
+            <CreditCard className="mx-auto mb-3 h-12 w-12 text-slate-400" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t("pay_no_tx", "Không có giao dịch nào")}</p>
+          </div>
+        ) : (
+          filteredPayments.map((payment, idx) => (
+            <motion.article
+              key={payment.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.04 }}
+              className="rounded-xl border border-slate-200 bg-white/90 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition hover:border-cyan-400/60 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/75"
+            >
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-1 text-base font-semibold text-slate-900 dark:text-white" title={payment.courseTitle}>
+                    {payment.courseTitle}
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <span className="font-mono">{payment.transactionId}</span>
+                    <span>•</span>
+                    <span>{formatDate(payment.enrolledAt)}</span>
+                    <span>•</span>
+                    <span>{payment.paymentMethod}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusClass(payment.status)}`}>
+                    {getStatusLabel(payment.status)}
+                  </span>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white md:text-base">{formatCurrency(payment.finalAmount)}</p>
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-3 dark:border-slate-800">
+                <button
+                  onClick={() => setSelectedPayment(payment)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  {t("pay_detail_title", "Chi tiết")}
+                </button>
+
+                {payment.status === "completed" ? (
+                  <button
+                    onClick={() => handleDownloadInvoice(payment)}
+                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {t("pay_download_invoice", "Tải hóa đơn")}
+                  </button>
+                ) : null}
+              </div>
+            </motion.article>
+          ))
+        )}
+      </section>
+
+      <AnimatePresence>
+        {selectedPayment ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+            onClick={() => setSelectedPayment(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 dark:border-slate-700 dark:bg-slate-900">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t("pay_detail_title", "Chi tiết giao dịch")}</h3>
+                <button onClick={() => setSelectedPayment(null)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 dark:hover:bg-slate-800">
+                  <X className="h-4 w-4" />
                 </button>
               </div>
-            </div>
 
-            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-              <div>
-                <h3 className={`text-lg sm:text-xl font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} title={selectedPayment.courseTitle}>{selectedPayment.courseTitle}</h3>
-                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
-                  selectedPayment.status === "completed" ? (isDarkMode ? "bg-emerald-900/50 text-emerald-300" : "bg-emerald-100 text-emerald-700") :
-                  selectedPayment.status === "pending" ? (isDarkMode ? "bg-yellow-900/50 text-yellow-300" : "bg-yellow-100 text-yellow-700") :
-                  (isDarkMode ? "bg-red-900/50 text-red-300" : "bg-red-100 text-red-700")
-                }`}>
-                  {getStatusText(selectedPayment.status)}
-                </div>
-              </div>
-
-              <div className="space-y-4">
+              <div className="space-y-4 p-5">
                 <div>
-                  <h4 className={`font-semibold mb-2 sm:mb-3 text-sm sm:text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t("pay_info_title", "Thông tin thanh toán")}</h4>
-                  <div className="space-y-2 text-xs sm:text-sm">
-                    <div className="flex justify-between">
-                      <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>{t("pay_tx_id", "Mã giao dịch:")}</span>
-                      <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedPayment.transactionId}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>{t("pay_tx_date", "Ngày giao dịch:")}</span>
-                      <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatDate(selectedPayment.enrolledAt)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>{t("pay_method", "Phương thức:")}</span>
-                      <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedPayment.paymentMethod}</span>
-                    </div>
+                  <p className="text-base font-semibold text-slate-900 dark:text-white">{selectedPayment.courseTitle}</p>
+                  <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusClass(selectedPayment.status)}`}>
+                    {getStatusLabel(selectedPayment.status)}
+                  </span>
+                </div>
+
+                <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-800/40">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500 dark:text-slate-400">{t("pay_tx_id", "Mã giao dịch")}</span>
+                    <span className="font-mono text-slate-800 dark:text-slate-100">{selectedPayment.transactionId}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500 dark:text-slate-400">{t("pay_tx_date", "Ngày giao dịch")}</span>
+                    <span className="text-slate-800 dark:text-slate-100">{formatDate(selectedPayment.enrolledAt)}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500 dark:text-slate-400">{t("pay_method", "Phương thức")}</span>
+                    <span className="text-slate-800 dark:text-slate-100">{selectedPayment.paymentMethod}</span>
                   </div>
                 </div>
 
-                <div className={`border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} pt-3 sm:pt-4`}>
-                  <h4 className={`font-semibold mb-2 sm:mb-3 text-sm sm:text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t("pay_price_detail", "Chi tiết giá")}</h4>
-                  <div className="space-y-2 text-xs sm:text-sm">
-                    <div className="flex justify-between">
-                      <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>{t("pay_original_price", "Giá gốc:")}</span>
-                      <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatCurrency(selectedPayment.amount)}</span>
-                    </div>
-                    {selectedPayment.discountAmount && selectedPayment.discountAmount > 0 && (
-                      <div className={`flex justify-between ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                        <span>{t("pay_discount", "Giảm giá:")}</span>
-                        <span className="font-medium">-{formatCurrency(selectedPayment.discountAmount)}</span>
-                      </div>
-                    )}
-                    <div className={`flex justify-between font-bold border-t ${isDarkMode ? 'border-gray-700 text-white' : 'border-gray-200 text-gray-900'} pt-2 text-sm sm:text-base`}>
-                      <span>{t("pay_total", "Tổng thanh toán:")}</span>
-                      <span>{formatCurrency(selectedPayment.finalAmount)}</span>
-                    </div>
+                <div className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-800/40">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">{t("pay_original_price", "Giá gốc")}</span>
+                    <span className="text-slate-800 dark:text-slate-100">{formatCurrency(selectedPayment.amount)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">{t("pay_discount", "Giảm giá")}</span>
+                    <span className="text-emerald-600 dark:text-emerald-300">-{formatCurrency(selectedPayment.discountAmount || 0)}</span>
+                  </div>
+                  <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 font-bold dark:border-slate-700">
+                    <span className="text-slate-700 dark:text-slate-200">{t("pay_total", "Tổng thanh toán")}</span>
+                    <span className="text-slate-900 dark:text-white">{formatCurrency(selectedPayment.finalAmount)}</span>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
-                {selectedPayment.courseSlug && (
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Link
                     href={`/course/${selectedPayment.courseSlug}`}
-                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg hover:shadow-lg transition-all text-center font-semibold text-sm sm:text-base"
+                    className="inline-flex flex-1 items-center justify-center rounded-lg bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-500"
                   >
                     {t("pay_view_course", "Xem khóa học")}
                   </Link>
-                )}
-                {selectedPayment.status === "completed" && (
-                  <button
-                    onClick={() => handleDownloadInvoice(selectedPayment)}
-                    className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white border-gray-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-900 border-gray-200'} rounded-lg transition-all flex items-center justify-center gap-2 font-semibold border text-sm sm:text-base`}
-                  >
-                    <Download size={16} />
-                    {t("pay_download_invoice", "Tải hóa đơn")}
-                  </button>
-                )}
+
+                  {selectedPayment.status === "completed" ? (
+                    <button
+                      onClick={() => handleDownloadInvoice(selectedPayment)}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      <Download className="h-4 w-4" />
+                      {t("pay_download_invoice", "Tải hóa đơn")}
+                    </button>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
-        </div>
-      )}
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }
