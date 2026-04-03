@@ -240,18 +240,27 @@ export default function PaymentHistoryPage() {
         className="w-full overflow-y-auto [&::-webkit-scrollbar]:hidden [&::-moz-scrollbar]:hidden [-ms-overflow-style:none]"
       >
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl">
-              <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,#22c55e,transparent_35%),radial-gradient(circle_at_80%_0%,#0ea5e9,transparent_30%),radial-gradient(circle_at_50%_80%,#6366f1,transparent_35%)]" />
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 text-white shadow-xl">
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: "url('/image/bg_payment_student.png')",
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-900/28 via-slate-900/14 to-slate-900/28" />
               <div className="relative p-6 sm:p-8">
                 <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] items-start">
                   <div className="space-y-3 max-w-3xl">
                     <p className="text-xs uppercase tracking-[0.22em] text-emerald-200/80">{t("pay_header_label", "Ví & giao dịch")}</p>
                     <h1 className="text-3xl sm:text-4xl font-bold leading-tight">{t("pay_header_title", "Lịch sử thanh toán")}</h1>
-                    <p className="text-slate-200/90 text-sm sm:text-base">{t("pay_header_subtitle", "Theo dõi số dư, chi tiêu và hóa đơn của bạn trên một bảng điều khiển tinh gọn.")}</p>
+                    <p className="text-white/90 text-sm sm:text-base">{t("pay_header_subtitle", "Theo dõi số dư, chi tiêu và hóa đơn của bạn trên một bảng điều khiển tinh gọn.")}</p>
                     <div className="flex flex-wrap gap-3">
                       <button
                         onClick={() => router.push("/top-up")}
-                        className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur hover:bg-white/25"
+                        className="inline-flex items-center gap-2 rounded-full bg-white/22 px-4 py-2 text-sm font-semibold text-white backdrop-blur hover:bg-white/30"
                       >
                         <Plus size={16} /> {t("pay_topup", "Nạp tiền")}
                       </button>
@@ -291,22 +300,22 @@ export default function PaymentHistoryPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              <div className="rounded-2xl bg-white/80 text-gray-900 dark:bg-slate-900/80 dark:text-white border border-border/60 p-4 sm:p-5 shadow-lg backdrop-blur">
+              <div className="rounded-2xl bg-white/95 text-gray-900 dark:bg-slate-900/80 dark:text-white border border-border/60 p-4 sm:p-5 shadow-lg backdrop-blur">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("pay_balance", "SỐ DƯ HIỆN TẠI")}</p>
                 <p className="text-2xl sm:text-3xl font-bold whitespace-nowrap">{formatCurrency(balance)}</p>
               </div>
-              <div className="rounded-2xl bg-white/80 text-gray-900 dark:bg-slate-900/80 dark:text-white border border-border/60 p-4 sm:p-5 shadow-lg backdrop-blur">
+              <div className="rounded-2xl bg-white/95 text-gray-900 dark:bg-slate-900/80 dark:text-white border border-border/60 p-4 sm:p-5 shadow-lg backdrop-blur">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("pay_total_spent", "TỔNG ĐÃ CHI")}</p>
                 <p className="text-2xl sm:text-3xl font-bold whitespace-nowrap">{formatCurrency(totalSpent)}</p>
               </div>
-              <div className="rounded-2xl bg-white/80 text-gray-900 dark:bg-slate-900/80 dark:text-white border border-border/60 p-4 sm:p-5 shadow-lg backdrop-blur">
+              <div className="rounded-2xl bg-white/95 text-gray-900 dark:bg-slate-900/80 dark:text-white border border-border/60 p-4 sm:p-5 shadow-lg backdrop-blur">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("pay_daily_spend", "CHI TIÊU HÀNG NGÀY")}</p>
                 <p className="text-xl sm:text-2xl font-bold whitespace-nowrap">{formatCurrency(dailySpend)}</p>
               </div>
             </div>
 
             {/* Transactions Section */}
-            <div className={`${isDarkMode ? 'bg-slate-900/80 border-gray-700/70' : 'bg-white/80 border-gray-200'} rounded-3xl p-4 sm:p-6 border shadow-lg backdrop-blur`}> 
+            <div className={`${isDarkMode ? 'bg-slate-900/80 border-gray-700/70' : 'bg-white/95 border-gray-200' } rounded-3xl p-4 sm:p-6 border shadow-lg backdrop-blur`}>
               <div className="flex flex-col gap-4 sm:gap-5 mb-4 sm:mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center gap-3">
