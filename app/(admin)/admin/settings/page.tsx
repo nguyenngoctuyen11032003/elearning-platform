@@ -59,51 +59,51 @@ export default function AdminSettingsPage() {
   const { refresh } = useSystemConfig()
   const { config } = useSystemConfig()
   const { setConfig } = useSystemConfig()
-const [settings, setSettings] = useState<SystemSettings | null>(null)
+  const [settings, setSettings] = useState<SystemSettings | null>(null)
 
-// Load config khi component mount hoặc khi branding tab được mở
-useEffect(() => {
-  if (config && !settings) {
-    setSettings({
-      ...DEFAULT_SYSTEM_SETTINGS,
-      ...config,
-      language: config.language,
-    })
-    // Nếu có logo từ server, set preview
-    if (config.site_logo) {
-      setLogoPreview(config.site_logo)
+  // Load config khi component mount hoặc khi branding tab được mở
+  useEffect(() => {
+    if (config && !settings) {
+      setSettings({
+        ...DEFAULT_SYSTEM_SETTINGS,
+        ...config,
+        language: config.language,
+      })
+      // Nếu có logo từ server, set preview
+      if (config.site_logo) {
+        setLogoPreview(config.site_logo)
+      }
     }
-  }
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [config])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config])
 
-// Khi component mount, load config từ server để lấy logo mới nhất
-useEffect(() => {
-  refresh()
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [])
+  // Khi component mount, load config từ server để lấy logo mới nhất
+  useEffect(() => {
+    refresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-useEffect(() => {
-  setSettings((prev) => {
-    if (!prev) return prev
-    if (prev.language === language) return prev
-    return { ...prev, language }
-  })
-}, [language])
+  useEffect(() => {
+    setSettings((prev) => {
+      if (!prev) return prev
+      if (prev.language === language) return prev
+      return { ...prev, language }
+    })
+  }, [language])
 
-useEffect(() => {
-  if (!settings || lastSavedSignature) return
-  setLastSavedSignature(JSON.stringify(settings))
-}, [settings, lastSavedSignature])
+  useEffect(() => {
+    if (!settings || lastSavedSignature) return
+    setLastSavedSignature(JSON.stringify(settings))
+  }, [settings, lastSavedSignature])
 
-// Initialize dark mode on mount
-useEffect(() => {
-  if (isDarkMode) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-  }
-}, [isDarkMode])
+  // Initialize dark mode on mount
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [isDarkMode])
 
   const handleSettingChange = (key: string, value: string | boolean) => {
     setSettings((prev) => ({
@@ -118,17 +118,17 @@ useEffect(() => {
   }
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0]
-  if (file) {
-    setLogoFile(file)
+    const file = e.target.files?.[0]
+    if (file) {
+      setLogoFile(file)
 
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setLogoPreview(reader.result as string)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
     }
-    reader.readAsDataURL(file)
   }
-}
 
   const handleQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -206,7 +206,9 @@ const handleSave = async () => {
     setIsSaving(false)
   }
 }
-if (!settings) return null
+
+  if (!settings) return null
+
   const hasUnsavedChanges =
     JSON.stringify(settings) !== lastSavedSignature || Boolean(logoFile) || Boolean(qrFile)
 
@@ -617,7 +619,7 @@ if (!settings) return null
                     />
                   </button>
                 </div>
-              </section>
+            </div>
             </div>
           </TabsContent>
 
