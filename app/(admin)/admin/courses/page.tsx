@@ -10,6 +10,9 @@ import Link from "next/link"
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
+import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
+import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
 
 interface Course {
   id: string
@@ -127,6 +130,10 @@ export default function AdminCoursesPage() {
       }
     }
     fetchCourses()
+    const timer = setInterval(() => {
+      void fetchCourses()
+    }, 45000)
+    return () => clearInterval(timer)
   }, [])
 
   const filteredCourses = courses.filter(
@@ -143,6 +150,17 @@ export default function AdminCoursesPage() {
   const pendingCourses = courses.filter(c => canModerateCourse(c.status)).length
   const publishedCourses = courses.filter(c => c.status === "published" || c.status === "approved").length
   const rejectedCourses = courses.filter(c => c.status === "rejected").length
+
+  const courseOverviewMetrics = {
+    totalCourses,
+    pendingCourses,
+    publishedCourses,
+    rejectedCourses,
+  }
+
+  const { isChanged: isOverviewChanged, getTrend: getOverviewTrend } = useMetricChangeHighlight(courseOverviewMetrics, {
+    flashDurationMs: 1300,
+  })
 
   const handleCourseAction = (action: string, courseId: string, course?: Course) => {
     setSelectedCourse(course || null)
@@ -326,10 +344,11 @@ export default function AdminCoursesPage() {
             <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalCourses") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_courses_total", "Tổng khóa học")}</p>
-                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1">{totalCourses}</p>
+                    <p className="text-2xl font-bold text-foreground dark:text-white mt-1"><AnimatedNumber value={totalCourses} disableAnimation={!isOverviewChanged("totalCourses")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("totalCourses")} />
                   </div>
                   <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <BookOpen size={20} className="text-blue-600 dark:text-blue-400" />
@@ -337,10 +356,11 @@ export default function AdminCoursesPage() {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("pendingCourses") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_courses_pending", "Chờ duyệt")}</p>
-                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{pendingCourses}</p>
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1"><AnimatedNumber value={pendingCourses} disableAnimation={!isOverviewChanged("pendingCourses")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("pendingCourses")} />
                   </div>
                   <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <Clock size={20} className="text-yellow-600 dark:text-yellow-400" />
@@ -348,10 +368,11 @@ export default function AdminCoursesPage() {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("publishedCourses") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_courses_approved_label", "Đã duyệt")}</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{publishedCourses}</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1"><AnimatedNumber value={publishedCourses} disableAnimation={!isOverviewChanged("publishedCourses")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("publishedCourses")} />
                   </div>
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
@@ -359,10 +380,11 @@ export default function AdminCoursesPage() {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.55s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("rejectedCourses") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_courses_rejected_label", "Từ chối")}</p>
-                    <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{rejectedCourses}</p>
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1"><AnimatedNumber value={rejectedCourses} disableAnimation={!isOverviewChanged("rejectedCourses")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("rejectedCourses")} />
                   </div>
                   <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <XCircle size={20} className="text-red-600 dark:text-red-400" />

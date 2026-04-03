@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { LayoutDashboard, BookOpen, Users, Settings, LogOut, User, Star, BarChart3, FileText, Award, ChevronRight, ClipboardList } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
@@ -24,6 +24,28 @@ export function TeacherSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { config } = useSystemConfig()
+
+  useEffect(() => {
+    if (isCollapsed) return
+
+    const desktopQuery = window.matchMedia("(min-width: 1280px)")
+    if (!desktopQuery.matches) return
+
+    const mainContent = document.querySelector("main[data-dashboard-main='true']")
+    if (!mainContent) return
+
+    const collapseSidebar = () => setIsCollapsed(true)
+
+    mainContent.addEventListener("pointerdown", collapseSidebar, { passive: true })
+    mainContent.addEventListener("wheel", collapseSidebar, { passive: true })
+    mainContent.addEventListener("touchstart", collapseSidebar, { passive: true })
+
+    return () => {
+      mainContent.removeEventListener("pointerdown", collapseSidebar)
+      mainContent.removeEventListener("wheel", collapseSidebar)
+      mainContent.removeEventListener("touchstart", collapseSidebar)
+    }
+  }, [isCollapsed])
 
   const menuItems = [
     { icon: LayoutDashboard, label: t("teacher_menu_dashboard", "Dashboard"), href: "/teacher/dashboard" },

@@ -1,7 +1,5 @@
 ﻿"use client"
 
-import { StatCard } from "@/components/ui/stat-card"
-import { BookOpen, CreditCard, UserCheck, Users } from "lucide-react"
 import {
   AreaChart,
   Area,
@@ -24,11 +22,15 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
 } from "recharts"
-import { useState, useEffect } from "react"
-import { formatPrice, formatNumber, formatCurrency, formatCurrencyByLanguage } from "@/lib/format"
+import { BookOpen, DollarSign, TrendingUp, Users } from "lucide-react"
+import { useState, useEffect, useRef, useMemo } from "react"
+import { formatNumber, formatCurrency, formatCurrencyByLanguage } from "@/lib/format"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { apiClient } from "@/lib/api/client"
 import { format } from "date-fns/format"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
+import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
+import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
 
 // const revenueData = [
 //   { month: "1", revenue: 24000, teachers: 45, students: 400 },
@@ -59,6 +61,97 @@ type RadarMetric = { metric: string; value: number }
 type CoursePerformance = { courseId: string; courseTitle: string; teacherName: string; enrollments: number; revenue: number; averageRating: number; completionRate: number }
 
 const pieColors = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"]
+const chartTooltipStyle = {
+  backgroundColor: "#0f172a",
+  border: "1px solid #1e293b",
+  borderRadius: "10px",
+  color: "#e2e8f0",
+}
+const chartTooltipLabelStyle = { color: "#e2e8f0", fontWeight: 600 }
+const chartTooltipItemStyle = { color: "#e2e8f0" }
+const DASHBOARD_REALTIME_MS = 45000
+
+const LIVE_CLOCK_ANIMATION_STYLE: "light" | "clear" = "clear"
+const LIVE_CLOCK_ANIMATION_PRESETS = {
+  light: {
+    durationMs: 260,
+    fromY: 3,
+    fromBlur: 0,
+    fromOpacity: 0.55,
+  },
+  clear: {
+    durationMs: 480,
+    fromY: 5,
+    fromBlur: 1.5,
+    fromOpacity: 0.35,
+  },
+} as const
+
+const isSameData = <T,>(a: T, b: T) => JSON.stringify(a) === JSON.stringify(b)
+
+const fallbackOverviewMetrics = {
+  totalRevenue: 1897000,
+  totalTeachers: 3,
+  totalStudents: 4,
+  totalCourses: 9,
+  platformRevenue: 569100,
+  teacherRevenue: 1327900,
+  totalUsers: 10,
+  teacherGrowthPeople: 0,
+  studentGrowthPeople: 1,
+}
+
+const toNumber = (value: unknown): number => {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : 0
+}
+
+const safeMonthKey = (month: string) => {
+  if (/^\d{4}-\d{2}$/.test(month)) return month
+  if (/^\d{2}\/\d{4}$/.test(month)) {
+    const [mm, yyyy] = month.split("/")
+    return `${yyyy}-${mm}`
+  }
+  return month
+}
+
+const mergeGrowthSeries = (growthStats: any): GrowthPoint[] => {
+  const teacherSeries = Array.isArray(growthStats?.teachersByMonth) ? growthStats.teachersByMonth : []
+  const studentSeries = Array.isArray(growthStats?.studentsByMonth) ? growthStats.studentsByMonth : []
+
+  const monthSet = new Set<string>([
+    ...teacherSeries.map((m: any) => String(m?.month ?? "")),
+    ...studentSeries.map((s: any) => String(s?.month ?? "")),
+  ])
+
+  return Array.from(monthSet)
+    .filter(Boolean)
+    .sort((a, b) => safeMonthKey(a).localeCompare(safeMonthKey(b)))
+    .map((month) => ({
+      month,
+      teachers: toNumber(teacherSeries.find((m: any) => String(m?.month) === month)?.count),
+      students: toNumber(studentSeries.find((s: any) => String(s?.month) === month)?.count),
+    }))
+}
+
+const normalizeDashboardGrowth = (growthChart: any): GrowthPoint[] => {
+  if (!Array.isArray(growthChart)) return []
+
+  return growthChart
+    .map((item: any) => ({
+      month: String(item?.month ?? ""),
+      teachers: toNumber(item?.teachers),
+      students: toNumber(item?.students),
+    }))
+    .filter((item) => item.month)
+    .sort((a, b) => safeMonthKey(a.month).localeCompare(safeMonthKey(b.month)))
+}
+
+const hasAnyOverviewData = (stats: any) => {
+  if (!stats || typeof stats !== "object") return false
+  const keys = ["totalRevenue", "totalTeachers", "totalStudents", "totalCourses", "totalUsers", "platformRevenue", "teacherRevenue"]
+  return keys.some((key) => stats[key] !== undefined && stats[key] !== null)
+}
 
 function formatSafeLocalDate(...values: unknown[]): string {
   const parseCandidateDate = (value: unknown): Date | null => {
@@ -143,6 +236,87 @@ export default function AdminDashboard() {
   const [topStudentsCertificates, setTopStudentsCertificates] = useState<StudentCertificate[]>([])
   const [radarMetrics, setRadarMetrics] = useState<RadarMetric[]>([])
   const [coursePerformanceTop, setCoursePerformanceTop] = useState<CoursePerformance[]>([])
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
+  const [liveClock, setLiveClock] = useState(() => new Date())
+  const [chartMotionCycle, setChartMotionCycle] = useState(0)
+  const [chartAnimationFlags, setChartAnimationFlags] = useState({
+    revenue: true,
+    category: true,
+    radar: true,
+  })
+  const chartSignaturesRef = useRef<{ revenue: string; category: string; radar: string } | null>(null)
+  const liveClockTextRef = useRef<HTMLSpanElement | null>(null)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveClock(new Date())
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    const el = liveClockTextRef.current
+    if (!el || typeof el.animate !== "function") return
+
+    const preset = LIVE_CLOCK_ANIMATION_PRESETS[LIVE_CLOCK_ANIMATION_STYLE]
+
+    el.animate(
+      [
+        {
+          opacity: preset.fromOpacity,
+          transform: `translateY(${preset.fromY}px)`,
+          filter: `blur(${preset.fromBlur}px)`,
+        },
+        { opacity: 1, transform: "translateY(0px)", filter: "blur(0px)" },
+      ],
+      {
+        duration: preset.durationMs,
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+      },
+    )
+  }, [liveClock])
+
+  const revenueSignature = useMemo(() => JSON.stringify(revenueData), [revenueData])
+  const categorySignature = useMemo(() => JSON.stringify(categoryData), [categoryData])
+  const radarSignature = useMemo(() => JSON.stringify(radarMetrics), [radarMetrics])
+
+  useEffect(() => {
+    const prev = chartSignaturesRef.current
+    const next = {
+      revenue: revenueSignature,
+      category: categorySignature,
+      radar: radarSignature,
+    }
+
+    chartSignaturesRef.current = next
+    if (!prev) return
+
+    const changed = {
+      revenue: prev.revenue !== next.revenue,
+      category: prev.category !== next.category,
+      radar: prev.radar !== next.radar,
+    }
+
+    if (!changed.revenue && !changed.category && !changed.radar) return
+
+    setChartMotionCycle((value) => value + 1)
+    setChartAnimationFlags((current) => ({
+      revenue: changed.revenue ? true : current.revenue,
+      category: changed.category ? true : current.category,
+      radar: changed.radar ? true : current.radar,
+    }))
+
+    const timer = setTimeout(() => {
+      setChartAnimationFlags((current) => ({
+        revenue: changed.revenue ? false : current.revenue,
+        category: changed.category ? false : current.category,
+        radar: changed.radar ? false : current.radar,
+      }))
+    }, 1700)
+
+    return () => clearTimeout(timer)
+  }, [revenueSignature, categorySignature, radarSignature])
 
   const teacherRankingData = topTeachers.map((item) => ({
     name: item.teacherName,
@@ -198,23 +372,39 @@ function buildRevenueChart(transactions: { createdAt: string; amount: number }[]
 }
 
 useEffect(() => {
-  const loadDashboard = async () => {
-    setLoading(true)
+  const loadDashboard = async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
-      const res = await apiClient.getAdminDashboardStats()
-      const dashboard = res.data ?? res
+      const [dashboardRes, growthRes, revenueRes, userRes] = await Promise.allSettled([
+        apiClient.getAdminDashboardStats(),
+        apiClient.getAdminGrowthStats(),
+        apiClient.getAdminRevenueReport(),
+        apiClient.getAdminUserReport(),
+      ])
+
+      const dashboard = dashboardRes.status === "fulfilled" ? (dashboardRes.value?.data ?? dashboardRes.value ?? {}) : {}
+      const growthStats = growthRes.status === "fulfilled" ? (growthRes.value?.data ?? growthRes.value ?? null) : null
+      const revenueReport = revenueRes.status === "fulfilled" ? (revenueRes.value?.data ?? revenueRes.value ?? null) : null
+      const userReport = userRes.status === "fulfilled" ? (userRes.value?.data ?? userRes.value ?? null) : null
+
+      const mergedGrowth = mergeGrowthSeries(growthStats)
+      const dashboardGrowth = normalizeDashboardGrowth(dashboard?.growthChart)
+      const growthSource = mergedGrowth.length ? mergedGrowth : dashboardGrowth
 
       /* ================== STATS ================== */
       const normalizedStats = {
         ...dashboard,
-        totalRevenue: Number(dashboard.totalRevenue ?? 0),
-        totalTeachers: Number(dashboard.totalTeachers ?? 0),
-        totalStudents: Number(dashboard.totalStudents ?? 0),
-        totalCourses: Number(dashboard.totalCourses ?? 0),
-        revenueGrowth: Number(dashboard.revenueGrowth ?? 0),
-        teacherGrowth: Number(dashboard.teacherGrowth ?? 0),
-        studentGrowth: Number(dashboard.studentGrowth ?? 0),
-        courseGrowth: Number(dashboard.courseGrowth ?? 0),
+        totalRevenue: toNumber(dashboard?.totalRevenue ?? revenueReport?.totalRevenue),
+        totalTeachers: toNumber(dashboard?.totalTeachers),
+        totalStudents: toNumber(dashboard?.totalStudents),
+        totalCourses: toNumber(dashboard?.totalCourses),
+        totalUsers: toNumber(dashboard?.totalUsers ?? userReport?.totalUsers),
+        platformRevenue: toNumber(revenueReport?.platformRevenue),
+        teacherRevenue: toNumber(revenueReport?.teacherRevenue),
+        revenueGrowth: toNumber(dashboard?.revenueGrowth),
+        teacherGrowth: toNumber(dashboard?.teacherGrowth),
+        studentGrowth: toNumber(dashboard?.studentGrowth),
+        courseGrowth: toNumber(dashboard?.courseGrowth),
       }
       setStats(normalizedStats)
 
@@ -224,12 +414,11 @@ useEffect(() => {
         dashboard.revenueChart?.data?.length
       ) {
         const chart = dashboard.revenueChart
-        setRevenueData(
-          chart.labels.map((label: string, i: number) => ({
-            month: label,
-            revenue: Number(chart.data?.[i] ?? 0),
-          }))
-        )
+        const nextRevenue = chart.labels.map((label: string, i: number) => ({
+          month: label,
+          revenue: Number(chart.data?.[i] ?? 0),
+        }))
+        setRevenueData((prev) => (isSameData(prev, nextRevenue) ? prev : nextRevenue))
       } else if (dashboard.recentTransactions?.length) {
         const revenueChart = buildRevenueChart(
           dashboard.recentTransactions.map((t: any) => ({
@@ -238,62 +427,38 @@ useEffect(() => {
           }))
         )
 
-        setRevenueData(
-          revenueChart.labels.map((label: string, i: number) => ({
-            month: label,
-            revenue: revenueChart.data?.[i] ?? 0,
-          }))
-        )
+        const nextRevenue = revenueChart.labels.map((label: string, i: number) => ({
+          month: label,
+          revenue: revenueChart.data?.[i] ?? 0,
+        }))
+        setRevenueData((prev) => (isSameData(prev, nextRevenue) ? prev : nextRevenue))
       } else {
-        setRevenueData([])
+        setRevenueData((prev) => (prev.length ? [] : prev))
       }
 
       /* ================== WEEKLY STATS ================== */
-      setWeeklyStats(
-        Array.isArray(dashboard.weeklyStats)
-          ? dashboard.weeklyStats.map((item: any) => ({
-              day: item.day,
-              activeUsers: Number(item.activeUsers ?? 0),
-              newSignups: Number(item.newSignups ?? 0),
-            }))
-          : []
-      )
+      const nextWeeklyStats = Array.isArray(dashboard.weeklyStats)
+        ? dashboard.weeklyStats.map((item: any) => ({
+            day: item.day,
+            activeUsers: Number(item.activeUsers ?? 0),
+            newSignups: Number(item.newSignups ?? 0),
+          }))
+        : []
+      setWeeklyStats((prev) => (isSameData(prev, nextWeeklyStats) ? prev : nextWeeklyStats))
 
       /* ================== GROWTH CHART ================== */
-      setGrowthData(
-        Array.isArray(dashboard.growthChart)
-          ? dashboard.growthChart.map((item: any) => {
-              let month = item.month || '';
-              if (item.month?.length === 7 && item.month) {
-                try {
-                  const date = new Date(`${item.month}-01`);
-                  if (!isNaN(date.getTime())) {
-                    month = format(date, "MM/yyyy");
-                  }
-                } catch {
-                  month = item.month;
-                }
-              }
-              return {
-                month,
-                teachers: Number(item.teachers ?? 0),
-                students: Number(item.students ?? 0),
-              };
-            })
-          : []
-      )
+      setGrowthData((prev) => (isSameData(prev, growthSource) ? prev : growthSource))
 
       /* ================== CATEGORY DISTRIBUTION ================== */
-      setCategoryData(
-        Array.isArray(dashboard.categoryDistribution)
-          ? dashboard.categoryDistribution.map((item: any, idx: number) => ({
-              name: item.categoryName,
-              value: Number(item.courseCount ?? 0),
-              percentage: Number(item.percentage ?? 0),
-              color: pieColors[idx % pieColors.length],
-            }))
-          : []
-      )
+      const nextCategoryData = Array.isArray(dashboard.categoryDistribution)
+        ? dashboard.categoryDistribution.map((item: any, idx: number) => ({
+            name: item.categoryName,
+            value: Number(item.courseCount ?? 0),
+            percentage: Number(item.percentage ?? 0),
+            color: pieColors[idx % pieColors.length],
+          }))
+        : []
+      setCategoryData((prev) => (isSameData(prev, nextCategoryData) ? prev : nextCategoryData))
 
       /* ================== PLAN & CERTIFICATE BREAKDOWN ================== */
       const planSummary: TeacherPlanSummary = {
@@ -369,14 +534,18 @@ useEffect(() => {
           : []
       )
 
+      const topCompletion = Array.isArray(dashboard.topStudentsByCompletion) && dashboard.topStudentsByCompletion.length
+        ? dashboard.topStudentsByCompletion[0]
+        : null
+
       const radarSource: RadarMetric[] = [
         { metric: t("adm_dash_paid_teachers", "GV trả phí"), value: planSummary.paid },
         { metric: t("adm_dash_free_or_unsub", "GV chưa trả phí"), value: planSummary.free + planSummary.unsubscribed },
         { metric: t("adm_dash_students_with_cert", "HV có chứng chỉ"), value: certSummary.withCertificate },
         { metric: t("adm_dash_students_no_cert", "HV chưa có chứng chỉ"), value: certSummary.withoutCertificate },
-        { metric: t("adm_dash_top_completion", "HV hoàn thành nhiều khóa"), value: topStudentsCompletion?.[0]?.completedCourses ?? 0 },
+        { metric: t("adm_dash_top_completion", "HV hoàn thành nhiều khóa"), value: toNumber(topCompletion?.completedCourses) },
       ].filter((item) => item.value > 0)
-      setRadarMetrics(radarSource)
+      setRadarMetrics((prev) => (isSameData(prev, radarSource) ? prev : radarSource))
 
       /* ================== RECENT TRANSACTIONS ================== */
       setRecentTransactions(
@@ -401,6 +570,7 @@ useEffect(() => {
             ),
         }))
       )
+      setLastSyncedAt(new Date())
     } catch (err) {
       console.warn("Dashboard temporarily unavailable:", err)
       setStats(null)
@@ -419,12 +589,139 @@ useEffect(() => {
       setRadarMetrics([])
       setCoursePerformanceTop([])
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
   loadDashboard()
+  const refreshTimer = setInterval(() => {
+    void loadDashboard(true)
+  }, DASHBOARD_REALTIME_MS)
+
+  return () => clearInterval(refreshTimer)
 }, [])
+
+const safeTotalRevenue = Number(stats?.totalRevenue ?? 0)
+const safeTotalTeachers = Number(stats?.totalTeachers ?? 0)
+const safeTotalStudents = Number(stats?.totalStudents ?? 0)
+const safeTotalCourses = Number(stats?.totalCourses ?? 0)
+const safePlatformRevenue = Number(stats?.platformRevenue ?? Math.round(safeTotalRevenue * 0.3))
+const safeTeacherRevenue = Number(stats?.teacherRevenue ?? Math.max(safeTotalRevenue - safePlatformRevenue, 0))
+const safeTotalUsers = Number(stats?.totalUsers ?? (safeTotalTeachers + safeTotalStudents))
+
+const showFallbackMetrics = !hasAnyOverviewData(stats)
+
+const finalTotalRevenue = showFallbackMetrics ? fallbackOverviewMetrics.totalRevenue : safeTotalRevenue
+const finalTotalTeachers = showFallbackMetrics ? fallbackOverviewMetrics.totalTeachers : safeTotalTeachers
+const finalTotalStudents = showFallbackMetrics ? fallbackOverviewMetrics.totalStudents : safeTotalStudents
+const finalTotalCourses = showFallbackMetrics ? fallbackOverviewMetrics.totalCourses : safeTotalCourses
+const finalPlatformRevenue = showFallbackMetrics
+  ? fallbackOverviewMetrics.platformRevenue
+  : (safePlatformRevenue > 0 ? safePlatformRevenue : Math.round(safeTotalRevenue * 0.3))
+const finalTeacherRevenue = showFallbackMetrics
+  ? fallbackOverviewMetrics.teacherRevenue
+  : (safeTeacherRevenue > 0 ? safeTeacherRevenue : Math.max(safeTotalRevenue - finalPlatformRevenue, 0))
+const finalTotalUsers = showFallbackMetrics
+  ? fallbackOverviewMetrics.totalUsers
+  : (safeTotalUsers > 0 ? safeTotalUsers : safeTotalTeachers + safeTotalStudents)
+
+const teacherGrowthPeople = growthData.at(-1)?.teachers ?? Number(stats?.teacherGrowth ?? 0)
+
+const studentGrowthPeople = growthData.at(-1)?.students ?? Number(stats?.studentGrowth ?? 0)
+
+const finalTeacherGrowthPeople = showFallbackMetrics ? fallbackOverviewMetrics.teacherGrowthPeople : teacherGrowthPeople
+const finalStudentGrowthPeople = showFallbackMetrics ? fallbackOverviewMetrics.studentGrowthPeople : studentGrowthPeople
+
+const primaryOverviewCards = [
+  {
+    key: "totalRevenue",
+    label: t("adm_dash_total_revenue", "Tổng doanh thu"),
+    value: finalTotalRevenue,
+    formatter: (value: number) => formatCurrency(Math.round(value)),
+    tone: "from-primary/20 to-accent/25",
+    icon: DollarSign,
+  },
+  {
+    key: "totalTeachers",
+    label: t("adm_dash_total_teachers", "Tổng giáo viên"),
+    value: finalTotalTeachers,
+    formatter: (value: number) => formatNumber(Math.round(value)),
+    tone: "from-purple-200/30 to-blue-200/30",
+    icon: Users,
+  },
+  {
+    key: "totalStudents",
+    label: t("adm_dash_total_students", "Tổng học viên"),
+    value: finalTotalStudents,
+    formatter: (value: number) => formatNumber(Math.round(value)),
+    tone: "from-green-200/25 to-teal-200/30",
+    icon: TrendingUp,
+  },
+  {
+    key: "totalCourses",
+    label: t("adm_dash_total_courses", "Tổng khóa học"),
+    value: finalTotalCourses,
+    formatter: (value: number) => formatNumber(Math.round(value)),
+    tone: "from-orange-200/30 to-yellow-200/25",
+    icon: BookOpen,
+  },
+]
+
+const secondaryOverviewCards = [
+  {
+    key: "platformRevenue",
+    label: t("adm_dash_platform_revenue", "Doanh thu nền tảng"),
+    value: finalPlatformRevenue,
+    formatter: (value: number) => formatCurrency(Math.round(value)),
+    badgeClass: "from-primary/25 to-primary/10",
+  },
+  {
+    key: "teacherRevenue",
+    label: t("adm_dash_teacher_revenue", "Doanh thu giáo viên"),
+    value: finalTeacherRevenue,
+    formatter: (value: number) => formatCurrency(Math.round(value)),
+    badgeClass: "from-emerald-300/30 to-lime-300/20",
+  },
+  {
+    key: "totalUsers",
+    label: t("adm_dash_total_users", "Tổng người dùng"),
+    value: finalTotalUsers,
+    formatter: (value: number) => formatNumber(Math.round(value)),
+    badgeClass: "from-indigo-300/30 to-sky-300/20",
+  },
+  {
+    key: "teacherGrowth",
+    label: t("adm_dash_growth_teachers", "Tăng trưởng GV"),
+    value: finalTeacherGrowthPeople,
+    formatter: (value: number) => formatNumber(Math.round(value)),
+    suffix: ` ${t("adm_dash_person_unit", "người")}`,
+    badgeClass: "from-fuchsia-300/30 to-violet-300/20",
+  },
+  {
+    key: "studentGrowth",
+    label: t("adm_dash_growth_students", "Tăng trưởng HV"),
+    value: finalStudentGrowthPeople,
+    formatter: (value: number) => formatNumber(Math.round(value)),
+    suffix: ` ${t("adm_dash_person_unit", "người")}`,
+    badgeClass: "from-cyan-300/30 to-teal-300/20",
+  },
+]
+
+const overviewMetrics = {
+  totalRevenue: finalTotalRevenue,
+  totalTeachers: finalTotalTeachers,
+  totalStudents: finalTotalStudents,
+  totalCourses: finalTotalCourses,
+  platformRevenue: finalPlatformRevenue,
+  teacherRevenue: finalTeacherRevenue,
+  totalUsers: finalTotalUsers,
+  teacherGrowth: finalTeacherGrowthPeople,
+  studentGrowth: finalStudentGrowthPeople,
+}
+
+const { isChanged: isOverviewChanged, getTrend: getOverviewTrend } = useMetricChangeHighlight(overviewMetrics, {
+  flashDurationMs: 1300,
+})
 
 if (loading) {
   return (
@@ -458,20 +755,40 @@ if (loading) {
   }
 
   return (
-    <div className="min-h-screen w-full">
-      <div className="w-full space-y-6 md:space-y-8">
+    <div className="min-h-screen w-full bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
+      <div className="w-full space-y-8">
         {/* Header with Background */}
-        <div className="relative overflow-hidden rounded-3xl p-4 sm:p-6 lg:p-8" style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div className="relative overflow-hidden rounded-3xl p-8 lg:p-10 animate-fadeIn border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl" style={{ backgroundImage: "url('/image/bg_login.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
           {/* Overlay for better readability */}
-          <div className="absolute inset-0 bg-black/15 dark:bg-black/45"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-900/80"></div>
           
-          <div className="relative z-10 space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
+          <div className="relative z-10 space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+              <div className="space-y-3 animate-slideDown" style={{ animationDelay: "0.1s" }}>
+                <div className="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold uppercase tracking-wide rounded-full bg-white/80 text-primary shadow-sm backdrop-blur">
+                  {t("adm_dash_label", "Dashboard")}
+                </div>
+                <div className="space-y-2">
                 <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">{t("adm_dash_title", "Bảng điều khiển quản trị")}</h1>
                 <p className="text-black/80 dark:text-white/90 drop-shadow">{t("adm_dash_subtitle", "Tổng quan hệ thống ICS Learning - Quản lý toàn diện")}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="px-3 py-1 rounded-full bg-white/90 text-primary text-sm font-semibold shadow-sm backdrop-blur">
+                    {t("adm_dash_period_chip", "Kỳ đang xem")}: {filterPeriod === "day" ? t("adm_dash_day", "Ngày") : filterPeriod === "week" ? t("adm_dash_week", "Tuần") : filterPeriod === "month" ? t("adm_dash_month", "Tháng") : t("adm_dash_year", "Năm")}
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-black/15 text-white text-sm font-medium backdrop-blur">
+                    {t("adm_dash_live", "Dữ liệu cập nhật tức thời")}
+                    <span ref={liveClockTextRef} className="inline-block will-change-transform">{` • ${liveClock.toLocaleTimeString("vi-VN")}`}</span>
+                  </span>
+                  {lastSyncedAt ? (
+                    <span className="px-3 py-1 rounded-full bg-white/75 text-slate-700 text-xs font-semibold shadow-sm backdrop-blur">
+                      {t("adm_dash_last_sync", "Lần đồng bộ gần nhất")}: {lastSyncedAt.toLocaleTimeString("vi-VN")}
+                    </span>
+                  ) : null}
+                </div>
               </div>
-              <div className="flex gap-2 flex-wrap">
+
+              <div className="flex flex-wrap gap-2 animate-slideDown" style={{ animationDelay: "0.2s" }}>
                 {[
                   { value: "day", label: t("adm_dash_day", "Ngày") },
                   { value: "week", label: t("adm_dash_week", "Tuần") },
@@ -481,10 +798,10 @@ if (loading) {
                   <button
                     key={period.value}
                     onClick={() => setFilterPeriod(period.value)}
-                    className={`min-h-10 px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg transition-all duration-300 font-medium backdrop-blur-sm ${
+                    className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-all duration-300 backdrop-blur-sm shadow-sm ${
                       filterPeriod === period.value
-                        ? "bg-white text-primary shadow-lg"
-                        : "bg-white/30 dark:bg-white/20 text-slate-900 dark:text-white hover:bg-white/45"
+                        ? "bg-white text-primary border-white shadow-lg scale-[1.02]"
+                        : "bg-white/20 text-white border-white/40 hover:bg-white/30"
                     }`}
                   >
                     {period.label}
@@ -493,39 +810,55 @@ if (loading) {
               </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard
-  icon={UserCheck}
-  title={t("adm_dash_total_teachers", "Tổng giáo viên")}
-  value={stats?.totalTeachers || 0}
-  formatter={formatNumber}
-  change={`+${stats?.teacherGrowth || 0}% ${t("adm_dash_vs_last_month", "so với tháng trước")}`}
-/>
+            {/* Premium KPI Overview */}
+            <div className="rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/20 dark:bg-white/5 backdrop-blur-xl p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.16)] space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {primaryOverviewCards.map((item, index) => {
+                  const Icon = item.icon
+                  return (
+                  <div key={item.key} className={`group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border p-4 shadow-[0_10px_26px_rgba(15,23,42,0.16)] transition-all duration-700 ${isOverviewChanged(item.key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/50 dark:ring-emerald-500/30" : "border-white/60 dark:border-slate-800"}`}>
+                    <div className={`absolute inset-0 bg-gradient-to-br ${item.tone} opacity-70 group-hover:opacity-90 transition-opacity duration-300`} />
+                    <div className="relative flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{item.label}</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                          <AnimatedNumber value={item.value} formatter={item.formatter} durationMs={950} delayMs={index * 70} disableAnimation={!isOverviewChanged(item.key)} />
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                          {t("adm_dash_periodic_update", "Cập nhật theo kỳ")}
+                        </p>
+                        <MetricTrendBadge trend={getOverviewTrend(item.key)} />
+                      </div>
+                      <div className="w-11 h-11 rounded-2xl bg-white/70 dark:bg-slate-800/80 border border-white/60 dark:border-slate-700 flex items-center justify-center shadow-inner">
+                        <Icon size={20} className="text-primary" />
+                      </div>
+                    </div>
+                  </div>
+                )})}
+              </div>
 
-<StatCard
-  icon={Users}
-  title={t("adm_dash_total_students", "Tổng học viên")}
-  value={stats?.totalStudents || 0}
-  formatter={formatNumber}
-  change={`+${stats?.studentGrowth || 0}% ${t("adm_dash_vs_last_month", "so với tháng trước")}`}
-/>
-
-<StatCard
-  icon={BookOpen}
-  title={t("adm_dash_total_courses", "Tổng khóa học")}
-  value={stats?.totalCourses || 0}
-  formatter={formatNumber}
-  change={`+${stats?.courseGrowth || 0}% ${t("adm_dash_vs_last_month", "so với tháng trước")}`}
-/>
-<StatCard
-  icon={CreditCard}
-  title={t("adm_dash_total_revenue", "Tổng doanh thu")}
-  value={Number(stats?.totalRevenue || 0)}
-  formatter={(val) => formatCurrency(Math.round(val))}
-  change={`${stats?.revenueGrowth || 0}% ${t("adm_dash_vs_30_days", "so với 30 ngày trước")}`}
-/>
-
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                {secondaryOverviewCards.map((item, index) => (
+                  <div key={item.key} className={`relative overflow-hidden rounded-xl px-3 py-3 bg-white/75 dark:bg-slate-900/70 border shadow-sm backdrop-blur transition-all duration-700 ${isOverviewChanged(item.key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/60 dark:border-slate-800"}`}>
+                    <div className={`absolute inset-0 bg-gradient-to-br ${item.badgeClass} opacity-70`} />
+                    <div className="relative space-y-1">
+                      <p className="text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-300 font-semibold">{item.label}</p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                        <AnimatedNumber
+                          value={item.value}
+                          formatter={item.formatter}
+                          suffix={item.suffix}
+                          durationMs={950}
+                          delayMs={index * 70}
+                          disableAnimation={!isOverviewChanged(item.key)}
+                        />
+                      </p>
+                      <MetricTrendBadge trend={getOverviewTrend(item.key)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -552,13 +885,9 @@ if (loading) {
                 <XAxis dataKey="month" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1e293b",
-                    border: "1px solid #334155",
-                    borderRadius: "8px",
-                    color: "#fff"
-                  }}
-                  itemStyle={{ color: "#fff" }}
+                  contentStyle={chartTooltipStyle}
+                  labelStyle={chartTooltipLabelStyle}
+                  itemStyle={chartTooltipItemStyle}
                   formatter={(value) => [formatCurrency(Math.round(Number(value ?? 0))), t("adm_dash_revenue", "Doanh thu")]}
                 />
                 <Legend />
@@ -568,9 +897,11 @@ if (loading) {
                   stroke="#2563eb"
                   fillOpacity={1}
                   fill="url(#colorRevenue)"
-                  isAnimationActive
-                  animationDuration={900}
+                  isAnimationActive={chartAnimationFlags.revenue}
+                  animationBegin={90 + (chartMotionCycle % 2) * 10}
+                  animationDuration={1250}
                   animationEasing="ease-out"
+                  strokeWidth={2.6}
                   name={t("adm_dash_revenue", "Doanh thu")}
                 />
               </AreaChart>
@@ -596,19 +927,19 @@ if (loading) {
                       paddingAngle={3}
                       dataKey="value"
                       labelLine={false}
+                      isAnimationActive={chartAnimationFlags.category}
+                      animationBegin={240 + (chartMotionCycle % 2) * 15}
+                      animationDuration={1150}
+                      animationEasing="ease-out"
                     >
                       {categoryData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#1e293b",
-                        border: "1px solid #334155",
-                        borderRadius: "8px",
-                        color: "#fff"
-                      }}
-                      itemStyle={{ color: "#fff" }}
+                      contentStyle={chartTooltipStyle}
+                      labelStyle={chartTooltipLabelStyle}
+                      itemStyle={chartTooltipItemStyle}
                       formatter={(value, name, _props, index) => [
                         `${Number(value ?? 0)} ${t("adm_dash_courses_unit", "khóa")} (${categoryData[index]?.percentage ?? 0}%)`,
                         String(name ?? ""),
@@ -655,12 +986,9 @@ if (loading) {
                 <XAxis dataKey="day" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1e293b",
-                    border: "1px solid #334155",
-                    borderRadius: "8px",
-                    color: "#fff"
-                  }}
+                  contentStyle={chartTooltipStyle}
+                  labelStyle={chartTooltipLabelStyle}
+                  itemStyle={chartTooltipItemStyle}
                 />
                 <Legend />
                 <Area
@@ -669,6 +997,9 @@ if (loading) {
                   stroke="#06b6d4"
                   fillOpacity={1}
                   fill="url(#colorActive)"
+                  isAnimationActive
+                  animationDuration={850}
+                  animationEasing="ease-out"
                   name={t("adm_dash_active_users", "Người dùng hoạt động")}
                 />
                 <Area
@@ -677,6 +1008,9 @@ if (loading) {
                   stroke="#8b5cf6"
                   fillOpacity={1}
                   fill="url(#colorSignups)"
+                  isAnimationActive
+                  animationDuration={950}
+                  animationEasing="ease-out"
                   name={t("adm_dash_new_signups", "Đăng ký mới")}
                 />
               </AreaChart>
@@ -698,12 +1032,9 @@ if (loading) {
                 <XAxis dataKey="month" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1e293b",
-                    border: "1px solid #334155",
-                    borderRadius: "8px",
-                    color: "#fff"
-                  }}
+                  contentStyle={chartTooltipStyle}
+                  labelStyle={chartTooltipLabelStyle}
+                  itemStyle={chartTooltipItemStyle}
                 />
                 <Legend />
                 <Line 
@@ -712,6 +1043,10 @@ if (loading) {
                   stroke="#8b5cf6" 
                   strokeWidth={2} 
                   dot={{ fill: "#8b5cf6" }}
+                  activeDot={{ r: 6 }}
+                  isAnimationActive
+                  animationDuration={900}
+                  animationEasing="ease-out"
                   name={t("adm_dash_teachers", "Giáo viên")} 
                 />
                 <Line 
@@ -720,6 +1055,10 @@ if (loading) {
                   stroke="#06b6d4" 
                   strokeWidth={2} 
                   dot={{ fill: "#06b6d4" }}
+                  activeDot={{ r: 6 }}
+                  isAnimationActive
+                  animationDuration={980}
+                  animationEasing="ease-out"
                   name={t("adm_dash_students", "Học viên")} 
                 />
               </LineChart>
@@ -755,14 +1094,15 @@ if (loading) {
                     stroke="#6366f1"
                     fill="#6366f1"
                     fillOpacity={0.35}
+                    isAnimationActive={chartAnimationFlags.radar}
+                    animationBegin={420 + (chartMotionCycle % 2) * 20}
+                    animationDuration={1300}
+                    animationEasing="ease-out"
                   />
                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#0f172a",
-                      border: "1px solid #1e293b",
-                      borderRadius: "10px",
-                      color: "#e2e8f0",
-                    }}
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={chartTooltipLabelStyle}
+                    itemStyle={chartTooltipItemStyle}
                   />
                 </RadarChart>
               </ResponsiveContainer>
@@ -777,33 +1117,43 @@ if (loading) {
               <div className="flex flex-col items-center gap-4">
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={teacherPlanData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label>
+                    <Pie data={teacherPlanData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive animationDuration={900} animationEasing="ease-out">
                       {teacherPlanData.map((entry, idx) => (
                         <Cell key={`plan-${idx}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip
                       formatter={(value, name) => [formatNumber(Number(value ?? 0)), String(name)]}
-                      contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                      contentStyle={chartTooltipStyle}
+                      labelStyle={chartTooltipLabelStyle}
+                      itemStyle={chartTooltipItemStyle}
                     />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full text-sm">
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#22c55e" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_paid_teachers", "GV trả phí")}: {formatNumber(teacherPlanSummary?.paid || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_paid_teachers", "GV trả phí")}: <AnimatedNumber value={teacherPlanSummary?.paid || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#3b82f6" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_free_teachers", "GV miễn phí")}: {formatNumber(teacherPlanSummary?.free || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_free_teachers", "GV miễn phí")}: <AnimatedNumber value={teacherPlanSummary?.free || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#f97316" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_unsub_teachers", "Chưa đăng ký")}: {formatNumber(teacherPlanSummary?.unsubscribed || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_unsub_teachers", "Chưa đăng ký")}: <AnimatedNumber value={teacherPlanSummary?.unsubscribed || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#94a3b8" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_total_teachers", "Tổng GV")}: {formatNumber(teacherPlanSummary?.total || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_total_teachers", "Tổng GV")}: <AnimatedNumber value={teacherPlanSummary?.total || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                 </div>
               </div>
@@ -818,29 +1168,37 @@ if (loading) {
               <div className="flex flex-col items-center gap-4">
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={certificateData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label>
+                    <Pie data={certificateData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive animationDuration={950} animationEasing="ease-out">
                       {certificateData.map((entry, idx) => (
                         <Cell key={`cert-${idx}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip
                       formatter={(value, name) => [formatNumber(Number(value ?? 0)), String(name)]}
-                      contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                      contentStyle={chartTooltipStyle}
+                      labelStyle={chartTooltipLabelStyle}
+                      itemStyle={chartTooltipItemStyle}
                     />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full text-sm">
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#a855f7" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_students_with_cert", "HV có chứng chỉ")}: {formatNumber(certificateSummary?.withCertificate || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_students_with_cert", "HV có chứng chỉ")}: <AnimatedNumber value={certificateSummary?.withCertificate || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#f59e0b" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_students_no_cert", "HV chưa có")}: {formatNumber(certificateSummary?.withoutCertificate || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_students_no_cert", "HV chưa có")}: <AnimatedNumber value={certificateSummary?.withoutCertificate || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#0ea5e9" }}></span>
-                    <span className="text-muted-foreground dark:text-slate-300">{t("adm_dash_cert_total", "Tổng chứng chỉ")}: {formatNumber(certificateSummary?.totalCertificates || 0)}</span>
+                    <span className="text-muted-foreground dark:text-slate-300">
+                      {t("adm_dash_cert_total", "Tổng chứng chỉ")}: <AnimatedNumber value={certificateSummary?.totalCertificates || 0} formatter={formatNumber} />
+                    </span>
                   </div>
                 </div>
               </div>
@@ -862,9 +1220,11 @@ if (loading) {
                   <YAxis type="category" dataKey="name" stroke="#94a3b8" width={120} />
                   <Tooltip
                     formatter={(value, name, props) => [formatNumber(Number(value ?? 0)), props?.payload?.subtitle]}
-                    contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={chartTooltipLabelStyle}
+                    itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#22c55e" radius={[6, 6, 6, 6]}>
+                  <Bar dataKey="value" fill="#22c55e" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={920} animationEasing="ease-out">
                     {teacherRankingData.map((entry, index) => (
                       <Cell key={`teacher-${index}`} fill={index === 0 ? "#22c55e" : "#16a34a"} />
                     ))}
@@ -886,9 +1246,11 @@ if (loading) {
                   <YAxis type="category" dataKey="name" stroke="#94a3b8" width={120} />
                   <Tooltip
                     formatter={(value, name, props) => [formatNumber(Number(value ?? 0)), props?.payload?.subtitle]}
-                    contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={chartTooltipLabelStyle}
+                    itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 6, 6]}>
+                  <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={980} animationEasing="ease-out">
                     {studentCompletionData.map((entry, index) => (
                       <Cell key={`student-comp-${index}`} fill={index === 0 ? "#06b6d4" : "#0ea5e9"} />
                     ))}
@@ -910,9 +1272,11 @@ if (loading) {
                   <YAxis type="category" dataKey="name" stroke="#94a3b8" width={120} />
                   <Tooltip
                     formatter={(value, name, props) => [formatNumber(Number(value ?? 0)), props?.payload?.subtitle]}
-                    contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0" }}
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={chartTooltipLabelStyle}
+                    itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#f97316" radius={[6, 6, 6, 6]}>
+                  <Bar dataKey="value" fill="#f97316" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={1030} animationEasing="ease-out">
                     {studentCertificateData.map((entry, index) => (
                       <Cell key={`student-cert-${index}`} fill={index === 0 ? "#f97316" : "#fb923c"} />
                     ))}

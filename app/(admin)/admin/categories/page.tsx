@@ -5,6 +5,9 @@ import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { useRouter } from "next/navigation"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
+import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
+import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
 
 interface Category {
   id: string
@@ -239,7 +242,21 @@ const fetchCategories = async () => {
 
 useEffect(() => {
   fetchCategories()
+  const timer = setInterval(() => {
+    void fetchCategories()
+  }, 45000)
+  return () => clearInterval(timer)
 }, [])
+
+  const categoryOverviewMetrics = {
+    totalCategories,
+    totalCourses,
+    totalStudents,
+  }
+
+  const { isChanged: isOverviewChanged, getTrend: getOverviewTrend } = useMetricChangeHighlight(categoryOverviewMetrics, {
+    flashDurationMs: 1300,
+  })
 
   return (
     <div className="min-h-screen w-full">
@@ -269,10 +286,11 @@ useEffect(() => {
             <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/82 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/82 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalCategories") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_cat_total", "Tổng danh mục")}</p>
-                    <p className="text-3xl font-bold text-foreground dark:text-white mt-1.5">{totalCategories}</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white mt-1.5"><AnimatedNumber value={totalCategories} disableAnimation={!isOverviewChanged("totalCategories")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("totalCategories")} />
                   </div>
                   <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <FolderOpen size={28} className="text-blue-600 dark:text-blue-400" />
@@ -280,10 +298,11 @@ useEffect(() => {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.35s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/82 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/82 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalCourses") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_cat_total_courses", "Tổng khóa học")}</p>
-                    <p className="text-3xl font-bold text-foreground dark:text-white mt-1.5">{totalCourses}</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white mt-1.5"><AnimatedNumber value={totalCourses} disableAnimation={!isOverviewChanged("totalCourses")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("totalCourses")} />
                   </div>
                   <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <BookOpen size={28} className="text-green-600 dark:text-green-400" />
@@ -291,10 +310,11 @@ useEffect(() => {
                 </div>
               </div>
               <div className="animate-slideUp" style={{ animationDelay: "0.45s" }}>
-                <div className="group flex items-center justify-between p-5 h-full bg-white/82 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer">
+                <div className={`group flex items-center justify-between p-5 h-full bg-white/82 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalStudents") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
                     <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_cat_total_students", "Tổng học viên")}</p>
-                    <p className="text-3xl font-bold text-foreground dark:text-white mt-1.5">{totalStudents.toLocaleString('en-US')}</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white mt-1.5"><AnimatedNumber value={totalStudents} disableAnimation={!isOverviewChanged("totalStudents")} /></p>
+                    <MetricTrendBadge trend={getOverviewTrend("totalStudents")} />
                   </div>
                   <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <TrendingUp size={28} className="text-purple-600 dark:text-purple-400" />

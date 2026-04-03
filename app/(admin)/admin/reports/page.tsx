@@ -26,6 +26,8 @@ import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { autoTranslateData } from "@/lib/i18n/dynamic-translate"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
+import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
+import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
 
 // Types mirror backend admin report DTOs
 type RevenueByMonth = { month: string; revenue: number; orders: number; growth: number }
@@ -62,6 +64,10 @@ const sampleGrowth: GrowthPoint[] = [
   { month: "2025-06", teachers: 24, students: 420 },
 ]
 
+const REPORTS_REALTIME_MS = 30000
+
+const isSameData = <T,>(a: T, b: T) => JSON.stringify(a) === JSON.stringify(b)
+
 export default function AdminReportsPage() {
   const { t, language } = useLanguage()
   const [isExportOpen, setIsExportOpen] = useState(false)
@@ -76,6 +82,7 @@ export default function AdminReportsPage() {
   const [coursePerformance, setCoursePerformance] = useState<CoursePerformance[]>([])
   const [completionRates, setCompletionRates] = useState<CategoryRate[]>([])
   const [growthChart, setGrowthChart] = useState<GrowthPoint[]>([])
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
 
   const [totals, setTotals] = useState({
     totalRevenue: 0,
@@ -88,8 +95,8 @@ export default function AdminReportsPage() {
   })
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true)
+    const load = async (silent = false) => {
+      if (!silent) setLoading(true)
       try {
         // Don't translate report data
         const localizedRevenueByCategory = sampleRevenueByCategory
@@ -124,11 +131,17 @@ export default function AdminReportsPage() {
         const hasGrowth = mergedGrowth.some((item) => item.teachers > 0 || item.students > 0)
 
         // Set chart data - prefer real DB data
-        setRevenueByMonth(hasPayments ? revenueReport.revenueByMonth : sampleRevenueByMonth)
-        setRevenueByCategory(hasPayments ? revenueReport.revenueByCategory : localizedRevenueByCategory)
-        setCoursePerformance(hasCourses ? performanceReport.topPerformingCourses : [])
-        setCompletionRates(hasCompletion ? performanceReport.completionRates : [])
-        setGrowthChart(hasGrowth ? mergedGrowth : sampleGrowth)
+        const nextRevenueByMonth = hasPayments ? revenueReport.revenueByMonth : sampleRevenueByMonth
+        const nextRevenueByCategory = hasPayments ? revenueReport.revenueByCategory : localizedRevenueByCategory
+        const nextCoursePerformance = hasCourses ? performanceReport.topPerformingCourses : []
+        const nextCompletionRates = hasCompletion ? performanceReport.completionRates : []
+        const nextGrowthChart = hasGrowth ? mergedGrowth : sampleGrowth
+
+        setRevenueByMonth((prev) => (isSameData(prev, nextRevenueByMonth) ? prev : nextRevenueByMonth))
+        setRevenueByCategory((prev) => (isSameData(prev, nextRevenueByCategory) ? prev : nextRevenueByCategory))
+        setCoursePerformance((prev) => (isSameData(prev, nextCoursePerformance) ? prev : nextCoursePerformance))
+        setCompletionRates((prev) => (isSameData(prev, nextCompletionRates) ? prev : nextCompletionRates))
+        setGrowthChart((prev) => (isSameData(prev, nextGrowthChart) ? prev : nextGrowthChart))
 
         // Helper function to safely convert to number
         const toNumber = (val: any): number => {
@@ -137,7 +150,7 @@ export default function AdminReportsPage() {
         }
 
         // Set totals - prefer real DB data, ensure proper number conversion
-        setTotals({
+        const nextTotals = {
           totalRevenue: hasPayments ? toNumber(revenueReport.totalRevenue) : sampleRevenueByMonth.reduce((s, i) => s + i.revenue, 0),
           platformRevenue: hasPayments ? toNumber(revenueReport.platformRevenue) : sampleRevenueByMonth.reduce((s, i) => s + i.revenue, 0) * 0.3,
           teacherRevenue: hasPayments ? toNumber(revenueReport.teacherRevenue) : sampleRevenueByMonth.reduce((s, i) => s + i.revenue, 0) * 0.7,
@@ -145,16 +158,23 @@ export default function AdminReportsPage() {
           totalStudents: toNumber(dashboardStats?.totalStudents || sampleGrowth[sampleGrowth.length - 1].students),
           totalCourses: toNumber(dashboardStats?.totalCourses || performanceReport?.topPerformingCourses?.length || 0),
           totalUsers: toNumber(userReport?.totalUsers || sampleGrowth[sampleGrowth.length - 1].students + sampleGrowth[sampleGrowth.length - 1].teachers),
-        })
+        }
+        setTotals((prev) => (isSameData(prev, nextTotals) ? prev : nextTotals))
+        setLastSyncedAt(new Date())
       } catch (error) {
         console.error("Error loading reports", error)
         toast.error(t("adm_rpt_load_fail", "Không thể tải báo cáo. Vui lòng thử lại."))
       } finally {
-        setLoading(false)
+        if (!silent) setLoading(false)
       }
     }
 
     load()
+    const timer = setInterval(() => {
+      void load(true)
+    }, REPORTS_REALTIME_MS)
+
+    return () => clearInterval(timer)
   }, [language])
 
   useEffect(() => {
@@ -215,6 +235,22 @@ export default function AdminReportsPage() {
 
   const teacherGrowth = growthChart.map((g) => ({ month: g.month, teachers: g.teachers }))
   const studentGrowth = growthChart.map((g) => ({ month: g.month, students: g.students }))
+
+  const reportOverviewMetrics = {
+    totalRevenue: totals.totalRevenue,
+    totalTeachers: totals.totalTeachers,
+    totalStudents: totals.totalStudents,
+    totalCourses: totals.totalCourses,
+    platformRevenue: totals.platformRevenue,
+    teacherRevenue: totals.teacherRevenue,
+    totalUsers: totals.totalUsers,
+    teacherGrowth: teacherGrowth.at(-1)?.teachers || 0,
+    studentGrowth: studentGrowth.at(-1)?.students || 0,
+  }
+
+  const { isChanged: isOverviewChanged, getTrend: getOverviewTrend } = useMetricChangeHighlight(reportOverviewMetrics, {
+    flashDurationMs: 1300,
+  })
 
   const handleExport = (reportType: string, anchor: HTMLButtonElement) => {
     setSelectedReport(reportType)
@@ -322,6 +358,7 @@ export default function AdminReportsPage() {
                   </span>
                   <span className="px-3 py-1 rounded-full bg-black/15 text-white text-sm font-medium backdrop-blur">
                     {t("adm_rpt_live", "Dữ liệu cập nhật tức thời")}
+                    {lastSyncedAt ? ` • ${lastSyncedAt.toLocaleTimeString("vi-VN")}` : ""}
                   </span>
                 </div>
               </div>
@@ -358,24 +395,25 @@ export default function AdminReportsPage() {
 
             <div className="rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/20 dark:bg-white/5 backdrop-blur-xl p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.16)] space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[ 
-                  { label: t("adm_rpt_total_revenue", "Tổng doanh thu"), value: totals.totalRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-primary/20 to-accent/25", icon: DollarSign },
-                  { label: t("adm_rpt_total_teachers", "Tổng giáo viên"), value: totals.totalTeachers, formatter: formatNumber, tone: "from-purple-200/30 to-blue-200/30", icon: Users },
-                  { label: t("adm_rpt_total_students", "Tổng học viên"), value: totals.totalStudents, formatter: formatNumber, tone: "from-green-200/25 to-teal-200/30", icon: TrendingUp },
-                  { label: t("adm_rpt_courses", "Khóa học"), value: totals.totalCourses, formatter: formatNumber, tone: "from-orange-200/30 to-yellow-200/25", icon: BookOpen },
-                ].map(({ label, value, formatter, tone, icon: Icon }, idx) => (
-                  <div key={label} className="group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-white/60 dark:border-slate-800 p-4 shadow-[0_10px_26px_rgba(15,23,42,0.16)]">
+                {[
+                  { key: "totalRevenue", label: t("adm_rpt_total_revenue", "Tổng doanh thu"), value: totals.totalRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-primary/20 to-accent/25", icon: DollarSign },
+                  { key: "totalTeachers", label: t("adm_rpt_total_teachers", "Tổng giáo viên"), value: totals.totalTeachers, formatter: formatNumber, tone: "from-purple-200/30 to-blue-200/30", icon: Users },
+                  { key: "totalStudents", label: t("adm_rpt_total_students", "Tổng học viên"), value: totals.totalStudents, formatter: formatNumber, tone: "from-green-200/25 to-teal-200/30", icon: TrendingUp },
+                  { key: "totalCourses", label: t("adm_rpt_courses", "Khóa học"), value: totals.totalCourses, formatter: formatNumber, tone: "from-orange-200/30 to-yellow-200/25", icon: BookOpen },
+                ].map(({ key, label, value, formatter, tone, icon: Icon }) => (
+                  <div key={label} className={`group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border p-4 shadow-[0_10px_26px_rgba(15,23,42,0.16)] transition-all duration-700 ${isOverviewChanged(key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/60 dark:border-slate-800"}`}>
                     <div className={`absolute inset-0 bg-gradient-to-br ${tone} opacity-70 group-hover:opacity-90 transition-opacity duration-300`} />
                     <div className="relative flex items-center justify-between">
                       <div className="space-y-1">
                         <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{label}</p>
                         <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                          <AnimatedNumber value={value} formatter={formatter} />
+                          <AnimatedNumber value={value} formatter={formatter} disableAnimation={!isOverviewChanged(key)} />
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                           {t("adm_rpt_period_update", "Cập nhật theo kỳ")}
                         </p>
+                        <MetricTrendBadge trend={getOverviewTrend(key)} />
                       </div>
                       <div className="w-11 h-11 rounded-2xl bg-white/70 dark:bg-slate-800/80 border border-white/60 dark:border-slate-700 flex items-center justify-center shadow-inner">
                         <Icon size={20} className="text-primary" />
@@ -386,20 +424,21 @@ export default function AdminReportsPage() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                {[ 
-                  { label: t("adm_rpt_platform_rev", "Doanh thu nền tảng"), value: totals.platformRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-primary/15 to-primary/5" },
-                  { label: t("adm_rpt_teacher_rev", "Doanh thu giáo viên"), value: totals.teacherRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-emerald-100/40 to-green-100/30" },
-                  { label: t("adm_rpt_total_users", "Tổng người dùng"), value: totals.totalUsers, formatter: formatNumber, tone: "from-indigo-100/40 to-indigo-50/50" },
-                  { label: t("adm_rpt_growth_teachers", "Tăng trưởng GV"), value: teacherGrowth.at(-1)?.teachers || 0, formatter: formatNumber, suffix: ` ${t("adm_rpt_person", "người")}`, tone: "from-purple-100/40 to-blue-100/30" },
-                  { label: t("adm_rpt_growth_students", "Tăng trưởng HV"), value: studentGrowth.at(-1)?.students || 0, formatter: formatNumber, suffix: ` ${t("adm_rpt_person", "người")}`, tone: "from-cyan-100/35 to-teal-100/25" },
+                {[
+                  { key: "platformRevenue", label: t("adm_rpt_platform_rev", "Doanh thu nền tảng"), value: totals.platformRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-primary/15 to-primary/5" },
+                  { key: "teacherRevenue", label: t("adm_rpt_teacher_rev", "Doanh thu giáo viên"), value: totals.teacherRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-emerald-100/40 to-green-100/30" },
+                  { key: "totalUsers", label: t("adm_rpt_total_users", "Tổng người dùng"), value: totals.totalUsers, formatter: formatNumber, tone: "from-indigo-100/40 to-indigo-50/50" },
+                  { key: "teacherGrowth", label: t("adm_rpt_growth_teachers", "Tăng trưởng GV"), value: teacherGrowth.at(-1)?.teachers || 0, formatter: formatNumber, suffix: ` ${t("adm_rpt_person", "người")}`, tone: "from-purple-100/40 to-blue-100/30" },
+                  { key: "studentGrowth", label: t("adm_rpt_growth_students", "Tăng trưởng HV"), value: studentGrowth.at(-1)?.students || 0, formatter: formatNumber, suffix: ` ${t("adm_rpt_person", "người")}`, tone: "from-cyan-100/35 to-teal-100/25" },
                 ].map((item) => (
-                  <div key={item.label} className="relative overflow-hidden rounded-xl px-3 py-3 bg-white/75 dark:bg-slate-900/70 border border-white/60 dark:border-slate-800 shadow-sm backdrop-blur">
+                  <div key={item.label} className={`relative overflow-hidden rounded-xl px-3 py-3 bg-white/75 dark:bg-slate-900/70 border shadow-sm backdrop-blur transition-all duration-700 ${isOverviewChanged(item.key) ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/35 dark:ring-emerald-500/25" : "border-white/60 dark:border-slate-800"}`}>
                     <div className={`absolute inset-0 bg-gradient-to-br ${item.tone} opacity-70`} />
                     <div className="relative space-y-1">
                       <p className="text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-300 font-semibold">{item.label}</p>
                       <p className="text-lg font-semibold text-slate-900 dark:text-white">
-                        <AnimatedNumber value={item.value} formatter={item.formatter} suffix={item.suffix} />
+                        <AnimatedNumber value={item.value} formatter={item.formatter} suffix={item.suffix} disableAnimation={!isOverviewChanged(item.key)} />
                       </p>
+                      <MetricTrendBadge trend={getOverviewTrend(item.key)} />
                     </div>
                   </div>
                 ))}
