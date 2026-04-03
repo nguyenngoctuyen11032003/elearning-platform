@@ -615,7 +615,7 @@ export default function AdminReportsPage() {
       <div className={`w-full space-y-8 transition-all duration-500 ${periodSwitching ? "opacity-70 translate-y-[2px]" : "opacity-100 translate-y-0"}`}>
         <div
           className="relative overflow-hidden rounded-3xl p-8 lg:p-10 animate-fadeIn border border-white/40 dark:border-slate-800/70 shadow-[0_20px_60px_rgba(15,23,42,0.18)] bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl"
-          style={{ backgroundImage: "url('/image/bg_login.png')", backgroundSize: "cover", backgroundPosition: "center" }}
+          style={{ backgroundImage: "url('/image/bgr_setting_teacher.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-900/80" />
 
