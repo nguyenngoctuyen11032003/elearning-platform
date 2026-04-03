@@ -1100,24 +1100,24 @@ if (typeof window !== 'undefined' && token) {
 
   // ================== Dashboard Stats API ==================
 
-  async getAdminDashboardStats(): Promise<any> {
-    return this.request('/admin/dashboard/stats');
+  async getAdminDashboardStats(period: 'day' | 'week' | 'month' | 'year' = 'month'): Promise<any> {
+    return this.request(`/admin/dashboard/stats?period=${period}`);
   }
 
-  async getAdminGrowthStats(): Promise<any> {
-    return this.request('/admin/dashboard/growth');
+  async getAdminGrowthStats(period: 'day' | 'week' | 'month' | 'year' = 'month'): Promise<any> {
+    return this.request(`/admin/dashboard/growth?period=${period}`);
   }
 
-  async getAdminRevenueReport(): Promise<any> {
-    return this.request('/admin/reports/revenue');
+  async getAdminRevenueReport(period: 'day' | 'week' | 'month' | 'year' = 'month'): Promise<any> {
+    return this.request(`/admin/reports/revenue?period=${period}`);
   }
 
-  async getAdminUserReport(): Promise<any> {
-    return this.request('/admin/reports/users');
+  async getAdminUserReport(period: 'day' | 'week' | 'month' | 'year' = 'month'): Promise<any> {
+    return this.request(`/admin/reports/users?period=${period}`);
   }
 
-  async getAdminPerformanceReport(): Promise<any> {
-    return this.request('/admin/reports/performance');
+  async getAdminPerformanceReport(period: 'day' | 'week' | 'month' | 'year' = 'month'): Promise<any> {
+    return this.request(`/admin/reports/performance?period=${period}`);
   }
 
   // ================== Instructor Subscription API ==================
