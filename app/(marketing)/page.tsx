@@ -224,14 +224,29 @@ export default function Home() {
 
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 stagger-items">
+    <div className="relative min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f8fbff_0%,#eef4ff_40%,#f1f5ff_70%,#ffffff_100%)] dark:bg-[linear-gradient(180deg,#0b1220_0%,#0f172a_45%,#111827_72%,#0f172a_100%)] stagger-items">
+      <div className="pointer-events-none absolute inset-0 -z-20 overflow-hidden">
+        <div className="absolute -top-20 left-[-12%] h-[560px] w-[560px] rounded-full bg-[#eaf3ff] blur-[105px]" />
+        <div className="absolute top-[8%] right-[-10%] h-[540px] w-[540px] rounded-full bg-[#f3e8ff] blur-[110px]" />
+        <div className="absolute top-[32%] left-[22%] h-[460px] w-[640px] rounded-full bg-[#e6f7ff] blur-[130px]" />
+        <div className="absolute top-[60%] right-[8%] h-[420px] w-[620px] rounded-full bg-[#eaf3ff] blur-[120px]" />
+        <div className="absolute bottom-[4%] left-[8%] h-[420px] w-[520px] rounded-full bg-[#f3e8ff] blur-[110px]" />
+      </div>
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.58] [background:radial-gradient(110%_82%_at_10%_12%,rgba(147,197,253,0.42)_0%,rgba(147,197,253,0)_58%),radial-gradient(95%_80%_at_86%_18%,rgba(196,181,253,0.4)_0%,rgba(196,181,253,0)_62%),radial-gradient(80%_88%_at_48%_66%,rgba(103,232,249,0.3)_0%,rgba(103,232,249,0)_64%),radial-gradient(95%_90%_at_24%_88%,rgba(125,211,252,0.22)_0%,rgba(125,211,252,0)_62%)]" />
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.02]"
+        style={{
+          backgroundImage:
+            "url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22 viewBox=%220 0 160 160%22%3E%3Cfilter id=%22n%22 x=%220%22 y=%220%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%221.05%22 numOctaves=%222%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22160%22 height=%22160%22 filter=%22url(%23n)%22 opacity=%220.9%22/%3E%3C/svg%3E')",
+        }}
+      />
       {/* Hero Section - Premium Education Platform */}
-      <section className="relative pt-24 sm:pt-28 md:pt-32 pb-20 sm:pb-24 md:pb-28 px-4 sm:px-6 md:px-8 overflow-hidden">
+      <section className="relative pt-24 sm:pt-28 md:pt-32 pb-20 sm:pb-24 md:pb-28 px-4 sm:px-6 md:px-8 overflow-hidden bg-transparent">
         {/* Animated Background */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,rgba(37,99,235,0.1),transparent_50%)]" />
-          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_60%,rgba(147,51,234,0.1),transparent_50%)]" />
-          <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(to_bottom,white,transparent)]" />
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_28%_16%,rgba(59,130,246,0.14),transparent_58%)]" />
+          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_72%_56%,rgba(168,85,247,0.12),transparent_60%)]" />
+          <div className="absolute inset-0 opacity-[0.3] bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(to_bottom,white,transparent)]" />
         </div>
 
         {/* Floating Orbs */}
@@ -245,8 +260,6 @@ export default function Home() {
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
           className="absolute bottom-20 right-[10%] w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"
         />
-
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(180deg,rgba(248,250,252,0)_0%,rgba(240,246,252,0.78)_60%,#edf3fb_100%)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0)_0%,rgba(15,23,42,0.75)_60%,#0f172a_100%)]" />
 
         <div className="page-shell relative">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -341,7 +354,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9 }}
-                className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 pt-8 border-t border-slate-200 dark:border-slate-800"
+                className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 pt-8"
               >
                 <div className="text-center sm:text-left">
                   <p className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
@@ -419,12 +432,10 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="relative -mt-14 pt-16 overflow-hidden bg-[linear-gradient(180deg,#edf3fb_0%,#f2f6fc_26%,#f5f8fd_52%,#f7f9fc_74%,#f8f9fa_100%)] dark:bg-[linear-gradient(180deg,#0f172a_0%,#111827_45%,#0f172a_100%)]">
-        <div className="pointer-events-none absolute inset-0 opacity-80 [background:radial-gradient(120%_90%_at_8%_0%,rgba(59,130,246,0.16)_0%,rgba(59,130,246,0)_52%),radial-gradient(115%_85%_at_92%_8%,rgba(14,165,233,0.14)_0%,rgba(14,165,233,0)_48%),radial-gradient(100%_85%_at_50%_100%,rgba(147,197,253,0.1)_0%,rgba(147,197,253,0)_52%)]" />
-        <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:44px_44px]" />
+      <div className="relative pt-20 overflow-hidden bg-transparent">
 
         {/* Trust Bar - Partner Logos */}
-        <section className="relative py-12 px-4 sm:px-6 md:px-8">
+        <section className="relative py-24 md:py-[100px] px-4 sm:px-6 md:px-8 bg-transparent">
           <div className="page-shell">
             <motion.p
               initial={{ opacity: 0 }}
@@ -442,7 +453,7 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: idx * 0.1 }}
-                  className="flex items-center gap-3 px-6 py-3 bg-white/84 dark:bg-slate-900/85 backdrop-blur-sm rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-[0_8px_20px_-14px_rgba(15,23,42,0.4)] hover:shadow-[0_12px_24px_-14px_rgba(15,23,42,0.45)] dark:hover:bg-slate-800/75 transition-all"
+                  className="flex items-center gap-3 px-6 py-3 bg-white/68 dark:bg-slate-900/65 backdrop-blur-xl rounded-[20px] border border-white/60 dark:border-slate-700/70 shadow-[0_20px_60px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:shadow-[0_28px_72px_rgba(0,0,0,0.12)] transition-all"
                 >
                   <span className="text-3xl">{partner.logo}</span>
                   <span className="font-bold text-slate-900 dark:text-white">{partner.name}</span>
@@ -453,20 +464,20 @@ export default function Home() {
         </section>
 
         {/* Value Propositions - Why Choose Us */}
-        <section className="py-20 md:py-24 px-4 sm:px-6 md:px-8 relative">
+        <section className="py-24 md:py-[100px] px-4 sm:px-6 md:px-8 relative bg-transparent">
         <div className="page-shell">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center max-w-3xl mx-auto mb-16"
+            className="text-center max-w-3xl mx-auto mb-20"
           >
             <div className="inline-flex items-center gap-2 px-5 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full mb-6 font-semibold">
               <Target size={18} />
               <span>{t("home_why_badge", "Lợi Ích Vượt Trội")}</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
+            <h2 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white mb-8 tracking-tight">
               {t("home_why_title", "Tại Sao Chọn ICS Learning?")}
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-400">
@@ -483,14 +494,14 @@ export default function Home() {
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
                 {visibleFeatures.map((feature, index) => (
                   <motion.div
                     key={index}
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.08 }}
-                    className={`group relative p-8 ${feature.bgColor} rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 shadow-[0_16px_40px_-22px_rgba(15,23,42,0.45)] hover:shadow-[0_22px_55px_-24px_rgba(15,23,42,0.6)] transition-all duration-300 hover:-translate-y-1 flex flex-col items-center text-center`}
+                    className="group relative p-8 bg-white/66 dark:bg-slate-900/62 backdrop-blur-xl rounded-[20px] border border-white/60 dark:border-slate-700/70 hover:border-blue-300/80 dark:hover:border-blue-600/80 shadow-[0_20px_60px_rgba(0,0,0,0.08)] hover:shadow-[0_30px_72px_rgba(0,0,0,0.12)] transition-all duration-300 hover:-translate-y-1.5 flex flex-col items-center text-center"
                   >
                     <div className={`inline-flex p-4 bg-gradient-to-br ${feature.color} rounded-2xl mb-6 shadow-[0_18px_34px_-10px_rgba(2,6,23,0.65)] group-hover:scale-110 group-hover:shadow-[0_24px_42px_-10px_rgba(2,6,23,0.75)] transition-all`}>
                       <feature.icon size={28} className="text-white" />
@@ -504,7 +515,7 @@ export default function Home() {
                       {feature.description}
                     </p>
 
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 rounded-3xl transition-all pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/6 group-hover:to-purple-500/6 rounded-[20px] transition-all pointer-events-none" />
                   </motion.div>
                 ))}
               </div>
@@ -542,19 +553,19 @@ export default function Home() {
       </div>
 
       {/* Featured Courses */}
-      <section className="py-20 md:py-24 px-4 sm:px-6 md:px-8 bg-gradient-to-b from-white to-slate-50 dark:from-slate-950 dark:to-slate-900">
+      <section className="py-24 md:py-[100px] px-4 sm:px-6 md:px-8 bg-transparent">
         <div className="page-shell">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-20"
           >
             <div className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 text-blue-700 dark:text-blue-300 rounded-full mb-6 font-semibold">
               <Star size={18} className="text-yellow-500" />
               <span>{t("home_courses_badge", "Khóa Học Nổi Bật")}</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
+            <h2 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white mb-8 tracking-tight">
               {t("home_courses_title", "Khóa Học Được Yêu Thích Nhất")}
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-400">
@@ -563,9 +574,9 @@ export default function Home() {
           </motion.div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-8 pt-4">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="rounded-3xl overflow-hidden bg-white dark:bg-slate-900 animate-pulse border border-slate-200 dark:border-slate-800">
+                <div key={i} className="rounded-[20px] overflow-hidden bg-white/66 dark:bg-slate-900/62 backdrop-blur-xl animate-pulse border border-white/60 dark:border-slate-700/70 shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
                   <div className="h-56 bg-slate-200 dark:bg-slate-800" />
                   <div className="p-6 space-y-4">
                     <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded" />
@@ -577,7 +588,7 @@ export default function Home() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-8">
                 {featuredCourses.length > 0 ? (
                   featuredCourses.map((course, idx) => (
                     <motion.div
@@ -619,7 +630,7 @@ export default function Home() {
               >
                 <Link
                   href="/courses"
-                  className="group inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold text-base shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                  className="group inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-[20px] font-semibold text-base shadow-[0_20px_48px_rgba(37,99,235,0.35)] hover:shadow-[0_26px_58px_rgba(37,99,235,0.45)] transition-all transform hover:scale-[1.02]"
                 >
                   {t("home_view_all_courses", "Xem Tất Cả Khóa Học")}
                   <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -639,13 +650,13 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-20"
           >
             <div className="inline-flex items-center gap-2 px-5 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full mb-6 font-semibold">
               <Rocket size={18} />
               <span>{t("home_cat_badge", "Danh Mục Phổ Biến")}</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
+            <h2 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white mb-8 tracking-tight">
               {t("home_cat_title", "Khám Phá Lĩnh Vực Của Bạn")}
             </h2>
             <p className="text-xl text-slate-600 dark:text-white">
@@ -658,7 +669,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-10"
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 lg:gap-8"
           >
             {categories.length > 0 ? (
               categories.slice(categoriesPage * CATEGORIES_PER_PAGE, (categoriesPage + 1) * CATEGORIES_PER_PAGE).map((category, idx) => {
@@ -671,7 +682,7 @@ export default function Home() {
                   >
                     <Link
                       href={`/courses?category=${category.id}`}
-                      className="group block p-8 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-2xl hover:shadow-xl transition-all duration-300 text-center h-full flex flex-col items-center justify-center"
+                      className="group block p-8 bg-white/68 dark:bg-slate-900/62 backdrop-blur-xl border border-white/60 dark:border-slate-700/70 hover:border-blue-400 dark:hover:border-blue-500 rounded-[20px] shadow-[0_20px_60px_rgba(0,0,0,0.08)] hover:shadow-[0_30px_72px_rgba(0,0,0,0.12)] transition-all duration-300 text-center h-full flex flex-col items-center justify-center hover:-translate-y-1"
                     >
                       <h3 className="font-bold text-slate-900 dark:text-white text-base mb-4 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2" title={category.name}>
                         {category.name}
@@ -689,7 +700,7 @@ export default function Home() {
                         )}
                       </div>
 
-                      <div className="pt-3 border-t border-slate-200 dark:border-slate-700 w-full">
+                      <div className="pt-3 border-t border-slate-200/80 dark:border-slate-700/70 w-full">
                         <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                           {category.courseCount || category.courses?.length || 0}+ {t("home_cat_courses", "khóa học")}
                         </p>
@@ -763,13 +774,13 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-20"
           >
             <div className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full mb-6 font-semibold">
               <MessageSquare size={18} />
               <span>{t("home_test_badge", "Câu Chuyện Thành Công")}</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">
+            <h2 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white mb-8 tracking-tight">
               {t("home_test_title", "Học Viên Nói Gì Về Chúng Tôi")}
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
@@ -777,7 +788,7 @@ export default function Home() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
             {testimonials.map((testimonial, i) => (
               <motion.div
                 key={i}
@@ -785,7 +796,7 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="group relative p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
+                className="group relative p-8 bg-white/68 dark:bg-slate-900/62 backdrop-blur-xl rounded-[20px] border border-white/60 dark:border-slate-700/70 hover:border-blue-300 dark:hover:border-blue-600 shadow-[0_20px_60px_rgba(0,0,0,0.08)] hover:shadow-[0_30px_72px_rgba(0,0,0,0.12)] transition-all duration-300 hover:-translate-y-1.5"
               >
                 {/* Quote Icon */}
                 <div className="absolute top-6 right-6 text-6xl text-blue-100 dark:text-blue-900/30">"</div>
@@ -826,7 +837,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8"
+            className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-8"
           >
             {[
               { number: "4.9/5", label: t("home_metric_rating", "Đánh giá trung bình"), icon: Star },
@@ -840,7 +851,7 @@ export default function Home() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className="text-center p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg"
+                className="text-center p-6 bg-white/66 dark:bg-slate-900/62 backdrop-blur-xl rounded-[20px] border border-white/60 dark:border-slate-700/70 shadow-[0_20px_60px_rgba(0,0,0,0.08)]"
               >
                 <metric.icon size={32} className="mx-auto mb-3 text-blue-600 dark:text-blue-400" />
                 <p className="text-3xl font-black text-slate-900 dark:text-white mb-2">{metric.number}</p>
@@ -852,14 +863,14 @@ export default function Home() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="relative isolate py-20 md:py-24 px-4 sm:px-6 md:px-8 overflow-hidden rounded-3xl mx-4 sm:mx-6 md:mx-8 my-10 md:my-12">
+      <section className="relative isolate py-24 md:py-[100px] px-4 sm:px-6 md:px-8 overflow-hidden rounded-3xl mx-4 sm:mx-6 md:mx-8 my-10 md:my-12">
         {/* Background image */}
         <div
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat rounded-3xl"
           style={{ backgroundImage: "url('/image/learning.jpg')" }}
         />
 
-        {/* Overlay – FIX DARK MODE + KHÔNG MẤT ẢNH */}
+        {/* Overlay */}
         <div className="absolute inset-0 z-10 
           bg-gradient-to-br 
           from-blue-600/10 via-purple-600/10 to-pink-600/10
@@ -918,7 +929,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-6">
               <Link
                 href="/signup"
-                className="group inline-flex items-center justify-center gap-3 bg-white hover:bg-slate-100 dark:bg-white dark:hover:bg-slate-100 text-blue-700 px-6 sm:px-10 py-3.5 sm:py-5 rounded-2xl font-black text-base sm:text-lg shadow-2xl hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)] transition-all transform hover:scale-105"
+                className="group inline-flex items-center justify-center gap-3 bg-white hover:bg-slate-100 dark:bg-white dark:hover:bg-slate-100 text-blue-700 px-6 sm:px-10 py-3.5 sm:py-5 rounded-[20px] font-black text-base sm:text-lg shadow-2xl hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)] transition-all transform hover:scale-105"
               >
                 <Rocket size={24} />
                 {t("home_final_signup", "Đăng Ký Miễn Phí Ngay")}
@@ -926,7 +937,7 @@ export default function Home() {
               </Link>
               <Link
                 href="/courses"
-                className="group inline-flex items-center justify-center gap-3 bg-white/10 backdrop-blur-md hover:bg-white/20 border-2 border-white/50 text-white px-6 sm:px-10 py-3.5 sm:py-5 rounded-2xl font-bold text-base sm:text-lg transition-all"
+                className="group inline-flex items-center justify-center gap-3 bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/60 text-white px-6 sm:px-10 py-3.5 sm:py-5 rounded-[20px] font-bold text-base sm:text-lg transition-all"
               >
                 <BookOpen size={24} />
                 {t("home_final_courses", "Xem Khóa Học")}
