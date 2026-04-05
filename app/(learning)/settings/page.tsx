@@ -1,19 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import {
-  Award,
-  Bell,
-  BookOpen,
-  Globe,
-  Mail,
-  Moon,
-  Palette,
-  Save,
-  Sparkles,
-  Sun,
-} from "lucide-react"
-import { motion } from "framer-motion"
+import { Award, Bell, BookOpen, Clock, Globe, Mail, Moon, Palette, Save, Sparkles, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -32,12 +20,18 @@ export default function StudentSettingsPage() {
 
   const [settings, setSettings] = useState<SystemSettings>({})
   const [isSaving, setIsSaving] = useState(false)
+  const [lastSavedSignature, setLastSavedSignature] = useState("")
 
   useEffect(() => {
     if (config) {
       setSettings(config)
     }
   }, [config])
+
+  useEffect(() => {
+    if (!settings || Object.keys(settings).length === 0 || lastSavedSignature) return
+    setLastSavedSignature(JSON.stringify(settings))
+  }, [settings, lastSavedSignature])
 
   const isDarkMode = resolvedTheme === "dark"
 
@@ -60,16 +54,28 @@ export default function StudentSettingsPage() {
   }
 
   const handleSave = async () => {
+    if (!settings || Object.keys(settings).length === 0) {
+      toast.error(t("settings_save_error", "Có lỗi xảy ra khi lưu cài đặt"))
+      return
+    }
+
     setIsSaving(true)
     try {
       await apiClient.updateManySystemSettings(settings)
       await refresh()
+      setLastSavedSignature(JSON.stringify(settings))
       toast.success(t("settings_saved", "Cài đặt đã được lưu thành công!"))
     } catch {
       toast.error(t("settings_save_error", "Có lỗi xảy ra khi lưu cài đặt"))
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleResetChanges = () => {
+    if (!config) return
+    setSettings(config)
+    toast.success(t("settings_reset_ok", "Đã hoàn tác các thay đổi chưa lưu"))
   }
 
   const notificationItems = useMemo(
@@ -81,206 +87,254 @@ export default function StudentSettingsPage() {
         description: t("settings_email_desc", "Nhận thông báo qua email"),
       },
       {
-        key: "courseNotifications",
-        icon: BookOpen,
-        title: t("settings_course_notif", "Thông báo khóa học"),
-        description: t("settings_course_desc", "Cập nhật về khóa học đã đăng ký"),
-      },
-      {
-        key: "newCourseNotifications",
-        icon: BookOpen,
-        title: t("settings_new_course", "Khóa học mới"),
-        description: t("settings_new_course_desc", "Thông báo về khóa học mới"),
-      },
-      {
-        key: "certificateNotifications",
-        icon: Award,
-        title: t("settings_cert_notif", "Chứng chỉ"),
-        description: t("settings_cert_desc", "Thông báo khi nhận chứng chỉ mới"),
-      },
-      {
-        key: "promotionNotifications",
+        key: "pushNotifications",
         icon: Bell,
-        title: t("settings_promo", "Khuyến mãi"),
-        description: t("settings_promo_desc", "Nhận thông tin khuyến mãi và ưu đãi"),
+        title: t("settings_push_notif", "Thông báo đẩy"),
+        description: t("settings_push_desc", "Nhận thông báo đẩy trên trình duyệt"),
+      },
+      {
+        key: "courseUpdates",
+        icon: BookOpen,
+        title: t("settings_course_updates", "Cập nhật khóa học"),
+        description: t("settings_course_desc", "Thông báo về bài học mới và cập nhật"),
+      },
+      {
+        key: "assignmentReminders",
+        icon: Award,
+        title: t("settings_assignment_reminders", "Nhắc nhở bài tập"),
+        description: t("settings_assignment_desc", "Nhắc nhở deadline bài tập"),
       },
     ],
-    [t],
+    [t]
   )
 
   if (!config) {
     return null
   }
 
+  const hasUnsavedChanges = JSON.stringify(settings) !== lastSavedSignature
+
   return (
-    <div className="relative min-h-screen space-y-6">
-      <motion.div
-        aria-hidden
-        animate={{ opacity: [0.2, 0.34, 0.2], y: [0, -14, 0] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-        className="pointer-events-none absolute -left-14 top-8 h-72 w-72 rounded-full bg-cyan-300/35 blur-3xl dark:bg-cyan-900/20"
-      />
-      <motion.div
-        aria-hidden
-        animate={{ opacity: [0.2, 0.3, 0.2], y: [0, 20, 0] }}
-        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut", delay: 0.45 }}
-        className="pointer-events-none absolute right-0 top-20 h-80 w-80 rounded-full bg-emerald-300/30 blur-3xl dark:bg-emerald-900/20"
-      />
+    <div className="min-h-screen w-full">
+      <div className="w-full space-y-8 pb-28">
+        <section
+          className="relative overflow-hidden rounded-3xl border border-white/40 bg-white/85 shadow-[0_20px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-900/80"
+          style={{ backgroundImage: "url('/image/bg_dashboard.png')", backgroundSize: "cover", backgroundPosition: "center" }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/45 via-primary/25 to-accent/40 dark:from-slate-950/85 dark:via-slate-950/70 dark:to-slate-900/85" />
+          <div className="relative z-10 space-y-4 p-6 md:p-8 lg:p-10">
+            <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+              <div className="space-y-3">
+                <p className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-primary">
+                  <Sparkles size={14} />
+                  {t("settings_title", "Cài đặt")}
+                </p>
+                <div>
+                  <h1 className="text-3xl font-bold text-white drop-shadow-lg lg:text-4xl">{user?.name || t("userdb_student", "Học viên")}</h1>
+                  <p className="mt-2 text-white/85 leading-6">{t("settings_desc", "Quản lý cài đặt tài khoản của bạn")}</p>
+                </div>
+              </div>
 
-      <motion.section
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-[2rem] border border-cyan-100/70 bg-white/85 p-6 shadow-[0_24px_60px_rgba(14,116,144,0.14)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-900/70 md:p-8"
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(120%_120%_at_0%_0%,rgba(34,211,238,0.2),transparent_45%),radial-gradient(100%_110%_at_100%_0%,rgba(16,185,129,0.2),transparent_42%)]" />
-
-        <div className="relative z-10 grid gap-6 lg:grid-cols-[1.25fr_1fr]">
-          <div>
-            <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50/75 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-cyan-700 dark:border-cyan-900/60 dark:bg-cyan-900/30 dark:text-cyan-200">
-              <Sparkles className="h-3.5 w-3.5" />
-              {t("settings_title", "Cài đặt")}
-            </p>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white md:text-5xl">{user?.name || t("userdb_student", "Học viên")}</h1>
-            <p className="mt-3 max-w-2xl text-sm text-slate-600 dark:text-slate-300 md:text-base">
-              {t("settings_desc", "Quản lý cài đặt tài khoản của bạn")}
-            </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-2">
+                <div className="rounded-xl border border-white/60 bg-white/75 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/60">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">{t("settings_tab_notifications", "Thông báo")}</p>
+                  <p className="mt-1 text-xl font-black leading-none text-slate-900 dark:text-white">
+                    {notificationItems.filter((item) => Boolean(settings[item.key as keyof SystemSettings])).length}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/60 bg-white/75 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/60">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">{t("settings_tab_appearance", "Giao diện")}</p>
+                  <p className="mt-1 text-xl font-black leading-none text-slate-900 dark:text-white">{isDarkMode ? t("settings_dark_mode", "Tối") : t("settings_lang_en", "Sáng")}</p>
+                </div>
+                <div className="rounded-xl border border-white/60 bg-white/75 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/60">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">{t("settings_language", "Ngôn ngữ")}</p>
+                  <p className="mt-1 text-xl font-black leading-none text-slate-900 dark:text-white">{settings.language === "en" ? "EN" : "VI"}</p>
+                </div>
+                <div className="rounded-xl border border-white/60 bg-white/75 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/60">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">{t("settings_save", "Lưu")}</p>
+                  <p className="mt-1 text-xl font-black leading-none text-slate-900 dark:text-white">{isSaving ? t("settings_saving", "Đang lưu...") : "Ready"}</p>
+                </div>
+              </div>
+            </div>
           </div>
+        </section>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
-            <div className="rounded-xl border border-white/60 bg-white/75 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/60">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">{t("settings_tab_notifications", "Thông báo")}</p>
-              <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white">
-                {notificationItems.filter((item) => Boolean(settings[item.key as keyof SystemSettings])).length}
-              </p>
+        <Tabs defaultValue="notifications" className="w-full">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/85 shadow-[0_10px_28px_rgba(15,23,42,0.12)] dark:border-slate-800 dark:bg-slate-900/70">
+            <div className="border-b border-slate-200 p-3 md:p-4 dark:border-slate-800">
+              <TabsList className="grid w-full grid-cols-2 gap-1 rounded-xl bg-slate-50 p-1 dark:bg-slate-800/60">
+                <TabsTrigger
+                  value="notifications"
+                  className="h-10 rounded-lg text-xs font-semibold text-slate-600 transition-all hover:text-primary data-[state=active]:bg-primary/90 data-[state=active]:text-white md:text-sm dark:text-slate-300 dark:hover:text-accent dark:data-[state=active]:bg-accent"
+                >
+                  {t("settings_tab_notifications", "Thông báo")}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="appearance"
+                  className="h-10 rounded-lg text-xs font-semibold text-slate-600 transition-all hover:text-primary data-[state=active]:bg-primary/90 data-[state=active]:text-white md:text-sm dark:text-slate-300 dark:hover:text-accent dark:data-[state=active]:bg-accent"
+                >
+                  {t("settings_tab_appearance", "Giao diện")}
+                </TabsTrigger>
+              </TabsList>
             </div>
-            <div className="rounded-xl border border-white/60 bg-white/75 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/60">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">{t("settings_tab_appearance", "Giao diện")}</p>
-              <p className="mt-1 text-lg font-black text-slate-900 dark:text-white">{isDarkMode ? t("settings_dark_mode", "Tối") : t("settings_lang_en", "Sáng")}</p>
-            </div>
-            <div className="rounded-xl border border-white/60 bg-white/75 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/60">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">{t("settings_language", "Ngôn ngữ")}</p>
-              <p className="mt-1 text-lg font-black text-slate-900 dark:text-white">{settings.language === "en" ? "EN" : "VI"}</p>
-            </div>
-            <div className="rounded-xl border border-white/60 bg-white/75 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/60">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">{t("settings_save", "Lưu")}</p>
-              <p className="mt-1 text-lg font-black text-slate-900 dark:text-white">{isSaving ? t("settings_saving", "Đang lưu...") : "Ready"}</p>
+
+            <TabsContent value="notifications" className="m-0 space-y-6 p-5 md:p-6">
+              <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                <h2 className="flex items-center gap-2 text-xl font-bold text-foreground dark:text-white">
+                  <Bell size={22} className="text-primary dark:text-accent" />
+                  {t("settings_tab_notifications", "Thông báo")}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground dark:text-slate-400">
+                  {t("settings_notifications_desc", "Quản lý các loại thông báo bạn muốn nhận trong quá trình học tập")}
+                </p>
+              </div>
+
+              <section className="space-y-5 rounded-2xl border border-slate-200 bg-white/85 p-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)] dark:border-slate-800 dark:bg-slate-900/70">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("settings_notifications_channels", "Kênh thông báo")}
+                </h3>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {notificationItems.map((item) => {
+                    const isEnabled = Boolean(settings[item.key as keyof SystemSettings])
+                    return (
+                      <article
+                        key={item.key}
+                        className="rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.1)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/70"
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 dark:bg-cyan-900/35 dark:text-cyan-300">
+                            <item.icon className="h-5 w-5" />
+                          </div>
+
+                          <button
+                            onClick={() => handleSettingChange(item.key, !isEnabled)}
+                            className={`h-6 w-12 rounded-full transition ${isEnabled ? "bg-cyan-500" : "bg-slate-300 dark:bg-slate-700"}`}
+                          >
+                            <span className={`block h-5 w-5 rounded-full bg-white transition ${isEnabled ? "translate-x-6" : "translate-x-0.5"}`} />
+                          </button>
+                        </div>
+
+                        <h3 className="text-sm font-semibold leading-5 text-slate-900 dark:text-white">{item.title}</h3>
+                        <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{item.description}</p>
+                      </article>
+                    )
+                  })}
+                </div>
+              </section>
+            </TabsContent>
+
+            <TabsContent value="appearance" className="m-0 space-y-6 p-5 md:p-6">
+              <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                <h2 className="flex items-center gap-2 text-xl font-bold text-foreground dark:text-white">
+                  <Palette size={22} className="text-primary dark:text-accent" />
+                  {t("settings_appearance_title", "Giao diện")}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground dark:text-slate-400">
+                  {t("settings_appearance_desc", "Điều chỉnh chủ đề và ngôn ngữ hiển thị phù hợp với trải nghiệm học tập")}
+                </p>
+              </div>
+
+              <section className="space-y-5 rounded-2xl border border-slate-200 bg-white/85 p-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)] dark:border-slate-800 dark:bg-slate-900/70">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("settings_appearance_controls", "Tùy chọn hiển thị")}
+                </h3>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200/80 bg-white/85 p-5 shadow-[0_10px_24px_rgba(15,23,42,0.1)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/70">
+                    <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
+                      <Palette className="h-5 w-5 text-cyan-600" />
+                      {t("settings_appearance_title", "Giao diện")}
+                    </h3>
+
+                    <div className="space-y-4">
+                      <label className="block text-foreground text-sm font-semibold mb-2 dark:text-white">
+                        {t("settings_dark_mode", "Chế độ tối")}
+                      </label>
+                      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                        <div className="flex items-center gap-2">
+                          {isDarkMode ? <Moon className="h-4 w-4 text-cyan-500" /> : <Sun className="h-4 w-4 text-amber-500" />}
+                          <div>
+                            <p className="text-sm font-semibold leading-5 text-slate-800 dark:text-slate-100">{t("settings_dark_mode", "Chế độ tối")}</p>
+                            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">{t("settings_dark_desc", "Bật/tắt chế độ tối cho giao diện")}</p>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={toggleTheme}
+                          className={`h-6 w-12 rounded-full transition-all ${isDarkMode ? "bg-primary dark:bg-accent" : "bg-slate-400"}`}
+                        >
+                          <div className={`h-5 w-5 rounded-full bg-white transition-transform ${isDarkMode ? "translate-x-6" : "translate-x-0.5"}`} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200/80 bg-white/85 p-5 shadow-[0_10px_24px_rgba(15,23,42,0.1)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/70">
+                    <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
+                      <Globe className="h-5 w-5 text-cyan-600" />
+                      {t("settings_language", "Ngôn ngữ")}
+                    </h3>
+
+                    <label className="block text-foreground text-sm font-semibold mb-2 dark:text-white">
+                      {t("settings_language", "Ngôn ngữ")}
+                    </label>
+
+                    <UniversalSelect
+                      value={settings.language || "vi"}
+                      onChange={(e) => handleLanguageChange(e.target.value)}
+                      className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                      contentClassName="border-blue-500/30 bg-slate-950/92 text-slate-100 shadow-[0_20px_50px_rgba(2,6,23,0.75)] backdrop-blur-2xl"
+                      portalled={true}
+                    >
+                      <option value="vi">{t("settings_lang_vi", "Tiếng Việt")}</option>
+                      <option value="en">{t("settings_lang_en", "Tiếng Anh")}</option>
+                    </UniversalSelect>
+
+                    <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">{t("settings_language_desc", "Chọn ngôn ngữ hiển thị")}</p>
+                  </div>
+                </div>
+              </section>
+
+              <div className="rounded-xl border border-cyan-200 bg-cyan-50/70 p-4 text-sm text-cyan-800 dark:border-cyan-900/50 dark:bg-cyan-900/20 dark:text-cyan-200">
+                {t("settings_info", "Giao diện sẽ được lưu tự động và áp dụng cho tất cả các trang trong hệ thống.")}
+              </div>
+            </TabsContent>
+          </div>
+        </Tabs>
+
+        <div className="sticky bottom-4 z-30">
+          <div className="rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-[0_18px_42px_rgba(15,23,42,0.16)] backdrop-blur-xl md:p-4 dark:border-slate-800 dark:bg-slate-900/90">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="inline-flex items-center gap-2 text-sm font-medium">
+                <Clock size={16} className={hasUnsavedChanges ? "text-amber-500" : "text-emerald-500"} />
+                <span className={hasUnsavedChanges ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300"}>
+                  {hasUnsavedChanges ? t("settings_unsaved", "Có thay đổi chưa lưu") : t("settings_synced", "Đã đồng bộ với cấu hình mới nhất")}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 md:gap-3">
+                <button
+                  type="button"
+                  onClick={handleResetChanges}
+                  disabled={isSaving || !hasUnsavedChanges}
+                  className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  {t("settings_reset", "Hoàn tác")}
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving || !hasUnsavedChanges}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-6 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all hover:shadow-[0_14px_34px_rgba(15,23,42,0.18)] disabled:opacity-50"
+                >
+                  <Save size={18} />
+                  {isSaving ? t("settings_saving", "Đang lưu...") : t("settings_save", "Lưu cài đặt")}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </motion.section>
-
-      <Tabs defaultValue="notifications" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 border border-slate-200 bg-white/85 p-1 backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
-          <TabsTrigger value="notifications" className="text-xs md:text-sm">
-            {t("settings_tab_notifications", "Thông báo")}
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="text-xs md:text-sm">
-            {t("settings_tab_appearance", "Giao diện")}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="notifications" className="mt-6">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {notificationItems.map((item) => {
-              const isEnabled = Boolean(settings[item.key as keyof SystemSettings])
-              return (
-                <motion.article
-                  key={item.key}
-                  whileHover={{ y: -2 }}
-                  className="rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/70"
-                >
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 dark:bg-cyan-900/35 dark:text-cyan-300">
-                      <item.icon className="h-5 w-5" />
-                    </div>
-
-                    <button
-                      onClick={() => handleSettingChange(item.key, !isEnabled)}
-                      className={`h-6 w-12 rounded-full transition ${isEnabled ? "bg-cyan-500" : "bg-slate-300 dark:bg-slate-700"}`}
-                    >
-                      <span
-                        className={`block h-5 w-5 rounded-full bg-white transition ${isEnabled ? "translate-x-6" : "translate-x-0.5"}`}
-                      />
-                    </button>
-                  </div>
-
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{item.title}</h3>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{item.description}</p>
-                </motion.article>
-              )
-            })}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="appearance" className="mt-6 space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <motion.div
-              whileHover={{ y: -2 }}
-              className="rounded-2xl border border-slate-200/80 bg-white/85 p-5 shadow-[0_8px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/70"
-            >
-              <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
-                <Palette className="h-5 w-5 text-cyan-600" />
-                {t("settings_appearance_title", "Giao diện")}
-              </h3>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
-                  <div className="flex items-center gap-2">
-                    {isDarkMode ? <Moon className="h-4 w-4 text-cyan-500" /> : <Sun className="h-4 w-4 text-amber-500" />}
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{t("settings_dark_mode", "Chế độ tối")}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{t("settings_dark_desc", "Bật/tắt chế độ tối cho giao diện")}</p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={toggleTheme}
-                    className={`h-6 w-12 rounded-full transition ${isDarkMode ? "bg-cyan-500" : "bg-slate-300 dark:bg-slate-700"}`}
-                  >
-                    <span className={`block h-5 w-5 rounded-full bg-white transition ${isDarkMode ? "translate-x-6" : "translate-x-0.5"}`} />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ y: -2 }}
-              className="rounded-2xl border border-slate-200/80 bg-white/85 p-5 shadow-[0_8px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/70"
-            >
-              <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
-                <Globe className="h-5 w-5 text-cyan-600" />
-                {t("settings_language", "Ngôn ngữ")}
-              </h3>
-
-              <UniversalSelect
-                value={settings.language || "vi"}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200"
-                contentClassName="border-blue-500/30 bg-slate-950/92 text-slate-100 backdrop-blur-2xl shadow-[0_20px_50px_rgba(2,6,23,0.75)]"
-                portalled={true}
-              >
-                <option value="vi">{t("settings_lang_vi", "Tiếng Việt")}</option>
-                <option value="en">{t("settings_lang_en", "Tiếng Anh")}</option>
-              </UniversalSelect>
-
-              <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{t("settings_language_desc", "Chọn ngôn ngữ hiển thị")}</p>
-            </motion.div>
-          </div>
-
-          <div className="rounded-xl border border-cyan-200 bg-cyan-50/70 p-4 text-sm text-cyan-800 dark:border-cyan-900/50 dark:bg-cyan-900/20 dark:text-cyan-200">
-            {t("settings_info", "Giao diện sẽ được lưu tự động và áp dụng cho tất cả các trang trong hệ thống.")}
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      <button
-        onClick={handleSave}
-        disabled={isSaving}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(14,165,233,0.25)] transition hover:shadow-[0_16px_34px_rgba(14,165,233,0.35)] disabled:opacity-60"
-      >
-        <Save className="h-4 w-4" />
-        {isSaving ? t("settings_saving", "Đang lưu...") : t("settings_save", "Lưu cài đặt")}
-      </button>
+      </div>
     </div>
   )
 }
