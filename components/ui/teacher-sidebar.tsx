@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { LayoutDashboard, BookOpen, Users, Settings, LogOut, User, Star, BarChart3, FileText, Award, ChevronRight, ClipboardList } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
@@ -25,6 +25,18 @@ export function TeacherSidebar() {
   const [isHovering, setIsHovering] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { config } = useSystemConfig()
+  const isCollapsedRef = useRef(isCollapsed)
+  const isHoveringRef = useRef(isHovering)
+  const collapseRafRef = useRef<number | null>(null)
+  const idleCollapseTimerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    isCollapsedRef.current = isCollapsed
+  }, [isCollapsed])
+
+  useEffect(() => {
+    isHoveringRef.current = isHovering
+  }, [isHovering])
 
   // Expand sidebar on hover (desktop only)
   const handleMouseEnter = () => {
@@ -43,26 +55,76 @@ export function TeacherSidebar() {
   }
 
   useEffect(() => {
-    if (isCollapsed) return
-
     const desktopQuery = window.matchMedia("(min-width: 1280px)")
-    if (!desktopQuery.matches) return
-
-    const mainContent = document.querySelector("main[data-dashboard-main='true']")
+    const mainContent = document.querySelector<HTMLElement>("main[data-dashboard-main='true']")
     if (!mainContent) return
 
-    const collapseSidebar = () => setIsCollapsed(true)
+    let lastScrollTop = mainContent.scrollTop
 
-    mainContent.addEventListener("pointerdown", collapseSidebar, { passive: true })
-    mainContent.addEventListener("wheel", collapseSidebar, { passive: true })
-    mainContent.addEventListener("touchstart", collapseSidebar, { passive: true })
+    const clearIdleCollapseTimer = () => {
+      if (idleCollapseTimerRef.current !== null) {
+        window.clearTimeout(idleCollapseTimerRef.current)
+        idleCollapseTimerRef.current = null
+      }
+    }
+
+    const collapseSidebar = () => {
+      if (isCollapsedRef.current || isHoveringRef.current) return
+      isCollapsedRef.current = true
+      setIsCollapsed(true)
+      setIsHovering(false)
+    }
+
+    const scheduleIdleCollapse = () => {
+      if (!desktopQuery.matches || isCollapsedRef.current) return
+      clearIdleCollapseTimer()
+      idleCollapseTimerRef.current = window.setTimeout(collapseSidebar, 1200)
+    }
+
+    const collapseOnScroll = () => {
+      if (!desktopQuery.matches || isCollapsedRef.current) return
+      if (collapseRafRef.current !== null) return
+
+      collapseRafRef.current = window.requestAnimationFrame(() => {
+        const currentScrollTop = mainContent.scrollTop
+        const delta = Math.abs(currentScrollTop - lastScrollTop)
+        const isScrollingDown = currentScrollTop > lastScrollTop
+        lastScrollTop = currentScrollTop
+        collapseRafRef.current = null
+
+        if (isScrollingDown && currentScrollTop > 0 && delta > 4) {
+          collapseSidebar()
+          return
+        }
+
+        scheduleIdleCollapse()
+      })
+    }
+
+    const onMainActivity = () => {
+      scheduleIdleCollapse()
+    }
+
+    mainContent.addEventListener("scroll", collapseOnScroll, { passive: true })
+    mainContent.addEventListener("pointerdown", onMainActivity, { passive: true })
+    mainContent.addEventListener("wheel", onMainActivity, { passive: true })
+    mainContent.addEventListener("touchstart", onMainActivity, { passive: true })
+    mainContent.addEventListener("keydown", onMainActivity)
+
+    scheduleIdleCollapse()
 
     return () => {
-      mainContent.removeEventListener("pointerdown", collapseSidebar)
-      mainContent.removeEventListener("wheel", collapseSidebar)
-      mainContent.removeEventListener("touchstart", collapseSidebar)
+      mainContent.removeEventListener("scroll", collapseOnScroll)
+      mainContent.removeEventListener("pointerdown", onMainActivity)
+      mainContent.removeEventListener("wheel", onMainActivity)
+      mainContent.removeEventListener("touchstart", onMainActivity)
+      mainContent.removeEventListener("keydown", onMainActivity)
+      if (collapseRafRef.current !== null) {
+        window.cancelAnimationFrame(collapseRafRef.current)
+      }
+      clearIdleCollapseTimer()
     }
-  }, [isCollapsed])
+  }, [])
 
   const menuItems = [
     { icon: LayoutDashboard, label: t("teacher_menu_dashboard", "Dashboard"), href: "/teacher/dashboard" },
@@ -87,7 +149,7 @@ export function TeacherSidebar() {
       <aside
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={`fixed left-0 top-0 h-screen bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-[width,transform] duration-500 ease-out transform-gpu z-30 xl:sticky xl:top-0 flex flex-col ${
+        className={`fixed left-0 top-0 h-screen bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-[width,transform,box-shadow] duration-500 ease-out motion-reduce:transition-none will-change-[width,transform] transform-gpu z-30 xl:sticky xl:top-0 flex flex-col ${
           isHovering || !isCollapsed ? "w-64" : "w-20"
         } ${
           isOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"
@@ -123,7 +185,7 @@ export function TeacherSidebar() {
         </div>
 
         {/* Scrollable Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 scrollbar-thin scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/40 scrollbar-track-transparent">
+        <nav className="flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] px-3 py-4 space-y-1.5 scrollbar-thin scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/40 scrollbar-track-transparent">
           {menuItems.map((item) => {
             const isActive = pathname === item.href
             return (

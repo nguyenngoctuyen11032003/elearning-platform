@@ -195,7 +195,7 @@ export function AdminSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 ease-out group relative ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 ease-out group relative ${
                   isActive
                     ? "bg-gradient-to-r from-primary/15 to-accent/10 dark:from-primary/20 dark:to-accent/15 text-primary dark:text-accent border-l-4 border-primary dark:border-accent shadow-sm"
                     : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white hover:bg-secondary/60 dark:hover:bg-slate-800/60 hover:border-l-4 hover:border-transparent hover:pl-3"
