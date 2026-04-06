@@ -22,7 +22,32 @@ interface ExamData {
   questions: ExamQuestion[]
 }
 
-const OPTION_IMAGE_TOKEN_REGEX = /^\[\[IMG:(data:image\/[^\]]+)\]\]\s*([\s\S]*)$/
+const OPTION_IMAGE_TOKEN_REGEX = /^\[\[IMG:([^\]]+)\]\]\s*([\s\S]*)$/
+
+function normalizeMediaUrl(value: unknown): string | undefined {
+  const raw = String(value || "").trim()
+  if (!raw) return undefined
+  if (/^(data:image\/|blob:)/i.test(raw)) return raw
+
+  let normalized = raw
+    .replace(/(^|\s)\/api\/uploads\//g, "$1/uploads/")
+    .replace(/^(https?:\/\/[^/]+)\/api\/uploads\//i, "$1/uploads/")
+
+  const backendBase = String(process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "")
+  if (backendBase && normalized.startsWith(`${backendBase}/uploads/`)) {
+    normalized = normalized.slice(backendBase.length)
+  }
+
+  if (/^https?:\/\/[^/]+\/uploads\//i.test(normalized)) {
+    normalized = normalized.replace(/^https?:\/\/[^/]+/i, "")
+  }
+
+  if (/^(uploads|images|image)\//i.test(normalized)) {
+    normalized = `/${normalized}`
+  }
+
+  return normalized
+}
 
 function cleanOptionText(value: unknown): string {
   return String(value ?? "")
@@ -39,9 +64,19 @@ function parseOptionPayload(raw: string): { text: string; image?: string; raw: s
   }
   return {
     raw: value,
-    image: match[1],
+    image: normalizeMediaUrl(match[1]),
     text: String(match[2] || "").trim(),
   }
+}
+
+function resolveQuestionImage(source: any): string | undefined {
+  return normalizeMediaUrl(
+    source?.image ||
+      source?.imageUrl ||
+      source?.imageURL ||
+      source?.img ||
+      source?.media?.url,
+  )
 }
 
 function hasExplicitOptionLabels(text: string): boolean {
@@ -278,9 +313,7 @@ function normalizeExamQuestions(raw: unknown): ExamQuestion[] {
         id: String(q.id || `q-${idx + 1}`),
         type: forcedFillIn ? "fill_in" : normalizedType,
         question: questionText,
-        image: (typeof q.image === "string" && q.image) ? q.image
-          : (typeof q.imageUrl === "string" && q.imageUrl) ? q.imageUrl
-          : undefined,
+        image: resolveQuestionImage(q),
         options: forcedFillIn ? [] : options,
       } as ExamQuestion
     })

@@ -10,10 +10,14 @@ import {
   CheckCircle,
   Copy,
   Download,
+  X,
   Eye,
   ExternalLink,
   FileText,
   Loader2,
+  Minus,
+  Maximize2,
+  Plus,
   Search,
   Share2,
   Sparkles,
@@ -45,6 +49,31 @@ interface Certificate {
   }
 }
 
+function normalizeMediaUrl(value: unknown): string | undefined {
+  const raw = String(value || "").trim()
+  if (!raw) return undefined
+  if (/^(data:image\/|blob:)/i.test(raw)) return raw
+
+  let normalized = raw
+    .replace(/(^|\s)\/api\/uploads\//g, "$1/uploads/")
+    .replace(/^(https?:\/\/[^/]+)\/api\/uploads\//i, "$1/uploads/")
+
+  const backendBase = String(process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "")
+  if (backendBase && normalized.startsWith(`${backendBase}/uploads/`)) {
+    normalized = normalized.slice(backendBase.length)
+  }
+
+  if (/^https?:\/\/[^/]+\/uploads\//i.test(normalized)) {
+    normalized = normalized.replace(/^https?:\/\/[^/]+/i, "")
+  }
+
+  if (/^(uploads|images|image)\//i.test(normalized)) {
+    normalized = `/${normalized}`
+  }
+
+  return normalized
+}
+
 type StatusFilter = "all" | "approved" | "pending" | "rejected"
 
 function mapCertificate(raw: any): Certificate {
@@ -52,16 +81,24 @@ function mapCertificate(raw: any): Certificate {
     raw?.imageUrl ||
     raw?.certificateImageUrl ||
     raw?.templateImageUrl ||
+    raw?.metadata?.previewImageUrl ||
+    raw?.metadata?.thumbnailUrl ||
     raw?.metadata?.imageUrl ||
     raw?.metadata?.previewUrl ||
     raw?.metadata?.certificateUrl
+
+  const pdfUrl =
+    raw?.pdfUrl ||
+    raw?.metadata?.pdfUrl ||
+    raw?.metadata?.certificatePdfUrl ||
+    raw?.metadata?.downloadUrl
 
   return {
     id: raw?.id || "",
     certificateNumber: raw?.certificateNumber || "",
     issueDate: raw?.issueDate || raw?.createdAt || new Date().toISOString(),
-    pdfUrl: raw?.pdfUrl || undefined,
-    imageUrl: imageUrl || undefined,
+    pdfUrl: normalizeMediaUrl(pdfUrl),
+    imageUrl: normalizeMediaUrl(imageUrl),
     status: raw?.status || "approved",
     courseId: raw?.courseId || raw?.course?.id || "",
     course: raw?.course
@@ -81,6 +118,8 @@ export default function CertificatesPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
+  const [viewerCert, setViewerCert] = useState<Certificate | null>(null)
+  const [viewerZoom, setViewerZoom] = useState(1)
 
   useEffect(() => {
     const load = async () => {
@@ -154,7 +193,17 @@ export default function CertificatesPage() {
   }
 
   const handleDownload = (cert: Certificate) => {
-    window.open(`/certificates/${cert.id}?print=1`, "_blank")
+    window.open(`/certificate-print/${cert.id}?print=1`, "_blank")
+  }
+
+  const openViewer = (cert: Certificate) => {
+    setViewerCert(cert)
+    setViewerZoom(1)
+  }
+
+  const closeViewer = () => {
+    setViewerCert(null)
+    setViewerZoom(1)
   }
 
   const handleShare = async (cert: Certificate) => {
@@ -185,7 +234,25 @@ export default function CertificatesPage() {
     }
   }
 
+  useEffect(() => {
+    if (!viewerCert) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeViewer()
+      if (event.key === "+" || event.key === "=") {
+        setViewerZoom((prev) => Math.min(2.5, Number((prev + 0.1).toFixed(2))))
+      }
+      if (event.key === "-") {
+        setViewerZoom((prev) => Math.max(0.6, Number((prev - 0.1).toFixed(2))))
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [viewerCert])
+
   const normalized = (value: string | undefined) => String(value || "pending").toLowerCase()
+  const isPdfLike = (url?: string) => Boolean(url && /\.pdf(\?|#|$)/i.test(url))
 
   const filteredCertificates = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase()
@@ -361,8 +428,19 @@ export default function CertificatesPage() {
                 {cert.imageUrl ? (
                   <img src={cert.imageUrl} alt={t("cert_image_alt", "Chứng chỉ")} className="h-full w-full object-cover" loading="lazy" />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-slate-300">
-                    <Award className="h-12 w-12" />
+                  <div className="relative h-full w-full overflow-hidden bg-[#0d1b2e]">
+                    <div className="absolute inset-3 rounded-lg border border-[#b8860b]/45" />
+                    <div className="absolute left-0 top-0 h-16 w-full bg-gradient-to-b from-[#b8860b]/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 h-12 w-full bg-gradient-to-t from-[#b8860b]/15 to-transparent" />
+                    <div className="relative flex h-full flex-col items-center justify-center px-4 text-center">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#f1d27a]/90">ICS E-LEARNING</p>
+                      <p className="mt-1 text-sm font-extrabold uppercase tracking-[0.06em] text-[#ffd700]">{t("cert_title", "Chứng chỉ")}</p>
+                      <p className="mt-2 line-clamp-1 text-xs font-semibold text-[#f8fafc]">{cert.course?.title || t("cert_course_cert", "Chứng chỉ khóa học")}</p>
+                      <p className="mt-1 line-clamp-1 text-[11px] text-[#cbd5e1]">{cert.student?.name || [cert.student?.firstName, cert.student?.lastName].filter(Boolean).join(" ") || t("cert_student", "Học viên")}</p>
+                      <p className="mt-2 max-w-[90%] truncate rounded-full border border-[#b8860b]/45 bg-[#b8860b]/10 px-2 py-0.5 font-mono text-[10px] text-[#f1d27a]">
+                        {cert.certificateNumber || "CERT-XXXX"}
+                      </p>
+                    </div>
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
@@ -371,6 +449,12 @@ export default function CertificatesPage() {
                 <p className="absolute bottom-3 left-3 right-3 line-clamp-2 text-sm font-semibold text-white">
                   {cert.course?.title || t("cert_course_cert", "Chứng chỉ khóa học")}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => openViewer(cert)}
+                  className="absolute inset-0 z-10"
+                  aria-label={t("cert_view", "Xem chứng chỉ")}
+                />
               </div>
 
               <div className="space-y-3 p-4">
@@ -409,13 +493,14 @@ export default function CertificatesPage() {
                     {t("cert_download", "Tải xuống")}
                   </button>
 
-                  <Link
-                    href={`/certificates/${cert.id}`}
+                  <button
+                    type="button"
+                    onClick={() => openViewer(cert)}
                     className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     <Eye className="h-4 w-4" />
                     {t("cert_view", "Xem")}
-                  </Link>
+                  </button>
 
                   <button
                     onClick={() => handleShare(cert)}
@@ -451,6 +536,113 @@ export default function CertificatesPage() {
             {t("cert_empty_desc", "Hoàn thành các bài thi chính thức để nhận chứng chỉ")}
           </p>
         </motion.div>
+      )}
+
+      {viewerCert && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+          onClick={closeViewer}
+        >
+          <div
+            className="max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/90 px-4 py-3">
+              <div>
+                <p className="line-clamp-1 text-sm font-semibold text-white">
+                  {viewerCert.course?.title || t("cert_title", "Chứng chỉ")}
+                </p>
+                <p className="mt-0.5 text-xs text-slate-300">
+                  {t("cert_issue_date", "Ngày cấp")}: {formatDate(viewerCert.issueDate)}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewerZoom((prev) => Math.max(0.6, Number((prev - 0.1).toFixed(2))))}
+                  className="rounded-lg border border-slate-700 p-2 text-slate-100 transition hover:bg-slate-800"
+                  aria-label={t("cert_zoom_out", "Thu nhỏ")}
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewerZoom(1)}
+                  className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-slate-800"
+                >
+                  {Math.round(viewerZoom * 100)}%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewerZoom((prev) => Math.min(2.5, Number((prev + 0.1).toFixed(2))))}
+                  className="rounded-lg border border-slate-700 p-2 text-slate-100 transition hover:bg-slate-800"
+                  aria-label={t("cert_zoom_in", "Phóng to")}
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={closeViewer}
+                  className="rounded-lg border border-slate-700 p-2 text-slate-100 transition hover:bg-slate-800"
+                  aria-label={t("close", "Đóng")}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-[72vh] overflow-auto bg-[radial-gradient(circle_at_top,rgba(30,41,59,0.55),rgba(2,6,23,1))] p-4 md:p-6">
+              {viewerCert.imageUrl ? (
+                <div className="mx-auto w-fit rounded-xl border border-slate-700 bg-white p-2 shadow-[0_18px_40px_rgba(2,6,23,0.6)]">
+                  <img
+                    src={viewerCert.imageUrl}
+                    alt={t("cert_image_alt", "Chứng chỉ")}
+                    className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain transition-transform duration-200"
+                    style={{ transform: `scale(${viewerZoom})`, transformOrigin: "center center" }}
+                  />
+                </div>
+              ) : viewerCert.pdfUrl && isPdfLike(viewerCert.pdfUrl) ? (
+                <iframe
+                  src={viewerCert.pdfUrl}
+                  title={t("cert_title", "Chứng chỉ")}
+                  className="h-[70vh] w-full rounded-xl border border-slate-700 bg-white"
+                />
+              ) : (
+                <iframe
+                  src={`/certificate-print/${viewerCert.id}?embed=1`}
+                  title={t("cert_title", "Chứng chỉ")}
+                  className="h-[70vh] w-full rounded-xl border border-slate-700 bg-white"
+                />
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-800 bg-slate-900/90 px-4 py-3">
+              <button
+                type="button"
+                onClick={() => handleShare(viewerCert)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-slate-800"
+              >
+                <Share2 className="h-4 w-4" />
+                {t("cert_share", "Chia sẻ")}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDownload(viewerCert)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-slate-800"
+              >
+                <Download className="h-4 w-4" />
+                {t("cert_download", "Tải xuống")}
+              </button>
+              <Link
+                href={`/certificate-print/${viewerCert.id}?print=1`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-cyan-500"
+              >
+                <Maximize2 className="h-4 w-4" />
+                {t("cert_view", "Xem chứng chỉ")}
+              </Link>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
