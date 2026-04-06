@@ -41,9 +41,9 @@ const itemVariants = {
 
 /* ====== BACKGROUND SLIDER ====== */
 const backgrounds = [
-  "/image/about_hero.png",
-  "/image/about_hero2.png",
-  "/image/about_hero3.png",
+  "/image/bgr2.jpg?v=20260406-1",
+  "/image/bgr3.jpg?v=20260406-1",
+  "/image/bgr1.jpg",
 ];
 const heroContents = [
   {
