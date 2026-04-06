@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
 
 interface CouponItem {
   id: string
@@ -177,8 +178,8 @@ export default function AdminPaymentCodesPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">{item.code}</span>
                   <span className="rounded bg-secondary px-2 py-1 text-xs">{item.type === "fixed" ? t("adm_code_fixed", "Cố định") : t("adm_code_percent", "Phần trăm")}</span>
-                  <span className="rounded bg-secondary px-2 py-1 text-xs">{t("adm_code_value", "Giá trị")}: {item.value}</span>
-                  <span className="rounded bg-secondary px-2 py-1 text-xs">{t("adm_code_used", "Đã dùng")}: {item.usedCount || 0}/{item.usageLimit || "∞"}</span>
+                  <span className="rounded bg-secondary px-2 py-1 text-xs">{t("adm_code_value", "Giá trị")}: <AnimatedNumber value={item.value} durationMs={320} /></span>
+                  <span className="rounded bg-secondary px-2 py-1 text-xs">{t("adm_code_used", "Đã dùng")}: <AnimatedNumber value={item.usedCount || 0} durationMs={320} />/{item.usageLimit ? <AnimatedNumber value={item.usageLimit} durationMs={320} /> : "∞"}</span>
                 </div>
                 <div className="mt-2 text-sm text-muted-foreground">
                   {item.validFrom && <span>{t("adm_code_from", "Từ")}: {new Date(item.validFrom).toLocaleString("vi-VN")} </span>}

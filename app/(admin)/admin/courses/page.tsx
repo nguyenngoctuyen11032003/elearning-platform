@@ -467,7 +467,7 @@ export default function AdminCoursesPage() {
                         />
                         <div>
                           <p className="text-foreground dark:text-white font-medium leading-7 line-clamp-2 break-words">{course.title}</p>
-                          <p className="text-muted-foreground dark:text-slate-400 text-xs">{course.lessons} {t("adm_courses_lessons_unit", "bài học")} • {course.duration}</p>
+                          <p className="text-muted-foreground dark:text-slate-400 text-xs"><AnimatedNumber value={course.lessons} durationMs={320} /> {t("adm_courses_lessons_unit", "bài học")} • {course.duration}</p>
                         </div>
                       </div>
                     </td>
@@ -478,9 +478,9 @@ export default function AdminCoursesPage() {
                       </span>
                     </td>
                     <td className="py-5 px-6 text-foreground dark:text-white font-medium" data-label={t("adm_courses_col_price", "Giá")}>
-                      {formatCurrencyByLanguage(course.price, language)}
+                      <AnimatedNumber value={course.price} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={360} />
                     </td>
-                    <td className="py-5 px-6 text-foreground dark:text-white" data-label={t("adm_courses_col_students", "Học viên")}>{formatStudentCount(course.students)}</td>
+                    <td className="py-5 px-6 text-foreground dark:text-white" data-label={t("adm_courses_col_students", "Học viên")}><AnimatedNumber value={course.students} formatter={formatStudentCount} durationMs={340} /></td>
                     <td className="py-5 px-6" data-label={t("adm_courses_col_status", "Trạng thái")}>{getStatusBadge(course.status)}</td>
                     <td className="py-5 px-6 text-muted-foreground dark:text-slate-400" data-label={t("adm_courses_col_date", "Ngày tạo")}>{formatDate(course.createdAt)}</td>
                     <td className="py-5 px-6 relative">
@@ -549,11 +549,11 @@ export default function AdminCoursesPage() {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-slate-500/80 dark:text-slate-500/80">{t("adm_courses_col_price", "Giá")}</p>
-                    <p className="font-medium text-slate-800 dark:text-slate-100">{formatCurrencyByLanguage(course.price, language)}</p>
+                    <p className="font-medium text-slate-800 dark:text-slate-100"><AnimatedNumber value={course.price} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={340} /></p>
                   </div>
                   <div>
                     <p className="text-slate-500/80 dark:text-slate-500/80">{t("adm_courses_students", "Học viên")}</p>
-                    <p className="text-slate-800 dark:text-slate-100">{formatStudentCount(course.students)}</p>
+                    <p className="text-slate-800 dark:text-slate-100"><AnimatedNumber value={course.students} formatter={formatStudentCount} durationMs={340} /></p>
                   </div>
                   <div>
                     <p className="text-slate-500/80 dark:text-slate-500/80">{t("adm_courses_col_status", "Trạng thái")}</p>
@@ -715,22 +715,22 @@ export default function AdminCoursesPage() {
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/45 p-5 rounded-2xl">
                     <Users size={24} className="text-blue-500 mb-3" />
-                    <p className="text-3xl font-bold text-foreground dark:text-white">{formatStudentCount(selectedCourse.students)}</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white"><AnimatedNumber value={selectedCourse.students} formatter={formatStudentCount} durationMs={420} /></p>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{t("adm_courses_students", "Học viên")}</p>
                   </div>
                   <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/45 p-5 rounded-2xl">
                     <BookOpen size={24} className="text-green-500 mb-3" />
-                    <p className="text-3xl font-bold text-foreground dark:text-white">{selectedCourse.lessons}</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white"><AnimatedNumber value={selectedCourse.lessons} durationMs={420} /></p>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{t("adm_courses_lessons", "Bài học")}</p>
                   </div>
                   <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/45 p-5 rounded-2xl">
                     <Star size={24} className="text-yellow-500 mb-3" />
-                    <p className="text-3xl font-bold text-foreground dark:text-white">{selectedCourse.rating || "N/A"}</p>
-                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{selectedCourse.reviewCount} {t("adm_courses_reviews", "đánh giá")}</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white">{selectedCourse.rating ? <AnimatedNumber value={selectedCourse.rating} formatter={(value: number) => value.toFixed(1)} durationMs={420} /> : "N/A"}</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1"><AnimatedNumber value={selectedCourse.reviewCount} durationMs={340} /> {t("adm_courses_reviews", "đánh giá")}</p>
                   </div>
                   <div className="bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/45 p-5 rounded-2xl">
                     <DollarSign size={24} className="text-purple-500 mb-3" />
-                    <p className="text-3xl font-bold text-foreground dark:text-white">₫{(selectedCourse.revenue / 1000000).toFixed(1)}M</p>
+                    <p className="text-3xl font-bold text-foreground dark:text-white">₫<AnimatedNumber value={selectedCourse.revenue / 1000000} formatter={(value: number) => value.toFixed(1)} durationMs={420} />M</p>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{t("adm_courses_revenue", "Doanh thu")}</p>
                   </div>
                 </div>
@@ -753,7 +753,7 @@ export default function AdminCoursesPage() {
                       <DollarSign size={16} />
                       {t("adm_courses_price_label", "Giá khóa học")}
                     </p>
-                    <p className="text-foreground dark:text-white font-semibold text-xl">{formatCurrencyByLanguage(selectedCourse.price, language)}</p>
+                    <p className="text-foreground dark:text-white font-semibold text-xl"><AnimatedNumber value={selectedCourse.price} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={420} /></p>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mb-2 flex items-center gap-2">

@@ -616,7 +616,7 @@ export default function AdminExamsPage() {
             </select>
 
             <span className="rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-              {filteredExams.length}
+              <AnimatedNumber value={filteredExams.length} durationMs={320} />
             </span>
 
             {(searchTerm.trim() || activeTab !== "all") ? (
@@ -638,14 +638,14 @@ export default function AdminExamsPage() {
           <div className="flex-1 rounded-2xl border border-amber-200 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-900/20 p-3 flex items-center gap-3">
             <Clock size={18} className="text-yellow-400 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-200">{pendingExams} {t("adm_exam_status_pending", "bài thi chờ duyệt")}</p>
+              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-200"><AnimatedNumber value={pendingExams} durationMs={340} /> {t("adm_exam_status_pending", "bài thi chờ duyệt")}</p>
               <p className="text-xs text-yellow-600 dark:text-yellow-300/70">{t("adm_exam_pending_note", "Chờ xem xét từ quản trị viên")}</p>
             </div>
           </div>
           <div className="flex-1 rounded-2xl border border-emerald-200 dark:border-emerald-700/40 bg-emerald-50 dark:bg-emerald-900/20 p-3 flex items-center gap-3">
             <CheckCircle size={18} className="text-green-400 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-green-700 dark:text-green-200">{approvedExams} {t("adm_exam_status_approved", "bài thi đã duyệt")}</p>
+              <p className="text-sm font-medium text-green-700 dark:text-green-200"><AnimatedNumber value={approvedExams} durationMs={340} /> {t("adm_exam_status_approved", "bài thi đã duyệt")}</p>
               <p className="text-xs text-green-600 dark:text-green-300/70">{t("adm_exam_approved_note", "Sẵn sàng cho học viên")}</p>
             </div>
           </div>
@@ -654,7 +654,7 @@ export default function AdminExamsPage() {
         {/* Bulk Actions */}
         {selectedCount > 0 && (
           <div className="rounded-2xl border border-primary/30 dark:border-accent/35 bg-primary/5 dark:bg-accent/10 p-3 flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-            <span className="text-sm text-primary dark:text-accent">{selectedCount} {t("adm_exam_selected", "selected")}</span>
+            <span className="text-sm text-primary dark:text-accent"><AnimatedNumber value={selectedCount} durationMs={320} /> {t("adm_exam_selected", "selected")}</span>
             <button
               onClick={handleBulkApprove}
               className="h-9 px-3.5 rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30 dark:hover:bg-green-500/30 text-sm font-semibold transition-all duration-200 hover:scale-105"
@@ -710,16 +710,16 @@ export default function AdminExamsPage() {
                     <div className="min-w-0">
                       <p className="text-lg font-semibold text-slate-900 dark:text-white">{group.title}</p>
                       <div className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-2">
-                        <span>📘 {group.title} ({group.variants.length} versions)</span>
+                        <span>📘 {group.title} (<AnimatedNumber value={group.variants.length} durationMs={320} /> versions)</span>
                         {(() => {
                           const pendingCount = group.variants.filter(v => v.status === "pending").length
                           const approvedCount = group.variants.filter(v => v.status === "approved").length
                           const rejectedCount = group.variants.filter(v => v.status === "rejected").length
                           return (
                             <>
-                              {pendingCount > 0 && <span className="text-yellow-400 text-xs">• {pendingCount} chưa duyệt</span>}
-                              {approvedCount > 0 && <span className="text-green-400 text-xs">• {approvedCount} đã duyệt</span>}
-                              {rejectedCount > 0 && <span className="text-red-400 text-xs">• {rejectedCount} từ chối</span>}
+                              {pendingCount > 0 && <span className="text-yellow-400 text-xs">• <AnimatedNumber value={pendingCount} durationMs={320} /> chưa duyệt</span>}
+                              {approvedCount > 0 && <span className="text-green-400 text-xs">• <AnimatedNumber value={approvedCount} durationMs={320} /> đã duyệt</span>}
+                              {rejectedCount > 0 && <span className="text-red-400 text-xs">• <AnimatedNumber value={rejectedCount} durationMs={320} /> từ chối</span>}
                             </>
                           )
                         })()}
@@ -750,9 +750,9 @@ export default function AdminExamsPage() {
                                 <p className="text-sm text-slate-700 dark:text-slate-300 mt-2">👨‍🏫 {exam.teacher || t("adm_exam_no_teacher", "Chưa có giảng viên")}</p>
                                 <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-700 dark:text-slate-300">
                                   <span className="inline-flex items-center gap-1"><Timer size={14} /> {exam.timeLimit}m</span>
-                                  <span className="inline-flex items-center gap-1"><ClipboardList size={14} /> {exam.questionsCount} {t("adm_exam_questions_short", "câu")}</span>
-                                  <span className="inline-flex items-center gap-1"><Award size={14} /> {exam.passingScore}%</span>
-                                  <span className="inline-flex items-center gap-1">🔁 {exam.maxAttempts} {t("adm_exam_times", "lần")}</span>
+                                  <span className="inline-flex items-center gap-1"><ClipboardList size={14} /> <AnimatedNumber value={exam.questionsCount} durationMs={320} /> {t("adm_exam_questions_short", "câu")}</span>
+                                  <span className="inline-flex items-center gap-1"><Award size={14} /> <AnimatedNumber value={exam.passingScore} durationMs={320} />%</span>
+                                  <span className="inline-flex items-center gap-1">🔁 <AnimatedNumber value={exam.maxAttempts} durationMs={320} /> {t("adm_exam_times", "lần")}</span>
                                 </div>
                                 <p className="text-xs text-slate-500 mt-2">{t("adm_exam_version", "Version")}: {String.fromCharCode(65 + index)}</p>
                               </div>

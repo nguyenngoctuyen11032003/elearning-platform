@@ -638,7 +638,7 @@ const formatDate = (date?: string) => {
                         <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground dark:text-slate-500">
                           <span>{t("adm_cert_created", "Tạo")}: {formatDate(cert.createdAt)}</span>
                           <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full font-medium">
-                            {t("adm_cert_issued_label", "Đã cấp")}: {cert.issuedCount}
+                            {t("adm_cert_issued_label", "Đã cấp")}: <AnimatedNumber value={cert.issuedCount} durationMs={320} />
                           </span>
                         </div>
                       </div>
@@ -916,7 +916,7 @@ const formatDate = (date?: string) => {
                       <Download size={14} />
                       <span className="text-xs">{t("adm_cert_issued_count", "Số lượng đã cấp")}</span>
                     </div>
-                    <p className="text-sm font-medium text-foreground dark:text-white">{selectedCertificate.issuedCount} {t("adm_cert_unit", "chứng chỉ")}</p>
+                    <p className="text-sm font-medium text-foreground dark:text-white"><AnimatedNumber value={selectedCertificate.issuedCount} durationMs={360} /> {t("adm_cert_unit", "chứng chỉ")}</p>
                   </div>
                 </div>
                 {/* No approve/reject buttons in detail modal */}

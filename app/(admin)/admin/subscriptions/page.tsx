@@ -585,7 +585,7 @@ export default function AdminTeacherSubscriptionPage() {
                 <Clock3 size={16} className={dirtyPlanCount > 0 ? "text-amber-500" : "text-emerald-500"} />
                 <span className={dirtyPlanCount > 0 ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300"}>
                   {dirtyPlanCount > 0
-                    ? `${dirtyPlanCount} gói đang có thay đổi cục bộ chưa lưu`
+                    ? <><AnimatedNumber value={dirtyPlanCount} durationMs={320} /> gói đang có thay đổi cục bộ chưa lưu</>
                     : "Tất cả gói đã đồng bộ"}
                 </span>
               </div>
@@ -647,10 +647,10 @@ export default function AdminTeacherSubscriptionPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="space-y-1">
                             <p className="text-sm font-semibold">{plan.name || t("adm_sub_plan_name", "Tên gói")}</p>
-                            <p className="text-xs text-muted-foreground">{t("adm_sub_duration", "Thời hạn (tháng)")}: {plan.durationMonths}</p>
+                            <p className="text-xs text-muted-foreground">{t("adm_sub_duration", "Thời hạn (tháng)")}: <AnimatedNumber value={plan.durationMonths} durationMs={320} /></p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold">₫{formatNumber(Number(plan.price || 0))}</span>
+                            <span className="rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold"><AnimatedNumber value={Number(plan.price || 0)} formatter={formatNumber} prefix="₫" durationMs={420} /></span>
                             <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${hasDraft ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
                               {hasDraft ? "Chưa lưu" : "Đã đồng bộ"}
                             </span>
@@ -750,7 +750,7 @@ export default function AdminTeacherSubscriptionPage() {
                   ) : null}
                 </div>
                 <div className="text-xs text-slate-600 dark:text-slate-300">
-                  {t("adm_sub_showing", "Hiển thị")}: <span className="font-semibold">{filteredPayments.length}</span> / {payments.length} {t("adm_sub_transactions", "giao dịch.")}
+                  {t("adm_sub_showing", "Hiển thị")}: <span className="font-semibold"><AnimatedNumber value={filteredPayments.length} durationMs={320} /></span> / <AnimatedNumber value={payments.length} durationMs={320} /> {t("adm_sub_transactions", "giao dịch.")}
                 </div>
               </div>
 
@@ -769,7 +769,7 @@ export default function AdminTeacherSubscriptionPage() {
                           <p className="text-sm text-muted-foreground leading-relaxed">{p.teacher?.email || p.teacher?.name} • {p.plan?.name}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-lg font-semibold text-foreground dark:text-white">₫{formatNumber(Number(p.amount || 0))}</span>
+                          <span className="text-lg font-semibold text-foreground dark:text-white"><AnimatedNumber value={Number(p.amount || 0)} formatter={formatNumber} prefix="₫" durationMs={440} /></span>
                           <span className={`text-xs px-2 py-1 rounded-full border ${statusMeta.className}`}>{statusMeta.label}</span>
                         </div>
                       </div>
@@ -801,7 +801,7 @@ export default function AdminTeacherSubscriptionPage() {
                   {t("adm_sub_no_payment_match", "Không có giao dịch phù hợp với bộ lọc hiện tại.")}
                 </div>
               ) : null}
-              <p className="text-sm text-muted-foreground">{t("adm_sub_paid_count", "Đã thanh toán:")} {paidPayments.length} {t("adm_sub_transactions", "giao dịch.")}</p>
+              <p className="text-sm text-muted-foreground">{t("adm_sub_paid_count", "Đã thanh toán:")} <AnimatedNumber value={paidPayments.length} durationMs={420} /> {t("adm_sub_transactions", "giao dịch.")}</p>
             </section>
           </TabsContent>
 
@@ -813,7 +813,7 @@ export default function AdminTeacherSubscriptionPage() {
                   <p className="text-sm text-muted-foreground">{t("adm_sub_access_desc", "Theo dõi hạn mức sử dụng và vòng đời gói theo từng giảng viên.")}</p>
                 </div>
                 <span className="w-fit rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                  {subscriptions.length} {t("adm_sub_teachers", "giảng viên")}
+                  <AnimatedNumber value={subscriptions.length} durationMs={320} /> {t("adm_sub_teachers", "giảng viên")}
                 </span>
               </div>
               <div className="grid gap-3 lg:grid-cols-2">
@@ -857,7 +857,7 @@ export default function AdminTeacherSubscriptionPage() {
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-xs text-muted-foreground">{item.label}</p>
                               <p className={`text-xs font-semibold ${item.meta.toneClass}`}>
-                                {formatNumber(item.meta.used)} / {formatNumber(item.meta.limit)}{item.suffix}
+                                <AnimatedNumber value={item.meta.used} formatter={formatNumber} durationMs={420} /> / <AnimatedNumber value={item.meta.limit} formatter={formatNumber} durationMs={420} />{item.suffix}
                               </p>
                             </div>
                             <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
