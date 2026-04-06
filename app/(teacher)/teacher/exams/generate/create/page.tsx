@@ -255,9 +255,7 @@ function TeacherGenerateExamCreatePageContent() {
 
         const [examResponse, templateResponse, courseResponse] = await Promise.all([
           authFetch("/exams/my-exams"),
-          fetch("/api/certificate-templates", {
-            headers: { Authorization: `Bearer ${localStorage.getItem("auth_token") || ""}` },
-          }),
+          authFetch("/certificates/templates/my"),
           authFetch("/courses/my-courses"),
         ])
 
@@ -356,13 +354,11 @@ function TeacherGenerateExamCreatePageContent() {
         }
 
         if (templateResponse.ok) {
-          const templatePayload = await templateResponse.json()
-          const templateList = Array.isArray(templatePayload)
-            ? templatePayload
-            : Array.isArray(templatePayload?.data)
-            ? templatePayload.data
-            : []
+          const templatePayload = await templateResponse.json().catch(() => ({}))
+          const templateList = normalizeList<any>(templatePayload)
           setTemplates(templateList)
+        } else {
+          setTemplates([])
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Không thể tải dữ liệu"
