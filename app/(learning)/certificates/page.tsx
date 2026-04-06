@@ -458,6 +458,15 @@ export default function CertificatesPage() {
               </div>
 
               <div className="space-y-3 p-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                    {t("cert_completed_name_label", "Tên chứng chỉ hoàn thành")}
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-sm font-bold text-slate-900 dark:text-white">
+                    {cert.course?.title || t("cert_course_cert", "Chứng chỉ khóa học")}
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded-lg bg-slate-100 px-2 py-1.5 text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
                     <p className="mb-1 inline-flex items-center gap-1 font-medium">
