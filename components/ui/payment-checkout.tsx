@@ -19,7 +19,6 @@ import { Button } from "./button"
 import { apiClient } from "@/lib/api/client"
 import { formatPrice, formatCurrencyByLanguage } from "@/lib/format"
 import { useLanguage } from "@/lib/i18n/language-context"
-import Image from "next/image"
 
 interface PaymentCheckoutProps {
   courseId: string
@@ -347,12 +346,18 @@ export function PaymentCheckout({
               <div className="flex gap-4">
                 {courseThumbnail ? (
                   <div className="w-20 h-14 rounded-lg overflow-hidden bg-secondary dark:bg-slate-700 flex-shrink-0">
-                    <Image
+                    <img
                       src={courseThumbnail}
                       alt={courseName}
-                      width={80}
-                      height={56}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        const target = event.currentTarget
+                        if (!target.src.endsWith("/placeholder.svg")) {
+                          target.src = "/placeholder.svg"
+                        }
+                      }}
                     />
                   </div>
                 ) : (

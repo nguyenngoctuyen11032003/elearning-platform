@@ -12,6 +12,27 @@ import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { useRouter } from "next/navigation"
 
+function toSafeImageUrl(url: string | undefined, fallback = "/image/python.png") {
+  if (!url || typeof url !== "string") return fallback
+  const trimmed = url.trim()
+  if (!trimmed) return fallback
+
+  if (trimmed.startsWith("/api/uploads/")) return trimmed
+  if (trimmed.startsWith("/uploads/")) return `/api${trimmed}`
+
+  const uploadsMatch = trimmed.match(/https?:\/\/[^/]+\/uploads\/(.+)$/i)
+  if (uploadsMatch?.[1]) {
+    return `/api/uploads/${uploadsMatch[1]}`
+  }
+
+  const apiUploadsMatch = trimmed.match(/https?:\/\/[^/]+\/api\/uploads\/(.+)$/i)
+  if (apiUploadsMatch?.[1]) {
+    return `/api/uploads/${apiUploadsMatch[1]}`
+  }
+
+  return trimmed
+}
+
 export default function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const router = useRouter()
   const resolvedParams = use(params)
@@ -325,14 +346,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     id: courseData?.id ?? resolvedParams.courseId,
     title: courseData?.title ?? t("common_loading", "Đang tải..."),
     teacher: courseData?.teacher?.name ?? "",
-    teacherAvatar: courseData?.teacher?.avatar ?? "/placeholder-user.jpg",
+    teacherAvatar: toSafeImageUrl(courseData?.teacher?.avatar, "/placeholder-user.jpg"),
     price: parseFloat(courseData?.price ?? "0") || 0,
     discountPrice: parseFloat(courseData?.discountPrice ?? "0") || 0,
     rating: parseFloat(courseData?.rating ?? "0") || 0,
     students: courseData?.enrollmentCount ?? 0,
     duration: courseData?.duration ? `${Math.floor(courseData.duration / 60)} ${t("mk_course_minutes", "phút")}` : "—",
     level: levelLabel[courseData?.level] ?? "—",
-    image: courseData?.thumbnail ?? "/image/python.png",
+    image: toSafeImageUrl(courseData?.thumbnail, "/image/python.png"),
     description: courseData?.description ?? "",
   }
 

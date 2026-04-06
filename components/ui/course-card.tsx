@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { Star } from "lucide-react"
 import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
@@ -63,11 +62,18 @@ export function CourseCard({ id, title, teacher, price, rating, image, students 
             className="rounded-3xl overflow-hidden border border-border dark:border-slate-800 hover:border-primary dark:hover:border-accent transition-smooth bg-card dark:bg-slate-900/60 hover:shadow-2xl cursor-pointer group flex flex-col h-full interactive-smooth stagger-kind-card"
           >
             <div className="relative h-56 w-full overflow-hidden bg-secondary dark:bg-slate-800 flex-shrink-0">
-              <Image
+              <img
                 src={image || "/placeholder.svg"}
                 alt={title}
-                fill
-                className="object-cover group-hover:scale-110 transition-smooth duration-500"
+                className="h-full w-full object-cover group-hover:scale-110 transition-smooth duration-500"
+                loading="lazy"
+                decoding="async"
+                onError={(event) => {
+                  const target = event.currentTarget
+                  if (!target.src.endsWith("/placeholder.svg")) {
+                    target.src = "/placeholder.svg"
+                  }
+                }}
               />
             </div>
             <div className="p-6 space-y-4 flex-1 flex flex-col">

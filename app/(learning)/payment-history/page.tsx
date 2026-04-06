@@ -16,6 +16,7 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
+import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
 import { generateInvoicePdf } from "@/lib/utils/invoice-pdf"
@@ -23,8 +24,8 @@ import { generateInvoicePdf } from "@/lib/utils/invoice-pdf"
 interface PaymentHistory {
   id: string
   courseTitle: string
-  courseSlug: string
-  courseThumbnail: string
+  courseSlug?: string
+  courseThumbnail?: string
   amount: number
   discountAmount?: number
   finalAmount: number
@@ -32,6 +33,7 @@ interface PaymentHistory {
   paymentMethod: string
   transactionId: string
   enrolledAt: string
+  paymentType?: string
 }
 
 type StatusFilter = "all" | "completed" | "pending" | "failed"
@@ -47,81 +49,86 @@ export default function PaymentHistoryPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [selectedPayment, setSelectedPayment] = useState<PaymentHistory | null>(null)
 
-  const [balance] = useState(5000000)
+  const [balance, setBalance] = useState(0)
 
-  const mockPaymentHistory: PaymentHistory[] = [
-    {
-      id: "pay-1",
-      courseTitle: "React Advanced - Build High-Performance Apps",
-      courseSlug: "react-advanced",
-      courseThumbnail: "/image/logo-ics.jpg",
-      amount: 299000,
-      discountAmount: 49000,
-      finalAmount: 250000,
-      status: "completed",
-      paymentMethod: "Visa",
-      transactionId: "TXN-0A1B2C3D",
-      enrolledAt: "2024-12-15T10:30:00Z",
-    },
-    {
-      id: "pay-2",
-      courseTitle: "Python for Data Science",
-      courseSlug: "python-data-science",
-      courseThumbnail: "/image/logo-ics.jpg",
-      amount: 199000,
-      discountAmount: 0,
-      finalAmount: 199000,
-      status: "completed",
-      paymentMethod: "MasterCard",
-      transactionId: "TXN-4E5F6G7H",
-      enrolledAt: "2024-12-10T14:45:00Z",
-    },
-    {
-      id: "pay-3",
-      courseTitle: "Web Design Fundamentals",
-      courseSlug: "web-design",
-      courseThumbnail: "/image/logo-ics.jpg",
-      amount: 149000,
-      discountAmount: 29000,
-      finalAmount: 120000,
-      status: "completed",
-      paymentMethod: "Visa",
-      transactionId: "TXN-8I9J0K1L",
-      enrolledAt: "2024-12-05T09:20:00Z",
-    },
-    {
-      id: "pay-4",
-      courseTitle: "JavaScript Mastery",
-      courseSlug: "js-mastery",
-      courseThumbnail: "/image/logo-ics.jpg",
-      amount: 279000,
-      discountAmount: 39000,
-      finalAmount: 240000,
-      status: "pending",
-      paymentMethod: "Bank Transfer",
-      transactionId: "TXN-2M3N4O5P",
-      enrolledAt: "2024-12-01T16:15:00Z",
-    },
-    {
-      id: "pay-5",
-      courseTitle: "Machine Learning Fundamentals",
-      courseSlug: "ml-fundamentals",
-      courseThumbnail: "/image/logo-ics.jpg",
-      amount: 399000,
-      discountAmount: 0,
-      finalAmount: 399000,
-      status: "failed",
-      paymentMethod: "Visa",
-      transactionId: "TXN-6Q7R8S9T",
-      enrolledAt: "2024-11-25T11:00:00Z",
-    },
-  ]
+  const normalizeStatus = (status: string): PaymentHistory["status"] => {
+    if (status === "completed") return "completed"
+    if (status === "pending") return "pending"
+    return "failed"
+  }
+
+  const mapPaymentMethod = (method: string, paymentType?: string) => {
+    if (method === "wallet") return t("pay_method_wallet", "Ví số dư")
+    if (method === "sepay_qr") return "SePay QR"
+    if (method === "vnpay") return "VNPay"
+    if (method === "momo") return "MoMo"
+    if (method === "bank_transfer") return t("pay_method_bank_transfer", "Chuyển khoản")
+    if (paymentType === "wallet_topup") return t("pay_method_topup", "Nạp ví")
+    return method
+  }
 
   useEffect(() => {
-    setLoading(true)
-    setPayments(mockPaymentHistory)
-    setLoading(false)
-  }, [])
+    let active = true
+
+    const loadPaymentHistory = async () => {
+      setLoading(true)
+      try {
+        const [paymentResult, balanceResult] = await Promise.all([
+          apiClient.getPaymentHistory(),
+          apiClient.getMyWalletBalance(),
+        ])
+
+        const paymentRows = Array.isArray(paymentResult)
+          ? paymentResult
+          : Array.isArray((paymentResult as any)?.data)
+            ? (paymentResult as any).data
+            : []
+
+        const mappedPayments: PaymentHistory[] = paymentRows.map((row: any) => {
+          const paymentType = String(row?.paymentType || "")
+          const courseTitle = row?.course?.title
+            ? String(row.course.title)
+            : paymentType === "wallet_topup"
+              ? t("pay_wallet_topup", "Nạp tiền vào ví")
+              : t("pay_unknown_course", "Khóa học không xác định")
+
+          return {
+            id: String(row?.id || ""),
+            courseTitle,
+            courseSlug: row?.course?.slug ? String(row.course.slug) : undefined,
+            courseThumbnail: row?.course?.thumbnail ? String(row.course.thumbnail) : "/image/logo-ics.jpg",
+            amount: Number(row?.amount || 0),
+            discountAmount: Number(row?.discountAmount || 0),
+            finalAmount: Number(row?.finalAmount ?? row?.amount ?? 0),
+            status: normalizeStatus(String(row?.status || "failed")),
+            paymentMethod: mapPaymentMethod(String(row?.paymentMethod || ""), paymentType),
+            transactionId: String(row?.transactionCode || row?.transactionId || ""),
+            enrolledAt: String(row?.paidAt || row?.createdAt || new Date().toISOString()),
+            paymentType,
+          }
+        })
+
+        if (!active) return
+        setPayments(mappedPayments)
+        setBalance(Number((balanceResult as any)?.balance || 0))
+      } catch (error) {
+        console.error("Error loading payment history:", error)
+        if (!active) return
+        setPayments([])
+        setBalance(0)
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadPaymentHistory()
+
+    return () => {
+      active = false
+    }
+  }, [t])
 
   const locale = getLocaleByLanguage(language)
 
@@ -458,12 +465,14 @@ export default function PaymentHistoryPage() {
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <Link
-                    href={`/course/${selectedPayment.courseSlug}`}
-                    className="inline-flex flex-1 items-center justify-center rounded-lg bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-500"
-                  >
-                    {t("pay_view_course", "Xem khóa học")}
-                  </Link>
+                  {selectedPayment.courseSlug ? (
+                    <Link
+                      href={`/course/${selectedPayment.courseSlug}`}
+                      className="inline-flex flex-1 items-center justify-center rounded-lg bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-500"
+                    >
+                      {t("pay_view_course", "Xem khóa học")}
+                    </Link>
+                  ) : null}
 
                   {selectedPayment.status === "completed" ? (
                     <button

@@ -7,24 +7,18 @@ const nextConfig = {
     return [
       {
         source: '/uploads/:path*',
-        destination: 'http://localhost:5001/uploads/:path*',
+        destination: '/api/uploads/:path*',
       },
     ]
   },
   images: {
-    domains: [
-      'localhost',
-      'lh3.googleusercontent.com',
-      'res.cloudinary.com',
-      'storage.googleapis.com',
-      'learn.icss.com.vn',
-    ],
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost', port: '5001', pathname: '/uploads/**' },
-      { protocol: 'http', hostname: 'localhost', port: '3000', pathname: '/uploads/**' },
-      { protocol: 'http', hostname: 'localhost', port: '3001', pathname: '/uploads/**' },
       { protocol: 'https', hostname: 'learn.icss.com.vn', pathname: '/uploads/**' },
       { protocol: 'https', hostname: 'learn.icss.com.vn', pathname: '/api/uploads/**' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'res.cloudinary.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'storage.googleapis.com', pathname: '/**' },
     ],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 86400, // 24 hours
