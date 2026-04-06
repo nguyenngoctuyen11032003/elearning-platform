@@ -43,10 +43,28 @@ async function fetchJson(url: string) {
 
 function normalizeImage(url?: string) {
   if (!url || typeof url !== "string") return "/placeholder.svg";
-  // Một số ảnh được trả về dạng /api/uploads/... nhưng static được serve tại /uploads
-  const cleaned = url.replace(/^https?:\/\/learn\.icss\.com\.vn\/api\//, "https://learn.icss.com.vn/")
-                    .replace(/(^|\s)\/api\/uploads\//, "$1/uploads/");
-  return cleaned;
+  const trimmed = url.trim();
+  if (!trimmed) return "/placeholder.svg";
+
+  if (trimmed.startsWith("/api/uploads/")) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("/uploads/")) {
+    return `/api${trimmed}`;
+  }
+
+  const uploadsMatch = trimmed.match(/https?:\/\/[^/]+\/uploads\/(.+)$/i);
+  if (uploadsMatch?.[1]) {
+    return `/api/uploads/${uploadsMatch[1]}`;
+  }
+
+  const apiUploadsMatch = trimmed.match(/https?:\/\/[^/]+\/api\/uploads\/(.+)$/i);
+  if (apiUploadsMatch?.[1]) {
+    return `/api/uploads/${apiUploadsMatch[1]}`;
+  }
+
+  return trimmed;
 }
 
 export default function CoursesPage() {
