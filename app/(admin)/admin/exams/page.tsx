@@ -17,7 +17,7 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
-  Pencil
+  Trash2
 } from "lucide-react"
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
@@ -94,7 +94,7 @@ export default function AdminExamsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null)
-  const [viewMode, setViewMode] = useState<"view" | "reject" | null>(null)
+  const [viewMode, setViewMode] = useState<"reject" | null>(null)
   const [rejectionReason, setRejectionReason] = useState("")
   const menuRef = useRef<HTMLDivElement | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; action: string; examId?: string }>({ isOpen: false, action: "" })
@@ -761,39 +761,13 @@ export default function AdminExamsPage() {
                             <div className="flex flex-col items-end gap-2 shrink-0">
                               {getStatusBadge(exam.status)}
                               <div className="flex items-center gap-2 flex-wrap justify-end">
-                                <button
-                                  onClick={() => {
-                                    setSelectedExam(exam)
-                                    setViewMode("view")
-                                  }}
-                                  className="px-3 h-9 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm"
-                                >
-                                  {t("adm_exam_preview", "Preview")}
-                                </button>
                                 <Link
                                   href={`/admin/exams/${exam.id}`}
-                                  className="px-3 h-9 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm inline-flex items-center gap-1"
+                                  className="h-9 w-9 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex items-center justify-center"
+                                  title={t("adm_exam_preview", "Xem")}
                                 >
-                                  <Pencil size={14} /> {t("adm_exam_edit", "Edit")}
+                                  <Eye size={16} />
                                 </Link>
-                                <button
-                                  onClick={() => handleApproveAndPublish(exam.id)}
-                                  disabled={exam.status !== "pending"}
-                                  className="px-3 h-9 rounded-lg bg-emerald-100 border border-emerald-200 text-emerald-700 hover:bg-emerald-200 dark:bg-green-600/20 dark:border-green-500/30 dark:text-green-300 dark:hover:bg-green-600/30 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                  {t("adm_exam_approve", "Approve")}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setSelectedExam(exam)
-                                    setViewMode("reject")
-                                    setRejectionReason("")
-                                  }}
-                                  disabled={exam.status !== "pending"}
-                                  className="px-3 h-9 rounded-lg bg-rose-100 border border-rose-200 text-rose-700 hover:bg-rose-200 dark:bg-red-600/20 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-600/30 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                  {t("adm_exam_reject", "Reject")}
-                                </button>
                                 <div className="relative">
                                   <button
                                     onClick={() => setOpenMenu(openMenu === exam.id ? null : exam.id)}
@@ -802,14 +776,41 @@ export default function AdminExamsPage() {
                                     <MoreVertical size={16} />
                                   </button>
                                   {openMenu === exam.id && (
-                                    <div ref={menuRef} className="absolute right-0 mt-1 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20">
+                                    <div ref={menuRef} className="absolute right-0 mt-1 w-52 bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20 overflow-hidden">
+                                      {exam.status === "pending" && (
+                                        <button
+                                          onClick={() => {
+                                            void handleApproveAndPublish(exam.id)
+                                            setOpenMenu(null)
+                                          }}
+                                          className="w-full px-4 py-2.5 text-left text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-sm inline-flex items-center gap-2"
+                                        >
+                                          <CheckCircle size={14} />
+                                          {t("adm_exam_approve_publish", "Duyệt & xuất bản")}
+                                        </button>
+                                      )}
+                                      {exam.status === "pending" && (
+                                        <button
+                                          onClick={() => {
+                                            setSelectedExam(exam)
+                                            setViewMode("reject")
+                                            setRejectionReason("")
+                                            setOpenMenu(null)
+                                          }}
+                                          className="w-full px-4 py-2.5 text-left text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 text-sm inline-flex items-center gap-2 border-t border-slate-200 dark:border-slate-800"
+                                        >
+                                          <XCircle size={14} />
+                                          {t("adm_exam_reject", "Từ chối")}
+                                        </button>
+                                      )}
                                       <button
                                         onClick={() => {
                                           setConfirmDialog({ isOpen: true, action: "delete", examId: exam.id })
                                           setOpenMenu(null)
                                         }}
-                                        className="w-full px-4 py-2.5 text-left text-red-500 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm"
+                                        className="w-full px-4 py-2.5 text-left text-red-500 dark:text-red-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-sm inline-flex items-center gap-2 border-t border-slate-200 dark:border-slate-800"
                                       >
+                                        <Trash2 size={14} />
                                         {t("adm_exam_delete", "Xóa bài thi")}
                                       </button>
                                     </div>
@@ -827,16 +828,16 @@ export default function AdminExamsPage() {
           )}
         </div>
 
-        {/* View/Reject Modal */}
-        {selectedExam && viewMode && (
+        {/* Reject Modal */}
+        {selectedExam && viewMode === "reject" && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-2xl">
+            <div className="w-full max-w-xl rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-2xl">
               <div className="sticky top-0 z-10 px-4 py-3 sm:p-6 flex items-center justify-between border-b border-border dark:border-slate-800">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                     <FileText className="text-white" size={20} />
                   </div>
-                  <span className="text-xl font-bold text-foreground dark:text-white">{viewMode === "reject" ? t("adm_exam_reject_title", "Từ chối bài thi") : t("adm_exam_preview_title", "Xem trước bài thi")}</span>
+                  <span className="text-xl font-bold text-foreground dark:text-white">{t("adm_exam_reject_title", "Từ chối bài thi")}</span>
                 </div>
                 <button
                   onClick={() => {
@@ -850,204 +851,48 @@ export default function AdminExamsPage() {
                 </button>
               </div>
               <div className="p-4 sm:p-6 space-y-6">
-                {viewMode === "view" && (
-                  <>
-                    {/* Exam Header */}
-                    <div className="bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 p-4 sm:p-6 rounded-xl border border-border dark:border-slate-800">
-                      <div className="space-y-3">
-                        <h3 className="text-xl sm:text-2xl font-bold leading-snug break-words line-clamp-2 text-foreground dark:text-white">
-                          {selectedExam.title}
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {getTypeBadge(selectedExam.type)}
-                          {getStatusBadge(selectedExam.status)}
-                        </div>
-                        <p className="text-muted-foreground dark:text-slate-400 leading-relaxed">{selectedExam.description}</p>
-                      </div>
-                      {/* Course & Teacher Info */}
-                      <div className="flex items-center gap-4 pt-4 border-t border-border dark:border-slate-700">
-                        <div className="flex items-center gap-2 text-sm">
-                          <BookOpen size={16} className="text-primary dark:text-accent" />
-                          <span className="text-muted-foreground dark:text-slate-400">{t("adm_exam_course_label", "Khóa học:")}</span>
-                          <span className="font-medium text-foreground dark:text-white">{selectedExam.course}</span>
-                        </div>
-                        <div className="w-px h-4 bg-border dark:bg-slate-700"></div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-muted-foreground dark:text-slate-400">{t("adm_exam_teacher_label", "Giáo viên:")}</span>
-                          <span className="font-medium text-foreground dark:text-white">{selectedExam.teacher}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Exam Configuration */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4 flex items-center gap-2">
-                        <Timer size={20} className="text-primary dark:text-accent" />
-                        {t("adm_exam_config_title", "Cấu hình bài thi")}
-                      </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Timer size={18} className="text-blue-500" />
-                            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{t("adm_exam_config_time", "Thời gian")}</p>
-                          </div>
-                          <p className="text-2xl font-bold text-foreground dark:text-white">{selectedExam.timeLimit}</p>
-                          <p className="text-xs text-muted-foreground dark:text-slate-400">{t("adm_exam_minutes", "phút")}</p>
-                        </div>
-                        <div className="bg-green-500/5 dark:bg-green-500/10 border border-green-500/20 p-4 rounded-xl">
-                          <div className="flex items-center gap-2 mb-2">
-                            <ClipboardList size={18} className="text-green-500" />
-                            <p className="text-sm font-medium text-green-600 dark:text-green-400">{t("adm_exam_config_questions", "Câu hỏi")}</p>
-                          </div>
-                          <p className="text-2xl font-bold text-foreground dark:text-white">{selectedExam.questionsCount}</p>
-                          <p className="text-xs text-muted-foreground dark:text-slate-400">{t("adm_exam_questions_short", "câu")}</p>
-                        </div>
-                        <div className="bg-yellow-500/5 dark:bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl">
-                          <div className="flex items-center gap-2 mb-2">
-                            <CheckCircle size={18} className="text-yellow-500" />
-                            <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">{t("adm_exam_config_pass_score", "Điểm đạt")}</p>
-                          </div>
-                          <p className="text-2xl font-bold text-foreground dark:text-white">{selectedExam.passingScore}%</p>
-                          <p className="text-xs text-muted-foreground dark:text-slate-400">{t("adm_exam_minimum", "tối thiểu")}</p>
-                        </div>
-                        <div className="bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/20 p-4 rounded-xl">
-                          <div className="flex items-center gap-2 mb-2">
-                            <AlertCircle size={18} className="text-purple-500" />
-                            <p className="text-sm font-medium text-purple-600 dark:text-purple-400">{t("adm_exam_config_attempts", "Lần thi")}</p>
-                          </div>
-                          <p className="text-2xl font-bold text-foreground dark:text-white">{selectedExam.maxAttempts}</p>
-                          <p className="text-xs text-muted-foreground dark:text-slate-400">{t("adm_exam_maximum", "tối đa")}</p>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Certificate Info */}
-                    {selectedExam.type === "official" && selectedExam.certificateTemplate && (
-                      <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-2 border-purple-500/30 p-6 rounded-xl">
-                        <div className="flex items-start gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
-                            <Award className="text-white" size={24} />
-                          </div>
-                          <div className="flex-1">
-                            <h5 className="font-semibold text-foreground dark:text-white mb-1">{t("adm_exam_cert_issued", "Chứng chỉ được cấp")}</h5>
-                            <p className="text-lg font-bold text-purple-600 dark:text-purple-400 mb-2">{selectedExam.certificateTemplate}</p>
-                            <p className="text-sm text-muted-foreground dark:text-slate-400">
-                              {t("adm_exam_cert_pass_desc", "Học viên đạt từ")} {selectedExam.passingScore}% {t("adm_exam_cert_pass_desc2", "trở lên sẽ được cấp chứng chỉ này")}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {/* Attempt Statistics */}
-                    <div className="bg-secondary/30 dark:bg-slate-800/30 p-6 rounded-xl border border-border dark:border-slate-800">
-                      <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("adm_exam_statistics", "Thống kê")}</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <div className="text-center">
-                          <p className="text-3xl font-bold text-primary dark:text-accent">{selectedExam.attemptCount}</p>
-                          <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{t("adm_exam_th_attempts", "Lượt thi")}</p>
-                        </div>
-                        <div className="text-center border-x border-border dark:border-slate-700">
-                          <p className="text-3xl font-bold text-foreground dark:text-white">
-                            {new Date(selectedExam.createdAt).toLocaleDateString('vi-VN')}
-                          </p>
-                          <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{t("adm_exam_created_date", "Ngày tạo")}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-3xl font-bold text-foreground dark:text-white">{selectedExam.courseId}</p>
-                          <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">{t("adm_exam_course_id", "Mã khóa học")}</p>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Rejection Reason */}
-                    {selectedExam.status === "rejected" && selectedExam.rejectionReason && (
-                      <div className="bg-red-500/10 border-2 border-red-500/30 p-6 rounded-xl">
-                        <div className="flex items-start gap-3">
-                          <AlertCircle size={24} className="text-red-500 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <h5 className="font-semibold text-red-600 dark:text-red-400 mb-2">{t("adm_exam_rejection_reason", "Lý do từ chối")}</h5>
-                            <p className="text-red-500 dark:text-red-300 leading-relaxed">{selectedExam.rejectionReason}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {/* View Full Details Link */}
-                    <Link
-                      href={`/admin/exams/${selectedExam.id}`}
-                      className="w-full h-11 inline-flex items-center justify-center px-6 bg-primary/10 hover:bg-primary/20 text-primary dark:text-accent rounded-xl text-sm font-semibold transition-all"
-                    >
-                      {t("adm_exam_view_full_detail", "Xem chi tiết đầy đủ (câu hỏi, đáp án)")} →
-                    </Link>
-                    {canModerateExam(selectedExam.status) && (
-                      <div className="flex flex-wrap gap-3">
-                        <button
-                          onClick={() => handleApproveAndPublish(selectedExam.id)}
-                          className="flex-1 h-10 px-4 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors text-sm font-semibold"
-                        >
-                          {t("adm_exam_approve_publish", "Duyệt & xuất bản")}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setViewMode("reject")
-                            setRejectionReason("")
-                          }}
-                          className="flex-1 h-10 px-4 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors text-sm font-semibold"
-                        >
-                          {t("adm_exam_reject", "Từ chối")}
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-                {viewMode === "reject" && (
-                  <>
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl">
-                      <div className="flex items-center gap-2 text-yellow-500 mb-2">
-                        <AlertCircle size={20} />
-                        <span className="font-medium">{t("adm_exam_rejecting", "Bạn đang từ chối bài thi")}</span>
-                      </div>
-                      <p className="text-yellow-400 text-sm">
-                        "{selectedExam.title}" {t("adm_exam_of_teacher", "của giáo viên")} {selectedExam.teacher}
-                      </p>
-                    </div>
+                <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl">
+                  <div className="flex items-center gap-2 text-yellow-500 mb-2">
+                    <AlertCircle size={20} />
+                    <span className="font-medium">{t("adm_exam_rejecting", "Bạn đang từ chối bài thi")}</span>
+                  </div>
+                  <p className="text-yellow-400 text-sm">
+                    "{selectedExam.title}" {t("adm_exam_of_teacher", "của giáo viên")} {selectedExam.teacher}
+                  </p>
+                </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                        {t("adm_exam_rejection_reason", "Lý do từ chối")} <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        value={rejectionReason}
-                        onChange={(e) => setRejectionReason(e.target.value)}
-                        rows={4}
-                        className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                        placeholder={t("adm_exam_reject_placeholder", "Nhập lý do từ chối bài thi...")}
-                      />
-                    </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
+                    {t("adm_exam_rejection_reason", "Lý do từ chối")} <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    placeholder={t("adm_exam_reject_placeholder", "Nhập lý do từ chối bài thi...")}
+                  />
+                </div>
 
-                    <div className="flex gap-3 justify-end">
-                      <button
-                        onClick={() => handleApproveAndPublish(selectedExam.id)}
-                        className="h-10 px-4 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors text-sm font-semibold"
-                      >
-                        {t("adm_exam_approve_publish", "Duyệt & xuất bản")}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setViewMode(null)
-                          setSelectedExam(null)
-                          setRejectionReason("")
-                        }}
-                        className="h-10 px-4 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors text-sm font-semibold"
-                      >
-                        {t("adm_exam_cancel", "Hủy")}
-                      </button>
-                      <button
-                        onClick={handleReject}
-                        disabled={!rejectionReason.trim()}
-                        className="h-10 px-4 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {t("adm_exam_confirm_reject", "Xác nhận từ chối")}
-                      </button>
-                    </div>
-                  </>
-                )}
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => {
+                      setViewMode(null)
+                      setSelectedExam(null)
+                      setRejectionReason("")
+                    }}
+                    className="h-10 px-4 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors text-sm font-semibold"
+                  >
+                    {t("adm_exam_cancel", "Hủy")}
+                  </button>
+                  <button
+                    onClick={handleReject}
+                    disabled={!rejectionReason.trim()}
+                    className="h-10 px-4 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {t("adm_exam_confirm_reject", "Xác nhận từ chối")}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

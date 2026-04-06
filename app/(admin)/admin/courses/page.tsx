@@ -8,6 +8,7 @@ import { formatStudentCount, formatPrice, formatCurrencyByLanguage } from "@/lib
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { authFetch } from "@/lib/authfetch"
+import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { UniversalSelect } from "@/components/ui/universal-select"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
@@ -23,7 +24,7 @@ interface Course {
   students: number
   revenue: number
   price: number
-  status: "draft" | "pending" | "approved" | "rejected" | "published" | "archived"
+  status: "draft" | "pending" | "rejected" | "published" | "archived"
   createdAt: string
   category: string
   thumbnail: string
@@ -35,6 +36,7 @@ interface Course {
 }
 
 export default function AdminCoursesPage() {
+  const MAX_REJECTION_REASON_LENGTH = 400
   const { t, language } = useLanguage()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -46,6 +48,9 @@ export default function AdminCoursesPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "edit" | "reject" | null>(null)
   const [rejectionReason, setRejectionReason] = useState("")
+  const [editStatus, setEditStatus] = useState<Course["status"]>("pending")
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const rejectReasonRef = useRef<HTMLTextAreaElement | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
     action: string
@@ -99,6 +104,7 @@ export default function AdminCoursesPage() {
         const data = await res.json()
         const list = Array.isArray(data) ? data : data.data || []
         const mapped: Course[] = list.map((c: Record<string, unknown>) => ({
+          status: (c.status === "approved" ? "published" : c.status) as Course["status"],
           id: c.id as string,
           title: c.title as string,
           description: (c.description as string) || "",
@@ -109,7 +115,6 @@ export default function AdminCoursesPage() {
           students: (c.enrollmentCount as number) || 0,
           revenue: (c.revenue as number) || 0,
           price: (c.price as number) || 0,
-          status: c.status as Course["status"],
           createdAt:
             normalizeDateValue(
               c.createdAt ?? c.created_at ?? c.publishedAt ?? c.updatedAt,
@@ -145,10 +150,39 @@ export default function AdminCoursesPage() {
 
   const canModerateCourse = (status: Course["status"]) => status === "pending"
 
+  const getEditableStatusOptions = (currentStatus: Course["status"]) => {
+    const statusText = {
+      pending: t("adm_courses_pending", "Chờ duyệt"),
+      published: t("adm_courses_approved_label", "Đã duyệt"),
+      rejected: t("adm_courses_rejected_label", "Từ chối"),
+    }
+
+    const transitionMap: Record<Course["status"], Array<"pending" | "published" | "rejected">> = {
+      pending: ["published", "rejected"],
+      published: ["rejected", "pending"],
+      rejected: ["published", "pending"],
+      draft: ["pending", "rejected"],
+      archived: ["pending", "rejected"],
+    }
+
+    return (transitionMap[currentStatus] || ["pending", "rejected"]).map((value) => ({
+      value,
+      label: statusText[value],
+    }))
+  }
+
+  useEffect(() => {
+    if (viewMode !== "edit" || editStatus !== "rejected") return
+    const timer = window.setTimeout(() => {
+      rejectReasonRef.current?.focus()
+    }, 30)
+    return () => window.clearTimeout(timer)
+  }, [viewMode, editStatus])
+
   // Stats
   const totalCourses = courses.length
   const pendingCourses = courses.filter(c => canModerateCourse(c.status)).length
-  const publishedCourses = courses.filter(c => c.status === "published" || c.status === "approved").length
+  const publishedCourses = courses.filter(c => c.status === "published").length
   const rejectedCourses = courses.filter(c => c.status === "rejected").length
 
   const courseOverviewMetrics = {
@@ -168,6 +202,9 @@ export default function AdminCoursesPage() {
       setViewMode("view")
     } else if (action === "edit") {
       setViewMode("edit")
+      setRejectionReason(course?.rejectionReason || "")
+      const nextOptions = getEditableStatusOptions(course?.status || "pending")
+      setEditStatus(nextOptions[0]?.value || "pending")
     } else if (action === "reject") {
       setViewMode("reject")
       setRejectionReason("")
@@ -219,11 +256,63 @@ export default function AdminCoursesPage() {
     setRejectionReason("")
   }
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!selectedCourse) return
-    setCourses(courses.map(c => c.id === selectedCourse.id ? selectedCourse : c))
-    setViewMode(null)
-    setSelectedCourse(null)
+
+    const normalizedStatus = editStatus
+    const allowedStatuses: Course["status"][] = ["pending", "rejected", "published"]
+
+    if (!allowedStatuses.includes(normalizedStatus)) {
+      toast.error(t("adm_courses_status_invalid", "Trạng thái không hợp lệ"))
+      return
+    }
+
+    const reason = rejectionReason.trim()
+    if (normalizedStatus === "rejected" && !reason) {
+      toast.error(t("adm_courses_reject_reason_required", "Vui lòng nhập lý do từ chối"))
+      return
+    }
+
+    setIsSavingEdit(true)
+    try {
+      if (normalizedStatus === "rejected") {
+        const rejectRes = await authFetch(`/courses/${selectedCourse.id}/reject`, {
+          method: "PATCH",
+          body: JSON.stringify({ reason }),
+        })
+        if (!rejectRes.ok) throw new Error()
+      } else if (normalizedStatus === "published") {
+        const approveRes = await authFetch(`/courses/${selectedCourse.id}/approve`, { method: "PATCH" })
+        if (!approveRes.ok) throw new Error()
+      } else {
+        await apiClient.updateCourse(selectedCourse.id, { status: normalizedStatus })
+      }
+
+      setCourses((prev) =>
+        prev.map((course) =>
+          course.id === selectedCourse.id
+            ? {
+                ...course,
+                status: normalizedStatus,
+                rejectionReason: normalizedStatus === "rejected" ? reason : undefined,
+              }
+            : course,
+        ),
+      )
+
+      toast.success(t("adm_courses_status_updated", "Đã cập nhật trạng thái khóa học"))
+      setViewMode(null)
+      setSelectedCourse(null)
+      setRejectionReason("")
+      setEditStatus("pending")
+    } catch (error) {
+      const message = error instanceof Error && error.message
+        ? error.message
+        : t("adm_courses_action_fail", "Thao tác thất bại")
+      toast.error(message)
+    } finally {
+      setIsSavingEdit(false)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -276,7 +365,6 @@ export default function AdminCoursesPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "published":
-      case "approved":
         return (
           <span className="px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 w-fit bg-emerald-50 dark:bg-emerald-900/25 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-700/40">
             <CheckCircle size={14} /> {t("adm_courses_approved_label", "Đã duyệt")}
@@ -615,6 +703,19 @@ export default function AdminCoursesPage() {
           >
             <Eye size={16} /> <span className="font-medium">{t("adm_courses_full_detail", "Chi tiết đầy đủ")}</span>
           </Link>
+          <button
+            onClick={() => {
+              const course = filteredCourses.find(c => c.id === openMenu)
+              if (course) {
+                handleCourseAction("edit", course.id, course)
+              }
+              setOpenMenu(null)
+              setMenuPos(null)
+            }}
+            className="w-full text-left px-4 py-3 hover:bg-sky-50 dark:hover:bg-sky-900/20 flex items-center gap-2 text-sky-700 dark:text-sky-300 border-t border-slate-200 dark:border-slate-800"
+          >
+            <Edit size={16} /> <span className="font-medium">{t("adm_courses_edit_status", "Sửa trạng thái")}</span>
+          </button>
           {(() => {
             const course = filteredCourses.find(c => c.id === openMenu);
             if (course && canModerateCourse(course.status)) return <>
@@ -808,11 +909,11 @@ export default function AdminCoursesPage() {
       {/* Edit Course Modal */}
       {viewMode === "edit" && selectedCourse && (
         <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_26px_62px_rgba(15,23,42,0.24)] max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white/95 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_courses_edit_title", "Chỉnh sửa khóa học")}</h2>
+          <div className="bg-white/95 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_26px_62px_rgba(15,23,42,0.24)] max-w-xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-sky-50/95 via-cyan-50/95 to-white/95 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 border-b border-slate-200 dark:border-slate-800 p-6 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_courses_edit_status", "Sửa trạng thái")}</h2>
               <button
-                onClick={() => { setViewMode(null); setSelectedCourse(null); }}
+                onClick={() => { setViewMode(null); setSelectedCourse(null); setRejectionReason(""); setEditStatus("pending") }}
                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
               >
                 <X size={20} className="text-muted-foreground" />
@@ -820,66 +921,78 @@ export default function AdminCoursesPage() {
             </div>
 
             <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_name_label", "Tên khóa học")}</label>
-                <input
-                  type="text"
-                  value={selectedCourse.title}
-                  onChange={(e) => setSelectedCourse({ ...selectedCourse, title: e.target.value })}
-                  className="w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
-                />
-              </div>
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_desc_label", "Mô tả")}</label>
-                <textarea
-                  value={selectedCourse.description}
-                  onChange={(e) => setSelectedCourse({ ...selectedCourse, description: e.target.value })}
-                  className="w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/60 h-24 resize-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_cat_label", "Danh mục")}</label>
-                  <UniversalSelect
-                    value={selectedCourse.category}
-                    onChange={(e) => setSelectedCourse({ ...selectedCourse, category: e.target.value })}
-                    className="w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
-                  >
-                    <option value="Lập trình">{t("adm_courses_cat_programming", "Lập trình")}</option>
-                    <option value="Thiết kế">{t("adm_courses_cat_design", "Thiết kế")}</option>
-                    <option value="AI & Data">AI & Data</option>
-                    <option value="Kinh doanh">{t("adm_courses_cat_business", "Kinh doanh")}</option>
-                    <option value="Ngoại ngữ">{t("adm_courses_cat_language", "Ngoại ngữ")}</option>
-                  </UniversalSelect>
-                </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_price_vnd", "Giá (VND)")}</label>
-                  <input
-                    type="number"
-                    value={selectedCourse.price}
-                    onChange={(e) => setSelectedCourse({ ...selectedCourse, price: Number(e.target.value) })}
-                    className="w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
+              <div className="relative overflow-hidden rounded-2xl border border-sky-100/90 dark:border-slate-700 bg-gradient-to-br from-white via-sky-50/50 to-cyan-50/70 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 p-4">
+                <div className="absolute -right-8 -top-10 h-24 w-24 rounded-full bg-cyan-200/35 blur-2xl dark:bg-cyan-700/20" />
+                <div className="flex items-center gap-4">
+                  <img
+                    src={selectedCourse.thumbnail || "/image/course-placeholder.png"}
+                    alt={selectedCourse.title}
+                    className="h-16 w-16 rounded-2xl object-cover border border-white/80 shadow-[0_8px_22px_rgba(14,165,233,0.25)]"
                   />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{selectedCourse.title}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("adm_courses_col_category", "Danh mục")}: {selectedCourse.category || "-"}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("adm_courses_col_instructor", "Giảng viên")}: {selectedCourse.instructor || "-"}</p>
+                  </div>
+                  <div className="h-11 w-11 shrink-0 rounded-full bg-gradient-to-br from-sky-500 to-cyan-500 text-white flex items-center justify-center text-sm font-bold shadow-[0_10px_24px_rgba(14,165,233,0.35)]">
+                    {(selectedCourse.instructor || "G").trim().charAt(0).toUpperCase()}
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_courses_status_label", "Trạng thái")}</label>
+
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800/50 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {t("adm_courses_current_status", "Trạng thái hiện tại")}
+                </p>
+                <div className="mt-2">{getStatusBadge(selectedCourse.status)}</div>
+              </div>
+
+              <div className="relative z-30 rounded-2xl border border-sky-200/80 dark:border-sky-700/40 bg-gradient-to-br from-sky-50 to-cyan-50/70 dark:from-sky-900/20 dark:to-cyan-900/15 p-4 shadow-[0_10px_24px_rgba(14,165,233,0.12)]">
+                <label className="block text-slate-800 dark:text-slate-100 text-sm font-semibold mb-2">{t("adm_courses_status_label", "Trạng thái")}</label>
                 <UniversalSelect
-                  value={selectedCourse.status}
-                  onChange={(e) => setSelectedCourse({ ...selectedCourse, status: e.target.value as Course["status"] })}
-                  className="w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as Course["status"])}
+                  className="relative z-30 w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-sky-200 dark:border-sky-700/40 focus:outline-none focus:ring-2 focus:ring-sky-400/70"
+                  contentSide="auto"
+                  portalled={true}
                 >
-                  <option value="pending">{t("adm_courses_pending", "Chờ duyệt")}</option>
-                  <option value="published">{t("adm_courses_approved_label", "Đã duyệt")}</option>
-                  <option value="rejected">{t("adm_courses_rejected_label", "Từ chối")}</option>
+                  {getEditableStatusOptions(selectedCourse.status).map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </UniversalSelect>
               </div>
 
+              {editStatus === "rejected" && (
+                <div className="relative z-10">
+                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
+                    {t("adm_courses_reject_reason", "Lý do từ chối")} <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    ref={rejectReasonRef}
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value.slice(0, MAX_REJECTION_REASON_LENGTH))}
+                    className="w-full bg-white dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400/60 h-28 resize-none"
+                    placeholder={t("adm_courses_reject_placeholder", "Nhập lý do từ chối khóa học này...")}
+                  />
+                  <div className="mt-1 flex items-center justify-between">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {t("adm_courses_reject_email_note", "Lý do này sẽ được gửi đến email của giảng viên")}
+                    </p>
+                    <span className={`text-xs font-medium ${rejectionReason.length > MAX_REJECTION_REASON_LENGTH - 40 ? "text-rose-600 dark:text-rose-300" : "text-slate-500 dark:text-slate-400"}`}>
+                      {rejectionReason.length}/{MAX_REJECTION_REASON_LENGTH}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <button
-                onClick={handleSaveEdit}
-                className="w-full px-6 py-3 bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-2xl font-semibold hover:shadow-[0_16px_30px_rgba(14,165,233,0.35)] transition-all flex items-center justify-center gap-2"
+                onClick={() => void handleSaveEdit()}
+                disabled={isSavingEdit}
+                className="w-full px-6 py-3 bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-2xl font-semibold hover:shadow-[0_16px_30px_rgba(14,165,233,0.35)] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Edit size={18} /> {t("adm_courses_save", "Lưu thay đổi")}
+                {isSavingEdit ? <Loader2 size={18} className="animate-spin" /> : <Edit size={18} />} {t("adm_courses_save", "Lưu thay đổi")}
               </button>
             </div>
           </div>
@@ -923,10 +1036,10 @@ export default function AdminCoursesPage() {
 
               <div className="flex gap-3 pt-4">
                 <button
-                  onClick={() => { setViewMode("view"); setRejectionReason(""); }}
+                  onClick={() => { setViewMode(null); setSelectedCourse(null); setRejectionReason(""); }}
                   className="flex-1 py-3 rounded-xl font-medium border border-slate-200 dark:border-slate-700 text-foreground dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  {t("adm_courses_back", "Quay lại")}
+                  {t("common_cancel", "Hủy")}
                 </button>
                 <button
                   onClick={handleReject}

@@ -18,7 +18,12 @@ import {
   BarChart3,
   Trophy,
   Target,
-  Brain
+  Brain,
+  Sparkles,
+  Gauge,
+  ShieldCheck,
+  TrendingUp,
+  ChevronRight
 } from "lucide-react"
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
@@ -229,6 +234,8 @@ export default function AdminExamDetailPage() {
   const [rejectDialog, setRejectDialog] = useState(false)
   const [rejectionReason, setRejectionReason] = useState("")
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [hasMounted, setHasMounted] = useState(false)
+  const [showFloatingActions, setShowFloatingActions] = useState(false)
 
   const getAuthHeaders = () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
@@ -569,6 +576,22 @@ export default function AdminExamDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examId, language])
 
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setHasMounted(true))
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
+
+  useEffect(() => {
+    const onScroll = () => {
+      const shouldShow = window.scrollY > 280
+      setShowFloatingActions((prev) => (prev === shouldShow ? prev : shouldShow))
+    }
+
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
   const isOptionCorrect = (question: Question, option: string, optionIndex: number) => {
     const answer = question.correctAnswer
     const optionText = option.trim().toLowerCase()
@@ -607,16 +630,36 @@ export default function AdminExamDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      approved: { label: t("adm_examd_status_approved", "Đã duyệt"), icon: CheckCircle, color: "text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" },
-      pending: { label: t("adm_examd_status_pending", "Chờ duyệt"), icon: Clock, color: "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800" },
-      rejected: { label: t("adm_examd_status_rejected", "Từ chối"), icon: XCircle, color: "text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800" },
-      draft: { label: t("adm_examd_status_draft", "Bản nháp"), icon: FileText, color: "text-gray-600 bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800" },
+      approved: {
+        label: t("adm_examd_status_approved", "Đã duyệt"),
+        icon: CheckCircle,
+        color:
+          "text-emerald-700 bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200 shadow-sm shadow-emerald-100/60 dark:text-emerald-300 dark:from-emerald-900/30 dark:to-teal-900/20 dark:border-emerald-800 dark:shadow-none",
+      },
+      pending: {
+        label: t("adm_examd_status_pending", "Chờ duyệt"),
+        icon: Clock,
+        color:
+          "text-amber-700 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 shadow-sm shadow-amber-100/60 dark:text-amber-300 dark:from-amber-900/30 dark:to-orange-900/20 dark:border-amber-800 dark:shadow-none",
+      },
+      rejected: {
+        label: t("adm_examd_status_rejected", "Từ chối"),
+        icon: XCircle,
+        color:
+          "text-rose-700 bg-gradient-to-r from-rose-50 to-red-50 border-rose-200 shadow-sm shadow-rose-100/60 dark:text-rose-300 dark:from-rose-900/30 dark:to-red-900/20 dark:border-rose-800 dark:shadow-none",
+      },
+      draft: {
+        label: t("adm_examd_status_draft", "Bản nháp"),
+        icon: FileText,
+        color:
+          "text-slate-700 bg-gradient-to-r from-slate-50 to-zinc-50 border-slate-200 shadow-sm shadow-slate-100/60 dark:text-slate-300 dark:from-slate-900/40 dark:to-zinc-900/20 dark:border-slate-700 dark:shadow-none",
+      },
     }
     const config = statusConfig[status as keyof typeof statusConfig]
     const Icon = config.icon
 
     return (
-      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium border ${config.color}`}>
+      <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${config.color}`}>
         <Icon size={16} />
         {config.label}
       </span>
@@ -682,100 +725,217 @@ export default function AdminExamDetailPage() {
     )
   }
 
+  const formattedCreatedDate = new Date(exam.createdAt).toLocaleDateString("vi-VN")
+  const formattedUpdatedDate = new Date(exam.updatedAt).toLocaleDateString("vi-VN")
+  const qualityScore = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(
+        exam.passRate * 0.45 +
+          Math.min(exam.questionsCount, 80) * 0.35 +
+          (exam.type === "official" ? 12 : 6)
+      )
+    )
+  )
+  const canApprove = exam.status !== "approved"
+  const canReject = exam.status !== "rejected"
+  const questionTypeStats = exam.questions.reduce(
+    (acc, question) => {
+      const normalizedType = question.type === "multiple-choice" ? "multiple_choice" : question.type === "true-false" ? "true_false" : question.type
+      if (normalizedType === "multiple_choice") acc.multipleChoice += 1
+      else if (normalizedType === "true_false") acc.trueFalse += 1
+      else acc.fillIn += 1
+      return acc
+    },
+    { multipleChoice: 0, trueFalse: 0, fillIn: 0 }
+  )
+  const revealClass = hasMounted ? "reveal-block ready" : "reveal-block"
+  const getRevealStyle = (delayMs: number) => ({ animationDelay: `${delayMs}ms` })
+
   return (
-    <div className="p-6 md:p-8">
-      <div className="w-full space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className="relative overflow-hidden p-4 md:p-8">
+      <div className="pointer-events-none absolute -left-24 -top-20 h-72 w-72 rounded-full bg-amber-300/20 blur-3xl" />
+      <div className="pointer-events-none absolute -right-24 top-1/3 h-80 w-80 rounded-full bg-sky-300/20 blur-3xl" />
+
+      <div className="relative w-full space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground dark:hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/70 px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground dark:border-slate-700 dark:bg-slate-900/40 dark:hover:text-white"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} />
             <span>{t("adm_examd_back", "Quay lại")}</span>
           </button>
-          <div className="flex items-center gap-2">
+
+          <div className="flex flex-wrap items-center gap-2">
+            {canApprove && (
+              <button
+                onClick={handleApprove}
+                disabled={actionLoading}
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <ShieldCheck size={16} />
+                {t("adm_examd_approve", "Duyệt")}
+              </button>
+            )}
+
+            {canReject && (
+              <button
+                onClick={() => setRejectDialog(true)}
+                disabled={actionLoading}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
+              >
+                <XCircle size={16} />
+                {t("adm_examd_reject", "Từ chối")}
+              </button>
+            )}
+
             <button
               onClick={() => setConfirmDelete(true)}
               disabled={actionLoading}
-              className="px-4 py-2 bg-destructive/10 hover:bg-destructive/20 disabled:opacity-50 text-destructive rounded-lg transition-colors flex items-center gap-2"
+              className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
             >
-              <Trash2 size={18} />
+              <Trash2 size={16} />
               {t("adm_examd_delete", "Xóa")}
             </button>
           </div>
         </div>
 
-        {/* Exam Header */}
-        <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-          <div className="flex items-start justify-between gap-4 mb-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-foreground dark:text-white">{exam.title}</h1>
+        <div className={`rounded-3xl border border-border bg-gradient-to-br from-card via-card to-secondary/40 p-6 shadow-sm dark:border-slate-800 dark:from-slate-900/80 dark:via-slate-900/70 dark:to-slate-800/60 ${revealClass}`} style={getRevealStyle(30)}>
+          <div className="mb-6 grid gap-5 lg:grid-cols-5">
+            <div className="lg:col-span-3">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                  <Sparkles size={14} />
+                  {t("adm_examd_quality_label", "Không gian quản trị chất lượng")}
+                </span>
                 {exam.type === "official" && (
-                  <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-sm font-medium rounded-full">
+                  <span className="rounded-full border border-sky-300 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:border-sky-800 dark:bg-sky-900/20 dark:text-sky-300">
                     {t("adm_examd_official", "Chính thức")}
                   </span>
                 )}
+                {getStatusBadge(exam.status)}
               </div>
-              <p className="text-muted-foreground dark:text-slate-400 mb-3">{exam.description}</p>
-              <Link href={`/admin/courses/${exam.courseId}`} className="text-primary dark:text-accent hover:underline text-sm">
-                📚 {exam.course}
+
+              <h1 className="text-2xl font-extrabold leading-tight text-foreground md:text-3xl dark:text-white">{exam.title}</h1>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground dark:text-slate-300">{exam.description}</p>
+
+              <Link
+                href={`/admin/courses/${exam.courseId}`}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-border bg-background/70 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-100 dark:hover:bg-slate-800"
+              >
+                <span>📚 {exam.course}</span>
+                <ChevronRight size={14} />
               </Link>
+
+              <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground dark:text-slate-400">
+                <span>{t("adm_examd_created_at", "Tạo lúc")}: {formattedCreatedDate}</span>
+                <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+                <span>{t("adm_examd_updated_at", "Cập nhật")}: {formattedUpdatedDate}</span>
+                <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+                <span>ID: {exam.id}</span>
+              </div>
             </div>
-            {getStatusBadge(exam.status)}
+
+            <div className="lg:col-span-2">
+              <div className="h-full rounded-2xl border border-border bg-background/60 p-5 dark:border-slate-700 dark:bg-slate-950/40">
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
+                      {t("adm_examd_ai_review", "Chỉ số đánh giá thông minh")}
+                    </p>
+                    <p className="mt-1 text-3xl font-extrabold text-foreground dark:text-white">
+                      <AnimatedNumber value={qualityScore} durationMs={560} />
+                      <span className="ml-1 text-base font-semibold text-muted-foreground">/100</span>
+                    </p>
+                  </div>
+                  <Gauge className="text-amber-500" size={28} />
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_pass_rate", "Tỷ lệ đạt")}</span>
+                      <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={exam.passRate} suffix="%" durationMs={520} /></span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted/60 dark:bg-slate-800">
+                      <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.max(0, Math.min(100, exam.passRate))}%` }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_avg_score", "Điểm TB")}</span>
+                      <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={exam.averageScore} formatter={(value: number) => value.toFixed(1)} durationMs={520} /></span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted/60 dark:bg-slate-800">
+                      <div className="h-full rounded-full bg-sky-500" style={{ width: `${Math.max(0, Math.min(100, exam.averageScore))}%` }} />
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-300">
+                    <div className="mb-1 inline-flex items-center gap-1 font-semibold">
+                      <TrendingUp size={14} />
+                      {t("adm_examd_recommendation", "Khuyến nghị")}
+                    </div>
+                    <p>
+                      {exam.status === "pending"
+                        ? t("adm_examd_pending_advice", "Bài thi đang chờ duyệt. Kiểm tra nhanh độ rõ ràng câu hỏi và đáp án trước khi phê duyệt.")
+                        : exam.status === "rejected"
+                        ? t("adm_examd_rejected_advice", "Bài thi đã bị từ chối. Nên cập nhật nội dung và lý do phản hồi để giảng viên chỉnh sửa chính xác.")
+                        : t("adm_examd_approved_advice", "Bài thi đã ổn định. Theo dõi thêm tỷ lệ đạt để tối ưu độ khó theo từng kỳ.")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
-              <ClipboardList size={20} className="text-primary dark:text-accent" />
-              <div>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_num_questions", "Số câu hỏi")}</p>
-                <p className="font-semibold text-foreground dark:text-white">{exam.questionsCount}</p>
-              </div>
+          <div className={`grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6 ${revealClass}`} style={getRevealStyle(120)}>
+            <div className="rounded-2xl border border-border bg-background/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
+              <ClipboardList size={18} className="mb-2 text-amber-600" />
+              <p className="text-xs text-muted-foreground">{t("adm_examd_num_questions", "Số câu hỏi")}</p>
+              <p className="mt-1 text-lg font-bold text-foreground dark:text-white"><AnimatedNumber value={exam.questionsCount} durationMs={520} /></p>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
-              <Timer size={20} className="text-blue-500" />
-              <div>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_time", "Thời gian")}</p>
-                <p className="font-semibold text-foreground dark:text-white">{exam.timeLimit} {t("adm_examd_minutes", "phút")}</p>
-              </div>
+            <div className="rounded-2xl border border-border bg-background/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
+              <Timer size={18} className="mb-2 text-sky-600" />
+              <p className="text-xs text-muted-foreground">{t("adm_examd_time", "Thời gian")}</p>
+              <p className="mt-1 text-lg font-bold text-foreground dark:text-white">{exam.timeLimit} {t("adm_examd_minutes", "phút")}</p>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
-              <Target size={20} className="text-green-500" />
-              <div>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_pass_score", "Điểm đạt")}</p>
-                <p className="font-semibold text-foreground dark:text-white">{exam.passingScore}%</p>
-              </div>
+            <div className="rounded-2xl border border-border bg-background/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
+              <Target size={18} className="mb-2 text-emerald-600" />
+              <p className="text-xs text-muted-foreground">{t("adm_examd_pass_score", "Điểm đạt")}</p>
+              <p className="mt-1 text-lg font-bold text-foreground dark:text-white">{exam.passingScore}%</p>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
-              <Users size={20} className="text-purple-500" />
-              <div>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_attempts", "Lượt thi")}</p>
-                <p className="font-semibold text-foreground dark:text-white">{exam.attemptCount}</p>
-              </div>
+            <div className="rounded-2xl border border-border bg-background/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
+              <Users size={18} className="mb-2 text-orange-600" />
+              <p className="text-xs text-muted-foreground">{t("adm_examd_attempts", "Lượt thi")}</p>
+              <p className="mt-1 text-lg font-bold text-foreground dark:text-white"><AnimatedNumber value={exam.attemptCount} durationMs={520} /></p>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
-              <Trophy size={20} className="text-yellow-500" />
-              <div>
-                <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_pass_rate", "Tỷ lệ đạt")}</p>
-                <p className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={exam.passRate} suffix="%" durationMs={520} /></p>
-              </div>
+            <div className="rounded-2xl border border-border bg-background/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
+              <Trophy size={18} className="mb-2 text-yellow-600" />
+              <p className="text-xs text-muted-foreground">{t("adm_examd_pass_rate", "Tỷ lệ đạt")}</p>
+              <p className="mt-1 text-lg font-bold text-foreground dark:text-white"><AnimatedNumber value={exam.passRate} suffix="%" durationMs={520} /></p>
+            </div>
+            <div className="rounded-2xl border border-border bg-background/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
+              <Award size={18} className="mb-2 text-indigo-600" />
+              <p className="text-xs text-muted-foreground">{t("adm_examd_total_points", "Tổng điểm")}</p>
+              <p className="mt-1 text-lg font-bold text-foreground dark:text-white"><AnimatedNumber value={exam.totalPoints} durationMs={520} /></p>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b border-border dark:border-slate-800">
-          <div className="flex gap-6">
+        <div className={`rounded-2xl border border-border bg-card/70 p-2 dark:border-slate-800 dark:bg-slate-900/50 ${revealClass}`} style={getRevealStyle(180)}>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
             {["overview", "questions", "attempts", "analytics"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
-                className={`px-4 py-3 border-b-2 transition-colors ${
+                className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
                   activeTab === tab
-                    ? "border-primary dark:border-accent text-primary dark:text-accent font-semibold"
-                    : "border-transparent text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
+                    ? "bg-foreground text-background dark:bg-white dark:text-slate-900"
+                    : "text-muted-foreground hover:bg-secondary dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                 }`}
               >
                 {tab === "overview" && t("adm_examd_tab_overview", "Tổng quan")}
@@ -789,7 +949,7 @@ export default function AdminExamDetailPage() {
 
         {/* Tab Content */}
         {activeTab === "overview" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className={`grid grid-cols-1 gap-6 lg:grid-cols-3 ${revealClass}`} style={getRevealStyle(220)}>
             <div className="lg:col-span-2 space-y-6">
               {/* Teacher Info */}
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
@@ -890,12 +1050,33 @@ export default function AdminExamDetailPage() {
         )}
 
         {activeTab === "questions" && (
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-foreground dark:text-white">{t("adm_examd_question_list", "Danh sách câu hỏi")} (<AnimatedNumber value={exam.questions.length} durationMs={520} />)</h2>
-              <span className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_total_points_label", "Tổng điểm:")}{" "}<AnimatedNumber value={exam.totalPoints} durationMs={520} /></span>
+          <div className={`bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 ${revealClass}`} style={getRevealStyle(220)}>
+            <div className="mb-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-2xl font-bold text-foreground dark:text-white">{t("adm_examd_question_list", "Danh sách câu hỏi")} (<AnimatedNumber value={exam.questions.length} durationMs={520} />)</h2>
+                <span className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_total_points_label", "Tổng điểm:")} <AnimatedNumber value={exam.totalPoints} durationMs={520} /></span>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div className="rounded-xl border border-border bg-secondary/30 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800/30">
+                  <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_qtype_mc", "Trắc nghiệm")}:</span>{" "}
+                  <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={questionTypeStats.multipleChoice} durationMs={420} /></span>
+                </div>
+                <div className="rounded-xl border border-border bg-secondary/30 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800/30">
+                  <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_qtype_tf", "Đúng/Sai")}:</span>{" "}
+                  <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={questionTypeStats.trueFalse} durationMs={420} /></span>
+                </div>
+                <div className="rounded-xl border border-border bg-secondary/30 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800/30">
+                  <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_qtype_fill", "Điền khuyết")}:</span>{" "}
+                  <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={questionTypeStats.fillIn} durationMs={420} /></span>
+                </div>
+              </div>
             </div>
             <div className="space-y-6">
+              {exam.questions.length === 0 && (
+                <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center text-muted-foreground dark:border-slate-700 dark:bg-slate-800/20 dark:text-slate-400">
+                  {t("adm_examd_no_questions", "Chưa có câu hỏi hợp lệ trong bộ dữ liệu hiện tại.")}
+                </div>
+              )}
               {exam.questions.map((question, index) => (
                 <div key={question.id} className="border border-border dark:border-slate-800 rounded-xl p-6">
                   <div className="flex items-start gap-4">
@@ -1005,7 +1186,7 @@ export default function AdminExamDetailPage() {
         )}
 
         {activeTab === "attempts" && (
-          <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
+          <div className={`bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 ${revealClass}`} style={getRevealStyle(220)}>
             <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">{t("adm_examd_history", "Lịch sử làm bài")}</h2>
             <p className="text-muted-foreground dark:text-slate-400 mb-6">{t("adm_examd_has_attempts", "Có")} <AnimatedNumber value={exam.attemptCount} durationMs={520} /> {t("adm_examd_attempts_count", "lượt làm bài thi này.")}</p>
             <div className="rounded-xl border border-border bg-secondary/30 p-6 text-sm text-muted-foreground dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
@@ -1015,7 +1196,7 @@ export default function AdminExamDetailPage() {
         )}
 
         {activeTab === "analytics" && (
-          <div className="space-y-6">
+          <div className={`space-y-6 ${revealClass}`} style={getRevealStyle(220)}>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
                 <Users className="text-blue-500 mb-3" size={32} />
@@ -1047,7 +1228,74 @@ export default function AdminExamDetailPage() {
             </div>
           </div>
         )}
+
+        <div
+          className={`fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 transition-all duration-300 ${
+            showFloatingActions ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
+          }`}
+        >
+          <div className="w-full max-w-3xl rounded-2xl border border-border/80 bg-background/90 p-3 shadow-2xl backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-900/90">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:inline-flex dark:text-slate-400">
+                <Sparkles size={14} className="text-amber-500" />
+                {t("adm_examd_floating_hint", "Thanh thao tác nhanh khi cuộn")}
+              </div>
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                {canApprove && (
+                  <button
+                    onClick={handleApprove}
+                    disabled={actionLoading}
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <CheckCircle size={14} />
+                    {t("adm_examd_approve", "Duyệt")}
+                  </button>
+                )}
+                {canReject && (
+                  <button
+                    onClick={() => setRejectDialog(true)}
+                    disabled={actionLoading}
+                    className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
+                  >
+                    <XCircle size={14} />
+                    {t("adm_examd_reject", "Từ chối")}
+                  </button>
+                )}
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={actionLoading}
+                  className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
+                >
+                  <Trash2 size={14} />
+                  {t("adm_examd_delete", "Xóa")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <style jsx>{`
+        .reveal-block {
+          opacity: 0;
+          transform: translateY(18px) scale(0.995);
+        }
+
+        .reveal-block.ready {
+          animation: enterpriseReveal 560ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes enterpriseReveal {
+          from {
+            opacity: 0;
+            transform: translateY(18px) scale(0.995);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
 
       {/* Reject Dialog */}
       {rejectDialog && (

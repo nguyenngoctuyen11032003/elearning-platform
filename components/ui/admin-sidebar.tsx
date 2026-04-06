@@ -115,7 +115,7 @@ export function AdminSidebar() {
     { icon: Users, label: t("admin_menu_users", "Người dùng"), href: "/admin/users" },
     { icon: FolderOpen, label: t("admin_menu_categories", "Danh mục"), href: "/admin/categories" },
     { icon: BookOpen, label: t("admin_menu_courses", "Khóa học"), href: "/admin/courses" },
-    { icon: FileText, label: t("admin_menu_exams", "Bài thi"), href: "/admin/exams" },
+    { icon: FileText, label: "Ngân hàng đề thi", href: "/admin/exams" },
     { icon: Award, label: t("admin_menu_certificates", "Chứng chỉ"), href: "/admin/certificates" },
     { icon: CreditCard, label: t("admin_menu_payments", "Thanh toán"), href: "/admin/payments" },
     { icon: ShieldCheck, label: t("admin_menu_subscriptions", "Gói giảng viên"), href: "/admin/subscriptions" },

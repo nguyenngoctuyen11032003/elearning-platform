@@ -25,6 +25,7 @@ type UniversalSelectProps = Omit<
   onChange?: (event: { target: { value: string; name?: string; id?: string } }) => void
   contentClassName?: string
   portalled?: boolean
+  contentSide?: "top" | "bottom" | "auto"
 }
 
 const normalizeOptionValue = (value: string): string =>
@@ -74,6 +75,7 @@ export function UniversalSelect({
   className,
   contentClassName,
   portalled = false,
+  contentSide = "bottom",
   disabled,
   title,
 }: UniversalSelectProps) {
@@ -94,6 +96,8 @@ export function UniversalSelect({
   const currentValue = isControlled ? String(value ?? "") : internalValue
   const selected = options.find((option) => option.value === currentValue)
   const triggerValue = normalizeOptionValue(currentValue)
+  const isAutoSide = contentSide === "auto"
+  const resolvedSide = isAutoSide ? "bottom" : contentSide
 
   const handleValueChange = (nextValueRaw: string) => {
     const nextValue = denormalizeOptionValue(nextValueRaw)
@@ -122,6 +126,9 @@ export function UniversalSelect({
             "!bg-white !text-slate-800 !border-slate-200 [&_[data-slot=select-item]]:!bg-white [&_[data-slot=select-item]]:!text-slate-800",
             contentClassName,
           )}
+          side={resolvedSide}
+          avoidCollisions={isAutoSide}
+          collisionPadding={12}
           portalled={portalled}
         >
           {options.map((option) => (
