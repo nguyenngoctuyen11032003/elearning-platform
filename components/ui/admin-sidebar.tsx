@@ -36,8 +36,10 @@ export function AdminSidebar() {
     const canAutoCollapse = () => desktopQuery.matches || tabletPortraitQuery.matches || tabletLandscapeQuery.matches
     if (!canAutoCollapse()) return
 
-    const mainContent = document.querySelector("main[data-dashboard-main='true']")
-    if (!mainContent) return
+    const mainContentEl = document.querySelector<HTMLElement>("main[data-dashboard-main='true']")
+    if (!mainContentEl) return
+
+    const mainContent = mainContentEl as EventTarget
 
     const collapseSidebar = () => {
       setIsCollapsed(true)
@@ -55,29 +57,33 @@ export function AdminSidebar() {
       return 12
     }
 
-    const onPointerDown = (event: PointerEvent) => {
+    const onPointerDown = (event: Event) => {
       if (!desktopQuery.matches) return
-      if (event.pointerType === "mouse") {
+      const pointerEvent = event as PointerEvent
+      if (pointerEvent.pointerType === "mouse") {
         collapseSidebar()
       }
     }
 
-    const onWheel = (event: WheelEvent) => {
+    const onWheel = (event: Event) => {
       if (!canAutoCollapse()) return
-      if (Math.abs(event.deltaY) >= getWheelThreshold()) {
+      const wheelEvent = event as WheelEvent
+      if (Math.abs(wheelEvent.deltaY) >= getWheelThreshold()) {
         collapseSidebar()
       }
     }
 
-    const onTouchStart = (event: TouchEvent) => {
+    const onTouchStart = (event: Event) => {
       if (!canAutoCollapse()) return
-      touchStartYRef.current = event.touches[0]?.clientY ?? null
+      const touchEvent = event as TouchEvent
+      touchStartYRef.current = touchEvent.touches[0]?.clientY ?? null
     }
 
-    const onTouchMove = (event: TouchEvent) => {
+    const onTouchMove = (event: Event) => {
       if (!canAutoCollapse()) return
       if (touchStartYRef.current === null) return
-      const currentY = event.touches[0]?.clientY ?? touchStartYRef.current
+      const touchEvent = event as TouchEvent
+      const currentY = touchEvent.touches[0]?.clientY ?? touchStartYRef.current
       const deltaY = Math.abs(currentY - touchStartYRef.current)
       if (deltaY >= getTouchThreshold()) {
         collapseSidebar()
