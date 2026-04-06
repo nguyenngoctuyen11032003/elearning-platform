@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Ticket, CreditCard } from "lucide-react"
+import { Loader2, Ticket, CreditCard, QrCode, Wallet, Copy } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { formatCurrencyByLanguage } from "@/lib/format"
@@ -22,6 +22,19 @@ interface CouponPreview {
   message?: string
 }
 
+type PaymentMode = "wallet" | "sepay_qr"
+
+interface SepayCheckoutState {
+  paymentId: string
+  transactionCode: string
+  amount: number
+  status: string
+  qrImageUrl: string
+  bankName: string
+  accountNumber: string
+  expiresAt?: string
+}
+
 export default function CheckoutPage() {
   const router = useRouter()
   const { t, language } = useLanguage()
@@ -30,6 +43,8 @@ export default function CheckoutPage() {
   const [couponPreview, setCouponPreview] = useState<CouponPreview | null>(null)
   const [isCheckingCode, setIsCheckingCode] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>("sepay_qr")
+  const [sepayCheckout, setSepayCheckout] = useState<SepayCheckoutState | null>(null)
 
   useEffect(() => {
     try {
@@ -105,6 +120,51 @@ export default function CheckoutPage() {
     return Math.max(0, Number(baseAmount || 0) - discount)
   }, [baseAmount, discount])
 
+  useEffect(() => {
+    if (!sepayCheckout?.transactionCode) return
+    if (sepayCheckout.status !== "pending") return
+
+    const intervalId = setInterval(async () => {
+      try {
+        const statusResult = await apiClient.getSepayPaymentStatus(sepayCheckout.transactionCode)
+        const payment = statusResult?.payment
+        if (!payment) return
+
+        const nextStatus = String(payment.status || "pending")
+        setSepayCheckout((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            status: nextStatus,
+            expiresAt: statusResult?.checkout?.expiresAt || prev.expiresAt,
+          }
+        })
+
+        if (nextStatus === "completed") {
+          clearInterval(intervalId)
+          localStorage.removeItem("checkoutCourse")
+          localStorage.removeItem("checkoutItems")
+          localStorage.removeItem("checkoutTotal")
+          toast.success(t("checkout_success", "Thanh toán thành công, bạn đã được vào khóa học"))
+          router.push(`/enrollment/success?courseId=${firstCourse?.id || ""}&paymentId=${payment.id}&status=success`)
+        }
+
+        if (nextStatus === "failed" || nextStatus === "expired") {
+          clearInterval(intervalId)
+          toast.error(
+            nextStatus === "expired"
+              ? t("checkout_qr_expired", "Mã QR đã hết hạn, vui lòng tạo lại giao dịch")
+              : t("checkout_failed", "Thanh toán thất bại"),
+          )
+        }
+      } catch {
+        // Keep polling, transient errors are expected.
+      }
+    }, 5000)
+
+    return () => clearInterval(intervalId)
+  }, [sepayCheckout?.transactionCode, sepayCheckout?.status, router, firstCourse?.id, t])
+
   const handleCheckCode = async () => {
     if (!firstCourse) return
     if (isMultiCourseCheckout) {
@@ -145,6 +205,11 @@ export default function CheckoutPage() {
       return
     }
 
+    if (isMultiCourseCheckout && paymentMode === "sepay_qr") {
+      toast.error(t("checkout_multi_sepay_not_supported", "Thanh toán SePay QR hiện chỉ hỗ trợ cho 1 khóa học mỗi lần"))
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const successes: Array<{ courseId: string; paymentId: string; status: string }> = []
@@ -152,18 +217,55 @@ export default function CheckoutPage() {
 
       for (const item of courses) {
         try {
-          const payment = await apiClient.createPayment({
+          if (paymentMode === "wallet") {
+            const payment = await apiClient.payCourseByWallet({
+              courseId: item.id,
+              couponCode: !isMultiCourseCheckout ? paymentCode.trim() || undefined : undefined,
+            })
+
+            successes.push({
+              courseId: item.id,
+              paymentId: String(payment?.id || ""),
+              status: String(payment?.status || "pending"),
+            })
+
+            continue
+          }
+
+          const response = await apiClient.createSepayCoursePayment({
             courseId: item.id,
-            amount: Number(item.price || 0),
-            paymentMethod: "bank_transfer",
             couponCode: !isMultiCourseCheckout ? paymentCode.trim() || undefined : undefined,
           })
 
-          successes.push({
-            courseId: item.id,
-            paymentId: String(payment?.id || ""),
-            status: String(payment?.status || "pending"),
-          })
+          const payment = response?.payment
+          const checkout = response?.checkout
+
+          if (payment?.status === "completed") {
+            successes.push({
+              courseId: item.id,
+              paymentId: String(payment?.id || ""),
+              status: "completed",
+            })
+            continue
+          }
+
+          if (checkout && payment) {
+            setSepayCheckout({
+              paymentId: String(payment.id || ""),
+              transactionCode: String(checkout.transactionCode || payment.transactionCode || ""),
+              amount: Number(payment.finalAmount || payment.amount || 0),
+              status: String(payment.status || "pending"),
+              qrImageUrl: String(checkout.qrImageUrl || ""),
+              bankName: String(checkout.bankName || ""),
+              accountNumber: String(checkout.accountNumber || ""),
+              expiresAt: checkout.expiresAt,
+            })
+
+            toast.success(t("checkout_qr_created", "Đã tạo mã QR SePay, vui lòng chuyển khoản đúng nội dung"))
+            return
+          }
+
+          throw new Error(t("checkout_failed", "Thanh toán thất bại"))
         } catch (error) {
           const message = error instanceof Error ? error.message : `${t("checkout_failed_course", "Thanh toán thất bại cho khóa")}: ${item.title}`
           failures.push(message)
@@ -209,6 +311,16 @@ export default function CheckoutPage() {
     }
   }
 
+  const handleCopyTransferContent = async () => {
+    if (!sepayCheckout?.transactionCode) return
+    try {
+      await navigator.clipboard.writeText(sepayCheckout.transactionCode)
+      toast.success(t("checkout_copied", "Đã sao chép nội dung chuyển khoản"))
+    } catch {
+      toast.error(t("checkout_copy_failed", "Không thể sao chép, vui lòng copy thủ công"))
+    }
+  }
+
   if (courses.length === 0) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
@@ -240,6 +352,30 @@ export default function CheckoutPage() {
       </div>
 
       <div className="rounded-2xl border bg-card p-6">
+        <div className="mb-4">
+          <p className="mb-2 text-sm font-semibold">{t("checkout_payment_method", "Phương thức thanh toán")}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setPaymentMode("sepay_qr")}
+              className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                paymentMode === "sepay_qr" ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"
+              }`}
+            >
+              <QrCode size={16} />
+              SePay QR
+            </button>
+            <button
+              onClick={() => setPaymentMode("wallet")}
+              className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                paymentMode === "wallet" ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"
+              }`}
+            >
+              <Wallet size={16} />
+              {t("checkout_wallet", "Số dư ví")}
+            </button>
+          </div>
+        </div>
+
         <div className="mb-4 flex items-center gap-2 text-lg font-semibold">
           <Ticket size={18} />
           {t("checkout_code_label", "Mã thanh toán")}
@@ -274,13 +410,44 @@ export default function CheckoutPage() {
           </p>
         )}
 
+        {sepayCheckout && (
+          <div className="mt-4 rounded-lg border border-border/60 p-4">
+            <p className="text-sm font-semibold">{t("checkout_sepay_info", "Thông tin thanh toán SePay")}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {t("checkout_sepay_status", "Trạng thái")}: {sepayCheckout.status}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("checkout_bank", "Ngân hàng")}: {sepayCheckout.bankName} - {sepayCheckout.accountNumber}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("checkout_transfer_content", "Nội dung")}: {sepayCheckout.transactionCode}
+            </p>
+            <button
+              onClick={handleCopyTransferContent}
+              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              <Copy size={14} />
+              {t("checkout_copy_transfer", "Sao chép nội dung chuyển khoản")}
+            </button>
+            {sepayCheckout.qrImageUrl && (
+              <div className="mt-3 rounded-lg border p-2">
+                <img src={sepayCheckout.qrImageUrl} alt="SePay QR" className="mx-auto h-52 w-52 object-contain" />
+              </div>
+            )}
+          </div>
+        )}
+
         <button
           onClick={handlePay}
           disabled={isSubmitting}
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-semibold text-white hover:bg-primary/90 disabled:opacity-60"
         >
-          {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <CreditCard size={16} />}
-          {isSubmitting ? t("checkout_processing", "Đang xử lý") : t("checkout_pay", "Thanh toán và đăng ký khóa học")}
+          {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : paymentMode === "wallet" ? <Wallet size={16} /> : <CreditCard size={16} />}
+          {isSubmitting
+            ? t("checkout_processing", "Đang xử lý")
+            : paymentMode === "wallet"
+              ? t("checkout_pay_wallet", "Thanh toán bằng ví")
+              : t("checkout_pay_sepay", "Tạo mã SePay QR")}
         </button>
       </div>
     </div>
