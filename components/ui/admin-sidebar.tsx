@@ -104,6 +104,12 @@ export function AdminSidebar() {
     }
   }, [isCollapsed])
 
+  useEffect(() => {
+    if (!isOpen) return
+    if (window.matchMedia("(min-width: 1280px)").matches) return
+    setIsCollapsed(false)
+  }, [isOpen])
+
   const menuItems = [
     { icon: LayoutDashboard, label: t("admin_menu_dashboard", "Dashboard"), href: "/admin/dashboard" },
     { icon: Users, label: t("admin_menu_users", "Người dùng"), href: "/admin/users" },
@@ -116,10 +122,6 @@ export function AdminSidebar() {
     { icon: BarChart3, label: t("admin_menu_reports", "Báo cáo"), href: "/admin/reports" },
     { icon: Settings, label: t("admin_menu_settings", "Cài đặt"), href: "/admin/settings" },
   ]
-
-  if (loading) {
-    return null
-  }
 
   const handleLogout = async () => {
     await logout()
@@ -140,11 +142,17 @@ export function AdminSidebar() {
     }
   }
 
-  useEffect(() => {
-    if (!isOpen) return
-    if (window.matchMedia("(min-width: 1280px)").matches) return
-    setIsCollapsed(false)
-  }, [isOpen])
+  if (loading) {
+    return (
+      <>
+        <aside className="fixed top-0 left-0 h-screen z-40 bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 xl:sticky xl:top-0 flex flex-col w-20">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-muted-foreground text-xs">Loading...</div>
+          </div>
+        </aside>
+      </>
+    )
+  }
 
   return (
     <>

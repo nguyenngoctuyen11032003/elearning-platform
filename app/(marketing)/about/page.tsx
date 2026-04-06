@@ -189,8 +189,8 @@ const [loading, setLoading] = useState(true);
         <div className="absolute inset-0 bg-gradient-to-b from-[#0f1f5f]/70 via-[#2f3f8a]/40 to-[#f3f7ff]/0 dark:from-slate-950/80 dark:via-slate-900/70 dark:to-slate-950/10" />
 
         {/* Gradient layers */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(59,130,246,0.35),transparent_52%),radial-gradient(circle_at_85%_0%,rgba(251,191,36,0.24),transparent_48%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(148,163,184,0.18)_0%,rgba(148,163,184,0)_34%,rgba(148,163,184,0.12)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(219, 225, 235, 0.35),transparent_52%),radial-gradient(circle_at_85%_0%,rgba(251,191,36,0.24),transparent_48%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(244, 244, 244, 0.18)_0%,rgba(148,163,184,0)_34%,rgba(148,163,184,0.12)_100%)]" />
 
 {/* Content */}
 {!loading && systemData && (
@@ -214,13 +214,25 @@ const [loading, setLoading] = useState(true);
 
     {/* Title */}
     <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight">
-      <span className="bg-gradient-to-r from-[#35225f] via-[#4d2f7a] to-[#6d446f] bg-clip-text text-transparent drop-shadow-[0_4px_16px_rgba(255,255,255,0.2)]">
+      <span 
+        className="bg-clip-text text-transparent drop-shadow-[0_4px_16px_rgba(255,215,0,0.4)]"
+        style={{
+          backgroundImage: 'linear-gradient(to right, #ffffff, #ffffff, #ffffff)',
+          WebkitTextStroke: '0.5px rgba(255, 255, 255, 0.6)',
+        }}
+      >
         {t(heroContents[bgIndex].titleKey, heroContents[bgIndex].titleFallback)}
       </span>
     </h1>
 
     {/* Text from backend */}
-    <p className="text-base md:text-lg text-slate-800/90 dark:text-slate-100/90 max-w-3xl mx-auto leading-relaxed">
+    <p 
+      className="text-base md:text-lg max-w-3xl mx-auto leading-relaxed font-medium"
+      style={{
+        color: '#ffffff',
+        textShadow: '0 2px 8px rgba(255, 132, 132, 0.9), 0 4px 16px rgba(255, 255, 255, 0.5)',
+      }}
+    >
       {heroContents[bgIndex].getContent(systemData)}
     </p>
   </motion.div>
