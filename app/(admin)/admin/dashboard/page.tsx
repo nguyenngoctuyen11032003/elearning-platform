@@ -71,6 +71,22 @@ type InstructorPaymentHistory = {
   paidAt: string | null
 }
 
+type DashboardFastCache = {
+  updatedAt: number
+  stats: any
+  revenueData: RevenuePoint[]
+  weeklyStats: WeeklyPoint[]
+  growthData: GrowthPoint[]
+  categoryData: CategoryItem[]
+}
+
+type FilterFrequency = {
+  day: number
+  week: number
+  month: number
+  year: number
+}
+
 const pieColors = ["#2563eb", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"]
 const chartTooltipStyle = {
   backgroundColor: "#0f172a",
@@ -81,6 +97,11 @@ const chartTooltipStyle = {
 const chartTooltipLabelStyle = { color: "#e2e8f0", fontWeight: 600 }
 const chartTooltipItemStyle = { color: "#e2e8f0" }
 const DASHBOARD_REALTIME_MS = 45000
+const DASHBOARD_CACHE_TTL_MS = 3 * 60 * 1000
+const DASHBOARD_CACHE_PREFIX = "admin-dashboard-cache-v1"
+const FILTER_FREQUENCY_PREFIX = "admin-dashboard-filter-frequency-v1"
+const DASHBOARD_FILTER_FADE_MIN_MS = 180
+const DASHBOARD_MOTION_BASE_MIN = 0.52
 const CHART_CINEMATIC = {
   durationMs: 980,
   easing: "cubic-bezier(0.22, 1, 0.36, 1)",
@@ -297,6 +318,8 @@ export default function AdminDashboard() {
   const [liveClock, setLiveClock] = useState(() => new Date())
   const [chartMotionCycle, setChartMotionCycle] = useState(0)
   const [motionScale, setMotionScale] = useState(1)
+  const [isUltraLiteMotion, setIsUltraLiteMotion] = useState(false)
+  const [isMobileViewport, setIsMobileViewport] = useState(false)
   const chartSeriesOffset = {
     weekly: 74,
     growth: 88,
@@ -304,11 +327,105 @@ export default function AdminDashboard() {
   const [periodSwitching, setPeriodSwitching] = useState(false)
   const [chartAnimationFlags, setChartAnimationFlags] = useState({
     revenue: true,
+    weekly: true,
+    growth: true,
     category: true,
     radar: true,
+    teacherPlan: true,
+    certificate: true,
   })
-  const chartSignaturesRef = useRef<{ revenue: string; category: string; radar: string } | null>(null)
+  const chartSignaturesRef = useRef<{
+    revenue: string
+    weekly: string
+    growth: string
+    category: string
+    radar: string
+    teacherPlan: string
+    certificate: string
+  } | null>(null)
   const liveClockTextRef = useRef<HTMLSpanElement | null>(null)
+  const hasLoadedOnceRef = useRef(false)
+  const filterClickLockRef = useRef(false)
+  const filterClickLockTimerRef = useRef<number | null>(null)
+  const periodSwitchingStartedAtRef = useRef<number>(0)
+  const periodSwitchingTimerRef = useRef<number | null>(null)
+  const prefetchInFlightRef = useRef(false)
+  const prefetchedLanguageRef = useRef<string | null>(null)
+
+  const getFastCacheKey = (period: "day" | "week" | "month" | "year", lang: string) =>
+    `${DASHBOARD_CACHE_PREFIX}:${lang}:${period}`
+
+  const readFastCache = (period: "day" | "week" | "month" | "year", lang: string): DashboardFastCache | null => {
+    if (typeof window === "undefined") return null
+    try {
+      const raw = window.sessionStorage.getItem(getFastCacheKey(period, lang))
+      if (!raw) return null
+
+      const parsed = JSON.parse(raw) as DashboardFastCache
+      if (!parsed?.updatedAt || Date.now() - parsed.updatedAt > DASHBOARD_CACHE_TTL_MS) {
+        window.sessionStorage.removeItem(getFastCacheKey(period, lang))
+        return null
+      }
+      return parsed
+    } catch {
+      return null
+    }
+  }
+
+  const writeFastCache = (period: "day" | "week" | "month" | "year", lang: string, payload: DashboardFastCache) => {
+    if (typeof window === "undefined") return
+    try {
+      window.sessionStorage.setItem(getFastCacheKey(period, lang), JSON.stringify(payload))
+    } catch {
+      // Ignore storage errors to keep dashboard responsive.
+    }
+  }
+
+  const getFilterFrequencyKey = (lang: string) => `${FILTER_FREQUENCY_PREFIX}:${lang}`
+
+  const readFilterFrequency = (lang: string): FilterFrequency => {
+    if (typeof window === "undefined") {
+      return { day: 0, week: 0, month: 0, year: 0 }
+    }
+    try {
+      const key = getFilterFrequencyKey(lang)
+      const raw = window.sessionStorage.getItem(key)
+      if (!raw) {
+        return { day: 0, week: 0, month: 0, year: 0 }
+      }
+      return JSON.parse(raw) as FilterFrequency
+    } catch {
+      return { day: 0, week: 0, month: 0, year: 0 }
+    }
+  }
+
+  const writeFilterFrequency = (lang: string, frequency: FilterFrequency) => {
+    if (typeof window === "undefined") return
+    try {
+      const key = getFilterFrequencyKey(lang)
+      window.sessionStorage.setItem(key, JSON.stringify(frequency))
+    } catch {
+      // Ignore storage errors
+    }
+  }
+
+  const incrementFilterClick = (period: "day" | "week" | "month" | "year", lang: string) => {
+    const freq = readFilterFrequency(lang)
+    freq[period] = (freq[period] ?? 0) + 1
+    writeFilterFrequency(lang, freq)
+  }
+
+  const sortPeriodsByFrequency = (
+    periods: Array<"day" | "week" | "month" | "year">,
+    lang: string,
+  ): Array<"day" | "week" | "month" | "year"> => {
+    const freq = readFilterFrequency(lang)
+    return [...periods].sort((a, b) => {
+      const freqA = freq[a] ?? 0
+      const freqB = freq[b] ?? 0
+      return freqB - freqA // Descending: highest frequency first
+    })
+  }
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -319,51 +436,115 @@ export default function AdminDashboard() {
   }, [])
 
   useEffect(() => {
+    return () => {
+      if (filterClickLockTimerRef.current !== null) {
+        window.clearTimeout(filterClickLockTimerRef.current)
+      }
+      if (periodSwitchingTimerRef.current !== null) {
+        window.clearTimeout(periodSwitchingTimerRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const mobileQuery = window.matchMedia("(max-width: 768px)")
+    const syncMobileState = () => setIsMobileViewport(mobileQuery.matches)
+    syncMobileState()
+    mobileQuery.addEventListener("change", syncMobileState)
+    return () => mobileQuery.removeEventListener("change", syncMobileState)
+  }, [])
+
+  useEffect(() => {
     if (typeof window === "undefined") return
 
     let cancelled = false
     let rafId = 0
+    let frameCount = 0
+    let fpsAccumulated = 0
+    let lastFrameTs = 0
+    let lastAppliedScale = 1
+    let ultraLiteActive = false
+    let lowFpsStartedAt = 0
+    let highFpsRecoveryAt = 0
 
     const cachedScale = window.sessionStorage.getItem(DASHBOARD_MOTION_SCALE_SESSION_KEY)
     if (cachedScale) {
       const parsed = Number(cachedScale)
       if (Number.isFinite(parsed)) {
-        setMotionScale(Math.min(1, Math.max(0.62, parsed)))
-        return
+        const normalized = Math.min(1, Math.max(DASHBOARD_MOTION_BASE_MIN, parsed))
+        setMotionScale(normalized)
+        lastAppliedScale = normalized
       }
     }
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     const isMobile = window.matchMedia("(max-width: 768px)").matches
+    const isTablet = window.matchMedia("(min-width: 769px) and (max-width: 1024px)").matches
     const hw = Number((navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8)
     const memory = Number((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8)
-    const stamps: number[] = []
+
+    let baseScale = 1
+    if (isMobile) baseScale *= 0.86
+    if (isTablet) baseScale *= 0.92
+    if (hw <= 4) baseScale *= 0.88
+    if (memory <= 4) baseScale *= 0.88
+    if (reducedMotion) baseScale *= 0.72
 
     const tick = (ts: number) => {
       if (cancelled) return
-      stamps.push(ts)
-      if (stamps.length < 12) {
-        rafId = window.requestAnimationFrame(tick)
-        return
+
+      if (lastFrameTs > 0) {
+        const delta = ts - lastFrameTs
+        if (delta > 0 && delta < 120) {
+          const fps = 1000 / delta
+          fpsAccumulated += fps
+          frameCount += 1
+        }
+      }
+      lastFrameTs = ts
+
+      if (frameCount >= 24) {
+        const avgFps = fpsAccumulated / Math.max(frameCount, 1)
+
+        if (avgFps < 42) {
+          if (lowFpsStartedAt === 0) lowFpsStartedAt = ts
+          highFpsRecoveryAt = 0
+          if (!ultraLiteActive && ts - lowFpsStartedAt >= 3000) {
+            ultraLiteActive = true
+            setIsUltraLiteMotion(true)
+          }
+        } else if (avgFps > 52) {
+          if (highFpsRecoveryAt === 0) highFpsRecoveryAt = ts
+          lowFpsStartedAt = 0
+          if (ultraLiteActive && ts - highFpsRecoveryAt >= 1600) {
+            ultraLiteActive = false
+            setIsUltraLiteMotion(false)
+          }
+        } else {
+          lowFpsStartedAt = 0
+          highFpsRecoveryAt = 0
+        }
+
+        let fpsScale = 1
+        if (avgFps < 35) fpsScale = 0.62
+        else if (avgFps < 42) fpsScale = 0.72
+        else if (avgFps < 50) fpsScale = 0.82
+        else if (avgFps < 56) fpsScale = 0.9
+        if (ultraLiteActive) fpsScale *= 0.82
+
+        const next = Math.min(1, Math.max(DASHBOARD_MOTION_BASE_MIN, Number((baseScale * fpsScale).toFixed(2))))
+        if (Math.abs(next - lastAppliedScale) >= 0.04) {
+          lastAppliedScale = next
+          setMotionScale(next)
+          window.sessionStorage.setItem(DASHBOARD_MOTION_SCALE_SESSION_KEY, String(next))
+        }
+
+        frameCount = 0
+        fpsAccumulated = 0
       }
 
-      const deltas = stamps.slice(1).map((value, idx) => value - stamps[idx])
-      const avgDelta = deltas.reduce((sum, value) => sum + value, 0) / Math.max(deltas.length, 1)
-      const fps = avgDelta > 0 ? 1000 / avgDelta : 60
-
-      let scale = 1
-      if (isMobile) scale *= 0.9
-      if (hw <= 4) scale *= 0.9
-      if (memory <= 4) scale *= 0.9
-      if (fps < 45) scale *= 0.8
-      else if (fps < 55) scale *= 0.9
-      if (reducedMotion) scale *= 0.75
-
-      const next = Math.min(1, Math.max(0.62, Number(scale.toFixed(2))))
-      if (!cancelled) {
-        setMotionScale(next)
-        window.sessionStorage.setItem(DASHBOARD_MOTION_SCALE_SESSION_KEY, String(next))
-      }
+      rafId = window.requestAnimationFrame(tick)
     }
 
     rafId = window.requestAnimationFrame(tick)
@@ -397,15 +578,23 @@ export default function AdminDashboard() {
   }, [liveClock])
 
   const revenueSignature = useMemo(() => JSON.stringify(revenueData), [revenueData])
+  const weeklySignature = useMemo(() => JSON.stringify(weeklyStats), [weeklyStats])
+  const growthSignature = useMemo(() => JSON.stringify(growthData), [growthData])
   const categorySignature = useMemo(() => JSON.stringify(categoryData), [categoryData])
   const radarSignature = useMemo(() => JSON.stringify(radarMetrics), [radarMetrics])
+  const teacherPlanSignature = useMemo(() => JSON.stringify(teacherPlanData), [teacherPlanData])
+  const certificateSignature = useMemo(() => JSON.stringify(certificateData), [certificateData])
 
   useEffect(() => {
     const prev = chartSignaturesRef.current
     const next = {
       revenue: revenueSignature,
+      weekly: weeklySignature,
+      growth: growthSignature,
       category: categorySignature,
       radar: radarSignature,
+      teacherPlan: teacherPlanSignature,
+      certificate: certificateSignature,
     }
 
     chartSignaturesRef.current = next
@@ -413,29 +602,41 @@ export default function AdminDashboard() {
 
     const changed = {
       revenue: prev.revenue !== next.revenue,
+      weekly: prev.weekly !== next.weekly,
+      growth: prev.growth !== next.growth,
       category: prev.category !== next.category,
       radar: prev.radar !== next.radar,
+      teacherPlan: prev.teacherPlan !== next.teacherPlan,
+      certificate: prev.certificate !== next.certificate,
     }
 
-    if (!changed.revenue && !changed.category && !changed.radar) return
+    if (!changed.revenue && !changed.weekly && !changed.growth && !changed.category && !changed.radar && !changed.teacherPlan && !changed.certificate) return
 
     setChartMotionCycle((value) => value + 1)
     setChartAnimationFlags((current) => ({
       revenue: changed.revenue ? true : current.revenue,
+      weekly: changed.weekly ? true : current.weekly,
+      growth: changed.growth ? true : current.growth,
       category: changed.category ? true : current.category,
       radar: changed.radar ? true : current.radar,
+      teacherPlan: changed.teacherPlan ? true : current.teacherPlan,
+      certificate: changed.certificate ? true : current.certificate,
     }))
 
     const timer = setTimeout(() => {
       setChartAnimationFlags((current) => ({
         revenue: changed.revenue ? false : current.revenue,
+        weekly: changed.weekly ? false : current.weekly,
+        growth: changed.growth ? false : current.growth,
         category: changed.category ? false : current.category,
         radar: changed.radar ? false : current.radar,
+        teacherPlan: changed.teacherPlan ? false : current.teacherPlan,
+        certificate: changed.certificate ? false : current.certificate,
       }))
     }, 1700)
 
     return () => clearTimeout(timer)
-  }, [revenueSignature, categorySignature, radarSignature])
+  }, [revenueSignature, weeklySignature, growthSignature, categorySignature, radarSignature, teacherPlanSignature, certificateSignature])
 
   const teacherRankingData = topTeachers.map((item) => ({
     name: item.teacherName,
@@ -456,10 +657,22 @@ export default function AdminDashboard() {
   }))
 
   const staggerSeed = `${filterPeriod}-${chartMotionCycle}`
-  const cinematicDuration = Math.round(CHART_CINEMATIC.durationMs * motionScale)
+  const chartDurations = {
+    area: Math.max(340, Math.round(CHART_CINEMATIC.durationMs * motionScale * (isUltraLiteMotion ? 0.74 : 1))),
+    line: Math.max(300, Math.round(CHART_CINEMATIC.durationMs * 0.82 * motionScale * (isUltraLiteMotion ? 0.74 : 1))),
+    bar: Math.max(300, Math.round(CHART_CINEMATIC.durationMs * 0.8 * motionScale * (isUltraLiteMotion ? 0.74 : 1))),
+    pie: Math.max(260, Math.round(CHART_CINEMATIC.durationMs * 0.7 * motionScale * (isUltraLiteMotion ? 0.74 : 1))),
+    radar: Math.max(280, Math.round(CHART_CINEMATIC.durationMs * 0.76 * motionScale * (isUltraLiteMotion ? 0.74 : 1))),
+  } as const
+  const numberDurations = {
+    kpiPrimary: Math.max(700, Math.round(980 * motionScale * (isUltraLiteMotion ? 0.88 : 1))),
+    kpiSecondary: Math.max(620, Math.round(860 * motionScale * (isUltraLiteMotion ? 0.86 : 1))),
+    trendBadge: Math.max(420, Math.round(620 * motionScale * (isUltraLiteMotion ? 0.82 : 1))),
+    tableCell: Math.max(220, Math.round(420 * motionScale * (isUltraLiteMotion ? 0.8 : 1) * (isMobileViewport ? 0.86 : 1))),
+  } as const
   const adaptiveSeriesOffset = {
-    weekly: Math.max(48, Math.round(chartSeriesOffset.weekly * motionScale)),
-    growth: Math.max(56, Math.round(chartSeriesOffset.growth * motionScale)),
+    weekly: Math.max(40, Math.round(chartSeriesOffset.weekly * motionScale * (isUltraLiteMotion ? 0.72 : 1))),
+    growth: Math.max(46, Math.round(chartSeriesOffset.growth * motionScale * (isUltraLiteMotion ? 0.72 : 1))),
   } as const
   const getStaggerStyle = (index: number, baseMs = 70) => ({
     animationDelay: `${Math.max(index, 0) * Math.round(baseMs * motionScale)}ms`,
@@ -522,8 +735,39 @@ function buildRevenueChart(transactions: { createdAt: string; amount: number }[]
 }
 
 useEffect(() => {
-  const loadDashboard = async (silent = false) => {
-    if (!silent) setLoading(true)
+  const loadDashboard = async (silent = false, source: "initial" | "filter" | "refresh" = "initial") => {
+    const shouldShowFullLoading = !silent && !hasLoadedOnceRef.current
+    let hydratedFromCache = false
+
+    if (shouldShowFullLoading) {
+      const cached = readFastCache(filterPeriod, language)
+      if (cached) {
+        hydratedFromCache = true
+        setStats(cached.stats)
+        setRevenueData(cached.revenueData)
+        setWeeklyStats(cached.weeklyStats)
+        setGrowthData(cached.growthData)
+        setCategoryData(cached.categoryData)
+        setLastSyncedAt(new Date(cached.updatedAt))
+        setLoading(false)
+        hasLoadedOnceRef.current = true
+      } else {
+        setLoading(true)
+      }
+    }
+
+    if (silent && source === "filter") {
+      const cached = readFastCache(filterPeriod, language)
+      if (cached) {
+        setStats(cached.stats)
+        setRevenueData(cached.revenueData)
+        setWeeklyStats(cached.weeklyStats)
+        setGrowthData(cached.growthData)
+        setCategoryData(cached.categoryData)
+        setLastSyncedAt(new Date(cached.updatedAt))
+      }
+    }
+
     try {
       const periodRange = getPeriodDateRange(filterPeriod)
       const [dashboardRes, growthRes, revenueRes, userRes, instructorPaymentsRes] = await Promise.allSettled([
@@ -564,16 +808,16 @@ useEffect(() => {
       setStats(normalizedStats)
 
       /* ================== REVENUE CHART ================== */
+      let nextRevenueData: RevenuePoint[] = []
       if (
         dashboard.revenueChart?.labels?.length &&
         dashboard.revenueChart?.data?.length
       ) {
         const chart = dashboard.revenueChart
-        const nextRevenue = chart.labels.map((label: string, i: number) => ({
+        nextRevenueData = chart.labels.map((label: string, i: number) => ({
           month: label,
           revenue: Number(chart.data?.[i] ?? 0),
         }))
-        setRevenueData((prev) => (isSameData(prev, nextRevenue) ? prev : nextRevenue))
       } else if (dashboard.recentTransactions?.length) {
         const revenueChart = buildRevenueChart(
           dashboard.recentTransactions.map((t: any) => ({
@@ -582,14 +826,14 @@ useEffect(() => {
           }))
         )
 
-        const nextRevenue = revenueChart.labels.map((label: string, i: number) => ({
+        nextRevenueData = revenueChart.labels.map((label: string, i: number) => ({
           month: label,
           revenue: revenueChart.data?.[i] ?? 0,
         }))
-        setRevenueData((prev) => (isSameData(prev, nextRevenue) ? prev : nextRevenue))
       } else {
-        setRevenueData((prev) => (prev.length ? [] : prev))
+        nextRevenueData = []
       }
+      setRevenueData((prev) => (isSameData(prev, nextRevenueData) ? prev : nextRevenueData))
 
       /* ================== WEEKLY STATS ================== */
       const nextWeeklyStats = Array.isArray(dashboard.weeklyStats)
@@ -744,6 +988,17 @@ useEffect(() => {
 
       setInstructorPayments((prev) => (isSameData(prev, nextInstructorPayments) ? prev : nextInstructorPayments))
       setLastSyncedAt(new Date())
+
+      writeFastCache(filterPeriod, language, {
+        updatedAt: Date.now(),
+        stats: normalizedStats,
+        revenueData: nextRevenueData,
+        weeklyStats: nextWeeklyStats,
+        growthData: growthSource,
+        categoryData: nextCategoryData,
+      })
+
+      hasLoadedOnceRef.current = true
     } catch (err) {
       console.warn("Dashboard temporarily unavailable:", err)
       setStats(null)
@@ -763,19 +1018,183 @@ useEffect(() => {
       setCoursePerformanceTop([])
       setInstructorPayments([])
     } finally {
-      setPeriodSwitching(false)
-      if (!silent) setLoading(false)
+      if (periodSwitchingTimerRef.current !== null) {
+        window.clearTimeout(periodSwitchingTimerRef.current)
+        periodSwitchingTimerRef.current = null
+      }
+
+      const shouldKeepFadeForSmoothness = source === "filter" && silent && periodSwitchingStartedAtRef.current > 0
+      if (shouldKeepFadeForSmoothness) {
+        const elapsed = Date.now() - periodSwitchingStartedAtRef.current
+        const remaining = Math.max(DASHBOARD_FILTER_FADE_MIN_MS - elapsed, 0)
+        if (remaining > 0) {
+          periodSwitchingTimerRef.current = window.setTimeout(() => {
+            setPeriodSwitching(false)
+            periodSwitchingTimerRef.current = null
+          }, remaining)
+        } else {
+          setPeriodSwitching(false)
+        }
+      } else {
+        setPeriodSwitching(false)
+      }
+      if (shouldShowFullLoading && !hydratedFromCache) setLoading(false)
     }
   }
 
-  setPeriodSwitching(true)
-  loadDashboard()
+  const shouldUseSilentFilterLoad = hasLoadedOnceRef.current
+  if (periodSwitchingTimerRef.current !== null) {
+    window.clearTimeout(periodSwitchingTimerRef.current)
+    periodSwitchingTimerRef.current = null
+  }
+  periodSwitchingStartedAtRef.current = shouldUseSilentFilterLoad ? Date.now() : 0
+  setPeriodSwitching(shouldUseSilentFilterLoad)
+  void loadDashboard(shouldUseSilentFilterLoad, shouldUseSilentFilterLoad ? "filter" : "initial")
   const refreshTimer = setInterval(() => {
-    void loadDashboard(true)
+    void loadDashboard(true, "refresh")
   }, DASHBOARD_REALTIME_MS)
 
   return () => clearInterval(refreshTimer)
 }, [filterPeriod, language])
+
+useEffect(() => {
+  if (!hasLoadedOnceRef.current) return
+  if (prefetchInFlightRef.current) return
+  if (prefetchedLanguageRef.current === language) return
+
+  const periods: Array<"day" | "week" | "month" | "year"> = ["day", "week", "month", "year"]
+  const missingPeriods = periods.filter((period) => !readFastCache(period, language))
+
+  if (!missingPeriods.length) {
+    prefetchedLanguageRef.current = language
+    return
+  }
+
+  // Sort by frequency: highest frequency first for smarter prefetch
+  const sortedMissingPeriods = sortPeriodsByFrequency(missingPeriods, language)
+
+  prefetchInFlightRef.current = true
+
+  const prefetchMissingPeriods = async () => {
+    await Promise.allSettled(
+      sortedMissingPeriods.map(async (period) => {
+        const [dashboardRes, growthRes, revenueRes, userRes] = await Promise.allSettled([
+          apiClient.getAdminDashboardStats(period),
+          apiClient.getAdminGrowthStats(period),
+          apiClient.getAdminRevenueReport(period),
+          apiClient.getAdminUserReport(period),
+        ])
+
+        const dashboard = dashboardRes.status === "fulfilled" ? (dashboardRes.value?.data ?? dashboardRes.value ?? {}) : {}
+        const growthStats = growthRes.status === "fulfilled" ? (growthRes.value?.data ?? growthRes.value ?? null) : null
+        const revenueReport = revenueRes.status === "fulfilled" ? (revenueRes.value?.data ?? revenueRes.value ?? null) : null
+        const userReport = userRes.status === "fulfilled" ? (userRes.value?.data ?? userRes.value ?? null) : null
+
+        const mergedGrowth = mergeGrowthSeries(growthStats)
+        const dashboardGrowth = normalizeDashboardGrowth(dashboard?.growthChart)
+        const growthSource = mergedGrowth.length ? mergedGrowth : dashboardGrowth
+
+        const normalizedStats = {
+          ...dashboard,
+          totalRevenue: toNumber(dashboard?.totalRevenue ?? revenueReport?.totalRevenue),
+          totalTeachers: toNumber(dashboard?.totalTeachers),
+          totalStudents: toNumber(dashboard?.totalStudents),
+          totalCourses: toNumber(dashboard?.totalCourses),
+          totalUsers: toNumber(dashboard?.totalUsers ?? userReport?.totalUsers),
+          platformRevenue: toNumber(revenueReport?.platformRevenue),
+          teacherRevenue: toNumber(revenueReport?.teacherRevenue),
+          revenueGrowth: toNumber(dashboard?.revenueGrowth),
+          teacherGrowth: toNumber(dashboard?.teacherGrowth),
+          studentGrowth: toNumber(dashboard?.studentGrowth),
+          courseGrowth: toNumber(dashboard?.courseGrowth),
+        }
+
+        let nextRevenueData: RevenuePoint[] = []
+        if (dashboard.revenueChart?.labels?.length && dashboard.revenueChart?.data?.length) {
+          nextRevenueData = dashboard.revenueChart.labels.map((label: string, i: number) => ({
+            month: label,
+            revenue: Number(dashboard.revenueChart?.data?.[i] ?? 0),
+          }))
+        } else if (dashboard.recentTransactions?.length) {
+          const revenueChart = buildRevenueChart(
+            dashboard.recentTransactions.map((t: any) => ({
+              createdAt: t.createdAt,
+              amount: Number(t.amount ?? 0),
+            })),
+          )
+
+          nextRevenueData = revenueChart.labels.map((label: string, i: number) => ({
+            month: label,
+            revenue: revenueChart.data?.[i] ?? 0,
+          }))
+        }
+
+        const nextWeeklyStats = Array.isArray(dashboard.weeklyStats)
+          ? dashboard.weeklyStats.map((item: any) => ({
+              day: item.day,
+              activeUsers: Number(item.activeUsers ?? 0),
+              newSignups: Number(item.newSignups ?? 0),
+            }))
+          : []
+
+        const nextCategoryData = Array.isArray(dashboard.categoryDistribution)
+          ? dashboard.categoryDistribution.map((item: any, idx: number) => ({
+              name: item.categoryName,
+              value: Number(item.courseCount ?? 0),
+              percentage: Number(item.percentage ?? 0),
+              color: pieColors[idx % pieColors.length],
+            }))
+          : []
+
+        writeFastCache(period, language, {
+          updatedAt: Date.now(),
+          stats: normalizedStats,
+          revenueData: nextRevenueData,
+          weeklyStats: nextWeeklyStats,
+          growthData: growthSource,
+          categoryData: nextCategoryData,
+        })
+      }),
+    )
+  }
+
+  let idleCancel: (() => void) | null = null
+  let prefetchStarted = false
+  const runPrefetch = () => {
+    prefetchStarted = true
+    void prefetchMissingPeriods().finally(() => {
+      prefetchedLanguageRef.current = language
+      prefetchInFlightRef.current = false
+    })
+  }
+
+  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    const idleId = (window as Window & { requestIdleCallback: (callback: () => void, options?: { timeout: number }) => number }).requestIdleCallback(
+      runPrefetch,
+      { timeout: 1200 },
+    )
+    idleCancel = () => {
+      if ("cancelIdleCallback" in window) {
+        ;(window as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(idleId)
+      }
+    }
+  } else {
+    const timeoutId = window.setTimeout(runPrefetch, 160)
+    idleCancel = () => window.clearTimeout(timeoutId)
+  }
+
+  return () => {
+    if (idleCancel) idleCancel()
+    if (!prefetchStarted) {
+      prefetchInFlightRef.current = false
+    }
+  }
+}, [language, lastSyncedAt])
+
+// Reset prefetch state when language changes to trigger new prefetch cycle
+useEffect(() => {
+  prefetchedLanguageRef.current = null
+}, [language])
 
 const safeTotalRevenue = Number(stats?.totalRevenue ?? 0)
 const safeTotalTeachers = Number(stats?.totalTeachers ?? 0)
@@ -958,7 +1377,23 @@ if (loading) {
                 ].map((period) => (
                   <button
                     key={period.value}
-                    onClick={() => setFilterPeriod(period.value)}
+                    onClick={() => {
+                      if (filterClickLockRef.current) return
+                      filterClickLockRef.current = true
+                      if (filterClickLockTimerRef.current !== null) {
+                        window.clearTimeout(filterClickLockTimerRef.current)
+                      }
+                      filterClickLockTimerRef.current = window.setTimeout(() => {
+                        filterClickLockRef.current = false
+                        filterClickLockTimerRef.current = null
+                      }, 260)
+
+                      if (filterPeriod !== period.value) {
+                        // Track frequency click
+                        incrementFilterClick(period.value as "day" | "week" | "month" | "year", language)
+                        setFilterPeriod(period.value as "day" | "week" | "month" | "year")
+                      }
+                    }}
                     className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-all duration-300 backdrop-blur-sm shadow-sm ${
                       filterPeriod === period.value
                         ? "bg-white text-primary border-white shadow-lg scale-[1.02]"
@@ -972,7 +1407,7 @@ if (loading) {
             </div>
 
             {/* Premium KPI Overview */}
-            <div className="rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/20 dark:bg-white/5 backdrop-blur-xl p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.16)] space-y-4">
+            <div className={`rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/20 dark:bg-white/5 backdrop-blur-xl p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.16)] space-y-4 transition-opacity duration-300 ${periodSwitching ? "opacity-95" : "opacity-100"}`}>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {primaryOverviewCards.map((item, index) => {
                   const Icon = item.icon
@@ -983,13 +1418,13 @@ if (loading) {
                       <div className="space-y-1">
                         <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{item.label}</p>
                         <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                          <AnimatedNumber value={item.value} formatter={item.formatter} durationMs={950} delayMs={index * 70} disableAnimation={!isOverviewChanged(item.key)} />
+                          <AnimatedNumber value={item.value} formatter={item.formatter} durationMs={numberDurations.kpiPrimary} delayMs={0} disableAnimation={!isOverviewChanged(item.key)} />
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                           {t("adm_dash_periodic_update", "Cập nhật theo kỳ")}
                         </p>
-                        <MetricTrendBadge trend={getOverviewTrend(item.key)} />
+                        <MetricTrendBadge trend={getOverviewTrend(item.key)} durationMs={numberDurations.trendBadge} />
                       </div>
                       <div className="w-11 h-11 rounded-2xl bg-white/70 dark:bg-slate-800/80 border border-white/60 dark:border-slate-700 flex items-center justify-center shadow-inner">
                         <Icon size={20} className="text-primary" />
@@ -1010,12 +1445,12 @@ if (loading) {
                           value={item.value}
                           formatter={item.formatter}
                           suffix={item.suffix}
-                          durationMs={950}
-                          delayMs={index * 70}
+                          durationMs={numberDurations.kpiSecondary}
+                          delayMs={0}
                           disableAnimation={!isOverviewChanged(item.key)}
                         />
                       </p>
-                      <MetricTrendBadge trend={getOverviewTrend(item.key)} />
+                      <MetricTrendBadge trend={getOverviewTrend(item.key)} durationMs={numberDurations.trendBadge} />
                     </div>
                   </div>
                 ))}
@@ -1025,9 +1460,9 @@ if (loading) {
         </div>
 
         {/* Main Charts */}
-        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 transition-all duration-500 ${periodSwitching ? "opacity-70 translate-y-[2px]" : "opacity-100 translate-y-0"}`}>
+        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 transition-opacity duration-300 ${periodSwitching ? "opacity-90" : "opacity-100"}`}>
           {/* Revenue Chart */}
-          <div key={`dash-revenue-panel-${staggerSeed}`} style={getCinematicStyle("chart", 1)} className="animate-fadeIn lg:col-span-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+          <div style={getCinematicStyle("chart", 1)} className="animate-fadeIn lg:col-span-2 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">
               {filterPeriod === "day"
                 ? t("adm_dash_revenue_daily", "Doanh thu theo ngày")
@@ -1042,7 +1477,7 @@ if (loading) {
                 {t("adm_dash_no_revenue_data", "Chưa có dữ liệu doanh thu")}
               </p>
             ) : (
-            <ResponsiveContainer width="100%" height={300} key={`revenue-${filterPeriod}-${chartMotionCycle}`}>
+            <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={revenueData}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -1068,7 +1503,7 @@ if (loading) {
                   fill="url(#colorRevenue)"
                   isAnimationActive={chartAnimationFlags.revenue}
                   animationBegin={90 + (chartMotionCycle % 2) * 10}
-                  animationDuration={cinematicDuration}
+                  animationDuration={chartDurations.area}
                   animationEasing={CHART_CINEMATIC.easing}
                   strokeWidth={2.6}
                   name={t("adm_dash_revenue", "Doanh thu")}
@@ -1079,7 +1514,7 @@ if (loading) {
           </div>
 
           {/* Category Distribution */}
-          <div key={`dash-category-panel-${staggerSeed}`} style={getCinematicStyle("chart", 2)} className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
+          <div style={getCinematicStyle("chart", 2)} className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_course_dist", "Phân bố khóa học")}</h3>
             {categoryData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_cat_data", "Chưa có dữ liệu danh mục")}</p>
@@ -1098,7 +1533,7 @@ if (loading) {
                       labelLine={false}
                       isAnimationActive={chartAnimationFlags.category}
                       animationBegin={240 + (chartMotionCycle % 2) * 15}
-                      animationDuration={cinematicDuration}
+                      animationDuration={chartDurations.pie}
                       animationEasing={CHART_CINEMATIC.easing}
                     >
                       {categoryData.map((entry, index) => (
@@ -1132,14 +1567,14 @@ if (loading) {
         {/* Additional Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* User Activity Chart */}
-          <div key={`dash-activity-panel-${staggerSeed}`} style={getCinematicStyle("chart", 3)} className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
+          <div style={getCinematicStyle("chart", 3)} className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6 animate-fadeIn">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_activity_by_period", "Hoạt động người dùng theo kỳ")}</h3>
             {weeklyStats.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center">
               {t("adm_dash_no_weekly_data", "Chưa có dữ liệu tuần này")}
             </p>
           ) : (
-            <ResponsiveContainer width="100%" height={280} key={`weekly-${filterPeriod}-${chartMotionCycle}`}>
+            <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={weeklyStats}>
                 <defs>
                   <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">
@@ -1166,9 +1601,9 @@ if (loading) {
                   stroke="#06b6d4"
                   fillOpacity={1}
                   fill="url(#colorActive)"
-                  isAnimationActive
+                  isAnimationActive={chartAnimationFlags.weekly}
                   animationBegin={110 + (chartMotionCycle % 2) * 10}
-                  animationDuration={cinematicDuration}
+                  animationDuration={chartDurations.area}
                   animationEasing={CHART_CINEMATIC.easing}
                   name={t("adm_dash_active_users", "Người dùng hoạt động")}
                 />
@@ -1178,9 +1613,9 @@ if (loading) {
                   stroke="#8b5cf6"
                   fillOpacity={1}
                   fill="url(#colorSignups)"
-                  isAnimationActive
+                  isAnimationActive={chartAnimationFlags.weekly}
                   animationBegin={110 + adaptiveSeriesOffset.weekly + (chartMotionCycle % 2) * 10}
-                  animationDuration={cinematicDuration}
+                  animationDuration={chartDurations.area}
                   animationEasing={CHART_CINEMATIC.easing}
                   name={t("adm_dash_new_signups", "Đăng ký mới")}
                 />
@@ -1190,14 +1625,14 @@ if (loading) {
           </div>
 
           {/* Teacher & Student Growth */}
-          <div key={`dash-growth-panel-${staggerSeed}`} style={getCinematicStyle("chart", 4)} className="animate-fadeIn bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+          <div style={getCinematicStyle("chart", 4)} className="animate-fadeIn bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-4 sm:p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("adm_dash_growth_by_period", "Tăng trưởng theo kỳ")}</h3>
             {growthData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">
                 {t("adm_dash_no_growth_data", "Chưa có dữ liệu tăng trưởng")}
               </p>
             ) : (
-            <ResponsiveContainer width="100%" height={280} key={`growth-${filterPeriod}-${chartMotionCycle}`}>
+            <ResponsiveContainer width="100%" height={280}>
               <LineChart data={growthData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" stroke="#94a3b8" />
@@ -1215,9 +1650,9 @@ if (loading) {
                   strokeWidth={2} 
                   dot={{ fill: "#8b5cf6" }}
                   activeDot={{ r: 6 }}
-                  isAnimationActive
+                  isAnimationActive={chartAnimationFlags.growth}
                   animationBegin={120 + (chartMotionCycle % 2) * 10}
-                  animationDuration={cinematicDuration}
+                  animationDuration={chartDurations.line}
                   animationEasing={CHART_CINEMATIC.easing}
                   name={t("adm_dash_teachers", "Giáo viên")} 
                 />
@@ -1228,9 +1663,9 @@ if (loading) {
                   strokeWidth={2} 
                   dot={{ fill: "#06b6d4" }}
                   activeDot={{ r: 6 }}
-                  isAnimationActive
+                  isAnimationActive={chartAnimationFlags.growth}
                   animationBegin={120 + adaptiveSeriesOffset.growth + (chartMotionCycle % 2) * 10}
-                  animationDuration={cinematicDuration}
+                  animationDuration={chartDurations.line}
                   animationEasing={CHART_CINEMATIC.easing}
                   name={t("adm_dash_students", "Học viên")} 
                 />
@@ -1247,7 +1682,7 @@ if (loading) {
               <h3 className="font-semibold text-foreground dark:text-white">{t("adm_dash_radar_title", "Tổng quan sức khỏe")}</h3>
               {teacherPlanSummary?.payingRate ? (
                 <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary font-medium">
-                  {teacherPlanSummary.payingRate}% {t("adm_dash_pay_rate", "GV trả phí")}
+                  <AnimatedNumber value={teacherPlanSummary.payingRate} formatter={(value: number) => Number(value.toFixed(1)).toString()} durationMs={numberDurations.trendBadge} />% {t("adm_dash_pay_rate", "GV trả phí")}
                 </span>
               ) : null}
             </div>
@@ -1256,7 +1691,7 @@ if (loading) {
                 {t("adm_dash_no_radar", "Chưa đủ dữ liệu để hiển thị")}
               </p>
             ) : (
-              <ResponsiveContainer width="100%" height={320} key={`radar-${filterPeriod}-${chartMotionCycle}`}>
+              <ResponsiveContainer width="100%" height={320}>
                 <RadarChart data={radarMetrics} outerRadius={120}>
                   <PolarGrid stroke="#e2e8f0" />
                   <PolarAngleAxis dataKey="metric" tick={{ fill: '#475569', fontSize: 12 }} />
@@ -1269,7 +1704,7 @@ if (loading) {
                     fillOpacity={0.35}
                     isAnimationActive={chartAnimationFlags.radar}
                     animationBegin={420 + (chartMotionCycle % 2) * 20}
-                    animationDuration={cinematicDuration}
+                    animationDuration={chartDurations.radar}
                     animationEasing={CHART_CINEMATIC.easing}
                   />
                   <Tooltip
@@ -1288,9 +1723,9 @@ if (loading) {
               <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_plan_data", "Chưa có dữ liệu gói")}</p>
             ) : (
               <div className="flex flex-col items-center gap-4">
-                <ResponsiveContainer width="100%" height={220} key={`teacher-plan-${filterPeriod}-${chartMotionCycle}`}>
+                <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={teacherPlanData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive animationDuration={cinematicDuration} animationEasing={CHART_CINEMATIC.easing}>
+                    <Pie data={teacherPlanData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive={chartAnimationFlags.teacherPlan} animationDuration={chartDurations.pie} animationEasing={CHART_CINEMATIC.easing}>
                       {teacherPlanData.map((entry, idx) => (
                         <Cell key={`plan-${idx}`} fill={entry.color} />
                       ))}
@@ -1339,9 +1774,9 @@ if (loading) {
               <p className="text-sm text-muted-foreground text-center">{t("adm_dash_no_cert_data", "Chưa có dữ liệu chứng chỉ")}</p>
             ) : (
               <div className="flex flex-col items-center gap-4">
-                <ResponsiveContainer width="100%" height={220} key={`cert-${filterPeriod}-${chartMotionCycle}`}>
+                <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={certificateData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive animationDuration={cinematicDuration} animationEasing={CHART_CINEMATIC.easing}>
+                    <Pie data={certificateData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive={chartAnimationFlags.certificate} animationDuration={chartDurations.pie} animationEasing={CHART_CINEMATIC.easing}>
                       {certificateData.map((entry, idx) => (
                         <Cell key={`cert-${idx}`} fill={entry.color} />
                       ))}
@@ -1397,7 +1832,7 @@ if (loading) {
                     labelStyle={chartTooltipLabelStyle}
                     itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#22c55e" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={cinematicDuration} animationEasing={CHART_CINEMATIC.easing}>
+                  <Bar dataKey="value" fill="#22c55e" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={chartDurations.bar} animationEasing={CHART_CINEMATIC.easing}>
                     {teacherRankingData.map((entry, index) => (
                       <Cell key={`teacher-${index}`} fill={index === 0 ? "#22c55e" : "#16a34a"} />
                     ))}
@@ -1423,7 +1858,7 @@ if (loading) {
                     labelStyle={chartTooltipLabelStyle}
                     itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={cinematicDuration} animationEasing={CHART_CINEMATIC.easing}>
+                  <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={chartDurations.bar} animationEasing={CHART_CINEMATIC.easing}>
                     {studentCompletionData.map((entry, index) => (
                       <Cell key={`student-comp-${index}`} fill={index === 0 ? "#06b6d4" : "#0ea5e9"} />
                     ))}
@@ -1449,7 +1884,7 @@ if (loading) {
                     labelStyle={chartTooltipLabelStyle}
                     itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#f97316" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={cinematicDuration} animationEasing={CHART_CINEMATIC.easing}>
+                  <Bar dataKey="value" fill="#f97316" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={chartDurations.bar} animationEasing={CHART_CINEMATIC.easing}>
                     {studentCertificateData.map((entry, index) => (
                       <Cell key={`student-cert-${index}`} fill={index === 0 ? "#f97316" : "#fb923c"} />
                     ))}
@@ -1484,10 +1919,10 @@ if (loading) {
                       <tr key={idx} className="border-b border-border dark:border-slate-800 hover:bg-secondary/40 dark:hover:bg-slate-800/50 transition-smooth">
                         <td className="py-3 px-4 font-medium text-foreground dark:text-white">{row.name}</td>
                         <td className="py-3 px-4 text-muted-foreground dark:text-slate-300">{row.teacher}</td>
-                        <td className="py-3 px-4">{formatNumber(row.enrollments)}</td>
-                        <td className="py-3 px-4">{formatCurrencyByLanguage(row.revenue, language)}</td>
-                        <td className="py-3 px-4">{row.rating.toFixed(1)}</td>
-                        <td className="py-3 px-4">{row.completionRate.toFixed(1)}%</td>
+                        <td className="py-3 px-4"><AnimatedNumber value={row.enrollments} formatter={formatNumber} durationMs={numberDurations.tableCell} /></td>
+                        <td className="py-3 px-4"><AnimatedNumber value={row.revenue} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={numberDurations.tableCell} /></td>
+                        <td className="py-3 px-4"><AnimatedNumber value={row.rating} formatter={(value: number) => value.toFixed(1)} durationMs={numberDurations.tableCell} /></td>
+                        <td className="py-3 px-4"><AnimatedNumber value={row.completionRate} formatter={(value: number) => value.toFixed(1)} suffix="%" durationMs={numberDurations.tableCell} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -1524,7 +1959,7 @@ if (loading) {
                     <tr key={transaction.id} className="border-b border-border dark:border-slate-800 hover:bg-secondary dark:hover:bg-slate-800/50 transition-smooth">
                       <td className="py-3 px-3 text-foreground dark:text-white">{transaction.user}</td>
                       <td className="py-3 px-3 text-foreground dark:text-white">{transaction.course}</td>
-                      <td className="py-3 px-3 text-foreground dark:text-white">{formatCurrencyByLanguage(transaction.amount, language)}</td>
+                      <td className="py-3 px-3 text-foreground dark:text-white"><AnimatedNumber value={transaction.amount} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={numberDurations.tableCell} /></td>
                       <td className="py-3 px-3">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -1579,7 +2014,7 @@ if (loading) {
                       <td className="py-3 px-3 text-foreground dark:text-white">{payment.teacherName}</td>
                       <td className="py-3 px-3 text-foreground dark:text-white">{payment.planName}</td>
                       <td className="py-3 px-3 uppercase">{payment.paymentMethod.replace(/_/g, " ")}</td>
-                      <td className="py-3 px-3 text-foreground dark:text-white">{formatCurrencyByLanguage(payment.amount, language)}</td>
+                      <td className="py-3 px-3 text-foreground dark:text-white"><AnimatedNumber value={payment.amount} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={numberDurations.tableCell} /></td>
                       <td className="py-3 px-3">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusClass(payment.status)}`}>{payment.status}</span>
                       </td>

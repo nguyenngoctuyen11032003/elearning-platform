@@ -1194,25 +1194,25 @@ const getLastActiveDisplay = (user: UserData): string => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-center">
                       <BookOpen size={24} className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
-                      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{getCoursesCount(viewUser) ?? 0}</p>
+                      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300"><AnimatedNumber value={getCoursesCount(viewUser) ?? 0} durationMs={560} /></p>
                       <p className="text-sm text-blue-600 dark:text-blue-400">
                         {viewUser.role === "teacher" ? t("user_courses_teaching", "Khóa học dạy") : t("user_courses_enrolled", "Khóa học đăng ký")}
                       </p>
                     </div>
                     <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 text-center">
                       <Award size={24} className="mx-auto mb-2 text-green-600 dark:text-green-400" />
-                      <p className="text-2xl font-bold text-green-700 dark:text-green-300">{viewUser.certificates || 0}</p>
+                      <p className="text-2xl font-bold text-green-700 dark:text-green-300"><AnimatedNumber value={viewUser.certificates || 0} durationMs={560} /></p>
                       <p className="text-sm text-green-600 dark:text-green-400">{t("user_certificates_count", "Chứng chỉ")}</p>
                     </div>
                     <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4 text-center">
                       <Clock size={24} className="mx-auto mb-2 text-purple-600 dark:text-purple-400" />
-                      <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{viewUser.totalHours || 0}h</p>
+                      <p className="text-2xl font-bold text-purple-700 dark:text-purple-300"><AnimatedNumber value={viewUser.totalHours || 0} durationMs={560} suffix="h" /></p>
                       <p className="text-sm text-purple-600 dark:text-purple-400">{t("user_total_hours", "Tổng giờ học")}</p>
                     </div>
                     {viewUser.role === "student" && (
                       <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 text-center">
                         <BookOpen size={24} className="mx-auto mb-2 text-orange-600 dark:text-orange-400" />
-                        <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{viewUser.completedCourses || 0}</p>
+                        <p className="text-2xl font-bold text-orange-700 dark:text-orange-300"><AnimatedNumber value={viewUser.completedCourses || 0} durationMs={560} /></p>
                         <p className="text-sm text-orange-600 dark:text-orange-400">{t("user_completed", "Hoàn thành")}</p>
                       </div>
                     )}
@@ -1377,25 +1377,25 @@ const getLastActiveDisplay = (user: UserData): string => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-center">
                       <BookOpen size={24} className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
-                      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{getCoursesCount(viewUser) ?? 0}</p>
+                      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300"><AnimatedNumber value={getCoursesCount(viewUser) ?? 0} durationMs={560} /></p>
                       <p className="text-sm text-blue-600 dark:text-blue-400">
                         {viewUser.role === "teacher" ? t("user_courses_teaching", "Khóa học dạy") : t("user_courses_enrolled", "Khóa học đăng ký")}
                       </p>
                     </div>
                     <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 text-center">
                       <Award size={24} className="mx-auto mb-2 text-green-600 dark:text-green-400" />
-                      <p className="text-2xl font-bold text-green-700 dark:text-green-300">{viewUser.certificates || 0}</p>
+                      <p className="text-2xl font-bold text-green-700 dark:text-green-300"><AnimatedNumber value={viewUser.certificates || 0} durationMs={560} /></p>
                       <p className="text-sm text-green-600 dark:text-green-400">{t("user_certificates_count", "Chứng chỉ")}</p>
                     </div>
                     <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4 text-center">
                       <Clock size={24} className="mx-auto mb-2 text-purple-600 dark:text-purple-400" />
-                      <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{viewUser.totalHours || 0}h</p>
+                      <p className="text-2xl font-bold text-purple-700 dark:text-purple-300"><AnimatedNumber value={viewUser.totalHours || 0} durationMs={560} suffix="h" /></p>
                       <p className="text-sm text-purple-600 dark:text-purple-400">{t("user_total_hours", "Tổng giờ học")}</p>
                     </div>
                     {viewUser.role === "student" && (
                       <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 text-center">
                         <BookOpen size={24} className="mx-auto mb-2 text-orange-600 dark:text-orange-400" />
-                        <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{viewUser.completedCourses || 0}</p>
+                        <p className="text-2xl font-bold text-orange-700 dark:text-orange-300"><AnimatedNumber value={viewUser.completedCourses || 0} durationMs={560} /></p>
                         <p className="text-sm text-orange-600 dark:text-orange-400">Hoàn thành</p>
                       </div>
                     )}

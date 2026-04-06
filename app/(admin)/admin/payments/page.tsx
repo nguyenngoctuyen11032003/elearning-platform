@@ -445,7 +445,7 @@ export default function AdminPaymentsPage() {
             </select>
 
             <span className="rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-              {filteredPayments.length}
+              <AnimatedNumber value={filteredPayments.length} durationMs={320} />
             </span>
 
             {(searchQuery.trim() || statusFilter !== "all") ? (
@@ -510,7 +510,7 @@ export default function AdminPaymentsPage() {
       <div className="grid grid-cols-2 gap-3 text-sm pt-2">
         <div className="flex items-center gap-2">
           <span className="text-green-600 dark:text-green-300">{language === "vi" ? "â‚«" : "$"}</span>
-          <span className="font-semibold text-foreground dark:text-white">{formatCurrencyByLanguage(payment.amount, language)}</span>
+          <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={payment.amount} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={420} /></span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400">
           <CreditCard size={14} />
@@ -604,7 +604,7 @@ export default function AdminPaymentsPage() {
                 <div className="p-4">
                   <div className="bg-primary/10 dark:bg-accent/10 rounded-xl p-4 text-center border border-primary/30 dark:border-accent/30">
                     <p className="text-muted-foreground dark:text-slate-400 text-xs">{t("pay_amount_label", "Số tiền thanh toán")}</p>
-                    <p className="text-2xl font-extrabold text-primary dark:text-accent">{formatCurrencyByLanguage(payment.amount, language)}</p>
+                    <p className="text-2xl font-extrabold text-primary dark:text-accent"><AnimatedNumber value={payment.amount} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={460} /></p>
                   </div>
                 </div>
 
@@ -680,7 +680,7 @@ export default function AdminPaymentsPage() {
                       {payment.teacher}
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white font-medium">
-                      {formatCurrencyByLanguage(payment.amount, language)}
+                      <AnimatedNumber value={payment.amount} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={420} />
                     </td>
                     <td className="py-4 px-6">
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/80 dark:bg-slate-800/60 border border-border/60 dark:border-slate-700 rounded-full text-foreground dark:text-white text-xs font-semibold">
@@ -809,7 +809,7 @@ setPopupPos({
                   {/* Amount */}
                   <div className="bg-primary/10 dark:bg-accent/10 rounded-xl p-4 text-center">
                     <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("pay_amount_label", "Số tiền thanh toán")}</p>
-                    <p className="text-3xl font-bold text-primary dark:text-accent">{formatCurrencyByLanguage(payment.amount, language)}</p>
+                    <p className="text-3xl font-bold text-primary dark:text-accent"><AnimatedNumber value={payment.amount} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={500} /></p>
                   </div>
 
                   {/* User Info */}

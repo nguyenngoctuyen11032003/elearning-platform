@@ -697,13 +697,13 @@ useEffect(() => {
                         }}
                       >
                         <span>📚</span>
-                        <span>{category.courses} {t("adm_cat_courses_unit", "khóa")}</span>
+                        <span><AnimatedNumber value={category.courses} durationMs={320} /> {t("adm_cat_courses_unit", "khóa")}</span>
                       </div>
                       
                       {/* Students Badge */}
                       <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-200 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-500/15 text-sm font-medium text-slate-700 dark:text-slate-100">
                         <span>👨‍🎓</span>
-                        <span>{(category.students ?? 0).toLocaleString('en-US')} {t("adm_cat_students_unit", "học viên")}</span>
+                        <span><AnimatedNumber value={category.students ?? 0} formatter={(value: number) => Math.round(value).toLocaleString("en-US")} durationMs={320} /> {t("adm_cat_students_unit", "học viên")}</span>
                       </div>
                     </div>
 

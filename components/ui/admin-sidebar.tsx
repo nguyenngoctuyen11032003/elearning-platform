@@ -24,91 +24,85 @@ export function AdminSidebar() {
   const [isHovering, setIsHovering] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { config, loading } = useSystemConfig()
-  const isCollapsedRef = useRef(isCollapsed)
-  const isHoveringRef = useRef(isHovering)
-  const collapseRafRef = useRef<number | null>(null)
-  const idleCollapseTimerRef = useRef<number | null>(null)
+  const touchStartYRef = useRef<number | null>(null)
   const isExpanded = isHovering || !isCollapsed
 
   useEffect(() => {
-    isCollapsedRef.current = isCollapsed
-  }, [isCollapsed])
+    if (isCollapsed) return
 
-  useEffect(() => {
-    isHoveringRef.current = isHovering
-  }, [isHovering])
-
-  useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1280px)")
-    const mainContent = document.querySelector<HTMLElement>("main[data-dashboard-main='true']")
+    const tabletPortraitQuery = window.matchMedia("(min-width: 768px) and (max-width: 1024px) and (orientation: portrait)")
+    const tabletLandscapeQuery = window.matchMedia("(min-width: 768px) and (max-width: 1366px) and (orientation: landscape)")
+    const canAutoCollapse = () => desktopQuery.matches || tabletPortraitQuery.matches || tabletLandscapeQuery.matches
+    if (!canAutoCollapse()) return
+
+    const mainContent = document.querySelector("main[data-dashboard-main='true']")
     if (!mainContent) return
 
-    let lastScrollTop = mainContent.scrollTop
+    const collapseSidebar = () => {
+      setIsCollapsed(true)
+    }
 
-    const clearIdleCollapseTimer = () => {
-      if (idleCollapseTimerRef.current !== null) {
-        window.clearTimeout(idleCollapseTimerRef.current)
-        idleCollapseTimerRef.current = null
+    const getWheelThreshold = () => {
+      if (tabletLandscapeQuery.matches) return 24
+      if (tabletPortraitQuery.matches) return 16
+      return 8
+    }
+
+    const getTouchThreshold = () => {
+      if (tabletLandscapeQuery.matches) return 30
+      if (tabletPortraitQuery.matches) return 22
+      return 12
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (!desktopQuery.matches) return
+      if (event.pointerType === "mouse") {
+        collapseSidebar()
       }
     }
 
-    const collapseSidebar = () => {
-      if (isCollapsedRef.current || isHoveringRef.current) return
-      isCollapsedRef.current = true
-      setIsCollapsed(true)
-      setIsHovering(false)
+    const onWheel = (event: WheelEvent) => {
+      if (!canAutoCollapse()) return
+      if (Math.abs(event.deltaY) >= getWheelThreshold()) {
+        collapseSidebar()
+      }
     }
 
-    const scheduleIdleCollapse = () => {
-      if (!desktopQuery.matches || isCollapsedRef.current) return
-      clearIdleCollapseTimer()
-      idleCollapseTimerRef.current = window.setTimeout(collapseSidebar, 1200)
+    const onTouchStart = (event: TouchEvent) => {
+      if (!canAutoCollapse()) return
+      touchStartYRef.current = event.touches[0]?.clientY ?? null
     }
 
-    const collapseOnScroll = () => {
-      if (!desktopQuery.matches || isCollapsedRef.current) return
-      if (collapseRafRef.current !== null) return
-
-      collapseRafRef.current = window.requestAnimationFrame(() => {
-        const currentScrollTop = mainContent.scrollTop
-        const delta = Math.abs(currentScrollTop - lastScrollTop)
-        const isScrollingDown = currentScrollTop > lastScrollTop
-        lastScrollTop = currentScrollTop
-        collapseRafRef.current = null
-
-        if (isScrollingDown && currentScrollTop > 0 && delta > 4) {
-          collapseSidebar()
-          return
-        }
-
-        scheduleIdleCollapse()
-      })
+    const onTouchMove = (event: TouchEvent) => {
+      if (!canAutoCollapse()) return
+      if (touchStartYRef.current === null) return
+      const currentY = event.touches[0]?.clientY ?? touchStartYRef.current
+      const deltaY = Math.abs(currentY - touchStartYRef.current)
+      if (deltaY >= getTouchThreshold()) {
+        collapseSidebar()
+        touchStartYRef.current = null
+      }
     }
 
-    const onMainActivity = () => {
-      scheduleIdleCollapse()
+    const onTouchEnd = () => {
+      touchStartYRef.current = null
     }
 
-    mainContent.addEventListener("scroll", collapseOnScroll, { passive: true })
-    mainContent.addEventListener("pointerdown", onMainActivity, { passive: true })
-    mainContent.addEventListener("wheel", onMainActivity, { passive: true })
-    mainContent.addEventListener("touchstart", onMainActivity, { passive: true })
-    mainContent.addEventListener("keydown", onMainActivity)
-
-    scheduleIdleCollapse()
+    mainContent.addEventListener("pointerdown", onPointerDown, { passive: true })
+    mainContent.addEventListener("wheel", onWheel, { passive: true })
+    mainContent.addEventListener("touchstart", onTouchStart, { passive: true })
+    mainContent.addEventListener("touchmove", onTouchMove, { passive: true })
+    mainContent.addEventListener("touchend", onTouchEnd, { passive: true })
 
     return () => {
-      mainContent.removeEventListener("scroll", collapseOnScroll)
-      mainContent.removeEventListener("pointerdown", onMainActivity)
-      mainContent.removeEventListener("wheel", onMainActivity)
-      mainContent.removeEventListener("touchstart", onMainActivity)
-      mainContent.removeEventListener("keydown", onMainActivity)
-      if (collapseRafRef.current !== null) {
-        window.cancelAnimationFrame(collapseRafRef.current)
-      }
-      clearIdleCollapseTimer()
+      mainContent.removeEventListener("pointerdown", onPointerDown)
+      mainContent.removeEventListener("wheel", onWheel)
+      mainContent.removeEventListener("touchstart", onTouchStart)
+      mainContent.removeEventListener("touchmove", onTouchMove)
+      mainContent.removeEventListener("touchend", onTouchEnd)
     }
-  }, [])
+  }, [isCollapsed])
 
   const menuItems = [
     { icon: LayoutDashboard, label: t("admin_menu_dashboard", "Dashboard"), href: "/admin/dashboard" },
@@ -134,7 +128,7 @@ export function AdminSidebar() {
 
   const handleMouseEnter = () => {
     const canHover = window.matchMedia("(hover: hover)").matches
-    if (canHover && isCollapsed) {
+    if (canHover) {
       setIsHovering(true)
     }
   }
@@ -151,11 +145,11 @@ export function AdminSidebar() {
       <aside
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={`fixed left-0 top-0 h-screen bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-[width,transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none will-change-[width,transform] z-30 xl:sticky xl:top-0 flex flex-col ${
+        className={`fixed top-0 left-0 h-screen z-40 bg-card dark:bg-slate-900/80 border-r border-border dark:border-slate-800 transition-all duration-500 ease-out transform-gpu xl:sticky xl:top-0 flex flex-col ${
           isExpanded ? "w-64" : "w-20"
         } ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        } xl:translate-x-0`}
+          isOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"
+        }`}
       >
         {/* Toggle Collapse Button - Mobile/Tablet Only */}
         <button
@@ -187,7 +181,7 @@ export function AdminSidebar() {
         </div>
 
         {/* Scrollable Navigation */}
-        <nav className="flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] px-3 py-4 space-y-1.5 scrollbar-thin scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/40 scrollbar-track-transparent">
+        <nav className="flex-1 overflow-y-auto overscroll-y-contain touch-pan-y px-3 py-4 space-y-1.5 [scrollbar-gutter:stable] [-webkit-overflow-scrolling:touch] scrollbar-thin scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/40 scrollbar-track-transparent">
           {menuItems.map((item) => {
             const isActive = pathname === item.href
             return (

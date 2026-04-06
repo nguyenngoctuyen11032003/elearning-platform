@@ -28,6 +28,7 @@ import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { ScientificText } from "@/components/scientific-text"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
 
 interface Lesson {
   id: string
@@ -849,21 +850,21 @@ export default function AdminCourseDetailPage() {
                   <Users size={20} className="text-primary dark:text-accent" />
                   <div>
                     <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_students", "Học viên")}</p>
-                    <p className="font-semibold text-foreground dark:text-white">{course.students}</p>
+                    <p className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={course.students} durationMs={420} /></p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
                   <DollarSign size={20} className="text-green-500" />
                   <div>
                     <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_revenue", "Doanh thu")}</p>
-                    <p className="font-semibold text-foreground dark:text-white">{(course.revenue / 1000000).toFixed(1)}M</p>
+                    <p className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={course.revenue / 1000000} formatter={(value: number) => value.toFixed(1)} durationMs={420} />M</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
                   <Star size={20} className="text-yellow-500" />
                   <div>
                     <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_rating", "Đánh giá")}</p>
-                    <p className="font-semibold text-foreground dark:text-white">{course.rating} ({course.reviewCount})</p>
+                    <p className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={course.rating} formatter={(value: number) => value.toFixed(1)} durationMs={420} /> (<AnimatedNumber value={course.reviewCount} durationMs={360} />)</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg">
@@ -954,7 +955,7 @@ export default function AdminCourseDetailPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_total_lessons", "Tổng bài học")}</span>
-                    <span className="font-semibold text-foreground dark:text-white">{course.totalLessons}</span>
+                    <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={course.totalLessons} durationMs={380} /></span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_video_duration", "Thời lượng video")}</span>
@@ -962,15 +963,15 @@ export default function AdminCourseDetailPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_enrollments", "Số lượt đăng ký")}</span>
-                    <span className="font-semibold text-foreground dark:text-white">{course.enrollmentCount}</span>
+                    <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={course.enrollmentCount} durationMs={380} /></span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_completion_rate", "Tỷ lệ hoàn thành")}</span>
-                    <span className="font-semibold text-green-600">{course.completionRate}%</span>
+                    <span className="font-semibold text-green-600"><AnimatedNumber value={course.completionRate} formatter={(value: number) => value.toFixed(1)} durationMs={380} />%</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_avg_progress", "Tiến độ TB")}</span>
-                    <span className="font-semibold text-foreground dark:text-white">{course.averageProgress}%</span>
+                    <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={course.averageProgress} formatter={(value: number) => value.toFixed(1)} durationMs={380} />%</span>
                   </div>
                 </div>
               </div>
@@ -981,7 +982,7 @@ export default function AdminCourseDetailPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_price", "Giá")}</span>
-                    <span className="font-semibold text-foreground dark:text-white">{course.price.toLocaleString('vi-VN')}đ</span>
+                    <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={course.price} formatter={(value: number) => `${Math.round(value).toLocaleString("vi-VN")}đ`} durationMs={400} /></span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground dark:text-slate-400">{t("adm_cd_category", "Danh mục")}</span>
@@ -1024,7 +1025,7 @@ export default function AdminCourseDetailPage() {
                       {section.order}. {section.title}
                     </h3>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">
-                      {section.lessons.length} {t("adm_cd_lessons_unit", "bài học")}
+                      <AnimatedNumber value={section.lessons.length} durationMs={320} /> {t("adm_cd_lessons_unit", "bài học")}
                     </p>
                   </div>
                   <div className="divide-y divide-border dark:divide-slate-800">
@@ -1073,7 +1074,7 @@ export default function AdminCourseDetailPage() {
                                     className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
                                   >
                                     <Clipboard size={12} />
-                                    {lesson.quizCount} {t("adm_cd_questions", "câu hỏi")}
+                                    <AnimatedNumber value={lesson.quizCount} durationMs={320} /> {t("adm_cd_questions", "câu hỏi")}
                                   </button>
                                 </div>
                               )}
@@ -1223,7 +1224,7 @@ export default function AdminCourseDetailPage() {
         {activeTab === "students" && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">{t("adm_cd_enrolled_students", "Học viên đăng ký")}</h2>
-            <p className="text-muted-foreground dark:text-slate-400 mb-6">{t("adm_cd_student_list", "Danh sách")} {course.students} {t("adm_cd_students_enrolled", "học viên đã đăng ký khóa học này.")}</p>
+            <p className="text-muted-foreground dark:text-slate-400 mb-6">{t("adm_cd_student_list", "Danh sách")} <AnimatedNumber value={course.students} durationMs={420} /> {t("adm_cd_students_enrolled", "học viên đã đăng ký khóa học này.")}</p>
             
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -1244,7 +1245,7 @@ export default function AdminCourseDetailPage() {
                       <td className="py-3 px-4 text-sm text-muted-foreground dark:text-slate-400">{student.email || '-'}</td>
                       <td className="py-3 px-4">
                         <div className="flex flex-col items-center gap-1">
-                          <span className="text-sm font-semibold text-foreground dark:text-white">{student.progress}%</span>
+                          <span className="text-sm font-semibold text-foreground dark:text-white"><AnimatedNumber value={student.progress} durationMs={320} />%</span>
                           <div className="w-20 bg-muted dark:bg-slate-800 rounded-full h-2 overflow-hidden">
                             <div 
                               className="bg-gradient-to-r from-primary to-blue-400 h-full rounded-full transition-all"
@@ -1283,7 +1284,7 @@ export default function AdminCourseDetailPage() {
             
             <div className="mt-6 flex justify-between items-center">
               <p className="text-sm text-muted-foreground dark:text-slate-400">
-                {t("adm_cd_showing", "Hiển thị")} {enrolledStudents.length} / {course.students} {t("adm_cd_students", "học viên")}
+                {t("adm_cd_showing", "Hiển thị")} <AnimatedNumber value={enrolledStudents.length} durationMs={320} /> / <AnimatedNumber value={course.students} durationMs={320} /> {t("adm_cd_students", "học viên")}
               </p>
             </div>
           </div>
@@ -1295,17 +1296,17 @@ export default function AdminCourseDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/20 rounded-xl">
                 <BarChart3 className="text-blue-500 mb-3" size={32} />
-                <p className="text-2xl font-bold text-foreground dark:text-white">{course.enrollmentCount}</p>
+                <p className="text-2xl font-bold text-foreground dark:text-white"><AnimatedNumber value={course.enrollmentCount} durationMs={420} /></p>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_total_enrollments", "Tổng đăng ký")}</p>
               </div>
               <div className="p-6 bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20 rounded-xl">
                 <CheckCircle className="text-green-500 mb-3" size={32} />
-                <p className="text-2xl font-bold text-foreground dark:text-white">{course.completionRate}%</p>
+                <p className="text-2xl font-bold text-foreground dark:text-white"><AnimatedNumber value={course.completionRate} formatter={(value: number) => value.toFixed(1)} durationMs={420} />%</p>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_completion_rate", "Tỷ lệ hoàn thành")}</p>
               </div>
               <div className="p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/20 rounded-xl">
                 <Star className="text-purple-500 mb-3" size={32} />
-                <p className="text-2xl font-bold text-foreground dark:text-white">{course.rating}/5</p>
+                <p className="text-2xl font-bold text-foreground dark:text-white"><AnimatedNumber value={course.rating} formatter={(value: number) => value.toFixed(1)} durationMs={420} />/5</p>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_cd_avg_rating", "Đánh giá trung bình")}</p>
               </div>
             </div>

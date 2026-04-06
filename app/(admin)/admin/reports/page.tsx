@@ -735,7 +735,7 @@ export default function AdminReportsPage() {
                 <div className="flex flex-wrap gap-2">
                   <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">{periodLabel}</span>
                   <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200 text-xs font-semibold">
-                    {t("adm_rpt_total_revenue", "Tổng doanh thu")}: {formatCurrency(Math.round(totals.totalRevenue))}
+                    {t("adm_rpt_total_revenue", "Tổng doanh thu")}: <AnimatedNumber value={totals.totalRevenue} formatter={(value: number) => formatCurrency(Math.round(value))} durationMs={420} />
                   </span>
                 </div>
               </div>
@@ -768,10 +768,10 @@ export default function AdminReportsPage() {
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_category_revenue", "Tỷ lệ doanh thu theo danh mục")}</p>
                 <div className="flex flex-wrap gap-2">
                   <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200 text-xs font-semibold">
-                    {t("adm_rpt_th_category", "Danh mục")}: {revenueByCategory.length}
+                    {t("adm_rpt_th_category", "Danh mục")}: <AnimatedNumber value={revenueByCategory.length} durationMs={400} />
                   </span>
                   <span className="px-3 py-1 rounded-full bg-white/60 dark:bg-white/10 text-xs font-semibold text-foreground dark:text-white border border-border/60 dark:border-slate-700">
-                    {t("adm_rpt_total_revenue", "Tổng doanh thu")}: {formatCurrency(revenueByCategory.reduce((s, c) => s + (c.revenue || 0), 0))}
+                    {t("adm_rpt_total_revenue", "Tổng doanh thu")}: <AnimatedNumber value={revenueByCategory.reduce((s, c) => s + (c.revenue || 0), 0)} formatter={(value: number) => formatCurrency(value)} durationMs={420} />
                   </span>
                 </div>
               </div>
@@ -817,7 +817,7 @@ export default function AdminReportsPage() {
                     <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
                     <span className="text-sm text-foreground dark:text-white truncate">{item.name}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground dark:text-slate-400 whitespace-nowrap">{item.value.toFixed(1)}% • {formatCurrency(item.revenue)}</span>
+                  <span className="text-xs text-muted-foreground dark:text-slate-400 whitespace-nowrap"><AnimatedNumber value={item.value} formatter={(value: number) => value.toFixed(1)} durationMs={320} />% • <AnimatedNumber value={item.revenue} formatter={(value: number) => formatCurrency(value)} durationMs={360} /></span>
                 </div>
               ))}
             </div>
@@ -832,10 +832,10 @@ export default function AdminReportsPage() {
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_teacher_growth_desc", "Số lượng giáo viên theo thời gian")}</p>
                 <div className="flex flex-wrap gap-2">
                   <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200 text-xs font-semibold">
-                    {t("adm_rpt_total_teachers", "Tổng giáo viên")}: {formatNumber(totals.totalTeachers)}
+                    {t("adm_rpt_total_teachers", "Tổng giáo viên")}: <AnimatedNumber value={totals.totalTeachers} formatter={formatNumber} durationMs={400} />
                   </span>
                   <span className="px-3 py-1 rounded-full bg-white/60 dark:bg-white/10 text-xs font-semibold text-foreground dark:text-white border border-border/60 dark:border-slate-700">
-                    {t("adm_rpt_growth_teachers", "Tăng trưởng GV")}: {formatNumber(teacherGrowth.at(-1)?.teachers || 0)}
+                    {t("adm_rpt_growth_teachers", "Tăng trưởng GV")}: <AnimatedNumber value={teacherGrowth.at(-1)?.teachers || 0} formatter={formatNumber} durationMs={400} />
                   </span>
                 </div>
               </div>
@@ -865,10 +865,10 @@ export default function AdminReportsPage() {
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_student_growth_desc", "Số lượng học viên theo thời gian")}</p>
                 <div className="flex flex-wrap gap-2">
                   <span className="px-3 py-1 rounded-full bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-200 text-xs font-semibold">
-                    {t("adm_rpt_total_students", "Tổng học viên")}: {formatNumber(totals.totalStudents)}
+                    {t("adm_rpt_total_students", "Tổng học viên")}: <AnimatedNumber value={totals.totalStudents} formatter={formatNumber} durationMs={400} />
                   </span>
                   <span className="px-3 py-1 rounded-full bg-white/60 dark:bg-white/10 text-xs font-semibold text-foreground dark:text-white border border-border/60 dark:border-slate-700">
-                    {t("adm_rpt_growth_students", "Tăng trưởng HV")}: {formatNumber(studentGrowth.at(-1)?.students || 0)}
+                    {t("adm_rpt_growth_students", "Tăng trưởng HV")}: <AnimatedNumber value={studentGrowth.at(-1)?.students || 0} formatter={formatNumber} durationMs={400} />
                   </span>
                 </div>
               </div>
@@ -898,8 +898,8 @@ export default function AdminReportsPage() {
               <h2 className="text-lg font-bold text-foreground dark:text-white">{t("adm_rpt_course_perf", "Hiệu suất khóa học")}</h2>
               <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_course_perf_desc", "Thống kê chi tiết theo khóa học")}</p>
               <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">{t("adm_rpt_courses", "Khóa học")}: {coursePerformance.length}</span>
-                <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200 text-xs font-semibold">{t("adm_rpt_total_revenue", "Tổng doanh thu")}: {formatCurrency(coursePerformance.reduce((s, c) => s + (c.revenue || 0), 0))}</span>
+                <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">{t("adm_rpt_courses", "Khóa học")}: <AnimatedNumber value={coursePerformance.length} durationMs={380} /></span>
+                <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200 text-xs font-semibold">{t("adm_rpt_total_revenue", "Tổng doanh thu")}: <AnimatedNumber value={coursePerformance.reduce((s, c) => s + (c.revenue || 0), 0)} formatter={(value: number) => formatCurrency(value)} durationMs={420} /></span>
               </div>
             </div>
             <button
@@ -936,10 +936,10 @@ export default function AdminReportsPage() {
                   >
                     <td className="py-3 px-4 text-foreground dark:text-white font-medium">{course.courseTitle}</td>
                     <td className="py-3 px-4 text-muted-foreground dark:text-slate-400">{course.teacherName}</td>
-                    <td className="py-3 px-4 text-foreground dark:text-white">{formatStudentCount(course.enrollments)}</td>
-                    <td className="py-3 px-4 text-foreground dark:text-white">{course.averageRating?.toFixed(1) || "-"}</td>
-                    <td className="py-3 px-4 text-foreground dark:text-white">{`${course.completionRate?.toFixed(1) || 0}%`}</td>
-                    <td className="py-3 px-4 text-primary dark:text-accent font-semibold">{formatCurrency(course.revenue)}</td>
+                    <td className="py-3 px-4 text-foreground dark:text-white"><AnimatedNumber value={course.enrollments || 0} formatter={formatStudentCount} durationMs={360} /></td>
+                    <td className="py-3 px-4 text-foreground dark:text-white">{course.averageRating == null ? "-" : <AnimatedNumber value={course.averageRating} formatter={(value: number) => value.toFixed(1)} durationMs={360} />}</td>
+                    <td className="py-3 px-4 text-foreground dark:text-white"><AnimatedNumber value={course.completionRate || 0} formatter={(value: number) => value.toFixed(1)} suffix="%" durationMs={360} /></td>
+                    <td className="py-3 px-4 text-primary dark:text-accent font-semibold"><AnimatedNumber value={course.revenue || 0} formatter={(value: number) => formatCurrency(value)} durationMs={400} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -967,19 +967,19 @@ export default function AdminReportsPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
                       <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">{t("adm_rpt_th_students", "Học viên")}</p>
-                      <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatStudentCount(course.enrollments)}</p>
+                      <p className="text-lg font-bold text-blue-700 dark:text-blue-300"><AnimatedNumber value={course.enrollments || 0} formatter={formatStudentCount} durationMs={360} /></p>
                     </div>
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3">
                       <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400 mb-1">{t("adm_rpt_th_rating", "Đánh giá")}</p>
-                      <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300">{course.averageRating?.toFixed(1) || "-"}</p>
+                      <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300">{course.averageRating == null ? "-" : <AnimatedNumber value={course.averageRating} formatter={(value: number) => value.toFixed(1)} durationMs={360} />}</p>
                     </div>
                     <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
                       <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">{t("adm_rpt_th_completion", "Hoàn thành")}</p>
-                      <p className="text-lg font-bold text-green-700 dark:text-green-300">{course.completionRate?.toFixed(1) || 0}%</p>
+                      <p className="text-lg font-bold text-green-700 dark:text-green-300"><AnimatedNumber value={course.completionRate || 0} formatter={(value: number) => value.toFixed(1)} suffix="%" durationMs={360} /></p>
                     </div>
                     <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
                       <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-1">{t("adm_rpt_th_revenue", "Doanh thu")}</p>
-                      <p className="text-lg font-bold text-purple-700 dark:text-purple-300">{formatCurrency(course.revenue)}</p>
+                      <p className="text-lg font-bold text-purple-700 dark:text-purple-300"><AnimatedNumber value={course.revenue || 0} formatter={(value: number) => formatCurrency(value)} durationMs={400} /></p>
                     </div>
                   </div>
                 </div>
@@ -995,10 +995,10 @@ export default function AdminReportsPage() {
               <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_rpt_completion_desc", "Theo dõi mức độ hoàn thành của học viên")}</p>
               <div className="flex flex-wrap gap-2">
                 <span className="px-3 py-1 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 dark:from-purple-900/30 dark:to-pink-900/30 dark:text-purple-100 text-xs font-semibold">
-                  {t("adm_rpt_th_category", "Danh mục")}: {completionRates.length}
+                  {t("adm_rpt_th_category", "Danh mục")}: <AnimatedNumber value={completionRates.length} durationMs={360} />
                 </span>
                 <span className="px-3 py-1 rounded-full bg-white/60 dark:bg-white/10 text-xs font-semibold text-foreground dark:text-white border border-border/60 dark:border-slate-700">
-                  {t("adm_rpt_total_students", "Tổng học viên")}: {formatNumber(totals.totalStudents)}
+                  {t("adm_rpt_total_students", "Tổng học viên")}: <AnimatedNumber value={totals.totalStudents} formatter={formatNumber} durationMs={400} />
                 </span>
               </div>
             </div>
@@ -1030,9 +1030,9 @@ export default function AdminReportsPage() {
                 {completionRates.map((item) => (
                   <tr key={item.categoryName} className="border-b border-border dark:border-slate-800">
                     <td className="py-3 px-4 text-foreground dark:text-white font-medium">{item.categoryName}</td>
-                    <td className="py-3 px-4 text-foreground dark:text-white">{formatStudentCount(item.totalEnrollments)}</td>
-                    <td className="py-3 px-4 text-foreground dark:text-white">{formatStudentCount(item.completedEnrollments)}</td>
-                    <td className="py-3 px-4 text-foreground dark:text-white">{`${item.completionRate?.toFixed(1) || 0}%`}</td>
+                    <td className="py-3 px-4 text-foreground dark:text-white"><AnimatedNumber value={item.totalEnrollments || 0} formatter={formatStudentCount} durationMs={360} /></td>
+                    <td className="py-3 px-4 text-foreground dark:text-white"><AnimatedNumber value={item.completedEnrollments || 0} formatter={formatStudentCount} durationMs={360} /></td>
+                    <td className="py-3 px-4 text-foreground dark:text-white"><AnimatedNumber value={item.completionRate || 0} formatter={(value: number) => value.toFixed(1)} suffix="%" durationMs={360} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -1056,17 +1056,17 @@ export default function AdminReportsPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
                       <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">{t("adm_rpt_th_enrollments", "Tổng ghi danh")}</p>
-                      <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatStudentCount(item.totalEnrollments)}</p>
+                      <p className="text-lg font-bold text-blue-700 dark:text-blue-300"><AnimatedNumber value={item.totalEnrollments || 0} formatter={formatStudentCount} durationMs={360} /></p>
                     </div>
                     <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
                       <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">{t("adm_rpt_th_completion", "Hoàn thành")}</p>
-                      <p className="text-lg font-bold text-green-700 dark:text-green-300">{formatStudentCount(item.completedEnrollments)}</p>
+                      <p className="text-lg font-bold text-green-700 dark:text-green-300"><AnimatedNumber value={item.completedEnrollments || 0} formatter={formatStudentCount} durationMs={360} /></p>
                     </div>
                   </div>
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3">
                     <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-2">{t("adm_rpt_completion_progress", "Tỷ lệ hoàn thành")}</p>
                     <div className="flex items-end gap-2">
-                      <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{item.completionRate?.toFixed(1) || 0}%</p>
+                      <p className="text-2xl font-bold text-purple-700 dark:text-purple-300"><AnimatedNumber value={item.completionRate || 0} formatter={(value: number) => value.toFixed(1)} suffix="%" durationMs={360} /></p>
                       <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                         <div
                           className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
@@ -1121,7 +1121,7 @@ export default function AdminReportsPage() {
                       <td className="py-3 px-3 text-foreground dark:text-white">{payment.courseTitle}</td>
                       <td className="py-3 px-3 text-muted-foreground dark:text-slate-400">{payment.teacherName}</td>
                       <td className="py-3 px-3 text-foreground dark:text-white uppercase">{payment.paymentMethod.replace(/_/g, " ")}</td>
-                      <td className="py-3 px-3 text-primary dark:text-accent font-semibold whitespace-nowrap">{formatCurrency(payment.amount)}</td>
+                      <td className="py-3 px-3 text-primary dark:text-accent font-semibold whitespace-nowrap"><AnimatedNumber value={payment.amount || 0} formatter={(value: number) => formatCurrency(value)} durationMs={380} /></td>
                       <td className="py-3 px-3">
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(payment.status)}`}>{payment.status}</span>
                       </td>
@@ -1169,7 +1169,7 @@ export default function AdminReportsPage() {
                       <td className="py-3 px-3 text-foreground dark:text-white">{payment.teacherName}</td>
                       <td className="py-3 px-3 text-foreground dark:text-white">{payment.planName}</td>
                       <td className="py-3 px-3 text-foreground dark:text-white uppercase">{payment.paymentMethod.replace(/_/g, " ")}</td>
-                      <td className="py-3 px-3 text-primary dark:text-accent font-semibold whitespace-nowrap">{formatCurrency(payment.amount)}</td>
+                      <td className="py-3 px-3 text-primary dark:text-accent font-semibold whitespace-nowrap"><AnimatedNumber value={payment.amount || 0} formatter={(value: number) => formatCurrency(value)} durationMs={380} /></td>
                       <td className="py-3 px-3">
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(payment.status)}`}>{payment.status}</span>
                       </td>

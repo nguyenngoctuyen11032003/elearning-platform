@@ -6,6 +6,7 @@ import { useParams } from "next/navigation"
 import { ArrowLeft, BookOpen, Calendar, CheckCircle, Clock, Loader2, Users, XCircle } from "lucide-react"
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
 
 type CourseStatus = "draft" | "pending" | "published" | "approved" | "rejected" | "archived"
 
@@ -183,7 +184,7 @@ export default function AdminCategoryCoursesPage() {
 
             <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm text-white">
               <BookOpen size={16} />
-              {courses.length} {t("adm_cat_courses_unit", "khóa học")}
+              <AnimatedNumber value={courses.length} durationMs={340} /> {t("adm_cat_courses_unit", "khóa học")}
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
@@ -191,7 +192,7 @@ export default function AdminCategoryCoursesPage() {
                 <div className="flex items-center justify-between w-full">
                   <div>
                     <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300">{t("adm_cat_total_courses", "Tổng khóa học")}</p>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{totalCourses}</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1"><AnimatedNumber value={totalCourses} durationMs={420} /></p>
                   </div>
                   <div className="w-11 h-11 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <BookOpen size={20} className="text-blue-600 dark:text-blue-300" />
@@ -203,7 +204,7 @@ export default function AdminCategoryCoursesPage() {
                 <div className="flex items-center justify-between w-full">
                   <div>
                     <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300">{t("adm_courses_pending", "Chờ duyệt")}</p>
-                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-300 mt-1">{pendingCourses}</p>
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-300 mt-1"><AnimatedNumber value={pendingCourses} durationMs={420} /></p>
                   </div>
                   <div className="w-11 h-11 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <Clock size={20} className="text-yellow-600 dark:text-yellow-300" />
@@ -215,7 +216,7 @@ export default function AdminCategoryCoursesPage() {
                 <div className="flex items-center justify-between w-full">
                   <div>
                     <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300">{t("adm_courses_approved_label", "Đã duyệt")}</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-300 mt-1">{approvedCourses}</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-300 mt-1"><AnimatedNumber value={approvedCourses} durationMs={420} /></p>
                   </div>
                   <div className="w-11 h-11 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <CheckCircle size={20} className="text-green-600 dark:text-green-300" />
@@ -227,7 +228,7 @@ export default function AdminCategoryCoursesPage() {
                 <div className="flex items-center justify-between w-full">
                   <div>
                     <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300">{t("adm_courses_rejected_label", "Từ chối")}</p>
-                    <p className="text-2xl font-bold text-red-600 dark:text-red-300 mt-1">{rejectedCourses}</p>
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-300 mt-1"><AnimatedNumber value={rejectedCourses} durationMs={420} /></p>
                   </div>
                   <div className="w-11 h-11 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                     <XCircle size={20} className="text-red-600 dark:text-red-300" />
@@ -312,7 +313,7 @@ export default function AdminCategoryCoursesPage() {
                         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground dark:text-slate-400">
                           <span className="inline-flex items-center gap-1.5">
                             <Users size={15} />
-                            {studentCount.toLocaleString("en-US")}
+                            <AnimatedNumber value={studentCount} formatter={(value: number) => Math.round(value).toLocaleString("en-US")} durationMs={360} />
                           </span>
                           <span className="inline-flex items-center gap-1.5">
                             <Calendar size={15} />

@@ -24,6 +24,7 @@ import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { autoTranslateData } from "@/lib/i18n/dynamic-translate"
 import { ScientificText } from "@/components/scientific-text"
+import { AnimatedNumber } from "@/components/ui/rolling-number"
 import { toast } from "sonner"
 
 interface Question {
@@ -758,7 +759,7 @@ export default function AdminExamDetailPage() {
               <Trophy size={20} className="text-yellow-500" />
               <div>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_pass_rate", "Tỷ lệ đạt")}</p>
-                <p className="font-semibold text-foreground dark:text-white">{exam.passRate}%</p>
+                <p className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={exam.passRate} suffix="%" durationMs={520} /></p>
               </div>
             </div>
           </div>
@@ -847,11 +848,11 @@ export default function AdminExamDetailPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_max_attempts", "Số lần làm tối đa")}</span>
-                    <span className="font-semibold text-foreground dark:text-white">{exam.maxAttempts}</span>
+                    <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={exam.maxAttempts} durationMs={520} /></span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_total_points", "Tổng điểm")}</span>
-                    <span className="font-semibold text-foreground dark:text-white">{exam.totalPoints}</span>
+                    <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={exam.totalPoints} durationMs={520} /></span>
                   </div>
                   {exam.certificateTemplate && (
                     <div className="flex justify-between items-center">
@@ -880,7 +881,7 @@ export default function AdminExamDetailPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_avg_score", "Điểm TB")}</span>
-                    <span className="font-semibold text-foreground dark:text-white">{exam.averageScore.toFixed(1)}</span>
+                    <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={exam.averageScore} formatter={(value: number) => value.toFixed(1)} durationMs={520} /></span>
                   </div>
                 </div>
               </div>
@@ -891,8 +892,8 @@ export default function AdminExamDetailPage() {
         {activeTab === "questions" && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-foreground dark:text-white">{t("adm_examd_question_list", "Danh sách câu hỏi")} ({exam.questions.length})</h2>
-              <span className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_total_points_label", "Tổng điểm:")}{" "}{exam.totalPoints}</span>
+              <h2 className="text-2xl font-bold text-foreground dark:text-white">{t("adm_examd_question_list", "Danh sách câu hỏi")} (<AnimatedNumber value={exam.questions.length} durationMs={520} />)</h2>
+              <span className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_total_points_label", "Tổng điểm:")}{" "}<AnimatedNumber value={exam.totalPoints} durationMs={520} /></span>
             </div>
             <div className="space-y-6">
               {exam.questions.map((question, index) => (
@@ -1006,7 +1007,7 @@ export default function AdminExamDetailPage() {
         {activeTab === "attempts" && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <h2 className="text-2xl font-bold text-foreground dark:text-white mb-6">{t("adm_examd_history", "Lịch sử làm bài")}</h2>
-            <p className="text-muted-foreground dark:text-slate-400 mb-6">{t("adm_examd_has_attempts", "Có")} {exam.attemptCount} {t("adm_examd_attempts_count", "lượt làm bài thi này.")}</p>
+            <p className="text-muted-foreground dark:text-slate-400 mb-6">{t("adm_examd_has_attempts", "Có")} <AnimatedNumber value={exam.attemptCount} durationMs={520} /> {t("adm_examd_attempts_count", "lượt làm bài thi này.")}</p>
             <div className="rounded-xl border border-border bg-secondary/30 p-6 text-sm text-muted-foreground dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
               {t("adm_examd_attempts_note", "Dữ liệu chi tiết từng lượt thi chưa được backend trả về ở endpoint chi tiết bài thi. Hiện trang đang hiển thị đúng tổng số lượt thi thực tế.")}
             </div>
@@ -1018,22 +1019,22 @@ export default function AdminExamDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
                 <Users className="text-blue-500 mb-3" size={32} />
-                <p className="text-3xl font-bold text-foreground dark:text-white">{exam.attemptCount}</p>
+                <p className="text-3xl font-bold text-foreground dark:text-white"><AnimatedNumber value={exam.attemptCount} durationMs={560} /></p>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_total_attempts", "Tổng lượt thi")}</p>
               </div>
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
                 <Trophy className="text-green-500 mb-3" size={32} />
-                <p className="text-3xl font-bold text-foreground dark:text-white">{exam.passRate}%</p>
+                <p className="text-3xl font-bold text-foreground dark:text-white"><AnimatedNumber value={exam.passRate} durationMs={560} suffix="%" /></p>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_pass_rate", "Tỷ lệ đạt")}</p>
               </div>
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
                 <BarChart3 className="text-purple-500 mb-3" size={32} />
-                <p className="text-3xl font-bold text-foreground dark:text-white">{exam.averageScore.toFixed(1)}</p>
+                <p className="text-3xl font-bold text-foreground dark:text-white"><AnimatedNumber value={exam.averageScore} formatter={(value: number) => value.toFixed(1)} durationMs={560} /></p>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_average_score", "Điểm trung bình")}</p>
               </div>
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
                 <Target className="text-orange-500 mb-3" size={32} />
-                <p className="text-3xl font-bold text-foreground dark:text-white">{exam.passingScore}%</p>
+                <p className="text-3xl font-bold text-foreground dark:text-white"><AnimatedNumber value={exam.passingScore} durationMs={560} suffix="%" /></p>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{t("adm_examd_benchmark", "Điểm chuẩn")}</p>
               </div>
             </div>
