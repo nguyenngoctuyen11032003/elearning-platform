@@ -28,10 +28,13 @@ type SavedMethod = {
 type CheckoutData = {
   transactionId: string
   status: string
-  paymentChannel: "bank_card" | "e_wallet" | "qr"
+  paymentChannel: "bank_card" | "e_wallet" | "qr" | "wallet" | "sepay_qr"
   amount: number
   qrImageUrl?: string
   qrPayload?: string
+  bankName?: string
+  accountNumber?: string
+  expiresAt?: string
 }
 
 function TeacherPlanCheckoutPageContent() {
@@ -85,6 +88,49 @@ function TeacherPlanCheckoutPageContent() {
       router.replace(`/teacher/settings/billing/methods/new?planId=${encodeURIComponent(targetPlan)}`)
     }
   }, [loading, methods.length, selectedPlanId, router, searchParams])
+
+  useEffect(() => {
+    if (!checkout?.transactionId) return
+    if (checkout.paymentChannel !== "sepay_qr") return
+    if (checkout.status !== "pending") return
+
+    const intervalId = setInterval(async () => {
+      try {
+        const result = await apiClient.getTeacherCheckoutStatus(checkout.transactionId)
+        const payment = result?.payment
+        if (!payment) return
+
+        const nextStatus = String(payment.status || "pending")
+        setCheckout((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            status: nextStatus,
+            qrImageUrl: result?.checkout?.qrImageUrl || prev.qrImageUrl,
+          }
+        })
+
+        if (nextStatus === "paid") {
+          clearInterval(intervalId)
+          toast.success(t("checkout_success", "Thanh toán thành công và gói đã được kích hoạt."))
+          router.push("/teacher/settings?tab=billing")
+        }
+
+        if (nextStatus === "expired" || nextStatus === "failed") {
+          clearInterval(intervalId)
+          toast.error(
+            nextStatus === "expired"
+              ? t("checkout_qr_expired", "Mã thanh toán đã hết hạn")
+              : t("checkout_confirm_failed", "Unable to confirm transaction"),
+          )
+        }
+      } catch {
+        // keep polling
+      }
+    }, 5000)
+
+    return () => clearInterval(intervalId)
+  }, [checkout?.transactionId, checkout?.paymentChannel, checkout?.status, router, t])
 
   const selectedPlan = useMemo(() => plans.find((p) => p.id === selectedPlanId), [plans, selectedPlanId])
   const selectedMethod = useMemo(() => methods.find((m) => m.id === selectedMethodId), [methods, selectedMethodId])
@@ -152,13 +198,38 @@ function TeacherPlanCheckoutPageContent() {
     try {
       const data = await apiClient.createTeacherCheckout({
         planId: selectedPlanId,
-        paymentChannel: "qr",
+        paymentChannel: "sepay_qr",
       })
       setCheckout(data)
       setMethodTab("qr")
       toast.success(t("checkout_qr_created", "QR code has been generated"))
     } catch (error: any) {
       toast.error(localizeMessage(error?.message || t("checkout_qr_failed", "Unable to generate QR code"), getCurrentClientLanguage()))
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const createWalletCheckout = async () => {
+    if (!selectedPlanId) {
+      toast.error(t("checkout_select_plan_required", "Please select a plan"))
+      return
+    }
+
+    setProcessing(true)
+    try {
+      const data = await apiClient.createTeacherCheckout({
+        planId: selectedPlanId,
+        paymentChannel: "wallet",
+      })
+      setCheckout(data)
+      toast.success(t("checkout_wallet_paid", "Đã thanh toán gói bằng số dư ví"))
+
+      if (String(data?.status || "") === "paid") {
+        router.push("/teacher/settings?tab=billing")
+      }
+    } catch (error: any) {
+      toast.error(localizeMessage(error?.message || t("checkout_create_failed", "Unable to create transaction"), getCurrentClientLanguage()))
     } finally {
       setProcessing(false)
     }
@@ -334,18 +405,27 @@ function TeacherPlanCheckoutPageContent() {
           >
             <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
               <span className={`h-2.5 w-2.5 rounded-full ${activeStep === 3 ? "bg-blue-400" : "bg-slate-500"}`} />
-              3. {t("checkout_or_qr", "Hoặc thanh toán bằng QR")}
+              3. {t("checkout_or_qr", "Thanh toán bằng ví hoặc SePay QR")}
             </h2>
-            <p className="text-sm text-slate-400">{t("checkout_qr_hint", "Quét bằng MoMo / ZaloPay")}</p>
+            <p className="text-sm text-slate-400">{t("checkout_qr_hint", "Quét QR SePay hoặc trả trực tiếp bằng số dư ví")}</p>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={createWalletCheckout}
+                disabled={processing || !selectedPlanId}
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 text-sm text-slate-100 transition hover:border-emerald-500"
+              >
+                {processing ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
+                {t("checkout_wallet_pay", "Thanh toán bằng ví")}
+              </button>
+
               <button
                 onClick={createQrCheckout}
                 disabled={processing || !selectedPlanId}
                 className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 text-sm text-slate-100 transition hover:border-blue-500"
               >
                 {processing ? <Loader2 size={16} className="animate-spin" /> : <QrCode size={16} />}
-                {t("payment_method_qr", "Quét mã QR")}
+                {t("payment_method_qr", "Tạo mã SePay QR")}
               </button>
             </div>
 
@@ -353,7 +433,15 @@ function TeacherPlanCheckoutPageContent() {
               {methodTab === "qr" && qrPreviewUrl ? (
                 <div className="space-y-3">
                   <img src={qrPreviewUrl} alt="qr-payment" className="h-56 w-56 rounded-lg border border-slate-700 bg-white p-2" />
-                  <p className="text-sm text-slate-300">{t("checkout_qr_hint", "Quét bằng MoMo / ZaloPay")}</p>
+                  <p className="text-sm text-slate-300">{t("checkout_qr_hint", "Quét QR SePay hoặc chuyển khoản theo đúng nội dung")}</p>
+                  {checkout?.transactionId && (
+                    <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-3 text-xs text-slate-300">
+                      <p>{t("checkout_transfer_content", "Nội dung")}: {checkout.transactionId}</p>
+                      {checkout.bankName && checkout.accountNumber && (
+                        <p>{t("checkout_bank", "Ngân hàng")}: {checkout.bankName} - {checkout.accountNumber}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">

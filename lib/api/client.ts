@@ -624,6 +624,50 @@ if (typeof window !== 'undefined' && token) {
     });
   }
 
+  async createSepayCoursePayment(data: {
+    courseId: string;
+    couponCode?: string;
+  }): Promise<any> {
+    return this.request('/payments/sepay/course', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async payCourseByWallet(data: {
+    courseId: string;
+    couponCode?: string;
+  }): Promise<any> {
+    return this.request('/payments/course/wallet', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createWalletTopupSepay(data: { amount: number }): Promise<any> {
+    return this.request('/payments/wallet-topups/sepay', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getSepayPaymentStatus(transactionCode: string): Promise<any> {
+    return this.request(`/payments/sepay/status/${transactionCode}`);
+  }
+
+  async getMyWallet(): Promise<any> {
+    return this.request('/user-wallets/my-wallet');
+  }
+
+  async getMyWalletBalance(): Promise<any> {
+    return this.request('/user-wallets/my-balance');
+  }
+
+  async getMyWalletTransactions(): Promise<any[]> {
+    const result = await this.request('/user-wallets/my-transactions');
+    return Array.isArray(result) ? result : [];
+  }
+
   async validateCoupon(code: string, courseId: string): Promise<any> {
     return this.request('/coupons/validate', {
       method: 'POST',
@@ -1182,7 +1226,7 @@ if (typeof window !== 'undefined' && token) {
   async createTeacherCheckout(data: {
     planId: string;
     paymentMethodId?: string;
-    paymentChannel?: 'bank_card' | 'e_wallet' | 'qr';
+    paymentChannel?: 'bank_card' | 'e_wallet' | 'qr' | 'wallet' | 'sepay_qr';
     metadata?: Record<string, any>;
   }): Promise<any> {
     return this.request('/instructor-subscriptions/teacher/checkout', {
@@ -1195,6 +1239,12 @@ if (typeof window !== 'undefined' && token) {
     return this.request(`/instructor-subscriptions/teacher/checkout/${transactionId}/confirm`, {
       method: 'POST',
     });
+  }
+
+  async getTeacherCheckoutStatus(transactionId: string): Promise<any> {
+    return this.request(
+      `/instructor-subscriptions/teacher/checkout/${transactionId}/status`,
+    );
   }
 
   async getAdminInstructorPlans(): Promise<any[]> {
