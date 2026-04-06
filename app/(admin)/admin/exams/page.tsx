@@ -22,6 +22,7 @@ import {
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { toast } from "sonner"
+import { authFetch } from "@/lib/authfetch"
 import { UniversalSelect } from "@/components/ui/universal-select"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
 import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
@@ -154,9 +155,7 @@ export default function AdminExamsPage() {
 
   const fetchCertificateTemplates = async () => {
     try {
-      const res = await fetch("/api/certificate-templates", {
-        headers: getAuthHeaders(),
-      })
+      const res = await authFetch("/certificates/templates/admin/all")
 
       if (!res.ok) {
         const message = t("adm_exam_templates_load_fail", "Failed to fetch certificate templates")
