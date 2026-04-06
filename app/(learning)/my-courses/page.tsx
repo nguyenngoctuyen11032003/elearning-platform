@@ -28,7 +28,6 @@ import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
 import { UniversalSelect } from "@/components/ui/universal-select"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 interface EnrolledCourse {
   id: string
@@ -96,6 +95,7 @@ export default function MyCoursesPage() {
   const [sortMode, setSortMode] = useState<SortMode>("recent")
   const [searchTerm, setSearchTerm] = useState("")
   const [pinnedCourses, setPinnedCourses] = useState<Set<string>>(new Set())
+  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null)
 
   const fetchEnrollments = useCallback(async () => {
     if (!user?.id) {
@@ -159,6 +159,33 @@ export default function MyCoursesPage() {
       window.removeEventListener("focus", handleFocus)
     }
   }, [fetchEnrollments])
+
+  useEffect(() => {
+    if (!openActionMenuId) return
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as HTMLElement | null
+      if (!target?.closest("[data-course-action-menu-root]")) {
+        setOpenActionMenuId(null)
+      }
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenActionMenuId(null)
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown)
+    document.addEventListener("touchstart", handlePointerDown)
+    document.addEventListener("keydown", handleEscape)
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown)
+      document.removeEventListener("touchstart", handlePointerDown)
+      document.removeEventListener("keydown", handleEscape)
+    }
+  }, [openActionMenuId])
 
   const togglePinCourse = (courseId: string) => {
     setPinnedCourses((prev) => {
@@ -496,7 +523,7 @@ export default function MyCoursesPage() {
                 </Link>
               </motion.div>
             ) : (
-              <motion.div layout className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+              <motion.div layout className="grid grid-cols-1 gap-5 overflow-visible md:grid-cols-2 xl:grid-cols-3">
                 <AnimatePresence mode="popLayout">
                   {filteredCourses.map((enrollment, idx) => {
                     const lessons = enrollment.course.lessons || []
@@ -520,8 +547,10 @@ export default function MyCoursesPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -12 }}
                         transition={{ delay: idx * 0.04, duration: 0.28 }}
-                        whileHover={{ y: -7 }}
-                        className="group relative z-10 overflow-visible rounded-2xl border border-slate-200 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.1)] transition-all hover:border-cyan-400/70 hover:shadow-[0_20px_45px_rgba(6,182,212,0.2)] dark:border-slate-800 dark:bg-slate-900/70"
+                        whileHover={openActionMenuId === enrollment.id ? undefined : { y: -7 }}
+                        className={`group relative overflow-visible rounded-2xl border border-slate-200 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.1)] transition-all hover:border-cyan-400/70 hover:shadow-[0_20px_45px_rgba(6,182,212,0.2)] dark:border-slate-800 dark:bg-slate-900/70 ${
+                          openActionMenuId === enrollment.id ? "z-[120]" : "z-10"
+                        }`}
                       >
                         <div className="relative aspect-video overflow-hidden">
                           <motion.img
@@ -557,49 +586,69 @@ export default function MyCoursesPage() {
                           </p>
                         </div>
 
-                        <div className="space-y-4 p-5">
-                          <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-4 overflow-visible p-5">
+                          <div className="relative z-30 flex items-start justify-between gap-2 overflow-visible">
                             <h3 className="line-clamp-2 text-base font-bold text-slate-900 dark:text-white">{enrollment.course.title}</h3>
 
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                className="z-[100] w-48 rounded-xl border border-slate-200 bg-white/95 p-1 shadow-xl dark:border-slate-700 dark:bg-slate-900/95"
+                            <div className="relative z-[140] shrink-0" data-course-action-menu-root>
+                              <button
+                                type="button"
+                                aria-label={t("mycourses_actions", "Thao tác khóa học")}
+                                aria-haspopup="menu"
+                                aria-expanded={openActionMenuId === enrollment.id}
+                                onClick={() => setOpenActionMenuId((prev) => (prev === enrollment.id ? null : enrollment.id))}
+                                className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
                               >
-                                <DropdownMenuItem
-                                  onClick={() => togglePinCourse(enrollment.id)}
-                                  className="gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200"
+                                <MoreVertical className="h-4 w-4" />
+                              </button>
+
+                              {openActionMenuId === enrollment.id ? (
+                                <div
+                                  role="menu"
+                                  className="absolute right-0 top-full z-[9999] mt-2 w-48 pointer-events-auto rounded-xl border border-slate-200 bg-white p-1 shadow-[0_16px_36px_rgba(15,23,42,0.2)] dark:border-slate-700 dark:bg-slate-900"
                                 >
-                                  <Pin className="h-4 w-4" />
-                                  {pinnedCourses.has(enrollment.id) ? t("mycourses_unpin", "Bỏ ghim") : t("mycourses_pin", "Ghim khóa học")}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleShareCourse(enrollment.course.title)}
-                                  className="gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200"
-                                >
-                                  <Share2 className="h-4 w-4" />
-                                  {t("mycourses_share", "Chia sẻ")}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={handleRemoveCourse}
-                                  variant="destructive"
-                                  className="gap-2 rounded-lg px-3 py-2 text-sm"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  {t("mycourses_delete", "Xóa")}
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => {
+                                      togglePinCourse(enrollment.id)
+                                      setOpenActionMenuId(null)
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
+                                  >
+                                    <Pin className="h-4 w-4" />
+                                    {pinnedCourses.has(enrollment.id) ? t("mycourses_unpin", "Bỏ ghim") : t("mycourses_pin", "Ghim khóa học")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => {
+                                      handleShareCourse(enrollment.course.title)
+                                      setOpenActionMenuId(null)
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
+                                  >
+                                    <Share2 className="h-4 w-4" />
+                                    {t("mycourses_share", "Chia sẻ")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => {
+                                      handleRemoveCourse()
+                                      setOpenActionMenuId(null)
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    {t("mycourses_delete", "Xóa")}
+                                  </button>
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
 
-                          <div className="rounded-xl border border-slate-200 bg-slate-50/85 p-3 dark:border-slate-800 dark:bg-slate-900/75">
+                          <div className="relative rounded-xl border border-slate-200 bg-slate-50/85 p-3 dark:border-slate-800 dark:bg-slate-900/75">
                             <div className="mb-2 flex items-center justify-between text-xs">
                               <span className="font-medium text-slate-500 dark:text-slate-400">{t("mycourses_progress", "Tiến độ")}</span>
                               <span className="font-bold text-slate-900 dark:text-white">{enrollment.progress}%</span>
