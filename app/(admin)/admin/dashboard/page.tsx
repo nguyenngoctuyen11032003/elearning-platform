@@ -783,7 +783,7 @@ useEffect(() => {
       const revenueReport = revenueRes.status === "fulfilled" ? (revenueRes.value?.data ?? revenueRes.value ?? null) : null
       const userReport = userRes.status === "fulfilled" ? (userRes.value?.data ?? userRes.value ?? null) : null
       const instructorPaymentsRaw = instructorPaymentsRes.status === "fulfilled"
-        ? (instructorPaymentsRes.value?.data ?? instructorPaymentsRes.value ?? [])
+        ? ((instructorPaymentsRes.value as any)?.data ?? (instructorPaymentsRes.value as any) ?? [])
         : []
 
       const mergedGrowth = mergeGrowthSeries(growthStats)
@@ -1179,8 +1179,12 @@ useEffect(() => {
       }
     }
   } else {
-    const timeoutId = window.setTimeout(runPrefetch, 160)
-    idleCancel = () => window.clearTimeout(timeoutId)
+    const timeoutId = typeof window !== "undefined" ? (window as any).setTimeout(runPrefetch, 160) : null
+    idleCancel = () => {
+      if (timeoutId !== null && typeof window !== "undefined") {
+        (window as any).clearTimeout(timeoutId)
+      }
+    }
   }
 
   return () => {
@@ -1504,7 +1508,6 @@ if (loading) {
                   isAnimationActive={chartAnimationFlags.revenue}
                   animationBegin={90 + (chartMotionCycle % 2) * 10}
                   animationDuration={chartDurations.area}
-                  animationEasing={CHART_CINEMATIC.easing}
                   strokeWidth={2.6}
                   name={t("adm_dash_revenue", "Doanh thu")}
                 />
@@ -1534,7 +1537,6 @@ if (loading) {
                       isAnimationActive={chartAnimationFlags.category}
                       animationBegin={240 + (chartMotionCycle % 2) * 15}
                       animationDuration={chartDurations.pie}
-                      animationEasing={CHART_CINEMATIC.easing}
                     >
                       {categoryData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -1604,7 +1606,6 @@ if (loading) {
                   isAnimationActive={chartAnimationFlags.weekly}
                   animationBegin={110 + (chartMotionCycle % 2) * 10}
                   animationDuration={chartDurations.area}
-                  animationEasing={CHART_CINEMATIC.easing}
                   name={t("adm_dash_active_users", "Người dùng hoạt động")}
                 />
                 <Area
@@ -1616,7 +1617,6 @@ if (loading) {
                   isAnimationActive={chartAnimationFlags.weekly}
                   animationBegin={110 + adaptiveSeriesOffset.weekly + (chartMotionCycle % 2) * 10}
                   animationDuration={chartDurations.area}
-                  animationEasing={CHART_CINEMATIC.easing}
                   name={t("adm_dash_new_signups", "Đăng ký mới")}
                 />
               </AreaChart>
@@ -1653,7 +1653,6 @@ if (loading) {
                   isAnimationActive={chartAnimationFlags.growth}
                   animationBegin={120 + (chartMotionCycle % 2) * 10}
                   animationDuration={chartDurations.line}
-                  animationEasing={CHART_CINEMATIC.easing}
                   name={t("adm_dash_teachers", "Giáo viên")} 
                 />
                 <Line 
@@ -1666,7 +1665,6 @@ if (loading) {
                   isAnimationActive={chartAnimationFlags.growth}
                   animationBegin={120 + adaptiveSeriesOffset.growth + (chartMotionCycle % 2) * 10}
                   animationDuration={chartDurations.line}
-                  animationEasing={CHART_CINEMATIC.easing}
                   name={t("adm_dash_students", "Học viên")} 
                 />
               </LineChart>
@@ -1705,7 +1703,6 @@ if (loading) {
                     isAnimationActive={chartAnimationFlags.radar}
                     animationBegin={420 + (chartMotionCycle % 2) * 20}
                     animationDuration={chartDurations.radar}
-                    animationEasing={CHART_CINEMATIC.easing}
                   />
                   <Tooltip
                     contentStyle={chartTooltipStyle}
@@ -1725,7 +1722,7 @@ if (loading) {
               <div className="flex flex-col items-center gap-4">
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={teacherPlanData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive={chartAnimationFlags.teacherPlan} animationDuration={chartDurations.pie} animationEasing={CHART_CINEMATIC.easing}>
+                    <Pie data={teacherPlanData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive={chartAnimationFlags.teacherPlan} animationDuration={chartDurations.pie}>
                       {teacherPlanData.map((entry, idx) => (
                         <Cell key={`plan-${idx}`} fill={entry.color} />
                       ))}
@@ -1776,7 +1773,7 @@ if (loading) {
               <div className="flex flex-col items-center gap-4">
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={certificateData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive={chartAnimationFlags.certificate} animationDuration={chartDurations.pie} animationEasing={CHART_CINEMATIC.easing}>
+                    <Pie data={certificateData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3} label isAnimationActive={chartAnimationFlags.certificate} animationDuration={chartDurations.pie}>
                       {certificateData.map((entry, idx) => (
                         <Cell key={`cert-${idx}`} fill={entry.color} />
                       ))}
@@ -1832,7 +1829,7 @@ if (loading) {
                     labelStyle={chartTooltipLabelStyle}
                     itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#22c55e" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={chartDurations.bar} animationEasing={CHART_CINEMATIC.easing}>
+                  <Bar dataKey="value" fill="#22c55e" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={chartDurations.bar}>
                     {teacherRankingData.map((entry, index) => (
                       <Cell key={`teacher-${index}`} fill={index === 0 ? "#22c55e" : "#16a34a"} />
                     ))}
@@ -1858,7 +1855,7 @@ if (loading) {
                     labelStyle={chartTooltipLabelStyle}
                     itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={chartDurations.bar} animationEasing={CHART_CINEMATIC.easing}>
+                  <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={chartDurations.bar}>
                     {studentCompletionData.map((entry, index) => (
                       <Cell key={`student-comp-${index}`} fill={index === 0 ? "#06b6d4" : "#0ea5e9"} />
                     ))}
@@ -1884,7 +1881,7 @@ if (loading) {
                     labelStyle={chartTooltipLabelStyle}
                     itemStyle={chartTooltipItemStyle}
                   />
-                  <Bar dataKey="value" fill="#f97316" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={chartDurations.bar} animationEasing={CHART_CINEMATIC.easing}>
+                  <Bar dataKey="value" fill="#f97316" radius={[6, 6, 6, 6]} isAnimationActive animationDuration={chartDurations.bar}>
                     {studentCertificateData.map((entry, index) => (
                       <Cell key={`student-cert-${index}`} fill={index === 0 ? "#f97316" : "#fb923c"} />
                     ))}

@@ -12,7 +12,6 @@ import {
   LogOut,
   User,
   GraduationCap,
-  ChevronRight,
   TrendingUp,
   Calendar,
   CreditCard,
@@ -55,6 +54,12 @@ export function StudentSidebar() {
       setIsHovering(false)
     }
   }
+
+  useEffect(() => {
+    if (!isOpen) return
+    if (window.matchMedia("(min-width: 1280px)").matches) return
+    setIsCollapsed(false)
+  }, [isOpen])
 
   useEffect(() => {
     if (isCollapsed) return
@@ -116,17 +121,6 @@ export function StudentSidebar() {
           isOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"
         }`}
       >
-        {/* Toggle Collapse Button - Mobile/Tablet Only */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="flex xl:hidden absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
-          title={isCollapsed ? t("sidebar_expand", "Mở rộng") : t("sidebar_collapse", "Thu gọn")}
-        >
-          <ChevronRight size={14} className={`text-white transition-transform duration-300 ${
-            isCollapsed ? "rotate-0" : "rotate-180"
-          }`} />
-        </button>
-
         {/* Logo Section - Fixed Header */}
         <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50">
           <Link href="/" className="flex items-center justify-center">

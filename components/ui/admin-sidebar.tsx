@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Users, BookOpen, CreditCard, BarChart3, Settings, LogOut, User, FolderOpen, Award, FileText, ChevronRight, ShieldCheck } from "lucide-react"
+import { LayoutDashboard, Users, BookOpen, CreditCard, BarChart3, Settings, LogOut, User, FolderOpen, Award, FileText, ShieldCheck } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
@@ -31,9 +31,7 @@ export function AdminSidebar() {
     if (isCollapsed) return
 
     const desktopQuery = window.matchMedia("(min-width: 1280px)")
-    const tabletPortraitQuery = window.matchMedia("(min-width: 768px) and (max-width: 1024px) and (orientation: portrait)")
-    const tabletLandscapeQuery = window.matchMedia("(min-width: 768px) and (max-width: 1366px) and (orientation: landscape)")
-    const canAutoCollapse = () => desktopQuery.matches || tabletPortraitQuery.matches || tabletLandscapeQuery.matches
+    const canAutoCollapse = () => desktopQuery.matches
     if (!canAutoCollapse()) return
 
     const mainContentEl = document.querySelector<HTMLElement>("main[data-dashboard-main='true']")
@@ -46,14 +44,10 @@ export function AdminSidebar() {
     }
 
     const getWheelThreshold = () => {
-      if (tabletLandscapeQuery.matches) return 24
-      if (tabletPortraitQuery.matches) return 16
       return 8
     }
 
     const getTouchThreshold = () => {
-      if (tabletLandscapeQuery.matches) return 30
-      if (tabletPortraitQuery.matches) return 22
       return 12
     }
 
@@ -146,6 +140,12 @@ export function AdminSidebar() {
     }
   }
 
+  useEffect(() => {
+    if (!isOpen) return
+    if (window.matchMedia("(min-width: 1280px)").matches) return
+    setIsCollapsed(false)
+  }, [isOpen])
+
   return (
     <>
       <aside
@@ -157,17 +157,6 @@ export function AdminSidebar() {
           isOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"
         }`}
       >
-        {/* Toggle Collapse Button - Mobile/Tablet Only */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="flex xl:hidden absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
-          title={isCollapsed ? t("sidebar_expand", "Mở rộng") : t("sidebar_collapse", "Thu gọn")}
-        >
-          <ChevronRight size={14} className={`text-white transition-transform duration-300 ${
-            isCollapsed ? "rotate-0" : "rotate-180"
-          }`} />
-        </button>
-
         {/* Logo Section - Fixed Header */}
         <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50 mt-12 xl:mt-0">
           <Link href="/" className="flex items-center justify-center">
