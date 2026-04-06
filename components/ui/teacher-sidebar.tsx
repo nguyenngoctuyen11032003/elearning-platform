@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, BookOpen, Users, Settings, LogOut, User, Star, BarChart3, FileText, Award, ChevronRight, ClipboardList } from "lucide-react"
+import { LayoutDashboard, BookOpen, Users, Settings, LogOut, User, Star, BarChart3, FileText, Award, ClipboardList } from "lucide-react"
 import { useEffect, useState, useRef } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
@@ -53,6 +53,12 @@ export function TeacherSidebar() {
       setIsHovering(false)
     }
   }
+
+  useEffect(() => {
+    if (!isOpen) return
+    if (window.matchMedia("(min-width: 1280px)").matches) return
+    setIsCollapsed(false)
+  }, [isOpen])
 
   useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1280px)")
@@ -155,17 +161,6 @@ export function TeacherSidebar() {
           isOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"
         }`}
       >
-        {/* Toggle Collapse Button - Mobile/Tablet Only */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="flex xl:hidden absolute -right-3 top-8 w-6 h-6 bg-primary dark:bg-accent rounded-full items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
-          title={isCollapsed ? t("sidebar_expand", "Mở rộng") : t("sidebar_collapse", "Thu gọn")}
-        >
-          <ChevronRight size={14} className={`text-white transition-transform duration-300 ${
-            isCollapsed ? "rotate-0" : "rotate-180"
-          }`} />
-        </button>
-
         {/* Logo Section - Fixed Header */}
         <div className="flex-shrink-0 px-4 py-5 border-b border-border/50 dark:border-slate-800/50 mt-12 md:mt-0">
           <Link href="/" className="flex items-center justify-center">
