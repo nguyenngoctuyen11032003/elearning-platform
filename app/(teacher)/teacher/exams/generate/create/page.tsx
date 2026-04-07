@@ -65,7 +65,7 @@ interface CertificateTemplate {
   status?: string
 }
 
-const SOURCE_BANK_ALLOWED_STATUSES = new Set(["approved", "pending", "draft", "rejected"])
+const SOURCE_BANK_ALLOWED_STATUSES = new Set(["approved"])
 
 const normalizeExamSetBaseTitle = (title: string): string => {
   let value = String(title || "").trim()
@@ -272,7 +272,7 @@ function TeacherGenerateExamCreatePageContent() {
           const mapped = examList
             .filter((item: any) => {
               const status = String(item?.status || "").toLowerCase()
-              return !status || SOURCE_BANK_ALLOWED_STATUSES.has(status)
+              return SOURCE_BANK_ALLOWED_STATUSES.has(status)
             })
             .map((item: any) => {
               const questions = parseQuestions(item?.questions)
@@ -465,6 +465,8 @@ function TeacherGenerateExamCreatePageContent() {
     }))
   }, [filteredExams])
 
+  const availableSourceExamIds = useMemo(() => new Set(sourceExams.map((exam) => exam.id)), [sourceExams])
+
   useEffect(() => {
     const nextExamIds = selectedCourseId
       ? sourceExams.filter((exam) => exam.courseId === selectedCourseId).map((exam) => exam.id)
@@ -538,7 +540,8 @@ function TeacherGenerateExamCreatePageContent() {
       return
     }
 
-    if (selectedExamIds.length === 0) {
+    const selectedApprovedExamIds = selectedExamIds.filter((id) => availableSourceExamIds.has(id))
+    if (selectedApprovedExamIds.length === 0) {
       toast.error("Vui lòng chọn ít nhất một ngân hàng đề thi")
       return
     }
@@ -609,7 +612,8 @@ function TeacherGenerateExamCreatePageContent() {
     }
 
     if (step === 2) {
-      if (selectedExamIds.length === 0) {
+      const selectedApprovedExamIds = selectedExamIds.filter((id) => availableSourceExamIds.has(id))
+      if (selectedApprovedExamIds.length === 0) {
         toast.error("Vui lòng chọn ít nhất một ngân hàng đề thi")
         return false
       }
@@ -645,6 +649,11 @@ function TeacherGenerateExamCreatePageContent() {
     }
     if (generatedQuestions.length === 0) {
       toast.error("Vui lòng tạo bộ câu hỏi trước khi xuất bản")
+      return
+    }
+    const selectedApprovedExamIds = selectedExamIds.filter((id) => availableSourceExamIds.has(id))
+    if (selectedApprovedExamIds.length === 0) {
+      toast.error("Chỉ có thể sử dụng ngân hàng đề đã duyệt")
       return
     }
     if (type === "official" && !certificateTemplateId) {
@@ -718,6 +727,7 @@ function TeacherGenerateExamCreatePageContent() {
 
   const inputClass = "w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-500/20"
   const sectionCardClass = "overflow-visible rounded-2xl border border-slate-700 bg-slate-800 p-5 shadow-[0_10px_25px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(0,0,0,0.3)]"
+  const selectClass = "rounded-xl border-[#334155] bg-[#0b1224] text-slate-100 focus:ring-emerald-500/20"
 
   return (
     <div className="relative min-h-screen overflow-visible rounded-3xl bg-slate-900 p-4 md:p-6">
@@ -810,6 +820,7 @@ function TeacherGenerateExamCreatePageContent() {
                                 setSelectedCourseId(e)
                                 setCertificateTemplateId("")
                               }}
+                              className={selectClass}
                             >
                               <option value="">Chọn khóa học</option>
                               {courseOptions.map((course) => (
@@ -829,6 +840,7 @@ function TeacherGenerateExamCreatePageContent() {
                                     setCertificateTemplateId("")
                                   }
                                 }}
+                                className={selectClass}
                               >
                                 <option value="practice">Thi thử</option>
                                 <option value="official">Thi thật</option>
@@ -841,6 +853,7 @@ function TeacherGenerateExamCreatePageContent() {
                                 <DialogSelect
                                   value={certificateTemplateId}
                                   onChange={(e) => setCertificateTemplateId(e)}
+                                  className={selectClass}
                                 >
                                   <option value="">Chọn chứng chỉ</option>
                                   {certificateTemplateId && !availableCertificates.some((cert) => cert.id === certificateTemplateId) && (
@@ -920,14 +933,14 @@ function TeacherGenerateExamCreatePageContent() {
                       <Database size={18} className="text-emerald-400" /> Chọn ngân hàng nguồn
                     </h2>
                     <div className="mb-3 flex flex-wrap gap-2 text-xs text-slate-300">
-                      <span className="rounded-full border border-slate-700 bg-slate-700/50 px-2.5 py-1">Đã chọn {selectedExamIds.length} đề</span>
+                      <span className="rounded-full border border-slate-700 bg-slate-700/50 px-2.5 py-1">Đã chọn {selectedExamIds.filter((id) => availableSourceExamIds.has(id)).length} đề đã duyệt</span>
                       <span className="rounded-full border border-slate-700 bg-slate-700/50 px-2.5 py-1">Pool câu hỏi {allQuestions.length}</span>
                     </div>
 
                     <div className="space-y-3">
                       {groupedSourceExams.length === 0 && (
                         <div className="rounded-xl border border-slate-700 bg-slate-700/40 px-3 py-2 text-sm text-slate-400">
-                          Không có ngân hàng đề phù hợp để chọn
+                          Không có ngân hàng đề đã duyệt để chọn
                         </div>
                       )}
 
@@ -1115,7 +1128,7 @@ function TeacherGenerateExamCreatePageContent() {
                     <ul className="mt-2 space-y-1 text-xs text-slate-400">
                       <li className="flex items-center gap-2"><CheckCircle2 size={13} className={title ? "text-emerald-400" : "text-slate-600"} /> Tiêu đề đề thi</li>
                       <li className="flex items-center gap-2"><CheckCircle2 size={13} className={selectedCourseId ? "text-emerald-400" : "text-slate-600"} /> Khóa học</li>
-                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={selectedExamIds.length > 0 ? "text-emerald-400" : "text-slate-600"} /> Ngân hàng nguồn</li>
+                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={selectedExamIds.some((id) => availableSourceExamIds.has(id)) ? "text-emerald-400" : "text-slate-600"} /> Ngân hàng nguồn</li>
                       <li className="flex items-center gap-2"><CheckCircle2 size={13} className={generatedQuestions.length > 0 ? "text-emerald-400" : "text-slate-600"} /> Bộ câu hỏi đã sinh</li>
                     </ul>
                   </div>

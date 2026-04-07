@@ -8,6 +8,7 @@ import { authFetch } from "@/lib/authfetch"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { DialogSelect } from "@/components/ui/dialog-select"
 import {
   ArrowLeft,
   Save,
@@ -1375,27 +1376,25 @@ export default function CreateCertificatePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">{t("tch_cert_label_validity", "Thời hạn hiệu lực")}</label>
-                    <UniversalSelect
+                    <DialogSelect
                       value={typeof formData.validityPeriod === 'string' && validityOptions.some((option) => option.value === formData.validityPeriod) ? formData.validityPeriod : validityOptions[0]?.value}
-                      onChange={(e) => setFormData({ ...formData, validityPeriod: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all"
+                      onChange={(value) => setFormData({ ...formData, validityPeriod: value })}
                     >
                       {validityOptions.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
-                    </UniversalSelect>
+                    </DialogSelect>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">{t("tch_cert_label_border_style", "Kiểu viền")}</label>
-                    <UniversalSelect
+                    <DialogSelect
                       value={formData.borderStyle}
-                      onChange={(e) => setFormData({ ...formData, borderStyle: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all"
+                      onChange={(value) => setFormData({ ...formData, borderStyle: value })}
                     >
                       {borderStyleOptions.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
-                    </UniversalSelect>
+                    </DialogSelect>
                   </div>
                 </div>
 

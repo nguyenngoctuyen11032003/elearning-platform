@@ -225,6 +225,7 @@ export const API_ENDPOINTS = {
     DASHBOARD: '/teacher/dashboard/stats',
     EARNINGS: '/teacher/earnings',
     STUDENTS: '/teacher/students',
+    REMOVE_STUDENT: (enrollmentId: string) => `/teacher/students/${enrollmentId}`,
     EXPORT_EARNINGS: '/teacher/earnings/export',
     EXPORT_STUDENTS: '/teacher/students/export',
     REVIEWS: '/teacher/reviews',

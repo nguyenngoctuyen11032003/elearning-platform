@@ -725,6 +725,12 @@ if (typeof window !== 'undefined' && token) {
     return { data: [], total: 0 }
   }
 
+  async removeTeacherStudent(enrollmentId: string): Promise<any> {
+    return this.request(API_ENDPOINTS.TEACHER.REMOVE_STUDENT(enrollmentId), {
+      method: 'DELETE',
+    })
+  }
+
   async exportTeacherStudents(): Promise<Blob | any> {
     return this.request(API_ENDPOINTS.TEACHER.EXPORT_STUDENTS, {
       method: 'POST',

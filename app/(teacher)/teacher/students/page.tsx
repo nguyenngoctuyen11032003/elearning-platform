@@ -75,6 +75,7 @@ export default function TeacherStudentsPage() {
   const [viewMode, setViewMode] = useState<"view" | "remove" | null>(null)
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
+  const [removing, setRemoving] = useState(false)
 
   const localeByLanguage: Record<string, string> = {
     vi: "vi-VN",
@@ -219,11 +220,25 @@ export default function TeacherStudentsPage() {
     setOpenMenu(null)
   }
 
-  const handleRemoveConfirm = () => {
+  const handleRemoveConfirm = async () => {
     if (!selectedStudent) return
-    setStudents(students.filter((student) => student.id !== selectedStudent.id))
-    setViewMode(null)
-    setSelectedStudent(null)
+
+    setRemoving(true)
+    try {
+      await apiClient.removeTeacherStudent(selectedStudent.id)
+      setStudents((prev) => prev.filter((student) => student.id !== selectedStudent.id))
+      toast.success(t("teacher_students_remove_success", "Đã xóa học viên khỏi khóa học"))
+      setViewMode(null)
+      setSelectedStudent(null)
+    } catch (error) {
+      console.error("Failed to remove student from course", error)
+      const message = error instanceof Error
+        ? error.message
+        : t("teacher_students_remove_failed", "Không thể xóa học viên khỏi khóa học")
+      toast.error(message)
+    } finally {
+      setRemoving(false)
+    }
   }
 
   const handleExport = () => {
@@ -712,10 +727,11 @@ export default function TeacherStudentsPage() {
                           {t("common_cancel", "Hủy")}
                         </button>
                         <button 
-                          onClick={handleRemoveConfirm} 
-                          className="flex-1 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-700 text-white"
+                          onClick={handleRemoveConfirm}
+                          disabled={removing}
+                          className="flex-1 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-700 text-white disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          {t("teacher_students_remove", "Xóa")}
+                          {removing ? t("common_loading", "Đang xử lý...") : t("teacher_students_remove", "Xóa")}
                         </button>
                       </div>
                     </div>
@@ -942,8 +958,12 @@ export default function TeacherStudentsPage() {
                   >
                     {t("common_cancel", "Hủy")}
                   </button>
-                  <button onClick={handleRemoveConfirm} className="flex-1 py-3 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white">
-                    {t("teacher_students_remove_student", "Xóa học viên")}
+                  <button
+                    onClick={handleRemoveConfirm}
+                    disabled={removing}
+                    className="flex-1 py-3 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {removing ? t("common_loading", "Đang xử lý...") : t("teacher_students_remove_student", "Xóa học viên")}
                   </button>
                 </div>
               </div>

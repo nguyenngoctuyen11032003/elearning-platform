@@ -171,6 +171,24 @@ function parseQuizQuestions(rawQuestions: unknown): Array<{
     }
   }
 
+  if (!Array.isArray(normalized)) {
+    if (normalized && typeof normalized === "object") {
+      const record = normalized as Record<string, unknown>
+      if (Array.isArray(record.questions)) {
+        normalized = record.questions
+      } else {
+        const numericEntries = Object.entries(record)
+          .filter(([key]) => /^\d+$/.test(key))
+          .sort(([a], [b]) => Number(a) - Number(b))
+          .map(([, value]) => value)
+
+        if (numericEntries.length > 0) {
+          normalized = numericEntries
+        }
+      }
+    }
+  }
+
   if (!Array.isArray(normalized)) return []
 
   const result: Array<{
@@ -244,6 +262,10 @@ function parseQuizQuestions(rawQuestions: unknown): Array<{
   }
 
   return result
+}
+
+function getQuizQuestionCount(rawQuestions: unknown): number {
+  return parseQuizQuestions(rawQuestions).length
 }
 
 const RUBRIC_LEVEL_COUNT = 5
@@ -1201,8 +1223,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
         // Prefer the quiz that currently has more questions.
         const prevQuiz = existingQuizList.find((item: any) => String(item?.id) === prevQuizId)
-        const prevQuestionCount = Array.isArray(prevQuiz?.questions) ? prevQuiz.questions.length : 0
-        const nextQuestionCount = Array.isArray(quiz?.questions) ? quiz.questions.length : 0
+        const prevQuestionCount = getQuizQuestionCount(prevQuiz?.questions)
+        const nextQuestionCount = getQuizQuestionCount(quiz?.questions)
         if (nextQuestionCount >= prevQuestionCount) {
           existingQuizByLessonId[lessonKey] = quizId
         }
@@ -1470,8 +1492,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           if (!key) return acc
 
           const current = acc[key]
-          const currentQuestionCount = Array.isArray(current?.questions) ? current.questions.length : 0
-          const nextQuestionCount = Array.isArray(quiz?.questions) ? quiz.questions.length : 0
+          const currentQuestionCount = getQuizQuestionCount(current?.questions)
+          const nextQuestionCount = getQuizQuestionCount(quiz?.questions)
 
           if (!current || nextQuestionCount >= currentQuestionCount) {
             acc[key] = quiz

@@ -248,6 +248,37 @@ export default function EditExamPage() {
     return ""
   }
 
+  const coerceQuestionsArray = (value: any): any[] => {
+    let normalized: any = value
+
+    while (typeof normalized === "string") {
+      try {
+        normalized = JSON.parse(normalized)
+      } catch {
+        break
+      }
+    }
+
+    if (Array.isArray(normalized)) return normalized
+    if (!normalized || typeof normalized !== "object") return []
+
+    if (Array.isArray(normalized.questions)) {
+      return normalized.questions
+    }
+
+    const numericEntries = Object.entries(normalized as Record<string, any>)
+      .filter(([key]) => /^\d+$/.test(key))
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([, item]) => item)
+
+    if (numericEntries.length > 0) return numericEntries
+
+    const objectValues = Object.values(normalized as Record<string, any>).filter(
+      (item) => item !== undefined && item !== null,
+    )
+    return objectValues.length > 0 ? objectValues : []
+  }
+
   const normalizeQuestions = (rawQuestions: any[]): Question[] => {
     if (!Array.isArray(rawQuestions)) return []
 
@@ -447,8 +478,11 @@ export default function EditExamPage() {
   const loadExam = async () => {
     setIsLoading(true)
     try {
-      // Fetch regular exam from exam bank (not extracted exams)
-      const response = await authFetch(`/exams/${examId}`)
+      // Fetch via Next API proxy to avoid direct cross-origin failures in browser.
+      const token = localStorage.getItem("auth_token") || ""
+      const response = await fetch(`/api/exams/${examId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
       if (!response.ok) {
         throw new Error(tr("Không thể tải bài thi từ ngân hàng đề", "Failed to fetch exam from exam bank"))
       }
@@ -456,19 +490,7 @@ export default function EditExamPage() {
       const payload = await response.json()
       const data = payload?.data ?? payload
 
-      let rawQuestions: any[] = []
-      let questionsData = data.questions
-      // Handle double-stringified JSON from database
-      while (typeof questionsData === "string") {
-        try {
-          questionsData = JSON.parse(questionsData)
-        } catch {
-          break
-        }
-      }
-      if (Array.isArray(questionsData)) {
-        rawQuestions = questionsData
-      }
+      const rawQuestions: any[] = coerceQuestionsArray(data.questions)
       const normalizedQuestions = normalizeQuestions(rawQuestions).map((q) => ({
         ...q,
         needsAssetReview: needsFormulaAssetReview(q),
@@ -717,9 +739,14 @@ export default function EditExamPage() {
         throw new Error(tr("Bài thi chưa có câu hỏi hợp lệ. Vui lòng nhập lại đề trước khi gửi duyệt", "The exam has no valid questions. Please update questions before submitting for review"))
       }
 
-      // Update regular exam in exam bank (not extracted exams)
-      const response = await authFetch(`/exams/${examId}`, {
+      // Update via Next API proxy to avoid direct cross-origin failures in browser.
+      const token = localStorage.getItem("auth_token") || ""
+      const response = await fetch(`/api/exams/${examId}`, {
         method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(examData),
       })
 

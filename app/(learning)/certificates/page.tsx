@@ -27,7 +27,6 @@ import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { apiClient } from "@/lib/api/client"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
-import { UniversalSelect } from "@/components/ui/universal-select"
 
 interface Certificate {
   id: string
@@ -47,6 +46,30 @@ interface Certificate {
     firstName?: string
     lastName?: string
   }
+}
+
+interface ExamAttemptItem {
+  id: string
+  source: "regular" | "extracted"
+  examId: string
+  examTitle: string
+  score: number
+  passed: boolean
+  createdAt: string
+  totalQuestions: number
+  correctCount: number
+  incorrectCount: number
+}
+
+interface ExamAttemptSummary {
+  examId: string
+  examTitle: string
+  attemptUsed: number
+  latestScore: number
+  latestPassed: boolean
+  latestDate: string
+  latestCorrectCount: number
+  latestIncorrectCount: number
 }
 
 function normalizeMediaUrl(value: unknown): string | undefined {
@@ -73,8 +96,6 @@ function normalizeMediaUrl(value: unknown): string | undefined {
 
   return normalized
 }
-
-type StatusFilter = "all" | "approved" | "pending" | "rejected"
 
 function mapCertificate(raw: any): Certificate {
   const imageUrl =
@@ -117,9 +138,11 @@ export default function CertificatesPage() {
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [viewerCert, setViewerCert] = useState<Certificate | null>(null)
   const [viewerZoom, setViewerZoom] = useState(1)
+  const [attemptModalOpen, setAttemptModalOpen] = useState(false)
+  const [attemptModalLoading, setAttemptModalLoading] = useState(false)
+  const [attemptSummaries, setAttemptSummaries] = useState<ExamAttemptSummary[]>([])
 
   useEffect(() => {
     const load = async () => {
@@ -234,6 +257,141 @@ export default function CertificatesPage() {
     }
   }
 
+  const loadExamAttempts = async () => {
+    setAttemptModalLoading(true)
+    try {
+      const regularAttemptsTask = apiClient.get("/exams/my-attempts")
+      const extractedExamsTask = apiClient.getAvailableExtractedExams()
+      const [regularAttemptsResult, extractedExamsResult] = await Promise.allSettled([
+        regularAttemptsTask,
+        extractedExamsTask,
+      ])
+
+      const regularAttemptsRaw =
+        regularAttemptsResult.status === "fulfilled" ? regularAttemptsResult.value : []
+      const regularAttempts = Array.isArray(regularAttemptsRaw)
+        ? regularAttemptsRaw
+        : Array.isArray((regularAttemptsRaw as any)?.data)
+          ? (regularAttemptsRaw as any).data
+          : []
+
+      const regularMapped: ExamAttemptItem[] = regularAttempts
+        .map((attempt: any) => {
+          const questionResults = Array.isArray(attempt?.questionResults) ? attempt.questionResults : []
+          const totalQuestions = questionResults.length
+          const correctCount = questionResults.filter((result: any) => Boolean(result?.isCorrect)).length
+          const incorrectCount = Math.max(totalQuestions - correctCount, 0)
+
+          return {
+            id: String(attempt?.id || ""),
+            source: "regular" as const,
+            examId: String(attempt?.exam?.id || attempt?.examId || ""),
+            examTitle: String(attempt?.exam?.title || t("exam_result", "Bài thi")),
+            score: Number(attempt?.score || 0),
+            passed: Boolean(attempt?.passed),
+            createdAt: String(attempt?.createdAt || attempt?.submittedAt || new Date().toISOString()),
+            totalQuestions,
+            correctCount,
+            incorrectCount,
+          }
+        })
+        .filter((item: ExamAttemptItem) => Boolean(item.id && item.examId))
+
+      const extractedExams =
+        extractedExamsResult.status === "fulfilled" && Array.isArray(extractedExamsResult.value)
+          ? extractedExamsResult.value
+          : []
+
+      const extractedAttemptsResponses = await Promise.allSettled(
+        extractedExams.map((exam: any) => apiClient.getMyExtractedExamAttempts(String(exam?.id || ""))),
+      )
+
+      const extractedMapped: ExamAttemptItem[] = []
+      for (const response of extractedAttemptsResponses) {
+        if (response.status !== "fulfilled") continue
+        const examData = response.value?.exam
+        const examId = String(examData?.id || "")
+        const examTitle = String(examData?.title || t("exam_result", "Bài thi"))
+        const attempts = Array.isArray(response.value?.attempts) ? response.value.attempts : []
+        if (!examId || attempts.length === 0) continue
+
+        const latestAttemptId = String(attempts[0]?.id || "")
+        let latestQuestionResults: any[] = []
+        if (latestAttemptId) {
+          try {
+            const detail = await apiClient.getMyExtractedExamAttemptDetail(examId, latestAttemptId)
+            latestQuestionResults = Array.isArray(detail?.questionResults) ? detail.questionResults : []
+          } catch {
+            latestQuestionResults = []
+          }
+        }
+
+        const latestTotalQuestions = latestQuestionResults.length
+        const latestCorrectCount = latestQuestionResults.filter((result: any) => Boolean(result?.isCorrect)).length
+        const latestIncorrectCount = Math.max(latestTotalQuestions - latestCorrectCount, 0)
+
+        attempts.forEach((attempt: any, index: number) => {
+          const isLatest = index === 0
+          extractedMapped.push({
+            id: String(attempt?.id || ""),
+            source: "extracted",
+            examId,
+            examTitle,
+            score: Number(attempt?.score || 0),
+            passed: Boolean(attempt?.passed),
+            createdAt: String(attempt?.completedAt || attempt?.submittedAt || attempt?.createdAt || new Date().toISOString()),
+            totalQuestions: isLatest ? latestTotalQuestions : 0,
+            correctCount: isLatest ? latestCorrectCount : 0,
+            incorrectCount: isLatest ? latestIncorrectCount : 0,
+          })
+        })
+      }
+
+      const mapped: ExamAttemptItem[] = [...regularMapped, ...extractedMapped]
+
+      const grouped = new Map<string, ExamAttemptItem[]>()
+      mapped.forEach((item) => {
+        const groupKey = `${item.source}:${item.examId}`
+        const list = grouped.get(groupKey) || []
+        list.push(item)
+        grouped.set(groupKey, list)
+      })
+
+      const summaries: ExamAttemptSummary[] = Array.from(grouped.entries())
+        .map(([examId, items]) => {
+          const sorted = [...items].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          )
+          const latest = sorted[0]
+
+          return {
+            examId,
+            examTitle: latest.examTitle,
+            attemptUsed: items.length,
+            latestScore: latest.score,
+            latestPassed: latest.passed,
+            latestDate: latest.createdAt,
+            latestCorrectCount: latest.correctCount,
+            latestIncorrectCount: latest.incorrectCount,
+          }
+        })
+        .sort((a, b) => new Date(b.latestDate).getTime() - new Date(a.latestDate).getTime())
+
+      setAttemptSummaries(summaries)
+    } catch (error) {
+      console.error("Unable to load exam attempts", error)
+      setAttemptSummaries([])
+      toast.error(t("exam_attempt_load_failed", "Không thể tải danh sách bài thi đã thực hiện"))
+    } finally {
+      setAttemptModalLoading(false)
+    }
+  }
+
+  const openAttemptModal = () => {
+    setAttemptModalOpen(true)
+    loadExamAttempts()
+  }
+
   useEffect(() => {
     if (!viewerCert) return
 
@@ -258,9 +416,6 @@ export default function CertificatesPage() {
     const keyword = searchTerm.trim().toLowerCase()
 
     return certificates.filter((cert) => {
-      const matchStatus = statusFilter === "all" || normalized(cert.status) === statusFilter
-      if (!matchStatus) return false
-
       if (!keyword) return true
 
       const courseName = String(cert.course?.title || "").toLowerCase()
@@ -269,19 +424,13 @@ export default function CertificatesPage() {
 
       return courseName.includes(keyword) || code.includes(keyword) || teacher.includes(keyword)
     })
-  }, [certificates, searchTerm, statusFilter])
+  }, [certificates, searchTerm])
 
   const stats = useMemo(() => {
-    const approved = certificates.filter((c) => normalized(c.status) === "approved").length
-    const pending = certificates.filter((c) => normalized(c.status) === "pending").length
-    const rejected = certificates.filter((c) => normalized(c.status) === "rejected").length
     const courses = new Set(certificates.map((c) => c.courseId).filter(Boolean)).size
 
     return {
       total: certificates.length,
-      approved,
-      pending,
-      rejected,
       courses,
     }
   }, [certificates])
@@ -344,21 +493,19 @@ export default function CertificatesPage() {
               </p>
             </div>
 
-            <Link
-              href="/exams"
+            <button
+              type="button"
+              onClick={openAttemptModal}
               className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-500"
             >
               <FileText className="h-4 w-4" />
-              {t("cert_view_exam_list", "Xem danh sách bài thi")}
-            </Link>
+              {t("cert_view_exam_list", "Xem danh sách bài thi đã làm")}
+            </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-2">
             {[
               { label: t("cert_total_label", "Tổng chứng chỉ"), value: stats.total, icon: Award },
-              { label: t("cert_approved_label", "Đã phê duyệt"), value: stats.approved, icon: CheckCircle },
-              { label: t("cert_pending", "Chờ duyệt"), value: stats.pending, icon: AlertCircle },
-              { label: t("cert_rejected", "Từ chối"), value: stats.rejected, icon: AlertCircle },
               { label: t("cert_courses_label", "Khóa học"), value: stats.courses, icon: FileText },
             ].map((item, idx) => (
               <motion.article
@@ -397,19 +544,6 @@ export default function CertificatesPage() {
               className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-cyan-500 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.2)] dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
             />
           </div>
-
-          <UniversalSelect
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200"
-            contentClassName="border-blue-500/30 bg-slate-950/92 text-slate-100 backdrop-blur-2xl shadow-[0_20px_50px_rgba(2,6,23,0.75)]"
-            portalled={true}
-          >
-            <option value="all">{t("cert_filter_all", "Tất cả trạng thái")}</option>
-            <option value="approved">{t("cert_approved", "Đã xác nhận")}</option>
-            <option value="pending">{t("cert_pending", "Chờ duyệt")}</option>
-            <option value="rejected">{t("cert_rejected", "Từ chối")}</option>
-          </UniversalSelect>
         </div>
       </motion.div>
 
@@ -651,6 +785,154 @@ export default function CertificatesPage() {
               </Link>
             </div>
           </div>
+        </div>
+      )}
+
+      {attemptModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+          onClick={() => setAttemptModalOpen(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-[1.75rem] border border-cyan-200/30 bg-white shadow-[0_28px_80px_rgba(2,132,199,0.26)] dark:border-slate-700 dark:bg-slate-950"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative border-b border-cyan-100 bg-[radial-gradient(120%_100%_at_0%_0%,rgba(34,211,238,0.2),transparent_45%),radial-gradient(100%_95%_at_95%_0%,rgba(59,130,246,0.16),transparent_45%)] px-5 py-4 dark:border-slate-800">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200/70 bg-cyan-50/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-cyan-700 dark:border-cyan-700/50 dark:bg-cyan-900/20 dark:text-cyan-200">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {t("cert_exam_attempt_badge", "Lịch sử thực hiện")}
+                  </p>
+                  <h2 className="mt-2 text-xl font-black text-slate-900 dark:text-white md:text-2xl">
+                    {t("cert_exam_attempt_title", "Chi tiết bài thi đã thực hiện")}
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    {t("cert_exam_attempt_desc", "Theo dõi số lần làm bài, điểm số và số câu đúng/sai theo từng đề thi.")}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setAttemptModalOpen(false)}
+                  className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                  aria-label={t("close", "Đóng")}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-[74vh] space-y-5 overflow-auto p-5">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                {[
+                  {
+                    label: t("cert_exam_total", "Số đề đã làm"),
+                    value: attemptSummaries.length,
+                    icon: FileText,
+                  },
+                  {
+                    label: t("cert_exam_attempt_total", "Tổng attempt"),
+                    value: attemptSummaries.reduce((sum, item) => sum + item.attemptUsed, 0),
+                    icon: Calendar,
+                  },
+                  {
+                    label: t("cert_exam_avg_score", "Điểm TB lần gần nhất"),
+                    value:
+                      attemptSummaries.length > 0
+                        ? `${(
+                            attemptSummaries.reduce((sum, item) => sum + item.latestScore, 0) /
+                            attemptSummaries.length
+                          ).toFixed(1)}%`
+                        : "0%",
+                    icon: Award,
+                  },
+                  {
+                    label: t("cert_exam_passed", "Đạt lần gần nhất"),
+                    value: attemptSummaries.filter((item) => item.latestPassed).length,
+                    icon: CheckCircle,
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-xl border border-slate-200 bg-white/90 p-3 shadow-[0_8px_20px_rgba(14,165,233,0.08)] dark:border-slate-800 dark:bg-slate-900/70"
+                  >
+                    <p className="mb-1 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                      <item.icon className="h-3.5 w-3.5" />
+                      {item.label}
+                    </p>
+                    <p className="text-xl font-black text-slate-900 dark:text-white">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {attemptModalLoading ? (
+                <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/70">
+                  <Loader2 className="h-7 w-7 animate-spin text-cyan-500" />
+                </div>
+              ) : attemptSummaries.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {attemptSummaries.map((item, idx) => (
+                    <motion.article
+                      key={item.examId}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.04 }}
+                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.08)] dark:border-slate-800 dark:bg-slate-900/70"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="line-clamp-2 text-base font-bold text-slate-900 dark:text-white">{item.examTitle}</h3>
+                        <span
+                          className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            item.latestPassed
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                              : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
+                          }`}
+                        >
+                          {item.latestPassed ? t("exam_result_passed", "Đạt") : t("exam_result_failed", "Chưa đạt")}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-lg bg-cyan-50 px-2.5 py-2 dark:bg-cyan-950/30">
+                          <p className="text-slate-500 dark:text-slate-400">{t("cert_exam_attempt_used", "Attempt đã dùng")}</p>
+                          <p className="text-sm font-bold text-cyan-700 dark:text-cyan-300">{item.attemptUsed}</p>
+                        </div>
+                        <div className="rounded-lg bg-slate-100 px-2.5 py-2 dark:bg-slate-800/70">
+                          <p className="text-slate-500 dark:text-slate-400">{t("cert_exam_score", "Điểm")}</p>
+                          <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{item.latestScore.toFixed(1)}%</p>
+                        </div>
+                        <div className="rounded-lg bg-emerald-50 px-2.5 py-2 dark:bg-emerald-950/30">
+                          <p className="text-slate-500 dark:text-slate-400">{t("cert_exam_correct", "Câu đúng")}</p>
+                          <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{item.latestCorrectCount}</p>
+                        </div>
+                        <div className="rounded-lg bg-rose-50 px-2.5 py-2 dark:bg-rose-950/30">
+                          <p className="text-slate-500 dark:text-slate-400">{t("cert_exam_incorrect", "Câu sai")}</p>
+                          <p className="text-sm font-bold text-rose-700 dark:text-rose-300">{item.latestIncorrectCount}</p>
+                        </div>
+                      </div>
+
+                      <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
+                        {t("cert_exam_latest_attempt", "Lần làm gần nhất")}: {formatDate(item.latestDate)}
+                      </p>
+                    </motion.article>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center dark:border-slate-800 dark:bg-slate-900/70">
+                  <FileText className="mx-auto mb-3 h-10 w-10 text-slate-400" />
+                  <p className="text-base font-bold text-slate-900 dark:text-white">
+                    {t("cert_exam_attempt_empty", "Bạn chưa thực hiện bài thi nào")}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    {t("cert_exam_attempt_empty_desc", "Hãy hoàn thành bài thi để xem chi tiết lịch sử tại đây.")}
+                  </p>
+                </div>
+              )}
+            </div>
+          </motion.div>
         </div>
       )}
     </div>

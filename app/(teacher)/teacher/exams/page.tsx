@@ -127,9 +127,37 @@ export default function TeacherExamsPage() {
         const parseQuestions = (value: any): any[] => {
           let data = value
           while (typeof data === "string") {
-            try { data = JSON.parse(data) } catch { break }
+            try {
+              data = JSON.parse(data)
+            } catch {
+              break
+            }
           }
+
           if (Array.isArray(data)) return data
+          if (!data || typeof data !== "object") return []
+
+          if (Array.isArray((data as any).questions)) {
+            return (data as any).questions
+          }
+
+          const numericEntries = Object.entries(data as Record<string, any>)
+            .filter(([key]) => /^\d+$/.test(key))
+            .sort(([a], [b]) => Number(a) - Number(b))
+            .map(([, item]) => item)
+
+          if (numericEntries.length > 0) return numericEntries
+
+          const looksLikeQuestion =
+            "question" in (data as Record<string, any>) ||
+            "text" in (data as Record<string, any>) ||
+            "content" in (data as Record<string, any>) ||
+            "prompt" in (data as Record<string, any>) ||
+            "options" in (data as Record<string, any>) ||
+            "correctAnswer" in (data as Record<string, any>)
+
+          if (looksLikeQuestion) return [data]
+
           return []
         }
 
@@ -377,23 +405,6 @@ export default function TeacherExamsPage() {
     )
   }
 
-  const getTypeBadge = (type: string) => {
-    const styles = {
-      practice: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-      official: "bg-purple-500/10 text-purple-500 border-purple-500/20",
-    }
-    const labels = {
-      practice: t("te_type_practice", "Thi thử"),
-      official: t("te_type_official", "Thi thật"),
-    }
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${styles[type as keyof typeof styles]}`}>
-        {type === "official" ? <Award size={12} /> : <ClipboardList size={12} />}
-        {labels[type as keyof typeof labels]}
-      </span>
-    )
-  }
-
   return (
     <div className="min-h-screen w-full">
       <div className="w-full space-y-6">
@@ -563,7 +574,6 @@ export default function TeacherExamsPage() {
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2 flex-wrap">
                                 <h4 className="font-semibold text-foreground dark:text-white text-lg">{typeTitle}</h4>
-                                {getTypeBadge(exam.type)}
                                 {getStatusBadge(exam.status)}
                               </div>
                               <p className="text-muted-foreground dark:text-slate-400 text-sm mb-3">{exam.description}</p>
