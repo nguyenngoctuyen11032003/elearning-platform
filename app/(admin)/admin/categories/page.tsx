@@ -64,6 +64,15 @@ const [imageFile, setImageFile] = useState<File | null>(null)
 const [editImageFile, setEditImageFile] = useState<File | null>(null)
 const [isSubmitting, setIsSubmitting] = useState(false)
 
+useEffect(() => {
+  if (!isAdding) return
+  const previousOverflow = document.body.style.overflow
+  document.body.style.overflow = "hidden"
+  return () => {
+    document.body.style.overflow = previousOverflow
+  }
+}, [isAdding])
+
 const handleAddCategory = async () => {
   if (!newCategory.name.trim()) {
     alert(t("adm_cat_name_required", "Vui lòng nhập tên danh mục"))
@@ -367,123 +376,145 @@ useEffect(() => {
 
         {/* Add Category Modal */}
         {isAdding && (
-          <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 h-screen w-screen">
-            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 relative z-[10000] max-h-[90vh] overflow-y-auto flex flex-col">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_cat_add_title", "Thêm danh mục mới")}</h2>
-                <button
-                  onClick={() => {
-                    setIsAdding(false)
-                    setNewCategory({ name: "", description: "", color: "#2563eb", icon: "", image: undefined })
-                    setImageFile(null)
-                  }}
-                  className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
-                >
-                  <X size={20} className="text-muted-foreground" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_name_label", "Tên danh mục")}</label>
-                  <input
-                    type="text"
-                    placeholder={t("adm_cat_name_ph", "Nhập tên danh mục...")}
-                    value={newCategory.name}
-                    onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    autoFocus
-                  />
+          <div className="fixed inset-0 z-[9999] bg-black/55 backdrop-blur-sm overflow-y-auto">
+            <div className="min-h-full flex items-start justify-center px-4 py-6 sm:px-6 md:py-10">
+              <div className="w-full max-w-3xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-3xl shadow-[0_28px_90px_rgba(2,6,23,0.42)] overflow-hidden">
+                <div className="sticky top-0 z-10 bg-gradient-to-r from-card via-card to-primary/10 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/80 border-b border-border dark:border-slate-800 px-5 py-4 sm:px-6 sm:py-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white">{t("adm_cat_add_title", "Thêm danh mục mới")}</h2>
+                      <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">
+                        {t("adm_cat_add_subtitle", "Tạo danh mục mới để tổ chức khóa học chuyên nghiệp hơn")}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsAdding(false)
+                        setNewCategory({ name: "", description: "", color: "#2563eb", icon: "", image: undefined })
+                        setImageFile(null)
+                      }}
+                      className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
+                    >
+                      <X size={20} className="text-muted-foreground" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_icon_label", "Icon (tuỳ chọn)")}</label>
-                    <select
-                      value={newCategory.icon}
-                      onChange={(e) => {
-                        setImageFile(null) // Reset file khi chọn icon
-                        setNewCategory({
-                          ...newCategory,
-                          icon: e.target.value,
-                          image: undefined
-                        })
-                      }}
-                      className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-4 py-3 border border-slate-200 dark:border-slate-700 text-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    >
-                      <option value="">{t("adm_cat_no_icon", "Không chọn icon")}</option>
-                      {iconOptions.map((icon) => (
-                        <option key={icon} value={icon}>{icon}</option>
-                      ))}
-                    </select>
+                <div className="px-5 py-5 sm:px-6 sm:py-6 space-y-5 max-h-[calc(100vh-240px)] overflow-y-auto">
+                  <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-accent/5 to-transparent p-4">
+                    <p className="text-sm text-foreground dark:text-white font-semibold">
+                      {t("adm_cat_required_hint", "Vui lòng nhập tên và chọn icon hoặc ảnh đại diện cho danh mục")}
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_img_label", "Ảnh danh mục (tuỳ chọn)")}</label>
-                    <div className="flex items-center gap-3">
-                      <label className="flex-1 flex items-center justify-center gap-2 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 cursor-pointer hover:bg-secondary dark:hover:bg-slate-800 transition-smooth">
-                        <ImagePlus size={20} className="text-muted-foreground" />
-                        <span className="text-sm">{imageFile ? imageFile.name : t("adm_cat_choose_img", "Chọn ảnh...")}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (!file) return
 
-                            setImageFile(file)
-                            const reader = new FileReader()
-                            reader.onload = () => {
-                              setNewCategory(prev => ({
-                                ...prev,
-                                image: reader.result as string,
-                                icon: ""
-                              }))
-                            }
-                            reader.readAsDataURL(file)
-                          }}
-                          className="hidden"
-                        />
-                      </label>
-                      {newCategory.image && (
-                        <img
-                          src={newCategory.image}
-                          alt={newCategory.name}
-                          className="w-12 h-12 rounded-lg object-cover border"
-                        />
-                      )}
+                  <div className="space-y-2">
+                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_name_label", "Tên danh mục")}</label>
+                    <input
+                      type="text"
+                      placeholder={t("adm_cat_name_ph", "Nhập tên danh mục...")}
+                      value={newCategory.name}
+                      onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="rounded-2xl border border-border/70 dark:border-slate-800 bg-secondary/20 dark:bg-slate-900/20 p-4">
+                      <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_icon_label", "Icon (tuỳ chọn)")}</label>
+                      <select
+                        value={newCategory.icon}
+                        onChange={(e) => {
+                          setImageFile(null)
+                          setNewCategory({
+                            ...newCategory,
+                            icon: e.target.value,
+                            image: undefined,
+                          })
+                        }}
+                        className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-700 text-lg focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      >
+                        <option value="">{t("adm_cat_no_icon", "Không chọn icon")}</option>
+                        {iconOptions.map((icon) => (
+                          <option key={icon} value={icon}>{icon}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="rounded-2xl border border-border/70 dark:border-slate-800 bg-secondary/20 dark:bg-slate-900/20 p-4">
+                      <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_img_label", "Ảnh danh mục (tuỳ chọn)")}</label>
+                      <div className="flex items-center gap-3">
+                        <label className="flex-1 min-w-0 flex items-center justify-center gap-2 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-border dark:border-slate-800 cursor-pointer hover:bg-secondary dark:hover:bg-slate-800 transition-smooth">
+                          <ImagePlus size={20} className="text-muted-foreground" />
+                          <span className="text-sm truncate">{imageFile ? imageFile.name : t("adm_cat_choose_img", "Chọn ảnh...")}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+
+                              setImageFile(file)
+                              const reader = new FileReader()
+                              reader.onload = () => {
+                                setNewCategory((prev) => ({
+                                  ...prev,
+                                  image: reader.result as string,
+                                  icon: "",
+                                }))
+                              }
+                              reader.readAsDataURL(file)
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                        <div className="w-14 h-14 rounded-xl border border-border dark:border-slate-700 bg-background dark:bg-slate-950 flex items-center justify-center overflow-hidden shrink-0">
+                          {newCategory.image ? (
+                            <img
+                              src={newCategory.image}
+                              alt={newCategory.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <ImagePlus size={16} className="text-muted-foreground" />
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_desc_label", "Mô tả")}</label>
+                    <textarea
+                      placeholder={t("adm_cat_desc_ph", "Nhập mô tả danh mục...")}
+                      value={newCategory.description}
+                      onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                      className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-28 resize-none"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_cat_desc_label", "Mô tả")}</label>
-                  <textarea
-                    placeholder={t("adm_cat_desc_ph", "Nhập mô tả danh mục...")}
-                    value={newCategory.description}
-                    onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                    className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-3 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-24 resize-none"
-                  />
+                <div className="sticky bottom-0 z-10 bg-card/95 dark:bg-slate-900/95 backdrop-blur border-t border-border dark:border-slate-800 px-5 py-4 sm:px-6">
+                  <div className="flex flex-col-reverse sm:flex-row gap-3">
+                    <button
+                      onClick={() => {
+                        setIsAdding(false)
+                        setNewCategory({ name: "", description: "", color: "#2563eb", icon: "", image: undefined })
+                        setImageFile(null)
+                      }}
+                      className="w-full sm:flex-1 px-4 py-2.5 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-xl hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
+                    >
+                      {t("adm_cat_cancel", "Hủy")}
+                    </button>
+                    <button
+                      onClick={handleAddCategory}
+                      disabled={isSubmitting}
+                      className="w-full sm:flex-1 px-4 py-2.5 bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white rounded-xl transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Save size={18} /> {isSubmitting ? t("adm_cat_saving", "Đang lưu...") : t("adm_cat_add_btn", "Thêm danh mục")}
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => {
-                    setIsAdding(false)
-                    setNewCategory({ name: "", description: "", color: "#2563eb", icon: "", image: undefined })
-                    setImageFile(null)
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
-                >
-                  {t("adm_cat_cancel", "Hủy")}
-                </button>
-                <button
-                  onClick={handleAddCategory}
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg transition-smooth font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Save size={18} /> {isSubmitting ? t("adm_cat_saving", "Đang lưu...") : t("adm_cat_add_btn", "Thêm danh mục")}
-                </button>
               </div>
             </div>
           </div>
