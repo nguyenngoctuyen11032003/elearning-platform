@@ -68,6 +68,11 @@ const normalizeStatus = (value: unknown): string => {
   return String(value ?? "").trim().toLowerCase()
 }
 
+const getEnrolledTimestamp = (value: unknown): number => {
+  const timestamp = new Date(String(value || "")).getTime()
+  return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
 const isCompletedEnrollment = (enrollment: Pick<EnrolledCourse, "progress" | "status">): boolean => {
   const status = normalizeStatus(enrollment.status)
   return (
@@ -96,6 +101,15 @@ export default function MyCoursesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [pinnedCourses, setPinnedCourses] = useState<Set<string>>(new Set())
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null)
+
+  const formatEnrolledDate = (value: unknown) => {
+    const timestamp = getEnrolledTimestamp(value)
+    if (timestamp <= 0) {
+      return t("common_not_updated", "Chưa cập nhật")
+    }
+
+    return new Date(timestamp).toLocaleDateString("vi-VN")
+  }
 
   const fetchEnrollments = useCallback(async () => {
     if (!user?.id) {
@@ -244,7 +258,7 @@ export default function MyCoursesPage() {
   const recentlyJoined = useMemo(
     () =>
       [...courses]
-        .sort((a, b) => new Date(b.enrolledAt || 0).getTime() - new Date(a.enrolledAt || 0).getTime())
+        .sort((a, b) => getEnrolledTimestamp(b.enrolledAt) - getEnrolledTimestamp(a.enrolledAt))
         .slice(0, 4),
     [courses],
   )
@@ -286,7 +300,7 @@ export default function MyCoursesPage() {
           return a.course.title.localeCompare(b.course.title, "vi")
         case "recent":
         default:
-          return new Date(b.enrolledAt || 0).getTime() - new Date(a.enrolledAt || 0).getTime()
+          return getEnrolledTimestamp(b.enrolledAt) - getEnrolledTimestamp(a.enrolledAt)
       }
     })
 
@@ -669,7 +683,7 @@ export default function MyCoursesPage() {
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                               <Clock3 className="h-3.5 w-3.5" />
-                              {new Date(enrollment.enrolledAt).toLocaleDateString("vi-VN")}
+                              {formatEnrolledDate(enrollment.enrolledAt)}
                             </div>
                             <Link
                               href={`/player/${getFirstLessonId(enrollment)}`}
@@ -793,7 +807,7 @@ export default function MyCoursesPage() {
                         {course.course.title}
                       </p>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {new Date(course.enrolledAt).toLocaleDateString("vi-VN")}
+                        {formatEnrolledDate(course.enrolledAt)}
                       </p>
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-400" />

@@ -441,9 +441,11 @@ export default function TakeExamPage() {
         questionId,
         answer,
       }))
+      const examDurationInSeconds = Math.max(0, Number(exam.timeLimit || 0) * 60)
+      const timeSpent = Math.max(0, examDurationInSeconds - timeRemaining)
 
       const result = isExtractedSource
-        ? await apiClient.submitExtractedExam(examId, payload, assignedVariantCode ?? undefined)
+        ? await apiClient.submitExtractedExam(examId, payload, assignedVariantCode ?? undefined, timeSpent)
         : await apiClient.submitExamAttempt(attemptId, payload)
 
       toast.success(

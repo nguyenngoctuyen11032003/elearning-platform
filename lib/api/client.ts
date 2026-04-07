@@ -1388,10 +1388,19 @@ if (typeof window !== 'undefined' && token) {
     });
   }
 
-  async submitExtractedExam(examId: string, answers: Array<{ questionId: string; answer: any }>, variantCode?: number): Promise<any> {
+  async submitExtractedExam(
+    examId: string,
+    answers: Array<{ questionId: string; answer: any }>,
+    variantCode?: number,
+    timeSpent?: number,
+  ): Promise<any> {
     return this.request(`/extracted-exams/${examId}/submit`, {
       method: 'POST',
-      body: JSON.stringify({ answers, ...(variantCode ? { variantCode } : {}) }),
+      body: JSON.stringify({
+        answers,
+        ...(variantCode ? { variantCode } : {}),
+        ...(typeof timeSpent === 'number' ? { timeSpent } : {}),
+      }),
     });
   }
 

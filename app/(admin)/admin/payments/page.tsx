@@ -55,11 +55,16 @@ const normalizeMethod = (method?: string) => {
 }
 
 const normalizeDateISO = (value?: string) => {
-  const date = value ? new Date(value) : new Date()
+  const date = value ? new Date(value) : new Date(0)
   if (Number.isNaN(date.getTime())) {
-    return new Date().toISOString()
+    return new Date(0).toISOString()
   }
   return date.toISOString()
+}
+
+const getPaymentTimestamp = (value?: string) => {
+  const timestamp = new Date(String(value || "")).getTime()
+  return Number.isNaN(timestamp) ? 0 : timestamp
 }
 
 export default function AdminPaymentsPage() {
@@ -153,7 +158,7 @@ export default function AdminPaymentsPage() {
         : []
 
       const mapped = [...coursePayments, ...subscriptionPayments].sort(
-        (a, b) => +new Date(b.date) - +new Date(a.date),
+        (a, b) => getPaymentTimestamp(b.date) - getPaymentTimestamp(a.date),
       )
 
       setPayments(mapped)
@@ -298,14 +303,16 @@ export default function AdminPaymentsPage() {
 
   const filteredPayments = useMemo(() => {
     const keyword = searchQuery.toLowerCase()
-    return payments.filter(
-      (payment) =>
+    return payments
+      .filter(
+        (payment) =>
         ((payment.id || "").toLowerCase().includes(keyword) ||
           (payment.user || "").toLowerCase().includes(keyword) ||
           (payment.course || "").toLowerCase().includes(keyword) ||
           (payment.teacher || "").toLowerCase().includes(keyword)) &&
-        (statusFilter === "all" || payment.status === statusFilter),
-    )
+          (statusFilter === "all" || payment.status === statusFilter),
+      )
+      .sort((a, b) => getPaymentTimestamp(b.date) - getPaymentTimestamp(a.date))
   }, [payments, searchQuery, statusFilter])
 
   const derivedRevenue = payments.filter((p) => p.status === "success").reduce((sum, p) => sum + p.amount, 0)

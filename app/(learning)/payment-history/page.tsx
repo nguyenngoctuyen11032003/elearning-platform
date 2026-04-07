@@ -51,6 +51,7 @@ export default function PaymentHistoryPage() {
   const [selectedPayment, setSelectedPayment] = useState<PaymentHistory | null>(null)
 
   const [balance, setBalance] = useState(0)
+  const isTeacherWalletHistory = pathname.startsWith("/teacher/wallet-membership")
   const topupPath = pathname.startsWith("/teacher/wallet-membership")
     ? "/teacher/wallet-membership/top-up"
     : "/top-up"
@@ -74,40 +75,75 @@ export default function PaymentHistoryPage() {
   useEffect(() => {
     let active = true
 
+    const getTimeValue = (value: string) => {
+      const timestamp = new Date(value).getTime()
+      return Number.isNaN(timestamp) ? 0 : timestamp
+    }
+
     const loadPaymentHistory = async () => {
       setLoading(true)
       try {
-        const paymentResult = await apiClient.getPaymentHistory()
+        let mappedPayments: PaymentHistory[] = []
 
-        const paymentRows = Array.isArray(paymentResult)
-          ? paymentResult
-          : Array.isArray((paymentResult as any)?.data)
-            ? (paymentResult as any).data
-            : []
+        if (isTeacherWalletHistory) {
+          const teacherSubscription = await apiClient.getTeacherSubscription()
+          const billingHistory = Array.isArray(teacherSubscription?.billingHistory) ? teacherSubscription.billingHistory : []
 
-        const mappedPayments: PaymentHistory[] = paymentRows.map((row: any) => {
-          const paymentType = String(row?.paymentType || "")
-          const courseTitle = row?.course?.title
-            ? String(row.course.title)
-            : paymentType === "wallet_topup"
-              ? t("pay_wallet_topup", "Nạp tiền vào ví")
-              : t("pay_unknown_course", "Khóa học không xác định")
+          mappedPayments = billingHistory.map((row: any) => {
+            const status = String(row?.status || "").toLowerCase()
+            const normalizedTeacherStatus: PaymentHistory["status"] =
+              status === "paid" ? "completed" : status === "pending" ? "pending" : "failed"
+            const planName = String(row?.plan?.name || t("pay_package", "Gói"))
+            const enrolledAt = String(row?.paidAt || row?.createdAt || "")
 
-          return {
-            id: String(row?.id || ""),
-            courseTitle,
-            courseSlug: row?.course?.slug ? String(row.course.slug) : undefined,
-            courseThumbnail: row?.course?.thumbnail ? String(row.course.thumbnail) : "/image/logo-ics.jpg",
-            amount: Number(row?.amount || 0),
-            discountAmount: Number(row?.discountAmount || 0),
-            finalAmount: Number(row?.finalAmount ?? row?.amount ?? 0),
-            status: normalizeStatus(String(row?.status || "failed")),
-            paymentMethod: mapPaymentMethod(String(row?.paymentMethod || ""), paymentType),
-            transactionId: String(row?.transactionCode || row?.transactionId || ""),
-            enrolledAt: String(row?.paidAt || row?.createdAt || new Date().toISOString()),
-            paymentType,
-          }
-        })
+            return {
+              id: String(row?.id || ""),
+              courseTitle: `${t("pay_package", "Gói")} ${planName}`,
+              amount: Number(row?.amount || 0),
+              discountAmount: 0,
+              finalAmount: Number(row?.amount || 0),
+              status: normalizedTeacherStatus,
+              paymentMethod: mapPaymentMethod(String(row?.paymentMethod || "")),
+              transactionId: String(row?.transactionId || row?.id || ""),
+              enrolledAt: enrolledAt || new Date(0).toISOString(),
+              paymentType: "teacher_subscription",
+            }
+          })
+        } else {
+          const paymentResult = await apiClient.getPaymentHistory()
+
+          const paymentRows = Array.isArray(paymentResult)
+            ? paymentResult
+            : Array.isArray((paymentResult as any)?.data)
+              ? (paymentResult as any).data
+              : []
+
+          mappedPayments = paymentRows.map((row: any) => {
+            const paymentType = String(row?.paymentType || "")
+            const courseTitle = row?.course?.title
+              ? String(row.course.title)
+              : paymentType === "wallet_topup"
+                ? t("pay_wallet_topup", "Nạp tiền vào ví")
+                : t("pay_unknown_course", "Khóa học không xác định")
+
+            return {
+              id: String(row?.id || ""),
+              courseTitle,
+              courseSlug: row?.course?.slug ? String(row.course.slug) : undefined,
+              courseThumbnail: row?.course?.thumbnail ? String(row.course.thumbnail) : "/image/logo-ics.jpg",
+              amount: Number(row?.amount || 0),
+              discountAmount: Number(row?.discountAmount || 0),
+              finalAmount: Number(row?.finalAmount ?? row?.amount ?? 0),
+              status: normalizeStatus(String(row?.status || "failed")),
+              paymentMethod: mapPaymentMethod(String(row?.paymentMethod || ""), paymentType),
+              transactionId: String(row?.transactionCode || row?.transactionId || ""),
+              enrolledAt: String(row?.paidAt || row?.createdAt || new Date().toISOString()),
+              paymentType,
+            }
+          })
+        }
+
+        mappedPayments.sort((a, b) => getTimeValue(b.enrolledAt) - getTimeValue(a.enrolledAt))
 
         if (!active) return
         setPayments(mappedPayments)
@@ -132,7 +168,7 @@ export default function PaymentHistoryPage() {
     return () => {
       active = false
     }
-  }, [t])
+  }, [isTeacherWalletHistory, t])
 
   const locale = getLocaleByLanguage(language)
 
@@ -187,7 +223,12 @@ export default function PaymentHistoryPage() {
   }
 
   const formatDate = (value: string) => {
-    return new Date(value).toLocaleDateString(locale, {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) {
+      return t("common_not_updated", "Chưa cập nhật")
+    }
+
+    return date.toLocaleDateString(locale, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",

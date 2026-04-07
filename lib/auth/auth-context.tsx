@@ -336,6 +336,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const profile = await apiClient.getProfile();
       setUser(profile);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(profile));
+      }
     } catch (error) {
       console.error('Profile refresh failed:', error);
     }
