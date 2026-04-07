@@ -68,7 +68,8 @@ export default function StudentExamsPage() {
             try {
               const payload = await apiClient.getMyExtractedExamAttempts(exam.id)
               const attempts = Array.isArray(payload?.attempts) ? payload.attempts : []
-              return [exam.id, { count: attempts.length }] as const
+              const attemptCount = Number(payload?.attemptCount ?? attempts.length)
+              return [exam.id, { count: attemptCount }] as const
             } catch {
               return [exam.id, { count: 0 }] as const
             }

@@ -1,6 +1,7 @@
 ﻿"use client"
 
 import { motion } from "framer-motion"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -23,88 +24,151 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, PieChart, Pie, C
 import { PageHero } from "@/components/ui/page-hero"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { apiClient } from "@/lib/api/client"
+
+type ProgressOverview = {
+  totalCoursesEnrolled: number
+  coursesInProgress: number
+  coursesCompleted: number
+  completionRate: number
+  totalLearningTime: number
+  certificatesEarned: number
+  currentStreak: number
+  longestStreak: number
+}
+
+type DailyActivity = {
+  date: string
+  lessonsCompleted: number
+  timeSpent: number
+  active: boolean
+}
+
+type WeeklyProgress = {
+  weekStart: string
+  weekEnd: string
+  lessonsCompleted: number
+  timeSpent: number
+  coursesActive: number
+  quizzesTaken: number
+  averageScore: number
+  dailyActivity: DailyActivity[]
+}
+
+type CourseProgress = {
+  courseId: string
+  courseTitle: string
+  courseThumbnail: string
+  teacherName: string
+  totalLessons: number
+  completedLessons: number
+  progressPercentage: number
+  lastAccessedAt: string
+  timeSpent: number
+  quizzesTaken: number
+  averageQuizScore: number
+  nextLesson: { id: string; title: string; order: number } | null
+}
+
+type Achievement = {
+  id: string
+  title: string
+  description: string
+  icon: string
+  unlockedAt?: string
+  category: "completion" | "streak" | "quiz" | "engagement"
+}
 
 export default function ProgressPage() {
   const { t } = useLanguage()
+
+  const [overview, setOverview] = useState<ProgressOverview | null>(null)
+  const [weekly, setWeekly] = useState<WeeklyProgress | null>(null)
+  const [courseProgress, setCourseProgress] = useState<CourseProgress[]>([])
+  const [achievementData, setAchievementData] = useState<Achievement[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    const load = async () => {
+      setLoading(true)
+      try {
+        const [overviewRes, weeklyRes, coursesRes, achievementsRes] = await Promise.all([
+          apiClient.getProgressOverview(),
+          apiClient.getProgressWeekly(),
+          apiClient.getProgressCourses(),
+          apiClient.getProgressAchievements(),
+        ])
+
+        if (!active) return
+        setOverview(overviewRes ?? null)
+        setWeekly(weeklyRes ?? null)
+        setCourseProgress(Array.isArray(coursesRes) ? coursesRes : [])
+        setAchievementData(Array.isArray(achievementsRes) ? achievementsRes : [])
+      } catch (error) {
+        console.error("Progress load failed:", error)
+        if (!active) return
+        setOverview(null)
+        setWeekly(null)
+        setCourseProgress([])
+        setAchievementData([])
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    load()
+    return () => {
+      active = false
+    }
+  }, [])
   
-  const weeklyProgress = [
-    { day: t("prog_mon", "T2"), hours: 2, target: 2 },
-    { day: t("prog_tue", "T3"), hours: 3, target: 2 },
-    { day: t("prog_wed", "T4"), hours: 1.5, target: 2 },
-    { day: t("prog_thu", "T5"), hours: 2.5, target: 2 },
-    { day: t("prog_fri", "T6"), hours: 2, target: 2 },
-    { day: t("prog_sat", "T7"), hours: 4, target: 3 },
-    { day: t("prog_sun", "CN"), hours: 3, target: 3 },
-  ]
+  const weeklyTarget = useMemo(() => {
+    const days = weekly?.dailyActivity?.length || 0
+    if (!days) return 0
+    return Math.round(((weekly?.timeSpent || 0) / days) * 10) / 10
+  }, [weekly])
 
-  const courseProgress = [
-    {
-      id: "1",
-      title: t("prog_course_nextjs", "Next.js từ cơ bản đến nâng cao"),
-      progress: 75,
-      totalLessons: 40,
-      completedLessons: 30,
-      lastAccessed: t("prog_2h_ago", "2 giờ trước"),
-      estimatedCompletion: t("prog_7d", "7 ngày"),
-      icon: "🚴",
-      bgColor: "bg-cyan-100 dark:bg-cyan-900/30",
-      image: "/image/logo-ics.jpg"
-    },
-    {
-      id: "2",
-      title: t("prog_course_react_hooks", "React Hooks & State Management"),
-      progress: 60,
-      totalLessons: 30,
-      completedLessons: 18,
-      lastAccessed: t("prog_1d_ago", "1 ngày trước"),
-      estimatedCompletion: t("prog_14d", "14 ngày"),
-      icon: "🏃",
-      bgColor: "bg-blue-100 dark:bg-blue-900/30",
-      image: "/image/logo-ics.jpg"
-    },
-    {
-      id: "3",
-      title: t("prog_course_figma", "Thiết kế UI/UX với Figma"),
-      progress: 45,
-      totalLessons: 33,
-      completedLessons: 15,
-      lastAccessed: t("prog_3d_ago", "3 ngày trước"),
-      estimatedCompletion: t("prog_21d", "21 ngày"),
-      icon: "💪",
-      bgColor: "bg-green-100 dark:bg-green-900/30",
-      image: "/image/figma.jpg"
-    },
-  ]
+  const weeklyProgress = useMemo(() => {
+    const daily = weekly?.dailyActivity || []
+    return daily.map((entry) => {
+      const date = new Date(entry.date)
+      const dayLabel = Number.isNaN(date.getTime())
+        ? entry.date
+        : date.toLocaleDateString("vi-VN", { weekday: "short" })
 
-  const completedCourses = [
-    {
-      id: "4",
-      title: t("prog_course_jsbasic", "JavaScript cơ bản"),
-      progress: 100,
-      totalLessons: 25,
-      completedLessons: 25,
-      completedDate: t("prog_2w_ago", "2 tuần trước")
-    },
-    {
-      id: "5",
-      title: t("prog_course_htmlcss", "HTML & CSS từ A-Z"),
-      progress: 100,
-      totalLessons: 20,
-      completedLessons: 20,
-      completedDate: t("prog_1m_ago", "1 tháng trước")
-    },
-  ]
+      return {
+        day: dayLabel,
+        hours: Number(entry.timeSpent || 0),
+        target: weeklyTarget,
+      }
+    })
+  }, [weekly, weeklyTarget])
 
-  const achievements = [
-    { icon: Flame, title: t("prog_ach_streak7", "Chuỗi 7 ngày"), description: t("prog_ach_streak7_desc", "Học liên tục 7 ngày"), unlocked: true, color: "text-orange-500" },
-    { icon: Trophy, title: t("prog_ach_first", "Hoàn thành đầu tiên"), description: t("prog_ach_first_desc", "Hoàn thành khóa học đầu tiên"), unlocked: true, color: "text-yellow-500" },
-    { icon: Star, title: t("prog_ach_highscore", "Điểm cao"), description: t("prog_ach_highscore_desc", "Đạt 90%+ trong bài thi"), unlocked: true, color: "text-amber-500" },
-    { icon: Target, title: t("prog_ach_weekly", "Mục tiêu tuần"), description: t("prog_ach_weekly_desc", "Đạt mục tiêu học tập tuần"), unlocked: false, color: "text-green-500" },
-    { icon: BookOpen, title: t("prog_ach_reader", "Đọc giả"), description: t("prog_ach_reader_desc", "Hoàn thành 50 bài học"), unlocked: false, color: "text-blue-500" },
-    { icon: Award, title: t("prog_ach_collector", "Collector"), description: t("prog_ach_collector_desc", "Thu thập 5 chứng chỉ"), unlocked: false, color: "text-cyan-500" },
-  ]
+  const totalHours = weekly?.timeSpent || 0
 
-  const totalHours = weeklyProgress.reduce((sum, day) => sum + day.hours, 0)
+  const activeCourses = useMemo(
+    () => courseProgress.filter((course) => Number(course.progressPercentage || 0) < 100),
+    [courseProgress],
+  )
+
+  const completedCourses = useMemo(
+    () => courseProgress.filter((course) => Number(course.progressPercentage || 0) >= 100),
+    [courseProgress],
+  )
+
+  const achievements = useMemo(() => {
+    const unlockedIds = new Set(achievementData.map((item) => item.id))
+    return [
+      { id: "week-streak", icon: Flame, title: t("prog_ach_streak7", "Chuỗi 7 ngày"), description: t("prog_ach_streak7_desc", "Học liên tục 7 ngày"), unlocked: unlockedIds.has("week-streak"), color: "text-orange-500" },
+      { id: "first-course", icon: Trophy, title: t("prog_ach_first", "Hoàn thành đầu tiên"), description: t("prog_ach_first_desc", "Hoàn thành khóa học đầu tiên"), unlocked: unlockedIds.has("first-course"), color: "text-yellow-500" },
+      { id: "high-score", icon: Star, title: t("prog_ach_highscore", "Điểm cao"), description: t("prog_ach_highscore_desc", "Đạt 90%+ trong bài thi"), unlocked: unlockedIds.has("high-score"), color: "text-amber-500" },
+      { id: "weekly-goal", icon: Target, title: t("prog_ach_weekly", "Mục tiêu tuần"), description: t("prog_ach_weekly_desc", "Đạt mục tiêu học tập tuần"), unlocked: unlockedIds.has("weekly-goal"), color: "text-green-500" },
+      { id: "course-reader", icon: BookOpen, title: t("prog_ach_reader", "Đọc giả"), description: t("prog_ach_reader_desc", "Hoàn thành 50 bài học"), unlocked: unlockedIds.has("course-reader"), color: "text-blue-500" },
+      { id: "first-certificate", icon: Award, title: t("prog_ach_collector", "Collector"), description: t("prog_ach_collector_desc", "Thu thập 5 chứng chỉ"), unlocked: unlockedIds.has("first-certificate"), color: "text-cyan-500" },
+    ]
+  }, [achievementData, t])
 
   const chartData = weeklyProgress.map((d) => ({
     day: d.day,
@@ -119,12 +183,22 @@ export default function ProgressPage() {
 
   // Data for course completion pie chart
   const COLORS = ["#06B6D4", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#14B8A6"]
-  const allCourses = [...courseProgress, ...completedCourses]
+  const allCourses = [...activeCourses, ...completedCourses]
   const courseCompletionData = allCourses.map((course) => ({
-    name: course.title.substring(0, 20),
-    value: course.progress,
-    fullName: course.title,
+    name: course.courseTitle.substring(0, 20),
+    value: Math.round(Number(course.progressPercentage || 0)),
+    fullName: course.courseTitle,
   }))
+
+  const formatHours = (value: number) => {
+    if (!Number.isFinite(value) || value <= 0) return "0h"
+    if (value < 1) return `${Math.round(value * 60)} ${t("prog_minutes", "phút")}`
+    return `${value.toFixed(1)}h`
+  }
+
+  if (loading) {
+    return <div className="p-6">{t("common_loading", "Đang tải...")}</div>
+  }
 
   return (
     <div className="relative space-y-8">
@@ -165,7 +239,7 @@ export default function ProgressPage() {
               <div>
                 <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_lessons_done", "Bài học hoàn thành")}</p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
-                  <AnimatedNumber value={63} />
+                  <AnimatedNumber value={courseProgress.reduce((sum, course) => sum + Number(course.completedLessons || 0), 0)} />
                 </p>
               </div>
               <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -178,7 +252,7 @@ export default function ProgressPage() {
               <div>
                 <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_streak", "Ngày liên tiếp")}</p>
                 <p className="text-2xl font-bold text-orange-500 dark:text-orange-400 mt-1">
-                  <AnimatedNumber value={7} />
+                  <AnimatedNumber value={overview?.currentStreak || 0} />
                 </p>
               </div>
               <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -191,7 +265,7 @@ export default function ProgressPage() {
               <div>
                 <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("prog_certs", "Chứng chỉ đạt được")}</p>
                 <p className="text-2xl font-bold text-sky-600 dark:text-sky-400 mt-1">
-                  <AnimatedNumber value={3} />
+                  <AnimatedNumber value={overview?.certificatesEarned || 0} />
                 </p>
               </div>
               <div className="w-10 h-10 bg-sky-100 dark:bg-sky-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
@@ -326,16 +400,16 @@ export default function ProgressPage() {
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courseProgress.map((course, idx) => (
+            {activeCourses.map((course, idx) => (
               <div 
-                key={course.id}
+                key={course.courseId}
                 className="flex flex-col items-center rounded-3xl border border-slate-200/80 bg-white/85 p-6 text-center shadow-[0_14px_32px_rgba(15,23,42,0.1)] transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/60 hover:shadow-[0_22px_46px_rgba(14,165,233,0.2)] dark:border-slate-800 dark:bg-slate-900/70"
               >
                 {/* Course Image */}
                 <div className="w-full h-32 rounded-2xl overflow-hidden mb-4 bg-secondary dark:bg-slate-800 flex items-center justify-center">
                   <Image
-                    src={course.image}
-                    alt={course.title}
+                    src={course.courseThumbnail || "/image/logo-ics.jpg"}
+                    alt={course.courseTitle}
                     width={200}
                     height={130}
                     className="w-full h-full object-cover"
@@ -347,7 +421,7 @@ export default function ProgressPage() {
 
                 {/* Title */}
                 <h3 className="font-semibold text-foreground dark:text-white text-sm line-clamp-2 mb-4">
-                  {course.title}
+                  {course.courseTitle}
                 </h3>
 
                 {/* Progress Bar */}
@@ -355,7 +429,7 @@ export default function ProgressPage() {
                   <div className="h-2 bg-secondary dark:bg-slate-700 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${course.progress}%` }}
+                      animate={{ width: `${course.progressPercentage}%` }}
                       transition={{ delay: 0.3 + idx * 0.1, duration: 0.8 }}
                       className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-sky-500 to-emerald-500"
                     />
@@ -366,11 +440,11 @@ export default function ProgressPage() {
                 <div className="w-full space-y-2 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground dark:text-slate-400">{t("prog_progress_label", "Progress")}</span>
-                    <span className="font-bold text-primary dark:text-accent">{course.progress}%</span>
+                    <span className="font-bold text-primary dark:text-accent">{Math.round(Number(course.progressPercentage || 0))}%</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground dark:text-slate-400">{t("prog_time_left", "Thời gian còn lại")}</span>
-                    <span className="font-bold text-primary dark:text-accent">~{course.estimatedCompletion}</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{t("prog_time_spent", "Thời gian học")}</span>
+                    <span className="font-bold text-primary dark:text-accent">{formatHours(Number(course.timeSpent || 0))}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground dark:text-slate-400">{t("prog_lessons", "Bài học")}</span>

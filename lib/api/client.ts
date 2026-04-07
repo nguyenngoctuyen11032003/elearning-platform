@@ -266,6 +266,9 @@ class ApiClient {
 if (typeof window !== 'undefined' && token) {
   localStorage.setItem('auth_token', token);
   localStorage.setItem('user', JSON.stringify(response.user));
+  if (response?.user?.role) {
+    localStorage.setItem('userRole', response.user.role);
+  }
 }
     return response;
   }
@@ -1339,6 +1342,24 @@ if (typeof window !== 'undefined' && token) {
     return this.request('/student/dashboard/stats');
   }
 
+  async getProgressOverview(): Promise<any> {
+    return this.request('/progress/overview');
+  }
+
+  async getProgressWeekly(): Promise<any> {
+    return this.request('/progress/weekly');
+  }
+
+  async getProgressCourses(): Promise<any[]> {
+    const result = await this.request('/progress/courses');
+    return Array.isArray(result) ? result : [];
+  }
+
+  async getProgressAchievements(): Promise<any[]> {
+    const result = await this.request('/progress/achievements');
+    return Array.isArray(result) ? result : [];
+  }
+
   // ================== Exams API ==================
   async getExamsByCourse(courseId: string): Promise<any> {
     return this.request(`/exams/course/${courseId}`);
@@ -1401,6 +1422,12 @@ if (typeof window !== 'undefined' && token) {
         ...(variantCode ? { variantCode } : {}),
         ...(typeof timeSpent === 'number' ? { timeSpent } : {}),
       }),
+    });
+  }
+
+  async startExtractedExam(examId: string): Promise<any> {
+    return this.request(`/extracted-exams/${examId}/start`, {
+      method: 'POST',
     });
   }
 

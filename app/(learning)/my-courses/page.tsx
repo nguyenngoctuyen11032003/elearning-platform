@@ -127,6 +127,7 @@ export default function MyCoursesPage() {
               ...item,
               progress: normalizeProgress(item?.progress),
               status: normalizeStatus(item?.status),
+              enrolledAt: String(item?.enrolledAt || item?.createdAt || item?.updatedAt || ""),
               course: {
                 ...item.course,
                 title: String(item.course?.title || t("mycourses_course", "Khóa học")),
