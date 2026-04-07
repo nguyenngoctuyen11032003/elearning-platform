@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
+import { ConfirmDialog } from "@/components/ui/admin-modals"
 import {
   ArrowRight,
   BarChart3,
@@ -55,6 +56,10 @@ export default function AdminTeacherSubscriptionPage() {
   const [paymentSortBy, setPaymentSortBy] = useState<"newest" | "oldest" | "amount_desc" | "amount_asc">("newest")
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null)
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false)
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null)
+  const [deletePlanDialog, setDeletePlanDialog] = useState<{ isOpen: boolean; planId?: string; planName?: string }>({
+    isOpen: false,
+  })
 
   const getPlanSignature = (plan: any) =>
     JSON.stringify({
@@ -166,13 +171,26 @@ export default function AdminTeacherSubscriptionPage() {
   }
 
   const deletePlan = async (id: string) => {
+    setDeletingPlanId(id)
     try {
-      await apiClient.deleteAdminInstructorPlan(id)
-      toast.success(t("adm_sub_delete_ok", "Đã xử lý xóa gói"))
+      const result = await apiClient.deleteAdminInstructorPlan(id)
+      const message = result?.message || t("adm_sub_delete_ok", "Đã xử lý xóa gói")
+      toast.success(message)
+      setPlans((prev) => prev.filter((plan) => String(plan.id) !== String(id)))
       await loadAll()
     } catch (error: any) {
       toast.error(error?.message || t("adm_sub_delete_fail", "Không thể xóa gói"))
+    } finally {
+      setDeletingPlanId(null)
     }
+  }
+
+  const requestDeletePlan = (plan: any) => {
+    setDeletePlanDialog({
+      isOpen: true,
+      planId: String(plan?.id || ""),
+      planName: String(plan?.name || ""),
+    })
   }
 
   const confirmPayment = async (id: string) => {
@@ -690,7 +708,13 @@ export default function AdminTeacherSubscriptionPage() {
                               >
                                 {t("common_close", "Đóng")}
                               </button>
-                              <button className="h-9 px-3.5 rounded-xl bg-rose-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md" onClick={() => deletePlan(plan.id)}><Trash2 size={14} /> {t("adm_sub_delete_btn", "Xóa")}</button>
+                              <button
+                                className="h-9 px-3.5 rounded-xl bg-rose-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md disabled:opacity-60"
+                                onClick={() => requestDeletePlan(plan)}
+                                disabled={deletingPlanId === plan.id}
+                              >
+                                <Trash2 size={14} /> {deletingPlanId === plan.id ? t("adm_sub_deleting", "Đang xóa") : t("adm_sub_delete_btn", "Xóa")}
+                              </button>
                             </div>
                           </>
                         )}
@@ -703,7 +727,13 @@ export default function AdminTeacherSubscriptionPage() {
                             >
                               {t("common_edit", "Chỉnh sửa")}
                             </button>
-                            <button className="h-9 px-3.5 rounded-xl bg-rose-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md" onClick={() => deletePlan(plan.id)}><Trash2 size={14} /> {t("adm_sub_delete_btn", "Xóa")}</button>
+                            <button
+                              className="h-9 px-3.5 rounded-xl bg-rose-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md disabled:opacity-60"
+                              onClick={() => requestDeletePlan(plan)}
+                              disabled={deletingPlanId === plan.id}
+                            >
+                              <Trash2 size={14} /> {deletingPlanId === plan.id ? t("adm_sub_deleting", "Đang xóa") : t("adm_sub_delete_btn", "Xóa")}
+                            </button>
                           </div>
                         )}
                       </div>
@@ -720,6 +750,24 @@ export default function AdminTeacherSubscriptionPage() {
                 <div className="flex items-center gap-2">
                   <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center"><CreditCard size={18} /></div>
                   <div>
+                    <ConfirmDialog
+                      isOpen={deletePlanDialog.isOpen}
+                      onClose={() => setDeletePlanDialog({ isOpen: false })}
+                      onConfirm={() => {
+                        if (deletePlanDialog.planId) {
+                          void deletePlan(deletePlanDialog.planId)
+                        }
+                      }}
+                      title={t("adm_sub_delete_title", "Xóa gói")}
+                      message={
+                        deletePlanDialog.planName
+                          ? t("adm_sub_delete_desc", "Bạn chắc chắn muốn xóa gói này?") + ` (${deletePlanDialog.planName})`
+                          : t("adm_sub_delete_desc", "Bạn chắc chắn muốn xóa gói này?")
+                      }
+                      confirmText={t("adm_sub_delete_btn", "Xóa")}
+                      cancelText={t("common_cancel", "Hủy")}
+                      isDangerous
+                    />
                     <h2 className="text-lg md:text-xl font-semibold">{t("adm_sub_payment_management", "Quản lý thanh toán")}</h2>
                     <p className="text-sm text-muted-foreground">{t("adm_sub_payment_hint", "Giám sát giao dịch, xác nhận và hoàn tiền")}</p>
                   </div>
