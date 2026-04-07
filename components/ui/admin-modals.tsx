@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-import { X, AlertCircle } from "lucide-react"
+import { X, AlertCircle, UserPlus, Mail, Phone, Shield, Lock } from "lucide-react"
 import { useState } from "react"
 import { useLanguage } from "@/lib/i18n/language-context"
 
@@ -146,106 +146,139 @@ export function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t("admin_add_user_title", "Thêm người dùng mới")} size="md">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_name_label", "Tên người dùng")}</label>
-          <input
-            type="text"
-            required
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder={t("admin_add_user_name_placeholder", "Nhập tên người dùng")}
-          />
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/10 via-accent/5 to-transparent px-4 py-3">
+          <p className="text-sm font-semibold text-foreground dark:text-white flex items-center gap-2">
+            <UserPlus size={16} className="text-primary" />
+            {t("admin_add_user_title", "Thêm người dùng mới")}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">
+            {t("admin_add_user_desc", "Điền đầy đủ thông tin để tạo tài khoản người dùng mới trong hệ thống")}
+          </p>
         </div>
 
-        <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_email_label", "Email")}</label>
-          <input
-            type="email"
-            required
-            value={formData.email}
-            onChange={(e) => {
-              setFormData({ ...formData, email: e.target.value })
-              setErrors({ ...errors, email: "" })
-            }}
-            className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder={t("admin_add_user_email_placeholder", "Nhập email")}
-          />
-          {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_name_label", "Tên người dùng")}</label>
+            <div className="relative">
+              <UserPlus size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl pl-10 pr-4 py-2.5 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                placeholder={t("admin_add_user_name_placeholder", "Nhập tên người dùng")}
+              />
+            </div>
+            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+          </div>
+
+          <div>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_email_label", "Email")}</label>
+            <div className="relative">
+              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value })
+                  setErrors({ ...errors, email: "" })
+                }}
+                className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl pl-10 pr-4 py-2.5 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                placeholder={t("admin_add_user_email_placeholder", "Nhập email")}
+              />
+            </div>
+            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+          </div>
+
+          <div>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_phone_label", "Số điện thoại")}</label>
+            <div className="relative">
+              <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => {
+                  setFormData({ ...formData, phone: e.target.value })
+                  setErrors({ ...errors, phone: "" })
+                }}
+                className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl pl-10 pr-4 py-2.5 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                placeholder={t("admin_add_user_phone_placeholder", "Nhập số điện thoại (tùy chọn)")}
+              />
+            </div>
+            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+          </div>
+
+          <div>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_role_label", "Vai trò")}</label>
+            <div className="relative">
+              <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl pl-10 pr-4 py-2.5 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+              >
+                <option value="student">{t("admin_add_user_role_student", "Học viên")}</option>
+                <option value="teacher">{t("admin_add_user_role_teacher", "Giảng viên")}</option>
+                <option value="admin">{t("admin_add_user_role_admin", "Quản trị viên")}</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_phone_label", "Số điện thoại")}</label>
-          <input
-            type="tel"
-            value={formData.phone}
-            onChange={(e) => {
-              setFormData({ ...formData, phone: e.target.value })
-              setErrors({ ...errors, phone: "" })
-            }}
-            className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder={t("admin_add_user_phone_placeholder", "Nhập số điện thoại (tùy chọn)")}
-          />
-          {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+        <div className="rounded-xl border border-border/70 dark:border-slate-800 bg-secondary/20 dark:bg-slate-900/30 p-4 space-y-4">
+          <p className="text-sm font-semibold text-foreground dark:text-white flex items-center gap-2">
+            <Lock size={16} className="text-primary" />
+            {t("admin_add_user_security", "Thiết lập bảo mật")}
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_password_label", "Mật khẩu")}</label>
+              <input
+                type="password"
+                required
+                value={formData.password}
+                onChange={(e) => {
+                  setFormData({ ...formData, password: e.target.value })
+                  setErrors({ ...errors, password: "" })
+                }}
+                className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-2.5 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                placeholder={t("admin_add_user_password_placeholder", "Nhập mật khẩu (tối thiểu 6 ký tự)")}
+              />
+              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+            </div>
+
+            <div>
+              <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_confirm_label", "Xác nhận mật khẩu")}</label>
+              <input
+                type="password"
+                required
+                value={formData.confirmPassword}
+                onChange={(e) => {
+                  setFormData({ ...formData, confirmPassword: e.target.value })
+                  setErrors({ ...errors, confirmPassword: "" })
+                }}
+                className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-2.5 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+                placeholder={t("admin_add_user_confirm_placeholder", "Nhập lại mật khẩu")}
+              />
+              {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_role_label", "Vai trò")}</label>
-          <select
-            value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-            className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-          >
-            <option value="student">{t("admin_add_user_role_student", "Học viên")}</option>
-            <option value="teacher">{t("admin_add_user_role_teacher", "Giảng viên")}</option>
-            <option value="admin">{t("admin_add_user_role_admin", "Quản trị viên")}</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_password_label", "Mật khẩu")}</label>
-          <input
-            type="password"
-            required
-            value={formData.password}
-            onChange={(e) => {
-              setFormData({ ...formData, password: e.target.value })
-              setErrors({ ...errors, password: "" })
-            }}
-            className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder={t("admin_add_user_password_placeholder", "Nhập mật khẩu (tối thiểu 6 ký tự)")}
-          />
-          {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
-        </div>
-
-        <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_add_user_confirm_label", "Xác nhận mật khẩu")}</label>
-          <input
-            type="password"
-            required
-            value={formData.confirmPassword}
-            onChange={(e) => {
-              setFormData({ ...formData, confirmPassword: e.target.value })
-              setErrors({ ...errors, confirmPassword: "" })
-            }}
-            className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder={t("admin_add_user_confirm_placeholder", "Nhập lại mật khẩu")}
-          />
-          {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
-        </div>
-
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-3 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
+            className="flex-1 px-4 py-2.5 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-xl hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
           >
             {t("common_cancel", "Hủy")}
           </button>
           <button
             type="submit"
-            className="flex-1 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium"
+            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-primary to-accent text-white rounded-xl hover:shadow-lg transition-smooth font-medium"
           >
             {t("admin_add_user_submit", "Thêm người dùng")}
           </button>
