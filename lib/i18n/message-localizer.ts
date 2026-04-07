@@ -8,6 +8,24 @@ type MessageRule = {
 
 const MESSAGE_RULES: MessageRule[] = [
   {
+    patterns: [
+      'da dang ky khoa hoc nay roi',
+      'đã đăng ký khóa học này rồi',
+      'already enrolled',
+    ],
+    vi: 'Đã đăng ký khóa học này rồi.',
+    en: 'You are already enrolled in this course.',
+  },
+  {
+    patterns: [
+      'insufficient wallet balance',
+      'so du vi cua ban khong du',
+      'số dư ví của bạn không đủ',
+    ],
+    vi: 'Số dư ví của bạn không đủ.',
+    en: 'Your wallet balance is insufficient.',
+  },
+  {
     patterns: ['failed to fetch', 'network error', 'cannot connect', 'khong the ket noi', 'khong ket noi duoc'],
     vi: 'Khong the ket noi den may chu. Vui long kiem tra ket noi mang va thu lai.',
     en: 'Cannot connect to the server. Please check your network and try again.',

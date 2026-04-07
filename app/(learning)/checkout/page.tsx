@@ -39,6 +39,62 @@ interface SepayCheckoutState {
   referenceCode?: string | null
 }
 
+function parsePriceValue(value: unknown): number {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0
+  }
+
+  if (typeof value !== "string") {
+    return 0
+  }
+
+  const raw = value.trim()
+  if (!raw) {
+    return 0
+  }
+
+  const cleaned = raw.replace(/[^\d.,-]/g, "")
+  if (!cleaned) {
+    return 0
+  }
+
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(cleaned)) {
+    const parsed = Number(cleaned.replace(/\./g, "").replace(",", "."))
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(cleaned)) {
+    const parsed = Number(cleaned.replace(/,/g, ""))
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  const normalized =
+    cleaned.includes(",") && !cleaned.includes(".")
+      ? cleaned.replace(",", ".")
+      : cleaned.replace(/,/g, "")
+
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function normalizeMessage(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function isWalletInsufficientMessage(message: string): boolean {
+  const normalized = normalizeMessage(message)
+  return (
+    normalized.includes("insufficient wallet balance") ||
+    normalized.includes("so du vi cua ban khong du") ||
+    normalized.includes("so du vi khong du")
+  )
+}
+
 export default function CheckoutPage() {
   const router = useRouter()
   const { t, language } = useLanguage()
@@ -71,8 +127,7 @@ export default function CheckoutPage() {
       try {
         const parsed = JSON.parse(singleCourse)
         if (parsed) {
-          // Ensure price is always a number, not a string
-          parsed.price = Number(parsed.price) || 0
+          parsed.price = parsePriceValue(parsed.price)
           setCourses([parsed])
         }
         return
@@ -87,10 +142,9 @@ export default function CheckoutPage() {
     try {
       const items = JSON.parse(itemsRaw)
       if (Array.isArray(items) && items.length > 0) {
-        // Ensure all prices are numbers to avoid string concatenation
         const coursesWithNumPrices = items.map((item: any) => ({
           ...item,
-          price: Number(item.price) || 0,
+          price: parsePriceValue(item.price),
         }))
         setCourses(coursesWithNumPrices)
       }
@@ -102,10 +156,9 @@ export default function CheckoutPage() {
   const firstCourse = courses[0] || null
   const isMultiCourseCheckout = courses.length > 1
   const baseAmount = useMemo(() => {
-    // Ensure proper numeric addition - avoid string concatenation
     let total = 0
     for (const item of courses) {
-      const price = Number(item?.price) || 0
+      const price = parsePriceValue(item?.price)
       if (isNaN(price)) {
         total += 0
       } else {
@@ -373,6 +426,31 @@ export default function CheckoutPage() {
       router.push("/my-courses")
     } catch (error) {
       const message = error instanceof Error ? error.message : t("checkout_failed", "Thanh toán thất bại")
+
+      if (paymentMode === "wallet" && isWalletInsufficientMessage(message)) {
+        let currentBalance = 0
+
+        try {
+          const balanceResult = await apiClient.getMyWalletBalance()
+          currentBalance = Number(balanceResult?.balance || 0)
+        } catch {
+          currentBalance = 0
+        }
+
+        const prompt = t(
+          "checkout_wallet_insufficient_prompt",
+          "Số dư ví của bạn không đủ. Bạn có muốn nạp thêm tiền vào ví không?",
+        )
+        toast.error(
+          `${t("checkout_wallet_insufficient", "Số dư ví của bạn không đủ")}. ${t("checkout_wallet_current_balance", "Số dư hiện tại")}: ${formatCurrencyByLanguage(currentBalance, language)}`,
+        )
+
+        if (typeof window !== "undefined" && window.confirm(prompt)) {
+          router.push("/top-up")
+        }
+        return
+      }
+
       toast.error(message)
     } finally {
       setIsSubmitting(false)
