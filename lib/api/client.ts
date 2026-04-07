@@ -266,6 +266,9 @@ class ApiClient {
 if (typeof window !== 'undefined' && token) {
   localStorage.setItem('auth_token', token);
   localStorage.setItem('user', JSON.stringify(response.user));
+  if (response?.user?.role) {
+    localStorage.setItem('userRole', response.user.role);
+  }
 }
     return response;
   }

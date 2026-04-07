@@ -76,6 +76,29 @@ export default function TopUpPage() {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
   }
 
+  const normalizeWalletDescription = (value: string) => {
+    const raw = value.trim()
+    const normalized = raw.toLowerCase()
+
+    if (normalized.startsWith("nap tien vao vi duoc admin xac nhan")) {
+      return "Nạp tiền vào ví được admin xác nhận"
+    }
+
+    if (normalized.startsWith("nap tien vao vi qua sepay")) {
+      return "Nạp tiền vào ví qua SePay"
+    }
+
+    if (normalized.startsWith("thanh toan goi giang vien")) {
+      return raw.replace(/thanh toan goi giang vien/i, "Thanh toán gói giảng viên")
+    }
+
+    if (normalized.startsWith("thanh toan khoa hoc")) {
+      return raw.replace(/thanh toan khoa hoc/i, "Thanh toán khóa học")
+    }
+
+    return raw
+  }
+
   const loadWalletData = async () => {
     setIsLoading(true)
     try {
@@ -360,7 +383,9 @@ export default function TopUpPage() {
               <div key={tx.id} className="rounded-lg border border-border/60 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">{tx.description || tx.type}</p>
+                    <p className="text-sm font-semibold">
+                      {tx.description ? normalizeWalletDescription(tx.description) : tx.type}
+                    </p>
                     <p className="text-xs text-muted-foreground">{new Date(tx.createdAt).toLocaleString()}</p>
                   </div>
                   <p className={`text-sm font-bold ${isCredit ? "text-green-600" : "text-red-500"}`}>
