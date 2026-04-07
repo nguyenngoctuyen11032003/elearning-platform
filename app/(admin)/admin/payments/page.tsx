@@ -26,6 +26,7 @@ interface Payment {
   courseId: string
   teacher: string
   teacherEmail: string
+  accountType: "teacher" | "student"
   amount: number
   method: string
   status: "success" | "pending" | "failed"
@@ -54,6 +55,15 @@ const normalizeMethod = (method?: string) => {
   return method.toUpperCase()
 }
 
+const formatAccountTypeLabel = (
+  type: Payment["accountType"],
+  t: (key: string, fallback?: string) => string,
+) => {
+  return type === "teacher"
+    ? t("pay_account_type_teacher", "Giảng viên")
+    : t("pay_account_type_student", "Học viên")
+}
+
 const normalizeDateISO = (value?: string) => {
   const date = value ? new Date(value) : new Date(0)
   if (Number.isNaN(date.getTime())) {
@@ -79,6 +89,7 @@ export default function AdminPaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "success" | "pending" | "failed">("all")
+  const [accountTypeFilter, setAccountTypeFilter] = useState<"all" | "teacher" | "student">("all")
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null)
   const cardRefs = useRef<Record<string, HTMLDivElement | HTMLButtonElement | null>>({})
@@ -129,6 +140,7 @@ export default function AdminPaymentsPage() {
               courseId: course.id || "",
               teacher: teacher.name || "",
               teacherEmail: teacher.email || "",
+              accountType: "student",
               amount: Number(p.finalAmount ?? p.amount ?? 0),
               method: normalizeMethod(p.paymentMethod),
               status: normalizeStatus(p.status),
@@ -149,6 +161,7 @@ export default function AdminPaymentsPage() {
             courseId: p.plan?.id || "",
             teacher: p.teacher?.name || "",
             teacherEmail: p.teacher?.email || "",
+            accountType: "teacher",
             amount: Number(p.amount ?? 0),
             method: normalizeMethod(p.paymentMethod),
             status: normalizeStatus(p.status),
@@ -307,13 +320,15 @@ export default function AdminPaymentsPage() {
       .filter(
         (payment) =>
         ((payment.id || "").toLowerCase().includes(keyword) ||
+          (payment.transactionId || "").toLowerCase().includes(keyword) ||
           (payment.user || "").toLowerCase().includes(keyword) ||
           (payment.course || "").toLowerCase().includes(keyword) ||
           (payment.teacher || "").toLowerCase().includes(keyword)) &&
-          (statusFilter === "all" || payment.status === statusFilter),
+          (statusFilter === "all" || payment.status === statusFilter) &&
+          (accountTypeFilter === "all" || payment.accountType === accountTypeFilter),
       )
         .sort((a, b) => getPaymentTimestamp(b.createdAt) - getPaymentTimestamp(a.createdAt))
-  }, [payments, searchQuery, statusFilter])
+  }, [payments, searchQuery, statusFilter, accountTypeFilter])
 
   const derivedRevenue = payments.filter((p) => p.status === "success").reduce((sum, p) => sum + p.amount, 0)
   const totalRevenue = stats.totalRevenue || derivedRevenue
@@ -530,15 +545,26 @@ export default function AdminPaymentsPage() {
               <option value="failed">{t("pay_failed", "Thất bại")}</option>
             </select>
 
+            <select
+              value={accountTypeFilter}
+              onChange={(e) => setAccountTypeFilter(e.target.value as any)}
+              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
+            >
+              <option value="all">{t("common_all", "Tất cả")}</option>
+              <option value="teacher">{t("pay_account_type_teacher", "Giảng viên")}</option>
+              <option value="student">{t("pay_account_type_student", "Học viên")}</option>
+            </select>
+
             <span className="rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
               <AnimatedNumber value={filteredPayments.length} durationMs={320} />
             </span>
 
-            {(searchQuery.trim() || statusFilter !== "all") ? (
+            {(searchQuery.trim() || statusFilter !== "all" || accountTypeFilter !== "all") ? (
               <button
                 onClick={() => {
                   setSearchQuery("")
                   setStatusFilter("all")
+                  setAccountTypeFilter("all")
                 }}
                 className="h-[46px] w-full sm:w-auto md:min-w-[132px] lg:min-w-[148px] inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-muted-foreground hover:text-foreground dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
@@ -585,7 +611,7 @@ export default function AdminPaymentsPage() {
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-400">
         <User size={14} />
-        <span className="truncate">{payment.teacher}</span>
+        <span className="truncate">{formatAccountTypeLabel(payment.accountType, t)}</span>
       </div>
 
       <div className="text-xs text-muted-foreground dark:text-slate-500 truncate">
@@ -776,9 +802,10 @@ export default function AdminPaymentsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800 bg-white/70 dark:bg-slate-800/60">
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_transaction_id", "Mã thanh toán")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_user", "Người dùng")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_course", "Khóa học")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_instructor", "Giảng viên")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_account_type", "Loại tài khoản")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_amount", "Số tiền")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_method", "Phương thức")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_status", "Trạng thái")}</th>
@@ -792,6 +819,9 @@ export default function AdminPaymentsPage() {
                     key={payment.id}
                     className="border-b border-border dark:border-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-colors"
                   >
+                    <td className="py-4 px-6 text-foreground dark:text-white font-medium">
+                      {payment.transactionId}
+                    </td>
                     <td className="py-4 px-6">
                       <div>
                         <p className="text-foreground dark:text-white font-medium">{payment.user}</p>
@@ -802,7 +832,7 @@ export default function AdminPaymentsPage() {
                       {payment.course}
                     </td>
                     <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">
-                      {payment.teacher}
+                      {formatAccountTypeLabel(payment.accountType, t)}
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white font-medium">
                       <AnimatedNumber value={payment.amount} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={420} />
