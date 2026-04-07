@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, BookOpen, Users, Settings, LogOut, User, Star, BarChart3, FileText, Award, ClipboardList } from "lucide-react"
+import { LayoutDashboard, BookOpen, Users, Settings, LogOut, User, Star, BarChart3, FileText, Award, ClipboardList, Wallet } from "lucide-react"
 import { useEffect, useState, useRef } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getRoleAvatar, getInitials } from "@/lib/utils/avatar"
@@ -141,6 +141,7 @@ export function TeacherSidebar() {
     { icon: Users, label: t("teacher_menu_students", "Học viên"), href: "/teacher/students" },
     { icon: Star, label: t("teacher_menu_reviews", "Đánh giá"), href: "/teacher/reviews" },
     { icon: BarChart3, label: t("teacher_menu_analytics", "Thống kê"), href: "/teacher/analytics" },
+    { icon: Wallet, label: t("teacher_menu_wallet_membership", "Ví & gói hội viên"), href: "/teacher/wallet-membership" },
     { icon: Settings, label: t("teacher_menu_settings", "Cài đặt"), href: "/teacher/settings" },
   ]
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Copy, Loader2, QrCode, RefreshCw, Wallet } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
@@ -41,6 +41,7 @@ const TOPUP_PRESETS = [100000, 200000, 500000, 1000000, 2000000]
 
 export default function TopUpPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const { language, t } = useLanguage()
   const [balance, setBalance] = useState(0)
   const [amount, setAmount] = useState(500000)
@@ -53,6 +54,9 @@ export default function TopUpPage() {
   const [transactions, setTransactions] = useState<WalletTransactionItem[]>([])
 
   const amountText = useMemo(() => String(amount || ""), [amount])
+  const topupBasePath = pathname.startsWith("/teacher/wallet-membership/top-up")
+    ? "/teacher/wallet-membership/top-up"
+    : "/top-up"
   const isPending = paymentStatus === "pending"
   const paymentExpiresAtMs = paymentInfo?.expiresAt ? new Date(paymentInfo.expiresAt).getTime() : NaN
   const isCountdownExpired = Number.isFinite(paymentExpiresAtMs) && paymentExpiresAtMs <= Date.now()
@@ -148,7 +152,7 @@ export default function TopUpPage() {
           const paidAmount = Number(payment?.finalAmount ?? payment?.amount ?? amount)
           const txCode = String(payment?.transactionCode || checkout.transactionCode || "")
           toast.success(t("topup_success_title", "Nạp tiền thành công"))
-          router.push(`/top-up/success?amount=${encodeURIComponent(String(paidAmount))}&transactionCode=${encodeURIComponent(txCode)}&paymentId=${encodeURIComponent(String(payment?.id || ""))}`)
+          router.push(`${topupBasePath}/success?amount=${encodeURIComponent(String(paidAmount))}&transactionCode=${encodeURIComponent(txCode)}&paymentId=${encodeURIComponent(String(payment?.id || ""))}`)
         }
 
         if (nextStatus === "expired" || nextStatus === "failed") {
@@ -165,7 +169,7 @@ export default function TopUpPage() {
     }, 4000)
 
     return () => clearInterval(intervalId)
-  }, [checkout?.transactionCode, paymentStatus, t, router, amount])
+  }, [checkout?.transactionCode, paymentStatus, t, router, amount, topupBasePath])
 
   useEffect(() => {
     if (paymentStatus !== "pending") return

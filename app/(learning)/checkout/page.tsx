@@ -247,8 +247,13 @@ export default function CheckoutPage() {
           localStorage.removeItem("checkoutCourse")
           localStorage.removeItem("checkoutItems")
           localStorage.removeItem("checkoutTotal")
-          toast.success(t("checkout_success", "Thanh toán thành công, bạn đã được vào khóa học"))
-          router.push(`/enrollment/success?courseId=${firstCourse?.id || ""}&paymentId=${payment.id}&status=success`)
+          if (courses.length > 1) {
+            toast.success(t("checkout_multi_success", "Đã thanh toán thành công cho các khóa học đã chọn"))
+            router.push("/my-courses")
+          } else {
+            toast.success(t("checkout_success", "Thanh toán thành công, bạn đã được vào khóa học"))
+            router.push(`/enrollment/success?courseId=${firstCourse?.id || ""}&paymentId=${payment.id}&status=success`)
+          }
         }
 
         if (nextStatus === "failed" || nextStatus === "expired") {
@@ -265,7 +270,7 @@ export default function CheckoutPage() {
     }, 5000)
 
     return () => clearInterval(intervalId)
-  }, [sepayCheckout?.transactionCode, sepayCheckout?.status, router, firstCourse?.id, t])
+  }, [sepayCheckout?.transactionCode, sepayCheckout?.status, router, firstCourse?.id, t, courses.length])
 
   useEffect(() => {
     if (sepayCheckout?.status !== "pending") return
@@ -322,13 +327,48 @@ export default function CheckoutPage() {
       return
     }
 
-    if (isMultiCourseCheckout && paymentMode === "sepay_qr") {
-      toast.error(t("checkout_multi_sepay_not_supported", "Thanh toán SePay QR hiện chỉ hỗ trợ cho 1 khóa học mỗi lần"))
-      return
-    }
-
     setIsSubmitting(true)
     try {
+      if (paymentMode === "sepay_qr" && isMultiCourseCheckout) {
+        const response = await apiClient.createSepayCartPayment({
+          courseIds: courses.map((item) => item.id),
+        })
+
+        const payment = response?.payment
+        const checkout = response?.checkout
+
+        if (payment?.status === "completed") {
+          localStorage.removeItem("checkoutCourse")
+          localStorage.removeItem("checkoutItems")
+          localStorage.removeItem("checkoutTotal")
+          toast.success(t("checkout_multi_success", "Đã thanh toán thành công cho các khóa học đã chọn"))
+          router.push("/my-courses")
+          return
+        }
+
+        if (checkout && payment) {
+          setSepayCheckout({
+            paymentId: String(payment.id || ""),
+            transactionId: String(payment.transactionId || ""),
+            transactionCode: String(checkout.transactionCode || payment.transactionCode || ""),
+            amount: Number(payment.finalAmount || payment.amount || 0),
+            status: String(payment.status || "pending"),
+            qrImageUrl: String(checkout.qrImageUrl || ""),
+            bankName: String(checkout.bankName || ""),
+            accountNumber: String(checkout.accountNumber || ""),
+            expiresAt: checkout.expiresAt,
+            createdAt: payment.createdAt,
+            paidAt: payment.paidAt,
+            referenceCode: payment.sepayTransactionId || payment.gatewayTransactionId || null,
+          })
+
+          toast.success(t("checkout_qr_created", "Đã tạo mã QR SePay, vui lòng chuyển khoản đúng nội dung"))
+          return
+        }
+
+        throw new Error(t("checkout_failed", "Thanh toán thất bại"))
+      }
+
       const successes: Array<{ courseId: string; paymentId: string; status: string }> = []
       const failures: string[] = []
 

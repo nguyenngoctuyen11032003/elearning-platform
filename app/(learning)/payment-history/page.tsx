@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
@@ -41,6 +41,7 @@ type StatusFilter = "all" | "completed" | "pending" | "failed"
 export default function PaymentHistoryPage() {
   const { user } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
   const { language, t } = useLanguage()
 
   const [loading, setLoading] = useState(true)
@@ -50,6 +51,9 @@ export default function PaymentHistoryPage() {
   const [selectedPayment, setSelectedPayment] = useState<PaymentHistory | null>(null)
 
   const [balance, setBalance] = useState(0)
+  const topupPath = pathname.startsWith("/teacher/wallet-membership")
+    ? "/teacher/wallet-membership/top-up"
+    : "/top-up"
 
   const normalizeStatus = (status: string): PaymentHistory["status"] => {
     if (status === "completed") return "completed"
@@ -269,7 +273,7 @@ export default function PaymentHistoryPage() {
 
             <div className="mt-4 flex flex-wrap gap-2">
               <button
-                onClick={() => router.push("/top-up")}
+                onClick={() => router.push(topupPath)}
                 className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-500"
               >
                 <Plus className="h-4 w-4" />

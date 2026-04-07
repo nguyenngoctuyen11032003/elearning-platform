@@ -55,11 +55,11 @@ function NewPaymentMethodPageContent() {
   const activeStep = type ? 2 : 1
 
   const backToCheckoutLink = useMemo(() => {
-    if (planId) return `/teacher/settings/billing/checkout?planId=${encodeURIComponent(planId)}`
-    return "/teacher/settings/billing/checkout"
+    if (planId) return `/teacher/wallet-membership/checkout?planId=${encodeURIComponent(planId)}`
+    return "/teacher/wallet-membership/checkout"
   }, [planId])
 
-  const billingSettingsLink = "/teacher/settings?tab=billing"
+  const billingSettingsLink = "/teacher/wallet-membership"
 
   const saveMethod = async () => {
     setSubmitting(true)
