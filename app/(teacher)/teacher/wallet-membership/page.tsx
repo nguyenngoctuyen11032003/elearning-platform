@@ -127,6 +127,45 @@ export default function TeacherWalletMembershipPage() {
         </div>
       </section>
 
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border bg-card p-5">
+          <h3 className="mb-2 inline-flex items-center gap-2 text-lg font-semibold">
+            <Wallet size={18} /> {t("checkout_wallet", "Số dư ví")}
+          </h3>
+          <p className="text-sm text-muted-foreground">{t("topup_wallet_balance", "Số dư hiện tại")}</p>
+          <p className="mt-1 text-2xl font-bold text-primary">{formatCurrency(walletBalance)}</p>
+          <div className="mt-4 flex gap-2">
+            <Link href="/teacher/wallet-membership/top-up" className="inline-flex h-10 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-white">
+              {t("topup_title", "Nạp tiền vào ví")}
+            </Link>
+            <Link href="/teacher/wallet-membership/payment-history" className="inline-flex h-10 items-center rounded-xl border px-4 text-sm font-semibold">
+              {t("pay_header_title", "Lịch sử thanh toán")}
+            </Link>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border bg-card p-5">
+          <h3 className="mb-3 inline-flex items-center gap-2 text-lg font-semibold">
+            <CreditCard size={18} /> {t("teacher_settings_billing_history", "Lịch sử thanh toán")}
+          </h3>
+          {billingHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("teacher_settings_no_billing", "Chưa có giao dịch nâng cấp.")}</p>
+          ) : (
+            <div className="space-y-2">
+              {billingHistory.slice(0, 8).map((item: any) => (
+                <div key={item.id} className="rounded-lg border p-3 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium">{item.plan?.name || "-"}</p>
+                    <p className="font-semibold text-primary">{formatCurrency(Number(item.amount || 0))}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{item.transactionId}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {orderedPlans.map((plan) => {
           const isCurrent = currentPlanId === plan.id
@@ -166,45 +205,6 @@ export default function TeacherWalletMembershipPage() {
             </article>
           )
         })}
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border bg-card p-5">
-          <h3 className="mb-2 inline-flex items-center gap-2 text-lg font-semibold">
-            <Wallet size={18} /> {t("checkout_wallet", "Số dư ví")}
-          </h3>
-          <p className="text-sm text-muted-foreground">{t("topup_wallet_balance", "Số dư hiện tại")}</p>
-          <p className="mt-1 text-2xl font-bold text-primary">{formatCurrency(walletBalance)}</p>
-          <div className="mt-4 flex gap-2">
-            <Link href="/top-up" className="inline-flex h-10 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-white">
-              {t("topup_title", "Nạp tiền vào ví")}
-            </Link>
-            <Link href="/payment-history" className="inline-flex h-10 items-center rounded-xl border px-4 text-sm font-semibold">
-              {t("pay_header_title", "Lịch sử thanh toán")}
-            </Link>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border bg-card p-5">
-          <h3 className="mb-3 inline-flex items-center gap-2 text-lg font-semibold">
-            <CreditCard size={18} /> {t("teacher_settings_billing_history", "Lịch sử thanh toán")}
-          </h3>
-          {billingHistory.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("teacher_settings_no_billing", "Chưa có giao dịch nâng cấp.")}</p>
-          ) : (
-            <div className="space-y-2">
-              {billingHistory.slice(0, 8).map((item: any) => (
-                <div key={item.id} className="rounded-lg border p-3 text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium">{item.plan?.name || "-"}</p>
-                    <p className="font-semibold text-primary">{formatCurrency(Number(item.amount || 0))}</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{item.transactionId}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </section>
 
       <section className="rounded-2xl border border-red-300 bg-red-50 p-5 dark:border-red-500/40 dark:bg-red-500/5">

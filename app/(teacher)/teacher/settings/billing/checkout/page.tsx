@@ -96,10 +96,9 @@ function TeacherPlanCheckoutPageContent() {
 
   useEffect(() => {
     if (!loading && methods.length === 0) {
-      const targetPlan = selectedPlanId || searchParams.get("planId") || ""
-      router.replace(`/teacher/wallet-membership/methods/new?planId=${encodeURIComponent(targetPlan)}`)
+      setSelectedMethodId("")
     }
-  }, [loading, methods.length, selectedPlanId, router, searchParams])
+  }, [loading, methods.length])
 
   useEffect(() => {
     if (!checkout?.transactionId) return
@@ -166,7 +165,7 @@ function TeacherPlanCheckoutPageContent() {
   const selectedPlan = useMemo(() => plans.find((p) => p.id === selectedPlanId), [plans, selectedPlanId])
   const selectedMethod = useMemo(() => methods.find((m) => m.id === selectedMethodId), [methods, selectedMethodId])
   const totalAmount = Number(selectedPlan?.price || 0)
-  const activeStep = !selectedPlanId ? 1 : checkout ? 3 : 2
+  const activeStep = !selectedPlanId ? 1 : checkout ? 3 : methods.length > 0 ? 2 : 3
 
   const summaryPlanName = useMemo(() => {
     if (!selectedPlan) return "Plan"
@@ -387,13 +386,9 @@ function TeacherPlanCheckoutPageContent() {
 
           {methods.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-700 bg-[#0f172a] p-6">
-              <p className="mb-4 text-sm text-slate-400">{t("checkout_no_methods", "Bạn chưa có phương thức thanh toán nào. Vui lòng thêm mới để tiếp tục.")}</p>
-              <button
-                onClick={() => router.push(`/teacher/wallet-membership/methods/new?planId=${encodeURIComponent(selectedPlanId)}`)}
-                className="inline-flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500"
-              >
-                <CreditCard size={16} /> {t("payment_add_method", "Thêm phương thức thanh toán")}
-              </button>
+              <p className="text-sm text-slate-400">
+                {t("checkout_no_methods", "Bạn chưa có phương thức thanh toán đã lưu. Bạn vẫn có thể thanh toán bằng ví hoặc SePay QR bên dưới.")}
+              </p>
             </div>
           ) : (
             <div
@@ -408,12 +403,6 @@ function TeacherPlanCheckoutPageContent() {
                   <span className={`h-2.5 w-2.5 rounded-full ${activeStep === 2 ? "bg-blue-400" : "bg-slate-500"}`} />
                   2. {t("checkout_choose_method", "Chọn phương thức")}
                 </h2>
-                <button
-                  onClick={() => router.push(`/teacher/wallet-membership/methods/new?planId=${encodeURIComponent(selectedPlanId)}`)}
-                  className="rounded-xl border border-slate-700 px-3 py-2 text-sm text-slate-200 transition hover:bg-slate-800"
-                >
-                  {t("payment_add_method", "Thêm phương thức thanh toán")}
-                </button>
               </div>
 
               <div className="space-y-3">
