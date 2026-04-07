@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Copy, Loader2, QrCode, RefreshCw, Wallet } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
@@ -24,9 +25,22 @@ type TopupCheckout = {
   expiresAt?: string
 }
 
+type TopupPaymentInfo = {
+  id: string
+  transactionId: string
+  transactionCode: string
+  status: string
+  createdAt?: string
+  paidAt?: string | null
+  expiresAt?: string | null
+  sepayTransactionId?: string | null
+  gatewayTransactionId?: string | null
+}
+
 const TOPUP_PRESETS = [100000, 200000, 500000, 1000000, 2000000]
 
 export default function TopUpPage() {
+  const router = useRouter()
   const { language, t } = useLanguage()
   const [balance, setBalance] = useState(0)
   const [amount, setAmount] = useState(500000)
@@ -34,9 +48,29 @@ export default function TopUpPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [checkout, setCheckout] = useState<TopupCheckout | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<string>("idle")
+  const [paymentInfo, setPaymentInfo] = useState<TopupPaymentInfo | null>(null)
+  const [remainingSeconds, setRemainingSeconds] = useState(0)
   const [transactions, setTransactions] = useState<WalletTransactionItem[]>([])
 
   const amountText = useMemo(() => String(amount || ""), [amount])
+  const isPending = paymentStatus === "pending"
+  const paymentExpiresAtMs = paymentInfo?.expiresAt ? new Date(paymentInfo.expiresAt).getTime() : NaN
+  const isCountdownExpired = Number.isFinite(paymentExpiresAtMs) && paymentExpiresAtMs <= Date.now()
+  const isExpired = paymentStatus === "expired" || (isPending && isCountdownExpired)
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return "-"
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return "-"
+    return date.toLocaleString(language === "en" ? "en-US" : "vi-VN")
+  }
+
+  const formatCountdown = (seconds: number) => {
+    const safe = Math.max(0, seconds)
+    const mins = Math.floor(safe / 60)
+    const secs = safe % 60
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
+  }
 
   const loadWalletData = async () => {
     setIsLoading(true)
@@ -61,36 +95,90 @@ export default function TopUpPage() {
   }, [])
 
   useEffect(() => {
+    if (!paymentInfo?.expiresAt || paymentStatus !== "pending") {
+      setRemainingSeconds(0)
+      return
+    }
+
+    const updateRemaining = () => {
+      const expiresAtMs = new Date(paymentInfo.expiresAt as string).getTime()
+      if (!Number.isFinite(expiresAtMs)) {
+        setRemainingSeconds(0)
+        return
+      }
+      const seconds = Math.max(0, Math.floor((expiresAtMs - Date.now()) / 1000))
+      setRemainingSeconds(seconds)
+    }
+
+    updateRemaining()
+    const timerId = setInterval(updateRemaining, 1000)
+    return () => clearInterval(timerId)
+  }, [paymentInfo?.expiresAt, paymentStatus])
+
+  useEffect(() => {
     if (!checkout?.transactionCode) return
     if (paymentStatus !== "pending") return
 
     const intervalId = setInterval(async () => {
       try {
         const result = await apiClient.getSepayPaymentStatus(checkout.transactionCode)
-        const nextStatus = String(result?.payment?.status || "pending")
+        const payment = result?.payment
+        const nextStatus = String(payment?.status || "pending")
         setPaymentStatus(nextStatus)
+        setPaymentInfo((prev) => {
+          const mapped: TopupPaymentInfo | null = payment
+            ? {
+                id: String(payment.id || prev?.id || ""),
+                transactionId: String(payment.transactionId || prev?.transactionId || ""),
+                transactionCode: String(payment.transactionCode || prev?.transactionCode || checkout.transactionCode),
+                status: nextStatus,
+                createdAt: payment.createdAt || prev?.createdAt,
+                paidAt: payment.paidAt || prev?.paidAt || null,
+                expiresAt: payment.expiresAt || result?.checkout?.expiresAt || prev?.expiresAt || null,
+                sepayTransactionId: payment.sepayTransactionId || prev?.sepayTransactionId || null,
+                gatewayTransactionId: payment.gatewayTransactionId || prev?.gatewayTransactionId || null,
+              }
+            : prev
+          return mapped
+        })
 
         if (nextStatus === "completed") {
           clearInterval(intervalId)
-          toast.success(t("topup_success_title", "Nap tien thanh cong"))
           await loadWalletData()
+          const paidAmount = Number(payment?.finalAmount ?? payment?.amount ?? amount)
+          const txCode = String(payment?.transactionCode || checkout.transactionCode || "")
+          toast.success(t("topup_success_title", "Nap tien thanh cong"))
+          router.push(`/top-up/success?amount=${encodeURIComponent(String(paidAmount))}&transactionCode=${encodeURIComponent(txCode)}&paymentId=${encodeURIComponent(String(payment?.id || ""))}`)
         }
 
         if (nextStatus === "expired" || nextStatus === "failed") {
           clearInterval(intervalId)
           toast.error(
             nextStatus === "expired"
-              ? t("topup_expired", "Ma nap tien da het han")
+              ? t("topup_expired", "Mã nạp tiền đã hết hạn sau 15 phút chờ, vui lòng tạo giao dịch mới")
               : t("topup_failed", "Nap tien that bai"),
           )
         }
       } catch {
         // continue polling
       }
-    }, 5000)
+    }, 4000)
 
     return () => clearInterval(intervalId)
-  }, [checkout?.transactionCode, paymentStatus, t])
+  }, [checkout?.transactionCode, paymentStatus, t, router, amount])
+
+  useEffect(() => {
+    if (paymentStatus !== "pending") return
+    if (!paymentInfo?.expiresAt) return
+
+    const expiresAtMs = new Date(paymentInfo.expiresAt).getTime()
+    if (!Number.isFinite(expiresAtMs)) return
+    if (expiresAtMs > Date.now()) return
+
+    toast.error(t("topup_expired", "Mã nạp tiền đã hết hạn sau 15 phút chờ, vui lòng tạo giao dịch mới"))
+    setPaymentStatus("expired")
+    setPaymentInfo((prev) => (prev ? { ...prev, status: "expired" } : prev))
+  }, [paymentStatus, remainingSeconds, paymentInfo?.expiresAt])
 
   const handleCreateTopup = async () => {
     if (amount < 10000) {
@@ -116,6 +204,17 @@ export default function TopUpPage() {
         expiresAt: checkoutData.expiresAt,
       })
       setPaymentStatus(String(payment.status || "pending"))
+      setPaymentInfo({
+        id: String(payment.id || ""),
+        transactionId: String(payment.transactionId || ""),
+        transactionCode: String(payment.transactionCode || checkoutData.transactionCode || ""),
+        status: String(payment.status || "pending"),
+        createdAt: payment.createdAt,
+        paidAt: payment.paidAt,
+        expiresAt: payment.expiresAt || checkoutData.expiresAt || null,
+        sepayTransactionId: payment.sepayTransactionId || null,
+        gatewayTransactionId: payment.gatewayTransactionId || null,
+      })
       toast.success(t("topup_qr_created", "Da tao ma nap tien SePay"))
     } catch (error) {
       const message = error instanceof Error ? error.message : t("topup_failed", "Khong the tao giao dich nap tien")
@@ -194,11 +293,33 @@ export default function TopUpPage() {
               {t("topup_status", "Trang thai")}: {paymentStatus}
             </p>
             <p className="text-xs text-muted-foreground">
-              {t("topup_bank", "Ngan hang")}: {checkout.bankName} - {checkout.accountNumber}
+              {t("checkout_transaction_id", "Mã giao dịch")}: {paymentInfo?.transactionId || "-"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {t("topup_content", "Noi dung")}: {checkout.transactionCode}
+              {t("checkout_transfer_content", "Nội dung")}: {paymentInfo?.transactionCode || checkout.transactionCode}
             </p>
+            <p className="text-xs text-muted-foreground">
+              {t("checkout_reference_code", "Mã tham chiếu")}: {paymentInfo?.sepayTransactionId || paymentInfo?.gatewayTransactionId || "-"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("checkout_created_at", "Thời gian tạo")}: {formatDateTime(paymentInfo?.createdAt)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("checkout_paid_at", "Thời gian thanh toán")}: {formatDateTime(paymentInfo?.paidAt)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("topup_bank", "Ngan hang")}: {checkout.bankName} - {checkout.accountNumber}
+            </p>
+            {isPending && (
+              <p className={`text-xs font-semibold ${isExpired ? "text-red-600" : "text-amber-600"}`}>
+                {t("checkout_time_left", "Thời gian còn lại")}: {isExpired ? "00:00" : formatCountdown(remainingSeconds)}
+              </p>
+            )}
+            {isExpired && (
+              <p className="text-xs font-semibold text-red-600">
+                {t("topup_expired", "Mã nạp tiền đã hết hạn sau 15 phút chờ, vui lòng tạo giao dịch mới")}
+              </p>
+            )}
 
             <button
               onClick={copyTransferContent}
@@ -208,7 +329,7 @@ export default function TopUpPage() {
               {t("topup_copy_content", "Sao chep noi dung chuyen khoan")}
             </button>
 
-            {checkout.qrImageUrl && (
+            {checkout.qrImageUrl && !isExpired && (
               <div className="mt-3 rounded-lg border p-2">
                 <img src={checkout.qrImageUrl} alt="Topup SePay QR" className="mx-auto h-56 w-56 object-contain" />
               </div>

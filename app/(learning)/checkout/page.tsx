@@ -26,6 +26,7 @@ type PaymentMode = "wallet" | "sepay_qr"
 
 interface SepayCheckoutState {
   paymentId: string
+  transactionId: string
   transactionCode: string
   amount: number
   status: string
@@ -33,6 +34,9 @@ interface SepayCheckoutState {
   bankName: string
   accountNumber: string
   expiresAt?: string
+  createdAt?: string
+  paidAt?: string | null
+  referenceCode?: string | null
 }
 
 export default function CheckoutPage() {
@@ -45,6 +49,7 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("sepay_qr")
   const [sepayCheckout, setSepayCheckout] = useState<SepayCheckoutState | null>(null)
+  const [remainingSeconds, setRemainingSeconds] = useState(0)
 
   useEffect(() => {
     try {
@@ -120,6 +125,47 @@ export default function CheckoutPage() {
     return Math.max(0, Number(baseAmount || 0) - discount)
   }, [baseAmount, discount])
 
+  const isSepayPending = sepayCheckout?.status === "pending"
+  const checkoutExpiresAtMs = sepayCheckout?.expiresAt ? new Date(sepayCheckout.expiresAt).getTime() : NaN
+  const isCheckoutCountdownExpired = Number.isFinite(checkoutExpiresAtMs) && checkoutExpiresAtMs <= Date.now()
+  const isSepayExpired = sepayCheckout?.status === "expired" || (isSepayPending && isCheckoutCountdownExpired)
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return "-"
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return "-"
+    return date.toLocaleString(language === "en" ? "en-US" : "vi-VN")
+  }
+
+  const formatCountdown = (seconds: number) => {
+    const safe = Math.max(0, seconds)
+    const mins = Math.floor(safe / 60)
+    const secs = safe % 60
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
+  }
+
+  useEffect(() => {
+    if (!sepayCheckout?.expiresAt || sepayCheckout.status !== "pending") {
+      setRemainingSeconds(0)
+      return
+    }
+
+    const updateRemaining = () => {
+      const expiresAtMs = new Date(sepayCheckout.expiresAt as string).getTime()
+      if (!Number.isFinite(expiresAtMs)) {
+        setRemainingSeconds(0)
+        return
+      }
+
+      const nextSeconds = Math.max(0, Math.floor((expiresAtMs - Date.now()) / 1000))
+      setRemainingSeconds(nextSeconds)
+    }
+
+    updateRemaining()
+    const timerId = setInterval(updateRemaining, 1000)
+    return () => clearInterval(timerId)
+  }, [sepayCheckout?.expiresAt, sepayCheckout?.status])
+
   useEffect(() => {
     if (!sepayCheckout?.transactionCode) return
     if (sepayCheckout.status !== "pending") return
@@ -137,6 +183,9 @@ export default function CheckoutPage() {
             ...prev,
             status: nextStatus,
             expiresAt: statusResult?.checkout?.expiresAt || prev.expiresAt,
+            createdAt: payment.createdAt || prev.createdAt,
+            paidAt: payment.paidAt || prev.paidAt,
+            referenceCode: payment.sepayTransactionId || payment.gatewayTransactionId || prev.referenceCode || null,
           }
         })
 
@@ -153,7 +202,7 @@ export default function CheckoutPage() {
           clearInterval(intervalId)
           toast.error(
             nextStatus === "expired"
-              ? t("checkout_qr_expired", "Mã QR đã hết hạn, vui lòng tạo lại giao dịch")
+              ? t("checkout_qr_expired", "Mã QR đã hết hạn sau 15 phút chờ, vui lòng tạo lại giao dịch")
               : t("checkout_failed", "Thanh toán thất bại"),
           )
         }
@@ -164,6 +213,21 @@ export default function CheckoutPage() {
 
     return () => clearInterval(intervalId)
   }, [sepayCheckout?.transactionCode, sepayCheckout?.status, router, firstCourse?.id, t])
+
+  useEffect(() => {
+    if (sepayCheckout?.status !== "pending") return
+    if (!sepayCheckout?.expiresAt) return
+
+    const expiresAtMs = new Date(sepayCheckout.expiresAt).getTime()
+    if (!Number.isFinite(expiresAtMs)) return
+    if (expiresAtMs > Date.now()) return
+
+    toast.error(t("checkout_qr_expired", "Mã QR đã hết hạn sau 15 phút chờ, vui lòng tạo lại giao dịch"))
+    setSepayCheckout((prev) => {
+      if (!prev) return prev
+      return { ...prev, status: "expired" }
+    })
+  }, [sepayCheckout?.status, sepayCheckout?.expiresAt, remainingSeconds])
 
   const handleCheckCode = async () => {
     if (!firstCourse) return
@@ -252,6 +316,7 @@ export default function CheckoutPage() {
           if (checkout && payment) {
             setSepayCheckout({
               paymentId: String(payment.id || ""),
+              transactionId: String(payment.transactionId || ""),
               transactionCode: String(checkout.transactionCode || payment.transactionCode || ""),
               amount: Number(payment.finalAmount || payment.amount || 0),
               status: String(payment.status || "pending"),
@@ -259,6 +324,9 @@ export default function CheckoutPage() {
               bankName: String(checkout.bankName || ""),
               accountNumber: String(checkout.accountNumber || ""),
               expiresAt: checkout.expiresAt,
+              createdAt: payment.createdAt,
+              paidAt: payment.paidAt,
+              referenceCode: payment.sepayTransactionId || payment.gatewayTransactionId || null,
             })
 
             toast.success(t("checkout_qr_created", "Đã tạo mã QR SePay, vui lòng chuyển khoản đúng nội dung"))
@@ -417,11 +485,33 @@ export default function CheckoutPage() {
               {t("checkout_sepay_status", "Trạng thái")}: {sepayCheckout.status}
             </p>
             <p className="text-xs text-muted-foreground">
+              {t("checkout_transaction_id", "Mã giao dịch")}: {sepayCheckout.transactionId || "-"}
+            </p>
+            <p className="text-xs text-muted-foreground">
               {t("checkout_bank", "Ngân hàng")}: {sepayCheckout.bankName} - {sepayCheckout.accountNumber}
             </p>
             <p className="text-xs text-muted-foreground">
               {t("checkout_transfer_content", "Nội dung")}: {sepayCheckout.transactionCode}
             </p>
+            <p className="text-xs text-muted-foreground">
+              {t("checkout_reference_code", "Mã tham chiếu")}: {sepayCheckout.referenceCode || "-"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("checkout_created_at", "Thời gian tạo")}: {formatDateTime(sepayCheckout.createdAt)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("checkout_paid_at", "Thời gian thanh toán")}: {formatDateTime(sepayCheckout.paidAt)}
+            </p>
+            {isSepayPending && (
+              <p className={`text-xs font-semibold ${isSepayExpired ? "text-red-600" : "text-amber-600"}`}>
+                {t("checkout_time_left", "Thời gian còn lại")}: {isSepayExpired ? "00:00" : formatCountdown(remainingSeconds)}
+              </p>
+            )}
+            {isSepayExpired && (
+              <p className="text-xs font-semibold text-red-600">
+                {t("checkout_qr_expired", "Mã QR đã hết hạn sau 15 phút chờ, vui lòng tạo lại giao dịch")}
+              </p>
+            )}
             <button
               onClick={handleCopyTransferContent}
               className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
@@ -429,7 +519,7 @@ export default function CheckoutPage() {
               <Copy size={14} />
               {t("checkout_copy_transfer", "Sao chép nội dung chuyển khoản")}
             </button>
-            {sepayCheckout.qrImageUrl && (
+            {sepayCheckout.qrImageUrl && !isSepayExpired && (
               <div className="mt-3 rounded-lg border p-2">
                 <img src={sepayCheckout.qrImageUrl} alt="SePay QR" className="mx-auto h-52 w-52 object-contain" />
               </div>

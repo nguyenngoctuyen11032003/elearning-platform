@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { Search, Download, Eye, DollarSign, TrendingUp, CreditCard, Clock, X, User, BookOpen } from "lucide-react"
+import { Search, Download, Eye, DollarSign, TrendingUp, CreditCard, Clock, X, User, BookOpen, CheckCircle2 } from "lucide-react"
 import * as XLSX from "xlsx"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
@@ -8,6 +8,8 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { formatPrice, formatNumber, formatCurrencyByLanguage } from "@/lib/format"
 import Link from "next/link"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
 import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
@@ -42,7 +44,7 @@ interface PaymentStats {
 
 const normalizeStatus = (status?: string): Payment["status"] => {
   const normalized = status?.toLowerCase?.()
-  if (normalized === "completed" || normalized === "success") return "success"
+  if (normalized === "completed" || normalized === "success" || normalized === "paid") return "success"
   if (normalized === "pending") return "pending"
   return "failed"
 }
@@ -88,6 +90,10 @@ export default function AdminPaymentsPage() {
   const [exportTeacher, setExportTeacher] = useState<string>("all")
   const [exportDateFrom, setExportDateFrom] = useState<string>("")
   const [exportDateTo, setExportDateTo] = useState<string>("")
+  const [actionPaymentId, setActionPaymentId] = useState<string | null>(null)
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
+  const [rejectTargetPayment, setRejectTargetPayment] = useState<Payment | null>(null)
+  const [rejectReason, setRejectReason] = useState("")
   const { t, language } = useLanguage()
 
   const loadPayments = async (silent = false) => {
@@ -185,6 +191,77 @@ export default function AdminPaymentsPage() {
     } finally {
       if (!silent) setLoading(false)
     }
+  }
+
+  const handleApprovePayment = async (payment: Payment) => {
+    if (actionPaymentId) return
+
+    setActionPaymentId(payment.id)
+    try {
+      if (payment.source === "subscription") {
+        await apiClient.confirmAdminInstructorPayment(payment.id)
+      } else {
+        await apiClient.processAdminPayment(payment.id, { success: true })
+      }
+
+      toast.success(t("pay_approve_ok", "Đã chấp nhận giao dịch"))
+      await loadPayments(true)
+    } catch (error: any) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("pay_approve_fail", "Không thể chấp nhận giao dịch")
+      toast.error(message)
+    } finally {
+      setActionPaymentId(null)
+    }
+  }
+
+  const handleRejectPayment = async (payment: Payment, reasonInput?: string) => {
+    if (actionPaymentId) return
+
+    setActionPaymentId(payment.id)
+    try {
+      if (payment.source === "subscription") {
+        await apiClient.refundAdminInstructorPayment(payment.id)
+      } else {
+        const reason = reasonInput?.trim()
+
+        await apiClient.processAdminPayment(payment.id, {
+          success: false,
+          ...(reason ? { reason } : {}),
+        })
+      }
+
+      toast.success(t("pay_reject_ok", "Đã từ chối giao dịch"))
+      await loadPayments(true)
+    } catch (error: any) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("pay_reject_fail", "Không thể từ chối giao dịch")
+      toast.error(message)
+    } finally {
+      setActionPaymentId(null)
+    }
+  }
+
+  const openRejectDialog = (payment: Payment) => {
+    setRejectTargetPayment(payment)
+    setRejectReason("")
+    setRejectDialogOpen(true)
+  }
+
+  const closeRejectDialog = () => {
+    setRejectDialogOpen(false)
+    setRejectTargetPayment(null)
+    setRejectReason("")
+  }
+
+  const confirmRejectDialog = async () => {
+    if (!rejectTargetPayment) return
+    await handleRejectPayment(rejectTargetPayment, rejectReason)
+    closeRejectDialog()
   }
 
   useEffect(() => {
@@ -531,21 +608,41 @@ export default function AdminPaymentsPage() {
         <span className="text-xs text-muted-foreground dark:text-slate-500">
           ID: {payment.id}
         </span>
-        <button
-          onClick={() => {
-            const el = cardRefs.current[payment.id]
-            if (!el) return
-            const rect = el.getBoundingClientRect()
-            setPopupPos({
-              top: rect.bottom + window.scrollY + 8,
-              left: rect.left + window.scrollX,
-            })
-            setExpandedPaymentId(payment.id)
-          }}
-          className="h-9 px-3.5 rounded-lg bg-primary/15 text-primary text-sm font-semibold hover:bg-primary/25 transition-smooth"
-        >
-          {t("pay_view_detail", "Xem chi tiết")}
-        </button>
+        <div className="flex items-center gap-2">
+          {payment.status === "pending" && (
+            <>
+              <button
+                disabled={actionPaymentId === payment.id}
+                onClick={() => void handleApprovePayment(payment)}
+                className="h-9 px-3 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-semibold hover:bg-emerald-200 transition-smooth disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {actionPaymentId === payment.id ? t("common_processing", "Đang xử lý") : t("pay_approve", "Chấp nhận")}
+              </button>
+              <button
+                disabled={actionPaymentId === payment.id}
+                onClick={() => openRejectDialog(payment)}
+                className="h-9 px-3 rounded-lg bg-rose-100 text-rose-700 text-xs font-semibold hover:bg-rose-200 transition-smooth disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {t("pay_reject", "Từ chối")}
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => {
+              const el = cardRefs.current[payment.id]
+              if (!el) return
+              const rect = el.getBoundingClientRect()
+              setPopupPos({
+                top: rect.bottom + window.scrollY + 8,
+                left: rect.left + window.scrollX,
+              })
+              setExpandedPaymentId(payment.id)
+            }}
+            className="h-9 px-3.5 rounded-lg bg-primary/15 text-primary text-sm font-semibold hover:bg-primary/25 transition-smooth"
+          >
+            {t("pay_view_detail", "Xem chi tiết")}
+          </button>
+        </div>
       </div>
     </div>
   ))}
@@ -607,6 +704,25 @@ export default function AdminPaymentsPage() {
                     <p className="text-2xl font-extrabold text-primary dark:text-accent"><AnimatedNumber value={payment.amount} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={460} /></p>
                   </div>
                 </div>
+
+                {payment.status === "pending" && (
+                  <div className="px-4 pb-2 grid grid-cols-2 gap-2">
+                    <button
+                      disabled={actionPaymentId === payment.id}
+                      onClick={() => void handleApprovePayment(payment)}
+                      className="h-10 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-smooth disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {actionPaymentId === payment.id ? t("common_processing", "Đang xử lý") : t("pay_approve", "Chấp nhận")}
+                    </button>
+                    <button
+                      disabled={actionPaymentId === payment.id}
+                      onClick={() => openRejectDialog(payment)}
+                      className="h-10 rounded-xl bg-rose-500 text-white text-sm font-semibold hover:bg-rose-600 transition-smooth disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {t("pay_reject", "Từ chối")}
+                    </button>
+                  </div>
+                )}
 
                 {/* Người mua */}
                 <div className="px-4 pb-2">
@@ -707,41 +823,61 @@ export default function AdminPaymentsPage() {
                     </td>
                     <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{formatDate(payment.date)}</td>
                     <td className="py-4 px-6">
-                      <button
-                        ref={el => {
-                          if (el) cardRefs.current[`${payment.id}-table-btn`] = el;
-                        }}
-                        onClick={() => {
-                          const el = cardRefs.current[`${payment.id}-table-btn`]
-                          if (!el) return
-                          const rect = el.getBoundingClientRect()
-                          const MODAL_WIDTH = 420
-const GAP = 12
+                      <div className="flex items-center gap-2">
+                        {payment.status === "pending" && (
+                          <>
+                            <button
+                              disabled={actionPaymentId === payment.id}
+                              onClick={() => void handleApprovePayment(payment)}
+                              className="h-9 px-3 inline-flex items-center gap-1 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-semibold hover:bg-emerald-200 transition-smooth disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              <CheckCircle2 size={14} />
+                              {actionPaymentId === payment.id ? t("common_processing", "Đang xử lý") : t("pay_approve", "Chấp nhận")}
+                            </button>
+                            <button
+                              disabled={actionPaymentId === payment.id}
+                              onClick={() => openRejectDialog(payment)}
+                              className="h-9 px-3 inline-flex items-center gap-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-semibold hover:bg-rose-200 transition-smooth disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              <X size={14} />
+                              {t("pay_reject", "Từ chối")}
+                            </button>
+                          </>
+                        )}
+                        <button
+                          ref={el => {
+                            if (el) cardRefs.current[`${payment.id}-table-btn`] = el;
+                          }}
+                          onClick={() => {
+                            const el = cardRefs.current[`${payment.id}-table-btn`]
+                            if (!el) return
+                            const rect = el.getBoundingClientRect()
+                            const MODAL_WIDTH = 420
+                            const GAP = 12
 
-const viewportWidth = window.innerWidth
+                            const viewportWidth = window.innerWidth
 
-let left = rect.right + GAP
+                            let left = rect.right + GAP
 
-// Nếu tràn màn hình phải -> đẩy sang trái card
-if (left + MODAL_WIDTH > viewportWidth) {
-  left = rect.left - MODAL_WIDTH - GAP
-}
+                            if (left + MODAL_WIDTH > viewportWidth) {
+                              left = rect.left - MODAL_WIDTH - GAP
+                            }
 
-// Nếu vẫn tràn bên trái -> clamp về trong viewport
-if (left < GAP) {
-  left = GAP
-}
+                            if (left < GAP) {
+                              left = GAP
+                            }
 
-setPopupPos({
-  top: rect.bottom + window.scrollY + GAP,
-  left: left + window.scrollX,
-})
-                          setExpandedPaymentId(payment.id)
-                        }}
-                        className="h-10 w-10 inline-flex items-center justify-center hover:bg-secondary dark:hover:bg-slate-800 rounded-xl border border-border/60 dark:border-slate-700 transition-smooth"
-                      >
-                        <Eye size={18} className="text-primary dark:text-accent" />
-                      </button>
+                            setPopupPos({
+                              top: rect.bottom + window.scrollY + GAP,
+                              left: left + window.scrollX,
+                            })
+                            setExpandedPaymentId(payment.id)
+                          }}
+                          className="h-10 w-10 inline-flex items-center justify-center hover:bg-secondary dark:hover:bg-slate-800 rounded-xl border border-border/60 dark:border-slate-700 transition-smooth"
+                        >
+                          <Eye size={18} className="text-primary dark:text-accent" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -811,6 +947,25 @@ setPopupPos({
                     <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("pay_amount_label", "Số tiền thanh toán")}</p>
                     <p className="text-3xl font-bold text-primary dark:text-accent"><AnimatedNumber value={payment.amount} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={500} /></p>
                   </div>
+
+                  {payment.status === "pending" && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        disabled={actionPaymentId === payment.id}
+                        onClick={() => void handleApprovePayment(payment)}
+                        className="h-11 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition-smooth disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {actionPaymentId === payment.id ? t("common_processing", "Đang xử lý") : t("pay_approve", "Chấp nhận")}
+                      </button>
+                      <button
+                        disabled={actionPaymentId === payment.id}
+                        onClick={() => openRejectDialog(payment)}
+                        className="h-11 rounded-xl bg-rose-500 text-white font-semibold hover:bg-rose-600 transition-smooth disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {t("pay_reject", "Từ chối")}
+                      </button>
+                    </div>
+                  )}
 
                   {/* User Info */}
                   <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
@@ -964,6 +1119,57 @@ setPopupPos({
             document.body
           )
         : null}
+
+      <Dialog open={rejectDialogOpen} onOpenChange={(open) => (!open ? closeRejectDialog() : setRejectDialogOpen(true))}>
+        <DialogContent className="border-rose-200/70 bg-white/95 backdrop-blur dark:border-rose-900/50 dark:bg-slate-900/95">
+          <DialogHeader>
+            <DialogTitle className="text-rose-700 dark:text-rose-300">
+              {t("pay_reject_title", "Xác nhận từ chối giao dịch")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("pay_reject_desc", "Bạn sắp từ chối giao dịch này. Vui lòng nhập lý do để lưu vết xử lý rõ ràng.")}
+            </DialogDescription>
+          </DialogHeader>
+
+          {rejectTargetPayment && (
+            <div className="space-y-3 rounded-xl border border-border/70 bg-secondary/40 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/50">
+              <p><span className="font-semibold">{t("pay_transaction_id", "Mã giao dịch")}:</span> {rejectTargetPayment.transactionId || rejectTargetPayment.id}</p>
+              <p><span className="font-semibold">{t("pay_user", "Người dùng")}:</span> {rejectTargetPayment.user}</p>
+              <p><span className="font-semibold">{t("pay_amount", "Số tiền")}:</span> {formatCurrencyByLanguage(rejectTargetPayment.amount, language)}</p>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium">{t("pay_reject_reason", "Lý do từ chối (không bắt buộc)")}</p>
+            <Textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder={t("pay_reject_reason_placeholder", "Ví dụ: Không khớp thông tin chuyển khoản hoặc giao dịch nghi ngờ")}
+              className="min-h-24"
+              maxLength={500}
+            />
+            <p className="text-xs text-muted-foreground">{rejectReason.length}/500</p>
+          </div>
+
+          <DialogFooter>
+            <button
+              onClick={closeRejectDialog}
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-secondary"
+            >
+              {t("common_cancel", "Hủy")}
+            </button>
+            <button
+              onClick={() => void confirmRejectDialog()}
+              disabled={actionPaymentId === rejectTargetPayment?.id}
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {actionPaymentId === rejectTargetPayment?.id
+                ? t("common_processing", "Đang xử lý")
+                : t("pay_reject_confirm", "Xác nhận từ chối")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
  </div>  
   )}
 

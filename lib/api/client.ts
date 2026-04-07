@@ -797,6 +797,13 @@ if (typeof window !== 'undefined' && token) {
     })
   }
 
+  async processAdminPayment(id: string, payload: { success: boolean; reason?: string }): Promise<any> {
+    return this.request(API_ENDPOINTS.PAYMENTS.PROCESS(id), {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    })
+  }
+
   // Notes methods
   async getNotesByCourse(courseId: string): Promise<any[]> {
     try {
