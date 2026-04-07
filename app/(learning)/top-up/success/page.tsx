@@ -1,19 +1,21 @@
+"use client"
+
 import Link from "next/link"
+import { usePathname, useSearchParams } from "next/navigation"
 import { CheckCircle2 } from "lucide-react"
 import { formatCurrencyByLanguage } from "@/lib/format"
 
-type PageProps = {
-  searchParams?: {
-    amount?: string
-    transactionCode?: string
-    paymentId?: string
-  }
-}
-
-export default function TopUpSuccessPage({ searchParams }: PageProps) {
-  const amount = Number(searchParams?.amount || 0)
-  const transactionCode = searchParams?.transactionCode || "-"
-  const paymentId = searchParams?.paymentId || "-"
+export default function TopUpSuccessPage() {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const amount = Number(searchParams.get("amount") || 0)
+  const transactionCode = searchParams.get("transactionCode") || "-"
+  const paymentId = searchParams.get("paymentId") || "-"
+  const isTeacherWalletTopup = pathname.startsWith("/teacher/wallet-membership/top-up")
+  const topupPath = isTeacherWalletTopup ? "/teacher/wallet-membership/top-up" : "/top-up"
+  const paymentHistoryPath = isTeacherWalletTopup
+    ? "/teacher/wallet-membership/payment-history"
+    : "/payment-history"
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
@@ -33,10 +35,10 @@ export default function TopUpSuccessPage({ searchParams }: PageProps) {
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <Link href="/top-up" className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/90">
+        <Link href={topupPath} className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/90">
           Quay lại nạp ví
         </Link>
-        <Link href="/payment-history" className="inline-flex h-10 items-center rounded-lg border px-4 text-sm font-semibold hover:bg-secondary">
+        <Link href={paymentHistoryPath} className="inline-flex h-10 items-center rounded-lg border px-4 text-sm font-semibold hover:bg-secondary">
           Xem lịch sử thanh toán
         </Link>
       </div>
