@@ -159,9 +159,7 @@ export default function AdminCourseDetailPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "content" | "students" | "analytics">("overview")
   const [expandedQuizLessonId, setExpandedQuizLessonId] = useState<string | null>(null)
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudentRow[]>([])
-  const [isSavingRejectReason, setIsSavingRejectReason] = useState(false)
   const [sparklineTick, setSparklineTick] = useState(0)
-  const [rejectReasonDraft, setRejectReasonDraft] = useState("")
 
   const durationToMinutes = (value?: string) => {
     if (!value) return 0
@@ -537,7 +535,6 @@ export default function AdminCourseDetailPage() {
           ratingDistribution,
           rejectionReason: c.rejectionReason,
         })
-        setRejectReasonDraft(String(c.rejectionReason || ""))
       } catch {
         toast.error(t("adm_cd_load_err", "Không thể tải thông tin khóa học"))
       } finally {
@@ -632,28 +629,7 @@ export default function AdminCourseDetailPage() {
   }
 
   const handleSaveRejectReason = async () => {
-    if (!course || course.status !== "rejected" || isSavingRejectReason) return
-
-    const reason = rejectReasonDraft.trim()
-    if (!reason) {
-      toast.error(t("adm_cd_edit_reason_required", "Vui lòng nhập lý do từ chối"))
-      return
-    }
-
-    setIsSavingRejectReason(true)
-    try {
-      await apiClient.updateCourse(course.id, {
-        status: "rejected",
-        rejectionReason: reason,
-      })
-      setCourse((prev) => (prev ? { ...prev, rejectionReason: reason } : prev))
-      toast.success(t("adm_cd_edit_saved", "Đã cập nhật khóa học"))
-    } catch (error) {
-      console.error("Failed to save rejection reason:", error)
-      toast.error(t("adm_cd_edit_failed", "Không thể cập nhật khóa học"))
-    } finally {
-      setIsSavingRejectReason(false)
-    }
+    
   }
 
   const getMonthlyEnrollmentStats = () => {
@@ -801,34 +777,7 @@ export default function AdminCourseDetailPage() {
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
                       {t("adm_cd_smart_hint", "Hệ thống đề xuất tăng tỉ lệ hoàn thành bằng cách rút gọn đoạn video dài và thêm checkpoint quiz cho mỗi chương.")}
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900/65">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                        {t("adm_cd_reject_reason_studio", "Rejection Reason Studio")}
-                      </p>
-                      {course.status === "rejected" ? (
-                        <>
-                          <textarea
-                            value={rejectReasonDraft}
-                            onChange={(e) => setRejectReasonDraft(e.target.value)}
-                            rows={4}
-                            className="mt-2 w-full rounded-xl border border-rose-200/80 bg-rose-50/60 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-rose-400 dark:border-rose-700/50 dark:bg-rose-900/20 dark:text-slate-200"
-                            placeholder={t("adm_cd_rejection_reason_placeholder", "Nhập lý do từ chối...")}
-                          />
-                          <button
-                            onClick={() => void handleSaveRejectReason()}
-                            disabled={isSavingRejectReason}
-                            className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-700/50 dark:bg-rose-900/20 dark:text-rose-300"
-                          >
-                            {isSavingRejectReason ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                            {t("adm_cd_save_reject_reason", "Lưu lý do từ chối")}
-                          </button>
-                        </>
-                      ) : (
-                        <p className="mt-2 text-[12px] text-slate-500 dark:text-slate-400">
-                          {t("adm_cd_reject_reason_hint", "Lý do từ chối sẽ được nhập tại đây khi khóa học ở trạng thái Từ chối.")}
-                        </p>
-                      )}
-                    </div>
+
                   </div>
                 </div>
               </div>
