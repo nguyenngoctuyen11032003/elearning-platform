@@ -46,6 +46,8 @@ export default function ExamHistoryPage() {
   const [loading, setLoading] = useState(true)
   const [examInfo, setExamInfo] = useState<ExamInfo | null>(null)
   const [attempts, setAttempts] = useState<ExamAttempt[]>([])
+  const [attemptCount, setAttemptCount] = useState(0)
+  const [remainingAttempts, setRemainingAttempts] = useState(0)
 
   useEffect(() => {
     const load = async () => {
@@ -75,6 +77,9 @@ export default function ExamHistoryPage() {
             completedAt: String(item?.completedAt || item?.submittedAt || item?.createdAt || ""),
           })),
         )
+
+        setAttemptCount(Number(payload?.attemptCount ?? rows.length))
+        setRemainingAttempts(Number(payload?.remainingAttempts ?? Math.max(0, Number(exam?.maxAttempts || 0) - rows.length)))
       } catch (error) {
         const message = error instanceof Error ? error.message : t("exam_load_error", "Không thể tải danh sách bài thi")
         toast.error(message)
@@ -152,7 +157,7 @@ export default function ExamHistoryPage() {
         <PremiumCard className="p-6">
           <div className="grid md:grid-cols-4 gap-6">
             <div className="text-center">
-              <p className="text-4xl font-bold text-primary">{attempts.length}</p>
+              <p className="text-4xl font-bold text-primary">{attemptCount}</p>
               <p className="text-sm text-muted-foreground">Lượt thi</p>
             </div>
             <div className="text-center">
@@ -163,7 +168,7 @@ export default function ExamHistoryPage() {
             </div>
             <div className="text-center">
               <p className="text-4xl font-bold text-foreground dark:text-white">
-                {examInfo.maxAttempts - attempts.length}
+                {remainingAttempts}
               </p>
               <p className="text-sm text-muted-foreground">Lượt còn lại</p>
             </div>

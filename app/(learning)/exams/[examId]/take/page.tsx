@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
@@ -337,6 +337,8 @@ export default function TakeExamPage() {
   const [timeRemaining, setTimeRemaining] = useState(0)
   const [assignedVariantCode, setAssignedVariantCode] = useState<number | null>(null)
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null)
+  const [attemptActive, setAttemptActive] = useState(false)
+  const startedAtRef = useRef<number | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -355,9 +357,18 @@ export default function TakeExamPage() {
           questions: normalizeExamQuestions((examData as any)?.questions),
         })
 
+        startedAtRef.current = Date.now()
+        setAttemptActive(true)
+
         if (!isExtractedSource) {
           const attempt = await apiClient.startExam(examId)
           setAttemptId(attempt.id)
+        } else {
+          try {
+            await apiClient.startExtractedExam(examId)
+          } catch (startError) {
+            console.warn("Failed to record extracted exam start:", startError)
+          }
         }
 
         setTimeRemaining(Number(examData.timeLimit || 60) * 60)
@@ -374,6 +385,24 @@ export default function TakeExamPage() {
       load()
     }
   }, [examId, isExtractedSource, router, t])
+
+  useEffect(() => {
+    if (!attemptActive) return
+
+    const warningMessage = t(
+      "exam_leave_warning",
+      "Bạn đang rời bài thi. Bài làm sẽ được tính là 1 lượt thi.",
+    )
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = warningMessage
+      return warningMessage
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [attemptActive, t])
 
   useEffect(() => {
     if (!exam) return
@@ -442,7 +471,14 @@ export default function TakeExamPage() {
         answer,
       }))
       const examDurationInSeconds = Math.max(0, Number(exam.timeLimit || 0) * 60)
-      const timeSpent = Math.max(0, examDurationInSeconds - timeRemaining)
+      const elapsedSeconds = startedAtRef.current
+        ? Math.floor((Date.now() - startedAtRef.current) / 1000)
+        : 0
+      const rawSpent = Math.max(0, examDurationInSeconds - timeRemaining, elapsedSeconds)
+      const timeSpent =
+        examDurationInSeconds > 0
+          ? Math.min(rawSpent, examDurationInSeconds)
+          : rawSpent
 
       const result = isExtractedSource
         ? await apiClient.submitExtractedExam(examId, payload, assignedVariantCode ?? undefined, timeSpent)
@@ -455,9 +491,11 @@ export default function TakeExamPage() {
       )
 
       if (isExtractedSource) {
+        setAttemptActive(false)
         sessionStorage.setItem(`extracted_result_${result.id}`, JSON.stringify(result))
         router.push(`/exams/${examId}/result?attemptId=${result.id}&source=extracted`)
       } else {
+        setAttemptActive(false)
         router.push(`/exams/${examId}/result?attemptId=${result.id}`)
       }
     } catch (error) {
