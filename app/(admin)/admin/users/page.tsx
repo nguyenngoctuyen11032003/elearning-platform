@@ -1073,9 +1073,9 @@ const getLastActiveDisplay = (user: UserData): string => {
               borderRadius: 16,
             }}
           >
-            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
+            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-3xl shadow-[0_24px_72px_rgba(2,6,23,0.36)] w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
               {/* Header */}
-              <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
+              <div className="sticky top-0 bg-gradient-to-r from-card via-card to-primary/5 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-foreground dark:text-white">{t("user_detail_title", "Thông tin chi tiết người dùng")}</h2>
                 <button
                   onClick={() => { setViewUser(null); setModalPos(null); }}
@@ -1085,9 +1085,9 @@ const getLastActiveDisplay = (user: UserData): string => {
                 </button>
               </div>
               {/* Nội dung modal */}
-              <div className="p-6 space-y-6">
+              <div className="p-6 md:p-7 space-y-6">
                 {/* Profile Header */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 rounded-2xl border border-border/70 dark:border-slate-800 bg-secondary/20 dark:bg-slate-900/30 p-4">
                   <div className="relative w-20 h-20 flex-shrink-0">
                     {viewUser.avatar && !viewUser.avatar.includes('ui-avatars.com') ? (
                       <img
@@ -1132,21 +1132,21 @@ const getLastActiveDisplay = (user: UserData): string => {
                 </div>
                 {/* Contact Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Mail size={16} />
                       <span className="text-sm">{t("user_email_label", "Email")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">{viewUser.email || ''}</p>
                   </div>
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Phone size={16} />
                       <span className="text-sm">{t("user_phone", "Số điện thoại")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">{viewUser.phone || t("common_not_updated", "Chưa cập nhật")}</p>
                   </div>
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Calendar size={16} />
                       <span className="text-sm">{t("user_join_date", "Ngày tham gia")}</span>
@@ -1155,7 +1155,7 @@ const getLastActiveDisplay = (user: UserData): string => {
                         {viewUser && getJoinedDate(viewUser) ? formatDate(getJoinedDate(viewUser)) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
                   </div>
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Clock size={16} />
                       <span className="text-sm">{t("user_last_active", "Hoạt động gần nhất")}</span>
@@ -1164,7 +1164,7 @@ const getLastActiveDisplay = (user: UserData): string => {
                       {viewUser ? getLastActiveDisplay(viewUser) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
                   </div>
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Calendar size={16} />
                       <span className="text-sm">{t("user_date_of_birth", "Ngày sinh")}</span>
@@ -1176,14 +1176,14 @@ const getLastActiveDisplay = (user: UserData): string => {
                 </div>
                 {/* Address */}
                 {viewUser.address && (
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">{t("user_address", "Địa chỉ")}</p>
                     <p className="text-foreground dark:text-white font-medium">{viewUser.address}</p>
                   </div>
                 )}
                 {/* Bio */}
                 {viewUser.bio && (
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">{t("user_bio", "Giới thiệu")}</p>
                     <p className="text-foreground dark:text-white">{viewUser.bio}</p>
                   </div>
@@ -1192,25 +1192,25 @@ const getLastActiveDisplay = (user: UserData): string => {
                 <div>
                   <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("user_stats", "Thống kê")}</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-center">
+                    <div className="bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 text-center">
                       <BookOpen size={24} className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
                       <p className="text-2xl font-bold text-blue-700 dark:text-blue-300"><AnimatedNumber value={getCoursesCount(viewUser) ?? 0} durationMs={560} /></p>
                       <p className="text-sm text-blue-600 dark:text-blue-400">
                         {viewUser.role === "teacher" ? t("user_courses_teaching", "Khóa học dạy") : t("user_courses_enrolled", "Khóa học đăng ký")}
                       </p>
                     </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 text-center">
+                    <div className="bg-green-50/80 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-4 text-center">
                       <Award size={24} className="mx-auto mb-2 text-green-600 dark:text-green-400" />
                       <p className="text-2xl font-bold text-green-700 dark:text-green-300"><AnimatedNumber value={viewUser.certificates || 0} durationMs={560} /></p>
                       <p className="text-sm text-green-600 dark:text-green-400">{t("user_certificates_count", "Chứng chỉ")}</p>
                     </div>
-                    <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4 text-center">
+                    <div className="bg-purple-50/80 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-2xl p-4 text-center">
                       <Clock size={24} className="mx-auto mb-2 text-purple-600 dark:text-purple-400" />
                       <p className="text-2xl font-bold text-purple-700 dark:text-purple-300"><AnimatedNumber value={viewUser.totalHours || 0} durationMs={560} suffix="h" /></p>
                       <p className="text-sm text-purple-600 dark:text-purple-400">{t("user_total_hours", "Tổng giờ học")}</p>
                     </div>
                     {viewUser.role === "student" && (
-                      <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 text-center">
+                      <div className="bg-orange-50/80 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-2xl p-4 text-center">
                         <BookOpen size={24} className="mx-auto mb-2 text-orange-600 dark:text-orange-400" />
                         <p className="text-2xl font-bold text-orange-700 dark:text-orange-300"><AnimatedNumber value={viewUser.completedCourses || 0} durationMs={560} /></p>
                         <p className="text-sm text-orange-600 dark:text-orange-400">{t("user_completed", "Hoàn thành")}</p>
@@ -1255,10 +1255,10 @@ const getLastActiveDisplay = (user: UserData): string => {
             </div>
           </div>
         ) : (
-          <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
+          <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+            <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-3xl shadow-[0_24px_72px_rgba(2,6,23,0.36)] max-w-2xl w-full max-h-[90vh] overflow-y-auto relative z-[10000]">
               {/* Header */}
-              <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
+              <div className="sticky top-0 bg-gradient-to-r from-card via-card to-primary/5 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 border-b border-border dark:border-slate-800 p-6 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-foreground dark:text-white">{t("user_detail_title", "Thông tin chi tiết người dùng")}</h2>
                 <button
                   onClick={() => setViewUser(null)}
@@ -1268,9 +1268,9 @@ const getLastActiveDisplay = (user: UserData): string => {
                 </button>
               </div>
               {/* Nội dung modal - giống như trên */}
-              <div className="p-6 space-y-6">
+              <div className="p-6 md:p-7 space-y-6">
                 {/* Profile Header */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 rounded-2xl border border-border/70 dark:border-slate-800 bg-secondary/20 dark:bg-slate-900/30 p-4">
                   <div className="relative w-20 h-20 flex-shrink-0">
                     {viewUser && viewUser.avatar && !viewUser.avatar.includes('ui-avatars.com') ? (
                       <img
@@ -1315,21 +1315,21 @@ const getLastActiveDisplay = (user: UserData): string => {
                 </div>
                 {/* Contact Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Mail size={16} />
                       <span className="text-sm">{t("user_email_label", "Email")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">{viewUser.email}</p>
                   </div>
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Phone size={16} />
                       <span className="text-sm">{t("user_phone", "Số điện thoại")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">{viewUser.phone || t("common_not_updated", "Chưa cập nhật")}</p>
                   </div>
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Calendar size={16} />
                       <span className="text-sm">Ngày tham gia</span>
@@ -1338,7 +1338,7 @@ const getLastActiveDisplay = (user: UserData): string => {
                     {viewUser && getJoinedDate(viewUser) ? formatDate(getJoinedDate(viewUser)) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
                   </div>
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Clock size={16} />
                       <span className="text-sm">{t("user_last_active", "Hoạt động gần nhất")}</span>
@@ -1347,7 +1347,7 @@ const getLastActiveDisplay = (user: UserData): string => {
                       {viewUser ? getLastActiveDisplay(viewUser) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
                   </div>
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
                       <Calendar size={16} />
                       <span className="text-sm">{t("user_date_of_birth", "Ngày sinh")}</span>
@@ -1359,14 +1359,14 @@ const getLastActiveDisplay = (user: UserData): string => {
                 </div>
                 {/* Address */}
                 {viewUser.address && (
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">{t("user_address", "Địa chỉ")}</p>
                     <p className="text-foreground dark:text-white font-medium">{viewUser.address}</p>
                   </div>
                 )}
                 {/* Bio */}
                 {viewUser.bio && (
-                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <p className="text-muted-foreground dark:text-slate-400 text-sm mb-1">{t("user_bio", "Giới thiệu")}</p>
                     <p className="text-foreground dark:text-white">{viewUser.bio}</p>
                   </div>
@@ -1375,25 +1375,25 @@ const getLastActiveDisplay = (user: UserData): string => {
                 <div>
                   <h4 className="text-lg font-semibold text-foreground dark:text-white mb-4">{t("user_stats", "Thống kê")}</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-center">
+                    <div className="bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 text-center">
                       <BookOpen size={24} className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
                       <p className="text-2xl font-bold text-blue-700 dark:text-blue-300"><AnimatedNumber value={getCoursesCount(viewUser) ?? 0} durationMs={560} /></p>
                       <p className="text-sm text-blue-600 dark:text-blue-400">
                         {viewUser.role === "teacher" ? t("user_courses_teaching", "Khóa học dạy") : t("user_courses_enrolled", "Khóa học đăng ký")}
                       </p>
                     </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 text-center">
+                    <div className="bg-green-50/80 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-4 text-center">
                       <Award size={24} className="mx-auto mb-2 text-green-600 dark:text-green-400" />
                       <p className="text-2xl font-bold text-green-700 dark:text-green-300"><AnimatedNumber value={viewUser.certificates || 0} durationMs={560} /></p>
                       <p className="text-sm text-green-600 dark:text-green-400">{t("user_certificates_count", "Chứng chỉ")}</p>
                     </div>
-                    <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4 text-center">
+                    <div className="bg-purple-50/80 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-2xl p-4 text-center">
                       <Clock size={24} className="mx-auto mb-2 text-purple-600 dark:text-purple-400" />
                       <p className="text-2xl font-bold text-purple-700 dark:text-purple-300"><AnimatedNumber value={viewUser.totalHours || 0} durationMs={560} suffix="h" /></p>
                       <p className="text-sm text-purple-600 dark:text-purple-400">{t("user_total_hours", "Tổng giờ học")}</p>
                     </div>
                     {viewUser.role === "student" && (
-                      <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 text-center">
+                      <div className="bg-orange-50/80 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-2xl p-4 text-center">
                         <BookOpen size={24} className="mx-auto mb-2 text-orange-600 dark:text-orange-400" />
                         <p className="text-2xl font-bold text-orange-700 dark:text-orange-300"><AnimatedNumber value={viewUser.completedCourses || 0} durationMs={560} /></p>
                         <p className="text-sm text-orange-600 dark:text-orange-400">Hoàn thành</p>
@@ -1453,9 +1453,9 @@ const getLastActiveDisplay = (user: UserData): string => {
             borderRadius: 16,
           }}
         >
-          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-3xl shadow-[0_24px_72px_rgba(2,6,23,0.34)] w-full max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="sticky top-0 bg-card dark:bg-slate-900 border-b border-border dark:border-slate-800 p-5 flex items-center justify-between">
+            <div className="sticky top-0 bg-gradient-to-r from-card to-primary/10 dark:from-slate-900 dark:to-slate-800 border-b border-border dark:border-slate-800 p-5 flex items-center justify-between">
               <h2 className="text-lg font-bold text-foreground dark:text-white">
                 {t("user_edit_info", "Sửa thông tin")}
               </h2>
@@ -1489,7 +1489,7 @@ const getLastActiveDisplay = (user: UserData): string => {
               }}
               className="p-5 space-y-4 text-sm"
             >
-              <div>
+              <div className="rounded-xl border border-border/70 dark:border-slate-800 bg-secondary/20 dark:bg-slate-900/30 p-3">
                 <label className="block mb-1 font-medium">{t("auth_fullname", "Tên đầy đủ")}</label>
                 <input
                   name="name"
@@ -1498,7 +1498,7 @@ const getLastActiveDisplay = (user: UserData): string => {
                 />
               </div>
 
-              <div>
+              <div className="rounded-xl border border-border/70 dark:border-slate-800 bg-secondary/20 dark:bg-slate-900/30 p-3">
                 <label className="block mb-1 font-medium">{t("user_phone", "Số điện thoại")}</label>
                 <input
                   name="phone"
@@ -1507,7 +1507,7 @@ const getLastActiveDisplay = (user: UserData): string => {
                 />
               </div>
 
-              <div>
+              <div className="rounded-xl border border-border/70 dark:border-slate-800 bg-secondary/20 dark:bg-slate-900/30 p-3">
                 <label className="block mb-1 font-medium">{t("user_role", "Vai trò")}</label>
                 <UniversalSelect
                   name="role"
@@ -1520,7 +1520,7 @@ const getLastActiveDisplay = (user: UserData): string => {
                 </UniversalSelect>
               </div>
 
-              <div>
+              <div className="rounded-xl border border-border/70 dark:border-slate-800 bg-secondary/20 dark:bg-slate-900/30 p-3">
                 <label className="block mb-1 font-medium">{t("pay_status", "Trạng thái")}</label>
                 <UniversalSelect
                   name="status"
@@ -1536,7 +1536,7 @@ const getLastActiveDisplay = (user: UserData): string => {
               <div className="flex gap-3 pt-3">
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-lg bg-primary text-white font-medium"
+                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-medium"
                 >
                   {t("user_save_changes", "Lưu thay đổi")}
                 </button>
@@ -1546,7 +1546,7 @@ const getLastActiveDisplay = (user: UserData): string => {
                     setEditUser(null)
                     setModalPos(null)
                   }}
-                  className="flex-1 py-2 rounded-lg bg-secondary"
+                  className="flex-1 py-2 rounded-xl bg-secondary"
                 >
                   {t("common_cancel", "Hủy")}
                 </button>
