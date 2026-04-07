@@ -634,6 +634,16 @@ if (typeof window !== 'undefined' && token) {
     });
   }
 
+  async createSepayCartPayment(data: {
+    courseIds: string[];
+    couponCode?: string;
+  }): Promise<any> {
+    return this.request('/payments/sepay/cart', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async payCourseByWallet(data: {
     courseId: string;
     couponCode?: string;

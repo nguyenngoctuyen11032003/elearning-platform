@@ -97,6 +97,14 @@ export default function TeacherSettingsPage() {
     return Math.min(100, Math.round((Number(usage.coursesCreated || 0) / limit) * 100))
   }, [usage])
 
+  const formatVnd = (amount: number) =>
+    new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Number.isFinite(amount) ? amount : 0)
+
   const recommendedPlanId = useMemo(() => {
     if (!plans.length) return ""
     const basicPlan = plans.find((plan) => String(plan.name || "").toLowerCase().includes("basic"))
@@ -109,7 +117,7 @@ export default function TeacherSettingsPage() {
   }, [plans])
 
   const upgradePlan = async (planId: string) => {
-    router.push(`/teacher/settings/billing/checkout?planId=${encodeURIComponent(planId)}`)
+    router.push(`/teacher/wallet-membership/checkout?planId=${encodeURIComponent(planId)}`)
   }
 
   const cancelSubscription = async () => {
@@ -180,16 +188,10 @@ export default function TeacherSettingsPage() {
           </div>
         </section>
 
-        <Tabs defaultValue="billing" className="w-full">
+        <Tabs defaultValue="notifications" className="w-full">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/85 shadow-[0_10px_28px_rgba(15,23,42,0.12)] dark:border-slate-800 dark:bg-slate-900/70">
             <div className="border-b border-slate-200 p-3 md:p-4 dark:border-slate-800">
-              <TabsList className="grid grid-cols-1 gap-1 rounded-xl bg-slate-50 p-1 sm:grid-cols-3 dark:bg-slate-800/60">
-                <TabsTrigger
-                  value="billing"
-                  className="h-10 rounded-lg text-xs font-semibold text-slate-600 transition-all hover:text-primary data-[state=active]:bg-primary/90 data-[state=active]:text-white md:text-sm dark:text-slate-300 dark:hover:text-accent dark:data-[state=active]:bg-accent"
-                >
-                  {t("teacher_settings_tab_billing", "Billing & Subscription")}
-                </TabsTrigger>
+              <TabsList className="grid grid-cols-1 gap-1 rounded-xl bg-slate-50 p-1 sm:grid-cols-2 dark:bg-slate-800/60">
                 <TabsTrigger
                   value="notifications"
                   className="h-10 rounded-lg text-xs font-semibold text-slate-600 transition-all hover:text-primary data-[state=active]:bg-primary/90 data-[state=active]:text-white md:text-sm dark:text-slate-300 dark:hover:text-accent dark:data-[state=active]:bg-accent"
@@ -280,7 +282,7 @@ export default function TeacherSettingsPage() {
                             ) : null}
                           </div>
                           <p className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                            ${Number(plan.price || 0)}
+                            {formatVnd(Number(plan.price || 0))}
                             <span className="ml-1 text-sm font-medium text-slate-500 dark:text-slate-400">/ {plan.durationMonths} {t("teacher_settings_month", "month")}</span>
                           </p>
                           <div className="mt-4 space-y-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
@@ -315,7 +317,7 @@ export default function TeacherSettingsPage() {
                   <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)] dark:border-slate-800 dark:bg-slate-900/70">
                     <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">{t("teacher_settings_payment_hint", "Bạn có thể thêm thẻ, ví điện tử hoặc thanh toán bằng QR tại trang thanh toán gói.")}</p>
                     <button
-                      onClick={() => router.push("/teacher/settings/billing/checkout")}
+                      onClick={() => router.push("/teacher/wallet-membership/checkout")}
                       className="mt-4 h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500 active:scale-[0.98]"
                     >
                       {t("checkout_title", "Thanh toán gói")}
@@ -335,7 +337,7 @@ export default function TeacherSettingsPage() {
                               <p className="leading-5 text-slate-600 dark:text-slate-400">{item.plan?.name || t("teacher_settings_unknown_plan", "Unknown plan")}</p>
                             </div>
                             <div className="text-right">
-                              <p className="leading-5 text-slate-800 dark:text-slate-100">${Number(item.amount || 0)}</p>
+                              <p className="leading-5 text-slate-800 dark:text-slate-100">{formatVnd(Number(item.amount || 0))}</p>
                               <p className="leading-5 text-slate-600 dark:text-slate-400">{item.status}</p>
                             </div>
                           </div>
@@ -481,7 +483,7 @@ export default function TeacherSettingsPage() {
                   {t("teacher_settings_cancel_subscription", "Cancel Subscription")}
                 </button>
                 <button
-                  onClick={() => router.push("/teacher/settings/billing/checkout")}
+                  onClick={() => router.push("/teacher/wallet-membership/checkout")}
                   className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-6 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all hover:shadow-[0_14px_34px_rgba(15,23,42,0.18)] sm:w-auto"
                 >
                   <Sparkles size={16} />

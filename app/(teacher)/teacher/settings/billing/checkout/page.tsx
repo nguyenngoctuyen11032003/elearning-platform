@@ -56,6 +56,14 @@ function TeacherPlanCheckoutPageContent() {
   const [methodTab, setMethodTab] = useState<"saved" | "qr">("saved")
   const [remainingSeconds, setRemainingSeconds] = useState(0)
 
+  const formatVnd = (value: number) =>
+    new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Number.isFinite(value) ? value : 0)
+
   const loadData = async () => {
     setLoading(true)
     try {
@@ -89,7 +97,7 @@ function TeacherPlanCheckoutPageContent() {
   useEffect(() => {
     if (!loading && methods.length === 0) {
       const targetPlan = selectedPlanId || searchParams.get("planId") || ""
-      router.replace(`/teacher/settings/billing/methods/new?planId=${encodeURIComponent(targetPlan)}`)
+      router.replace(`/teacher/wallet-membership/methods/new?planId=${encodeURIComponent(targetPlan)}`)
     }
   }, [loading, methods.length, selectedPlanId, router, searchParams])
 
@@ -121,7 +129,7 @@ function TeacherPlanCheckoutPageContent() {
         if (nextStatus === "paid") {
           clearInterval(intervalId)
           toast.success(t("checkout_success", "Thanh toán thành công và gói đã được kích hoạt."))
-          router.push("/teacher/settings?tab=billing")
+          router.push("/teacher/wallet-membership")
         }
 
         if (nextStatus === "expired" || nextStatus === "failed") {
@@ -162,8 +170,6 @@ function TeacherPlanCheckoutPageContent() {
 
   const summaryPlanName = useMemo(() => {
     if (!selectedPlan) return "Plan"
-    if (Number(selectedPlan.price) === 9) return "Pro"
-    if (Number(selectedPlan.price) === 19) return "Pro Plus"
     return selectedPlan.name
   }, [selectedPlan])
 
@@ -295,7 +301,7 @@ function TeacherPlanCheckoutPageContent() {
       toast.success(t("checkout_wallet_paid", "Đã thanh toán gói bằng số dư ví"))
 
       if (String(data?.status || "") === "paid") {
-        router.push("/teacher/settings?tab=billing")
+        router.push("/teacher/wallet-membership")
       }
     } catch (error: any) {
       toast.error(localizeMessage(error?.message || t("checkout_create_failed", "Unable to create transaction"), getCurrentClientLanguage()))
@@ -314,7 +320,7 @@ function TeacherPlanCheckoutPageContent() {
     try {
       await apiClient.confirmTeacherCheckout(checkout.transactionId)
       toast.success(t("checkout_success", "Thanh toán thành công và gói đã được kích hoạt."))
-      router.push("/teacher/settings?tab=billing")
+      router.push("/teacher/wallet-membership")
     } catch (error: any) {
       toast.error(localizeMessage(error?.message || t("checkout_confirm_failed", "Unable to confirm transaction"), getCurrentClientLanguage()))
     } finally {
@@ -344,7 +350,7 @@ function TeacherPlanCheckoutPageContent() {
           <p className="text-sm text-slate-400">{t("checkout_subtitle", "Chọn phương thức thanh toán và hoàn tất nâng cấp")}</p>
         </div>
         <Link
-          href="/teacher/settings?tab=billing"
+          href="/teacher/wallet-membership"
           className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/70 px-4 py-2 text-sm text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
         >
           <ArrowLeft size={16} /> {t("payment_back_to_checkout", "Quay lại thanh toán")}
@@ -373,11 +379,7 @@ function TeacherPlanCheckoutPageContent() {
             >
               {plans.map((plan) => (
                 <option key={plan.id} value={plan.id}>
-                  {Number(plan.price || 0) === 9
-                    ? "Pro"
-                    : Number(plan.price || 0) === 19
-                    ? "Pro Plus"
-                    : plan.name} - ${Number(plan.price || 0)} / {plan.durationMonths} {t("common_month", "month")}
+                  {plan.name} - {formatVnd(Number(plan.price || 0))} / {plan.durationMonths} {t("common_month", "month")}
                 </option>
               ))}
             </UniversalSelect>
@@ -387,7 +389,7 @@ function TeacherPlanCheckoutPageContent() {
             <div className="rounded-2xl border border-dashed border-slate-700 bg-[#0f172a] p-6">
               <p className="mb-4 text-sm text-slate-400">{t("checkout_no_methods", "Bạn chưa có phương thức thanh toán nào. Vui lòng thêm mới để tiếp tục.")}</p>
               <button
-                onClick={() => router.push(`/teacher/settings/billing/methods/new?planId=${encodeURIComponent(selectedPlanId)}`)}
+                onClick={() => router.push(`/teacher/wallet-membership/methods/new?planId=${encodeURIComponent(selectedPlanId)}`)}
                 className="inline-flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500"
               >
                 <CreditCard size={16} /> {t("payment_add_method", "Thêm phương thức thanh toán")}
@@ -407,7 +409,7 @@ function TeacherPlanCheckoutPageContent() {
                   2. {t("checkout_choose_method", "Chọn phương thức")}
                 </h2>
                 <button
-                  onClick={() => router.push(`/teacher/settings/billing/methods/new?planId=${encodeURIComponent(selectedPlanId)}`)}
+                  onClick={() => router.push(`/teacher/wallet-membership/methods/new?planId=${encodeURIComponent(selectedPlanId)}`)}
                   className="rounded-xl border border-slate-700 px-3 py-2 text-sm text-slate-200 transition hover:bg-slate-800"
                 >
                   {t("payment_add_method", "Thêm phương thức thanh toán")}
@@ -570,23 +572,23 @@ function TeacherPlanCheckoutPageContent() {
         <aside className="h-fit rounded-2xl border border-[#334155] bg-gradient-to-br from-[#0f172a] to-[#1e293b] p-7 xl:sticky xl:top-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">3. Review</p>
           <h3 className="mt-3 text-2xl font-bold text-white">{summaryPlanName} Plan</h3>
-          <p className="mt-1 text-slate-300">${totalAmount} / {t("common_month", "tháng")}</p>
+          <p className="mt-1 text-slate-300">{formatVnd(totalAmount)} / {t("common_month", "tháng")}</p>
 
           <div className="my-5 border-t border-slate-700" />
 
           <div className="space-y-3 text-sm text-slate-200">
             <div className="flex items-center justify-between">
               <span>{t("checkout_subtotal", "Subtotal")}</span>
-              <span>${totalAmount}</span>
+              <span>{formatVnd(totalAmount)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>{t("checkout_tax", "Tax")}</span>
-              <span>$0</span>
+              <span>{formatVnd(0)}</span>
             </div>
             <div className="border-t border-slate-600 pt-3" />
             <div className="flex items-center justify-between">
               <span className="text-slate-100">{t("checkout_amount", "Total")}</span>
-              <span className="text-3xl font-bold text-white">${totalAmount}</span>
+              <span className="text-3xl font-bold text-white">{formatVnd(totalAmount)}</span>
             </div>
           </div>
 
@@ -600,7 +602,7 @@ function TeacherPlanCheckoutPageContent() {
             className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-6 text-base font-semibold text-white transition hover:-translate-y-px hover:brightness-110 active:scale-[0.99] disabled:opacity-60"
           >
             {processing ? <Loader2 size={18} className="animate-spin" /> : <CreditCard size={18} />}
-            {processing ? t("common_processing", "Processing...") : `${t("checkout_pay_now", "Thanh toán")} $${totalAmount}`}
+            {processing ? t("common_processing", "Processing...") : `${t("checkout_pay_now", "Thanh toán")} ${formatVnd(totalAmount)}`}
           </button>
         </aside>
       </div>
