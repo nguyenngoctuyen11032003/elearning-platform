@@ -92,9 +92,21 @@ if (!user) return null
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-6 max-w-2xl w-full mx-4 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-3xl p-6 md:p-7 max-w-2xl w-full mx-4 shadow-[0_28px_80px_rgba(2,6,23,0.35)] max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-5 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-accent/10 to-transparent p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="inline-flex items-center rounded-full border border-primary/30 bg-background/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              {t("user_editing", "Đang chỉnh sửa")}
+            </span>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
+            >
+              <X className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
+
           <div className="flex items-center gap-3">
             <div className="relative w-12 h-12 flex-shrink-0">
               {user.avatar && !user.avatar.includes('ui-avatars.com') ? (
@@ -109,7 +121,7 @@ if (!user) return null
                   }}
                 />
               ) : null}
-              <div 
+              <div
                 className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold"
                 style={{
                   display: user.avatar && !user.avatar.includes('ui-avatars.com') ? 'none' : 'flex'
@@ -127,17 +139,15 @@ if (!user) return null
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5 text-muted-foreground" />
-          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-border/70 dark:border-slate-800 bg-secondary/20 dark:bg-slate-900/20 p-4">
+            <p className="mb-3 text-sm font-semibold text-foreground dark:text-white">
+              {t("user_basic_info", "Thông tin cơ bản")}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Name */}
             <div>
               <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
@@ -186,9 +196,14 @@ if (!user) return null
               )}
             </div>
           </div>
+          </div>
 
           {/* Role & Status */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-border/70 dark:border-slate-800 bg-secondary/20 dark:bg-slate-900/20 p-4">
+            <p className="mb-3 text-sm font-semibold text-foreground dark:text-white">
+              {t("user_permissions", "Phân quyền và trạng thái")}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Role */}
             <div>
               <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
@@ -221,56 +236,60 @@ if (!user) return null
               </select>
             </div>
           </div>
+          </div>
 
           {/* Date of Birth */}
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
-              {t("user_date_of_birth", "Ngày sinh")}
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="date"
-                value={formData.dateOfBirth || ""}
-                onChange={(e) => handleChange("dateOfBirth", e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border dark:border-slate-700 bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+          <div className="rounded-2xl border border-border/70 dark:border-slate-800 bg-secondary/20 dark:bg-slate-900/20 p-4 space-y-4">
+            <p className="text-sm font-semibold text-foreground dark:text-white">
+              {t("user_profile_more", "Thông tin mở rộng")}
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
+                {t("user_date_of_birth", "Ngày sinh")}
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="date"
+                  value={formData.dateOfBirth || ""}
+                  onChange={(e) => handleChange("dateOfBirth", e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border dark:border-slate-700 bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
+                {t("user_address", "Địa chỉ")}
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={formData.address || ""}
+                  onChange={(e) => handleChange("address", e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border dark:border-slate-700 bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder={t("user_address_placeholder", "Nhập địa chỉ")}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
+                {t("user_bio", "Giới thiệu")}
+              </label>
+              <textarea
+                value={formData.bio || ""}
+                onChange={(e) => handleChange("bio", e.target.value)}
+                rows={4}
+                className="w-full px-4 py-2.5 rounded-lg border border-border dark:border-slate-700 bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                placeholder={t("user_bio_placeholder", "Mô tả ngắn về người dùng...")}
               />
             </div>
-          </div>
-
-          {/* Address */}
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
-              {t("user_address", "Địa chỉ")}
-            </label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                value={formData.address || ""}
-                onChange={(e) => handleChange("address", e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border dark:border-slate-700 bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder={t("user_address_placeholder", "Nhập địa chỉ")}
-              />
-            </div>
-          </div>
-
-          {/* Bio */}
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground dark:text-slate-400 mb-2">
-              {t("user_bio", "Giới thiệu")}
-            </label>
-            <textarea
-              value={formData.bio || ""}
-              onChange={(e) => handleChange("bio", e.target.value)}
-              rows={4}
-              className="w-full px-4 py-2.5 rounded-lg border border-border dark:border-slate-700 bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              placeholder={t("user_bio_placeholder", "Mô tả ngắn về người dùng...")}
-            />
           </div>
 
           {/* User Info */}
-          <div className="p-4 bg-secondary/30 dark:bg-slate-800/30 rounded-lg">
+          <div className="p-4 bg-secondary/30 dark:bg-slate-800/30 rounded-xl border border-border/60 dark:border-slate-800">
             <div className="flex items-center gap-2 mb-2">
               <Shield className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground dark:text-slate-400">
@@ -297,14 +316,14 @@ if (!user) return null
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-border dark:border-slate-700 hover:bg-secondary dark:hover:bg-slate-800 transition-colors text-foreground dark:text-white font-medium"
+              className="flex-1 px-4 py-2.5 rounded-xl border border-border dark:border-slate-700 hover:bg-secondary dark:hover:bg-slate-800 transition-colors text-foreground dark:text-white font-medium"
             >
               {t("common_cancel", "Hủy")}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white transition-colors font-medium disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white transition-colors font-medium disabled:opacity-50"
             >
               {loading ? (
                 <>

@@ -73,10 +73,7 @@ export default function PaymentHistoryPage() {
     const loadPaymentHistory = async () => {
       setLoading(true)
       try {
-        const [paymentResult, balanceResult] = await Promise.all([
-          apiClient.getPaymentHistory(),
-          apiClient.getMyWalletBalance(),
-        ])
+        const paymentResult = await apiClient.getPaymentHistory()
 
         const paymentRows = Array.isArray(paymentResult)
           ? paymentResult
@@ -110,6 +107,9 @@ export default function PaymentHistoryPage() {
 
         if (!active) return
         setPayments(mappedPayments)
+
+        const balanceResult = await apiClient.getMyWalletBalance()
+        if (!active) return
         setBalance(Number((balanceResult as any)?.balance || 0))
       } catch (error) {
         console.error("Error loading payment history:", error)
@@ -149,13 +149,14 @@ export default function PaymentHistoryPage() {
 
   const stats = useMemo(() => {
     const completed = payments.filter((p) => p.status === "completed")
+    const completedExpenses = completed.filter((p) => p.paymentType !== "wallet_topup")
     const pending = payments.filter((p) => p.status === "pending").length
     const failed = payments.filter((p) => p.status === "failed").length
 
-    const totalSpent = completed.reduce((sum, p) => sum + p.finalAmount, 0)
+    const totalSpent = completedExpenses.reduce((sum, p) => sum + p.finalAmount, 0)
 
     const today = new Date().toDateString()
-    const dailySpent = completed
+    const dailySpent = completedExpenses
       .filter((p) => new Date(p.enrolledAt).toDateString() === today)
       .reduce((sum, p) => sum + p.finalAmount, 0)
 

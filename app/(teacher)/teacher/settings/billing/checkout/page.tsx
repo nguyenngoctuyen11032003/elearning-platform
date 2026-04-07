@@ -35,6 +35,9 @@ type CheckoutData = {
   bankName?: string
   accountNumber?: string
   expiresAt?: string
+  createdAt?: string
+  paidAt?: string | null
+  referenceCode?: string | null
 }
 
 function TeacherPlanCheckoutPageContent() {
@@ -51,6 +54,7 @@ function TeacherPlanCheckoutPageContent() {
   const [processing, setProcessing] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [methodTab, setMethodTab] = useState<"saved" | "qr">("saved")
+  const [remainingSeconds, setRemainingSeconds] = useState(0)
 
   const loadData = async () => {
     setLoading(true)
@@ -107,6 +111,10 @@ function TeacherPlanCheckoutPageContent() {
             ...prev,
             status: nextStatus,
             qrImageUrl: result?.checkout?.qrImageUrl || prev.qrImageUrl,
+            expiresAt: result?.checkout?.expiresAt || payment.expiresAt || prev.expiresAt,
+            createdAt: payment.createdAt || prev.createdAt,
+            paidAt: payment.paidAt || prev.paidAt,
+            referenceCode: payment.sepayTransactionId || prev.referenceCode || null,
           }
         })
 
@@ -120,7 +128,7 @@ function TeacherPlanCheckoutPageContent() {
           clearInterval(intervalId)
           toast.error(
             nextStatus === "expired"
-              ? t("checkout_qr_expired", "Mã thanh toán đã hết hạn")
+              ? t("checkout_qr_expired", "Mã thanh toán đã hết hạn sau 15 phút chờ, vui lòng tạo giao dịch mới")
               : t("checkout_confirm_failed", "Unable to confirm transaction"),
           )
         }
@@ -131,6 +139,21 @@ function TeacherPlanCheckoutPageContent() {
 
     return () => clearInterval(intervalId)
   }, [checkout?.transactionId, checkout?.paymentChannel, checkout?.status, router, t])
+
+  useEffect(() => {
+    if (checkout?.status !== "pending") return
+    if (!checkout?.expiresAt) return
+
+    const expiresAtMs = new Date(checkout.expiresAt).getTime()
+    if (!Number.isFinite(expiresAtMs)) return
+    if (expiresAtMs > Date.now()) return
+
+    toast.error(t("checkout_qr_expired", "Mã thanh toán đã hết hạn sau 15 phút chờ, vui lòng tạo giao dịch mới"))
+    setCheckout((prev) => {
+      if (!prev) return prev
+      return { ...prev, status: "expired" }
+    })
+  }, [checkout?.status, checkout?.expiresAt, remainingSeconds])
 
   const selectedPlan = useMemo(() => plans.find((p) => p.id === selectedPlanId), [plans, selectedPlanId])
   const selectedMethod = useMemo(() => methods.find((m) => m.id === selectedMethodId), [methods, selectedMethodId])
@@ -151,6 +174,47 @@ function TeacherPlanCheckoutPageContent() {
     }
     return ""
   }, [checkout])
+
+  const isSepayPending = checkout?.paymentChannel === "sepay_qr" && checkout?.status === "pending"
+  const checkoutExpiresAtMs = checkout?.expiresAt ? new Date(checkout.expiresAt).getTime() : NaN
+  const isCheckoutCountdownExpired = Number.isFinite(checkoutExpiresAtMs) && checkoutExpiresAtMs <= Date.now()
+  const isSepayExpired = checkout?.status === "expired" || (isSepayPending && isCheckoutCountdownExpired)
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return "-"
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return "-"
+    return date.toLocaleString(getCurrentClientLanguage() === "en" ? "en-US" : "vi-VN")
+  }
+
+  const formatCountdown = (seconds: number) => {
+    const safe = Math.max(0, seconds)
+    const mins = Math.floor(safe / 60)
+    const secs = safe % 60
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
+  }
+
+  useEffect(() => {
+    if (!checkout?.expiresAt || checkout.status !== "pending") {
+      setRemainingSeconds(0)
+      return
+    }
+
+    const updateRemaining = () => {
+      const expiresAtMs = new Date(checkout.expiresAt as string).getTime()
+      if (!Number.isFinite(expiresAtMs)) {
+        setRemainingSeconds(0)
+        return
+      }
+
+      const nextSeconds = Math.max(0, Math.floor((expiresAtMs - Date.now()) / 1000))
+      setRemainingSeconds(nextSeconds)
+    }
+
+    updateRemaining()
+    const timerId = setInterval(updateRemaining, 1000)
+    return () => clearInterval(timerId)
+  }, [checkout?.expiresAt, checkout?.status])
 
   const createCheckoutByMethod = async () => {
     if (!selectedPlanId) {
@@ -200,7 +264,12 @@ function TeacherPlanCheckoutPageContent() {
         planId: selectedPlanId,
         paymentChannel: "sepay_qr",
       })
-      setCheckout(data)
+      setCheckout({
+        ...data,
+        createdAt: data?.createdAt,
+        paidAt: data?.paidAt || null,
+        referenceCode: data?.sepayTransactionId || null,
+      })
       setMethodTab("qr")
       toast.success(t("checkout_qr_created", "QR code has been generated"))
     } catch (error: any) {
@@ -432,13 +501,27 @@ function TeacherPlanCheckoutPageContent() {
             <div className="rounded-xl border border-slate-700 bg-[#111827] p-5">
               {methodTab === "qr" && qrPreviewUrl ? (
                 <div className="space-y-3">
-                  <img src={qrPreviewUrl} alt="qr-payment" className="h-56 w-56 rounded-lg border border-slate-700 bg-white p-2" />
+                  {!isSepayExpired ? (
+                    <img src={qrPreviewUrl} alt="qr-payment" className="h-56 w-56 rounded-lg border border-slate-700 bg-white p-2" />
+                  ) : (
+                    <div className="flex h-56 w-56 items-center justify-center rounded-lg border border-dashed border-red-500/60 bg-red-500/10 text-sm text-red-300">
+                      {t("checkout_qr_expired", "Mã thanh toán đã hết hạn sau 15 phút chờ, vui lòng tạo giao dịch mới")}
+                    </div>
+                  )}
                   <p className="text-sm text-slate-300">{t("checkout_qr_hint", "Quét QR SePay hoặc chuyển khoản theo đúng nội dung")}</p>
                   {checkout?.transactionId && (
                     <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-3 text-xs text-slate-300">
                       <p>{t("checkout_transfer_content", "Nội dung")}: {checkout.transactionId}</p>
                       {checkout.bankName && checkout.accountNumber && (
                         <p>{t("checkout_bank", "Ngân hàng")}: {checkout.bankName} - {checkout.accountNumber}</p>
+                      )}
+                      <p>{t("checkout_reference_code", "Mã tham chiếu")}: {checkout.referenceCode || "-"}</p>
+                      <p>{t("checkout_created_at", "Thời gian tạo")}: {formatDateTime(checkout.createdAt)}</p>
+                      <p>{t("checkout_paid_at", "Thời gian thanh toán")}: {formatDateTime(checkout.paidAt)}</p>
+                      {isSepayPending && (
+                        <p className={`font-semibold ${isSepayExpired ? "text-red-300" : "text-amber-300"}`}>
+                          {t("checkout_time_left", "Thời gian còn lại")}: {isSepayExpired ? "00:00" : formatCountdown(remainingSeconds)}
+                        </p>
                       )}
                     </div>
                   )}
@@ -461,9 +544,20 @@ function TeacherPlanCheckoutPageContent() {
                 {t("checkout_pending", "Đang chờ xác nhận")}: {checkout.transactionId}
               </div>
 
+              <div className="rounded-lg border border-slate-700 bg-slate-900/50 p-3 text-xs text-slate-300">
+                <p>{t("checkout_reference_code", "Mã tham chiếu")}: {checkout.referenceCode || "-"}</p>
+                <p>{t("checkout_created_at", "Thời gian tạo")}: {formatDateTime(checkout.createdAt)}</p>
+                <p>{t("checkout_paid_at", "Thời gian thanh toán")}: {formatDateTime(checkout.paidAt)}</p>
+                {isSepayPending && (
+                  <p className={`font-semibold ${isSepayExpired ? "text-red-300" : "text-amber-300"}`}>
+                    {t("checkout_time_left", "Thời gian còn lại")}: {isSepayExpired ? "00:00" : formatCountdown(remainingSeconds)}
+                  </p>
+                )}
+              </div>
+
               <button
                 onClick={confirmPaid}
-                disabled={confirming}
+                disabled={confirming || checkout.status === "expired"}
                 className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-6 text-base font-semibold text-white transition hover:-translate-y-px hover:brightness-110 active:scale-[0.99] disabled:opacity-60"
               >
                 {confirming ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
