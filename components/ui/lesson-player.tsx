@@ -606,7 +606,7 @@ export function LessonPlayer({
         }
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
-          setReviewError(t("lesson_review_load_failed", "Khong the tai danh gia"))
+          setReviewError(t("lesson_review_load_failed", "Không thể tải đánh giá"))
         }
       } finally {
         if (isMounted) {
@@ -627,13 +627,13 @@ export function LessonPlayer({
 
     const trimmed = reviewComment.trim()
     if (!trimmed) {
-      setReviewError(t("lesson_review_required", "Vui long nhap noi dung danh gia"))
+      setReviewError(t("lesson_review_required", "Vui lòng nhập nội dung đánh giá"))
       return
     }
 
     const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
     if (!token) {
-      setReviewError(t("lesson_review_login_required", "Ban can dang nhap de danh gia"))
+      setReviewError(t("lesson_review_login_required", "Bạn cần đăng nhập để đánh giá"))
       return
     }
 
@@ -666,9 +666,9 @@ export function LessonPlayer({
         setMyReview(created)
       }
 
-      toast.success(t("lesson_review_saved", "Da luu danh gia"))
+      toast.success(t("lesson_review_saved", "Đã lưu đánh giá"))
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("lesson_review_save_failed", "Khong the luu danh gia")
+      const message = error instanceof Error ? error.message : t("lesson_review_save_failed", "Không thể lưu đánh giá")
       setReviewError(message)
       toast.error(message)
     } finally {
@@ -961,7 +961,7 @@ export function LessonPlayer({
                     { id: "materials", label: t("lesson_tab_materials", "Tai lieu") },
                     { id: "quiz", label: t("lesson_tab_quiz", "Quiz") },
                     { id: "writing", label: t("lesson_tab_writing", "Writing") },
-                    ...(courseId ? [{ id: "review", label: t("lesson_tab_review", "Danh gia") }] : []),
+                    ...(courseId ? [{ id: "review", label: t("lesson_tab_review", "Đánh giá") }] : []),
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -1358,12 +1358,12 @@ export function LessonPlayer({
                 {activeTab === "review" && (
                   <div className="space-y-4">
                     <h3 className="font-semibold text-foreground dark:text-white">
-                      {t("lesson_review_title", "Danh gia khoa hoc")}
+                      {t("lesson_review_title", "Đánh giá khóa học")}
                     </h3>
 
                     {reviewLoading ? (
                       <p className="text-sm text-muted-foreground dark:text-slate-400">
-                        {t("lesson_review_loading", "Dang tai danh gia...")}
+                        {t("lesson_review_loading", "Đang tải đánh giá...")}
                       </p>
                     ) : (
                       <div className="space-y-4">
@@ -1390,7 +1390,7 @@ export function LessonPlayer({
                         <textarea
                           value={reviewComment}
                           onChange={(event) => setReviewComment(event.target.value)}
-                          placeholder={t("lesson_review_placeholder", "Chia se nhan xet cua ban...")}
+                          placeholder={t("lesson_review_placeholder", "Chia sẻ nhận xét của bạn...")}
                           className="w-full min-h-[140px] rounded-lg border border-border dark:border-slate-800 bg-secondary dark:bg-slate-900 p-3 text-sm text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                         />
 
@@ -1405,10 +1405,10 @@ export function LessonPlayer({
                           className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {reviewSubmitting
-                            ? t("lesson_review_saving", "Dang luu...")
+                            ? t("lesson_review_saving", "Đang lưu...")
                             : myReview
-                              ? t("lesson_review_update", "Cap nhat danh gia")
-                              : t("lesson_review_submit", "Gui danh gia")}
+                              ? t("lesson_review_update", "Cập nhật đánh giá")
+                              : t("lesson_review_submit", "Gửi đánh giá")}
                         </button>
                       </div>
                     )}
