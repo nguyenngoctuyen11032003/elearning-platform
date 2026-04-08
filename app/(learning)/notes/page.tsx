@@ -122,7 +122,21 @@ export default function NotesPage() {
   const ITEMS_PER_PAGE = 6
 
   const courses = [...new Set(notes.map(n => n.course))]
-  const allTags = [...new Set(notes.flatMap(n => n.tags))].sort()
+  const recentTags = useMemo(() => {
+    const seen = new Set<string>()
+    const ordered: string[] = []
+
+    notes.forEach((note) => {
+      (note.tags || []).forEach((tag) => {
+        if (!seen.has(tag)) {
+          seen.add(tag)
+          ordered.push(tag)
+        }
+      })
+    })
+
+    return ordered.slice(0, 6)
+  }, [notes])
 
   const splitTagInput = (value: string): string[] =>
     value
@@ -647,7 +661,7 @@ useEffect(() => {
       </motion.div>
 
       {/* Tags Filter */}
-      {allTags.length > 0 && (
+      {recentTags.length > 0 && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }} 
           animate={{ opacity: 1, y: 0 }}
@@ -656,7 +670,7 @@ useEffect(() => {
         >
           <span className="text-sm font-medium text-muted-foreground pt-2">{t("notes_tags", "Tags:")}</span>
           <div className="flex flex-wrap gap-2 flex-1">
-            {allTags.map((tag, index) => (
+            {recentTags.map((tag, index) => (
   <div key={`${tag}-${index}`} className="relative group">
                 <button
                   onClick={() => handleTagSelect(tag)}
@@ -739,12 +753,6 @@ useEffect(() => {
                     <h3 className="font-bold text-lg text-foreground dark:text-white line-clamp-1 flex-1 group-hover:text-primary dark:group-hover:text-accent transition-colors" title={note.title}>
                       {note.title}
                     </h3>
-                    <span className="text-sm px-2.5 py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0" style={{
-                      backgroundColor: noteTypes.find(nt => nt.value === note.type)?.color?.split(' ')[0],
-                      color: noteTypes.find(nt => nt.value === note.type)?.color?.includes('text-') ? 'inherit' : 'currentColor'
-                    }}>
-                      {noteTypes.find(nt => nt.value === note.type)?.icon} {noteTypes.find(nt => nt.value === note.type)?.label.split(' ')[0]}
-                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -869,8 +877,10 @@ useEffect(() => {
               {/* Footer */}
               <div className="pt-3 border-t border-border dark:border-slate-800 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5 text-muted-foreground dark:text-slate-400">
-                  <BookOpen size={14} />
-                  <span className="truncate max-w-[120px]">{note.course}</span>
+                  <span className="text-base">{noteTypes.find(nt => nt.value === note.type)?.icon}</span>
+                  <span className="truncate max-w-[140px]">
+                    {noteTypes.find(nt => nt.value === note.type)?.label ?? note.type}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground dark:text-slate-500">
                   <Clock size={14} />
@@ -1543,8 +1553,8 @@ useEffect(() => {
                   </div>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <BookOpen size={14} />
-                      {viewingNote.course}
+                      <span className="text-base">{noteTypes.find(nt => nt.value === viewingNote.type)?.icon}</span>
+                      {noteTypes.find(nt => nt.value === viewingNote.type)?.label ?? viewingNote.type}
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
