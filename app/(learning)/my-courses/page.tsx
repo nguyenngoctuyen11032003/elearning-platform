@@ -73,6 +73,13 @@ const getEnrolledTimestamp = (value: unknown): number => {
   return Number.isNaN(timestamp) ? 0 : timestamp
 }
 
+const unwrapArray = <T,>(raw: any): T[] => {
+  if (Array.isArray(raw)) return raw as T[]
+  if (raw && typeof raw === "object" && Array.isArray(raw.data)) return raw.data as T[]
+  if (raw && typeof raw === "object" && Array.isArray(raw.data?.data)) return raw.data.data as T[]
+  return []
+}
+
 const isCompletedEnrollment = (enrollment: Pick<EnrolledCourse, "progress" | "status">): boolean => {
   const status = normalizeStatus(enrollment.status)
   return (
@@ -139,7 +146,34 @@ export default function MyCoursesPage() {
             }))
         : []
 
-      setCourses(normalized)
+      const progressSnapshots = await Promise.all(
+        normalized.map(async (item) => {
+          try {
+            const progressRaw = await apiClient.getLessonProgress(item.id)
+            const progressEntries = unwrapArray<any>(progressRaw)
+            if (progressEntries.length === 0) return null
+            const completedCount = progressEntries.filter((entry: any) => entry?.isCompleted).length
+            const totalCount = progressEntries.length
+            const computedProgress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+            return { id: item.id, progress: computedProgress }
+          } catch {
+            return null
+          }
+        }),
+      )
+
+      const progressMap = new Map(
+        progressSnapshots.filter(Boolean).map((item: any) => [String(item.id), Number(item.progress)]),
+      )
+
+      const merged = normalized.map((item) => ({
+        ...item,
+        progress: Number.isFinite((progressMap.get(item.id) ?? NaN) as number)
+          ? Number(progressMap.get(item.id))
+          : item.progress,
+      }))
+
+      setCourses(merged)
     } catch (error) {
       console.error("Error fetching enrollments:", error)
       setCourses([])

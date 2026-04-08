@@ -294,6 +294,7 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
   const [courseTitle, setCourseTitle] = useState("Đang tải...")
   const [isLoading, setIsLoading] = useState(true)
   const [enrollmentId, setEnrollmentId] = useState("")
+  const [courseId, setCourseId] = useState("")
 
   const buildQuizMeta = async (courseId: string): Promise<Record<string, QuizLessonMeta>> => {
     const response = await fetch(`/api/quizzes/course/${courseId}`, { headers: getAuth() })
@@ -554,6 +555,7 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
             buildEnrollmentProgress(startId),
           ])
 
+          setCourseId(String(startId))
           setEnrollmentId(enrollmentProgress.enrollmentId)
 
           if (courseRes.ok) {
@@ -591,6 +593,8 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
         if (!lessonRes.ok) return
         const lessonData = await lessonRes.json()
         const lesson = unwrapData<ApiLesson>(lessonData, {} as ApiLesson)
+
+        setCourseId(String(lesson.courseId || ""))
 
         const [courseLessonsRes2, courseRes, quizMetaByLessonId, writingMetaByLessonId, enrollmentProgress] = await Promise.all([
           fetch(`/api/lessons/course/${lesson.courseId}`, { headers: getAuth() }),
@@ -645,6 +649,7 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
   return (
     <LessonPlayer
       courseTitle={courseTitle}
+      courseId={courseId}
       lessons={lessons}
       currentLessonId={currentLessonId}
       onLessonChange={setCurrentLessonId}

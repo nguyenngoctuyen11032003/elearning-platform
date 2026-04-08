@@ -1,7 +1,7 @@
 "use client"
 
 import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronDown, MessageCircle, Download, FileText, CheckCircle2, Circle, Play, Lock, ChevronLeft, ChevronRight, Clapperboard } from "lucide-react"
+import { ChevronDown, MessageCircle, Download, FileText, CheckCircle2, Circle, Play, Lock, ChevronLeft, ChevronRight, Clapperboard, Star } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { authFetch } from "@/lib/authfetch"
 import { toast } from "sonner"
@@ -55,6 +55,7 @@ interface WritingCriterion {
 
 interface LessonPlayerProps {
   courseTitle: string
+  courseId?: string
   lessons: Lesson[]
   currentLessonId: string
   onLessonChange: (lessonId: string) => void
@@ -110,13 +111,14 @@ function calculateRequirementStatus(lesson: Lesson): RequirementStatus {
   }
 }
 
-type LessonTab = "notes" | "materials" | "quiz" | "writing"
+type LessonTab = "notes" | "materials" | "quiz" | "writing" | "review"
 
-function getAvailableTabs(lesson: Lesson): Set<LessonTab> {
+function getAvailableTabs(lesson: Lesson, courseId?: string): Set<LessonTab> {
   const tabs = new Set<LessonTab>(["notes"])
   if (Array.isArray(lesson.resources) && lesson.resources.length > 0) tabs.add("materials")
   if (lesson.quizId && Array.isArray(lesson.quizQuestions) && lesson.quizQuestions.length > 0) tabs.add("quiz")
   if (lesson.writingAssignmentId) tabs.add("writing")
+  if (courseId) tabs.add("review")
   return tabs
 }
 
@@ -131,8 +133,58 @@ function getTabStorageKey(lessonId: string): string {
   return `lesson_active_tab_${lessonId}`
 }
 
+function getMaterialsStorageKey(lessonId: string): string {
+  return `lesson_materials_opened_${lessonId}`
+}
+
+function readStoredMaterials(lessonId: string): Record<string, boolean> {
+  if (typeof window === "undefined") return {}
+  const raw = localStorage.getItem(getMaterialsStorageKey(lessonId))
+  if (!raw) return {}
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === "object") {
+      return Object.keys(parsed).reduce<Record<string, boolean>>((acc, key) => {
+        acc[key] = Boolean((parsed as Record<string, unknown>)[key])
+        return acc
+      }, {})
+    }
+  } catch {
+    return {}
+  }
+  return {}
+}
+
+function storeMaterials(lessonId: string, value: Record<string, boolean>) {
+  if (typeof window === "undefined") return
+  localStorage.setItem(getMaterialsStorageKey(lessonId), JSON.stringify(value))
+}
+
+function resolveUserIdFromStorage(): string | null {
+  if (typeof window === "undefined") return null
+  try {
+    const rawUser = localStorage.getItem("user")
+    if (rawUser) {
+      const parsed = JSON.parse(rawUser)
+      return String(parsed?.id || parsed?.userId || "") || null
+    }
+  } catch {
+    // ignore
+  }
+
+  const token = localStorage.getItem("auth_token")
+  if (!token) return null
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]))
+    return String(payload?.sub || payload?.id || "") || null
+  } catch {
+    return null
+  }
+}
+
 export function LessonPlayer({
   courseTitle,
+  courseId,
   lessons,
   currentLessonId,
   onLessonChange,
@@ -142,7 +194,7 @@ export function LessonPlayer({
   const router = useRouter()
   const { t } = useLanguage()
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [activeTab, setActiveTab] = useState<"notes" | "materials" | "quiz" | "writing">("notes")
+  const [activeTab, setActiveTab] = useState<LessonTab>("notes")
   const [notes, setNotes] = useState("")
   const [noteIdsByLesson, setNoteIdsByLesson] = useState<Record<string, string>>({})
   const [showAIChat, setShowAIChat] = useState(false)
@@ -153,6 +205,12 @@ export function LessonPlayer({
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSavedVideoProgressRef = useRef<{ time: number; position: number }>({ time: 0, position: 0 })
   const lastVideoStateRef = useRef<{ position: number; duration: number }>({ position: 0, duration: 0 })
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState("")
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
+  const [myReview, setMyReview] = useState<any>(null)
 
   const currentLesson = lessons.find((l) => l.id === currentLessonId)
   const currentResources = currentLesson?.resources || []
@@ -215,7 +273,7 @@ export function LessonPlayer({
       return
     }
 
-    const availableTabs = getAvailableTabs(currentLesson)
+    const availableTabs = getAvailableTabs(currentLesson, courseId)
     const storedTab = typeof window !== "undefined" ? localStorage.getItem(getTabStorageKey(currentLesson.id)) : null
     if (storedTab && availableTabs.has(storedTab as LessonTab)) {
       setActiveTab(storedTab as LessonTab)
@@ -230,6 +288,7 @@ export function LessonPlayer({
     currentLesson?.quizQuestions?.length,
     currentLesson?.writingAssignmentId,
     currentLesson?.resources?.length,
+    courseId,
   ])
 
   useEffect(() => {
@@ -473,20 +532,147 @@ export function LessonPlayer({
     const resourceCount = lessonResources.length
     if (resourceCount === 0) return
 
-    setOpenedMaterialsByLesson((prev) => {
-      const lessonOpened = prev[lesson.id] || {}
-      const updatedLessonOpened = { ...lessonOpened, [materialUrl]: true }
-      return { ...prev, [lesson.id]: updatedLessonOpened }
-    })
-
     const alreadyOpened = openedMaterialsByLesson[lesson.id] || {}
-    const currentOpenedCount = new Set<string>([
-      ...Object.keys(alreadyOpened).filter((key) => alreadyOpened[key]),
-      materialUrl,
-    ]).size
+    const updatedLessonOpened = { ...alreadyOpened, [materialUrl]: true }
+
+    setOpenedMaterialsByLesson((prev) => ({
+      ...prev,
+      [lesson.id]: updatedLessonOpened,
+    }))
+
+    storeMaterials(lesson.id, updatedLessonOpened)
+
+    const currentOpenedCount = Object.keys(updatedLessonOpened).filter((key) => updatedLessonOpened[key]).length
 
     if (currentOpenedCount >= resourceCount) {
       await updateLessonState(lesson.id, { materialsCompleted: true })
+    }
+  }
+
+  useEffect(() => {
+    if (!currentLesson) return
+
+    const storedMaterials = readStoredMaterials(currentLesson.id)
+    if (Object.keys(storedMaterials).length > 0) {
+      setOpenedMaterialsByLesson((prev) => ({
+        ...prev,
+        [currentLesson.id]: storedMaterials,
+      }))
+    }
+
+    const resourceCount = currentLesson.resources?.length || 0
+    const openedCount = Object.keys(storedMaterials).filter((key) => storedMaterials[key]).length
+    if (resourceCount > 0 && openedCount >= resourceCount && !currentLesson.materialsCompleted) {
+      updateLessonState(currentLesson.id, { materialsCompleted: true })
+    }
+  }, [currentLessonId, currentLesson?.resources?.length])
+
+  useEffect(() => {
+    if (!courseId) return
+
+    let isMounted = true
+    const controller = new AbortController()
+
+    const loadReview = async () => {
+      setReviewLoading(true)
+      setReviewError(null)
+      try {
+        const res = await fetch(`/api/reviews/course/${courseId}`, { signal: controller.signal })
+        if (!res.ok) return
+        const payload = await res.json()
+        const list: any[] = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.data?.data)
+            ? payload.data.data
+            : Array.isArray(payload?.data)
+              ? payload.data
+              : []
+
+        const userId = resolveUserIdFromStorage()
+        const existing = userId
+          ? list.find((review: any) => String(review?.studentId || review?.student?.id || "") === String(userId))
+          : null
+
+        if (!isMounted) return
+
+        if (existing) {
+          setMyReview(existing)
+          setReviewRating(Number(existing?.rating || 5))
+          setReviewComment(String(existing?.comment || ""))
+        } else {
+          setMyReview(null)
+          setReviewRating(5)
+          setReviewComment("")
+        }
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setReviewError(t("lesson_review_load_failed", "Khong the tai danh gia"))
+        }
+      } finally {
+        if (isMounted) {
+          setReviewLoading(false)
+        }
+      }
+    }
+
+    loadReview()
+    return () => {
+      isMounted = false
+      controller.abort()
+    }
+  }, [courseId, t])
+
+  const handleSubmitReview = async () => {
+    if (!courseId) return
+
+    const trimmed = reviewComment.trim()
+    if (!trimmed) {
+      setReviewError(t("lesson_review_required", "Vui long nhap noi dung danh gia"))
+      return
+    }
+
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+    if (!token) {
+      setReviewError(t("lesson_review_login_required", "Ban can dang nhap de danh gia"))
+      return
+    }
+
+    setReviewSubmitting(true)
+    setReviewError(null)
+    try {
+      if (myReview?.id) {
+        const res = await fetch(`/api/reviews/${myReview.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ rating: reviewRating, comment: trimmed }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          throw new Error(data?.message || data?.data?.message || "update_failed")
+        }
+        const updated = data?.data ?? data
+        setMyReview(updated)
+      } else {
+        const res = await fetch("/api/reviews", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ courseId, rating: reviewRating, comment: trimmed }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          throw new Error(data?.message || data?.data?.message || "create_failed")
+        }
+        const created = data?.data ?? data
+        setMyReview(created)
+      }
+
+      toast.success(t("lesson_review_saved", "Da luu danh gia"))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t("lesson_review_save_failed", "Khong the luu danh gia")
+      setReviewError(message)
+      toast.error(message)
+    } finally {
+      setReviewSubmitting(false)
     }
   }
 
@@ -775,6 +961,7 @@ export function LessonPlayer({
                     { id: "materials", label: t("lesson_tab_materials", "Tai lieu") },
                     { id: "quiz", label: t("lesson_tab_quiz", "Quiz") },
                     { id: "writing", label: t("lesson_tab_writing", "Writing") },
+                    ...(courseId ? [{ id: "review", label: t("lesson_tab_review", "Danh gia") }] : []),
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -1164,6 +1351,66 @@ export function LessonPlayer({
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_no_writing", "Bai hoc nay chua co bai writing")}</p>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "review" && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-foreground dark:text-white">
+                      {t("lesson_review_title", "Danh gia khoa hoc")}
+                    </h3>
+
+                    {reviewLoading ? (
+                      <p className="text-sm text-muted-foreground dark:text-slate-400">
+                        {t("lesson_review_loading", "Dang tai danh gia...")}
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          {[1, 2, 3, 4, 5].map((value) => (
+                            <button
+                              key={`star-${value}`}
+                              type="button"
+                              onClick={() => setReviewRating(value)}
+                              className="transition-transform hover:scale-105"
+                              aria-label={`Rate ${value}`}
+                            >
+                              <Star
+                                size={22}
+                                className={value <= reviewRating ? "text-yellow-400 fill-yellow-400" : "text-slate-300 dark:text-slate-600"}
+                              />
+                            </button>
+                          ))}
+                          <span className="text-sm font-semibold text-foreground dark:text-white">
+                            {reviewRating}/5
+                          </span>
+                        </div>
+
+                        <textarea
+                          value={reviewComment}
+                          onChange={(event) => setReviewComment(event.target.value)}
+                          placeholder={t("lesson_review_placeholder", "Chia se nhan xet cua ban...")}
+                          className="w-full min-h-[140px] rounded-lg border border-border dark:border-slate-800 bg-secondary dark:bg-slate-900 p-3 text-sm text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+
+                        {reviewError && (
+                          <p className="text-sm text-red-500">{reviewError}</p>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={handleSubmitReview}
+                          disabled={reviewSubmitting}
+                          className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {reviewSubmitting
+                            ? t("lesson_review_saving", "Dang luu...")
+                            : myReview
+                              ? t("lesson_review_update", "Cap nhat danh gia")
+                              : t("lesson_review_submit", "Gui danh gia")}
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}
