@@ -1141,92 +1141,97 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       const authHeaders: Record<string, string> = token
         ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
         : { "Content-Type": "application/json" }
+      const willCreateRevision = courseStatus === "published"
 
       // Accept UUID-like IDs used by seeded data (e.g. f300..., e000...) to avoid false "new lesson" detection.
       const persistedIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       const isPersistedId = (value: unknown) => persistedIdPattern.test(String(value || ""))
 
-      // Reconcile deletions first: anything removed in UI must be removed in DB.
-      const [existingLessonsRes, existingQuizzesRes] = await Promise.all([
-        fetch(`/api/lessons/course/${resolvedParams.id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }),
-        fetch(`/api/quizzes/course/${resolvedParams.id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }),
-      ])
+      let existingAssignmentByLessonId: Record<string, any> = {}
+      let existingQuizByLessonId: Record<string, string> = {}
 
-      const existingLessonsJson = existingLessonsRes.ok ? await existingLessonsRes.json().catch(() => ([])) : []
-      const existingLessonsUnwrapped = existingLessonsJson?.data ?? existingLessonsJson
-      const existingLessonList = Array.isArray(existingLessonsUnwrapped)
-        ? existingLessonsUnwrapped
-        : Array.isArray(existingLessonsUnwrapped?.data)
-        ? existingLessonsUnwrapped.data
-        : []
+      if (!willCreateRevision) {
+        // Reconcile deletions first: anything removed in UI must be removed in DB.
+        const [existingLessonsRes, existingQuizzesRes] = await Promise.all([
+          fetch(`/api/lessons/course/${resolvedParams.id}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }),
+          fetch(`/api/quizzes/course/${resolvedParams.id}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }),
+        ])
 
-      const existingQuizzesJson = existingQuizzesRes.ok ? await existingQuizzesRes.json().catch(() => ([])) : []
-      const existingQuizzesUnwrapped = existingQuizzesJson?.data ?? existingQuizzesJson
-      const existingQuizList = Array.isArray(existingQuizzesUnwrapped)
-        ? existingQuizzesUnwrapped
-        : Array.isArray(existingQuizzesUnwrapped?.data)
-        ? existingQuizzesUnwrapped.data
-        : []
-      const existingAssignments = await apiClient.getAssignments(resolvedParams.id)
-      const existingAssignmentByLessonId = (Array.isArray(existingAssignments) ? existingAssignments : []).reduce(
-        (acc: Record<string, any>, assignment: any) => {
-          const lessonKey = String(assignment?.lessonId || "")
-          if (lessonKey) {
-            acc[lessonKey] = assignment
-          }
-          return acc
-        },
-        {} as Record<string, any>,
-      )
+        const existingLessonsJson = existingLessonsRes.ok ? await existingLessonsRes.json().catch(() => ([])) : []
+        const existingLessonsUnwrapped = existingLessonsJson?.data ?? existingLessonsJson
+        const existingLessonList = Array.isArray(existingLessonsUnwrapped)
+          ? existingLessonsUnwrapped
+          : Array.isArray(existingLessonsUnwrapped?.data)
+          ? existingLessonsUnwrapped.data
+          : []
 
-      const localPersistedLessonIds = new Set(
-        sections
-          .flatMap((section) => section.lessons.map((lesson) => String(lesson.id)))
-          .filter((id) => isPersistedId(id)),
-      )
+        const existingQuizzesJson = existingQuizzesRes.ok ? await existingQuizzesRes.json().catch(() => ([])) : []
+        const existingQuizzesUnwrapped = existingQuizzesJson?.data ?? existingQuizzesJson
+        const existingQuizList = Array.isArray(existingQuizzesUnwrapped)
+          ? existingQuizzesUnwrapped
+          : Array.isArray(existingQuizzesUnwrapped?.data)
+          ? existingQuizzesUnwrapped.data
+          : []
+        const existingAssignments = await apiClient.getAssignments(resolvedParams.id)
+        existingAssignmentByLessonId = (Array.isArray(existingAssignments) ? existingAssignments : []).reduce(
+          (acc: Record<string, any>, assignment: any) => {
+            const lessonKey = String(assignment?.lessonId || "")
+            if (lessonKey) {
+              acc[lessonKey] = assignment
+            }
+            return acc
+          },
+          {} as Record<string, any>,
+        )
 
-      const removedLessonIds = (existingLessonList as Array<{ id?: string }>)
-        .map((lesson) => String(lesson?.id || ""))
-        .filter((id) => id && !localPersistedLessonIds.has(id))
+        const localPersistedLessonIds = new Set(
+          sections
+            .flatMap((section) => section.lessons.map((lesson) => String(lesson.id)))
+            .filter((id) => isPersistedId(id)),
+        )
 
-      if (removedLessonIds.length > 0) {
-        console.log("[SaveCourse] Lessons removed in UI, deleting from DB:", removedLessonIds)
-        for (const removedLessonId of removedLessonIds) {
-          const deleteLessonRes = await fetch(`/api/lessons/${removedLessonId}`, {
-            method: "DELETE",
-            headers: authHeaders,
-          })
-          if (!deleteLessonRes.ok) {
-            const err = await deleteLessonRes.json().catch(() => ({}))
-            throw new Error(`Xóa bài học đã bỏ khỏi giao diện thất bại (${removedLessonId}): ${err?.error || deleteLessonRes.status}`)
+        const removedLessonIds = (existingLessonList as Array<{ id?: string }>)
+          .map((lesson) => String(lesson?.id || ""))
+          .filter((id) => id && !localPersistedLessonIds.has(id))
+
+        if (removedLessonIds.length > 0) {
+          console.log("[SaveCourse] Lessons removed in UI, deleting from DB:", removedLessonIds)
+          for (const removedLessonId of removedLessonIds) {
+            const deleteLessonRes = await fetch(`/api/lessons/${removedLessonId}`, {
+              method: "DELETE",
+              headers: authHeaders,
+            })
+            if (!deleteLessonRes.ok) {
+              const err = await deleteLessonRes.json().catch(() => ({}))
+              throw new Error(`Xóa bài học đã bỏ khỏi giao diện thất bại (${removedLessonId}): ${err?.error || deleteLessonRes.status}`)
+            }
           }
         }
-      }
 
-      // Build a lessonId -> quizId lookup to avoid creating duplicate quizzes
-      // when local state temporarily misses quizId (e.g. after import flows).
-      const existingQuizByLessonId: Record<string, string> = {}
-      for (const quiz of existingQuizList) {
-        const lessonKey = String(quiz?.lessonId || "")
-        const quizId = String(quiz?.id || "")
-        if (!lessonKey || !quizId) continue
+        // Build a lessonId -> quizId lookup to avoid creating duplicate quizzes
+        // when local state temporarily misses quizId (e.g. after import flows).
+        for (const quiz of existingQuizList) {
+          const lessonKey = String(quiz?.lessonId || "")
+          const quizId = String(quiz?.id || "")
+          if (!lessonKey || !quizId) continue
 
-        const prevQuizId = existingQuizByLessonId[lessonKey]
-        if (!prevQuizId) {
-          existingQuizByLessonId[lessonKey] = quizId
-          continue
-        }
+          const prevQuizId = existingQuizByLessonId[lessonKey]
+          if (!prevQuizId) {
+            existingQuizByLessonId[lessonKey] = quizId
+            continue
+          }
 
-        // Prefer the quiz that currently has more questions.
-        const prevQuiz = existingQuizList.find((item: any) => String(item?.id) === prevQuizId)
-        const prevQuestionCount = getQuizQuestionCount(prevQuiz?.questions)
-        const nextQuestionCount = getQuizQuestionCount(quiz?.questions)
-        if (nextQuestionCount >= prevQuestionCount) {
-          existingQuizByLessonId[lessonKey] = quizId
+          // Prefer the quiz that currently has more questions.
+          const prevQuiz = existingQuizList.find((item: any) => String(item?.id) === prevQuizId)
+          const prevQuestionCount = getQuizQuestionCount(prevQuiz?.questions)
+          const nextQuestionCount = getQuizQuestionCount(quiz?.questions)
+          if (nextQuestionCount >= prevQuestionCount) {
+            existingQuizByLessonId[lessonKey] = quizId
+          }
         }
       }
 
@@ -1272,6 +1277,18 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         throw new Error(err.message || "Lưu thất bại")
       }
 
+      const saveCourseJson = await res.json().catch(() => ({}))
+      const saveCourseData = saveCourseJson?.data ?? saveCourseJson
+      const targetCourseId = String(saveCourseData?.id || resolvedParams.id)
+      const isRevisionCreated = targetCourseId !== resolvedParams.id
+
+      if (isRevisionCreated) {
+        // Revision is a brand-new pending course; do not try to patch/delete old lesson resources.
+        existingAssignmentByLessonId = {}
+        existingQuizByLessonId = {}
+        setCourseStatus("pending")
+      }
+
       if (thumbnailDirty) {
         setCourse((prev) => ({ ...prev, thumbnail: nextThumbnail }))
         setThumbnailFile(null)
@@ -1282,7 +1299,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       // Save lessons (new and existing) with sectionTitle and order
       for (const [, section] of sections.entries()) {
         for (const [lIdx, lesson] of section.lessons.entries()) {
-          const isNewLesson = !isPersistedId(lesson.id)
+          const isNewLesson = isRevisionCreated || !isPersistedId(lesson.id)
           if (isNewLesson) {
             const lessonResources = buildLessonResources(lesson)
             const createRes = await fetch("/api/lessons", {
@@ -1291,7 +1308,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               body: JSON.stringify({
                 title: lesson.title,
                 description: lesson.description,
-                courseId: resolvedParams.id,
+                courseId: targetCourseId,
                 type: "video",
                 isFree: false,
                 isPublished: false,
@@ -1317,7 +1334,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                 const assignmentPayload = {
                   title: lesson.writingTitle?.trim() || `Writing - ${lesson.title}`,
                   description: lesson.writingPrompt || lesson.description || "",
-                  courseId: resolvedParams.id,
+                  courseId: targetCourseId,
                   lessonId: createdLessonId,
                   dueDate: lesson.writingDueDate ? new Date(lesson.writingDueDate).toISOString() : undefined,
                   maxScore: lesson.writingMaxScore || 100,
@@ -1336,7 +1353,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   title: `Quiz - ${lesson.title}`,
                   description: "",
                   questions: sanitizedQuestions,
-                  courseId: resolvedParams.id,
+                  courseId: targetCourseId,
                   lessonId: createdLessonId,
                 }
                 console.log(`[SaveCourse] POST quiz for new lesson ${createdLessonId}, questions:`, quizPayload.questions.length)
@@ -1387,7 +1404,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               const assignmentPayload = {
                 title: lesson.writingTitle?.trim() || `Writing - ${lesson.title}`,
                 description: lesson.writingPrompt || lesson.description || "",
-                courseId: resolvedParams.id,
+                courseId: targetCourseId,
                 lessonId: lesson.id,
                 dueDate: lesson.writingDueDate ? new Date(lesson.writingDueDate).toISOString() : undefined,
                 maxScore: lesson.writingMaxScore || 100,
@@ -1414,7 +1431,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                 title: `Quiz - ${lesson.title}`,
                 description: "",
                 questions: sanitizedQuestions,
-                courseId: resolvedParams.id,
+                courseId: targetCourseId,
                 lessonId: lesson.id,
               }
 
@@ -1471,9 +1488,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       const token2 = localStorage.getItem("auth_token")
       const headers2: Record<string, string> = token2 ? { Authorization: `Bearer ${token2}` } : {}
       const [freshLessonsRes, freshQuizzesRes, freshAssignments] = await Promise.all([
-        fetch(`/api/lessons/course/${resolvedParams.id}`, { headers: headers2 }),
-        fetch(`/api/quizzes/course/${resolvedParams.id}`, { headers: headers2 }),
-        apiClient.getAssignments(resolvedParams.id),
+        fetch(`/api/lessons/course/${targetCourseId}`, { headers: headers2 }),
+        fetch(`/api/quizzes/course/${targetCourseId}`, { headers: headers2 }),
+        apiClient.getAssignments(targetCourseId),
       ])
       if (freshLessonsRes.ok) {
         const lessonsJson = await freshLessonsRes.json()
@@ -1561,7 +1578,17 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         }
       }
 
-      toast.success(tr("Đã lưu khóa học thành công!", "Course saved successfully!"))
+      if (isRevisionCreated) {
+        toast.success(
+          tr(
+            "Đã tạo phiên bản khóa học mới và gửi chờ duyệt.",
+            "A new course version has been created and sent for approval.",
+          ),
+        )
+        router.replace(`/teacher/courses/${targetCourseId}/edit`)
+      } else {
+        toast.success(tr("Đã lưu khóa học thành công!", "Course saved successfully!"))
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? localizeMessage(error.message, getCurrentClientLanguage()) : tr("Đã xảy ra lỗi", "An error occurred")
       toast.error(message)

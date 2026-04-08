@@ -8,6 +8,7 @@ import {
   Calendar,
   Download,
   Eye,
+  GitBranch,
   Mail,
   MoreVertical,
   Search,
@@ -35,6 +36,11 @@ interface Student {
   progress: number
   joinDate: string
   lastActive: string
+  rootCourseId: string
+  courseVersionId: string
+  courseVersionNumber: number | null
+  courseVersionLabel: string
+  courseVersionCreatedAt: string
   status: "active" | "completed" | "inactive"
   lessonsCompleted: number
   totalLessons: number
@@ -93,6 +99,11 @@ export default function TeacherStudentsPage() {
           // Support multiple payload shapes from backend/proxy layers.
           const joinDateRaw = s.joinDate ?? s.enrolledAt ?? s.createdAt ?? s.enrollmentDate
           const lastActiveRaw = s.lastActive ?? s.lastAccessedAt ?? s.updatedAt
+          const versionCreatedRaw = s.courseVersionCreatedAt ?? s.versionCreatedAt ?? s.courseCreatedAt
+          const courseVersionNumber = Number(s.courseVersionNumber ?? 0) || null
+          const courseVersionLabel =
+            String(s.courseVersionLabel || "").trim() ||
+            (courseVersionNumber ? `v${courseVersionNumber}` : "")
 
           return {
             id: s.id,
@@ -106,6 +117,11 @@ export default function TeacherStudentsPage() {
             progress: Number(s.progress ?? 0),
             joinDate: toSafeIsoString(joinDateRaw) || String(joinDateRaw || ""),
             lastActive: toSafeIsoString(lastActiveRaw) || String(lastActiveRaw || ""),
+            rootCourseId: String(s.rootCourseId || s.courseRootId || s.sourceCourseId || s.courseId || ""),
+            courseVersionId: String(s.courseVersionId || s.courseId || ""),
+            courseVersionNumber,
+            courseVersionLabel,
+            courseVersionCreatedAt: toSafeIsoString(versionCreatedRaw) || String(versionCreatedRaw || ""),
             status: normalizeStatus(s.status),
             lessonsCompleted: 0,
             totalLessons: 0,
@@ -254,6 +270,8 @@ export default function TeacherStudentsPage() {
         t("teacher_dashboard_students", "Học viên"),
         t("footer_email", "Email"),
         t("teacher_dashboard_courses", "Khóa học"),
+        t("teacher_students_course_version", "Phiên bản"),
+        t("teacher_students_version_created", "Ngày tạo phiên bản"),
         t("teacher_students_progress", "Tiến độ"),
         t("teacher_students_quiz_score", "Điểm Quiz"),
         t("teacher_students_join_date", "Ngày tham gia"),
@@ -285,6 +303,8 @@ export default function TeacherStudentsPage() {
             index === 0 ? student.name : "",
             index === 0 ? student.email : "",
             student.course,
+            student.courseVersionLabel || "-",
+            formatDate(student.courseVersionCreatedAt, activeLocale),
             `${student.progress}%`,
             `${student.quizScore}%`,
             formatDate(student.joinDate, activeLocale),
@@ -586,10 +606,20 @@ export default function TeacherStudentsPage() {
                   <div>
                     <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_dashboard_courses", "Khóa học")}</span>
                     <p className="text-foreground dark:text-white font-medium truncate">{student.course}</p>
+                    {student.courseVersionLabel && (
+                      <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400 flex items-center gap-1">
+                        <GitBranch size={12} /> {student.courseVersionLabel}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground dark:text-slate-400">{t("teacher_students_join_date", "Ngày tham gia")}</span>
                     <p className="text-foreground dark:text-white">{formatDate(student.joinDate, activeLocale)}</p>
+                    {student.courseVersionCreatedAt && (
+                      <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">
+                        {t("teacher_students_version_created", "Ngày tạo phiên bản")}: {formatDate(student.courseVersionCreatedAt, activeLocale)}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -671,6 +701,20 @@ export default function TeacherStudentsPage() {
                           </div>
                           <p className="text-foreground dark:text-white text-xs">{formatDate(selectedStudent.joinDate, activeLocale)}</p>
                         </div>
+                        <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
+                          <div className="flex items-center gap-1.5 text-muted-foreground dark:text-slate-400 mb-1">
+                            <GitBranch size={14} />
+                            <span className="text-xs">{t("teacher_students_course_version", "Phiên bản")}</span>
+                          </div>
+                          <p className="text-foreground dark:text-white text-xs">{selectedStudent.courseVersionLabel || "-"}</p>
+                        </div>
+                        <div className="bg-secondary dark:bg-slate-800/50 rounded-lg p-3">
+                          <div className="flex items-center gap-1.5 text-muted-foreground dark:text-slate-400 mb-1">
+                            <Calendar size={14} />
+                            <span className="text-xs">{t("teacher_students_version_created", "Ngày tạo phiên bản")}</span>
+                          </div>
+                          <p className="text-foreground dark:text-white text-xs">{formatDate(selectedStudent.courseVersionCreatedAt, activeLocale) || "-"}</p>
+                        </div>
                       </div>
 
                       {/* Progress Details */}
@@ -750,6 +794,7 @@ export default function TeacherStudentsPage() {
                 <tr className="border-b border-border dark:border-slate-800 bg-secondary dark:bg-slate-800/50">
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_dashboard_students", "Học viên")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_dashboard_courses", "Khóa học")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_students_course_version", "Phiên bản")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_students_progress", "Tiến độ")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_students_quiz_score", "Điểm Quiz")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-foreground dark:text-white">{t("teacher_students_join_date", "Ngày tham gia")}</th>
@@ -775,6 +820,10 @@ export default function TeacherStudentsPage() {
                       </div>
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white">{student.course}</td>
+                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">
+                      <p className="font-medium text-foreground dark:text-white">{student.courseVersionLabel || "-"}</p>
+                      <p className="text-xs">{formatDate(student.courseVersionCreatedAt, activeLocale) || "-"}</p>
+                    </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 w-20 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -855,7 +904,7 @@ export default function TeacherStudentsPage() {
                 ))}
                 {filteredStudents.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-muted-foreground dark:text-slate-400">
+                    <td colSpan={8} className="py-8 text-center text-muted-foreground dark:text-slate-400">
                       {t("teacher_students_no_students", "Chưa có học viên nào")}
                     </td>
                   </tr>
@@ -899,6 +948,20 @@ export default function TeacherStudentsPage() {
                       <span className="text-sm">{t("teacher_students_join_date", "Ngày tham gia")}</span>
                     </div>
                     <p className="text-foreground dark:text-white font-medium">{formatDate(selectedStudent.joinDate, activeLocale)}</p>
+                  </div>
+                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
+                      <GitBranch size={16} />
+                      <span className="text-sm">{t("teacher_students_course_version", "Phiên bản")}</span>
+                    </div>
+                    <p className="text-foreground dark:text-white font-medium">{selectedStudent.courseVersionLabel || "-"}</p>
+                  </div>
+                  <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">
+                      <Calendar size={16} />
+                      <span className="text-sm">{t("teacher_students_version_created", "Ngày tạo phiên bản")}</span>
+                    </div>
+                    <p className="text-foreground dark:text-white font-medium">{formatDate(selectedStudent.courseVersionCreatedAt, activeLocale) || "-"}</p>
                   </div>
                 </div>
 

@@ -339,6 +339,17 @@ export default function TakeExamPage() {
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null)
   const [attemptActive, setAttemptActive] = useState(false)
   const startedAtRef = useRef<number | null>(null)
+  const attemptActiveRef = useRef(false)
+  const submittingRef = useRef(false)
+  const submitHandlerRef = useRef<(autoSubmit?: boolean) => Promise<void>>(async () => {})
+
+  useEffect(() => {
+    attemptActiveRef.current = attemptActive
+  }, [attemptActive])
+
+  useEffect(() => {
+    submittingRef.current = submitting
+  }, [submitting])
 
   useEffect(() => {
     const load = async () => {
@@ -357,19 +368,23 @@ export default function TakeExamPage() {
           questions: normalizeExamQuestions((examData as any)?.questions),
         })
 
-        startedAtRef.current = Date.now()
-        setAttemptActive(true)
-
         if (!isExtractedSource) {
           const attempt = await apiClient.startExam(examId)
-          setAttemptId(attempt.id)
+          const startedAttemptId = String((attempt as any)?.id || "")
+          if (!startedAttemptId) {
+            throw new Error(t("exam_take_start_failed", "Không thể bắt đầu bài thi"))
+          }
+          setAttemptId(startedAttemptId)
         } else {
-          try {
-            await apiClient.startExtractedExam(examId)
-          } catch (startError) {
-            console.warn("Failed to record extracted exam start:", startError)
+          const attempt = await apiClient.startExtractedExam(examId)
+          const startedAttemptId = String((attempt as any)?.id || "")
+          if (startedAttemptId) {
+            setAttemptId(startedAttemptId)
           }
         }
+
+        startedAtRef.current = Date.now()
+        setAttemptActive(true)
 
         setTimeRemaining(Number(examData.timeLimit || 60) * 60)
       } catch (error) {
@@ -390,8 +405,8 @@ export default function TakeExamPage() {
     if (!attemptActive) return
 
     const warningMessage = t(
-      "exam_leave_warning",
-      "Bạn đang rời bài thi. Bài làm sẽ được tính là 1 lượt thi.",
+      "exam_leave_submit_warning",
+      "You are leaving the exam. Your attempt will be submitted.",
     )
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -402,6 +417,43 @@ export default function TakeExamPage() {
 
     window.addEventListener("beforeunload", handleBeforeUnload)
     return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [attemptActive, t])
+
+  useEffect(() => {
+    if (!attemptActive) return
+
+    const warningMessage = t(
+      "exam_leave_submit_warning",
+      "You are leaving the exam. Your attempt will be submitted.",
+    )
+    let handlingBackNavigation = false
+
+    const handlePopState = (event: PopStateEvent) => {
+      if (!attemptActiveRef.current || submittingRef.current || handlingBackNavigation) {
+        return
+      }
+
+      event.preventDefault()
+      // Re-insert a guard state so a single Back press never skips confirmation.
+      window.history.pushState(null, "", window.location.href)
+
+      const confirmed = window.confirm(warningMessage)
+      if (!confirmed) {
+        return
+      }
+
+      handlingBackNavigation = true
+      void submitHandlerRef.current(true).finally(() => {
+        handlingBackNavigation = false
+      })
+    }
+
+    window.history.pushState(null, "", window.location.href)
+    window.addEventListener("popstate", handlePopState)
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState)
+    }
   }, [attemptActive, t])
 
   useEffect(() => {
@@ -454,6 +506,8 @@ export default function TakeExamPage() {
   const handleSubmit = async (autoSubmit = false) => {
     if (submitting) return
     if (!isExtractedSource && !attemptId) return
+    const currentExam = exam
+    if (!currentExam) return
 
     if (!autoSubmit) {
       const unanswered = Math.max(questionCount - answeredCount, 0)
@@ -470,7 +524,7 @@ export default function TakeExamPage() {
         questionId,
         answer,
       }))
-      const examDurationInSeconds = Math.max(0, Number(exam.timeLimit || 0) * 60)
+      const examDurationInSeconds = Math.max(0, Number(currentExam.timeLimit || 0) * 60)
       const elapsedSeconds = startedAtRef.current
         ? Math.floor((Date.now() - startedAtRef.current) / 1000)
         : 0
@@ -505,6 +559,8 @@ export default function TakeExamPage() {
       setSubmitting(false)
     }
   }
+
+  submitHandlerRef.current = handleSubmit
 
   if (loading || !exam) {
     return <div className="p-6">{t("exam_take_loading", "Đang tải bài thi...")}</div>
