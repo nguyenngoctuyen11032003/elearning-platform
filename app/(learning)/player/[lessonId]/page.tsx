@@ -24,12 +24,14 @@ interface PlayerLesson {
   title: string
   type: "video" | "pdf" | "ppt" | "quiz" | "assignment"
   duration?: string
+  durationSeconds?: number
   completed: boolean
   quizId?: string
   quizCompleted?: boolean
   quizScore?: number
   videoCompleted?: boolean
   materialsCompleted?: boolean
+  lastPosition?: number
   videoUrl?: string
   resources?: { name: string; url: string }[]
   content?: string
@@ -158,9 +160,16 @@ const getAuth = (): Record<string, string> => {
 function mapType(type: string): PlayerLesson["type"] {
   if (type === "video") return "video"
   if (type === "quiz") return "quiz"
-  if (type === "assignment") return "video"
+  if (type === "assignment") return "assignment"
   if (type === "article" || type === "resource") return "pdf"
   return "pdf"
+}
+
+function isVideoCompletedByProgress(durationSeconds?: number, lastPosition?: number): boolean {
+  if (!durationSeconds || durationSeconds <= 0) return false
+  const safeLast = typeof lastPosition === "number" ? lastPosition : 0
+  const threshold = Math.max(durationSeconds * 0.95, durationSeconds - 2)
+  return safeLast >= threshold
 }
 
 function defaultRubricPoints(maxScore: number = 100): number[] {
@@ -477,9 +486,11 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
         const quizMeta = quizMetaByLessonId[lesson.id]
         const writingMeta = writingMetaByLessonId[lesson.id]
         const progressCompleted = Boolean(progress?.isCompleted)
+        const durationSeconds = typeof lesson.duration === "number" ? lesson.duration : undefined
+        const lastPosition = typeof progress?.lastPosition === "number" ? progress.lastPosition : 0
 
         const quizCompleted = progressCompleted || Boolean(quizMeta?.completed)
-        const videoCompleted = progressCompleted
+        const videoCompleted = progressCompleted || isVideoCompletedByProgress(durationSeconds, lastPosition)
         const materialsCompleted = progressCompleted || resources.length === 0
         const writingSubmitted = Boolean(writingMeta?.submitted)
 
@@ -502,12 +513,14 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
           title: lesson.title,
           type: mapType(lesson.type),
           duration: formatDuration(lesson.duration),
+          durationSeconds,
           completed,
           quizId: quizMeta?.quizId,
           quizCompleted,
           quizScore: quizMeta?.score,
           videoCompleted,
           materialsCompleted,
+          lastPosition,
           videoUrl: lesson.videoUrl,
           resources,
           content: lesson.content,

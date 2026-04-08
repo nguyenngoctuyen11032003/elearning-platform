@@ -17,6 +17,12 @@ interface AssignmentDetail {
   instructions?: string;
   attachments?: string[];
   createdAt?: string;
+  lessonId?: string;
+  courseId?: string;
+  lesson?: {
+    id?: string;
+    title?: string;
+  };
 }
 
 interface MySubmission {
@@ -249,6 +255,15 @@ export default function StudentAssignmentDetailPage() {
     }
   };
 
+  const handleBackToLesson = () => {
+    const lessonId = assignment?.lessonId || assignment?.lesson?.id;
+    if (!lessonId) return;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`lesson_active_tab_${lessonId}`, 'writing');
+    }
+    router.push(`/player/${lessonId}`);
+  };
+
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -316,6 +331,15 @@ export default function StudentAssignmentDetailPage() {
         >
           <ArrowLeft size={16} /> {t('common_back', 'Back')}
         </button>
+
+        {submitted && (assignment?.lessonId || assignment?.lesson?.id) && (
+          <button
+            onClick={handleBackToLesson}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90"
+          >
+            {t('asgn_back_to_lesson', 'Quay lại bài học')}
+          </button>
+        )}
 
         <div className="rounded-2xl border border-border bg-card p-5 md:p-6 space-y-5">
           <div className="flex items-start justify-between gap-4">

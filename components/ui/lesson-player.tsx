@@ -15,12 +15,14 @@ interface Lesson {
   title: string
   type: "video" | "pdf" | "ppt" | "quiz" | "assignment"
   duration?: string
+  durationSeconds?: number
   completed: boolean
   quizId?: string
   quizCompleted?: boolean
   quizScore?: number
   videoCompleted?: boolean
   materialsCompleted?: boolean
+  lastPosition?: number
   videoUrl?: string
   resources?: { name: string; url: string; type?: string }[]
   content?: string
@@ -108,6 +110,27 @@ function calculateRequirementStatus(lesson: Lesson): RequirementStatus {
   }
 }
 
+type LessonTab = "notes" | "materials" | "quiz" | "writing"
+
+function getAvailableTabs(lesson: Lesson): Set<LessonTab> {
+  const tabs = new Set<LessonTab>(["notes"])
+  if (Array.isArray(lesson.resources) && lesson.resources.length > 0) tabs.add("materials")
+  if (lesson.quizId && Array.isArray(lesson.quizQuestions) && lesson.quizQuestions.length > 0) tabs.add("quiz")
+  if (lesson.writingAssignmentId) tabs.add("writing")
+  return tabs
+}
+
+function resolveDefaultTab(lesson: Lesson, availableTabs: Set<LessonTab>): LessonTab {
+  if (lesson.type === "quiz" && availableTabs.has("quiz")) return "quiz"
+  if (lesson.type === "assignment" && availableTabs.has("writing")) return "writing"
+  if ((lesson.type === "pdf" || lesson.type === "ppt") && availableTabs.has("materials")) return "materials"
+  return "notes"
+}
+
+function getTabStorageKey(lessonId: string): string {
+  return `lesson_active_tab_${lessonId}`
+}
+
 export function LessonPlayer({
   courseTitle,
   lessons,
@@ -128,6 +151,8 @@ export function LessonPlayer({
   const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false)
   const [showQuizDetails, setShowQuizDetails] = useState(false)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastSavedVideoProgressRef = useRef<{ time: number; position: number }>({ time: 0, position: 0 })
+  const lastVideoStateRef = useRef<{ position: number; duration: number }>({ position: 0, duration: 0 })
 
   const currentLesson = lessons.find((l) => l.id === currentLessonId)
   const currentResources = currentLesson?.resources || []
@@ -135,6 +160,15 @@ export function LessonPlayer({
   const currentLessonIndex = lessons.findIndex((lesson) => lesson.id === currentLessonId)
   const prevLesson = currentLessonIndex > 0 ? lessons[currentLessonIndex - 1] : null
   const nextLesson = currentLessonIndex >= 0 && currentLessonIndex < lessons.length - 1 ? lessons[currentLessonIndex + 1] : null
+
+  const resumeTime = useMemo(() => {
+    if (!currentLesson?.lastPosition || currentLesson.videoCompleted) return 0
+    if (!currentLesson.durationSeconds || currentLesson.durationSeconds <= 0) {
+      return currentLesson.lastPosition
+    }
+    const safePosition = Math.min(currentLesson.lastPosition, currentLesson.durationSeconds - 2)
+    return safePosition > 0 ? safePosition : 0
+  }, [currentLesson?.lastPosition, currentLesson?.durationSeconds, currentLesson?.videoCompleted])
 
   const groupedLessons = useMemo(() => {
     const groups: Array<{ title: string; items: Array<{ lesson: Lesson; index: number }> }> = []
@@ -181,23 +215,32 @@ export function LessonPlayer({
       return
     }
 
-    if (currentLesson.type === "quiz") {
-      setActiveTab("quiz")
+    const availableTabs = getAvailableTabs(currentLesson)
+    const storedTab = typeof window !== "undefined" ? localStorage.getItem(getTabStorageKey(currentLesson.id)) : null
+    if (storedTab && availableTabs.has(storedTab as LessonTab)) {
+      setActiveTab(storedTab as LessonTab)
       return
     }
 
-    if (currentLesson.type === "assignment") {
-      setActiveTab("writing")
-      return
-    }
+    setActiveTab(resolveDefaultTab(currentLesson, availableTabs))
+  }, [
+    currentLessonId,
+    currentLesson?.type,
+    currentLesson?.quizId,
+    currentLesson?.quizQuestions?.length,
+    currentLesson?.writingAssignmentId,
+    currentLesson?.resources?.length,
+  ])
 
-    if (currentLesson.type === "pdf" || currentLesson.type === "ppt") {
-      setActiveTab("materials")
-      return
-    }
+  useEffect(() => {
+    if (!currentLessonId || typeof window === "undefined") return
+    localStorage.setItem(getTabStorageKey(currentLessonId), activeTab)
+  }, [activeTab, currentLessonId])
 
-    setActiveTab("notes")
-  }, [currentLesson])
+  useEffect(() => {
+    lastSavedVideoProgressRef.current = { time: 0, position: 0 }
+    lastVideoStateRef.current = { position: 0, duration: 0 }
+  }, [currentLessonId])
 
   useEffect(() => {
     const key = `lesson_notes_${currentLessonId}`
@@ -346,6 +389,7 @@ export function LessonPlayer({
     const merged: Partial<Lesson> = {
       ...patch,
       completed: status.completed,
+      ...(typeof options?.lastPosition === "number" ? { lastPosition: options.lastPosition } : {}),
     }
 
     onLessonsChange?.((prev) =>
@@ -388,7 +432,40 @@ export function LessonPlayer({
 
   const handleCustomVideoEnded = async () => {
     if (!currentLesson) return
-    await updateLessonState(currentLesson.id, { videoCompleted: true })
+    const fallbackDuration = lastVideoStateRef.current.duration
+    const lastPosition = Math.max(
+      lastVideoStateRef.current.position,
+      fallbackDuration > 0 ? Math.floor(fallbackDuration) : 0,
+    )
+    await updateLessonState(
+      currentLesson.id,
+      { videoCompleted: true },
+      lastPosition > 0 ? { lastPosition } : undefined,
+    )
+  }
+
+  const handleVideoProgress = (progress: number, currentTime: number, duration: number) => {
+    if (!currentLesson) return
+
+    const position = Math.floor(currentTime)
+    if (!Number.isFinite(position) || position <= 0) return
+
+    lastVideoStateRef.current = { position, duration }
+
+    const now = Date.now()
+    const shouldComplete = duration > 0 && (progress >= 95 || position >= Math.floor(duration) - 2)
+    const elapsed = now - lastSavedVideoProgressRef.current.time
+    const delta = Math.abs(position - lastSavedVideoProgressRef.current.position)
+    const shouldPersist = shouldComplete || elapsed >= 5000 || delta >= 10
+
+    if (!shouldPersist) return
+
+    lastSavedVideoProgressRef.current = { time: now, position }
+    updateLessonState(
+      currentLesson.id,
+      shouldComplete && !currentLesson.videoCompleted ? { videoCompleted: true } : {},
+      { lastPosition: position },
+    )
   }
 
   const handleOpenMaterial = async (lesson: Lesson, materialUrl: string) => {
@@ -666,6 +743,8 @@ export function LessonPlayer({
                     title={currentLesson.title}
                     className="h-full w-full rounded-none"
                     poster="/video-player-thumbnail.jpg"
+                    startTime={resumeTime}
+                    onProgress={handleVideoProgress}
                     onEnded={handleCustomVideoEnded}
                   />
                 ) : (
@@ -1108,8 +1187,8 @@ export function LessonPlayer({
 
                 <button
                   type="button"
-                  onClick={() => nextLesson && onLessonChange(nextLesson.id)}
-                  disabled={!nextLesson}
+                  onClick={() => nextLesson && currentLesson.completed && onLessonChange(nextLesson.id)}
+                  disabled={!nextLesson || !currentLesson.completed}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow-[0_10px_25px_rgba(59,130,246,0.35)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {t("lesson_next", "Bài tiếp theo")} <ChevronRight size={16} />
@@ -1122,32 +1201,60 @@ export function LessonPlayer({
                 <p className="text-sm font-semibold text-slate-900 dark:text-white mb-2">{t("lesson_completion_conditions", "Dieu kien hoan thanh bai hoc")}</p>
                 <div className="space-y-2 text-sm">
                   {currentRequirement?.hasVideo && (
-                    <p className={currentRequirement.videoDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}>
-                      {currentRequirement.videoDone
-                        ? t("lesson_video_done", "Da xem het video")
-                        : t("lesson_video_required", "Can xem het video")}
-                    </p>
+                    <div className={`flex items-center gap-2 ${currentRequirement.videoDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}`}>
+                      {currentRequirement.videoDone ? (
+                        <CheckCircle2 size={16} />
+                      ) : (
+                        <Circle size={16} />
+                      )}
+                      <span>
+                        {currentRequirement.videoDone
+                          ? t("lesson_video_done", "Da xem het video")
+                          : t("lesson_video_required", "Can xem het video")}
+                      </span>
+                    </div>
                   )}
                   {currentRequirement?.hasMaterials && (
-                    <p className={currentRequirement.materialsDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}>
-                      {currentRequirement.materialsDone
-                        ? t("lesson_materials_done", "Da mo tat ca tai lieu")
-                        : t("lesson_materials_required", "Can mo tat ca tai lieu")}
-                    </p>
+                    <div className={`flex items-center gap-2 ${currentRequirement.materialsDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}`}>
+                      {currentRequirement.materialsDone ? (
+                        <CheckCircle2 size={16} />
+                      ) : (
+                        <Circle size={16} />
+                      )}
+                      <span>
+                        {currentRequirement.materialsDone
+                          ? t("lesson_materials_done", "Da mo tat ca tai lieu")
+                          : t("lesson_materials_required", "Can mo tat ca tai lieu")}
+                      </span>
+                    </div>
                   )}
                   {currentRequirement?.hasQuiz && (
-                    <p className={currentRequirement.quizDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}>
-                      {currentRequirement.quizDone
-                        ? t("lesson_quiz_done", "Da nop quiz")
-                        : t("lesson_quiz_required", "Can lam va nop quiz")}
-                    </p>
+                    <div className={`flex items-center gap-2 ${currentRequirement.quizDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}`}>
+                      {currentRequirement.quizDone ? (
+                        <CheckCircle2 size={16} />
+                      ) : (
+                        <Circle size={16} />
+                      )}
+                      <span>
+                        {currentRequirement.quizDone
+                          ? t("lesson_quiz_done", "Da nop quiz")
+                          : t("lesson_quiz_required", "Can lam va nop quiz")}
+                      </span>
+                    </div>
                   )}
                   {currentRequirement?.hasWriting && (
-                    <p className={currentRequirement.writingDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}>
-                      {currentRequirement.writingDone
-                        ? t("lesson_writing_done", "Da nop bai writing")
-                        : t("lesson_writing_required", "Can nop bai writing")}
-                    </p>
+                    <div className={`flex items-center gap-2 ${currentRequirement.writingDone ? "text-green-600 dark:text-green-400" : "text-muted-foreground dark:text-slate-400"}`}>
+                      {currentRequirement.writingDone ? (
+                        <CheckCircle2 size={16} />
+                      ) : (
+                        <Circle size={16} />
+                      )}
+                      <span>
+                        {currentRequirement.writingDone
+                          ? t("lesson_writing_done", "Da nop bai writing")
+                          : t("lesson_writing_required", "Can nop bai writing")}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
