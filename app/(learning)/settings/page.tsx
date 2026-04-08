@@ -144,7 +144,7 @@ export default function StudentSettingsPage() {
                 </div>
                 <div className="rounded-xl border border-white/60 bg-white/75 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/60">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">{t("settings_tab_appearance", "Giao diện")}</p>
-                  <p className="mt-1 text-xl font-black leading-none text-slate-900 dark:text-white">{isDarkMode ? t("settings_dark_mode", "Tối") : t("settings_lang_en", "Sáng")}</p>
+                  <p className="mt-1 text-xl font-black leading-none text-slate-900 dark:text-white">{isDarkMode ? t("settings_dark_mode", "Chế độ tối") : t("settings_light_mode", "Chế độ sáng")}</p>
                 </div>
                 <div className="rounded-xl border border-white/60 bg-white/75 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-800/60">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">{t("settings_language", "Ngôn ngữ")}</p>
