@@ -168,9 +168,9 @@ function EnrollmentSuccessPageContent() {
 
   const handleDownloadInvoice = async () => {
     try {
-      const subtotal = Number(course.price || 0)
-      const tax = Math.round(subtotal * 0.1)
-      const total = subtotal + tax
+      const total = Number(course.price || 0)
+      const subtotal = Math.round(total / 1.1)
+      const tax = total - subtotal
 
       await generateInvoicePdf({
         invoiceNumber: `INV-${Date.now()}`,
