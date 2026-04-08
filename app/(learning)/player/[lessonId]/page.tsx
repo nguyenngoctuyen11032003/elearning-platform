@@ -181,6 +181,29 @@ function mapType(type: string): PlayerLesson["type"] {
   return "pdf"
 }
 
+function resolveSectionSortKey(title: string): { numeric: number | null; text: string } {
+  const normalized = title.trim().toLowerCase()
+  if (!normalized) return { numeric: null, text: "" }
+  const match = normalized.match(/(\d+)/)
+  const numeric = match ? Number(match[1]) : null
+  return { numeric: Number.isFinite(numeric) ? numeric : null, text: normalized }
+}
+
+function compareSectionTitle(a: string, b: string): number {
+  const left = resolveSectionSortKey(a)
+  const right = resolveSectionSortKey(b)
+  if (left.numeric !== null && right.numeric !== null && left.numeric !== right.numeric) {
+    return left.numeric - right.numeric
+  }
+  if (left.text && right.text) {
+    const textCmp = left.text.localeCompare(right.text, "vi")
+    if (textCmp !== 0) return textCmp
+  }
+  if (left.text && !right.text) return -1
+  if (!left.text && right.text) return 1
+  return 0
+}
+
 function isVideoCompletedByProgress(durationSeconds?: number, lastPosition?: number): boolean {
   if (!durationSeconds || durationSeconds <= 0) return false
   const safeLast = typeof lastPosition === "number" ? lastPosition : 0
@@ -496,7 +519,14 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
     progressByLessonId: Map<string, any>,
   ): PlayerLesson[] => {
     return [...allLessons]
-      .sort((a, b) => a.order - b.order)
+      .sort((a, b) => {
+        const sectionCmp = compareSectionTitle(String(a.sectionTitle || ""), String(b.sectionTitle || ""))
+        if (sectionCmp !== 0) return sectionCmp
+        const orderA = Number.isFinite(Number(a.order)) ? Number(a.order) : 0
+        const orderB = Number.isFinite(Number(b.order)) ? Number(b.order) : 0
+        if (orderA !== orderB) return orderA - orderB
+        return String(a.title || "").localeCompare(String(b.title || ""), "vi")
+      })
       .map((lesson) => {
         const rawResources = typeof lesson.resources === "string" ? JSON.parse(lesson.resources) : lesson.resources
         const resources = Array.isArray(rawResources) ? rawResources : []

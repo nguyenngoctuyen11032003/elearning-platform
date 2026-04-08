@@ -49,6 +49,8 @@ interface BackendLesson {
   title: string
   videoUrl?: string
   resources?: unknown
+  order?: number
+  sectionTitle?: string
 }
 
 interface LessonPreview {
@@ -57,6 +59,8 @@ interface LessonPreview {
   videoUrl?: string
   documents?: Array<{ url: string; name?: string }>
   quizQuestions?: { question: string; options?: string[]; type?: string; correctAnswer?: number; correctAnswers?: number[] }[]
+  order?: number
+  sectionTitle?: string
 }
 
 interface CourseStudentProgress {
@@ -121,6 +125,40 @@ function parseLessonResources(resources: unknown): Array<{ url: string; name?: s
 
   return documents
 }
+
+function resolveSectionSortKey(title: string): { numeric: number | null; text: string } {
+  const normalized = title.trim().toLowerCase()
+  if (!normalized) return { numeric: null, text: "" }
+  const match = normalized.match(/(\d+)/)
+  const numeric = match ? Number(match[1]) : null
+  return { numeric: Number.isFinite(numeric) ? numeric : null, text: normalized }
+}
+
+function compareSectionTitle(a: string, b: string): number {
+  const left = resolveSectionSortKey(a)
+  const right = resolveSectionSortKey(b)
+  if (left.numeric !== null && right.numeric !== null && left.numeric !== right.numeric) {
+    return left.numeric - right.numeric
+  }
+  if (left.text && right.text) {
+    const textCmp = left.text.localeCompare(right.text, "vi")
+    if (textCmp !== 0) return textCmp
+  }
+  if (left.text && !right.text) return -1
+  if (!left.text && right.text) return 1
+  return 0
+}
+
+function sortLessonsForSections(list: LessonPreview[]): LessonPreview[] {
+  return [...list].sort((a, b) => {
+    const sectionCmp = compareSectionTitle(a.sectionTitle || "", b.sectionTitle || "")
+    if (sectionCmp !== 0) return sectionCmp
+    const orderA = Number.isFinite(Number(a.order)) ? Number(a.order) : 0
+    const orderB = Number.isFinite(Number(b.order)) ? Number(b.order) : 0
+    if (orderA !== orderB) return orderA - orderB
+    return String(a.title || "").localeCompare(String(b.title || ""), "vi")
+  })
+}
 const InfoItem = ({ icon, label, value }: any) => (
   <div className="bg-secondary rounded-xl p-3 text-center">
     <div className="flex justify-center mb-1">{icon}</div>
@@ -151,6 +189,21 @@ export default function TeacherCoursesPage() {
     totalStudents: number
   } | null>(null)
   const [studentsProgressVersionMeta, setStudentsProgressVersionMeta] = useState<CourseVersionMeta | null>(null)
+
+  const groupedCourseLessons = useMemo(() => {
+    const sorted = sortLessonsForSections(selectedCourseLessons)
+    const groups: Array<{ title: string; items: LessonPreview[] }> = []
+    sorted.forEach((lesson) => {
+      const title = String(lesson.sectionTitle || "").trim()
+      const last = groups[groups.length - 1]
+      if (!last || last.title !== title) {
+        groups.push({ title, items: [lesson] })
+      } else {
+        last.items.push(lesson)
+      }
+    })
+    return groups
+  }, [selectedCourseLessons])
   const menuButtonRefs = React.useRef<Map<string, React.RefObject<HTMLButtonElement>>>(new Map())
   const filterContainerRef = React.useRef<HTMLDivElement | null>(null)
   const filterButtonRefs = React.useRef<Record<string, HTMLButtonElement | null>>({})
@@ -258,6 +311,8 @@ export default function TeacherCoursesPage() {
             title: lesson.title,
             videoUrl: lesson.videoUrl,
             documents,
+            order: typeof lesson.order === "number" ? lesson.order : undefined,
+            sectionTitle: lesson.sectionTitle,
             quizQuestions: questions.map((q: Record<string, unknown>) => ({
               question: (q.question as string) || "",
               options: Array.isArray(q.options) ? (q.options as string[]) : undefined,
@@ -729,36 +784,53 @@ useEffect(() => {
                 ) : selectedCourseLessons.length === 0 ? (
                   <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">{t("tc_no_lessons", "Chưa có bài học nào")}</p>
                 ) : (
-                  <div className="mt-3 space-y-3">
-                    {selectedCourseLessons.map((lesson, idx) => (
-                      <div key={lesson.id} className="rounded-xl border border-border dark:border-slate-800 bg-secondary/40 dark:bg-slate-900/40 p-3">
-                        <p className="text-sm font-medium text-foreground dark:text-white">
-                          {idx + 1}. {lesson.title}
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {lesson.videoUrl && (
-                            <a
-                              href={lesson.videoUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 dark:bg-blue-500/20 px-2 py-1 text-xs text-blue-600 dark:text-blue-400"
-                            >
-                              <Video size={14} /> Video
-                            </a>
-                          )}
-                          {(lesson.documents || []).map((doc, docIdx) => (
-                            <a
-                              key={`${lesson.id}-doc-modal-${docIdx}`}
-                              href={doc.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              download={doc.name || true}
-                              className="inline-flex items-center gap-1 rounded-md bg-red-500/10 dark:bg-red-500/20 px-2 py-1 text-xs text-red-600 dark:text-red-400"
-                            >
-                              <FileText size={14} /> {doc.name || t("tc_document", "Tài liệu")}
-                            </a>
-                          ))}
+                  <div className="mt-3 space-y-4">
+                    {groupedCourseLessons.map((section, sectionIdx) => (
+                      <div key={`${section.title || "section"}-${sectionIdx}`} className="space-y-3">
+                        <div className="rounded-xl border border-border dark:border-slate-800 bg-secondary/60 dark:bg-slate-900/50 px-4 py-2">
+                          <p className="text-sm font-semibold text-foreground dark:text-white">
+                            {section.title || `${t("tc_section", "Phần")} ${sectionIdx + 1}`}
+                          </p>
                         </div>
+                        {section.items.map((lesson, idx) => {
+                          const quizCount = Array.isArray(lesson.quizQuestions) ? lesson.quizQuestions.length : 0
+                          return (
+                            <div key={lesson.id} className="rounded-xl border border-border dark:border-slate-800 bg-secondary/40 dark:bg-slate-900/40 p-3">
+                              <p className="text-sm font-medium text-foreground dark:text-white">
+                                {idx + 1}. {lesson.title}
+                              </p>
+                              {quizCount > 0 && (
+                                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                  {quizCount} {t("tc_quiz_questions", "câu hỏi")}
+                                </p>
+                              )}
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {lesson.videoUrl && (
+                                  <a
+                                    href={lesson.videoUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 dark:bg-blue-500/20 px-2 py-1 text-xs text-blue-600 dark:text-blue-400"
+                                  >
+                                    <Video size={14} /> Video
+                                  </a>
+                                )}
+                                {(lesson.documents || []).map((doc, docIdx) => (
+                                  <a
+                                    key={`${lesson.id}-doc-modal-${docIdx}`}
+                                    href={doc.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    download={doc.name || true}
+                                    className="inline-flex items-center gap-1 rounded-md bg-red-500/10 dark:bg-red-500/20 px-2 py-1 text-xs text-red-600 dark:text-red-400"
+                                  >
+                                    <FileText size={14} /> {doc.name || t("tc_document", "Tài liệu")}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
                     ))}
                   </div>
