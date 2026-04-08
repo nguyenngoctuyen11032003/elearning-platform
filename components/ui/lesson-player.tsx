@@ -544,8 +544,10 @@ export function LessonPlayer({
 
     const currentOpenedCount = Object.keys(updatedLessonOpened).filter((key) => updatedLessonOpened[key]).length
 
+    // Mark materials as completed only when ALL materials have been opened
     if (currentOpenedCount >= resourceCount) {
       await updateLessonState(lesson.id, { materialsCompleted: true })
+      toast.success(t("lesson_materials_completed", "Đã hoàn thành tài liệu học"))
     }
   }
 
@@ -844,14 +846,25 @@ export function LessonPlayer({
                   <button
                     key={lesson.id}
                     onClick={() => {
-                      if (!isLessonLocked(index)) onLessonChange(lesson.id)
+                      if (!isLessonLocked(index)) {
+                        onLessonChange(lesson.id)
+                      } else {
+                        // Show which lesson needs to be completed first
+                        const previousLesson = lessons[index - 1]
+                        toast.error(
+                          t(
+                            "lesson_locked_prerequisite",
+                            `Vui lòng hoàn thành bài "${previousLesson?.title || 'bài trước'}" trước`,
+                          ),
+                        )
+                      }
                     }}
                     className={`w-full rounded-xl border p-3 text-left transition-all duration-200 flex items-start gap-3 ${
                       currentLessonId === lesson.id
                         ? "border-blue-500 bg-blue-50 dark:bg-[rgba(59,130,246,0.12)]"
                         : isLessonLocked(index)
-                          ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 opacity-60"
-                          : "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 hover:-translate-y-px hover:border-slate-300 dark:hover:border-slate-600"
+                          ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 opacity-60 cursor-not-allowed"
+                          : "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 hover:-translate-y-px hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer"
                     }`}
                     disabled={isLessonLocked(index)}
                   >
@@ -880,6 +893,11 @@ export function LessonPlayer({
                       </p>
                       {lesson.duration && (
                         <p className="mt-1 text-xs text-slate-600 dark:text-slate-500">{lesson.duration}</p>
+                      )}
+                      {isLessonLocked(index) && (
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 italic">
+                          {t("lesson_locked_icon", "🔒 Bị khóa - Hoàn thành bài trước")}
+                        </p>
                       )}
                     </div>
                   </button>
@@ -953,6 +971,93 @@ export function LessonPlayer({
                 )}
               </div>
 
+              {/* Completion Requirements Summary */}
+              {currentRequirement && (
+                <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0f172a] px-4 sm:px-6 py-4">
+                  <div className={`rounded-lg p-4 ${
+                    currentRequirement.completed
+                      ? "bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30"
+                      : "bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30"
+                  }`}>
+                    <p className={`text-sm font-semibold mb-3 ${
+                      currentRequirement.completed
+                        ? "text-green-800 dark:text-green-300"
+                        : "text-blue-800 dark:text-blue-300"
+                    }`}>
+                      {currentRequirement.completed 
+                        ? `✓ ${t("lesson_all_requirements_met", "Hoàn thành tất cả yêu cầu")} (${currentRequirement.progress}%)`
+                        : `${t("lesson_completion_status", "Trạng thái hoàn thành")}: ${currentRequirement.progress}%`}
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {currentRequirement.hasVideo && (
+                        <div className="flex items-center gap-2">
+                          {currentRequirement.videoDone ? (
+                            <CheckCircle2 size={16} className="text-green-600 dark:text-green-400" />
+                          ) : (
+                            <Circle size={16} className="text-slate-400 dark:text-slate-500" />
+                          )}
+                          <span className={`text-xs font-medium ${
+                            currentRequirement.videoDone
+                              ? "text-green-700 dark:text-green-300"
+                              : "text-slate-600 dark:text-slate-400"
+                          }`}>
+                            {t("lesson_requirement_video", "Video")}
+                          </span>
+                        </div>
+                      )}
+                      {currentRequirement.hasMaterials && (
+                        <div className="flex items-center gap-2">
+                          {currentRequirement.materialsDone ? (
+                            <CheckCircle2 size={16} className="text-green-600 dark:text-green-400" />
+                          ) : (
+                            <Circle size={16} className="text-slate-400 dark:text-slate-500" />
+                          )}
+                          <span className={`text-xs font-medium ${
+                            currentRequirement.materialsDone
+                              ? "text-green-700 dark:text-green-300"
+                              : "text-slate-600 dark:text-slate-400"
+                          }`}>
+                            {t("lesson_requirement_materials", "Tài liệu")}
+                          </span>
+                        </div>
+                      )}
+                      {currentRequirement.hasQuiz && (
+                        <div className="flex items-center gap-2">
+                          {currentRequirement.quizDone ? (
+                            <CheckCircle2 size={16} className="text-green-600 dark:text-green-400" />
+                          ) : (
+                            <Circle size={16} className="text-slate-400 dark:text-slate-500" />
+                          )}
+                          <span className={`text-xs font-medium ${
+                            currentRequirement.quizDone
+                              ? "text-green-700 dark:text-green-300"
+                              : "text-slate-600 dark:text-slate-400"
+                          }`}>
+                            {t("lesson_requirement_quiz", "Quiz")}
+                          </span>
+                        </div>
+                      )}
+                      {currentRequirement.hasWriting && (
+                        <div className="flex items-center gap-2">
+                          {currentRequirement.writingDone ? (
+                            <CheckCircle2 size={16} className="text-green-600 dark:text-green-400" />
+                          ) : (
+                            <Circle size={16} className="text-slate-400 dark:text-slate-500" />
+                          )}
+                          <span className={`text-xs font-medium ${
+                            currentRequirement.writingDone
+                              ? "text-green-700 dark:text-green-300"
+                              : "text-slate-600 dark:text-slate-400"
+                          }`}>
+                            {t("lesson_requirement_writing", "Bài tập")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Tabs */}
               <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0f172a]">
                 <div className="flex overflow-x-auto no-scrollbar">
@@ -1003,42 +1108,77 @@ export function LessonPlayer({
                 {activeTab === "materials" && (
                   <div className="space-y-4">
                     <h3 className="font-semibold text-foreground dark:text-white mb-4">{t("lesson_materials_title", "Tai lieu dinh kem")}</h3>
-                    {currentRequirement?.hasMaterials && !currentRequirement.materialsDone && (
-                      <p className="text-sm text-amber-600 dark:text-amber-400">
-                        {t("lesson_materials_open_all_required", "Ban can mo tat ca tai lieu de hoan thanh bai hoc")}
-                      </p>
+                    {currentRequirement?.hasMaterials && (
+                      <div className="p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg">
+                        <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
+                          {currentRequirement.materialsDone 
+                            ? `✓ ${t("lesson_materials_completed_success", "Đã hoàn thành tài liệu")}`
+                            : `${t("lesson_materials_progress", "Tiến độ tài liệu")}:`}
+                        </p>
+                        {!currentRequirement.materialsDone && (
+                          <>
+                            <p className="text-xs text-blue-700 dark:text-blue-400 mb-2">
+                              {t("lesson_materials_open_all_required", "Ban can mo tat ca tai lieu de hoan thanh bai hoc")}
+                            </p>
+                            <div className="w-full h-2 bg-blue-200 dark:bg-blue-900 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300"
+                                style={{ width: `${currentRequirement.progress}%` }}
+                              />
+                            </div>
+                            <p className="text-xs text-blue-700 dark:text-blue-400 mt-2">
+                              {Object.keys(openedMaterialsByLesson[currentLesson?.id || ""] || {}).filter(k => openedMaterialsByLesson[currentLesson?.id || ""][k]).length}/{currentResources.length} {t("lesson_materials_opened", "tài liệu đã mở")}
+                            </p>
+                          </>
+                        )}
+                      </div>
                     )}
                     {currentResources.length > 0 ? (
                       <div className="space-y-3">
-                        {currentResources.map((material, i) => (
-                          <div
-                            key={`${material.url}-${i}`}
-                            className="flex items-center justify-between p-4 bg-secondary dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg hover:shadow-md transition-smooth"
-                          >
-                            <div className="flex items-center gap-3">
-                              <FileText size={24} className="text-primary dark:text-accent" />
-                              <div>
-                                <p className="font-medium text-foreground dark:text-white">{material.name || `${t("lesson_material_label", "Tai lieu")} ${i + 1}`}</p>
-                                <p className="text-xs text-muted-foreground dark:text-slate-400">
-                                  {(material.type || t("lesson_material_label", "Tai lieu")).toUpperCase()}
-                                </p>
-                              </div>
-                            </div>
-                            <a
-                              href={material.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={() => {
-                                if (currentLesson) {
-                                  handleOpenMaterial(currentLesson, material.url)
-                                }
-                              }}
-                              className="p-2 hover:bg-primary/10 dark:hover:bg-primary/20 rounded-lg transition-smooth"
+                        {currentResources.map((material, i) => {
+                          const isOpened = openedMaterialsByLesson[currentLesson?.id || ""]?.[material.url] || false
+                          return (
+                            <div
+                              key={`${material.url}-${i}`}
+                              className={`flex items-center justify-between p-4 border rounded-lg transition-all ${
+                                isOpened
+                                  ? "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30"
+                                  : "bg-secondary dark:bg-slate-900 border-border dark:border-slate-800 hover:shadow-md"
+                              }`}
                             >
-                              <Download size={20} className="text-primary dark:text-accent" />
-                            </a>
-                          </div>
-                        ))}
+                              <div className="flex items-center gap-3">
+                                {isOpened ? (
+                                  <CheckCircle2 size={24} className="text-green-600 dark:text-green-400" />
+                                ) : (
+                                  <FileText size={24} className="text-primary dark:text-accent" />
+                                )}
+                                <div>
+                                  <p className="font-medium text-foreground dark:text-white">{material.name || `${t("lesson_material_label", "Tai lieu")} ${i + 1}`}</p>
+                                  <p className="text-xs text-muted-foreground dark:text-slate-400">
+                                    {(material.type || t("lesson_material_label", "Tai lieu")).toUpperCase()}
+                                  </p>
+                                </div>
+                              </div>
+                              <a
+                                href={material.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={() => {
+                                  if (currentLesson) {
+                                    handleOpenMaterial(currentLesson, material.url)
+                                  }
+                                }}
+                                className={`p-2 rounded-lg transition-all ${
+                                  isOpened
+                                    ? "bg-green-100 dark:bg-green-900/30 hover:bg-green-200"
+                                    : "hover:bg-primary/10 dark:hover:bg-primary/20"
+                                }`}
+                              >
+                                <Download size={20} className={isOpened ? "text-green-600 dark:text-green-400" : "text-primary dark:text-accent"} />
+                              </a>
+                            </div>
+                          )
+                        })}
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground dark:text-slate-400">{t("lesson_no_materials", "Bai hoc nay chua co tai lieu dinh kem")}</p>
