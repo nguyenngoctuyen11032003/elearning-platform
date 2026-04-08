@@ -1,5 +1,5 @@
 ﻿"use client"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   Plus, 
@@ -103,6 +103,8 @@ export default function NotesPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [editingNote, setEditingNote] = useState<Note | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [newTagInput, setNewTagInput] = useState("")
+  const [editTagInput, setEditTagInput] = useState("")
   const [newNote, setNewNote] = useState({ 
     title: "", 
     content: "", 
@@ -120,15 +122,42 @@ export default function NotesPage() {
   const ITEMS_PER_PAGE = 6
 
   const courses = [...new Set(notes.map(n => n.course))]
-  const allTags = [...new Set(notes.flatMap(n => n.tags))].sort()
+  const recentTags = useMemo(() => {
+    const seen = new Set<string>()
+    const ordered: string[] = []
+
+    notes.forEach((note) => {
+      (note.tags || []).forEach((tag) => {
+        if (!seen.has(tag)) {
+          seen.add(tag)
+          ordered.push(tag)
+        }
+      })
+    })
+
+    return ordered.slice(0, 6)
+  }, [notes])
+
+  const splitTagInput = (value: string): string[] =>
+    value
+      .split(",")
+      .map((item) => item.replace(/^#/, "").trim())
+      .filter(Boolean)
+
+  const mergeTags = (current: string[], additions: string[]): string[] =>
+    Array.from(new Set([...current, ...additions].map((tag) => tag.trim()).filter(Boolean)))
 
   const filteredNotes = notes.filter((note) => {
   const title = note.title ?? ""
   const content = note.content ?? ""
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+  const tagSearch = normalizedSearch.startsWith("#") ? normalizedSearch.slice(1) : normalizedSearch
 
   const matchesSearch =
-    title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    content.toLowerCase().includes(searchTerm.toLowerCase())
+    normalizedSearch.length === 0 ||
+    title.toLowerCase().includes(normalizedSearch) ||
+    content.toLowerCase().includes(normalizedSearch) ||
+    (tagSearch.length > 0 && (note.tags || []).some((tag) => tag.toLowerCase().includes(tagSearch)))
 
   const matchesCourse =
     selectedCourse === "all" || note.course === selectedCourse
@@ -192,7 +221,7 @@ export default function NotesPage() {
           lessonTitle: n.lesson?.title ?? t('notes_default_title', 'Ghi chú'),
           createdAt: n.createdAt,
           updatedAt: n.updatedAt,
-          tags: [],
+          tags: Array.isArray(n.tags) ? n.tags : [],
           isFavorite: n.isFavorite || false,
           type: n.type || 'general',
           items: n.items || [],
@@ -224,7 +253,12 @@ export default function NotesPage() {
       return;
     }
 
+    const pendingTags = splitTagInput(newTagInput)
+    const normalizedTags = mergeTags(newNote.tags, pendingTags)
+
     const payload: any = {
+      title: newNote.title.trim(),
+      tags: normalizedTags,
       type: newNote.type,
       timestamp: 0,
     };
@@ -259,6 +293,7 @@ export default function NotesPage() {
     await fetchNotes();
 
     setIsCreating(false);
+    setNewTagInput("");
     setNewNote({
       title: '',
       content: '',
@@ -292,7 +327,12 @@ export default function NotesPage() {
     }
 
     try {
+      const pendingTags = splitTagInput(editTagInput)
+      const normalizedTags = mergeTags(editingNote.tags ?? [], pendingTags)
+
       const payload: any = {
+        title: editingNote.title.trim(),
+        tags: normalizedTags,
         type: editingNote.type,
       };
 
@@ -328,6 +368,7 @@ export default function NotesPage() {
       // Fetch lại danh sách để cập nhật
       await fetchNotes();
       setEditingNote(null)
+      setEditTagInput("")
     } catch (err) {
       console.error(err);
     }
@@ -477,7 +518,7 @@ export default function NotesPage() {
           lessonTitle: n.lesson?.title ?? t('notes_default_title', 'Ghi chú'),
           createdAt: n.createdAt,
           updatedAt: n.updatedAt,
-          tags: [],
+          tags: Array.isArray(n.tags) ? n.tags : [],
           isFavorite: n.isFavorite || true,
           type: n.type || 'general',
           items: n.items || [],
@@ -527,6 +568,18 @@ export default function NotesPage() {
 useEffect(() => {
   fetchNotes()
 }, [fetchNotes])
+
+  useEffect(() => {
+    if (!isCreating) {
+      setNewTagInput("")
+    }
+  }, [isCreating])
+
+  useEffect(() => {
+    if (!editingNote) {
+      setEditTagInput("")
+    }
+  }, [editingNote?.id])
 
   return (
     <div className="relative space-y-6">
@@ -608,7 +661,7 @@ useEffect(() => {
       </motion.div>
 
       {/* Tags Filter */}
-      {allTags.length > 0 && (
+      {recentTags.length > 0 && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }} 
           animate={{ opacity: 1, y: 0 }}
@@ -617,7 +670,7 @@ useEffect(() => {
         >
           <span className="text-sm font-medium text-muted-foreground pt-2">{t("notes_tags", "Tags:")}</span>
           <div className="flex flex-wrap gap-2 flex-1">
-            {allTags.map((tag, index) => (
+            {recentTags.map((tag, index) => (
   <div key={`${tag}-${index}`} className="relative group">
                 <button
                   onClick={() => handleTagSelect(tag)}
@@ -700,12 +753,6 @@ useEffect(() => {
                     <h3 className="font-bold text-lg text-foreground dark:text-white line-clamp-1 flex-1 group-hover:text-primary dark:group-hover:text-accent transition-colors" title={note.title}>
                       {note.title}
                     </h3>
-                    <span className="text-sm px-2.5 py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0" style={{
-                      backgroundColor: noteTypes.find(nt => nt.value === note.type)?.color?.split(' ')[0],
-                      color: noteTypes.find(nt => nt.value === note.type)?.color?.includes('text-') ? 'inherit' : 'currentColor'
-                    }}>
-                      {noteTypes.find(nt => nt.value === note.type)?.icon} {noteTypes.find(nt => nt.value === note.type)?.label.split(' ')[0]}
-                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -830,8 +877,10 @@ useEffect(() => {
               {/* Footer */}
               <div className="pt-3 border-t border-border dark:border-slate-800 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5 text-muted-foreground dark:text-slate-400">
-                  <BookOpen size={14} />
-                  <span className="truncate max-w-[120px]">{note.course}</span>
+                  <span className="text-base">{noteTypes.find(nt => nt.value === note.type)?.icon}</span>
+                  <span className="truncate max-w-[140px]">
+                    {noteTypes.find(nt => nt.value === note.type)?.label ?? note.type}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground dark:text-slate-500">
                   <Clock size={14} />
@@ -1134,20 +1183,30 @@ useEffect(() => {
                   <input
                     type="text"
                     placeholder={t("notes_add_tag", "Thêm tag mới (nhấn Enter hoặc Dấu phẩy để thêm)")}
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ',') {
                         e.preventDefault()
-                        const input = e.target as HTMLInputElement
-                        const tagValue = input.value.replace(',', '').trim()
-                        if (tagValue) {
-                          if (!newNote.tags.includes(tagValue)) {
-                            setNewNote({ 
-                              ...newNote, 
-                              tags: [...newNote.tags, tagValue]
-                            })
-                          }
-                          input.value = ""
+                        const input = e.currentTarget.value
+                        const additions = splitTagInput(input)
+                        if (additions.length > 0) {
+                          setNewNote((prev) => ({
+                            ...prev,
+                            tags: mergeTags(prev.tags, additions),
+                          }))
                         }
+                        setNewTagInput("")
+                      }
+                    }}
+                    onBlur={() => {
+                      const additions = splitTagInput(newTagInput)
+                      if (additions.length > 0) {
+                        setNewNote((prev) => ({
+                          ...prev,
+                          tags: mergeTags(prev.tags, additions),
+                        }))
+                        setNewTagInput("")
                       }
                     }}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
@@ -1410,21 +1469,36 @@ useEffect(() => {
                   <input
                     type="text"
                     placeholder={t("notes_add_tag", "Thêm tag mới (nhấn Enter hoặc Dấu phẩy để thêm)")}
+                    value={editTagInput}
+                    onChange={(e) => setEditTagInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ',') {
                         e.preventDefault()
-                        const input = e.target as HTMLInputElement
-                        const tagValue = input.value.replace(',', '').trim()
-                        if (tagValue) {
-                          const newTag = tagValue
-                          if (!(editingNote.tags ?? []).includes(newTag)) {
-                            setEditingNote({ 
-                              ...editingNote, 
-                              tags: [...(editingNote.tags ?? []), newTag]
-                            })
-                          }
-                          input.value = ""
+                        const input = e.currentTarget.value
+                        const additions = splitTagInput(input)
+                        if (additions.length > 0) {
+                          setEditingNote((prev) => prev
+                            ? {
+                                ...prev,
+                                tags: mergeTags(prev.tags ?? [], additions),
+                              }
+                            : prev,
+                          )
                         }
+                        setEditTagInput("")
+                      }
+                    }}
+                    onBlur={() => {
+                      const additions = splitTagInput(editTagInput)
+                      if (additions.length > 0) {
+                        setEditingNote((prev) => prev
+                          ? {
+                              ...prev,
+                              tags: mergeTags(prev.tags ?? [], additions),
+                            }
+                          : prev,
+                        )
+                        setEditTagInput("")
                       }
                     }}
                     className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 py-3 border-2 border-border dark:border-slate-800 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors"
@@ -1479,8 +1553,8 @@ useEffect(() => {
                   </div>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <BookOpen size={14} />
-                      {viewingNote.course}
+                      <span className="text-base">{noteTypes.find(nt => nt.value === viewingNote.type)?.icon}</span>
+                      {noteTypes.find(nt => nt.value === viewingNote.type)?.label ?? viewingNote.type}
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">

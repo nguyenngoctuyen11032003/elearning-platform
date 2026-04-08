@@ -1817,6 +1817,7 @@
   "settings_course_notif": "Course notifications",
   "settings_dark_desc": "Enable/disable dark mode for the interface",
   "settings_dark_mode": "Dark mode",
+  "settings_light_mode": "Light mode",
   "settings_desc": "Manage your account settings",
   "settings_email_desc": "Receive notifications via email",
   "settings_email_notif": "Email notifications",
