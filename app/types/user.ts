@@ -7,6 +7,7 @@ export type UserStatus = "active" | "inactive" | "pending"
 
 export interface UserData {
   lastLoginAt: any
+  lastLoginProvider?: string
   joinDate: string
   id: number                 
   name: string

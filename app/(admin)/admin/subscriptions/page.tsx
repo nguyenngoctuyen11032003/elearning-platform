@@ -4,23 +4,27 @@ import React, { useEffect, useMemo, useState } from "react"
 import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
+import { ConfirmDialog } from "@/components/ui/admin-modals"
 import {
   ArrowRight,
   BarChart3,
+  Check,
   CheckCircle2,
   Clock3,
   CreditCard,
   FileText,
+  Loader2,
   Plus,
   Search,
   Save,
   ShieldCheck,
   Trash2,
   Wallet,
+  X,
 } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
-import { formatNumber } from "@/lib/format"
+import { formatNumber, formatCurrency } from "@/lib/format"
 import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
 import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -32,7 +36,6 @@ const emptyPlan = {
   courseLimit: 20,
   storageLimitGb: 10,
   studentsLimit: 120,
-  features: "",
 }
 
 const SUBSCRIPTIONS_REALTIME_MS = 45000
@@ -51,6 +54,12 @@ export default function AdminTeacherSubscriptionPage() {
   const [paymentSearchQuery, setPaymentSearchQuery] = useState("")
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all")
   const [paymentSortBy, setPaymentSortBy] = useState<"newest" | "oldest" | "amount_desc" | "amount_asc">("newest")
+  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null)
+  const [showCreatePlanModal, setShowCreatePlanModal] = useState(false)
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null)
+  const [deletePlanDialog, setDeletePlanDialog] = useState<{ isOpen: boolean; planId?: string; planName?: string }>({
+    isOpen: false,
+  })
 
   const getPlanSignature = (plan: any) =>
     JSON.stringify({
@@ -60,9 +69,6 @@ export default function AdminTeacherSubscriptionPage() {
       courseLimit: Number(plan?.courseLimit || 0),
       storageLimitGb: Number(plan?.storageLimitGb || 0),
       studentsLimit: Number(plan?.studentsLimit || 0),
-      features: Array.isArray(plan?.features)
-        ? plan.features.map((item: any) => String(item).trim()).filter(Boolean).join("\n")
-        : String(plan?.features || "").trim(),
     })
 
   const loadAll = async (silent = false) => {
@@ -108,6 +114,32 @@ export default function AdminTeacherSubscriptionPage() {
   }, [])
 
   const createPlan = async () => {
+    // Validation
+    if (!newPlan.name || !newPlan.name.trim()) {
+      toast.error(t("adm_sub_plan_name_required", "Vui lòng nhập tên gói"))
+      return
+    }
+    if (!newPlan.price || Number(newPlan.price) <= 0) {
+      toast.error(t("adm_sub_price_required", "Vui lòng nhập giá gói hợp lệ"))
+      return
+    }
+    if (!newPlan.durationMonths || Number(newPlan.durationMonths) <= 0) {
+      toast.error(t("adm_sub_duration_required", "Vui lòng nhập thời hạn hợp lệ"))
+      return
+    }
+    if (!newPlan.courseLimit || Number(newPlan.courseLimit) <= 0) {
+      toast.error(t("adm_sub_course_limit_required", "Vui lòng nhập giới hạn khóa học hợp lệ"))
+      return
+    }
+    if (!newPlan.storageLimitGb || Number(newPlan.storageLimitGb) <= 0) {
+      toast.error(t("adm_sub_storage_required", "Vui lòng nhập dung lượng lưu trữ hợp lệ"))
+      return
+    }
+    if (!newPlan.studentsLimit || Number(newPlan.studentsLimit) <= 0) {
+      toast.error(t("adm_sub_student_limit_required", "Vui lòng nhập giới hạn học viên hợp lệ"))
+      return
+    }
+
     setCreating(true)
     try {
       await apiClient.createAdminInstructorPlan({
@@ -119,6 +151,7 @@ export default function AdminTeacherSubscriptionPage() {
       })
       toast.success(t("adm_sub_create_ok", "Đã tạo gói mới"))
       setNewPlan(emptyPlan)
+      setShowCreatePlanModal(false)
       await loadAll()
     } catch (error: any) {
       toast.error(error?.message || t("adm_sub_create_fail", "Không thể tạo gói"))
@@ -138,13 +171,26 @@ export default function AdminTeacherSubscriptionPage() {
   }
 
   const deletePlan = async (id: string) => {
+    setDeletingPlanId(id)
     try {
-      await apiClient.deleteAdminInstructorPlan(id)
-      toast.success(t("adm_sub_delete_ok", "Đã xử lý xóa gói"))
+      const result = await apiClient.deleteAdminInstructorPlan(id)
+      const message = result?.message || t("adm_sub_delete_ok", "Đã xử lý xóa gói")
+      toast.success(message)
+      setPlans((prev) => prev.filter((plan) => String(plan.id) !== String(id)))
       await loadAll()
     } catch (error: any) {
       toast.error(error?.message || t("adm_sub_delete_fail", "Không thể xóa gói"))
+    } finally {
+      setDeletingPlanId(null)
     }
+  }
+
+  const requestDeletePlan = (plan: any) => {
+    setDeletePlanDialog({
+      isOpen: true,
+      planId: String(plan?.id || ""),
+      planName: String(plan?.name || ""),
+    })
   }
 
   const confirmPayment = async (id: string) => {
@@ -491,7 +537,7 @@ export default function AdminTeacherSubscriptionPage() {
                   {t("adm_sub_tx_success", "Giao dịch thành công")}: <AnimatedNumber value={metrics.successCount} formatter={formatNumber} />
                 </span>
                 <span className="px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200 text-xs font-semibold">
-                  {t("adm_sub_pending", "Đang chờ xử lý")}: <AnimatedNumber value={metrics.pendingAmount} formatter={formatNumber} prefix="₫" />
+                  {t("adm_sub_pending", "Đang chờ xử lý")}: <AnimatedNumber value={metrics.pendingAmount} formatter={formatCurrency} />
                 </span>
                 <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 text-xs font-semibold">
                   {t("adm_sub_paid_users", "Người dùng trả phí")}: <AnimatedNumber value={displayPaidUsers} formatter={formatNumber} />
@@ -604,36 +650,12 @@ export default function AdminTeacherSubscriptionPage() {
                       <p className="text-sm text-muted-foreground">{t("adm_sub_create_hint", "Định giá, giới hạn và tính năng cho giảng viên.")}</p>
                     </div>
                   </div>
-                  <button onClick={createPlan} disabled={creating} className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(15,23,42,0.12)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.18)] disabled:opacity-60">
-                    {creating ? t("adm_sub_creating", "Đang tạo...") : t("adm_sub_create_btn", "Tạo gói")}
+                  <button onClick={() => setShowCreatePlanModal(true)} className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(15,23,42,0.12)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.18)]">
+                    <Plus size={16} /> {t("adm_sub_create_btn", "Tạo gói")}
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <LabeledInput label={t("adm_sub_plan_name", "Tên gói")} value={newPlan.name} onChange={(v) => setNewPlan((p: any) => ({ ...p, name: v }))} placeholder={t("adm_sub_plan_name_placeholder", "Ví dụ: Basic, Pro...")} />
-                  <LabeledInput label={t("adm_sub_price", "Giá (VND)")} value={newPlan.price} onChange={(v) => setNewPlan((p: any) => ({ ...p, price: Number(v) || 0 }))} placeholder="0" type="number" />
-                  <LabeledInput label={t("adm_sub_duration", "Thời hạn (tháng)")} value={newPlan.durationMonths} onChange={(v) => setNewPlan((p: any) => ({ ...p, durationMonths: Number(v) || 0 }))} placeholder="1" type="number" />
-                  <LabeledInput label={t("adm_sub_course_limit", "Giới hạn khóa học")}
-                    value={newPlan.courseLimit}
-                    onChange={(v) => setNewPlan((p: any) => ({ ...p, courseLimit: Number(v) || 0 }))}
-                    placeholder="20"
-                    type="number"
-                  />
-                  <LabeledInput label={t("adm_sub_storage", "Dung lượng lưu trữ (GB)")} value={newPlan.storageLimitGb} onChange={(v) => setNewPlan((p: any) => ({ ...p, storageLimitGb: Number(v) || 0 }))} placeholder="10" type="number" />
-                  <LabeledInput label={t("adm_sub_student_limit", "Giới hạn học viên")}
-                    value={newPlan.studentsLimit}
-                    onChange={(v) => setNewPlan((p: any) => ({ ...p, studentsLimit: Number(v) || 0 }))}
-                    placeholder="120"
-                    type="number"
-                  />
-                  <div className="md:col-span-2 xl:col-span-1">
-                    <label className="block text-sm font-medium mb-2">{t("adm_sub_features", "Tính năng (mỗi dòng một tính năng)")}</label>
-                    <textarea
-                      className="w-full rounded-xl border border-border dark:border-slate-700 px-3 py-3 bg-background dark:bg-slate-950 min-h-28 focus:ring-2 focus:ring-primary/40"
-                      placeholder={t("adm_sub_features_placeholder", "Ví dụ:\nHỗ trợ email 24/7\nThống kê chi tiết\nCertificate custom")}
-                      value={newPlan.features}
-                      onChange={(e) => setNewPlan((p: any) => ({ ...p, features: e.target.value }))}
-                    />
-                  </div>
+                <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-center">
+                  <p className="text-sm text-muted-foreground">{t("adm_sub_create_hint_modal", "Bấm nút \"Tạo gói\" ở trên để mở form tạo gói mới")}</p>
                 </div>
               </section>
 
@@ -650,36 +672,70 @@ export default function AdminTeacherSubscriptionPage() {
                             <p className="text-xs text-muted-foreground">{t("adm_sub_duration", "Thời hạn (tháng)")}: <AnimatedNumber value={plan.durationMonths} durationMs={320} /></p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold"><AnimatedNumber value={Number(plan.price || 0)} formatter={formatNumber} prefix="₫" durationMs={420} /></span>
+                            <span className="rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold"><AnimatedNumber value={Number(plan.price || 0)} formatter={formatCurrency} durationMs={420} /></span>
                             <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${hasDraft ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
                               {hasDraft ? "Chưa lưu" : "Đã đồng bộ"}
                             </span>
                           </div>
                         </div>
 
-                        <div className="grid sm:grid-cols-3 gap-3 text-sm">
-                          <LabeledInput compact label={t("adm_sub_plan_name", "Tên gói")} value={plan.name} onChange={(v) => setPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, name: v } : p)))} />
-                          <LabeledInput compact label={t("adm_sub_price", "Giá (VND)")} value={plan.price} onChange={(v) => setPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, price: Number(v) || 0 } : p)))} type="number" />
-                          <LabeledInput compact label={t("adm_sub_duration", "Thời hạn (tháng)")} value={plan.durationMonths} onChange={(v) => setPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, durationMonths: Number(v) || 0 } : p)))} type="number" />
-                          <LabeledInput compact label={t("adm_sub_course_limit", "Giới hạn khóa học")} value={plan.courseLimit} onChange={(v) => setPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, courseLimit: Number(v) || 0 } : p)))} type="number" />
-                          <LabeledInput compact label={t("adm_sub_storage_short", "Dung lượng (GB)")} value={plan.storageLimitGb ?? 0} onChange={(v) => setPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, storageLimitGb: Number(v) || 0 } : p)))} type="number" />
-                          <LabeledInput compact label={t("adm_sub_student_limit", "Giới hạn học viên")}
-                            value={plan.studentsLimit ?? 0}
-                            onChange={(v) => setPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, studentsLimit: Number(v) || 0 } : p)))}
-                            type="number"
-                          />
-                        </div>
+                        {expandedPlanId === plan.id && (
+                          <>
+                            <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                              <LabeledInput compact label={t("adm_sub_plan_name", "Tên gói")} value={plan.name} onChange={(v) => setPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, name: v } : p)))} />
+                              <LabeledInput compact label={t("adm_sub_price", "Giá (VND)")} value={plan.price} onChange={(v) => setPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, price: Number(v) || 0 } : p)))} type="number" />
+                              <LabeledInput compact label={t("adm_sub_duration", "Thời hạn (tháng)")} value={plan.durationMonths} onChange={(v) => setPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, durationMonths: Number(v) || 0 } : p)))} type="number" />
+                              <LabeledInput compact label={t("adm_sub_course_limit", "Giới hạn khóa học")} value={plan.courseLimit} onChange={(v) => setPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, courseLimit: Number(v) || 0 } : p)))} type="number" />
+                              <LabeledInput compact label={t("adm_sub_storage_short", "Dung lượng (GB)")} value={plan.storageLimitGb ?? 0} onChange={(v) => setPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, storageLimitGb: Number(v) || 0 } : p)))} type="number" />
+                              <LabeledInput compact label={t("adm_sub_student_limit", "Giới hạn học viên")}
+                                value={plan.studentsLimit ?? 0}
+                                onChange={(v) => setPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, studentsLimit: Number(v) || 0 } : p)))}
+                                type="number"
+                              />
+                            </div>
 
-                        <div className="flex flex-wrap gap-2 pt-2 border-t border-border dark:border-slate-700">
-                          <button
-                            className="h-9 px-3.5 rounded-xl bg-emerald-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md disabled:opacity-60"
-                            onClick={() => updatePlan(plan.id, plan)}
-                            disabled={!hasDraft}
-                          >
-                            <Save size={14} /> {t("adm_sub_save", "Lưu")}
-                          </button>
-                          <button className="h-9 px-3.5 rounded-xl bg-rose-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md" onClick={() => deletePlan(plan.id)}><Trash2 size={14} /> {t("adm_sub_delete_btn", "Xóa")}</button>
-                        </div>
+                            <div className="flex flex-wrap gap-2 pt-2 border-t border-border dark:border-slate-700">
+                              <button
+                                className="h-9 px-3.5 rounded-xl bg-emerald-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md disabled:opacity-60"
+                                onClick={() => updatePlan(plan.id, plan)}
+                                disabled={!hasDraft}
+                              >
+                                <Save size={14} /> {t("adm_sub_save", "Lưu")}
+                              </button>
+                              <button 
+                                className="h-9 px-3.5 rounded-xl bg-slate-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md"
+                                onClick={() => setExpandedPlanId(null)}
+                              >
+                                {t("common_close", "Đóng")}
+                              </button>
+                              <button
+                                className="h-9 px-3.5 rounded-xl bg-rose-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md disabled:opacity-60"
+                                onClick={() => requestDeletePlan(plan)}
+                                disabled={deletingPlanId === plan.id}
+                              >
+                                <Trash2 size={14} /> {deletingPlanId === plan.id ? t("adm_sub_deleting", "Đang xóa") : t("adm_sub_delete_btn", "Xóa")}
+                              </button>
+                            </div>
+                          </>
+                        )}
+
+                        {expandedPlanId !== plan.id && (
+                          <div className="flex flex-wrap gap-2 pt-2 border-t border-border dark:border-slate-700">
+                            <button 
+                              className="h-9 px-3.5 rounded-xl bg-blue-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md"
+                              onClick={() => setExpandedPlanId(plan.id)}
+                            >
+                              {t("common_edit", "Chỉnh sửa")}
+                            </button>
+                            <button
+                              className="h-9 px-3.5 rounded-xl bg-rose-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md disabled:opacity-60"
+                              onClick={() => requestDeletePlan(plan)}
+                              disabled={deletingPlanId === plan.id}
+                            >
+                              <Trash2 size={14} /> {deletingPlanId === plan.id ? t("adm_sub_deleting", "Đang xóa") : t("adm_sub_delete_btn", "Xóa")}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -694,6 +750,24 @@ export default function AdminTeacherSubscriptionPage() {
                 <div className="flex items-center gap-2">
                   <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center"><CreditCard size={18} /></div>
                   <div>
+                    <ConfirmDialog
+                      isOpen={deletePlanDialog.isOpen}
+                      onClose={() => setDeletePlanDialog({ isOpen: false })}
+                      onConfirm={() => {
+                        if (deletePlanDialog.planId) {
+                          void deletePlan(deletePlanDialog.planId)
+                        }
+                      }}
+                      title={t("adm_sub_delete_title", "Xóa gói")}
+                      message={
+                        deletePlanDialog.planName
+                          ? t("adm_sub_delete_desc", "Bạn chắc chắn muốn xóa gói này?") + ` (${deletePlanDialog.planName})`
+                          : t("adm_sub_delete_desc", "Bạn chắc chắn muốn xóa gói này?")
+                      }
+                      confirmText={t("adm_sub_delete_btn", "Xóa")}
+                      cancelText={t("common_cancel", "Hủy")}
+                      isDangerous
+                    />
                     <h2 className="text-lg md:text-xl font-semibold">{t("adm_sub_payment_management", "Quản lý thanh toán")}</h2>
                     <p className="text-sm text-muted-foreground">{t("adm_sub_payment_hint", "Giám sát giao dịch, xác nhận và hoàn tiền")}</p>
                   </div>
@@ -769,7 +843,7 @@ export default function AdminTeacherSubscriptionPage() {
                           <p className="text-sm text-muted-foreground leading-relaxed">{p.teacher?.email || p.teacher?.name} • {p.plan?.name}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-lg font-semibold text-foreground dark:text-white"><AnimatedNumber value={Number(p.amount || 0)} formatter={formatNumber} prefix="₫" durationMs={440} /></span>
+                          <span className="text-lg font-semibold text-foreground dark:text-white"><AnimatedNumber value={Number(p.amount || 0)} formatter={formatCurrency} durationMs={440} /></span>
                           <span className={`text-xs px-2 py-1 rounded-full border ${statusMeta.className}`}>{statusMeta.label}</span>
                         </div>
                       </div>
@@ -897,6 +971,64 @@ export default function AdminTeacherSubscriptionPage() {
               </div>
             </section>
           </TabsContent>
+
+          {/* Create Plan Modal Dialog */}
+          {showCreatePlanModal && (
+            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-2xl w-full shadow-[0_20px_48px_rgba(15,23,42,0.2)] max-h-[90vh] overflow-y-auto">
+                {/* Modal Header */}
+                <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 sm:p-6 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg md:text-xl font-semibold flex items-center gap-2">
+                      <Plus size={18} className="text-primary" /> {t("adm_sub_create_plan", "Tạo gói mới")}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">{t("adm_sub_create_hint", "Định giá, giới hạn và tính năng cho giảng viên.")}</p>
+                  </div>
+                  <button onClick={() => {
+                    setShowCreatePlanModal(false)
+                    setNewPlan(emptyPlan)
+                  }} className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Modal Content */}
+                <div className="p-4 sm:p-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <LabeledInput label={t("adm_sub_plan_name", "Tên gói")} value={newPlan.name} onChange={(v) => setNewPlan((p: any) => ({ ...p, name: v }))} placeholder={t("adm_sub_plan_name_placeholder", "Ví dụ: Basic, Pro...")} />
+                    <LabeledInput label={t("adm_sub_price", "Giá (VND)")} value={newPlan.price} onChange={(v) => setNewPlan((p: any) => ({ ...p, price: Number(v) || 0 }))} placeholder="0" type="number" />
+                    <LabeledInput label={t("adm_sub_duration", "Thời hạn (tháng)")} value={newPlan.durationMonths} onChange={(v) => setNewPlan((p: any) => ({ ...p, durationMonths: Number(v) || 0 }))} placeholder="1" type="number" />
+                    <LabeledInput label={t("adm_sub_course_limit", "Giới hạn khóa học")}
+                      value={newPlan.courseLimit}
+                      onChange={(v) => setNewPlan((p: any) => ({ ...p, courseLimit: Number(v) || 0 }))}
+                      placeholder="20"
+                      type="number"
+                    />
+                    <LabeledInput label={t("adm_sub_storage", "Dung lượng lưu trữ (GB)")} value={newPlan.storageLimitGb} onChange={(v) => setNewPlan((p: any) => ({ ...p, storageLimitGb: Number(v) || 0 }))} placeholder="10" type="number" />
+                    <LabeledInput label={t("adm_sub_student_limit", "Giới hạn học viên")}
+                      value={newPlan.studentsLimit}
+                      onChange={(v) => setNewPlan((p: any) => ({ ...p, studentsLimit: Number(v) || 0 }))}
+                      placeholder="120"
+                      type="number"
+                    />
+                  </div>
+                </div>
+
+                {/* Modal Actions */}
+                <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 sm:p-6 flex items-center justify-end gap-3 flex-wrap">
+                  <button onClick={() => {
+                    setShowCreatePlanModal(false)
+                    setNewPlan(emptyPlan)
+                  }} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 px-4 text-sm font-semibold transition">
+                    {t("common_cancel", "Hủy")}
+                  </button>
+                  <button onClick={createPlan} disabled={creating} className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(15,23,42,0.12)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.18)] disabled:opacity-60">
+                    {creating ? <><Loader2 size={16} className="animate-spin" /> {t("adm_sub_creating", "Đang tạo...")}</> : <><Check size={16} /> {t("adm_sub_create_btn", "Tạo gói")}</>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </Tabs>
     </div>

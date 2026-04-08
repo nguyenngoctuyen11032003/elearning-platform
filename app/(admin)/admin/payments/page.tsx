@@ -26,10 +26,11 @@ interface Payment {
   courseId: string
   teacher: string
   teacherEmail: string
+  accountType: "teacher" | "student"
   amount: number
   method: string
   status: "success" | "pending" | "failed"
-  date: string
+  createdAt: string
   transactionId: string
   source?: "course" | "subscription"
 }
@@ -54,12 +55,26 @@ const normalizeMethod = (method?: string) => {
   return method.toUpperCase()
 }
 
+const formatAccountTypeLabel = (
+  type: Payment["accountType"],
+  t: (key: string, fallback?: string) => string,
+) => {
+  return type === "teacher"
+    ? t("pay_account_type_teacher", "Giảng viên")
+    : t("pay_account_type_student", "Học viên")
+}
+
 const normalizeDateISO = (value?: string) => {
-  const date = value ? new Date(value) : new Date()
+  const date = value ? new Date(value) : new Date(0)
   if (Number.isNaN(date.getTime())) {
-    return new Date().toISOString()
+    return new Date(0).toISOString()
   }
   return date.toISOString()
+}
+
+const getPaymentTimestamp = (value?: string) => {
+  const timestamp = new Date(String(value || "")).getTime()
+  return Number.isNaN(timestamp) ? 0 : timestamp
 }
 
 export default function AdminPaymentsPage() {
@@ -74,6 +89,7 @@ export default function AdminPaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "success" | "pending" | "failed">("all")
+  const [accountTypeFilter, setAccountTypeFilter] = useState<"all" | "teacher" | "student">("all")
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null)
   const cardRefs = useRef<Record<string, HTMLDivElement | HTMLButtonElement | null>>({})
@@ -112,7 +128,7 @@ export default function AdminPaymentsPage() {
             const student = p.student || {}
             const course = p.course || {}
             const teacher = course.teacher || {}
-            const paidAt = p.paidAt || p.createdAt
+            const createdAt = p.createdAt || p.paidAt
 
             return {
               id: p.id || p.transactionId,
@@ -124,10 +140,11 @@ export default function AdminPaymentsPage() {
               courseId: course.id || "",
               teacher: teacher.name || "",
               teacherEmail: teacher.email || "",
+              accountType: "student",
               amount: Number(p.finalAmount ?? p.amount ?? 0),
               method: normalizeMethod(p.paymentMethod),
               status: normalizeStatus(p.status),
-              date: normalizeDateISO(paidAt),
+              createdAt: normalizeDateISO(createdAt),
               source: "course",
             }
           })
@@ -144,16 +161,17 @@ export default function AdminPaymentsPage() {
             courseId: p.plan?.id || "",
             teacher: p.teacher?.name || "",
             teacherEmail: p.teacher?.email || "",
+            accountType: "teacher",
             amount: Number(p.amount ?? 0),
             method: normalizeMethod(p.paymentMethod),
             status: normalizeStatus(p.status),
-            date: normalizeDateISO(p.paidAt || p.createdAt),
+            createdAt: normalizeDateISO(p.createdAt || p.paidAt),
             source: "subscription",
           }))
         : []
 
       const mapped = [...coursePayments, ...subscriptionPayments].sort(
-        (a, b) => +new Date(b.date) - +new Date(a.date),
+        (a, b) => getPaymentTimestamp(b.createdAt) - getPaymentTimestamp(a.createdAt),
       )
 
       setPayments(mapped)
@@ -298,15 +316,19 @@ export default function AdminPaymentsPage() {
 
   const filteredPayments = useMemo(() => {
     const keyword = searchQuery.toLowerCase()
-    return payments.filter(
-      (payment) =>
+    return payments
+      .filter(
+        (payment) =>
         ((payment.id || "").toLowerCase().includes(keyword) ||
+          (payment.transactionId || "").toLowerCase().includes(keyword) ||
           (payment.user || "").toLowerCase().includes(keyword) ||
           (payment.course || "").toLowerCase().includes(keyword) ||
           (payment.teacher || "").toLowerCase().includes(keyword)) &&
-        (statusFilter === "all" || payment.status === statusFilter),
-    )
-  }, [payments, searchQuery, statusFilter])
+          (statusFilter === "all" || payment.status === statusFilter) &&
+          (accountTypeFilter === "all" || payment.accountType === accountTypeFilter),
+      )
+        .sort((a, b) => getPaymentTimestamp(b.createdAt) - getPaymentTimestamp(a.createdAt))
+  }, [payments, searchQuery, statusFilter, accountTypeFilter])
 
   const derivedRevenue = payments.filter((p) => p.status === "success").reduce((sum, p) => sum + p.amount, 0)
   const totalRevenue = stats.totalRevenue || derivedRevenue
@@ -327,16 +349,18 @@ export default function AdminPaymentsPage() {
     flashDurationMs: 1300,
   })
 
-  const formatDate = (dateString: string) => {
+  const formatDateTime = (dateString: string) => {
     const date = new Date(dateString)
     if (Number.isNaN(date.getTime())) {
       return t("common_not_updated", "Chưa cập nhật")
     }
 
-    return date.toLocaleDateString(language === "en" ? "en-US" : "vi-VN", {
+    return date.toLocaleString(language === "en" ? "en-US" : "vi-VN", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     })
   }
 
@@ -347,12 +371,12 @@ export default function AdminPaymentsPage() {
       if (exportUser !== "all" && p.user !== exportUser) return false
       if (exportCourse !== "all" && p.course !== exportCourse) return false
       if (exportTeacher !== "all" && p.teacher !== exportTeacher) return false
-      if (exportDateFrom && new Date(p.date) < new Date(exportDateFrom)) return false
-      if (exportDateTo && new Date(p.date) > new Date(exportDateTo)) return false
+      if (exportDateFrom && new Date(p.createdAt) < new Date(exportDateFrom)) return false
+      if (exportDateTo && new Date(p.createdAt) > new Date(exportDateTo)) return false
       return true
     })
 
-    const headers = ["ID", t("pay_user", "Người dùng"), "Email", t("pay_course", "Khóa học"), t("pay_instructor", "Giảng viên"), t("pay_amount", "Số tiền"), t("pay_method", "Phương thức"), t("pay_status", "Trạng thái"), t("pay_date", "Ngày")]
+    const headers = ["ID", t("pay_user", "Người dùng"), "Email", t("pay_course", "Khóa học"), t("pay_instructor", "Giảng viên"), t("pay_amount", "Số tiền"), t("pay_method", "Phương thức"), t("pay_status", "Trạng thái"), t("pay_created_time", "Thời gian tạo")]
     const rows = exportData.map((p) => [
       p.id,
       p.user,
@@ -362,7 +386,7 @@ export default function AdminPaymentsPage() {
       p.amount.toString(),
       p.method,
       p.status === "success" ? t("pay_success", "Thành công") : p.status === "pending" ? t("pay_pending", "Chờ xử lý") : t("pay_failed", "Thất bại"),
-      formatDate(p.date),
+      formatDateTime(p.createdAt),
     ])
 
     const exportDate = new Date().toLocaleDateString("vi-VN")
@@ -521,15 +545,26 @@ export default function AdminPaymentsPage() {
               <option value="failed">{t("pay_failed", "Thất bại")}</option>
             </select>
 
+            <select
+              value={accountTypeFilter}
+              onChange={(e) => setAccountTypeFilter(e.target.value as any)}
+              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
+            >
+              <option value="all">{t("common_all", "Tất cả")}</option>
+              <option value="teacher">{t("pay_account_type_teacher", "Giảng viên")}</option>
+              <option value="student">{t("pay_account_type_student", "Học viên")}</option>
+            </select>
+
             <span className="rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
               <AnimatedNumber value={filteredPayments.length} durationMs={320} />
             </span>
 
-            {(searchQuery.trim() || statusFilter !== "all") ? (
+            {(searchQuery.trim() || statusFilter !== "all" || accountTypeFilter !== "all") ? (
               <button
                 onClick={() => {
                   setSearchQuery("")
                   setStatusFilter("all")
+                  setAccountTypeFilter("all")
                 }}
                 className="h-[46px] w-full sm:w-auto md:min-w-[132px] lg:min-w-[148px] inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-muted-foreground hover:text-foreground dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
@@ -576,7 +611,7 @@ export default function AdminPaymentsPage() {
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-400">
         <User size={14} />
-        <span className="truncate">{payment.teacher}</span>
+        <span className="truncate">{formatAccountTypeLabel(payment.accountType, t)}</span>
       </div>
 
       <div className="text-xs text-muted-foreground dark:text-slate-500 truncate">
@@ -595,7 +630,7 @@ export default function AdminPaymentsPage() {
         </div>
         <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400">
           <Clock size={14} />
-          <span>{formatDate(payment.date)}</span>
+          <span>{formatDateTime(payment.createdAt)}</span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400">
           <span className="text-purple-500">#</span>
@@ -750,8 +785,8 @@ export default function AdminPaymentsPage() {
                       <p className="text-foreground dark:text-white text-xs font-medium break-all">{payment.method}</p>
                     </div>
                     <div className="bg-white/60 dark:bg-slate-800/60 rounded-xl p-3 border border-border/60 dark:border-slate-700">
-                      <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">{t("pay_date_label", "Ngày thanh toán")}</p>
-                      <p className="text-foreground dark:text-white text-xs font-medium">{formatDate(payment.date)}</p>
+                      <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">{t("pay_created_time_label", "Thời gian tạo")}</p>
+                      <p className="text-foreground dark:text-white text-xs font-medium">{formatDateTime(payment.createdAt)}</p>
                     </div>
                   </div>
                 </div>
@@ -767,13 +802,14 @@ export default function AdminPaymentsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border dark:border-slate-800 bg-white/70 dark:bg-slate-800/60">
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_transaction_id", "Mã thanh toán")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_user", "Người dùng")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_course", "Khóa học")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_instructor", "Giảng viên")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_account_type", "Loại tài khoản")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_amount", "Số tiền")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_method", "Phương thức")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_status", "Trạng thái")}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_date", "Ngày")}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_created_time", "Thời gian tạo")}</th>
                   <th className="text-left py-4 px-6 font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wide text-xs">{t("pay_detail", "Chi tiết")}</th>
                 </tr>
               </thead>
@@ -783,6 +819,9 @@ export default function AdminPaymentsPage() {
                     key={payment.id}
                     className="border-b border-border dark:border-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-colors"
                   >
+                    <td className="py-4 px-6 text-foreground dark:text-white font-medium">
+                      {payment.transactionId}
+                    </td>
                     <td className="py-4 px-6">
                       <div>
                         <p className="text-foreground dark:text-white font-medium">{payment.user}</p>
@@ -793,7 +832,7 @@ export default function AdminPaymentsPage() {
                       {payment.course}
                     </td>
                     <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">
-                      {payment.teacher}
+                      {formatAccountTypeLabel(payment.accountType, t)}
                     </td>
                     <td className="py-4 px-6 text-foreground dark:text-white font-medium">
                       <AnimatedNumber value={payment.amount} formatter={(value: number) => formatCurrencyByLanguage(value, language)} durationMs={420} />
@@ -821,7 +860,7 @@ export default function AdminPaymentsPage() {
                             : t("pay_failed", "Thất bại")}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{formatDate(payment.date)}</td>
+                    <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{formatDateTime(payment.createdAt)}</td>
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2">
                         {payment.status === "pending" && (
@@ -1000,8 +1039,8 @@ export default function AdminPaymentsPage() {
                       <p className="text-foreground dark:text-white font-medium">{payment.method}</p>
                     </div>
                     <div className="bg-secondary dark:bg-slate-800/50 rounded-xl p-4">
-                      <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">{t("pay_date_label", "Ngày thanh toán")}</p>
-                      <p className="text-foreground dark:text-white font-medium">{formatDate(payment.date)}</p>
+                      <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">{t("pay_created_time_label", "Thời gian tạo")}</p>
+                      <p className="text-foreground dark:text-white font-medium">{formatDateTime(payment.createdAt)}</p>
                     </div>
                   </div>
 

@@ -203,6 +203,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(true);
       const response = await apiClient.login(data);
       setUser(response.user);
+      if (typeof window !== 'undefined' && response?.user?.role) {
+        localStorage.setItem('userRole', response.user.role);
+      }
+
+      try {
+        await refreshProfile();
+      } catch (profileError) {
+        console.warn('Profile refresh after login failed:', profileError);
+      }
       
       toast.success(tAuth('auth_login_success'));
       
@@ -336,6 +345,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const profile = await apiClient.getProfile();
       setUser(profile);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(profile));
+        if (profile?.role) {
+          localStorage.setItem('userRole', profile.role);
+        }
+      }
     } catch (error) {
       console.error('Profile refresh failed:', error);
     }

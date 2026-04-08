@@ -27,8 +27,6 @@ import {
   Clock,
   Target,
   Heart,
-  CreditCard,
-  QrCode,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLanguage } from "@/lib/i18n/language-context"
@@ -54,8 +52,6 @@ export default function AdminSettingsPage() {
   const [lastSavedSignature, setLastSavedSignature] = useState("")
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [qrPreview, setQrPreview] = useState<string | null>(null)
-  const [qrFile, setQrFile] = useState<File | null>(null)
   const { refresh } = useSystemConfig()
   const { config } = useSystemConfig()
   const { setConfig } = useSystemConfig()
@@ -130,23 +126,6 @@ export default function AdminSettingsPage() {
     }
   }
 
-  const handleQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error(t("adm_set_file_too_large", "Kích thước file không được vượt quá 2MB"))
-        return
-      }
-      setQrFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setQrPreview(reader.result as string)
-        toast.success(t("adm_set_qr_upload_success", "Đã tải lên mã QR thành công"))
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
   const handleResetChanges = () => {
     if (!config) return
     setSettings({
@@ -155,9 +134,7 @@ export default function AdminSettingsPage() {
       language: config.language,
     })
     setLogoFile(null)
-    setQrFile(null)
     setLogoPreview(null)
-    setQrPreview(null)
     toast.success(t("adm_set_reset_ok", "Đã hoàn tác các thay đổi chưa lưu"))
   }
 
@@ -180,12 +157,6 @@ const handleSave = async () => {
       updatedSettings.site_logo = uploadRes.url
     }
 
-    // upload QR nếu có
-    if (qrFile) {
-      const uploadRes = await apiClient.uploadFile(qrFile)
-      updatedSettings.paymentQrCode = uploadRes.url
-    }
-
     // Lưu cài đặt vào API
     await apiClient.put('/system-settings', updatedSettings)
 
@@ -196,7 +167,6 @@ const handleSave = async () => {
     
     // Clear file state sau khi lưu thành công
     setLogoFile(null)
-    setQrFile(null)
 
     toast.success(t("adm_set_save_success", "Lưu cài đặt thành công"))
   } catch (err) {
@@ -210,7 +180,7 @@ const handleSave = async () => {
   if (!settings) return null
 
   const hasUnsavedChanges =
-    JSON.stringify(settings) !== lastSavedSignature || Boolean(logoFile) || Boolean(qrFile)
+    JSON.stringify(settings) !== lastSavedSignature || Boolean(logoFile)
 
   return (
     <div className="min-h-screen w-full">
@@ -232,13 +202,10 @@ const handleSave = async () => {
           </div>
         </section>
 
-        <Tabs defaultValue="payment" className="w-full">
+        <Tabs defaultValue="general" className="w-full">
           <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
             <div className="border-b border-slate-200 dark:border-slate-800 p-3 md:p-4">
-              <TabsList className="grid grid-cols-2 md:grid-cols-5 gap-1 bg-slate-50 dark:bg-slate-800/60 rounded-xl p-1">
-                <TabsTrigger value="payment" className="h-10 text-xs md:text-sm rounded-lg font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
-                  {t("adm_set_tab_payment", "Thanh toán")}
-                </TabsTrigger>
+              <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-1 bg-slate-50 dark:bg-slate-800/60 rounded-xl p-1">
                 <TabsTrigger value="general" className="h-10 text-xs md:text-sm rounded-lg font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-accent data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
                   {t("adm_set_tab_general", "Chung")}
                 </TabsTrigger>
@@ -253,101 +220,6 @@ const handleSave = async () => {
                 </TabsTrigger>
               </TabsList>
             </div>
-
-          {/* Payment Settings */}
-          <TabsContent value="payment" className="m-0 p-5 md:p-6 space-y-6">
-            <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-4">
-              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
-                <CreditCard size={22} className="text-primary dark:text-accent" /> {t("adm_set_payment_title", "Thông tin thanh toán")}
-              </h2>
-              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">
-                {t("adm_set_payment_desc", "Thông tin ngân hàng để nhận thanh toán từ học viên")}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
-              <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  {t("adm_set_payment_title", "Thông tin thanh toán")}
-                </h3>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_set_bank_name", "Tên ngân hàng")}</label>
-                  <input
-                    type="text"
-                    value={settings.bankName ?? ""}
-                    onChange={(e) => handleSettingChange("bankName", e.target.value)}
-                    placeholder="VD: Vietcombank"
-                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_set_account_number", "Số tài khoản")}</label>
-                  <input
-                    type="text"
-                    value={settings.bankAccount ?? ""}
-                    onChange={(e) => handleSettingChange("bankAccount", e.target.value)}
-                    placeholder="VD: 1234567890"
-                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("adm_set_account_holder", "Chủ tài khoản")}</label>
-                  <input
-                    type="text"
-                    value={settings.accountHolder ?? ""}
-                    onChange={(e) => handleSettingChange("accountHolder", e.target.value)}
-                    placeholder="VD: NGUYEN VAN A"
-                    className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                  />
-                </div>
-              </section>
-
-              <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  {t("adm_set_qr_code", "Mã QR thanh toán")}
-                </h3>
-                <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 p-4 flex items-center justify-center min-h-[200px]">
-                  <div className="w-36 h-36 bg-secondary dark:bg-slate-800 rounded-xl flex items-center justify-center border-2 border-dashed border-border dark:border-slate-700 overflow-hidden">
-                    {qrPreview || settings.paymentQrCode ? (
-                      <img
-                        src={qrPreview || settings.paymentQrCode}
-                        alt="QR Code"
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <QrCode size={44} className="text-muted-foreground dark:text-slate-400" />
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">
-                    <span className="inline-flex items-center gap-2"><QrCode size={16} /> {t("adm_set_qr_code", "Mã QR thanh toán")}</span>
-                  </label>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept="image/png, image/jpeg, image/jpg"
-                      onChange={handleQrUpload}
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        const input = e.currentTarget.parentElement?.querySelector('input[type="file"]') as HTMLInputElement
-                        input?.click()
-                      }}
-                      className="h-10 px-4 bg-primary hover:bg-primary/90 text-white text-sm rounded-xl transition-all font-semibold flex items-center gap-2"
-                    >
-                      <Upload size={16} /> {t("adm_set_upload_qr", "Tải lên mã QR")}
-                    </button>
-                  </label>
-                  <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">
-                    {t("adm_set_qr_note", "PNG, JPG (Tối đa 2MB). Mã QR sẽ được hiển thị cho học viên khi thanh toán.")}
-                  </p>
-                </div>
-              </section>
-            </div>
-          </TabsContent>
 
           {/* General Settings */}
           <TabsContent value="general" className="m-0 p-5 md:p-6 space-y-6">

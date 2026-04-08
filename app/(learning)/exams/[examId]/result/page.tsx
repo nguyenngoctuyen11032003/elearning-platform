@@ -383,6 +383,11 @@ export default function ExamResultPage() {
             Làm lại bài thi ({result.remainingAttempts} lần còn lại)
           </Link>
         )}
+        {isExtractedSource && examId && (
+          <Link href={`/exams/${examId}/history`} className="rounded-lg bg-slate-700 px-4 py-2 text-white hover:bg-slate-800">
+            Quay lại lịch sử thi
+          </Link>
+        )}
         <Link href="/exams" className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primary/90">
           Danh sách bài thi
         </Link>

@@ -97,14 +97,14 @@ export default function CertificatePrintPage({ params }: { params: Promise<{ id:
   if (error || !cert) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-        <p className="text-sm text-slate-600">Khong tim thay chung chi.</p>
+        <p className="text-sm text-slate-600">Không tìm thấy chứng chỉ.</p>
       </div>
     )
   }
 
-  const studentName = cert.student?.name || "Hoc vien"
-  const courseName = cert.course?.title || "Khoa hoc"
-  const instructorName = cert.course?.teacher?.name || "Giang vien"
+  const studentName = cert.student?.name || "Học viên"
+  const courseName = cert.course?.title || "Khóa học"
+  const instructorName = cert.course?.teacher?.name || "Giảng viên"
   const issueDateFmt = formatDateVN(cert.issueDate)
 
   return (
@@ -140,7 +140,7 @@ export default function CertificatePrintPage({ params }: { params: Promise<{ id:
                   </div>
 
                   <h1 className="font-bold mt-2" style={{ color: "#ffd700", fontSize: "34px", letterSpacing: "0.08em", fontFamily: "sans-serif" }}>
-                    CHUNG CHI HOAN THANH
+                    CHỨNG CHỈ HOÀN THÀNH
                   </h1>
 
                   <div className="w-48 mt-2" style={{ height: "2px", background: "linear-gradient(90deg, transparent, #ffd700, transparent)" }} />
@@ -154,7 +154,7 @@ export default function CertificatePrintPage({ params }: { params: Promise<{ id:
                   </div>
 
                   <p className="mb-1" style={{ color: "#c8a96e", fontSize: "16px", fontStyle: "italic" }}>
-                    Chung nhan rang
+                    Chứng nhận rằng
                   </p>
 
                   <h2
@@ -165,7 +165,7 @@ export default function CertificatePrintPage({ params }: { params: Promise<{ id:
                   </h2>
 
                   <p className="mb-2" style={{ color: "#c8a96e", fontSize: "16px" }}>
-                    Da hoan thanh xuat sac khoa hoc
+                    Đã hoàn thành xuất sắc khóa học
                   </p>
 
                   <h3 className="mb-6" style={{ color: "#ffd700", fontSize: "28px", fontWeight: "bold" }}>
@@ -178,19 +178,19 @@ export default function CertificatePrintPage({ params }: { params: Promise<{ id:
 
                   <div className="w-full flex justify-between items-end">
                     <div className="px-4 py-1 rounded-full text-xs font-medium" style={{ border: "1px solid #b8860b", color: "#ffd700", background: "rgba(184,134,11,0.1)" }}>
-                      Vinh vien
+                      Vĩnh viễn
                     </div>
 
                     <div className="flex gap-12">
                       <div className="text-center">
-                        <div className="mb-1" style={{ color: "#c8a96e", fontSize: "11px", letterSpacing: "0.05em" }}>Chu ky</div>
+                        <div className="mb-1" style={{ color: "#c8a96e", fontSize: "11px", letterSpacing: "0.05em" }}>Chữ ký</div>
                         <div style={{ color: "#ffffff", fontSize: "15px", fontStyle: "italic", borderBottom: "1px solid rgba(184,134,11,0.5)", paddingBottom: "2px", minWidth: "100px" }}>
                           {instructorName}
                         </div>
-                        <div style={{ color: "#888", fontSize: "10px", marginTop: "2px" }}>Giang vien</div>
+                        <div style={{ color: "#888", fontSize: "10px", marginTop: "2px" }}>Giảng viên</div>
                       </div>
                       <div className="text-center">
-                        <div className="mb-1" style={{ color: "#c8a96e", fontSize: "11px", letterSpacing: "0.05em" }}>Ngay cap</div>
+                        <div className="mb-1" style={{ color: "#c8a96e", fontSize: "11px", letterSpacing: "0.05em" }}>Ngày cấp</div>
                         <div style={{ color: "#ffffff", fontSize: "14px", borderBottom: "1px solid rgba(184,134,11,0.5)", paddingBottom: "2px", minWidth: "100px" }}>
                           {issueDateFmt}
                         </div>
@@ -200,7 +200,7 @@ export default function CertificatePrintPage({ params }: { params: Promise<{ id:
 
                   <div className="mt-4 w-full text-left">
                     <span style={{ color: "#666", fontSize: "10px", fontFamily: "monospace" }}>
-                      So chung chi: {cert.certificateNumber}
+                      Số chứng chỉ: {cert.certificateNumber}
                     </span>
                   </div>
                 </div>

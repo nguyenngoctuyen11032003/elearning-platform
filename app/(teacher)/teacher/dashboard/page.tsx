@@ -152,7 +152,9 @@ export default function TeacherDashboard() {
     const loadDashboard = async () => {
       setLoading(true)
       try {
-        const res = await apiClient.getTeacherDashboardStats()
+        const res = await apiClient.getTeacherDashboardStats(
+          filterPeriod as "day" | "week" | "month" | "year"
+        )
         const dashboard = res?.data ?? res ?? {}
 
         setStats(dashboard)
@@ -202,7 +204,7 @@ export default function TeacherDashboard() {
     }
 
     loadDashboard()
-  }, [language])
+  }, [language, filterPeriod])
 
   const chartWindow = useMemo(() => {
     const total = Math.max(revenueChart.length, studentChart.length, weeklyPerformance.length)
@@ -210,10 +212,6 @@ export default function TeacherDashboard() {
 
     if (filterPeriod === "day") return 1
     if (filterPeriod === "week") return Math.min(7, total)
-    if (filterPeriod === "month") {
-      if (total >= 12) return 6
-      return Math.min(total, Math.max(3, Math.floor(total / 2)))
-    }
     return total
   }, [filterPeriod, revenueChart.length, studentChart.length, weeklyPerformance.length])
 
@@ -271,25 +269,33 @@ export default function TeacherDashboard() {
     [filteredStudentChart]
   )
 
-  const revenueGrowthByPeriod = useMemo(
-    () => computeGrowth(revenueChart.map((i) => i.value), Math.max(1, chartWindow)),
-    [revenueChart, chartWindow]
-  )
+  const revenueGrowthByPeriod = useMemo(() => {
+    if (typeof stats?.revenueGrowth === "number") {
+      return stats.revenueGrowth
+    }
+    return computeGrowth(revenueChart.map((i) => i.value), Math.max(1, chartWindow))
+  }, [stats?.revenueGrowth, revenueChart, chartWindow])
 
-  const studentGrowthByPeriod = useMemo(
-    () => computeGrowth(studentChart.map((i) => i.value), Math.max(1, chartWindow)),
-    [studentChart, chartWindow]
-  )
+  const studentGrowthByPeriod = useMemo(() => {
+    if (typeof stats?.studentGrowth === "number") {
+      return stats.studentGrowth
+    }
+    return computeGrowth(studentChart.map((i) => i.value), Math.max(1, chartWindow))
+  }, [stats?.studentGrowth, studentChart, chartWindow])
 
-  const revenueInPeriod = useMemo(
-    () => filteredRevenueChart.reduce((sum, item) => sum + Number(item.value || 0), 0),
-    [filteredRevenueChart]
-  )
+  const revenueInPeriod = useMemo(() => {
+    if (typeof stats?.totalRevenue === "number") {
+      return stats.totalRevenue
+    }
+    return filteredRevenueChart.reduce((sum, item) => sum + Number(item.value || 0), 0)
+  }, [stats?.totalRevenue, filteredRevenueChart])
 
-  const studentsInPeriod = useMemo(
-    () => filteredStudentChart.reduce((sum, item) => sum + Number(item.value || 0), 0),
-    [filteredStudentChart]
-  )
+  const studentsInPeriod = useMemo(() => {
+    if (typeof stats?.totalStudents === "number") {
+      return stats.totalStudents
+    }
+    return filteredStudentChart.reduce((sum, item) => sum + Number(item.value || 0), 0)
+  }, [stats?.totalStudents, filteredStudentChart])
 
   const peakRevenue = useMemo(() => {
     if (!filteredRevenueChart.length) return null

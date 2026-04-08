@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "benchmark:dashboard": "node scripts/benchmark-admin-dashboard.mjs",
     "build": "next build",
     "clean": "node -e \"const fs=require('fs');['.next','out','artifacts/reports'].forEach(p=>fs.rmSync(p,{recursive:true,force:true}))\"",
     "dev": "node dev.mjs",

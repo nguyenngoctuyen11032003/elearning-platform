@@ -84,6 +84,8 @@ import {
   Clock,
   User,
   Users,
+  Chrome,
+  KeyRound,
 } from "lucide-react"
 
 // const users: UserData[] = [
@@ -347,11 +349,21 @@ const fetchUsers = async () => {
       "last_activity_at",
     ])
 
+    const normalizedLoginProvider =
+      String(
+        user.lastLoginProvider ||
+          user.last_login_provider ||
+          user.loginProvider ||
+          user.authProvider ||
+          "",
+      ) || undefined
+
     return {
       ...(user as any),
       joinDate: normalizedJoinDate ?? normalizedCreatedAt ?? "",
       createdAt: normalizedCreatedAt ?? normalizedJoinDate ?? "",
       lastLoginAt: normalizedLastLoginAt,
+      lastLoginProvider: normalizedLoginProvider,
       dateOfBirth: normalizeDateValue(user.dateOfBirth ?? user.date_of_birth) ?? "",
     }
   })
@@ -604,6 +616,17 @@ const getLastActiveDisplay = (user: UserData): string => {
   }
 
   return t("user_never_logged_in", "Chưa có lần đăng nhập")
+}
+
+const getLoginProviderIcon = (user: UserData) => {
+  const raw = String(user.lastLoginProvider || "").toLowerCase()
+  if (raw.includes("google")) {
+    return <Chrome size={14} className="text-blue-600 dark:text-blue-400" title={t("user_login_google", "Đăng nhập Google")} />
+  }
+  if (raw.includes("password") || raw.includes("local")) {
+    return <KeyRound size={14} className="text-amber-600 dark:text-amber-400" title={t("user_login_password", "Mật khẩu")} />
+  }
+  return <KeyRound size={14} className="text-slate-400" title={t("user_login_unknown", "Chưa xác định")} />
 }
   // ================= STATS =================
   const totalUsers = userList.length
@@ -1163,6 +1186,10 @@ const getLastActiveDisplay = (user: UserData): string => {
                     <p className="text-foreground dark:text-white font-medium">
                       {viewUser ? getLastActiveDisplay(viewUser) : t("common_not_updated", "Chưa cập nhật")}
                   </p>
+                    <div className="text-xs text-muted-foreground dark:text-slate-400 mt-1 inline-flex items-center gap-1">
+                      {viewUser ? getLoginProviderIcon(viewUser) : null}
+                      <span className="sr-only">{viewUser ? String(viewUser.lastLoginProvider || "") : ""}</span>
+                    </div>
                   </div>
                   <div className="bg-gradient-to-br from-secondary/80 to-secondary/40 dark:from-slate-800/70 dark:to-slate-900/70 border border-border/60 dark:border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-muted-foreground dark:text-slate-400 mb-1">

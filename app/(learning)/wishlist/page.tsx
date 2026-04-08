@@ -23,6 +23,44 @@ interface WishlistItem {
   image: string
 }
 
+function parsePriceValue(value: unknown): number {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0
+  }
+
+  if (typeof value !== "string") {
+    return 0
+  }
+
+  const raw = value.trim()
+  if (!raw) {
+    return 0
+  }
+
+  const cleaned = raw.replace(/[^\d.,-]/g, "")
+  if (!cleaned) {
+    return 0
+  }
+
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(cleaned)) {
+    const parsed = Number(cleaned.replace(/\./g, "").replace(",", "."))
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(cleaned)) {
+    const parsed = Number(cleaned.replace(/,/g, ""))
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  const normalized =
+    cleaned.includes(",") && !cleaned.includes(".")
+      ? cleaned.replace(",", ".")
+      : cleaned.replace(/,/g, "")
+
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
 export default function WishlistPage() {
   const router = useRouter()
   const { t, language } = useLanguage()
@@ -43,7 +81,7 @@ export default function WishlistPage() {
         teacher: item.course?.teacher?.name ?? item.teacher ?? "",
         teacherId: item.course?.teacher?.id ?? item.teacherId,
         teacherQR: item.course?.teacher?.qr ?? item.teacherQR,
-        price: item.course?.price ?? item.price ?? 0,
+        price: parsePriceValue(item.course?.price ?? item.price ?? 0),
         rating: item.course?.rating ?? item.rating ?? 0,
         students: item.course?.students ?? item.students ?? 0,
         image: item.course?.thumbnail ?? item.course?.image ?? item.image ?? "/placeholder.jpg",
@@ -107,7 +145,10 @@ export default function WishlistPage() {
     loadWishlist()
   }, [router, t])
 
-  const totalPrice = selectedCourses.reduce((sum, item) => sum + item.price, 0)
+  const totalPrice = selectedCourses.reduce(
+    (sum, item) => sum + parsePriceValue(item.price),
+    0,
+  )
 
   const handleCheckout = () => {
     try {
