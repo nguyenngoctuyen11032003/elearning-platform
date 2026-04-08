@@ -33,6 +33,7 @@ interface Course {
   rating: number
   reviewCount: number
   rejectionReason?: string
+  sourceCourseId?: string
 }
 
 export default function AdminCoursesPage() {
@@ -126,6 +127,7 @@ export default function AdminCoursesPage() {
           rating: (c.averageRating as number) || 0,
           reviewCount: (c.reviewCount as number) || 0,
           rejectionReason: (c.rejectionReason as string) || undefined,
+          sourceCourseId: (c.sourceCourseId as string) || undefined,
         }))
         setCourses(mapped)
       } catch {
@@ -555,6 +557,11 @@ export default function AdminCoursesPage() {
                         />
                         <div>
                           <p className="text-foreground dark:text-white font-medium leading-7 line-clamp-2 break-words">{course.title}</p>
+                          {course.sourceCourseId && (
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-300">
+                              {t("adm_courses_revision_label", "Phiên bản chỉnh sửa")}
+                            </p>
+                          )}
                           <p className="text-muted-foreground dark:text-slate-400 text-xs"><AnimatedNumber value={course.lessons} durationMs={320} /> {t("adm_courses_lessons_unit", "bài học")} • {course.duration}</p>
                         </div>
                       </div>
@@ -630,6 +637,11 @@ export default function AdminCoursesPage() {
                   <img className="w-12 h-12 rounded-lg object-cover" src={course.thumbnail || "/image/course-placeholder.png"} alt={course.title} />
                   <div className="flex-1">
                     <p className="font-semibold text-slate-900 dark:text-white line-clamp-2">{course.title}</p>
+                    {course.sourceCourseId && (
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-300">
+                        {t("adm_courses_revision_label", "Phiên bản chỉnh sửa")}
+                      </p>
+                    )}
                     <p className="text-xs text-slate-500/80 dark:text-slate-500/80">{course.instructor}</p>
                   </div>
                 </div>

@@ -17,7 +17,7 @@ interface Course {
   students: number
   rating: number
   price: number
-  status: "draft" | "pending" | "approved" | "rejected"
+  status: "draft" | "pending" | "approved" | "rejected" | "archived"
   createdAt: string
   thumbnail: string
   lessons: number
@@ -63,11 +63,21 @@ interface CourseStudentProgress {
   studentId: string
   studentName: string
   studentEmail: string
+  courseVersionLabel?: string
+  courseVersionCreatedAt?: string
   progress: number
   scorePercentage: number | null
   gradedAssignments: number
   submittedAssignments: number
   totalAssignments: number
+}
+
+interface CourseVersionMeta {
+  rootCourseId: string
+  courseVersionId: string
+  courseVersionNumber: number
+  courseVersionLabel: string
+  courseVersionCreatedAt: string
 }
 
 function parseLessonResources(resources: unknown): Array<{ url: string; name?: string }> {
@@ -140,6 +150,7 @@ export default function TeacherCoursesPage() {
     averageScore: number
     totalStudents: number
   } | null>(null)
+  const [studentsProgressVersionMeta, setStudentsProgressVersionMeta] = useState<CourseVersionMeta | null>(null)
   const menuButtonRefs = React.useRef<Map<string, React.RefObject<HTMLButtonElement>>>(new Map())
   const filterContainerRef = React.useRef<HTMLDivElement | null>(null)
   const filterButtonRefs = React.useRef<Record<string, HTMLButtonElement | null>>({})
@@ -158,6 +169,7 @@ export default function TeacherCoursesPage() {
       draft: "draft",
       pending: "pending",
       rejected: "rejected",
+      archived: "archived",
     }
     const durationHours = course.duration ? Math.round(course.duration / 60) : 0
     return {
@@ -324,7 +336,7 @@ export default function TeacherCoursesPage() {
     router.push(`/teacher/courses/${courseId}/edit`)
   }
 
-  const canEditCourse = (status: Course["status"]) => status !== "approved"
+  const canEditCourse = (status: Course["status"]) => status !== "approved" && status !== "archived"
 
   const handleDeleteClick = (course: Course) => {
     setSelectedCourse(course)
@@ -371,6 +383,7 @@ export default function TeacherCoursesPage() {
     setStudentsProgressLoading(true)
     setCourseStudentsProgress([])
     setStudentsProgressSummary(null)
+    setStudentsProgressVersionMeta(null)
     setMenuCourse(null)
     setMenuRect(null)
     setMenuAnchorId(null)
@@ -388,6 +401,8 @@ export default function TeacherCoursesPage() {
           studentId: String(item.studentId || ""),
           studentName: String(item.studentName || "N/A"),
           studentEmail: String(item.studentEmail || ""),
+          courseVersionLabel: String(item.courseVersionLabel || ""),
+          courseVersionCreatedAt: String(item.courseVersionCreatedAt || ""),
           progress: Number(item.progress || 0),
           scorePercentage: typeof item.scorePercentage === "number" ? Number(item.scorePercentage) : null,
           gradedAssignments: Number(item.gradedAssignments || 0),
@@ -400,10 +415,22 @@ export default function TeacherCoursesPage() {
         averageScore: Number(payload?.summary?.averageScore || 0),
         totalStudents: Number(payload?.summary?.totalStudents || students.length || 0),
       })
+      setStudentsProgressVersionMeta(
+        payload?.courseVersion
+          ? {
+              rootCourseId: String(payload.courseVersion.rootCourseId || ""),
+              courseVersionId: String(payload.courseVersion.courseVersionId || ""),
+              courseVersionNumber: Number(payload.courseVersion.courseVersionNumber || 1),
+              courseVersionLabel: String(payload.courseVersion.courseVersionLabel || "v1"),
+              courseVersionCreatedAt: String(payload.courseVersion.courseVersionCreatedAt || ""),
+            }
+          : null,
+      )
     } catch (error) {
       console.error("Error loading students progress:", error)
       setCourseStudentsProgress([])
       setStudentsProgressSummary({ averageProgress: 0, averageScore: 0, totalStudents: 0 })
+      setStudentsProgressVersionMeta(null)
     } finally {
       setStudentsProgressLoading(false)
     }
@@ -437,6 +464,12 @@ useEffect(() => {
         return (
           <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
             <XCircle size={14} /> {t("tc_status_rejected", "Bị từ chối")}
+          </span>
+        )
+      case "archived":
+        return (
+          <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            <AlertCircle size={14} /> {t("tc_status_archived", "Đã lưu trữ")}
           </span>
         )
       case "draft":
@@ -765,12 +798,18 @@ useEffect(() => {
                   {t("tc_students_progress_title", "Tiến độ & điểm học viên")}
                 </h2>
                 <p className="text-sm text-muted-foreground dark:text-slate-400">{selectedCourse.title}</p>
+                {studentsProgressVersionMeta && (
+                  <p className="text-xs text-muted-foreground dark:text-slate-500 mt-1">
+                    {t("tc_course_version", "Phiên bản")}: {studentsProgressVersionMeta.courseVersionLabel} • {t("tc_version_created_at", "Tạo ngày")}: {new Date(studentsProgressVersionMeta.courseVersionCreatedAt).toLocaleDateString("vi-VN")}
+                  </p>
+                )}
               </div>
               <button
                 onClick={() => {
                   setShowStudentsProgressModal(false)
                   setCourseStudentsProgress([])
                   setStudentsProgressSummary(null)
+                  setStudentsProgressVersionMeta(null)
                 }}
                 className="p-2 hover:bg-secondary dark:hover:bg-slate-800 rounded-lg transition-smooth"
               >

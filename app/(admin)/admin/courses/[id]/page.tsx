@@ -95,6 +95,7 @@ interface CourseDetail {
   averageProgress: number
   ratingDistribution: { stars: number; count: number; percentage: number }[]
   rejectionReason?: string
+  sourceCourseId?: string
 }
 
 interface EnrolledStudentRow {
@@ -534,6 +535,7 @@ export default function AdminCourseDetailPage() {
           averageProgress,
           ratingDistribution,
           rejectionReason: c.rejectionReason,
+          sourceCourseId: c.sourceCourseId || undefined,
         })
       } catch {
         toast.error(t("adm_cd_load_err", "Không thể tải thông tin khóa học"))
@@ -734,6 +736,11 @@ export default function AdminCourseDetailPage() {
                   <div className="flex-1 space-y-3">
                     <div className="flex flex-wrap items-center gap-3">
                       {getStatusBadge(course.status)}
+                      {course.sourceCourseId && (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 dark:border-amber-700/60 dark:bg-amber-900/30 dark:text-amber-200">
+                          {t("adm_courses_revision_label", "Phiên bản chỉnh sửa")}
+                        </span>
+                      )}
                       <span className="rounded-full border border-slate-200 bg-white/75 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/55 dark:text-slate-200">
                         {course.category || t("adm_cd_category", "Danh mục")}
                       </span>
