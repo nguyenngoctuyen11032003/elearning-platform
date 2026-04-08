@@ -1312,6 +1312,20 @@ if (typeof window !== 'undefined' && token) {
     return Array.isArray(result) ? result : [];
   }
 
+  async updateAdminInstructorSubscription(
+    id: string,
+    data: {
+      status?: 'active' | 'pending' | 'cancelled' | 'expired';
+      endDate?: string;
+      cancelReason?: string | null;
+    },
+  ): Promise<any> {
+    return this.request(`/instructor-subscriptions/admin/subscriptions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   async getAdminInstructorPayments(): Promise<any[]> {
     const result = await this.request('/instructor-subscriptions/admin/payments');
     return Array.isArray(result) ? result : [];

@@ -115,9 +115,8 @@ export default function AdminPaymentsPage() {
   const loadPayments = async (silent = false) => {
     if (!silent) setLoading(true)
     try {
-      const [listRes, statsRes, subscriptionPaymentRes] = await Promise.all([
+      const [listRes, subscriptionPaymentRes] = await Promise.all([
         apiClient.getAdminPayments({ limit: 200 }),
-        apiClient.getAdminPaymentStats(),
         apiClient.getAdminInstructorPayments(),
       ])
 
@@ -179,13 +178,17 @@ export default function AdminPaymentsPage() {
       const derivedRevenue = mapped
         .filter((p) => p.status === "success")
         .reduce((sum, p) => sum + Number(p.amount || 0), 0)
+      const derivedPendingTransactions = mapped.filter((p) => p.status === "pending").length
+      const derivedCompletedTransactions = mapped.filter((p) => p.status === "success").length
+      const derivedFailedTransactions = mapped.filter((p) => p.status === "failed").length
+      const derivedTotalTransactions = mapped.length
 
       setStats({
-        totalRevenue: Number(statsRes?.totalRevenue ?? derivedRevenue),
-        pendingTransactions: Number(statsRes?.pendingTransactions ?? mapped.filter((p) => p.status === "pending").length),
-        completedTransactions: Number(statsRes?.completedTransactions ?? mapped.filter((p) => p.status === "success").length),
-        failedTransactions: Number(statsRes?.failedTransactions ?? mapped.filter((p) => p.status === "failed").length),
-        totalTransactions: Number(statsRes?.totalTransactions ?? mapped.length),
+        totalRevenue: derivedRevenue,
+        pendingTransactions: derivedPendingTransactions,
+        completedTransactions: derivedCompletedTransactions,
+        failedTransactions: derivedFailedTransactions,
+        totalTransactions: derivedTotalTransactions,
       })
       setLastSyncedAt(new Date())
     } catch (error: any) {
@@ -331,18 +334,20 @@ export default function AdminPaymentsPage() {
   }, [payments, searchQuery, statusFilter, accountTypeFilter])
 
   const derivedRevenue = payments.filter((p) => p.status === "success").reduce((sum, p) => sum + p.amount, 0)
-  const totalRevenue = stats.totalRevenue || derivedRevenue
+  const totalRevenue = derivedRevenue
   const pendingAmount = payments.filter((p) => p.status === "pending").reduce((sum, p) => sum + p.amount, 0)
-  const successCount = stats.completedTransactions || payments.filter((p) => p.status === "success").length
-  const totalTransactions = stats.totalTransactions || payments.length
+  const successCount = payments.filter((p) => p.status === "success").length
+  const pendingCount = payments.filter((p) => p.status === "pending").length
+  const failedCount = payments.filter((p) => p.status === "failed").length
+  const totalTransactions = payments.length
 
   const paymentOverviewMetrics = {
     totalRevenue,
     pendingAmount,
     successCount,
     totalTransactions,
-    pendingTransactions: stats.pendingTransactions,
-    failedTransactions: stats.failedTransactions,
+    pendingTransactions: pendingCount,
+    failedTransactions: failedCount,
   }
 
   const { isChanged: isOverviewChanged, getTrend: getOverviewTrend } = useMetricChangeHighlight(paymentOverviewMetrics, {
@@ -478,10 +483,10 @@ export default function AdminPaymentsPage() {
                     {t("pay_success_count", "Giao dịch thành công")}: <AnimatedNumber value={successCount} formatter={formatNumber} />
                   </span>
                   <span className="px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200 text-xs font-semibold">
-                    {t("pay_pending_total", "Đang chờ xử lý")}: <AnimatedNumber value={stats.pendingTransactions} formatter={formatNumber} />
+                    {t("pay_pending_total", "Đang chờ xử lý")}: <AnimatedNumber value={pendingCount} formatter={formatNumber} />
                   </span>
                   <span className="px-3 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 text-xs font-semibold">
-                    {t("pay_failed", "Thất bại")}: <AnimatedNumber value={stats.failedTransactions} formatter={formatNumber} />
+                    {t("pay_failed", "Thất bại")}: <AnimatedNumber value={failedCount} formatter={formatNumber} />
                   </span>
                 </div>
               </div>

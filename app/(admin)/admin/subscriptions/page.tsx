@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/admin-modals"
 import {
   ArrowRight,
   BarChart3,
+  CalendarClock,
   Check,
   CheckCircle2,
   Clock3,
@@ -15,6 +16,7 @@ import {
   FileText,
   Loader2,
   Plus,
+  SquarePen,
   Search,
   Save,
   ShieldCheck,
@@ -56,6 +58,16 @@ export default function AdminTeacherSubscriptionPage() {
   const [paymentSortBy, setPaymentSortBy] = useState<"newest" | "oldest" | "amount_desc" | "amount_asc">("newest")
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null)
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false)
+  const [showEditAccessModal, setShowEditAccessModal] = useState(false)
+  const [editingSubscription, setEditingSubscription] = useState<any | null>(null)
+  const [updatingSubscriptionId, setUpdatingSubscriptionId] = useState<string | null>(null)
+  const [accessEditForm, setAccessEditForm] = useState<{
+    status: "active" | "pending" | "cancelled" | "expired"
+    endDate: string
+  }>({
+    status: "active",
+    endDate: "",
+  })
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null)
   const [deletePlanDialog, setDeletePlanDialog] = useState<{ isOpen: boolean; planId?: string; planName?: string }>({
     isOpen: false,
@@ -263,6 +275,16 @@ export default function AdminTeacherSubscriptionPage() {
     }
   }, [dashboard?.totalRevenue, paidPayments, payments, pendingPayments])
 
+  const activeSubscriptionUsageByPlanId = useMemo(() => {
+    return subscriptions.reduce<Record<string, number>>((acc, sub) => {
+      const planId = String(sub?.plan?.id || sub?.planId || "")
+      const status = String(sub?.status || "").toLowerCase()
+      if (!planId || status !== "active") return acc
+      acc[planId] = (acc[planId] || 0) + 1
+      return acc
+    }, {})
+  }, [subscriptions])
+
   const subscriptionOverviewMetrics = {
     totalRevenue: Number(displayTotalRevenue || 0),
     monthlyRevenue: Number(displayMonthlyRevenue || 0),
@@ -358,6 +380,53 @@ export default function AdminTeacherSubscriptionPage() {
     const ok = window.confirm(t("adm_sub_refund_dialog", "Bạn có chắc muốn hoàn tiền cho giao dịch này?"))
     if (!ok) return
     await refundPayment(id)
+  }
+
+  const toDateInputValue = (value: unknown) => {
+    const date = new Date(String(value || ""))
+    if (Number.isNaN(date.getTime())) return ""
+    return date.toISOString().split("T")[0]
+  }
+
+  const openAccessEditor = (subscription: any) => {
+    setEditingSubscription(subscription)
+    setAccessEditForm({
+      status: (String(subscription?.status || "active").toLowerCase() as "active" | "pending" | "cancelled" | "expired"),
+      endDate: toDateInputValue(subscription?.endDate),
+    })
+    setShowEditAccessModal(true)
+  }
+
+  const closeAccessEditor = () => {
+    setShowEditAccessModal(false)
+    setEditingSubscription(null)
+    setAccessEditForm({
+      status: "active",
+      endDate: "",
+    })
+  }
+
+  const updateAccess = async () => {
+    if (!editingSubscription?.id) return
+    if (!accessEditForm.endDate) {
+      toast.error(t("adm_sub_end_date_required", "Vui lòng chọn ngày hết hạn"))
+      return
+    }
+
+    setUpdatingSubscriptionId(String(editingSubscription.id))
+    try {
+      await apiClient.updateAdminInstructorSubscription(String(editingSubscription.id), {
+        status: accessEditForm.status,
+        endDate: accessEditForm.endDate,
+      })
+      toast.success(t("adm_sub_access_update_ok", "Đã cập nhật quyền truy cập giảng viên"))
+      closeAccessEditor()
+      await loadAll(true)
+    } catch (error: any) {
+      toast.error(error?.message || t("adm_sub_access_update_fail", "Không thể cập nhật quyền truy cập"))
+    } finally {
+      setUpdatingSubscriptionId(null)
+    }
   }
 
   const getQuotaMeta = (usedRaw: unknown, limitRaw: unknown) => {
@@ -609,18 +678,12 @@ export default function AdminTeacherSubscriptionPage() {
       <Tabs defaultValue="plans" className="w-full">
         <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
           <div className="border-b border-slate-200 dark:border-slate-800 p-3 md:p-4">
-            <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-1 bg-slate-50 dark:bg-slate-800/60 rounded-xl p-1">
+            <TabsList className="grid grid-cols-2 md:grid-cols-2 gap-1 bg-slate-50 dark:bg-slate-800/60 rounded-xl p-1">
               <TabsTrigger value="plans" className="h-10 text-xs md:text-sm rounded-lg font-semibold data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
                 {t("adm_sub_plan_management", "Quản lý gói")}
               </TabsTrigger>
-              <TabsTrigger value="payments" className="h-10 text-xs md:text-sm rounded-lg font-semibold data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
-                {t("adm_sub_payment_management", "Quản lý thanh toán")}
-              </TabsTrigger>
               <TabsTrigger value="access" className="h-10 text-xs md:text-sm rounded-lg font-semibold data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
                 {t("adm_sub_instructor_access", "Quyền truy cập")}
-              </TabsTrigger>
-              <TabsTrigger value="modules" className="h-10 text-xs md:text-sm rounded-lg font-semibold data-[state=active]:bg-primary/90 data-[state=active]:text-white dark:data-[state=active]:bg-accent transition-all">
-                {t("adm_sub_other_modules", "Module khác")}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -661,23 +724,29 @@ export default function AdminTeacherSubscriptionPage() {
 
               <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 backdrop-blur p-4 sm:p-5 space-y-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
                 <h2 className="text-lg md:text-xl font-semibold flex items-center gap-2"><ShieldCheck size={18} /> {t("adm_sub_plan_management", "Quản lý gói")}</h2>
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-[390px] overflow-y-auto pr-1 md:pr-2">
                   {plans.map((plan) => {
                     const hasDraft = hasPlanDraftChanges(plan)
+                    const isFreePlan = String(plan?.name || "").trim().toLowerCase() === "free"
+                    const activeUsersUsingPlan = activeSubscriptionUsageByPlanId[String(plan.id)] || 0
                     return (
                       <div key={plan.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-white via-white to-primary/5 p-4 space-y-3 shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(15,23,42,0.14)] dark:from-slate-900 dark:via-slate-900 dark:to-primary/5">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold">{plan.name || t("adm_sub_plan_name", "Tên gói")}</p>
-                            <p className="text-xs text-muted-foreground">{t("adm_sub_duration", "Thời hạn (tháng)")}: <AnimatedNumber value={plan.durationMonths} durationMs={320} /></p>
+                        <button type="button" onClick={() => setExpandedPlanId(expandedPlanId === plan.id ? null : plan.id)} className="w-full text-left">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="space-y-1">
+                              <p className="text-sm font-semibold">{plan.name || t("adm_sub_plan_name", "Tên gói")}</p>
+                              <p className="text-xs text-muted-foreground">{t("adm_sub_duration", "Thời hạn (tháng)")}: <AnimatedNumber value={plan.durationMonths} durationMs={320} /></p>
+                              <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">Hiện đang sử dụng: <AnimatedNumber value={activeUsersUsingPlan} durationMs={320} /> giảng viên</p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                              <span className="rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold"><AnimatedNumber value={Number(plan.price || 0)} formatter={formatCurrency} durationMs={420} /></span>
+                              {isFreePlan ? <span className="rounded-full bg-slate-100 text-slate-700 px-2.5 py-1 text-[11px] font-semibold dark:bg-slate-800 dark:text-slate-200">Gói mặc định</span> : null}
+                              <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${hasDraft ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                                {hasDraft ? "Chưa lưu" : "Đã đồng bộ"}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold"><AnimatedNumber value={Number(plan.price || 0)} formatter={formatCurrency} durationMs={420} /></span>
-                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${hasDraft ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
-                              {hasDraft ? "Chưa lưu" : "Đã đồng bộ"}
-                            </span>
-                          </div>
-                        </div>
+                        </button>
 
                         {expandedPlanId === plan.id && (
                           <>
@@ -711,7 +780,8 @@ export default function AdminTeacherSubscriptionPage() {
                               <button
                                 className="h-9 px-3.5 rounded-xl bg-rose-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md disabled:opacity-60"
                                 onClick={() => requestDeletePlan(plan)}
-                                disabled={deletingPlanId === plan.id}
+                                disabled={deletingPlanId === plan.id || isFreePlan}
+                                title={isFreePlan ? "Gói Free là gói mặc định, không thể xóa" : undefined}
                               >
                                 <Trash2 size={14} /> {deletingPlanId === plan.id ? t("adm_sub_deleting", "Đang xóa") : t("adm_sub_delete_btn", "Xóa")}
                               </button>
@@ -725,12 +795,13 @@ export default function AdminTeacherSubscriptionPage() {
                               className="h-9 px-3.5 rounded-xl bg-blue-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md"
                               onClick={() => setExpandedPlanId(plan.id)}
                             >
-                              {t("common_edit", "Chỉnh sửa")}
+                              <SquarePen size={14} /> {t("common_edit", "Chỉnh sửa")}
                             </button>
                             <button
                               className="h-9 px-3.5 rounded-xl bg-rose-600 text-white inline-flex items-center justify-center gap-1 text-sm font-semibold shadow-sm hover:shadow-md disabled:opacity-60"
                               onClick={() => requestDeletePlan(plan)}
-                              disabled={deletingPlanId === plan.id}
+                              disabled={deletingPlanId === plan.id || isFreePlan}
+                              title={isFreePlan ? "Gói Free là gói mặc định, không thể xóa" : undefined}
                             >
                               <Trash2 size={14} /> {deletingPlanId === plan.id ? t("adm_sub_deleting", "Đang xóa") : t("adm_sub_delete_btn", "Xóa")}
                             </button>
@@ -918,6 +989,12 @@ export default function AdminTeacherSubscriptionPage() {
                           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${expiryMeta.className}`}>
                             {expiryMeta.label}
                           </span>
+                          <button
+                            onClick={() => openAccessEditor(s)}
+                            className="h-8 px-3 rounded-lg bg-blue-600 text-white inline-flex items-center gap-1 text-xs font-semibold shadow-sm hover:shadow-md"
+                          >
+                            <SquarePen size={13} /> {t("common_edit", "Chỉnh sửa")}
+                          </button>
                         </div>
                       </div>
 
@@ -1024,6 +1101,76 @@ export default function AdminTeacherSubscriptionPage() {
                   </button>
                   <button onClick={createPlan} disabled={creating} className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(15,23,42,0.12)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.18)] disabled:opacity-60">
                     {creating ? <><Loader2 size={16} className="animate-spin" /> {t("adm_sub_creating", "Đang tạo...")}</> : <><Check size={16} /> {t("adm_sub_create_btn", "Tạo gói")}</>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showEditAccessModal && editingSubscription && (
+            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-xl w-full shadow-[0_20px_48px_rgba(15,23,42,0.2)] max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 sm:p-6 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg md:text-xl font-semibold flex items-center gap-2">
+                      <CalendarClock size={18} className="text-primary" /> {t("adm_sub_edit_access", "Chỉnh quyền truy cập")}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {editingSubscription?.teacher?.name || editingSubscription?.teacher?.email || "--"}
+                    </p>
+                  </div>
+                  <button onClick={closeAccessEditor} className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="p-4 sm:p-6 space-y-4">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 p-4 text-sm">
+                    <p className="text-muted-foreground">{t("adm_sub_plan_label", "Gói")}: <span className="font-semibold text-foreground dark:text-white">{editingSubscription?.plan?.name || "--"}</span></p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <label className="space-y-1.5 text-sm">
+                      <span className="font-medium">{t("adm_sub_status_label", "Trạng thái")}</span>
+                      <select
+                        value={accessEditForm.status}
+                        onChange={(e) => setAccessEditForm((prev) => ({ ...prev, status: e.target.value as any }))}
+                        className="w-full h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3"
+                      >
+                        <option value="active">{t("adm_sub_active", "Đang hoạt động")}</option>
+                        <option value="pending">{t("adm_sub_pending", "Đang chờ xử lý")}</option>
+                        <option value="expired">{t("adm_sub_expired", "Đã hết hạn")}</option>
+                        <option value="cancelled">{t("adm_sub_cancelled", "Đã hủy")}</option>
+                      </select>
+                    </label>
+
+                    <label className="space-y-1.5 text-sm">
+                      <span className="font-medium">{t("adm_sub_end_date", "Ngày hết hạn")}</span>
+                      <input
+                        type="date"
+                        value={accessEditForm.endDate}
+                        onChange={(e) => setAccessEditForm((prev) => ({ ...prev, endDate: e.target.value }))}
+                        className="w-full h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3"
+                      />
+                    </label>
+                  </div>
+
+                </div>
+
+                <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 sm:p-6 flex items-center justify-end gap-3">
+                  <button onClick={closeAccessEditor} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 px-4 text-sm font-semibold transition">
+                    {t("common_cancel", "Hủy")}
+                  </button>
+                  <button
+                    onClick={updateAccess}
+                    disabled={updatingSubscriptionId === String(editingSubscription?.id || "")}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(15,23,42,0.12)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.18)] disabled:opacity-60"
+                  >
+                    {updatingSubscriptionId === String(editingSubscription?.id || "") ? (
+                      <><Loader2 size={16} className="animate-spin" /> {t("adm_sub_updating", "Đang cập nhật...")}</>
+                    ) : (
+                      <><Save size={16} /> {t("adm_sub_save_access", "Lưu thay đổi")}</>
+                    )}
                   </button>
                 </div>
               </div>
