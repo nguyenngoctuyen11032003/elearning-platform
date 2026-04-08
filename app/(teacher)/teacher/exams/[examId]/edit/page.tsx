@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import {
@@ -174,6 +174,19 @@ export default function EditExamPage() {
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
   const [currentTypeLabel, setCurrentTypeLabel] = useState<string>(TYPE_LABEL_FALLBACK)
+  const initialQuestionsSnapshotRef = useRef("")
+
+  const serializeQuestionsForCompare = (items: Question[]) => {
+    return JSON.stringify(
+      items.map(({ id, ...rest }) => ({
+        ...rest,
+        options: Array.isArray(rest.options) ? rest.options : [],
+        correctAnswer: Array.isArray(rest.correctAnswer)
+          ? rest.correctAnswer
+          : String(rest.correctAnswer ?? ""),
+      })),
+    )
+  }
 
   const normalizeQuestionType = (value: any): Question["type"] => {
     const normalized = String(value || "multiple_choice").toLowerCase().trim()
@@ -248,6 +261,102 @@ export default function EditExamPage() {
     return ""
   }
 
+  const findFirstMeaningfulText = (source: any): string => {
+    if (source === undefined || source === null) return ""
+    if (typeof source === "string") return source.trim()
+    if (typeof source === "number" || typeof source === "boolean") return String(source)
+    if (Array.isArray(source)) {
+      for (const item of source) {
+        const nested = findFirstMeaningfulText(item)
+        if (nested) return nested
+      }
+      return ""
+    }
+    if (typeof source !== "object") return ""
+
+    const preferredKeys = [
+      "question",
+      "questionText",
+      "question_text",
+      "text",
+      "content",
+      "prompt",
+      "stem",
+      "title",
+      "name",
+    ]
+
+    for (const key of preferredKeys) {
+      const candidate = findFirstMeaningfulText((source as any)[key])
+      if (candidate) return candidate
+    }
+
+    return ""
+  }
+
+  const hasQuestionLikeShape = (value: any): boolean => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false
+    const record = value as Record<string, any>
+    return [
+      "question",
+      "questionText",
+      "question_text",
+      "text",
+      "content",
+      "prompt",
+      "stem",
+      "options",
+      "answers",
+      "choices",
+      "correctAnswer",
+      "correct_answer",
+      "correctAnswers",
+      "answer",
+      "correct",
+      "questionType",
+      "type",
+    ].some((key) => key in record)
+  }
+
+  const extractQuestionCandidates = (source: any, depth = 0): any[] => {
+    if (depth > 5 || source === undefined || source === null) return []
+
+    if (typeof source === "string") {
+      try {
+        return extractQuestionCandidates(JSON.parse(source), depth + 1)
+      } catch {
+        return [source]
+      }
+    }
+
+    if (Array.isArray(source)) {
+      return source.flatMap((item) => extractQuestionCandidates(item, depth + 1))
+    }
+
+    if (typeof source !== "object") {
+      return [source]
+    }
+
+    const record = source as Record<string, any>
+    if (Array.isArray(record.questions)) {
+      return extractQuestionCandidates(record.questions, depth + 1)
+    }
+
+    if (hasQuestionLikeShape(record)) {
+      return [record]
+    }
+
+    const numericKeys = Object.keys(record).filter((key) => /^\d+$/.test(key))
+    if (numericKeys.length > 0) {
+      const ordered = numericKeys
+        .sort((a, b) => Number(a) - Number(b))
+        .map((key) => record[key])
+      return extractQuestionCandidates(ordered, depth + 1)
+    }
+
+    return Object.values(record).flatMap((item) => extractQuestionCandidates(item, depth + 1))
+  }
+
   const coerceQuestionsArray = (value: any): any[] => {
     let normalized: any = value
 
@@ -273,8 +382,25 @@ export default function EditExamPage() {
 
     if (numericEntries.length > 0) return numericEntries
 
+    const record = normalized as Record<string, any>
+    const looksLikeQuestion =
+      "question" in record ||
+      "questionText" in record ||
+      "text" in record ||
+      "content" in record ||
+      "prompt" in record ||
+      "stem" in record ||
+      "options" in record ||
+      "answers" in record ||
+      "correctAnswer" in record ||
+      "answer" in record
+    if (looksLikeQuestion) return [record]
+
     const objectValues = Object.values(normalized as Record<string, any>).filter(
-      (item) => item !== undefined && item !== null,
+      (item) =>
+        item !== undefined &&
+        item !== null &&
+        (typeof item === "object" || Array.isArray(item)),
     )
     return objectValues.length > 0 ? objectValues : []
   }
@@ -282,7 +408,10 @@ export default function EditExamPage() {
   const normalizeQuestions = (rawQuestions: any[]): Question[] => {
     if (!Array.isArray(rawQuestions)) return []
 
-    return rawQuestions.map((raw, index) => {
+    const questionCandidates = extractQuestionCandidates(rawQuestions)
+    const effectiveRawQuestions = questionCandidates.length > 0 ? questionCandidates : rawQuestions
+
+    return effectiveRawQuestions.map((raw, index) => {
       let q = raw
       if (typeof q === "string") {
         try {
@@ -292,36 +421,88 @@ export default function EditExamPage() {
         }
       }
 
+      if (q && typeof q === "object" && !Array.isArray(q)) {
+        const rec = q as Record<string, any>
+        const keys = Object.keys(rec)
+        const hasQuestionLikeKey = ["question", "questionText", "question_text", "text", "content", "prompt", "stem", "options", "answers", "correctAnswer", "correct_answer", "answer"].some((key) => key in rec)
+        const numericKeys = keys.filter((key) => /^\d+$/.test(key))
+        if (!hasQuestionLikeKey && numericKeys.length > 0) {
+          q = numericKeys.sort((a, b) => Number(a) - Number(b)).map((key) => rec[key])
+        }
+      }
+
       if (Array.isArray(q)) {
-        const cells = q.map((cell) => toText(cell))
-        const questionText = cells[0] || ""
-        const options = cells.slice(1, 7).filter(Boolean)
-        const answer = cells[7] || cells[cells.length - 1] || ""
-        const points = Number(cells[8]) || 1
-        return {
-          id: `${Date.now()}-${index}`,
-          type: options.length >= 2 ? "multiple_choice" : "fill_in",
-          question: questionText,
-          image: undefined,
-          options: options.length >= 2 ? options : [],
-          correctAnswer: answer,
-          points,
-          explanation: cells[9] || "",
+        const arrayLikeQuestion = q as any
+        const keys = Object.keys(arrayLikeQuestion)
+        const nonNumericKeys = keys.filter((key) => !/^\d+$/.test(key))
+        const hasQuestionLikeProps = [
+          "id",
+          "type",
+          "questionType",
+          "question",
+          "questionText",
+          "question_text",
+          "text",
+          "content",
+          "prompt",
+          "stem",
+          "options",
+          "answers",
+          "choices",
+          "correctAnswer",
+          "correct_answer",
+          "correctAnswers",
+          "answer",
+          "correct",
+          "points",
+          "score",
+          "mark",
+          "explanation",
+        ].some((key) => key in arrayLikeQuestion)
+
+        if (q.length === 0 && hasQuestionLikeProps && nonNumericKeys.length > 0) {
+          const reconstructed: Record<string, any> = {}
+          nonNumericKeys.forEach((key) => {
+            reconstructed[key] = arrayLikeQuestion[key]
+          })
+          q = reconstructed
+        } else {
+          const cells = q.map((cell) => toText(cell))
+          const questionText = cells[0] || ""
+          const options = cells.slice(1, 7).filter(Boolean)
+          const answer = cells[7] || cells[cells.length - 1] || ""
+          const points = Number(cells[8]) || 1
+          return {
+            id: `${Date.now()}-${index}`,
+            type: options.length >= 2 ? "multiple_choice" : "fill_in",
+            question: questionText,
+            image: undefined,
+            options: options.length >= 2 ? options : [],
+            correctAnswer: answer,
+            points,
+            explanation: cells[9] || "",
+          }
         }
       }
 
       const questionText =
         toText(q?.question) ||
         toText(q?.questionText) ||
+        toText(q?.question_text) ||
         toText(q?.text) ||
         toText(q?.content) ||
         toText(q?.prompt) ||
-        toText(q?.stem)
+        toText(q?.stem) ||
+        findFirstMeaningfulText(q)
 
       const options = Array.isArray(q?.options)
         ? q.options.map((option: any) => (typeof option === "object" ? toText(option?.text || option?.label || option?.content || option?.value) : toText(option))).filter(Boolean)
+        : q?.options && typeof q.options === "object"
+        ? Object.values(q.options).map((option: any) => (typeof option === "object" ? toText(option?.text || option?.label || option?.content || option?.value) : toText(option))).filter(Boolean)
         : Array.isArray(q?.answers)
         ? q.answers.map((option: any) => (typeof option === "object" ? toText(option?.text || option?.label || option?.content || option?.value) : toText(option))).filter(Boolean)
+        : q?.answers && typeof q.answers === "object"
+        ? Object.values(q.answers).map((option: any) => (typeof option === "object" ? toText(option?.text || option?.label || option?.content || option?.value) : toText(option))).filter(Boolean)
         : Array.isArray(q?.choices)
         ? q.choices.map((option: any) => (typeof option === "object" ? toText(option?.text || option?.label || option?.content || option?.value) : toText(option))).filter(Boolean)
         : []
@@ -364,7 +545,19 @@ export default function EditExamPage() {
         }
       }
 
-      const normalizedType = effectiveOptions.length >= 2 ? normalizeQuestionType(q?.type || q?.questionType) : "fill_in"
+      const explicitType = String(q?.type || q?.questionType || "").trim()
+      const inferredType =
+        effectiveOptions.length >= 2
+          ? effectiveOptions.length === 2 &&
+            ["đúng", "sai", "true", "false"].every((token) =>
+              effectiveOptions.some((option: string) => String(option || "").toLowerCase().includes(token)),
+            )
+            ? "true_false"
+            : "multiple_choice"
+          : "fill_in"
+      const normalizedType = explicitType
+        ? normalizeQuestionType(explicitType)
+        : (inferredType as Question["type"])
       let repairedQuestionText = effectiveQuestion
       let repairedOptions = effectiveOptions
 
@@ -395,7 +588,7 @@ export default function EditExamPage() {
         : normalizedType === "true_false"
         ? ["Đúng", "Sai"]
         : []
-      const mappedAnswer = mapAnswerToOption(q?.correctAnswer ?? q?.answer ?? q?.correct ?? "", finalOptions)
+      const mappedAnswer = mapAnswerToOption(q?.correctAnswer ?? q?.correct_answer ?? q?.answer ?? q?.correct ?? q?.correctAnswers ?? "", finalOptions)
 
       return {
         id: toText(q?.id) || `${Date.now()}-${index}`,
@@ -410,6 +603,89 @@ export default function EditExamPage() {
         correctAnswer: mappedAnswer,
         points: Number(q?.points ?? q?.score ?? q?.mark) || 1,
         explanation: toText(q?.explanation || q?.explain),
+      }
+    })
+  }
+
+  const sanitizeQuestionsForSubmit = (rawQuestions: Question[]): Question[] => {
+    if (!Array.isArray(rawQuestions)) return []
+
+    return rawQuestions.map((rawQuestion, index) => {
+      const raw = rawQuestion as any
+      const rawType = raw?.type ?? raw?.questionType
+      const text =
+        toText(raw?.question) ||
+        toText(raw?.questionText) ||
+        toText(raw?.question_text) ||
+        toText(raw?.text) ||
+        toText(raw?.content) ||
+        toText(raw?.prompt) ||
+        toText(raw?.stem)
+
+      const optionCandidates = Array.isArray(raw?.options)
+        ? raw.options
+        : raw?.options && typeof raw.options === "object"
+        ? Object.values(raw.options)
+        : Array.isArray(raw?.answers)
+        ? raw.answers
+        : raw?.answers && typeof raw.answers === "object"
+        ? Object.values(raw.answers)
+        : Array.isArray(raw?.choices)
+        ? raw.choices
+        : raw?.choices && typeof raw.choices === "object"
+        ? Object.values(raw.choices)
+        : []
+
+      const normalizedOptionCandidates = optionCandidates
+        .map((option: any) =>
+          typeof option === "object"
+            ? toText(option?.text || option?.label || option?.content || option?.value)
+            : toText(option),
+        )
+        .map((option: string) => normalizeOptionText(option))
+        .filter(Boolean)
+
+      const normalizedType = normalizeQuestionType(
+        rawType || (normalizedOptionCandidates.length >= 2 ? "multiple_choice" : "fill_in"),
+      )
+
+      const finalOptions =
+        normalizedType === "multiple_choice"
+          ? ensureFourOptions(normalizedOptionCandidates)
+          : normalizedType === "true_false"
+          ? ["Đúng", "Sai"]
+          : []
+
+      const mappedAnswer =
+        normalizedType === "fill_in"
+          ? toText(raw?.correctAnswer ?? raw?.correct_answer ?? raw?.answer ?? raw?.correct ?? "")
+          : mapAnswerToOption(
+              raw?.correctAnswer ?? raw?.correct_answer ?? raw?.answer ?? raw?.correct ?? raw?.correctAnswers ?? "",
+              finalOptions,
+            )
+
+      const normalizedCorrectAnswer =
+        normalizedType === "fill_in"
+          ? toText(mappedAnswer)
+          : Array.isArray(mappedAnswer)
+          ? toText(mappedAnswer.find((item) => toText(item).length > 0) || "")
+          : toText(mappedAnswer)
+
+      const normalizedDifficulty = toText(raw?.difficulty).toLowerCase()
+
+      return {
+        id: toText(raw?.id) || `${index + 1}`,
+        type: normalizedType,
+        question: text,
+        image: toText(raw?.image || raw?.imageUrl || raw?.imageURL || raw?.img) || undefined,
+        chapter: toText(raw?.chapter) || undefined,
+        difficulty: ["easy", "medium", "hard"].includes(normalizedDifficulty)
+          ? (normalizedDifficulty as "easy" | "medium" | "hard")
+          : undefined,
+        options: finalOptions,
+        correctAnswer: normalizedCorrectAnswer,
+        points: Number(raw?.points) > 0 ? Number(raw.points) : 1,
+        explanation: toText(raw?.explanation || raw?.explain),
       }
     })
   }
@@ -507,6 +783,7 @@ export default function EditExamPage() {
         showCorrectAnswers: data.showCorrectAnswers ?? true,
       })
       setQuestions(normalizedQuestions)
+      initialQuestionsSnapshotRef.current = serializeQuestionsForCompare(normalizedQuestions)
       setCurrentTypeLabel(toTypeLabel(extractTypeToken(String(data.title || ""))))
       setHasLegacyQuestionPayload(rawQuestions.length > 0 && normalizedQuestions.length === 0)
     } catch (error) {
@@ -720,12 +997,18 @@ export default function EditExamPage() {
 
     setIsSubmitting(true)
     try {
-      const normalizedQuestions = normalizeQuestions(questions)
+      const normalizedQuestions = sanitizeQuestionsForSubmit(questions)
+      const questionsChanged =
+        serializeQuestionsForCompare(normalizedQuestions) !==
+        initialQuestionsSnapshotRef.current
       
       const examData: any = {
         ...formData,
         status: asDraft ? "draft" : "pending",
-        questions: normalizedQuestions,
+      }
+
+      if (asDraft || questionsChanged) {
+        examData.questions = normalizedQuestions
       }
 
       const normalizedTemplateId = String(formData.certificateTemplateId || "").trim()
@@ -759,6 +1042,10 @@ export default function EditExamPage() {
           errorPayload?.error ||
           tr("Cập nhật bài thi ngân hàng thất bại", "Failed to update exam bank")
         throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg))
+      }
+
+      if (examData.questions) {
+        initialQuestionsSnapshotRef.current = serializeQuestionsForCompare(normalizedQuestions)
       }
 
       if (hasLegacyQuestionPayload && normalizedQuestions.length === 0) {
