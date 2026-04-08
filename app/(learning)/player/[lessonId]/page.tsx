@@ -478,7 +478,16 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
     writingMetaByLessonId: Record<string, WritingLessonMeta>,
     progressByLessonId: Map<string, any>,
   ): PlayerLesson[] => {
-    return [...allLessons]
+    const hasEnrollmentSnapshot = progressByLessonId.size > 0
+    const visibleLessonIds = new Set(
+      Array.from(progressByLessonId.keys()).map((id) => String(id)),
+    )
+
+    const scopedLessons = hasEnrollmentSnapshot
+      ? allLessons.filter((lesson) => visibleLessonIds.has(String(lesson.id)))
+      : allLessons
+
+    return [...scopedLessons]
       .sort((a, b) => a.order - b.order)
       .map((lesson) => {
         const rawResources = typeof lesson.resources === "string" ? JSON.parse(lesson.resources) : lesson.resources
