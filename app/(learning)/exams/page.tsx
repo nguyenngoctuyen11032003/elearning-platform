@@ -146,7 +146,7 @@ export default function StudentExamsPage() {
     const locked = exams.filter((exam) => !canStart(exam) || !hasRemainingAttempts(exam)).length
 
     return { total, official, practice, availableNow, locked }
-  }, [exams])
+  }, [exams, attemptsByExam])
 
   const filteredExams = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase()
@@ -165,7 +165,7 @@ export default function StudentExamsPage() {
       if (filter === "locked") return !canStart(exam) || !hasRemainingAttempts(exam)
       return true
     })
-  }, [exams, filter, searchTerm])
+  }, [exams, filter, searchTerm, attemptsByExam])
 
   const groupedExamsByCourse = useMemo<CourseExamGroup[]>(() => {
     const bucket = new Map<string, CourseExamGroup>()
