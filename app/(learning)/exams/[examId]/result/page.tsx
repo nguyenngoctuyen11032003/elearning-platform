@@ -378,6 +378,11 @@ export default function ExamResultPage() {
       </div>
 
       <div className="flex gap-3 flex-wrap">
+        {result.passed && (
+          <Link href="/certificates" className="rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700">
+            Xem chứng chỉ
+          </Link>
+        )}
         {isExtractedSource && examId && (result?.remainingAttempts ?? 0) > 0 && (
           <Link href={`/exams/${examId}/take?source=extracted`} className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
             Làm lại bài thi ({result.remainingAttempts} lần còn lại)

@@ -108,6 +108,12 @@ export default function StudentExamsPage() {
   const hasHistory = (exam: ExamItem) => getAttemptCount(exam.id) > 0
 
   const timeNotice = (exam: ExamItem) => {
+    if (!hasRemainingAttempts(exam)) {
+      return t(
+        "exam_attempt_limit_reached",
+        "Đã đạt giới hạn của bài thi không thể tiếp tục tham gia thi",
+      )
+    }
     if (exam.availableFrom && now < new Date(exam.availableFrom)) {
       return `${t("exam_open_at", "Mở thi lúc")} ${new Date(exam.availableFrom).toLocaleString("vi-VN")}`
     }

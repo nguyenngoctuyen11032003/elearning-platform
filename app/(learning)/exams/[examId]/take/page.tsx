@@ -320,6 +320,19 @@ function normalizeExamQuestions(raw: unknown): ExamQuestion[] {
     .filter((q: ExamQuestion | null): q is ExamQuestion => Boolean(q && q.question))
 }
 
+function resolveStartedAtMs(value: unknown): number {
+  if (!value) return Date.now()
+  const parsed = new Date(String(value)).getTime()
+  return Number.isFinite(parsed) ? parsed : Date.now()
+}
+
+function resolveRemainingSeconds(limitMinutes: number, startedAtMs: number): number {
+  const totalSeconds = Math.max(0, Math.floor(Number(limitMinutes || 0) * 60))
+  if (totalSeconds === 0) return 0
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000))
+  return Math.max(0, totalSeconds - elapsedSeconds)
+}
+
 export default function TakeExamPage() {
   const params = useParams()
   const router = useRouter()
@@ -375,18 +388,23 @@ export default function TakeExamPage() {
             throw new Error(t("exam_take_start_failed", "Không thể bắt đầu bài thi"))
           }
           setAttemptId(startedAttemptId)
+
+          const startedAtMs = resolveStartedAtMs((attempt as any)?.startedAt || (attempt as any)?.createdAt)
+          startedAtRef.current = startedAtMs
+          setTimeRemaining(resolveRemainingSeconds(Number(examData.timeLimit || 60), startedAtMs))
         } else {
           const attempt = await apiClient.startExtractedExam(examId)
           const startedAttemptId = String((attempt as any)?.id || "")
           if (startedAttemptId) {
             setAttemptId(startedAttemptId)
           }
+
+          const startedAtMs = resolveStartedAtMs((attempt as any)?.startedAt)
+          startedAtRef.current = startedAtMs
+          setTimeRemaining(resolveRemainingSeconds(Number(examData.timeLimit || 60), startedAtMs))
         }
 
-        startedAtRef.current = Date.now()
         setAttemptActive(true)
-
-        setTimeRemaining(Number(examData.timeLimit || 60) * 60)
       } catch (error) {
         const message = error instanceof Error ? error.message : t("exam_take_start_failed", "Không thể bắt đầu bài thi")
         toast.error(message)
