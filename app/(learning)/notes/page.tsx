@@ -125,10 +125,14 @@ export default function NotesPage() {
   const filteredNotes = notes.filter((note) => {
   const title = note.title ?? ""
   const content = note.content ?? ""
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+  const tagSearch = normalizedSearch.startsWith("#") ? normalizedSearch.slice(1) : normalizedSearch
 
   const matchesSearch =
-    title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    content.toLowerCase().includes(searchTerm.toLowerCase())
+    normalizedSearch.length === 0 ||
+    title.toLowerCase().includes(normalizedSearch) ||
+    content.toLowerCase().includes(normalizedSearch) ||
+    (tagSearch.length > 0 && (note.tags || []).some((tag) => tag.toLowerCase().includes(tagSearch)))
 
   const matchesCourse =
     selectedCourse === "all" || note.course === selectedCourse
@@ -192,7 +196,7 @@ export default function NotesPage() {
           lessonTitle: n.lesson?.title ?? t('notes_default_title', 'Ghi chú'),
           createdAt: n.createdAt,
           updatedAt: n.updatedAt,
-          tags: [],
+          tags: Array.isArray(n.tags) ? n.tags : [],
           isFavorite: n.isFavorite || false,
           type: n.type || 'general',
           items: n.items || [],
@@ -224,7 +228,13 @@ export default function NotesPage() {
       return;
     }
 
+    const normalizedTags = Array.from(
+      new Set(newNote.tags.map((tag) => tag.trim()).filter(Boolean)),
+    );
+
     const payload: any = {
+      title: newNote.title.trim(),
+      tags: normalizedTags,
       type: newNote.type,
       timestamp: 0,
     };
@@ -292,7 +302,13 @@ export default function NotesPage() {
     }
 
     try {
+      const normalizedTags = Array.from(
+        new Set((editingNote.tags ?? []).map((tag) => tag.trim()).filter(Boolean)),
+      );
+
       const payload: any = {
+        title: editingNote.title.trim(),
+        tags: normalizedTags,
         type: editingNote.type,
       };
 
@@ -477,7 +493,7 @@ export default function NotesPage() {
           lessonTitle: n.lesson?.title ?? t('notes_default_title', 'Ghi chú'),
           createdAt: n.createdAt,
           updatedAt: n.updatedAt,
-          tags: [],
+          tags: Array.isArray(n.tags) ? n.tags : [],
           isFavorite: n.isFavorite || true,
           type: n.type || 'general',
           items: n.items || [],
