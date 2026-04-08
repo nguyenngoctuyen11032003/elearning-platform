@@ -563,39 +563,7 @@ function TeacherPlanCheckoutPageContent() {
               </div>
             </motion.section>
 
-            {checkout ? (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.28 }}
-                className="space-y-4 rounded-2xl border border-emerald-300 bg-emerald-50/80 p-6"
-              >
-                <div className="flex items-center gap-2 text-sm text-emerald-800">
-                  <CheckCircle2 size={16} />
-                  {t("checkout_pending", "Đang chờ xác nhận")}: {checkout.transactionId}
-                </div>
 
-                <div className="rounded-lg border border-emerald-200 bg-white p-3 text-xs text-slate-700 dark:border-emerald-800/50 dark:bg-slate-900 dark:text-slate-300">
-                  <p>{t("checkout_reference_code", "Mã tham chiếu")}: {checkout.referenceCode || "-"}</p>
-                  <p>{t("checkout_created_at", "Thời gian tạo")}: {formatDateTime(checkout.createdAt)}</p>
-                  <p>{t("checkout_paid_at", "Thời gian thanh toán")}: {formatDateTime(checkout.paidAt)}</p>
-                  {isSepayPending && (
-                    <p className={`font-semibold ${isSepayExpired ? "text-red-700 dark:text-red-300" : "text-amber-700 dark:text-amber-300"}`}>
-                      {t("checkout_time_left", "Thời gian còn lại")}: {isSepayExpired ? "00:00" : formatCountdown(remainingSeconds)}
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  onClick={confirmPaid}
-                  disabled={confirming || checkout.status === "expired"}
-                  className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-6 text-base font-semibold text-white transition hover:-translate-y-px hover:brightness-110 active:scale-[0.99] disabled:opacity-60"
-                >
-                  {confirming ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
-                  {confirming ? t("checkout_confirming", "Confirming...") : t("checkout_confirm_paid", "Tôi đã thanh toán thành công")}
-                </button>
-              </motion.div>
-            ) : null}
           </div>
 
           <motion.aside
@@ -646,16 +614,7 @@ function TeacherPlanCheckoutPageContent() {
           </motion.aside>
         </div>
 
-        {checkout ? (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.24 }}
-            className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
-          >
-            {t("checkout_pending", "Đang chờ xác nhận")}: {checkout.transactionId}
-          </motion.div>
-        ) : null}
+
       </div>
     </div>
   )
