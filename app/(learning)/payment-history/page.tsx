@@ -243,6 +243,10 @@ export default function PaymentHistoryPage() {
     }).format(value)
   }
 
+  const canDownloadInvoice = (payment: PaymentHistory) => {
+    return payment.status === "completed" && payment.paymentType !== "wallet_topup"
+  }
+
   const handleDownloadInvoice = async (payment: PaymentHistory) => {
     try {
       const issueDate = new Date(payment.enrolledAt).toLocaleDateString("vi-VN")
@@ -434,7 +438,7 @@ export default function PaymentHistoryPage() {
                   {t("pay_detail_title", "Chi tiết")}
                 </button>
 
-                {payment.status === "completed" ? (
+                {canDownloadInvoice(payment) ? (
                   <button
                     onClick={() => handleDownloadInvoice(payment)}
                     className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500"

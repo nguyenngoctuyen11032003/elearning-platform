@@ -37,6 +37,7 @@ interface ExamItem {
 
 interface ExamAttemptsSummary {
   count: number
+  remaining?: number
 }
 
 interface CourseExamGroup {
@@ -69,7 +70,8 @@ export default function StudentExamsPage() {
               const payload = await apiClient.getMyExtractedExamAttempts(exam.id)
               const attempts = Array.isArray(payload?.attempts) ? payload.attempts : []
               const attemptCount = Number(payload?.attemptCount ?? attempts.length)
-              return [exam.id, { count: attemptCount }] as const
+              const remaining = Number(payload?.remainingAttempts)
+              return [exam.id, { count: attemptCount, remaining: Number.isFinite(remaining) ? remaining : undefined }] as const
             } catch {
               return [exam.id, { count: 0 }] as const
             }
@@ -91,6 +93,7 @@ export default function StudentExamsPage() {
   const now = new Date()
 
   const getAttemptCount = (examId: string) => attemptsByExam[examId]?.count || 0
+  const getRemainingAttempts = (examId: string) => attemptsByExam[examId]?.remaining
 
   const canStart = (exam: ExamItem) => {
     if (exam.availableFrom && now < new Date(exam.availableFrom)) return false
@@ -103,7 +106,11 @@ export default function StudentExamsPage() {
     return now > new Date(exam.availableUntil)
   }
 
-  const hasRemainingAttempts = (exam: ExamItem) => getAttemptCount(exam.id) < Number(exam.maxAttempts || 0)
+  const hasRemainingAttempts = (exam: ExamItem) => {
+    const remaining = getRemainingAttempts(exam.id)
+    if (typeof remaining === "number") return remaining > 0
+    return getAttemptCount(exam.id) < Number(exam.maxAttempts || 0)
+  }
 
   const hasHistory = (exam: ExamItem) => getAttemptCount(exam.id) > 0
 
