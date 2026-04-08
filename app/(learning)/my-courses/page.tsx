@@ -108,6 +108,10 @@ export default function MyCoursesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [pinnedCourses, setPinnedCourses] = useState<Set<string>>(new Set())
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null)
+  const pinnedStorageKey = useMemo(
+    () => (user?.id ? `mycourses_pinned_${user.id}` : "mycourses_pinned_guest"),
+    [user?.id],
+  )
 
   const formatEnrolledDate = (value: unknown) => {
     const timestamp = getEnrolledTimestamp(value)
@@ -190,6 +194,38 @@ export default function MyCoursesPage() {
   }, [fetchEnrollments])
 
   useEffect(() => {
+    if (!pinnedStorageKey || typeof window === "undefined") return
+    try {
+      const raw = localStorage.getItem(pinnedStorageKey)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        setPinnedCourses(new Set(parsed.map((item) => String(item))))
+      }
+    } catch {
+      // ignore invalid local storage shape
+    }
+  }, [pinnedStorageKey])
+
+  useEffect(() => {
+    if (!pinnedStorageKey || typeof window === "undefined") return
+    try {
+      localStorage.setItem(pinnedStorageKey, JSON.stringify(Array.from(pinnedCourses)))
+    } catch {
+      // ignore storage errors
+    }
+  }, [pinnedCourses, pinnedStorageKey])
+
+  useEffect(() => {
+    if (courses.length === 0) return
+    setPinnedCourses((prev) => {
+      const next = new Set(Array.from(prev).filter((id) => courses.some((course) => course.id === id)))
+      const unchanged = next.size === prev.size && Array.from(next).every((id) => prev.has(id))
+      return unchanged ? prev : next
+    })
+  }, [courses])
+
+  useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         fetchEnrollments()
@@ -250,21 +286,47 @@ export default function MyCoursesPage() {
     })
   }
 
-  const handleRemoveCourse = () => {
-    toast.info(t("mycourses_coming_soon", "Chức năng này sẽ được thêm sớm"))
+  const handleRemoveCourse = async (enrollment: EnrolledCourse) => {
+    const confirmed = window.confirm(
+      t("mycourses_remove_confirm", "Bạn có chắc muốn xóa khóa học này khỏi danh sách của mình?")
+    )
+    if (!confirmed) return
+
+    try {
+      await apiClient.removeEnrollment(enrollment.id)
+      setCourses((curr) => curr.filter((item) => item.id !== enrollment.id))
+      setPinnedCourses((prev) => {
+        const next = new Set(prev)
+        next.delete(enrollment.id)
+        return next
+      })
+      toast.success(t("mycourses_removed", "Đã xóa khóa học"))
+    } catch (error) {
+      console.error("Error removing enrollment:", error)
+      toast.error(t("mycourses_remove_failed", "Không thể xóa khóa học"))
+    }
   }
 
-  const handleShareCourse = async (courseTitle: string) => {
+  const handleShareCourse = async (courseId: string, courseTitle: string) => {
     try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "https://learn.icss.com.vn"
+      const shareUrl = `${origin}/courses/${courseId}`
       if (navigator.share) {
         await navigator.share({
           title: t("mycourses_share_title", "Khóa học ICS"),
           text: `${t("mycourses_share_text", "Hãy khám phá khóa học này")}: ${courseTitle}`,
-          url: window.location.href,
+          url: shareUrl,
         })
-      } else {
-        toast.info(t("mycourses_coming_soon", "Chức năng này sẽ được thêm sớm"))
+        return
       }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl)
+        toast.success(t("mycourses_share_copied", "Đã sao chép liên kết khóa học"))
+        return
+      }
+
+      toast.info(`${t("mycourses_share_link", "Liên kết khóa học")}: ${shareUrl}`)
     } catch {
       toast.info(t("mycourses_share_cancelled", "Đã hủy chia sẻ"))
     }
@@ -672,7 +734,7 @@ export default function MyCoursesPage() {
                                     type="button"
                                     role="menuitem"
                                     onClick={() => {
-                                      handleShareCourse(enrollment.course.title)
+                                      handleShareCourse(enrollment.course.id || enrollment.courseId, enrollment.course.title)
                                       setOpenActionMenuId(null)
                                     }}
                                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
@@ -684,7 +746,7 @@ export default function MyCoursesPage() {
                                     type="button"
                                     role="menuitem"
                                     onClick={() => {
-                                      handleRemoveCourse()
+                                      handleRemoveCourse(enrollment)
                                       setOpenActionMenuId(null)
                                     }}
                                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300"

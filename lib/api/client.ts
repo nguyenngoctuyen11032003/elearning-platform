@@ -571,6 +571,12 @@ if (typeof window !== 'undefined' && token) {
     return this.request(API_ENDPOINTS.ENROLLMENTS.BY_ID(id));
   }
 
+  async removeEnrollment(id: string): Promise<any> {
+    return this.request(API_ENDPOINTS.ENROLLMENTS.BY_ID(id), {
+      method: 'DELETE',
+    });
+  }
+
   // Lesson Progress methods
   async getLessonProgress(enrollmentId: string): Promise<any> {
     return this.request(API_ENDPOINTS.LESSON_PROGRESS.BY_ENROLLMENT(enrollmentId));

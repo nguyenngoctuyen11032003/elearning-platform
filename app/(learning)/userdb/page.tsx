@@ -44,15 +44,17 @@ type AssignmentItem = {
   id: string
   title: string
   courseTitle: string
-  dueDate?: string
-  maxScore?: number
+  availableFrom?: string
+  availableUntil?: string
+  remainingAttempts?: number
+  maxAttempts?: number
 }
 
 type ActivityItem = {
   id: string
   title: string
   courseTitle?: string
-  type: "lesson" | "certificate" | "assignment"
+  type: "lesson" | "certificate" | "assignment" | "exam"
   timestamp?: string
 }
 
@@ -106,9 +108,11 @@ const formatDate = (value: string | Date | undefined, t: (key: string, fallback:
 }
 
 const formatHours = (hours: number, t: (key: string, fallback: string) => string) => {
-  if (hours <= 0) return "0h"
-  if (hours < 1) return `${Math.round(hours * 60)} ${t("userdb_minutes", "phút")}`
-  return `${hours.toFixed(1)}h`
+  const safeHours = Number.isFinite(hours) ? Math.max(0, hours) : 0
+  const totalMinutes = Math.round(safeHours * 60)
+  const fullHours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return `${fullHours} ${t("userdb_hours", "giờ")} ${minutes} ${t("userdb_minutes", "phút")}`
 }
 
 const computeStreak = (courses: DashboardCourse[]) => {
@@ -313,38 +317,58 @@ export default function StudentDashboardPage() {
       )
 
       const now = new Date()
-      const assignmentsNested = await Promise.all(
-        validEnrollments.map(async (enrollment: any) => {
+      const extractedExams = await apiClient.getAvailableExtractedExams()
+
+      const upcomingExamCandidates = await Promise.all(
+        (Array.isArray(extractedExams) ? extractedExams : []).map(async (exam: any) => {
           try {
-            return await apiClient.getAssignments(enrollment.courseId)
-          } catch (error) {
-            console.error("Error fetching assignments", error)
-            return []
+            const payload = await apiClient.getMyExtractedExamAttempts(exam.id)
+            const attempts = Array.isArray(payload?.attempts) ? payload.attempts : []
+            const attemptCount = Number(payload?.attemptCount ?? attempts.length)
+            const remainingAttempts = Number.isFinite(Number(payload?.remainingAttempts))
+              ? Number(payload?.remainingAttempts)
+              : Math.max(0, Number(exam.maxAttempts || 0) - attemptCount)
+
+            return {
+              id: String(exam.id || ""),
+              title: String(exam.title || t("userdb_exam", "Bài thi")),
+              courseTitle: String(exam.course?.title || t("userdb_course", "Khóa học")),
+              availableFrom: exam.availableFrom,
+              availableUntil: exam.availableUntil,
+              remainingAttempts,
+              maxAttempts: Number(exam.maxAttempts || 0),
+            } as AssignmentItem
+          } catch {
+            return null
           }
         }),
       )
 
-      const assignments: AssignmentItem[] = assignmentsNested
-        .flat()
-        .filter((item: any) => item?.dueDate && new Date(item.dueDate) > now)
-        .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      const assignments: AssignmentItem[] = upcomingExamCandidates
+        .filter((item): item is AssignmentItem => Boolean(item))
+        .filter((item) => (item.remainingAttempts ?? 0) > 0)
+        .filter((item) => {
+          const availableFrom = item.availableFrom ? new Date(item.availableFrom) : null
+          const availableUntil = item.availableUntil ? new Date(item.availableUntil) : null
+          if (availableUntil && availableUntil <= now) return false
+          if (availableFrom && availableFrom > now) return true
+          return true
+        })
+        .sort((a, b) => {
+          const aTime = new Date(a.availableFrom || a.availableUntil || 0).getTime()
+          const bTime = new Date(b.availableFrom || b.availableUntil || 0).getTime()
+          return aTime - bTime
+        })
         .slice(0, 3)
-        .map((assignment: any) => ({
-          id: assignment.id,
-          title: assignment.title,
-          courseTitle:
-            coursesData.find((c) => c.courseId === assignment.courseId)?.title || t("userdb_course", "Khóa học"),
-          dueDate: assignment.dueDate,
-          maxScore: assignment.maxScore,
-        }))
 
-      assignments.forEach((assignment) => {
+      assignments.forEach((exam) => {
+        const examTime = exam.availableFrom || exam.availableUntil
         activityEvents.push({
-          id: `assignment-${assignment.id}`,
-          title: `${t("userdb_due_soon", "Sắp đến hạn")}: ${assignment.title}`,
-          courseTitle: assignment.courseTitle,
-          type: "assignment",
-          timestamp: assignment.dueDate,
+          id: `exam-${exam.id}`,
+          title: `${t("userdb_upcoming_exam", "Bài thi sắp tới")}: ${exam.title}`,
+          courseTitle: exam.courseTitle,
+          type: "exam",
+          timestamp: examTime,
         })
       })
 
@@ -747,17 +771,23 @@ export default function StudentDashboardPage() {
               className="rounded-2xl border border-white/40 bg-white/75 p-6 shadow-[0_12px_40px_rgba(8,47,73,0.1)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/72"
             >
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-bold text-slate-900 dark:text-white">{t("userdb_upcoming", "Bài tập/Bài thi sắp tới")}</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white">{t("userdb_upcoming", "Bài thi sắp tới")}</h3>
                 <Link href="/exams" className="text-xs font-medium text-cyan-600 hover:underline dark:text-cyan-300">
                   {t("userdb_view_all", "Xem tất cả")}
                 </Link>
               </div>
 
               {upcomingAssignments.length === 0 ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t("userdb_no_assignments", "Chưa có bài tập hoặc bài thi sắp đến hạn.")}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t("userdb_no_assignments", "Chưa có bài thi sắp tới.")}</p>
               ) : (
                 <div className="space-y-3">
-                  {upcomingAssignments.map((assignment, idx) => (
+                  {upcomingAssignments.map((assignment, idx) => {
+                    const now = new Date()
+                    const availableFrom = assignment.availableFrom ? new Date(assignment.availableFrom) : null
+                    const targetDate = availableFrom && availableFrom > now
+                      ? assignment.availableFrom
+                      : assignment.availableUntil
+                    return (
                     <motion.div
                       key={assignment.id}
                       initial={{ opacity: 0, x: 8 }}
@@ -768,24 +798,25 @@ export default function StudentDashboardPage() {
                       <div className="mb-1 flex items-center justify-between gap-2">
                         <p className="line-clamp-1 text-sm font-semibold text-slate-900 dark:text-white">{assignment.title}</p>
                         <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-900/35 dark:text-rose-300">
-                          {dueBadge(assignment.dueDate, t)}
+                          {dueBadge(targetDate, t)}
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400">{assignment.courseTitle}</p>
                       <div className="mt-2 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                         <span className="inline-flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5" />
-                          {formatDate(assignment.dueDate, t)}
+                          {formatDate(targetDate, t)}
                         </span>
-                        {assignment.maxScore ? (
+                        {typeof assignment.remainingAttempts === "number" ? (
                           <span className="inline-flex items-center gap-1">
                             <Star className="h-3.5 w-3.5" />
-                            {assignment.maxScore} {t("userdb_points", "điểm")}
+                            {assignment.remainingAttempts}/{assignment.maxAttempts ?? 0} {t("userdb_attempts", "lượt")}
                           </span>
                         ) : null}
                       </div>
                     </motion.div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </motion.article>
