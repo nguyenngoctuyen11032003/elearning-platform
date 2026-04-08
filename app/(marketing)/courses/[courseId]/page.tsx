@@ -357,17 +357,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     description: courseData?.description ?? "",
   }
 
-  const isCoursePurchasable = Boolean(
-    courseData?.isPurchasable ??
-      String(courseData?.status || "").toLowerCase() === "published",
-  )
-  const purchaseBlockedReason =
-    String(courseData?.purchaseBlockedReason || "").trim() ||
-    t(
-      "mk_course_purchase_blocked_old_version",
-      "Phiên bản này đã cũ. Vui lòng mua phiên bản mới nhất của khóa học.",
-    )
-
   const sidebarFeatures = useMemo(
     () => [
       t("mk_course_feature_lifetime", "Truy cập trọn đời"),
@@ -749,21 +738,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                   {/* Buttons */}
                   {!isPrivilegedViewer && (
                     <>
-                      {!isCoursePurchasable && (
-                        <div className="w-full rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                          {purchaseBlockedReason}
-                        </div>
-                      )}
-
                       <AnimatedButton
-                        className="w-full h-12 bg-gradient-to-r from-[#2563EB] to-[#06B6D4] hover:shadow-lg hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
-                        disabled={!isCoursePurchasable}
+                        className="w-full h-12 bg-gradient-to-r from-[#2563EB] to-[#06B6D4] hover:shadow-lg hover:scale-[1.01]"
                         onClick={() => {
-                          if (!isCoursePurchasable) {
-                            toast.error(purchaseBlockedReason)
-                            return
-                          }
-
                           const checkoutData = {
                             id: course.id,
                             title: course.title,

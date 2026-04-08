@@ -4,6 +4,7 @@ import { LessonPlayer } from "@/components/ui/lesson-player"
 import { useState, use, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import { authFetch } from "@/lib/authfetch"
+import { useRouter } from "next/navigation"
 
 interface ApiLesson {
   id: string
@@ -157,6 +158,21 @@ const getAuth = (): Record<string, string> => {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+const getCurrentRole = (): string | null => {
+  if (typeof window === "undefined") return null
+
+  try {
+    const rawUser = localStorage.getItem("user")
+    const parsedRole = rawUser ? JSON.parse(rawUser)?.role : null
+    const fallbackRole = localStorage.getItem("userRole")
+    const role = parsedRole || fallbackRole
+    return typeof role === "string" ? role.toLowerCase() : null
+  } catch {
+    const fallbackRole = localStorage.getItem("userRole")
+    return typeof fallbackRole === "string" ? fallbackRole.toLowerCase() : null
+  }
+}
+
 function mapType(type: string): PlayerLesson["type"] {
   if (type === "video") return "video"
   if (type === "quiz") return "quiz"
@@ -288,6 +304,7 @@ function formatDuration(seconds?: number): string | undefined {
 }
 
 export default function PlayerPage({ params }: { params: Promise<{ lessonId: string }> }) {
+  const router = useRouter()
   const resolvedParams = use(params)
   const [currentLessonId, setCurrentLessonId] = useState(resolvedParams.lessonId || "")
   const [lessons, setLessons] = useState<PlayerLesson[]>([])
@@ -478,16 +495,7 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
     writingMetaByLessonId: Record<string, WritingLessonMeta>,
     progressByLessonId: Map<string, any>,
   ): PlayerLesson[] => {
-    const hasEnrollmentSnapshot = progressByLessonId.size > 0
-    const visibleLessonIds = new Set(
-      Array.from(progressByLessonId.keys()).map((id) => String(id)),
-    )
-
-    const scopedLessons = hasEnrollmentSnapshot
-      ? allLessons.filter((lesson) => visibleLessonIds.has(String(lesson.id)))
-      : allLessons
-
-    return [...scopedLessons]
+    return [...allLessons]
       .sort((a, b) => a.order - b.order)
       .map((lesson) => {
         const rawResources = typeof lesson.resources === "string" ? JSON.parse(lesson.resources) : lesson.resources
@@ -551,69 +559,54 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
       setIsLoading(true)
       try {
         const startId = resolvedParams.lessonId
-        // Check if startId is a courseId (try fetching lessons for a course directly)
-        const courseLessonsRes = await fetch(`/api/lessons/course/${startId}`, { headers: getAuth() })
-        if (courseLessonsRes.ok) {
-          // startId is a courseId
-          const rawData = await courseLessonsRes.json()
-          const allLessons = unwrapArray<ApiLesson>(rawData)
-          const [courseRes, quizMetaByLessonId, writingMetaByLessonId, enrollmentProgress] = await Promise.all([
-            fetch(`/api/courses/${startId}`, { headers: getAuth() }),
-            buildQuizMeta(startId),
-            buildWritingMeta(startId),
-            buildEnrollmentProgress(startId),
-          ])
+        const currentRole = getCurrentRole()
+        const isPrivilegedViewer = currentRole === "admin" || currentRole === "teacher"
 
-          setCourseId(String(startId))
-          setEnrollmentId(enrollmentProgress.enrollmentId)
+        // Resolve target course from lessonId first; if not found, treat startId as courseId.
+        let resolvedCourseId = String(startId)
+        let resolvedStartLessonId = ""
 
-          if (courseRes.ok) {
-            const courseData = await courseRes.json()
-            const course = unwrapData<any>(courseData, {})
-            setCourseTitle(String(course?.title || "Khóa học"))
-          }
+        const lessonRes = await fetch(`/api/lessons/${startId}`, { headers: getAuth() })
+        if (lessonRes.ok) {
+          const lessonData = await lessonRes.json()
+          const lesson = unwrapData<ApiLesson>(lessonData, {} as ApiLesson)
+          resolvedCourseId = String(lesson.courseId || "")
+          resolvedStartLessonId = String(lesson.id || "")
+        }
 
-          const builtLessons = buildLessons(
-            allLessons,
-            quizMetaByLessonId,
-            writingMetaByLessonId,
-            enrollmentProgress.progressByLessonId,
-          )
-
-          if (builtLessons.length > 0) {
-            const nextLesson = builtLessons.find((item) => !item.completed) || builtLessons[0]
-            setCurrentLessonId(nextLesson.id)
-          }
-
-          setLessons(builtLessons)
-
-          if (enrollmentProgress.enrollmentId) {
-            await syncDerivedCompletion(
-              enrollmentProgress.enrollmentId,
-              builtLessons,
-              enrollmentProgress.progressByLessonId,
-            )
-          }
+        if (!resolvedCourseId) {
+          setLessons([])
           return
         }
 
-        // startId is a lessonId - original flow
-        const lessonRes = await fetch(`/api/lessons/${startId}`, { headers: getAuth() })
-        if (!lessonRes.ok) return
-        const lessonData = await lessonRes.json()
-        const lesson = unwrapData<ApiLesson>(lessonData, {} as ApiLesson)
+        const enrollmentProgress = await buildEnrollmentProgress(resolvedCourseId)
 
-        setCourseId(String(lesson.courseId || ""))
+        // Students can only learn the exact course version they purchased.
+        if (!enrollmentProgress.enrollmentId && !isPrivilegedViewer) {
+          setLessons([])
+          setEnrollmentId("")
+          setCourseId(resolvedCourseId)
+          router.replace(`/courses/${resolvedCourseId}`)
+          return
+        }
 
-        const [courseLessonsRes2, courseRes, quizMetaByLessonId, writingMetaByLessonId, enrollmentProgress] = await Promise.all([
-          fetch(`/api/lessons/course/${lesson.courseId}`, { headers: getAuth() }),
-          fetch(`/api/courses/${lesson.courseId}`, { headers: getAuth() }),
-          buildQuizMeta(lesson.courseId),
-          buildWritingMeta(lesson.courseId),
-          buildEnrollmentProgress(lesson.courseId),
+        setCourseId(resolvedCourseId)
+        setEnrollmentId(enrollmentProgress.enrollmentId)
+
+        const [courseLessonsRes, courseRes, quizMetaByLessonId, writingMetaByLessonId] = await Promise.all([
+          fetch(`/api/lessons/course/${resolvedCourseId}`, { headers: getAuth() }),
+          fetch(`/api/courses/${resolvedCourseId}`, { headers: getAuth() }),
+          buildQuizMeta(resolvedCourseId),
+          buildWritingMeta(resolvedCourseId),
         ])
 
-        setEnrollmentId(enrollmentProgress.enrollmentId)
+        if (!courseLessonsRes.ok) {
+          setLessons([])
+          return
+        }
+
+        const rawLessons = await courseLessonsRes.json()
+        const allLessons = unwrapArray<ApiLesson>(rawLessons)
 
         if (courseRes.ok) {
           const courseData = await courseRes.json()
@@ -621,31 +614,41 @@ export default function PlayerPage({ params }: { params: Promise<{ lessonId: str
           setCourseTitle(String(course?.title || "Khóa học"))
         }
 
-        if (courseLessonsRes2.ok) {
-          const rawData = await courseLessonsRes2.json()
-          const allLessons = unwrapArray<ApiLesson>(rawData)
-          const builtLessons = buildLessons(
-            allLessons,
-            quizMetaByLessonId,
-            writingMetaByLessonId,
+        const builtLessons = buildLessons(
+          allLessons,
+          quizMetaByLessonId,
+          writingMetaByLessonId,
+          enrollmentProgress.progressByLessonId,
+        )
+
+        setLessons(builtLessons)
+
+        if (builtLessons.length > 0) {
+          const hasStartLesson =
+            resolvedStartLessonId &&
+            builtLessons.some((lesson) => lesson.id === resolvedStartLessonId)
+          const nextLesson = hasStartLesson
+            ? builtLessons.find((lesson) => lesson.id === resolvedStartLessonId)
+            : builtLessons.find((item) => !item.completed) || builtLessons[0]
+
+          if (nextLesson) {
+            setCurrentLessonId(nextLesson.id)
+          }
+        }
+
+        if (enrollmentProgress.enrollmentId) {
+          await syncDerivedCompletion(
+            enrollmentProgress.enrollmentId,
+            builtLessons,
             enrollmentProgress.progressByLessonId,
           )
-          setLessons(builtLessons)
-
-          if (enrollmentProgress.enrollmentId) {
-            await syncDerivedCompletion(
-              enrollmentProgress.enrollmentId,
-              builtLessons,
-              enrollmentProgress.progressByLessonId,
-            )
-          }
         }
       } finally {
         setIsLoading(false)
       }
     }
     if (resolvedParams.lessonId) fetchData()
-  }, [resolvedParams.lessonId])
+  }, [resolvedParams.lessonId, router])
 
   if (isLoading) {
     return (
