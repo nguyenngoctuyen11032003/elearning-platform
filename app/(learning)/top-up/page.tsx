@@ -63,8 +63,8 @@ export default function TopUpPage() {
     ? "/teacher/wallet-membership/top-up"
     : "/top-up"
   const backHref = pathname.startsWith("/teacher/wallet-membership/top-up")
-    ? "/teacher/wallet-membership"
-    : "/checkout"
+    ? "/teacher/wallet-membership/payment-history"
+    : "/payment-history"
   const isPending = paymentStatus === "pending"
   const paymentExpiresAtMs = paymentInfo?.expiresAt ? new Date(paymentInfo.expiresAt).getTime() : NaN
   const isCountdownExpired = Number.isFinite(paymentExpiresAtMs) && paymentExpiresAtMs <= Date.now()

@@ -89,6 +89,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
   useEffect(() => {
     const id = resolvedParams.courseId
+    if (!id) {
+      setPageLoading(false)
+      return
+    }
     const controller = new AbortController()
     const fetchData = async () => {
       try {
@@ -108,8 +112,13 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
           setLessons(Array.isArray(d) ? [...d].sort((a: any, b: any) => a.order - b.order) : [])
         }
       } catch (e) {
-        if (!(e instanceof DOMException && e.name === "AbortError")) {
-          console.error(e)
+        const isAbortError = e instanceof DOMException && e.name === "AbortError"
+        const abortedBySignal = controller.signal.aborted
+        const message = e instanceof Error ? e.message.toLowerCase() : ""
+        const isAbortLikeTypeError = message.includes("aborted") || (message.includes("failed to fetch") && abortedBySignal)
+
+        if (!isAbortError && !abortedBySignal && !isAbortLikeTypeError) {
+          console.error("Course detail fetch failed:", e)
         }
       } finally {
         setPageLoading(false)
