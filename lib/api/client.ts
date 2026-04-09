@@ -1286,6 +1286,15 @@ if (typeof window !== 'undefined' && token) {
     );
   }
 
+  async cancelTeacherCheckout(transactionId: string): Promise<any> {
+    return this.request(
+      `/instructor-subscriptions/teacher/checkout/${transactionId}/cancel`,
+      {
+        method: 'POST',
+      },
+    );
+  }
+
   async getAdminInstructorPlans(): Promise<any[]> {
     const result = await this.request('/instructor-subscriptions/admin/plans');
     return Array.isArray(result) ? result : [];

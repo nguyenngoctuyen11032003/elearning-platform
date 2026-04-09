@@ -246,6 +246,28 @@ function TeacherPlanCheckoutPageContent() {
     })
   }, [checkout?.status, checkout?.expiresAt, remainingSeconds])
 
+  // Cleanup: cancel QR checkout if not completed
+  useEffect(() => {
+    return () => {
+      if (checkout?.transactionId && checkout?.paymentChannel === "sepay_qr" && checkout?.status === "pending") {
+        apiClient.cancelTeacherCheckout(checkout.transactionId).catch(() => {
+          // Silently fail on cleanup
+        })
+      }
+    }
+  }, [checkout?.transactionId, checkout?.paymentChannel, checkout?.status])
+
+  const cancelCurrentCheckout = async () => {
+    if (checkout?.transactionId && checkout?.paymentChannel === "sepay_qr" && checkout?.status === "pending") {
+      try {
+        await apiClient.cancelTeacherCheckout(checkout.transactionId)
+      } catch (error: any) {
+        console.error("Cancel checkout error:", error)
+      }
+    }
+    setCheckout(null)
+  }
+
   const selectedPlan = useMemo(() => plans.find((p) => p.id === selectedPlanId), [plans, selectedPlanId])
   const selectedMethod = useMemo(() => methods.find((m) => m.id === selectedMethodId), [methods, selectedMethodId])
   const totalAmount = Number(selectedPlan?.price || 0)
@@ -386,6 +408,15 @@ function TeacherPlanCheckoutPageContent() {
 
     setProcessing(true)
     try {
+      // Cancel previous QR checkout if exists
+      if (checkout?.transactionId && checkout?.paymentChannel === "sepay_qr" && checkout?.status === "pending") {
+        try {
+          await apiClient.cancelTeacherCheckout(checkout.transactionId)
+        } catch {
+          // Ignore cancel error
+        }
+      }
+
       const data = await apiClient.createTeacherCheckout({
         planId: selectedPlanId,
         paymentChannel: "sepay_qr",
@@ -413,6 +444,15 @@ function TeacherPlanCheckoutPageContent() {
 
     setProcessing(true)
     try {
+      // Cancel previous QR checkout if exists
+      if (checkout?.transactionId && checkout?.paymentChannel === "sepay_qr" && checkout?.status === "pending") {
+        try {
+          await apiClient.cancelTeacherCheckout(checkout.transactionId)
+        } catch {
+          // Ignore cancel error
+        }
+      }
+
       const data = await apiClient.createTeacherCheckout({
         planId: selectedPlanId,
         paymentChannel: "wallet",
@@ -697,7 +737,8 @@ function TeacherPlanCheckoutPageContent() {
 
               <div className="flex flex-wrap items-center gap-3">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    await cancelCurrentCheckout()
                     setQuickPaymentMode("wallet")
                     setMethodTab("wallet")
                   }}
@@ -742,9 +783,9 @@ function TeacherPlanCheckoutPageContent() {
                 </div>
               )}
 
-              {quickPaymentMode !== "wallet" && (
+              {checkout && quickPaymentMode === "qr" && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-5 shadow-[0_8px_20px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-950/65">
-                  {methodTab === "qr" && qrPreviewUrl ? (
+                  {qrPreviewUrl ? (
                   <div className="space-y-3">
                     {!isSepayExpired ? (
                       <img src={qrPreviewUrl} alt="qr-payment" className="mx-auto h-44 w-44 rounded-lg border border-slate-200 bg-white p-2 sm:h-56 sm:w-56" />
@@ -777,12 +818,20 @@ function TeacherPlanCheckoutPageContent() {
                       </div>
                     )}
                   </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="mx-auto flex h-44 w-44 items-center justify-center rounded-lg border border-dashed border-slate-300 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400 sm:h-56 sm:w-56">
-                        {t("checkout_qr_preview", "QR CODE")}
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-300">{t("checkout_qr_hint", "Quét bằng MoMo / ZaloPay")}</p>
+                  ) : null}
+                  {checkout && (
+                    <div className="mt-4 flex gap-3">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await cancelCurrentCheckout()
+                          setQuickPaymentMode(null)
+                          setMethodTab("saved")
+                        }}
+                        className="flex-1 inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        {t("common_back", "Quay lại")}
+                      </button>
                     </div>
                   )}
                 </div>
