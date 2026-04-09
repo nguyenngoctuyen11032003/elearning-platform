@@ -486,6 +486,16 @@ if (typeof window !== 'undefined' && token) {
     }
   }
 
+  async getTopTeachers(limit = 9): Promise<any[]> {
+    try {
+      const result = await this.request(`${API_ENDPOINTS.COURSES.TOP_TEACHERS}?limit=${limit}`);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching top teachers:', error);
+      return [];
+    }
+  }
+
   async getCoursesByTeacher(teacherId: string): Promise<any[]> {
     try {
       const result = await this.request(API_ENDPOINTS.COURSES.BY_TEACHER(teacherId));
