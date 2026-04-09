@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Ticket, CreditCard, QrCode, Wallet, Copy, ShieldCheck, Sparkles, Clock3 } from "lucide-react"
+import { Loader2, Ticket, CreditCard, QrCode, Wallet, Copy, ShieldCheck, Sparkles, Clock3, ArrowLeft } from "lucide-react"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
@@ -395,6 +395,22 @@ export default function CheckoutPage() {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
   }
 
+  const cancelPendingSepayCheckout = async (reason = "switched_payment_mode") => {
+    if (!sepayCheckout?.transactionCode || sepayCheckout?.status !== "pending") {
+      return
+    }
+
+    try {
+      await apiClient.cancelSepayPayment(sepayCheckout.transactionCode, reason)
+      setSepayCheckout((prev) => {
+        if (!prev) return prev
+        return { ...prev, status: "failed" }
+      })
+    } catch {
+      // Ignore cancel errors to keep UI responsive.
+    }
+  }
+
   useEffect(() => {
     if (!sepayCheckout?.expiresAt || sepayCheckout.status !== "pending") {
       setRemainingSeconds(0)
@@ -489,9 +505,19 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (paymentMode !== "wallet") return
     if (!sepayCheckout) return
-    setSepayCheckout(null)
-    setRemainingSeconds(0)
-  }, [paymentMode, sepayCheckout])
+    let disposed = false
+
+    ;(async () => {
+      await cancelPendingSepayCheckout("switched_to_wallet_checkout")
+      if (disposed) return
+      setSepayCheckout(null)
+      setRemainingSeconds(0)
+    })()
+
+    return () => {
+      disposed = true
+    }
+  }, [paymentMode, sepayCheckout?.transactionCode, sepayCheckout?.status])
 
   const handleCheckCode = async () => {
     if (!firstCourse) return
@@ -581,6 +607,8 @@ export default function CheckoutPage() {
       for (const item of courses) {
         try {
           if (paymentMode === "wallet") {
+            await cancelPendingSepayCheckout("wallet_payment_after_qr")
+
             const payment = await apiClient.payCourseByWallet({
               courseId: item.id,
               couponCode: !isMultiCourseCheckout ? paymentCode.trim() || undefined : undefined,
@@ -764,6 +792,20 @@ export default function CheckoutPage() {
           transition={{ duration: 0.35, ease: "easeOut" }}
           className="mb-6 rounded-3xl border border-border/70 bg-gradient-to-br from-card via-card to-blue-500/5 p-6 shadow-sm"
         >
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                router.back()
+                return
+              }
+              router.push("/payment-history")
+            }}
+            className="mb-4 inline-flex items-center gap-2 rounded-xl border border-border/70 px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-secondary"
+          >
+            <ArrowLeft size={16} />
+            {t("common_back", "Quay lại")}
+          </button>
           <p className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
             <Sparkles size={14} />
             Course Checkout
@@ -846,7 +888,10 @@ export default function CheckoutPage() {
                   <span className="mt-1 block text-xs text-muted-foreground">{t("checkout_mode_qr_desc", "Tạo QR và chuyển khoản theo nội dung hệ thống")}</span>
                 </button>
                 <button
-                  onClick={() => setPaymentMode("wallet")}
+                  onClick={async () => {
+                    await cancelPendingSepayCheckout("switched_to_wallet_checkout")
+                    setPaymentMode("wallet")
+                  }}
                   className={`rounded-xl border px-3 py-3 text-left text-sm transition ${
                     paymentMode === "wallet"
                       ? "border-primary bg-primary/15 text-primary"

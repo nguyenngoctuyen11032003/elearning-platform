@@ -91,7 +91,15 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     String(currentUserId) === String(courseTeacherId)
 
   useEffect(() => {
+<<<<<<< HEAD
+    const id = resolvedParams.courseId
+    if (!id) {
+      setPageLoading(false)
+      return
+    }
+=======
     const id = resolvedCourseId
+>>>>>>> 090965865dbffb79b9e8fa70f2402607dd08bff0
     const controller = new AbortController()
     const fetchData = async () => {
       try {
@@ -140,9 +148,19 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
           setLessons([])
         }
       } catch (e) {
+<<<<<<< HEAD
+        const isAbortError = e instanceof DOMException && e.name === "AbortError"
+        const abortedBySignal = controller.signal.aborted
+        const message = e instanceof Error ? e.message.toLowerCase() : ""
+        const isAbortLikeTypeError = message.includes("aborted") || (message.includes("failed to fetch") && abortedBySignal)
+
+        if (!isAbortError && !abortedBySignal && !isAbortLikeTypeError) {
+          console.error("Course detail fetch failed:", e)
+=======
         if (!(e instanceof DOMException && e.name === "AbortError")) {
           console.error(e)
           setCourseError(t("mk_course_unavailable", "Khóa học đã hết hạn hoặc không tồn tại."))
+>>>>>>> 090965865dbffb79b9e8fa70f2402607dd08bff0
         }
       } finally {
         setPageLoading(false)
