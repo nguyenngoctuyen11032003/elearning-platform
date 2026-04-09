@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { ScientificText } from "@/components/scientific-text"
 import {
   Plus,
   Search,
@@ -43,6 +44,7 @@ interface Exam {
   passingScore: number
   maxAttempts: number
   questionsCount?: number
+  questions?: ExamQuestion[]
   certificateTemplateId?: string
   certificateTemplateName?: string
   rejectionReason?: string
@@ -52,6 +54,12 @@ interface Exam {
   }
 }
 
+interface ExamQuestion {
+  id: string
+  question: string
+  options: string[]
+  correctAnswer: string | string[]
+}
 interface CertificateTemplate {
   id: string
   title: string
@@ -86,6 +94,79 @@ const normalizeExamSetBaseTitle = (title: string): string => {
   return value || String(title || "").trim()
 }
 
+const parseExamQuestions = (value: any): ExamQuestion[] => {
+  let data = value
+  while (typeof data === "string") {
+    try {
+      data = JSON.parse(data)
+    } catch {
+      break
+    }
+  }
+
+  if (Array.isArray(data)) {
+    return data
+      .map((item: any, index: number) => ({
+        id: String(item?.id || `question-${index + 1}`),
+        question: String(item?.question || item?.questionText || item?.content || item?.text || "").trim(),
+        options: Array.isArray(item?.options)
+          ? item.options
+              .map((option: any) => {
+                if (typeof option === "string") return option.trim()
+                if (option && typeof option === "object") {
+                  return String(option.text || option.content || option.label || "").trim()
+                }
+                return String(option || "").trim()
+              })
+              .filter(Boolean)
+          : [],
+        correctAnswer: Array.isArray(item?.correctAnswer)
+          ? item.correctAnswer.map((answer: any) => String(answer || "").trim()).filter(Boolean)
+          : String(item?.correctAnswer ?? item?.answer ?? item?.correct ?? "").trim(),
+      }))
+      .filter((item) => item.question || item.options.length > 0)
+  }
+
+  if (!data || typeof data !== "object") return []
+
+  if (Array.isArray((data as any).questions)) {
+    return parseExamQuestions((data as any).questions)
+  }
+
+  const numericEntries = Object.entries(data as Record<string, any>)
+    .filter(([key]) => /^\d+$/.test(key))
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([, item]) => item)
+
+  if (numericEntries.length > 0) {
+    return parseExamQuestions(numericEntries)
+  }
+
+  const looksLikeQuestion =
+    "question" in (data as Record<string, any>) ||
+    "text" in (data as Record<string, any>) ||
+    "content" in (data as Record<string, any>) ||
+    "prompt" in (data as Record<string, any>) ||
+    "options" in (data as Record<string, any>) ||
+    "correctAnswer" in (data as Record<string, any>)
+
+  if (looksLikeQuestion) {
+    return parseExamQuestions([data])
+  }
+
+  return []
+}
+
+const toAnswerList = (answer: string | string[]): string[] => {
+  if (Array.isArray(answer)) return answer.map((item) => String(item || "").trim()).filter(Boolean)
+  const normalized = String(answer || "").trim()
+  return normalized ? [normalized] : []
+}
+
+const isCorrectOption = (option: string, correctAnswers: string[]): boolean => {
+  const normalizedOption = String(option || "").trim().toLowerCase()
+  return correctAnswers.some((answer) => String(answer || "").trim().toLowerCase() === normalizedOption)
+}
 export default function TeacherExamsPage() {
   const router = useRouter()
   const { t } = useLanguage()
@@ -124,51 +205,17 @@ export default function TeacherExamsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        const parseQuestions = (value: any): any[] => {
-          let data = value
-          while (typeof data === "string") {
-            try {
-              data = JSON.parse(data)
-            } catch {
-              break
-            }
-          }
-
-          if (Array.isArray(data)) return data
-          if (!data || typeof data !== "object") return []
-
-          if (Array.isArray((data as any).questions)) {
-            return (data as any).questions
-          }
-
-          const numericEntries = Object.entries(data as Record<string, any>)
-            .filter(([key]) => /^\d+$/.test(key))
-            .sort(([a], [b]) => Number(a) - Number(b))
-            .map(([, item]) => item)
-
-          if (numericEntries.length > 0) return numericEntries
-
-          const looksLikeQuestion =
-            "question" in (data as Record<string, any>) ||
-            "text" in (data as Record<string, any>) ||
-            "content" in (data as Record<string, any>) ||
-            "prompt" in (data as Record<string, any>) ||
-            "options" in (data as Record<string, any>) ||
-            "correctAnswer" in (data as Record<string, any>)
-
-          if (looksLikeQuestion) return [data]
-
-          return []
-        }
-
         const list = normalizeList<Exam>(data).map((exam) => {
-          const parsedQuestions = parseQuestions((exam as any).questions)
+          const parsedQuestions = parseExamQuestions((exam as any).questions)
+          const variantQuestions = parseExamQuestions((exam as any).variants?.[0]?.questions)
+          const resolvedQuestions = parsedQuestions.length > 0 ? parsedQuestions : variantQuestions
 
           return {
             ...exam,
             type: String(exam.type || "practice").toLowerCase() as Exam["type"],
             courseName: exam.course?.title || exam.courseName,
-            questionsCount: parsedQuestions.length || exam.questionsCount || 0,
+            questionsCount: resolvedQuestions.length || exam.questionsCount || 0,
+            questions: resolvedQuestions,
             attemptCount: (exam as any).attemptCount || exam.attemptCount || 0,
           }
         })
@@ -702,26 +749,6 @@ export default function TeacherExamsPage() {
                     <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_course", "Khóa học")}</p>
                     <p className="text-foreground dark:text-white font-medium">{selectedExam.courseName}</p>
                   </div>
-                  <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_exam_duration", "Thời gian làm bài")}</p>
-                    <p className="text-foreground dark:text-white font-medium">{selectedExam.timeLimit} {t("te_minutes", "phút")}</p>
-                  </div>
-                  <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_question_count", "Số câu hỏi")}</p>
-                    <p className="text-foreground dark:text-white font-medium">{selectedExam.questionsCount} {t("te_questions_unit", "câu")}</p>
-                  </div>
-                  <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_passing_score", "Điểm đạt")}</p>
-                    <p className="text-foreground dark:text-white font-medium">{selectedExam.passingScore}%</p>
-                  </div>
-                  <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_max_attempts_label", "Số lần thi tối đa")}</p>
-                    <p className="text-foreground dark:text-white font-medium">{selectedExam.maxAttempts} {t("te_times", "lần")}</p>
-                  </div>
-                  <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("te_attempt_count", "Lượt thi")}</p>
-                    <p className="text-foreground dark:text-white font-medium">{selectedExam.attemptCount}</p>
-                  </div>
                 </div>
 
                 {selectedExam.type === "official" && (selectedExam.certificateTemplateName || getTemplateName(selectedExam.certificateTemplateId)) && (
@@ -747,6 +774,71 @@ export default function TeacherExamsPage() {
                     <p className="text-red-400">{selectedExam.rejectionReason}</p>
                   </div>
                 )}
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-base font-semibold text-foreground dark:text-white">
+                      Chi tiết câu hỏi và đáp án
+                    </h4>
+                    <span className="text-xs font-semibold rounded-full bg-slate-100 px-2 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                      {selectedExam.questions?.length || 0} câu
+                    </span>
+                  </div>
+
+                  {selectedExam.questions && selectedExam.questions.length > 0 ? (
+                    <div className="max-h-[42vh] space-y-3 overflow-y-auto pr-1">
+                      {selectedExam.questions.map((question, questionIndex) => {
+                        const correctAnswers = toAnswerList(question.correctAnswer)
+                        return (
+                          <article
+                            key={question.id || `${selectedExam.id}-${questionIndex}`}
+                            className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/60"
+                          >
+                            <div className="mb-3 flex items-start gap-2">
+                              <span className="mt-0.5 text-xs font-semibold text-cyan-600 dark:text-cyan-400">
+                                Câu {questionIndex + 1}.
+                              </span>
+                              <ScientificText
+                                as="p"
+                                className="text-sm font-medium text-foreground dark:text-white whitespace-pre-wrap"
+                                text={question.question || "-"}
+                              />
+                            </div>
+
+                            {question.options.length > 0 && (
+                              <div className="space-y-2 pl-5">
+                                {question.options.map((option, optionIndex) => {
+                                  const isCorrect = isCorrectOption(option, correctAnswers)
+                                  return (
+                                    <div
+                                      key={`${question.id}-option-${optionIndex}`}
+                                      className={`rounded-lg border px-3 py-2 text-sm ${
+                                        isCorrect
+                                          ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                          : "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                                      }`}
+                                    >
+                                      <span className="mr-1 font-semibold">{String.fromCharCode(65 + optionIndex)}.</span>
+                                      <ScientificText as="span" text={option || "-"} />
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+
+                            <p className="mt-3 pl-5 text-xs text-emerald-600 dark:text-emerald-400">
+                              Đáp án đúng: {correctAnswers.length > 0 ? correctAnswers.join(", ") : "-"}
+                            </p>
+                          </article>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-300 p-4 text-sm text-muted-foreground dark:border-slate-700 dark:text-slate-400">
+                      Chưa có dữ liệu chi tiết câu hỏi cho ngân hàng đề này.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

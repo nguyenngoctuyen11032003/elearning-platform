@@ -17,7 +17,6 @@ import {
 import { toast } from "sonner"
 import { authFetch } from "@/lib/authfetch"
 import { ScientificText } from "@/components/scientific-text"
-import { UniversalSelect } from "@/components/ui/universal-select"
 import { DialogSelect } from "@/components/ui/dialog-select"
 
 type Difficulty = "easy" | "medium" | "hard"
@@ -55,7 +54,9 @@ interface SourceExamGroup {
 interface CourseOption {
   id: string
   title: string
+  sourceCourseId?: string | null
   status?: string
+  createdAt?: string
 }
 
 interface CertificateTemplate {
@@ -66,6 +67,48 @@ interface CertificateTemplate {
 }
 
 const SOURCE_BANK_ALLOWED_STATUSES = new Set(["approved"])
+const APPROVED_COURSE_STATUSES = new Set(["published", "approved"])
+
+const toCourseTimestamp = (course: CourseOption): number => {
+  const parsed = Date.parse(String(course.createdAt || ""))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const resolveLatestApprovedCourses = (items: CourseOption[]): CourseOption[] => {
+  const approved = items.filter((course) =>
+    APPROVED_COURSE_STATUSES.has(String(course.status || "").toLowerCase()),
+  )
+
+  const latestByRoot = new Map<string, CourseOption>()
+
+  for (const course of approved) {
+    const rootCourseId = String(course.sourceCourseId || course.id)
+    const current = latestByRoot.get(rootCourseId)
+
+    if (!current) {
+      latestByRoot.set(rootCourseId, course)
+      continue
+    }
+
+    const currentTime = toCourseTimestamp(current)
+    const incomingTime = toCourseTimestamp(course)
+
+    if (incomingTime > currentTime) {
+      latestByRoot.set(rootCourseId, course)
+      continue
+    }
+
+    if (incomingTime === currentTime && course.id.localeCompare(current.id) > 0) {
+      latestByRoot.set(rootCourseId, course)
+    }
+  }
+
+  return Array.from(latestByRoot.values()).sort((a, b) => {
+    const timeDiff = toCourseTimestamp(b) - toCourseTimestamp(a)
+    if (timeDiff !== 0) return timeDiff
+    return String(a.title || "").localeCompare(String(b.title || ""), "vi")
+  })
+}
 
 const normalizeExamSetBaseTitle = (title: string): string => {
   let value = String(title || "").trim()
@@ -339,16 +382,13 @@ function TeacherGenerateExamCreatePageContent() {
             .map((course: any) => ({
               id: String(course?.id || ""),
               title: String(course?.title || ""),
+              sourceCourseId: course?.sourceCourseId ? String(course.sourceCourseId) : null,
               status: String(course?.status || "").toLowerCase(),
+              createdAt: String(course?.createdAt || ""),
             }))
             .filter((course: CourseOption) => course.id && course.title)
 
-          // Keep only active/approved-like course states for teacher exam generation.
-          const visibleCourses = mappedCourses.filter((course: CourseOption) =>
-            ["published", "approved", "pending", "draft"].includes(course.status || ""),
-          )
-
-          setCourses(visibleCourses)
+          setCourses(resolveLatestApprovedCourses(mappedCourses))
         } else {
           setCourses([])
         }
@@ -419,18 +459,17 @@ function TeacherGenerateExamCreatePageContent() {
   }, [editId])
 
   const courseOptions = useMemo<CourseOption[]>(() => {
-    if (courses.length > 0) {
-      return courses
-    }
+    return courses
+  }, [courses])
 
-    const map = new Map<string, string>()
-    sourceExams.forEach((exam) => {
-      if (exam.courseId && exam.courseName && !map.has(exam.courseId)) {
-        map.set(exam.courseId, exam.courseName)
-      }
-    })
-    return Array.from(map.entries()).map(([id, title]) => ({ id, title }))
-  }, [sourceExams])
+  useEffect(() => {
+    if (!selectedCourseId) return
+    const exists = courseOptions.some((course) => course.id === selectedCourseId)
+    if (!exists) {
+      setSelectedCourseId("")
+      setCertificateTemplateId("")
+    }
+  }, [courseOptions, selectedCourseId])
 
   const filteredExams = useMemo(() => {
     if (!selectedCourseId) return sourceExams
@@ -823,6 +862,9 @@ function TeacherGenerateExamCreatePageContent() {
                               className={selectClass}
                             >
                               <option value="">Chọn khóa học</option>
+                              {selectedCourseId && !courseOptions.some((course) => course.id === selectedCourseId) && (
+                                <option value={selectedCourseId}>Khóa học đã chọn (không còn trong danh sách hiện tại)</option>
+                              )}
                               {courseOptions.map((course) => (
                                 <option key={course.id} value={course.id}>{course.title}</option>
                               ))}

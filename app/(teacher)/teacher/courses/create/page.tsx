@@ -10,6 +10,7 @@ import { apiClient } from "@/lib/api/client"
 import { parseExamQuestionsFileWithReport } from "@/lib/utils/exam-import"
 import { ScientificText } from "@/components/scientific-text"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { DialogSelect } from "@/components/ui/dialog-select"
 
 const stepperStyles = `
   @keyframes stepPulse {
@@ -1306,26 +1307,24 @@ export default function CreateCoursePage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600 dark:text-slate-300">{t("tc_create_category", "Danh mục")}</label>
-                  <UniversalSelect
+                  <DialogSelect
                     value={formData.categoryId}
-                    onChange={(e) => {
-                      const selectedCategoryId = e.target.value
+                    onChange={(selectedCategoryId) => {
                       setFormData({ ...formData, categoryId: selectedCategoryId })
                       if (selectedCategoryId) {
                         setCategoryError(null)
                       }
                     }}
-                    className={`mt-1 h-10 w-full rounded-md border bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-950 dark:text-white ${
+                    placeholder={t("tc_create_select_category", "Chọn danh mục")}
+                    className={`mt-1 h-10 w-full rounded-md border bg-white px-3 text-left text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-950 dark:text-white ${
                       categoryError ? "border-destructive" : "border-gray-300 dark:border-slate-700"
                     }`}
-                    contentClassName="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow-xl"
-                    portalled
                   >
                     <option value="">{t("tc_create_select_category", "Chọn danh mục")}</option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
-                  </UniversalSelect>
+                  </DialogSelect>
                   {categoryError && (
                     <p className="mt-2 text-sm text-destructive">{categoryError}</p>
                   )}

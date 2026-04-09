@@ -28,18 +28,44 @@ export async function GET(
   try {
     const { id } = await params
     const authHeader = request.headers.get("Authorization")
+    const encodedId = encodeURIComponent(id)
 
-    const response = await fetch(`${BACKEND_URL}/courses/${id}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...(authHeader ? { Authorization: authHeader } : {}),
-      },
-    })
+    const requestCourse = async (url: string) => {
+      return fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authHeader ? { Authorization: authHeader } : {}),
+        },
+      })
+    }
+
+    if (authHeader) {
+      const response = await requestCourse(`${BACKEND_URL}/courses/${encodedId}`)
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        return NextResponse.json(
+          { error: normalizeErrorMessage(err, "Failed to fetch course") },
+          { status: response.status },
+        )
+      }
+
+      const data = await response.json()
+      return NextResponse.json(data)
+    }
+
+    // Public viewers can only access the latest published version.
+    let response = await requestCourse(`${BACKEND_URL}/courses/public/${encodedId}`)
+
+    // Backward compatibility: some links still store slug-like values.
+    if (response.status === 404) {
+      response = await requestCourse(`${BACKEND_URL}/courses/slug/${encodedId}`)
+    }
 
     if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
       return NextResponse.json(
-        { error: "Failed to fetch course" },
+        { error: normalizeErrorMessage(err, "Failed to fetch course") },
         { status: response.status },
       )
     }

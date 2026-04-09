@@ -57,7 +57,16 @@ interface IssuedCertificate {
   rejectionReason?: string | null
   imageUrl?: string | null
   metadata?: {
+    studentName?: string
     courseName?: string
+    snapshot?: {
+      studentName?: string
+      courseName?: string
+      issuedAt?: string
+      template?: {
+        title?: string
+      } | null
+    } | null
   } | null
   course?: {
     id: string
@@ -181,18 +190,36 @@ export default function AdminCertificatesPage() {
   })
 
   const filteredIssuedCertificates = issuedCertificates.filter((cert) => {
-    const courseTitle = cert.course?.title || cert.metadata?.courseName || ""
-    const studentName = cert.student?.name || ""
+    const courseTitle = cert.course?.title || cert.metadata?.snapshot?.courseName || cert.metadata?.courseName || ""
+    const studentName = cert.student?.name || cert.metadata?.snapshot?.studentName || cert.metadata?.studentName || ""
     const studentEmail = cert.student?.email || ""
     const certNumber = cert.certificateNumber || ""
+    const certificateTitle = cert.metadata?.snapshot?.template?.title || ""
     const matchesSearch =
       certNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       studentEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      courseTitle.toLowerCase().includes(searchTerm.toLowerCase())
+      courseTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      certificateTitle.toLowerCase().includes(searchTerm.toLowerCase())
 
     return matchesSearch && (statusFilter === "all" || cert.status === statusFilter)
   })
+
+  const getIssuedCourseName = (cert: IssuedCertificate) => {
+    return cert.course?.title || cert.metadata?.snapshot?.courseName || cert.metadata?.courseName || "—"
+  }
+
+  const getIssuedStudentName = (cert: IssuedCertificate) => {
+    return cert.student?.name || cert.metadata?.snapshot?.studentName || cert.metadata?.studentName || "—"
+  }
+
+  const getIssuedDate = (cert: IssuedCertificate) => {
+    return cert.issueDate || cert.createdAt || cert.metadata?.snapshot?.issuedAt
+  }
+
+  const getIssuedTemplateTitle = (cert: IssuedCertificate) => {
+    return cert.metadata?.snapshot?.template?.title || ""
+  }
 
   const activeResultCount = viewTab === "templates" ? filteredCertificates.length : filteredIssuedCertificates.length
 
@@ -687,15 +714,20 @@ const formatDate = (date?: string) => {
                       </td>
                       <td className="py-4 px-6">
                         <div>
-                          <p className="text-foreground dark:text-white font-medium">{cert.student?.name || "—"}</p>
+                          <p className="text-foreground dark:text-white font-medium">{getIssuedStudentName(cert)}</p>
                           <p className="text-muted-foreground dark:text-slate-400 text-xs">{cert.student?.email || ""}</p>
                         </div>
                       </td>
                       <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">
-                        {cert.course?.title || cert.metadata?.courseName || "—"}
+                        <div>
+                          <p>{getIssuedCourseName(cert)}</p>
+                          {getIssuedTemplateTitle(cert) ? (
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">{getIssuedTemplateTitle(cert)}</p>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">
-                        {formatDate(cert.issueDate || cert.createdAt)}
+                        {formatDate(getIssuedDate(cert))}
                       </td>
                       <td className="py-4 px-6">{getStatusBadge(cert.status)}</td>
                     </tr>

@@ -5,7 +5,7 @@ import { Star, MessageSquare, ThumbsUp, Search, TrendingUp, Send } from "lucide-
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { getLocaleByLanguage } from "@/lib/i18n/dynamic-translate"
-import { UniversalSelect } from "@/components/ui/universal-select"
+import { DialogSelect } from "@/components/ui/dialog-select"
 import { apiClient } from "@/lib/api/client"
 
 interface Review {
@@ -34,11 +34,16 @@ interface TeacherReviewPayload {
   reviews?: Review[]
 }
 
+interface ReviewCourse {
+  id: string
+  name: string
+}
+
 export default function TeacherReviewsPage() {
   const { language, t } = useLanguage()
   const [reviews, setReviews] = useState<Review[]>([])
   const [stats, setStats] = useState({ totalReviews: 0, averageRating: 0, fiveStarCount: 0, responseRate: 0 })
-  const [courses, setCourses] = useState<Array<{ id: string; name: string }>>([])
+  const [courses, setCourses] = useState<ReviewCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [ratingFilter, setRatingFilter] = useState("all")
   const [courseFilter, setCourseFilter] = useState("all")
@@ -63,8 +68,26 @@ export default function TeacherReviewsPage() {
               repliedAt: item.repliedAt || (item as any).responseDate,
             }))
           : []
+        const normalizedCourses = Array.isArray(payload?.courses)
+          ? payload.courses
+              .map((course: any) => ({
+                id: String(course?.id || "").trim(),
+                name: String(course?.name || course?.title || course?.courseName || "").trim(),
+              }))
+              .filter((course) => course.id && course.name)
+          : []
+
+        const uniqueCourses = Array.from(
+          normalizedCourses.reduce((map, course) => {
+            if (!map.has(course.id)) {
+              map.set(course.id, course)
+            }
+            return map
+          }, new Map<string, ReviewCourse>()).values(),
+        )
+
         setReviews(normalizedReviews)
-        setCourses(Array.isArray(payload?.courses) ? payload.courses : [])
+        setCourses(uniqueCourses)
         setStats(
           payload?.stats || {
             totalReviews: 0,
@@ -93,6 +116,13 @@ export default function TeacherReviewsPage() {
     }
   }, [])
 
+  useEffect(() => {
+    if (courseFilter === "all") return
+    if (!courses.some((course) => course.id === courseFilter)) {
+      setCourseFilter("all")
+    }
+  }, [courseFilter, courses])
+
   // Filter by tab
   const getTabFilteredReviews = () => {
     let filtered = reviews
@@ -113,9 +143,27 @@ export default function TeacherReviewsPage() {
     const matchesRating = ratingFilter === "all" || review.rating === parseInt(ratingFilter)
     const matchesCourse = courseFilter === "all" || review.courseId === courseFilter
     const matchesSearch = review.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         review.comment.toLowerCase().includes(searchTerm.toLowerCase())
+                         review.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         review.studentEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         review.courseName.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesRating && matchesCourse && matchesSearch
   })
+
+  useEffect(() => {
+    if (filteredReviews.length === 0) {
+      setSelectedReview(null)
+      setReplyText("")
+      setIsReplying(false)
+      return
+    }
+
+    if (!selectedReview || !filteredReviews.some((review) => review.id === selectedReview.id)) {
+      const first = filteredReviews[0]
+      setSelectedReview(first)
+      setReplyText(first.teacherReply || "")
+      setIsReplying(false)
+    }
+  }, [filteredReviews, selectedReview])
 
   // Get tab counts
   const getCounts = () => ({
@@ -265,19 +313,29 @@ export default function TeacherReviewsPage() {
                 className="w-full pl-12 pr-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
               />
             </div>
-            <UniversalSelect
-              value={courseFilter}
-              onChange={(e) => setCourseFilter(e.target.value)}
-              className="px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-              contentClassName="bg-white dark:bg-slate-800 backdrop-blur-xl border border-slate-200 dark:border-slate-700/80 shadow-[0_20px_60px_rgba(2,6,23,0.45)] z-50"
-              optionsClassName="text-slate-900 dark:text-white bg-white dark:bg-slate-800"
-              portalled
+            <DialogSelect
+              value={ratingFilter}
+              onChange={setRatingFilter}
+              className="w-full md:w-48 px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white"
             >
-              <option value="all" style={{ color: '#1f2937' }}>{t("tch_rev_all_courses", "Tất cả khóa học")}</option>
+              <option value="all">{t("tch_rev_rating_all", "Tất cả số sao")}</option>
+              <option value="5">{t("tch_rev_rating_5", "5 sao")}</option>
+              <option value="4">{t("tch_rev_rating_4", "4 sao")}</option>
+              <option value="3">{t("tch_rev_rating_3", "3 sao")}</option>
+              <option value="2">{t("tch_rev_rating_2", "2 sao")}</option>
+              <option value="1">{t("tch_rev_rating_1", "1 sao")}</option>
+            </DialogSelect>
+
+            <DialogSelect
+              value={courseFilter}
+              onChange={setCourseFilter}
+              className="w-full md:w-72 px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white"
+            >
+              <option value="all">{t("tch_rev_all_courses", "Tất cả khóa học")}</option>
               {courses.map((course) => (
-                <option key={course.id} value={course.id} style={{ color: '#1f2937' }}>{course.name}</option>
+                <option key={course.id} value={course.id}>{course.name}</option>
               ))}
-            </UniversalSelect>
+            </DialogSelect>
           </div>
 
           {/* Tabs */}

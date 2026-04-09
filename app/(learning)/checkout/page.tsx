@@ -41,6 +41,58 @@ interface SepayCheckoutState {
   referenceCode?: string | null
 }
 
+function normalizeCheckoutPayload(payload: any): CheckoutCourse | null {
+  const raw = payload?.data ?? payload
+  const id = String(raw?.id || "").trim()
+  if (!id) return null
+
+  const teacherName = String(raw?.teacher?.name || raw?.teacherName || "").trim()
+
+  return {
+    id,
+    title: String(raw?.title || "").trim() || id,
+    teacher: teacherName || undefined,
+    price: parsePriceValue(raw?.discountPrice ?? raw?.price ?? 0),
+    image: String(raw?.thumbnail || raw?.image || "").trim() || undefined,
+  }
+}
+
+async function resolveCanonicalCheckoutCourse(item: CheckoutCourse): Promise<CheckoutCourse> {
+  const fallback: CheckoutCourse = {
+    ...item,
+    id: String(item?.id || "").trim(),
+    title: String(item?.title || "").trim() || "Khóa học",
+    price: parsePriceValue(item?.price),
+  }
+
+  if (!fallback.id) return fallback
+
+  try {
+    const response = await fetch(`/api/courses/${fallback.id}`, {
+      cache: "no-store",
+    })
+
+    if (!response.ok) {
+      return fallback
+    }
+
+    const data = await response.json()
+    const canonical = normalizeCheckoutPayload(data)
+    if (!canonical) return fallback
+
+    return {
+      ...fallback,
+      id: canonical.id,
+      title: canonical.title || fallback.title,
+      teacher: canonical.teacher || fallback.teacher,
+      price: Number.isFinite(canonical.price) ? canonical.price : fallback.price,
+      image: canonical.image || fallback.image,
+    }
+  } catch {
+    return fallback
+  }
+}
+
 function parsePriceValue(value: unknown): number {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : 0
@@ -114,80 +166,48 @@ export default function CheckoutPage() {
   const pendingStatusRef = useRef<string>("idle")
 
   useEffect(() => {
-    let isMounted = true
-
-    ;(async () => {
-      try {
-        try {
-          const rawUser = localStorage.getItem("user")
-          const rawRole = localStorage.getItem("userRole")
-          const parsedRole = rawUser ? JSON.parse(rawUser)?.role : null
-          const role = parsedRole || rawRole
-          if (role === "admin") {
-            toast.error(t("checkout_admin_forbidden", "Admin không thể thanh toán khóa học"))
-            router.replace("/courses")
-            return
-          }
-        } catch {
-          // ignore invalid local storage shape
-        }
-
-        const resolvedCourses: CheckoutCourse[] = []
-        const singleCourse = localStorage.getItem("checkoutCourse")
-        if (singleCourse) {
-          try {
-            const parsed = JSON.parse(singleCourse)
-            if (parsed) {
-              resolvedCourses.push({
-                ...parsed,
-                price: parsePriceValue(parsed.price),
-              })
-            }
-          } catch {
-            // continue to fallback
-          }
-        }
-
-        if (resolvedCourses.length === 0) {
-          const itemsRaw = localStorage.getItem("checkoutItems")
-          if (itemsRaw) {
-            try {
-              const items = JSON.parse(itemsRaw)
-              if (Array.isArray(items) && items.length > 0) {
-                resolvedCourses.push(
-                  ...items.map((item: any) => ({
-                    ...item,
-                    price: parsePriceValue(item.price),
-                  })),
-                )
-              }
-            } catch {
-              // ignore invalid localStorage shape
-            }
-          }
-        }
-
-        let fetchedWalletBalance = 0
-        try {
-          const balanceResult = await apiClient.getMyWalletBalance()
-          fetchedWalletBalance = Number(balanceResult?.balance || 0)
-        } catch {
-          fetchedWalletBalance = 0
-        }
-
-        if (isMounted) {
-          setCourses(resolvedCourses)
-          setWalletBalance(fetchedWalletBalance)
-        }
-      } finally {
-        if (isMounted) {
-          setIsBootstrapping(false)
-        }
+    try {
+      const rawUser = localStorage.getItem("user")
+      const rawRole = localStorage.getItem("userRole")
+      const parsedRole = rawUser ? JSON.parse(rawUser)?.role : null
+      const role = parsedRole || rawRole
+      if (role === "admin") {
+        toast.error(t("checkout_admin_forbidden", "Admin không thể thanh toán khóa học"))
+        router.replace("/courses")
+        return
       }
-    })()
+    } catch {
+      // ignore invalid local storage shape
+    }
 
-    return () => {
-      isMounted = false
+    const singleCourse = localStorage.getItem("checkoutCourse")
+    if (singleCourse) {
+      try {
+        const parsed = JSON.parse(singleCourse)
+        if (parsed) {
+          parsed.price = parsePriceValue(parsed.price)
+          setCourses([parsed])
+        }
+        return
+      } catch {
+        // continue to fallback
+      }
+    }
+
+    const itemsRaw = localStorage.getItem("checkoutItems")
+    if (!itemsRaw) return
+
+    try {
+      const items = JSON.parse(itemsRaw)
+      if (Array.isArray(items) && items.length > 0) {
+        const coursesWithNumPrices = items.map((item: any) => ({
+          ...item,
+          price: parsePriceValue(item.price),
+        }))
+        setCourses(coursesWithNumPrices)
+      }
+    } catch {
+      // ignore invalid localStorage shape
     }
   }, [router, t])
 
@@ -325,12 +345,13 @@ export default function CheckoutPage() {
           localStorage.removeItem("checkoutCourse")
           localStorage.removeItem("checkoutItems")
           localStorage.removeItem("checkoutTotal")
+          const resolvedCourseId = String(payment?.courseId || firstCourse?.id || "")
           if (courses.length > 1) {
             toast.success(t("checkout_multi_success", "Đã thanh toán thành công cho các khóa học đã chọn"))
             router.push("/my-courses")
           } else {
             toast.success(t("checkout_success", "Thanh toán thành công, bạn đã được vào khóa học"))
-            router.push(`/enrollment/success?courseId=${firstCourse?.id || ""}&paymentId=${payment.id}&status=success`)
+            router.push(`/enrollment/success?courseId=${resolvedCourseId}&paymentId=${payment.id}&status=success`)
           }
         }
 
@@ -478,7 +499,7 @@ export default function CheckoutPage() {
             })
 
             successes.push({
-              courseId: item.id,
+              courseId: String(payment?.courseId || item.id || ""),
               paymentId: String(payment?.id || ""),
               status: String(payment?.status || "pending"),
             })
@@ -496,7 +517,7 @@ export default function CheckoutPage() {
 
           if (payment?.status === "completed") {
             successes.push({
-              courseId: item.id,
+              courseId: String(payment?.courseId || item.id || ""),
               paymentId: String(payment?.id || ""),
               status: "completed",
             })
