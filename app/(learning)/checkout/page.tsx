@@ -18,6 +18,21 @@ interface CheckoutCourse {
   image?: string
 }
 
+type CheckoutCourseResolution =
+  | {
+      status: "resolved"
+      course: CheckoutCourse
+      redirectedFromCourseId?: string
+    }
+  | {
+      status: "expired_or_not_found"
+      requestedCourseId: string
+    }
+  | {
+      status: "fallback"
+      course: CheckoutCourse
+    }
+
 interface CouponPreview {
   valid: boolean
   discount?: number
@@ -57,7 +72,7 @@ function normalizeCheckoutPayload(payload: any): CheckoutCourse | null {
   }
 }
 
-async function resolveCanonicalCheckoutCourse(item: CheckoutCourse): Promise<CheckoutCourse> {
+async function resolveCanonicalCheckoutCourse(item: CheckoutCourse): Promise<CheckoutCourseResolution> {
   const fallback: CheckoutCourse = {
     ...item,
     id: String(item?.id || "").trim(),
@@ -65,7 +80,9 @@ async function resolveCanonicalCheckoutCourse(item: CheckoutCourse): Promise<Che
     price: parsePriceValue(item?.price),
   }
 
-  if (!fallback.id) return fallback
+  if (!fallback.id) {
+    return { status: "fallback", course: fallback }
+  }
 
   try {
     const response = await fetch(`/api/courses/${fallback.id}`, {
@@ -73,14 +90,20 @@ async function resolveCanonicalCheckoutCourse(item: CheckoutCourse): Promise<Che
     })
 
     if (!response.ok) {
-      return fallback
+      if (response.status === 404) {
+        return {
+          status: "expired_or_not_found",
+          requestedCourseId: fallback.id,
+        }
+      }
+      return { status: "fallback", course: fallback }
     }
 
     const data = await response.json()
     const canonical = normalizeCheckoutPayload(data)
-    if (!canonical) return fallback
+    if (!canonical) return { status: "fallback", course: fallback }
 
-    return {
+    const resolved: CheckoutCourse = {
       ...fallback,
       id: canonical.id,
       title: canonical.title || fallback.title,
@@ -88,8 +111,14 @@ async function resolveCanonicalCheckoutCourse(item: CheckoutCourse): Promise<Che
       price: Number.isFinite(canonical.price) ? canonical.price : fallback.price,
       image: canonical.image || fallback.image,
     }
+
+    return {
+      status: "resolved",
+      course: resolved,
+      redirectedFromCourseId: canonical.id !== fallback.id ? fallback.id : undefined,
+    }
   } catch {
-    return fallback
+    return { status: "fallback", course: fallback }
   }
 }
 
@@ -161,53 +190,140 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("sepay_qr")
   const [sepayCheckout, setSepayCheckout] = useState<SepayCheckoutState | null>(null)
+  const [checkoutUnavailable, setCheckoutUnavailable] = useState(false)
   const [remainingSeconds, setRemainingSeconds] = useState(0)
   const pendingTransactionCodeRef = useRef<string>("")
   const pendingStatusRef = useRef<string>("idle")
 
   useEffect(() => {
-    try {
-      const rawUser = localStorage.getItem("user")
-      const rawRole = localStorage.getItem("userRole")
-      const parsedRole = rawUser ? JSON.parse(rawUser)?.role : null
-      const role = parsedRole || rawRole
-      if (role === "admin") {
-        toast.error(t("checkout_admin_forbidden", "Admin không thể thanh toán khóa học"))
-        router.replace("/courses")
-        return
-      }
-    } catch {
-      // ignore invalid local storage shape
-    }
+    let isMounted = true
 
-    const singleCourse = localStorage.getItem("checkoutCourse")
-    if (singleCourse) {
+    const bootstrapCheckout = async () => {
+      setIsBootstrapping(true)
+
       try {
-        const parsed = JSON.parse(singleCourse)
-        if (parsed) {
-          parsed.price = parsePriceValue(parsed.price)
-          setCourses([parsed])
+        try {
+          const rawUser = localStorage.getItem("user")
+          const rawRole = localStorage.getItem("userRole")
+          const parsedRole = rawUser ? JSON.parse(rawUser)?.role : null
+          const role = parsedRole || rawRole
+          if (role === "admin") {
+            toast.error(t("checkout_admin_forbidden", "Admin không thể thanh toán khóa học"))
+            router.replace("/courses")
+            return
+          }
+        } catch {
+          // ignore invalid local storage shape
         }
-        return
-      } catch {
-        // continue to fallback
+
+        let storedCourses: CheckoutCourse[] = []
+
+        const singleCourse = localStorage.getItem("checkoutCourse")
+        if (singleCourse) {
+          try {
+            const parsed = JSON.parse(singleCourse)
+            if (parsed) {
+              storedCourses = [
+                {
+                  ...parsed,
+                  id: String(parsed.id || "").trim(),
+                  title: String(parsed.title || "").trim(),
+                  price: parsePriceValue(parsed.price),
+                },
+              ]
+            }
+          } catch {
+            // continue to fallback list
+          }
+        }
+
+        if (storedCourses.length === 0) {
+          const itemsRaw = localStorage.getItem("checkoutItems")
+          if (itemsRaw) {
+            try {
+              const items = JSON.parse(itemsRaw)
+              if (Array.isArray(items) && items.length > 0) {
+                storedCourses = items
+                  .map((item: any) => ({
+                    ...item,
+                    id: String(item?.id || "").trim(),
+                    title: String(item?.title || "").trim(),
+                    price: parsePriceValue(item?.price),
+                  }))
+                  .filter((item: CheckoutCourse) => !!item.id)
+              }
+            } catch {
+              // ignore invalid localStorage shape
+            }
+          }
+        }
+
+        if (storedCourses.length === 0) {
+          if (!isMounted) return
+          setCourses([])
+          setCheckoutUnavailable(false)
+          return
+        }
+
+        const resolvedResults = await Promise.all(
+          storedCourses.map((item) => resolveCanonicalCheckoutCourse(item)),
+        )
+
+        const availableCourses: CheckoutCourse[] = []
+        let hasUnavailableLegacyCourse = false
+
+        for (const result of resolvedResults) {
+          if (result.status === "resolved" || result.status === "fallback") {
+            availableCourses.push(result.course)
+          } else if (result.status === "expired_or_not_found") {
+            hasUnavailableLegacyCourse = true
+          }
+        }
+
+        // De-duplicate by resolved course id to avoid duplicated old/new lineage entries.
+        const dedupedCourses = Array.from(
+          availableCourses.reduce((map, item) => {
+            if (!map.has(item.id)) {
+              map.set(item.id, item)
+            }
+            return map
+          }, new Map<string, CheckoutCourse>()).values(),
+        )
+
+        if (!isMounted) return
+
+        setCourses(dedupedCourses)
+        setCheckoutUnavailable(hasUnavailableLegacyCourse && dedupedCourses.length === 0)
+
+        if (dedupedCourses.length === 1) {
+          localStorage.setItem("checkoutCourse", JSON.stringify(dedupedCourses[0]))
+          localStorage.removeItem("checkoutItems")
+        } else if (dedupedCourses.length > 1) {
+          localStorage.setItem("checkoutItems", JSON.stringify(dedupedCourses))
+          localStorage.removeItem("checkoutCourse")
+        }
+
+        try {
+          const balanceResult = await apiClient.getMyWalletBalance()
+          if (isMounted) {
+            setWalletBalance(Number(balanceResult?.balance || 0))
+          }
+        } catch {
+          if (isMounted) {
+            setWalletBalance(0)
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setIsBootstrapping(false)
+        }
       }
     }
 
-    const itemsRaw = localStorage.getItem("checkoutItems")
-    if (!itemsRaw) return
+    void bootstrapCheckout()
 
-    try {
-      const items = JSON.parse(itemsRaw)
-      if (Array.isArray(items) && items.length > 0) {
-        const coursesWithNumPrices = items.map((item: any) => ({
-          ...item,
-          price: parsePriceValue(item.price),
-        }))
-        setCourses(coursesWithNumPrices)
-      }
-    } catch {
-      // ignore invalid localStorage shape
+    return () => {
+      isMounted = false
     }
   }, [router, t])
 
@@ -605,6 +721,22 @@ export default function CheckoutPage() {
           <div className="h-[560px] animate-pulse rounded-3xl border border-border/60 bg-card/60" />
           <div className="h-[560px] animate-pulse rounded-3xl border border-border/60 bg-card/60" />
         </div>
+      </div>
+    )
+  }
+
+  if (courses.length === 0 && checkoutUnavailable) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <h1 className="mb-3 text-2xl font-bold">
+          {t("checkout_course_unavailable_title", "Khóa học đã hết hạn hoặc không tồn tại")}
+        </h1>
+        <p className="text-muted-foreground">
+          {t(
+            "checkout_course_unavailable_desc",
+            "Liên kết thanh toán này thuộc phiên bản cũ chưa được cập nhật. Vui lòng quay lại trang khóa học để lấy phiên bản mới nhất.",
+          )}
+        </p>
       </div>
     )
   }
