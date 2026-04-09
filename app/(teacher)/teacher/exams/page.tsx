@@ -167,6 +167,15 @@ const isCorrectOption = (option: string, correctAnswers: string[]): boolean => {
   const normalizedOption = String(option || "").trim().toLowerCase()
   return correctAnswers.some((answer) => String(answer || "").trim().toLowerCase() === normalizedOption)
 }
+
+const isAbortOrNetworkFetchError = (error: unknown): boolean => {
+  if (error instanceof DOMException && error.name === "AbortError") return true
+  const message = error instanceof Error ? String(error.message || "").toLowerCase() : ""
+  if (message.includes("network_fetch_failed")) return true
+  if (message.includes("failed to fetch")) return true
+  return false
+}
+
 export default function TeacherExamsPage() {
   const router = useRouter()
   const { t } = useLanguage()
@@ -224,7 +233,9 @@ export default function TeacherExamsPage() {
         setExams([])
       }
     } catch (error) {
-      console.error("❌ Error fetching exams:", error)
+      if (!isAbortOrNetworkFetchError(error)) {
+        console.error("❌ Error fetching exams:", error)
+      }
       setExams([])
     } finally {
       setIsLoading(false)
@@ -242,7 +253,9 @@ export default function TeacherExamsPage() {
         setTemplates([])
       }
     } catch (error) {
-      console.error("❌ Error fetching templates:", error)
+      if (!isAbortOrNetworkFetchError(error)) {
+        console.error("❌ Error fetching templates:", error)
+      }
       setTemplates([])
     }
   }

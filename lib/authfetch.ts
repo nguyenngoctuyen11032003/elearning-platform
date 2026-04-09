@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from "@/lib/api/config"
 
-export const authFetch = (
+export const authFetch = async (
   path: string,
   options: RequestInit = {}
 ) => {
@@ -18,8 +18,14 @@ export const authFetch = (
     ...options.headers,
   }
 
-  return fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-  })
+  try {
+    return await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+    })
+  } catch (error) {
+    const wrapped = new Error("NETWORK_FETCH_FAILED")
+    ;(wrapped as Error & { cause?: unknown }).cause = error
+    throw wrapped
+  }
 }
