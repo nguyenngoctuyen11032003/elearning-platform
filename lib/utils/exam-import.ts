@@ -59,8 +59,10 @@ interface AnswerKeyEntry {
 
 const QUESTION_LINE_REGEX = /^\s*(?:Cau|Câu|Question|Q)\s*\d+[\.:\-\)]*\s*/i
 const QUESTION_WITH_NUMBER_REGEX = /^\s*(?:Cau|Câu|Question|Q)\s*(\d{1,4})[\.:\-\)]*\s*(.+)$/i
+const QUESTION_NUMBER_ONLY_WITH_PREFIX_REGEX = /^\s*(?:Cau|Câu|Question|Q)\s*(\d{1,4})[\.:\-\)]*\s*$/i
 const NUMBERED_QUESTION_LINE_REGEX = /^\s*\(?\d{1,4}\)?[\.:\-\)]\s*(.+?)\s*$/i
 const NUMBERED_WITH_NUMBER_REGEX = /^\s*\(?(\d{1,4})\)?[\.:\-\)]\s*(.+?)\s*$/i
+const NUMBERED_WITH_SPACE_NUMBER_REGEX = /^\s*\(?(\d{1,4})\)?\s+(.+?)\s*$/i
 const OPTION_LINE_REGEX = /^\s*([A-F])(?:\s*[\.)．。:\-,])\s*(.+)$/i
 const INLINE_OPTION_MARKER_REGEX = /([A-F])(?:\s*[\.)．。:\-,])\s*/g
 const ANSWER_LINE_REGEX = /^\s*(?:Dap an|Đáp án|ĐA(?=\s|[:=.\-]|$)|DA(?=\s|[:=.\-]|$)|Answer|Ans(?:wer)?|Correct\s*answer|Answer\s*key|Key)\s*(?:[:=.\-])?\s*(.+)$/i
@@ -72,7 +74,7 @@ const INLINE_METADATA_SPLIT_REGEX = /\s+(?:Diff|Var|Topic|Learning\s*Obj|Global\
 const SECTION_LINE_REGEX = /^\s*(\d+(?:\.\d+)*)\s+([A-Za-z][^\n]{3,})$/
 const ANSWER_KEY_HEADER_REGEX = /^(?:answer\s*key|đáp\s*án)\s*(?:[:\-])?\s*(?:(?:&|and|và)\s*)?(?:explanations?|hướng\s*dẫn\s*giải|giai\s*thich|giải\s*thích)?\s*$/i
 const ANSWER_KEY_SECTION_REGEX = /^\s*(?:section|phần|phan)\s*(\d+)\s*[:\-]?\s*(?:type\s*([A-Z0-9]+))?/i
-const ANSWER_KEY_ITEM_REGEX = /^\s*(?:(?:Q(?:uestion)?|Câu|Cau)\s*)?(\d{1,4})\s*[.)]\s*([\s\S]*)$/i
+const ANSWER_KEY_ITEM_REGEX = /^\s*(?:(?:Q(?:uestion)?|Câu|Cau)\s*)?(\d{1,4})\s*(?:[.)]|[:\-]|\s{1,3})\s*([\s\S]*)$/i
 const NUMBER_ONLY_QUESTION_MARKER_REGEX = /^\s*\(?(\d{1,4})\)?\s*[.)]\s*$/
 const METADATA_LINE_REGEX = /^\s*(Diff|Var|Topic|Learning\s*Obj|Global\s*Obj|Rationale|Reason|Loi\s*giai|Lời\s*giải)\s*[:=.\-]\s*(.+)$/i
 const FILL_IN_QUESTION_HINT_REGEX = /(?:_{2,}|\.{3,}|\(\s*\)|\[\s*\]|\bfill\s*(?:in|the\s*blank)\b|\bđiền\s*(?:vào\s*)?chỗ\s*trống\b)/i
@@ -476,8 +478,27 @@ const detectAnswerKeyStartIndex = (lines: string[]): number => {
   const explicitHeaderIndex = lines.findIndex((line) => isAnswerKeyHeaderLine(line))
   if (explicitHeaderIndex >= 0) return explicitHeaderIndex
 
+  const isLikelyQuestionLineAtTail = (line: string): boolean => {
+    const text = normalizeSectionLabel(line)
+    if (!text) return false
+    if (isLikelyAnswerKeyTailLine(text, { allowStructural: true })) return false
+    if (QUESTION_WITH_NUMBER_REGEX.test(text)) return true
+
+    const numberedWithPunctuation = text.match(NUMBERED_WITH_NUMBER_REGEX)
+    if (numberedWithPunctuation) {
+      return !isLikelyAnswerKeyEntryValue(String(numberedWithPunctuation[2] || ""))
+    }
+
+    const numberedWithSpace = text.match(NUMBERED_WITH_SPACE_NUMBER_REGEX)
+    if (numberedWithSpace) {
+      return !isLikelyAnswerKeyEntryValue(String(numberedWithSpace[2] || ""))
+    }
+
+    return false
+  }
+
   // Heuristic for files without explicit "Answer key" header: detect a dense answer-like tail block.
-  const minTailStart = Math.floor(lines.length * 0.35)
+  const minTailStart = Math.floor(lines.length * 0.55)
 
   for (let i = minTailStart; i < lines.length; i += 1) {
     if (!isLikelyAnswerKeyTailLine(lines[i])) continue
@@ -508,6 +529,7 @@ const detectAnswerKeyStartIndex = (lines: string[]): number => {
     let nonEmptyCount = 0
     let tailLikeCount = 0
     let itemLikeCount = 0
+    let questionLikeCount = 0
 
     for (let j = i; j < lines.length; j += 1) {
       const text = normalizeSectionLabel(lines[j])
@@ -519,12 +541,16 @@ const detectAnswerKeyStartIndex = (lines: string[]): number => {
       if (isLikelyAnswerKeyTailLine(text, { allowStructural: true })) {
         tailLikeCount += 1
       }
+      if (isLikelyQuestionLineAtTail(text)) {
+        questionLikeCount += 1
+      }
     }
 
     if (
       itemLikeCount >= 2 &&
       tailLikeCount >= 2 &&
-      tailLikeCount >= Math.ceil(nonEmptyCount * 0.45)
+      tailLikeCount >= Math.ceil(nonEmptyCount * 0.45) &&
+      questionLikeCount <= Math.max(2, Math.floor(nonEmptyCount * 0.12))
     ) {
       return i
     }
@@ -575,6 +601,17 @@ const extractQuestionStart = (line: string): { text: string; number?: number } |
     if (text.length < 4) return null
     if (/^(?:chapter|unit|part|section)\b/i.test(text)) return null
     if (QUESTION_GROUP_HEADING_REGEX.test(text)) return null
+    return { text, number: Number.isNaN(number) ? undefined : number }
+  }
+
+  const numberedWithSpace = raw.match(NUMBERED_WITH_SPACE_NUMBER_REGEX)
+  if (numberedWithSpace) {
+    const number = Number.parseInt(numberedWithSpace[1], 10)
+    const text = String(numberedWithSpace[2] || "").trim()
+    if (text.length < 4) return null
+    if (/^(?:chapter|unit|part|section)\b/i.test(text)) return null
+    if (QUESTION_GROUP_HEADING_REGEX.test(text)) return null
+    if (isLikelyAnswerKeyEntryValue(text)) return null
     return { text, number: Number.isNaN(number) ? undefined : number }
   }
 
@@ -643,6 +680,20 @@ const looksLikeStandaloneQuestionStart = (line: string): boolean => {
   if (/[?]$/.test(text)) return true
 
   return /^(?:what|which|how|why|when|where|who|if|the\s+number|the\s+temperature|one\s+liter|the\s+diameter|the\s+thickness|the\s+freezing|the\s+nighttime|a\s+consistent)\b/i.test(text)
+}
+
+const looksLikeQuestionLineAfterNumber = (line: string): boolean => {
+  const text = line.trim()
+  if (!text) return false
+  if (OPTION_LINE_REGEX.test(text)) return false
+  if (ANSWER_LINE_REGEX.test(text)) return false
+  if (EXPLANATION_LINE_REGEX.test(text)) return false
+  if (POINTS_LINE_REGEX.test(text)) return false
+  if (/^\[\[IMAGE:img_\d+\]\]$/i.test(text)) return false
+  if (extractSectionTitle(text)) return false
+  if (QUESTION_GROUP_HEADING_REGEX.test(text)) return false
+  if (isLikelyAnswerKeyEntryValue(text)) return false
+  return text.length >= 4
 }
 
 const ANSWER_LINE_PREFIX_REGEX = /^\s*(?:Dap an|Đáp án|ĐA(?=\s|[:=.\-]|$)|DA(?=\s|[:=.\-]|$)|Answer|Ans(?:wer)?|Correct\s*answer|Answer\s*key|Key)\s*/i
@@ -2090,8 +2141,10 @@ const parseDocumentQuestions = async (
     }
 
     const standaloneQuestionNumber = line.match(NUMBER_ONLY_QUESTION_MARKER_REGEX)
-    if (standaloneQuestionNumber) {
-      const parsedNumber = Number.parseInt(standaloneQuestionNumber[1], 10)
+    const prefixedStandaloneQuestionNumber = line.match(QUESTION_NUMBER_ONLY_WITH_PREFIX_REGEX)
+    if (standaloneQuestionNumber || prefixedStandaloneQuestionNumber) {
+      const matchedNumber = standaloneQuestionNumber?.[1] || prefixedStandaloneQuestionNumber?.[1] || ""
+      const parsedNumber = Number.parseInt(matchedNumber, 10)
       if (!Number.isNaN(parsedNumber)) {
         if (current) {
           blocks.push(current)
@@ -2157,7 +2210,7 @@ const parseDocumentQuestions = async (
       continue
     }
 
-    if (!current && pendingQuestionNumber && looksLikeStandaloneQuestionStart(line)) {
+    if (!current && pendingQuestionNumber && (looksLikeStandaloneQuestionStart(line) || looksLikeQuestionLineAfterNumber(line))) {
       const activeSectionTitle = currentSectionTitle || currentAutoSectionTitle
       currentSectionTitle = activeSectionTitle
 
@@ -2200,7 +2253,11 @@ const parseDocumentQuestions = async (
       (candidate) => OPTION_LINE_REGEX.test(candidate) || Boolean(splitInlineOptionSegments(candidate)),
     )
 
-    if ((current.answerLine || hasCollectedOptions) && looksLikeStandaloneQuestionStart(line)) {
+    const canStartStandaloneAfterCurrent =
+      looksLikeStandaloneQuestionStart(line) ||
+      (Boolean(current.answerLine) && looksLikeQuestionLineAfterNumber(line))
+
+    if ((current.answerLine || hasCollectedOptions) && canStartStandaloneAfterCurrent) {
       blocks.push(current)
       const activeSectionTitle = currentSectionTitle || currentAutoSectionTitle
       current = {
@@ -2444,11 +2501,9 @@ const parseDocumentQuestions = async (
 
     for (const item of unresolvedBlocks) {
       const scoped = (remainingBySection.get(item.sectionKey) || []).find((entry) => !usedEntries.has(entry))
-      const matched =
-        scoped ||
-        (item.sectionKey === "__global"
-          ? (remainingBySection.get("__global") || []).find((entry) => !usedEntries.has(entry))
-          : undefined)
+      const globalFallback = (remainingBySection.get("__global") || []).find((entry) => !usedEntries.has(entry))
+      const orderedFallback = answerKeyEntries.find((entry) => !usedEntries.has(entry))
+      const matched = scoped || globalFallback || orderedFallback
       if (!matched) continue
 
       usedEntries.add(matched)
