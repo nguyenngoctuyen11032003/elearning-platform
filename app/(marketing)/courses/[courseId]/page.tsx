@@ -179,6 +179,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   }, [effectiveCourseId, isPrivilegedViewer])
 
   useEffect(() => {
+    if (!pageLoading && !courseData) {
+      router.replace("/courses")
+    }
+  }, [pageLoading, courseData, router])
+
+  useEffect(() => {
     if (!effectiveCourseId) return
     const controller = new AbortController()
     const loadReviews = async () => {
@@ -415,26 +421,13 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
         <main className="flex-1 px-4 sm:px-6 py-16 md:py-20">
           <div className="mx-auto w-full max-w-3xl">
             <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-              <h1 className="text-2xl font-bold text-[#0F172A]">
-                {t("mk_course_not_found_title", "Khóa học không tồn tại")}
-              </h1>
-              <p className="mt-3 text-slate-600">
-                {courseError ||
-                  t(
-                    "mk_course_unavailable",
-                    "Khóa học đã hết hạn hoặc không tồn tại.",
-                  )}
+              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#2563EB]" />
+              <p className="mt-4 text-slate-600">
+                {t("common_redirecting", "Đang chuyển hướng...")}
               </p>
-              <button
-                onClick={() => router.push("/courses")}
-                className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
-              >
-                {t("mk_course_back_to_catalog", "Quay về danh sách khóa học")}
-              </button>
             </div>
           </div>
         </main>
-        <Footer />
       </div>
     )
   }

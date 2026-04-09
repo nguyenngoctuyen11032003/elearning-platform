@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from "next/server"
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function isUuid(value: string): boolean {
+  return UUID_REGEX.test(value)
+}
+
+function isInvalidUuidMessage(message: string): boolean {
+  const normalized = message.toLowerCase()
+  return (
+    normalized.includes("invalid input syntax for type uuid") ||
+    normalized.includes("khóa học không tìm thấy") ||
+    normalized.includes("khoa hoc khong tim thay")
+  )
+}
+
 function normalizeErrorMessage(raw: unknown, fallback: string): string {
   if (typeof raw === "string" && raw.trim()) return raw
   if (Array.isArray(raw)) {
@@ -28,7 +44,9 @@ export async function GET(
   try {
     const { id } = await params
     const authHeader = request.headers.get("Authorization")
-    const encodedId = encodeURIComponent(id)
+    const normalizedId = String(id || "").trim()
+    const encodedId = encodeURIComponent(normalizedId)
+    const requestByUuid = isUuid(normalizedId)
 
     const requestCourse = async (url: string) => {
       return fetch(url, {
@@ -41,11 +59,20 @@ export async function GET(
     }
 
     if (authHeader) {
-      const response = await requestCourse(`${BACKEND_URL}/courses/${encodedId}`)
+      const response = await requestCourse(
+        requestByUuid
+          ? `${BACKEND_URL}/courses/${encodedId}`
+          : `${BACKEND_URL}/courses/slug/${encodedId}`,
+      )
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
+        const message = normalizeErrorMessage(err, "Failed to fetch course")
         return NextResponse.json(
-          { error: normalizeErrorMessage(err, "Failed to fetch course") },
+          {
+            error: isInvalidUuidMessage(message)
+              ? "Khóa học đã hết hạn hoặc không tồn tại."
+              : message,
+          },
           { status: response.status },
         )
       }
@@ -55,17 +82,26 @@ export async function GET(
     }
 
     // Public viewers can only access the latest published version.
-    let response = await requestCourse(`${BACKEND_URL}/courses/public/${encodedId}`)
+    let response = await requestCourse(
+      requestByUuid
+        ? `${BACKEND_URL}/courses/public/${encodedId}`
+        : `${BACKEND_URL}/courses/slug/${encodedId}`,
+    )
 
     // Backward compatibility: some links still store slug-like values.
-    if (response.status === 404) {
+    if (requestByUuid && response.status === 404) {
       response = await requestCourse(`${BACKEND_URL}/courses/slug/${encodedId}`)
     }
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}))
+      const message = normalizeErrorMessage(err, "Failed to fetch course")
       return NextResponse.json(
-        { error: normalizeErrorMessage(err, "Failed to fetch course") },
+        {
+          error: isInvalidUuidMessage(message)
+            ? "Khóa học đã hết hạn hoặc không tồn tại."
+            : message,
+        },
         { status: response.status },
       )
     }

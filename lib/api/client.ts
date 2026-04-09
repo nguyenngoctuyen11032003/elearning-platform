@@ -906,7 +906,27 @@ if (typeof window !== 'undefined' && token) {
   }
 
   async checkWishlist(courseId: string): Promise<boolean> {
-    return this.request(API_ENDPOINTS.WISHLISTS.CHECK(courseId));
+    if (typeof window !== 'undefined' && !localStorage.getItem('auth_token')) {
+      return false;
+    }
+
+    try {
+      return await this.request(API_ENDPOINTS.WISHLISTS.CHECK(courseId));
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      const unauthenticatedErrorPatterns = [
+        'chua dang nhap',
+        'het han',
+        'unauthorized',
+        '401',
+      ];
+
+      if (unauthenticatedErrorPatterns.some((pattern) => message.includes(pattern))) {
+        return false;
+      }
+
+      throw error;
+    }
   }
 
   // ================== Admin Users API ==================

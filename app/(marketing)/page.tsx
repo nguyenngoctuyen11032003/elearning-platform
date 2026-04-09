@@ -31,6 +31,80 @@ type HomeTestimonial = {
   }
 }
 
+type HomeTestimonialCachePayload = {
+  expiresAt: number
+  data: HomeTestimonial[]
+}
+
+const TESTIMONIALS_CACHE_KEY = "home:testimonials:latest-5-star:v1"
+const TESTIMONIALS_CACHE_TTL_MS = 90 * 1000
+
+const isValidAvatarUrl = (avatar?: string | null): boolean => {
+  const normalized = avatar?.trim()
+  if (!normalized) return false
+  if (normalized.startsWith("/")) return true
+
+  try {
+    const parsed = new URL(normalized)
+    return parsed.protocol === "http:" || parsed.protocol === "https:"
+  } catch {
+    return false
+  }
+}
+
+const normalizeCourseImage = (image?: string | null): string => {
+  const normalized = image?.trim()
+  if (!normalized) return "/placeholder.svg"
+  if (normalized.startsWith("/")) return normalized
+
+  const uploadsMatch = normalized.match(/https?:\/\/[^/]+\/uploads\/(.+)$/i)
+  if (uploadsMatch?.[1]) return `/api/uploads/${uploadsMatch[1]}`
+
+  const apiUploadsMatch = normalized.match(/https?:\/\/[^/]+\/api\/uploads\/(.+)$/i)
+  if (apiUploadsMatch?.[1]) return `/api/uploads/${apiUploadsMatch[1]}`
+
+  return normalized
+}
+
+const readTestimonialsCache = (): HomeTestimonial[] | null => {
+  if (typeof window === "undefined") return null
+
+  try {
+    const raw = sessionStorage.getItem(TESTIMONIALS_CACHE_KEY)
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as HomeTestimonialCachePayload
+    if (!parsed || !Array.isArray(parsed.data) || typeof parsed.expiresAt !== "number") {
+      sessionStorage.removeItem(TESTIMONIALS_CACHE_KEY)
+      return null
+    }
+
+    if (Date.now() > parsed.expiresAt) {
+      sessionStorage.removeItem(TESTIMONIALS_CACHE_KEY)
+      return null
+    }
+
+    return parsed.data
+  } catch {
+    return null
+  }
+}
+
+const writeTestimonialsCache = (data: HomeTestimonial[]): void => {
+  if (typeof window === "undefined") return
+
+  const payload: HomeTestimonialCachePayload = {
+    expiresAt: Date.now() + TESTIMONIALS_CACHE_TTL_MS,
+    data,
+  }
+
+  try {
+    sessionStorage.setItem(TESTIMONIALS_CACHE_KEY, JSON.stringify(payload))
+  } catch {
+    // Ignore storage quota errors.
+  }
+}
+
 const partners = [
   { name: "Microsoft", logo: "🏢" },
   { name: "Google", logo: "🔍" },
@@ -45,6 +119,8 @@ export default function Home() {
   const [featuredCourses, setFeaturedCourses] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [testimonials, setTestimonials] = useState<HomeTestimonial[]>([])
+  const [testimonialsLoading, setTestimonialsLoading] = useState(true)
+  const [invalidAvatarByReviewId, setInvalidAvatarByReviewId] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
   const [categoriesPage, setCategoriesPage] = useState(0)
   const { language, t } = useLanguage()
@@ -55,75 +131,47 @@ export default function Home() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const coursesRes = await apiClient.getCourses()
-        const latestFiveStarReviews = await apiClient.getLatestFiveStarReviews(3)
-        
-        // Mock data nếu API không trả về
-        const mockCourses = [
-          {
-            id: "1",
-            title: "JavaScript Nâng Cao: Mastering Async & Await",
-            teacher: { name: "Nguyễn Văn A" },
-            price: 599000,
-            rating: 5,
-            image: "/image/logo-ics.jpg",
-            enrollmentCount: 1200
-          },
-          {
-            id: "2",
-            title: "React 18: Build Production Apps",
-            teacher: { name: "Trần Thị B" },
-            price: 699000,
-            rating: 4.9,
-            image: "/placeholder.svg",
-            enrollmentCount: 950
-          },
-          {
-            id: "3",
-            title: "TypeScript Từ Zero to Hero",
-            teacher: { name: "Phạm Văn C" },
-            price: 549000,
-            rating: 4.9,
-            image: "/image/logo-ics.jpg",
-            enrollmentCount: 850
-          },
-          {
-            id: "4",
-            title: "Next.js 14: Full Stack Development",
-            teacher: { name: "Lê Minh D" },
-            price: 799000,
-            rating: 4.8,
-            image: "/placeholder.svg",
-            enrollmentCount: 720
-          },
-          {
-            id: "5",
-            title: "Tailwind CSS: Modern Styling",
-            teacher: { name: "Đỗ Hồng E" },
-            price: 399000,
-            rating: 4.8,
-            image: "/image/logo-ics.jpg",
-            enrollmentCount: 1100
-          }
-        ]
-        
-        // Lấy 5 khóa học có đánh giá cao nhất
-        const courses = Array.isArray(coursesRes) && coursesRes.length > 0 ? coursesRes : mockCourses
-        const localizedCourses = await autoTranslateData(courses, language)
-        setFeaturedCourses(localizedCourses
-          .sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0))
-          .slice(0, 5))
+        setTestimonialsLoading(true)
 
-        const categoriesRes = await apiClient.getCategories()
+        const cachedTestimonials = readTestimonialsCache()
+        const testimonialsPromise = cachedTestimonials
+          ? Promise.resolve(cachedTestimonials)
+          : apiClient.getLatestFiveStarReviews(3)
+
+        const [featuredCoursesRes, categoriesRes, latestFiveStarReviews] = await Promise.all([
+          apiClient.getFeaturedCourses(),
+          apiClient.getCategories(),
+          testimonialsPromise,
+        ])
+
+        const normalizedFeaturedCourses = Array.isArray(featuredCoursesRes)
+          ? featuredCoursesRes.map((course: any) => ({
+              ...course,
+              price: parseFloat(course?.price ?? "0") || 0,
+              rating: parseFloat(course?.rating ?? "0") || 0,
+              image: normalizeCourseImage(course?.thumbnail || course?.image),
+            }))
+          : []
+
+        const localizedCourses = await autoTranslateData(normalizedFeaturedCourses, language)
+        setFeaturedCourses(localizedCourses.slice(0, 5))
+
         const localizedCategories = await autoTranslateData(Array.isArray(categoriesRes) ? categoriesRes : [], language)
         setCategories(localizedCategories)
-        setTestimonials(Array.isArray(latestFiveStarReviews) ? latestFiveStarReviews : [])
+
+        const finalTestimonials = Array.isArray(latestFiveStarReviews) ? latestFiveStarReviews : []
+        setTestimonials(finalTestimonials)
+        writeTestimonialsCache(finalTestimonials)
+        setTestimonialsLoading(false)
+        setInvalidAvatarByReviewId({})
         setCategoriesPage(0)
       } catch (error) {
         console.error("Error fetching data:", error)
         setFeaturedCourses([])
         setCategories([])
         setTestimonials([])
+        setTestimonialsLoading(false)
+        setInvalidAvatarByReviewId({})
       } finally {
         setLoading(false)
       }
@@ -147,6 +195,13 @@ export default function Home() {
       scrollPositionRef.current = 0
     }
   }, [categoriesPage])
+
+  const markAvatarAsInvalid = (reviewId: string) => {
+    setInvalidAvatarByReviewId((prev) => {
+      if (prev[reviewId]) return prev
+      return { ...prev, [reviewId]: true }
+    })
+  }
 
   const features = [
     {
@@ -781,47 +836,83 @@ export default function Home() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            {testimonials.length > 0 ? testimonials.map((testimonial, i) => (
-              <motion.div
-                key={testimonial.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="group relative p-8 bg-white/68 dark:bg-slate-900/62 backdrop-blur-xl rounded-[20px] border border-white/60 dark:border-slate-700/70 hover:border-blue-300 dark:hover:border-blue-600 shadow-[0_20px_60px_rgba(0,0,0,0.08)] hover:shadow-[0_30px_72px_rgba(0,0,0,0.12)] transition-all duration-300 hover:-translate-y-1.5"
-              >
-                {/* Quote Icon */}
-                <div className="absolute top-6 right-6 text-6xl text-blue-100 dark:text-blue-900/30">"</div>
-
-                {/* Rating */}
-                <div className="flex gap-1 mb-4">
-                  {[...Array(Math.max(0, Math.min(5, testimonial.rating || 0)))].map((_, idx) => (
-                    <Star key={idx} size={18} className="fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-
-                {/* Content */}
-                <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-6 relative z-10 font-medium">
-                  "{testimonial.comment}"
-                </p>
-
-                {/* Course Badge */}
-                <div className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-semibold mb-4">
-                  {testimonial.course?.title || t("home_test_course_fallback", "Khóa học tại ICS Learning")}
-                </div>
-
-                {/* Author */}
-                <div className="flex items-center gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow-lg">
-                    {(testimonial.student?.name || "H").charAt(0).toUpperCase()}
+            {testimonialsLoading ? (
+              [...Array(3)].map((_, i) => (
+                <div
+                  key={`testimonial-skeleton-${i}`}
+                  className="group relative p-8 bg-white/68 dark:bg-slate-900/62 backdrop-blur-xl rounded-[20px] border border-white/60 dark:border-slate-700/70 shadow-[0_20px_60px_rgba(0,0,0,0.08)] animate-pulse"
+                >
+                  <div className="h-5 w-32 rounded bg-slate-200 dark:bg-slate-700 mb-4" />
+                  <div className="space-y-2 mb-6">
+                    <div className="h-4 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-4 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-4 w-4/5 rounded bg-slate-200 dark:bg-slate-700" />
                   </div>
-                  <div>
-                    <p className="font-bold text-slate-900 dark:text-white">{testimonial.student?.name || t("home_test_student", "Học viên")}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{t("home_test_role", "Học viên ICS Learning")}</p>
+                  <div className="h-6 w-40 rounded-full bg-slate-200 dark:bg-slate-700 mb-4" />
+                  <div className="flex items-center gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <div className="w-14 h-14 rounded-full bg-slate-200 dark:bg-slate-700" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 w-36 rounded bg-slate-200 dark:bg-slate-700" />
+                      <div className="h-3 w-28 rounded bg-slate-200 dark:bg-slate-700" />
+                    </div>
                   </div>
                 </div>
-              </motion.div>
-            )) : (
+              ))
+            ) : testimonials.length > 0 ? testimonials.map((testimonial, i) => {
+              const studentName = testimonial.student?.name || t("home_test_student", "Học viên")
+              const avatarUrl = testimonial.student?.avatar?.trim() || ""
+              const canShowAvatarImage =
+                isValidAvatarUrl(avatarUrl) &&
+                !invalidAvatarByReviewId[testimonial.id]
+
+              return (
+                <motion.div
+                  key={testimonial.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="group relative p-8 bg-white/68 dark:bg-slate-900/62 backdrop-blur-xl rounded-[20px] border border-white/60 dark:border-slate-700/70 hover:border-blue-300 dark:hover:border-blue-600 shadow-[0_20px_60px_rgba(0,0,0,0.08)] hover:shadow-[0_30px_72px_rgba(0,0,0,0.12)] transition-all duration-300 hover:-translate-y-1.5"
+                >
+                  <div className="absolute top-6 right-6 text-6xl text-blue-100 dark:text-blue-900/30">"</div>
+
+                  <div className="flex gap-1 mb-4">
+                    {[...Array(Math.max(0, Math.min(5, testimonial.rating || 0)))].map((_, idx) => (
+                      <Star key={idx} size={18} className="fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+
+                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-6 relative z-10 font-medium">
+                    "{testimonial.comment}"
+                  </p>
+
+                  <div className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-semibold mb-4">
+                    {testimonial.course?.title || t("home_test_course_fallback", "Khóa học tại ICS Learning")}
+                  </div>
+
+                  <div className="flex items-center gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                      {canShowAvatarImage ? (
+                        <img
+                          src={avatarUrl}
+                          alt={studentName}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          onError={() => markAvatarAsInvalid(testimonial.id)}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        studentName.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">{studentName}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">{t("home_test_role", "Học viên ICS Learning")}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )
+            }) : (
               <div className="md:col-span-3 p-8 rounded-[20px] bg-white/66 dark:bg-slate-900/62 border border-white/60 dark:border-slate-700/70 text-center text-slate-600 dark:text-slate-300">
                 {t("home_test_empty", "Chưa có bình luận 5 sao mới nhất để hiển thị.")}
               </div>
