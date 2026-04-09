@@ -674,6 +674,13 @@ if (typeof window !== 'undefined' && token) {
     return this.request(`/payments/sepay/status/${transactionCode}`);
   }
 
+  async cancelSepayPayment(transactionCode: string, reason = 'cancelled_by_user'): Promise<any> {
+    return this.request(`/payments/sepay/cancel/${transactionCode}`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
   async getMyWallet(): Promise<any> {
     return this.request('/user-wallets/my-wallet');
   }
@@ -1276,6 +1283,15 @@ if (typeof window !== 'undefined' && token) {
   async getTeacherCheckoutStatus(transactionId: string): Promise<any> {
     return this.request(
       `/instructor-subscriptions/teacher/checkout/${transactionId}/status`,
+    );
+  }
+
+  async cancelTeacherCheckout(transactionId: string): Promise<any> {
+    return this.request(
+      `/instructor-subscriptions/teacher/checkout/${transactionId}/cancel`,
+      {
+        method: 'POST',
+      },
     );
   }
 

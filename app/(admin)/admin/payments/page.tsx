@@ -7,6 +7,7 @@ import { createPortal } from "react-dom"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { formatPrice, formatNumber, formatCurrencyByLanguage } from "@/lib/format"
+import { getPaymentStatusInfo } from "@/lib/payment-status-utils"
 import Link from "next/link"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
@@ -32,7 +33,7 @@ interface Payment {
   status: "success" | "pending" | "failed"
   createdAt: string
   transactionId: string
-  source?: "course" | "subscription"
+  source?: "course" | "subscription" | "topup"
 }
 
 interface PaymentStats {
@@ -62,6 +63,25 @@ const formatAccountTypeLabel = (
   return type === "teacher"
     ? t("pay_account_type_teacher", "Giảng viên")
     : t("pay_account_type_student", "Học viên")
+}
+
+const resolveAccountType = (payment: any): Payment["accountType"] => {
+  const role = String(payment?.student?.role || payment?.user?.role || "").toLowerCase()
+  return role === "teacher" ? "teacher" : "student"
+}
+
+const resolvePaymentContentLabel = (payment: any, t: (key: string, fallback?: string) => string): string => {
+  const paymentType = String(payment?.paymentType || "").toLowerCase()
+
+  if (paymentType === "wallet_topup") {
+    return t("pay_wallet_topup_label", "Nạp tiền vào ví")
+  }
+
+  if (paymentType === "course_enrollment") {
+    return String(payment?.course?.title || t("common_unknown", "Không rõ"))
+  }
+
+  return String(payment?.course?.title || t("common_unknown", "Không rõ"))
 }
 
 const normalizeDateISO = (value?: string) => {
@@ -128,6 +148,8 @@ export default function AdminPaymentsPage() {
             const course = p.course || {}
             const teacher = course.teacher || {}
             const createdAt = p.createdAt || p.paidAt
+            const paymentType = String(p.paymentType || "").toLowerCase()
+            const source: Payment["source"] = paymentType === "wallet_topup" ? "topup" : "course"
 
             return {
               id: p.id || p.transactionId,
@@ -135,16 +157,16 @@ export default function AdminPaymentsPage() {
               user: student.name || t("common_unknown", "Không rõ"),
               userEmail: student.email || "",
               userPhone: student.phoneNumber || student.phone || "",
-              course: course.title || t("common_unknown", "Không rõ"),
+              course: resolvePaymentContentLabel(p, t),
               courseId: course.id || "",
               teacher: teacher.name || "",
               teacherEmail: teacher.email || "",
-              accountType: "student",
+              accountType: resolveAccountType(p),
               amount: Number(p.finalAmount ?? p.amount ?? 0),
               method: normalizeMethod(p.paymentMethod),
               status: normalizeStatus(p.status),
               createdAt: normalizeDateISO(createdAt),
-              source: "course",
+              source,
             }
           })
         : []
@@ -156,7 +178,9 @@ export default function AdminPaymentsPage() {
             user: p.teacher?.name || t("common_instructor", "Giảng viên"),
             userEmail: p.teacher?.email || "",
             userPhone: p.teacher?.phone || "",
-            course: `${t("pay_package", "Gói")} ${p.plan?.name || "Subscription"}`,
+            course: p.plan?.name
+              ? `${t("pay_plan_purchase_label", "Mua gói")} ${p.plan.name}`
+              : t("pay_plan_purchase_label", "Mua gói"),
             courseId: p.plan?.id || "",
             teacher: p.teacher?.name || "",
             teacherEmail: p.teacher?.email || "",
@@ -721,18 +745,8 @@ export default function AdminPaymentsPage() {
                   <p className="text-muted-foreground dark:text-slate-400 text-xs mb-1">{t("pay_transaction_id", "Mã giao dịch")}</p>
                   <p className="text-foreground dark:text-white font-bold text-base break-all">{payment.id}</p>
                   <div className="mt-2 flex justify-center">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      payment.status === "success"
-                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200/80 dark:border-green-800"
-                        : payment.status === "pending"
-                          ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-200 border border-yellow-200/80 dark:border-yellow-800"
-                          : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-200 border border-red-200/80 dark:border-red-800"
-                    }`}>
-                      {payment.status === "success"
-                        ? t("pay_success", "Thành công")
-                        : payment.status === "pending"
-                          ? t("pay_pending", "Chờ xử lý")
-                          : t("pay_failed", "Thất bại")}
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPaymentStatusInfo(payment.status, t).badgeClass}`}>
+                      {getPaymentStatusInfo(payment.status, t).text}
                     </span>
                   </div>
                 </div>
@@ -849,20 +863,8 @@ export default function AdminPaymentsPage() {
                       </span>
                     </td>
                     <td className="py-4 px-6">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          payment.status === "success"
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                            : payment.status === "pending"
-                              ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
-                              : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                        }`}
-                      >
-                        {payment.status === "success"
-                          ? t("pay_success", "Thành công")
-                          : payment.status === "pending"
-                            ? t("pay_pending", "Chờ xử lý")
-                            : t("pay_failed", "Thất bại")}
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusInfo(payment.status, t).badgeClass}`}>
+                        {getPaymentStatusInfo(payment.status, t).text}
                       </span>
                     </td>
                     <td className="py-4 px-6 text-muted-foreground dark:text-slate-400">{formatDateTime(payment.createdAt)}</td>

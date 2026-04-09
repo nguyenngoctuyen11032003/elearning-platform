@@ -1,11 +1,13 @@
 ﻿"use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Ticket, CreditCard, QrCode, Wallet, Copy } from "lucide-react"
+import { Loader2, Ticket, CreditCard, QrCode, Wallet, Copy, ShieldCheck, Sparkles, Clock3 } from "lucide-react"
+import { motion } from "framer-motion"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { formatCurrencyByLanguage } from "@/lib/format"
+import { getPaymentStatusInfo } from "@/lib/payment-status-utils"
 import { useLanguage } from "@/lib/i18n/language-context"
 
 interface CheckoutCourse {
@@ -151,6 +153,8 @@ export default function CheckoutPage() {
   const router = useRouter()
   const { t, language } = useLanguage()
   const [courses, setCourses] = useState<CheckoutCourse[]>([])
+  const [walletBalance, setWalletBalance] = useState(0)
+  const [isBootstrapping, setIsBootstrapping] = useState(true)
   const [paymentCode, setPaymentCode] = useState("")
   const [couponPreview, setCouponPreview] = useState<CouponPreview | null>(null)
   const [isCheckingCode, setIsCheckingCode] = useState(false)
@@ -158,67 +162,10 @@ export default function CheckoutPage() {
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("sepay_qr")
   const [sepayCheckout, setSepayCheckout] = useState<SepayCheckoutState | null>(null)
   const [remainingSeconds, setRemainingSeconds] = useState(0)
+  const pendingTransactionCodeRef = useRef<string>("")
+  const pendingStatusRef = useRef<string>("idle")
 
   useEffect(() => {
-    const loadCheckoutCourses = async () => {
-      let nextCourses: CheckoutCourse[] = []
-
-      const singleCourse = localStorage.getItem("checkoutCourse")
-      if (singleCourse) {
-        try {
-          const parsed = JSON.parse(singleCourse)
-          if (parsed) {
-            nextCourses = [{
-              ...parsed,
-              id: String(parsed?.id || "").trim(),
-              title: String(parsed?.title || "").trim() || "Khóa học",
-              price: parsePriceValue(parsed.price),
-            }]
-          }
-        } catch {
-          nextCourses = []
-        }
-      }
-
-      if (nextCourses.length === 0) {
-        const itemsRaw = localStorage.getItem("checkoutItems")
-        if (itemsRaw) {
-          try {
-            const items = JSON.parse(itemsRaw)
-            if (Array.isArray(items) && items.length > 0) {
-              nextCourses = items
-                .map((item: any) => ({
-                  ...item,
-                  id: String(item?.id || "").trim(),
-                  title: String(item?.title || "").trim() || "Khóa học",
-                  price: parsePriceValue(item?.price),
-                }))
-                .filter((item: CheckoutCourse) => item.id)
-            }
-          } catch {
-            nextCourses = []
-          }
-        }
-      }
-
-      if (nextCourses.length === 0) {
-        setCourses([])
-        return
-      }
-
-      const canonicalCourses = await Promise.all(
-        nextCourses.map((item) => resolveCanonicalCheckoutCourse(item)),
-      )
-
-      if (singleCourse) {
-        localStorage.setItem("checkoutCourse", JSON.stringify(canonicalCourses[0]))
-      } else {
-        localStorage.setItem("checkoutItems", JSON.stringify(canonicalCourses))
-      }
-
-      setCourses(canonicalCourses)
-    }
-
     try {
       const rawUser = localStorage.getItem("user")
       const rawRole = localStorage.getItem("userRole")
@@ -233,7 +180,35 @@ export default function CheckoutPage() {
       // ignore invalid local storage shape
     }
 
-    void loadCheckoutCourses()
+    const singleCourse = localStorage.getItem("checkoutCourse")
+    if (singleCourse) {
+      try {
+        const parsed = JSON.parse(singleCourse)
+        if (parsed) {
+          parsed.price = parsePriceValue(parsed.price)
+          setCourses([parsed])
+        }
+        return
+      } catch {
+        // continue to fallback
+      }
+    }
+
+    const itemsRaw = localStorage.getItem("checkoutItems")
+    if (!itemsRaw) return
+
+    try {
+      const items = JSON.parse(itemsRaw)
+      if (Array.isArray(items) && items.length > 0) {
+        const coursesWithNumPrices = items.map((item: any) => ({
+          ...item,
+          price: parsePriceValue(item.price),
+        }))
+        setCourses(coursesWithNumPrices)
+      }
+    } catch {
+      // ignore invalid localStorage shape
+    }
   }, [router, t])
 
   const firstCourse = courses[0] || null
@@ -265,6 +240,30 @@ export default function CheckoutPage() {
   const checkoutExpiresAtMs = sepayCheckout?.expiresAt ? new Date(sepayCheckout.expiresAt).getTime() : NaN
   const isCheckoutCountdownExpired = Number.isFinite(checkoutExpiresAtMs) && checkoutExpiresAtMs <= Date.now()
   const isSepayExpired = sepayCheckout?.status === "expired" || (isSepayPending && isCheckoutCountdownExpired)
+
+  const statusInfo = useMemo(() => {
+    return getPaymentStatusInfo(sepayCheckout?.status, t)
+  }, [sepayCheckout?.status, t])
+
+  useEffect(() => {
+    pendingTransactionCodeRef.current = sepayCheckout?.transactionCode || ""
+    pendingStatusRef.current = String(sepayCheckout?.status || "idle").toLowerCase()
+  }, [sepayCheckout?.transactionCode, sepayCheckout?.status])
+
+  useEffect(() => {
+    return () => {
+      const transactionCode = pendingTransactionCodeRef.current
+      const status = pendingStatusRef.current
+
+      if (!transactionCode || status !== "pending") {
+        return
+      }
+
+      void apiClient.cancelSepayPayment(transactionCode, "left_checkout_before_transfer").catch(() => {
+        // Silent cleanup call on unmount.
+      })
+    }
+  }, [])
 
   const formatDateTime = (value?: string | null) => {
     if (!value) return "-"
@@ -370,6 +369,13 @@ export default function CheckoutPage() {
       return { ...prev, status: "expired" }
     })
   }, [sepayCheckout?.status, sepayCheckout?.expiresAt, remainingSeconds])
+
+  useEffect(() => {
+    if (paymentMode !== "wallet") return
+    if (!sepayCheckout) return
+    setSepayCheckout(null)
+    setRemainingSeconds(0)
+  }, [paymentMode, sepayCheckout])
 
   const handleCheckCode = async () => {
     if (!firstCourse) return
@@ -591,6 +597,18 @@ export default function CheckoutPage() {
     }
   }
 
+  if (isBootstrapping) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="h-36 animate-pulse rounded-3xl border border-border/60 bg-card/60" />
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="h-[560px] animate-pulse rounded-3xl border border-border/60 bg-card/60" />
+          <div className="h-[560px] animate-pulse rounded-3xl border border-border/60 bg-card/60" />
+        </div>
+      </div>
+    )
+  }
+
   if (courses.length === 0) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
@@ -601,146 +619,217 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="mx-auto grid max-w-4xl gap-6 px-4 py-8 lg:grid-cols-2">
-      <div className="rounded-2xl border bg-card p-6">
-        <h1 className="mb-4 text-2xl font-bold">{t("checkout_title", "Thanh toán khóa học")}</h1>
-        <div className="space-y-3">
-          {courses.map((course) => (
-            <div key={course.id} className="rounded-lg border border-border/60 p-3">
-              <p className="text-base font-semibold">{course.title}</p>
-              {course.teacher && (
-                <p className="text-sm text-muted-foreground">{t("checkout_instructor", "Giảng viên")}: {course.teacher}</p>
-              )}
-              <p className="text-sm text-muted-foreground">
-                {t("checkout_original_price", "Giá gốc")}: {formatCurrencyByLanguage(Number(course.price || 0), language)}
-              </p>
-            </div>
-          ))}
-          <p className="text-sm text-muted-foreground">{t("checkout_discount", "Giảm giá")}: {formatCurrencyByLanguage(discount, language)}</p>
-          <p className="text-xl font-bold text-primary">{t("checkout_total", "Cần thanh toán")}: {formatCurrencyByLanguage(finalAmount, language)}</p>
-        </div>
+    <div className="relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-20 top-8 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="absolute -right-20 top-44 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl" />
       </div>
 
-      <div className="rounded-2xl border bg-card p-6">
-        <div className="mb-4">
-          <p className="mb-2 text-sm font-semibold">{t("checkout_payment_method", "Phương thức thanh toán")}</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setPaymentMode("sepay_qr")}
-              className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                paymentMode === "sepay_qr" ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"
-              }`}
-            >
-              <QrCode size={16} />
-              SePay QR
-            </button>
-            <button
-              onClick={() => setPaymentMode("wallet")}
-              className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                paymentMode === "wallet" ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"
-              }`}
-            >
-              <Wallet size={16} />
-              {t("checkout_wallet", "Số dư ví")}
-            </button>
-          </div>
-        </div>
+      <div className="relative mx-auto max-w-5xl px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="mb-6 rounded-3xl border border-border/70 bg-gradient-to-br from-card via-card to-blue-500/5 p-6 shadow-sm"
+        >
+          <p className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+            <Sparkles size={14} />
+            Course Checkout
+          </p>
+          <h1 className="mt-3 text-2xl font-bold sm:text-3xl">{t("checkout_title", "Thanh toán khóa học")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("checkout_subtitle", "Thanh toán nhanh với ví hoặc SePay QR, trạng thái được đồng bộ theo thời gian thực")}
+          </p>
+        </motion.div>
 
-        <div className="mb-4 flex items-center gap-2 text-lg font-semibold">
-          <Ticket size={18} />
-          {t("checkout_code_label", "Mã thanh toán")}
-        </div>
-
-        <div className="flex gap-2">
-          <input
-            value={paymentCode}
-            onChange={(e) => setPaymentCode(e.target.value.toUpperCase())}
-            placeholder={t("checkout_code_placeholder", "Nhập mã do admin cung cấp")}
-            disabled={isMultiCourseCheckout}
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
-          />
-          <button
-            onClick={handleCheckCode}
-            disabled={isCheckingCode || isMultiCourseCheckout}
-            className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60"
+        <div className="grid gap-6 lg:grid-cols-2">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.08, ease: "easeOut" }}
+            className="rounded-3xl border border-border/70 bg-card/95 p-6 shadow-sm backdrop-blur-sm"
           >
-            {isCheckingCode ? t("checkout_checking", "Đang kiểm tra") : t("checkout_check", "Kiểm tra")}
-          </button>
-        </div>
+            <h2 className="mb-4 text-lg font-semibold">{t("checkout_courses", "Khóa học đã chọn")}</h2>
+            <div className="space-y-3">
+              {courses.map((course) => (
+                <div key={course.id} className="rounded-xl border border-border/70 bg-background/70 p-3.5">
+                  <div className="flex items-start gap-3">
+                    <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg border border-border/70 bg-secondary/40">
+                      {course.image ? (
+                        <img
+                          src={course.image}
+                          alt={course.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[11px] font-semibold text-muted-foreground">
+                          No image
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="line-clamp-2 text-base font-semibold leading-snug">{course.title}</p>
+                      {course.teacher && (
+                        <p className="mt-1 text-sm text-muted-foreground">{t("checkout_instructor", "Giảng viên")}: {course.teacher}</p>
+                      )}
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {t("checkout_original_price", "Giá gốc")}: {formatCurrencyByLanguage(Number(course.price || 0), language)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-        {isMultiCourseCheckout && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            {t("checkout_multi_coupon_note", "Thanh toán nhiều khóa học đang tắt mã giảm giá để tránh áp sai khóa học.")}
-          </p>
-        )}
+            <div className="mt-4 rounded-2xl border border-border/70 bg-secondary/20 p-4">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>{t("checkout_discount", "Giảm giá")}</span>
+                <span>{formatCurrencyByLanguage(discount, language)}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-lg font-bold text-primary">
+                <span>{t("checkout_total", "Cần thanh toán")}</span>
+                <span>{formatCurrencyByLanguage(finalAmount, language)}</span>
+              </div>
+            </div>
+          </motion.div>
 
-        {couponPreview && (
-          <p className={`mt-3 text-sm ${couponPreview.valid ? "text-green-600" : "text-red-500"}`}>
-            {couponPreview.message || (couponPreview.valid ? "Mã thanh toán hợp lệ" : t("checkout_code_invalid", "Mã thanh toán không hợp lệ"))}
-          </p>
-        )}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.16, ease: "easeOut" }}
+            className="rounded-3xl border border-border/70 bg-card/95 p-6 shadow-sm backdrop-blur-sm"
+          >
+            <div className="mb-4">
+              <p className="mb-2 text-sm font-semibold">{t("checkout_payment_method", "Phương thức thanh toán")}</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  onClick={() => setPaymentMode("sepay_qr")}
+                  className={`rounded-xl border px-3 py-3 text-left text-sm transition ${
+                    paymentMode === "sepay_qr"
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border/70 hover:bg-secondary"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2 font-semibold"><QrCode size={16} />SePay QR</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">{t("checkout_mode_qr_desc", "Tạo QR và chuyển khoản theo nội dung hệ thống")}</span>
+                </button>
+                <button
+                  onClick={() => setPaymentMode("wallet")}
+                  className={`rounded-xl border px-3 py-3 text-left text-sm transition ${
+                    paymentMode === "wallet"
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border/70 hover:bg-secondary"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2 font-semibold"><Wallet size={16} />{t("checkout_wallet", "Số dư ví")}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">{t("checkout_mode_wallet_desc", "Thanh toán ngay nếu số dư ví đủ")}</span>
+                  <span className="mt-1 block text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+                    {t("checkout_wallet_current_balance", "Số dư hiện tại")}: {formatCurrencyByLanguage(walletBalance, language)}
+                  </span>
+                </button>
+              </div>
+            </div>
 
-        {sepayCheckout && (
-          <div className="mt-4 rounded-lg border border-border/60 p-4">
-            <p className="text-sm font-semibold">{t("checkout_sepay_info", "Thông tin thanh toán SePay")}</p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {t("checkout_sepay_status", "Trạng thái")}: {sepayCheckout.status}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t("checkout_transaction_id", "Mã giao dịch")}: {sepayCheckout.transactionId || "-"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t("checkout_bank", "Ngân hàng")}: {sepayCheckout.bankName} - {sepayCheckout.accountNumber}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t("checkout_transfer_content", "Nội dung")}: {sepayCheckout.transactionCode}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t("checkout_reference_code", "Mã tham chiếu")}: {sepayCheckout.referenceCode || "-"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t("checkout_created_at", "Thời gian tạo")}: {formatDateTime(sepayCheckout.createdAt)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t("checkout_paid_at", "Thời gian thanh toán")}: {formatDateTime(sepayCheckout.paidAt)}
-            </p>
-            {isSepayPending && (
-              <p className={`text-xs font-semibold ${isSepayExpired ? "text-red-600" : "text-amber-600"}`}>
-                {t("checkout_time_left", "Thời gian còn lại")}: {isSepayExpired ? "00:00" : formatCountdown(remainingSeconds)}
-              </p>
-            )}
-            {isSepayExpired && (
-              <p className="text-xs font-semibold text-red-600">
-                {t("checkout_qr_expired", "Mã QR đã hết hạn sau 15 phút chờ, vui lòng tạo lại giao dịch")}
-              </p>
-            )}
-            <button
-              onClick={handleCopyTransferContent}
-              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-            >
-              <Copy size={14} />
-              {t("checkout_copy_transfer", "Sao chép nội dung chuyển khoản")}
-            </button>
-            {sepayCheckout.qrImageUrl && !isSepayExpired && (
-              <div className="mt-3 rounded-lg border p-2">
-                <img src={sepayCheckout.qrImageUrl} alt="SePay QR" className="mx-auto h-52 w-52 object-contain" />
+            <div className="mb-4 rounded-2xl border border-border/70 bg-background/70 p-4">
+              <div className="mb-3 flex items-center gap-2 text-base font-semibold">
+                <Ticket size={18} />
+                {t("checkout_code_label", "Mã thanh toán")}
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  value={paymentCode}
+                  onChange={(e) => setPaymentCode(e.target.value.toUpperCase())}
+                  placeholder={t("checkout_code_placeholder", "Nhập mã do admin cung cấp")}
+                  disabled={isMultiCourseCheckout}
+                  className="w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm"
+                />
+                <button
+                  onClick={handleCheckCode}
+                  disabled={isCheckingCode || isMultiCourseCheckout}
+                  className="rounded-lg border border-border/70 px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60"
+                >
+                  {isCheckingCode ? t("checkout_checking", "Đang kiểm tra") : t("checkout_check", "Kiểm tra")}
+                </button>
+              </div>
+
+              {isMultiCourseCheckout && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {t("checkout_multi_coupon_note", "Thanh toán nhiều khóa học đang tắt mã giảm giá để tránh áp sai khóa học.")}
+                </p>
+              )}
+
+              {couponPreview && (
+                <p className={`mt-3 text-sm ${couponPreview.valid ? "text-emerald-600" : "text-red-500"}`}>
+                  {couponPreview.message || (couponPreview.valid ? "Mã thanh toán hợp lệ" : t("checkout_code_invalid", "Mã thanh toán không hợp lệ"))}
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-2 rounded-2xl border border-border/70 bg-secondary/20 p-3 text-xs text-muted-foreground sm:grid-cols-2">
+              <p className="inline-flex items-center gap-1.5"><ShieldCheck size={14} />{t("checkout_secure_note", "Giao dịch được đối soát tự động")}</p>
+              <p className="inline-flex items-center gap-1.5"><Clock3 size={14} />{t("checkout_expire_note", "Mã QR hết hạn sau 15 phút")}</p>
+            </div>
+
+            {paymentMode === "sepay_qr" && sepayCheckout && (
+              <div className="mt-4 rounded-2xl border border-border/70 bg-background/70 p-4">
+                <p className="text-sm font-semibold">{t("checkout_sepay_info", "Thông tin thanh toán SePay")}</p>
+                <div className="mt-2 space-y-1.5 text-xs text-muted-foreground">
+                  <p className="flex items-center gap-2">
+                    <span>{t("checkout_sepay_status", "Trạng thái")}:</span>
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${statusInfo.badgeClass}`}>
+                      {statusInfo.text}
+                    </span>
+                  </p>
+                  <p>{t("checkout_transaction_id", "Mã giao dịch")}: {sepayCheckout.transactionId || "-"}</p>
+                  <p>{t("checkout_bank", "Ngân hàng")}: {sepayCheckout.bankName} - {sepayCheckout.accountNumber}</p>
+                  <p>{t("checkout_transfer_content", "Nội dung")}: {sepayCheckout.transactionCode}</p>
+                  <p>{t("checkout_reference_code", "Mã tham chiếu")}: {sepayCheckout.referenceCode || "-"}</p>
+                  <p>{t("checkout_created_at", "Thời gian tạo")}: {formatDateTime(sepayCheckout.createdAt)}</p>
+                  <p>{t("checkout_paid_at", "Thời gian thanh toán")}: {formatDateTime(sepayCheckout.paidAt)}</p>
+                </div>
+
+                {isSepayPending && (
+                  <p className={`mt-2 text-xs font-semibold ${isSepayExpired ? "text-rose-600" : "text-amber-600"}`}>
+                    {t("checkout_time_left", "Thời gian còn lại")}: {isSepayExpired ? "00:00" : formatCountdown(remainingSeconds)}
+                  </p>
+                )}
+                {isSepayExpired && (
+                  <p className="mt-1 text-xs font-semibold text-rose-600">
+                    {t("checkout_qr_expired", "Mã QR đã hết hạn sau 15 phút chờ, vui lòng tạo lại giao dịch")}
+                  </p>
+                )}
+
+                <button
+                  onClick={handleCopyTransferContent}
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                >
+                  <Copy size={14} />
+                  {t("checkout_copy_transfer", "Sao chép nội dung chuyển khoản")}
+                </button>
+
+                {sepayCheckout.qrImageUrl && !isSepayExpired && (
+                  <div className="mt-3 rounded-xl border border-border/70 bg-card p-3">
+                    <img src={sepayCheckout.qrImageUrl} alt="SePay QR" className="mx-auto h-52 w-52 object-contain" />
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
-        <button
-          onClick={handlePay}
-          disabled={isSubmitting}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-semibold text-white hover:bg-primary/90 disabled:opacity-60"
-        >
-          {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : paymentMode === "wallet" ? <Wallet size={16} /> : <CreditCard size={16} />}
-          {isSubmitting
-            ? t("checkout_processing", "Đang xử lý")
-            : paymentMode === "wallet"
-              ? t("checkout_pay_wallet", "Thanh toán bằng ví")
-              : t("checkout_pay_sepay", "Tạo mã SePay QR")}
-        </button>
+            <button
+              onClick={handlePay}
+              disabled={isSubmitting}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 font-semibold text-white hover:bg-primary/90 disabled:opacity-60"
+            >
+              {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : paymentMode === "wallet" ? <Wallet size={16} /> : <CreditCard size={16} />}
+              {isSubmitting
+                ? t("checkout_processing", "Đang xử lý")
+                : paymentMode === "wallet"
+                  ? t("checkout_pay_wallet", "Thanh toán bằng ví")
+                  : t("checkout_pay_sepay", "Tạo mã SePay QR")}
+            </button>
+          </motion.div>
+        </div>
       </div>
     </div>
   )
