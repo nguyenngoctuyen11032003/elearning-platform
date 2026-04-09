@@ -90,6 +90,7 @@ export default function TeacherWalletMembershipPage() {
   const { t } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
+  const [autoRenewUpdating, setAutoRenewUpdating] = useState(false)
   const [plans, setPlans] = useState<PlanItem[]>([])
   const [subscriptionData, setSubscriptionData] = useState<any>(null)
   const [walletBalance, setWalletBalance] = useState(0)
@@ -153,8 +154,17 @@ export default function TeacherWalletMembershipPage() {
     })
   }, [plans])
 
+  const currentSubscription = subscriptionData?.subscription || null
   const currentPlan = subscriptionData?.subscription?.plan || null
   const currentPlanId = currentPlan?.id
+  const currentPlanAutoRenew = currentSubscription?.autoRenew === true
+  const currentPlanEndDate = currentSubscription?.endDate ? new Date(currentSubscription.endDate) : null
+  const currentPlanDaysLeft = useMemo(() => {
+    if (!currentPlanEndDate || Number.isNaN(currentPlanEndDate.getTime())) return 0
+    const diff = currentPlanEndDate.getTime() - Date.now()
+    if (diff <= 0) return 0
+    return Math.ceil(diff / (1000 * 60 * 60 * 24))
+  }, [currentSubscription?.endDate])
   const usage = subscriptionData?.usage || {
     coursesCreated: 0,
     courseLimit: 2,
@@ -249,6 +259,42 @@ export default function TeacherWalletMembershipPage() {
     }
   }
 
+  const updateAutoRenew = async (nextValue: boolean) => {
+    setAutoRenewUpdating(true)
+    try {
+      const result = await apiClient.updateTeacherAutoRenew(nextValue)
+      if (result?.subscription) {
+        setSubscriptionData((prev: any) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            subscription: {
+              ...prev.subscription,
+              ...result.subscription,
+            },
+          }
+        })
+      } else {
+        await loadData()
+      }
+
+      toast.success(
+        nextValue
+          ? t("teacher_auto_renew_enabled", "Đã bật tự động gia hạn")
+          : t("teacher_auto_renew_disabled", "Đã tắt tự động gia hạn"),
+      )
+    } catch (error: any) {
+      toast.error(
+        localizeMessage(
+          error?.message || t("teacher_auto_renew_update_failed", "Không thể cập nhật tự động gia hạn"),
+          getCurrentClientLanguage(),
+        ),
+      )
+    } finally {
+      setAutoRenewUpdating(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -318,6 +364,9 @@ export default function TeacherWalletMembershipPage() {
             <p className="max-w-2xl text-sm text-slate-100/90 md:text-base">
               {t("teacher_settings_current_plan_label", "Gói hiện tại")}: <span className="font-semibold">{currentPlan?.name || "Free"}</span>
             </p>
+            <p className="max-w-2xl text-sm text-slate-100/90 md:text-base">
+              {t("teacher_plan_days_left", "Số ngày còn lại")}: <span className="font-semibold">{currentPlanDaysLeft > 0 ? `${currentPlanDaysLeft} ${t("teacher_settings_day", "ngày")}` : t("teacher_plan_expired", "Đã hết hạn")}</span>
+            </p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur">
@@ -376,6 +425,12 @@ export default function TeacherWalletMembershipPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">{t("teacher_settings_current_plan_label", "Gói hiện tại")}</p>
           <p className="mt-2 text-xl font-black text-slate-900 dark:text-white">{currentPlan?.name || "Free"}</p>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{formatCurrency(Number(currentPlan?.price || 0))} / {currentPlan?.durationMonths || 1} {t("teacher_settings_month", "tháng")}</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            {t("teacher_plan_days_left", "Số ngày còn lại")}: <span className="font-semibold">{currentPlanDaysLeft > 0 ? `${currentPlanDaysLeft} ${t("teacher_settings_day", "ngày")}` : t("teacher_plan_expired", "Đã hết hạn")}</span>
+          </p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {t("teacher_auto_renew", "Tự động gia hạn")}: <span className="font-semibold">{currentPlanAutoRenew ? t("common_on", "Bật") : t("common_off", "Tắt")}</span>
+          </p>
         </article>
 
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -505,6 +560,30 @@ export default function TeacherWalletMembershipPage() {
                 <p className="inline-flex items-center gap-2"><Database size={15} className="text-emerald-600" /> {t("teacher_settings_storage", "Dung lượng")}: <span className="font-semibold">{formatLimit(plan.storageLimitGb, "GB")}</span></p>
                 <p className="inline-flex items-center gap-2"><Users size={15} className="text-indigo-600" /> {t("teacher_settings_students", "Học viên")}: <span className="font-semibold">{formatLimit(plan.studentsLimit)}</span></p>
               </div>
+
+              {isCurrent ? (
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    {t("teacher_plan_days_left", "Số ngày còn lại")}: {currentPlanDaysLeft > 0 ? `${currentPlanDaysLeft} ${t("teacher_settings_day", "ngày")}` : t("teacher_plan_expired", "Đã hết hạn")}
+                  </p>
+                  <label className="mt-2 inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={currentPlanAutoRenew}
+                      disabled={autoRenewUpdating}
+                      onChange={(e) => {
+                        void updateAutoRenew(e.target.checked)
+                      }}
+                      className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                    />
+                    <span>{t("teacher_auto_renew_toggle_label", "Tự động gia hạn bằng ví khi hết hạn")}</span>
+                  </label>
+                </div>
+              ) : (
+                <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                  {t("teacher_auto_renew_available_after_activate", "Mua gói này để bật tự động gia hạn trên gói đang dùng")}
+                </p>
+              )}
 
               <button
                 onClick={() => router.push(`/teacher/wallet-membership/checkout?planId=${encodeURIComponent(plan.id)}`)}

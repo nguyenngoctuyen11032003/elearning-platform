@@ -1233,6 +1233,13 @@ if (typeof window !== 'undefined' && token) {
     });
   }
 
+  async updateTeacherAutoRenew(enabled: boolean): Promise<any> {
+    return this.request('/instructor-subscriptions/teacher/auto-renew', {
+      method: 'PATCH',
+      body: JSON.stringify({ enabled }),
+    });
+  }
+
   async getTeacherPaymentMethods(): Promise<any[]> {
     const result = await this.request('/instructor-subscriptions/teacher/payment-methods');
     return Array.isArray(result) ? result : [];
