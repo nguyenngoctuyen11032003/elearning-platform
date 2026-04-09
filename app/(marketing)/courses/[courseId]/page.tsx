@@ -36,6 +36,7 @@ function toSafeImageUrl(url: string | undefined, fallback = "/image/python.png")
 export default function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const router = useRouter()
   const resolvedParams = use(params)
+  const resolvedCourseId = String(resolvedParams.courseId || "")
   const [userRole, setUserRole] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [isWishlisted, setIsWishlisted] = useState(false)
@@ -59,7 +60,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   const [courseData, setCourseData] = useState<any>(null)
   const [lessons, setLessons] = useState<any[]>([])
   const [pageLoading, setPageLoading] = useState(true)
+  const [courseError, setCourseError] = useState<string | null>(null)
   const activeLocale = language === "en" ? "en-US" : "vi-VN"
+  const effectiveCourseId = String(courseData?.id || resolvedCourseId || "")
 
   useEffect(() => {
     try {
@@ -88,28 +91,58 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     String(currentUserId) === String(courseTeacherId)
 
   useEffect(() => {
-    const id = resolvedParams.courseId
+    const id = resolvedCourseId
     const controller = new AbortController()
     const fetchData = async () => {
       try {
         setPageLoading(true)
-        const [courseRes, lessonsRes] = await Promise.all([
-          fetch(`/api/courses/${id}`, { cache: "no-store", signal: controller.signal }),
-          fetch(`/api/lessons/course/${id}`, { cache: "no-store", signal: controller.signal }),
-        ])
-        if (courseRes.ok) {
-          const j = await courseRes.json()
-          setCourseData(j?.data ?? j)
+        setCourseError(null)
+
+        const courseRes = await fetch(`/api/courses/${id}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        })
+
+        if (!courseRes.ok) {
+          const err = await courseRes.json().catch(() => ({}))
+          setCourseData(null)
+          setLessons([])
+          setCourseError(
+            String(
+              err?.error ||
+                err?.message ||
+                t("mk_course_unavailable", "Khóa học đã hết hạn hoặc không tồn tại."),
+            ),
+          )
+          return
         }
+
+        const courseJson = await courseRes.json()
+        const resolvedCourse = courseJson?.data ?? courseJson
+        setCourseData(resolvedCourse)
+
+        const canonicalCourseId = String(resolvedCourse?.id || id)
+        if (canonicalCourseId && canonicalCourseId !== id) {
+          router.replace(`/courses/${canonicalCourseId}`)
+        }
+
+        const lessonsRes = await fetch(`/api/lessons/course/${canonicalCourseId}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        })
+
         if (lessonsRes.ok) {
           const j = await lessonsRes.json()
           let d = j?.data ?? j
           if (d && !Array.isArray(d) && Array.isArray(d.data)) d = d.data
           setLessons(Array.isArray(d) ? [...d].sort((a: any, b: any) => a.order - b.order) : [])
+        } else {
+          setLessons([])
         }
       } catch (e) {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
           console.error(e)
+          setCourseError(t("mk_course_unavailable", "Khóa học đã hết hạn hoặc không tồn tại."))
         }
       } finally {
         setPageLoading(false)
@@ -117,33 +150,33 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     }
     fetchData()
     return () => controller.abort()
-  }, [resolvedParams.courseId])
+  }, [resolvedCourseId, router, t])
 
   useEffect(() => {
-    const id = resolvedParams.courseId
+    if (!effectiveCourseId) return
     if (isPrivilegedViewer) {
       setIsWishlisted(false)
       return
     }
     const checkWishlistStatus = async () => {
       try {
-        const result = await apiClient.checkWishlist(id)
+        const result = await apiClient.checkWishlist(effectiveCourseId)
         setIsWishlisted(Boolean(result))
       } catch (error) {
         console.error("Error checking wishlist status", error)
       }
     }
     checkWishlistStatus()
-  }, [resolvedParams.courseId, isPrivilegedViewer])
+  }, [effectiveCourseId, isPrivilegedViewer])
 
   useEffect(() => {
-    const id = resolvedParams.courseId
+    if (!effectiveCourseId) return
     const controller = new AbortController()
     const loadReviews = async () => {
       setReviewsLoading(true)
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
-        const res = await fetch(`/api/reviews/course/${id}`, { signal: controller.signal })
+        const res = await fetch(`/api/reviews/course/${effectiveCourseId}`, { signal: controller.signal })
         if (res.ok) {
           const j = await res.json()
           // TransformInterceptor wraps as { success, data: { data: [...], total, ... } }
@@ -180,7 +213,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     }
     loadReviews()
     return () => controller.abort()
-  }, [resolvedParams.courseId])
+  }, [effectiveCourseId])
 
   const handleSubmitReview = async () => {
     if (!newReview.comment.trim()) return
@@ -213,7 +246,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({
-            courseId: resolvedParams.courseId,
+            courseId: effectiveCourseId,
             rating: newReview.rating,
             comment: newReview.comment,
           }),
@@ -343,7 +376,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     advanced: t("mk_course_level_advanced", "Nâng cao"),
   }
   const course = {
-    id: courseData?.id ?? resolvedParams.courseId,
+    id: courseData?.id ?? resolvedCourseId,
     title: courseData?.title ?? t("common_loading", "Đang tải..."),
     teacher: courseData?.teacher?.name ?? "",
     teacherAvatar: toSafeImageUrl(courseData?.teacher?.avatar, "/placeholder-user.jpg"),
@@ -366,6 +399,36 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     ],
     [t],
   )
+
+  if (!pageLoading && !courseData) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col">
+        <main className="flex-1 px-4 sm:px-6 py-16 md:py-20">
+          <div className="mx-auto w-full max-w-3xl">
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+              <h1 className="text-2xl font-bold text-[#0F172A]">
+                {t("mk_course_not_found_title", "Khóa học không tồn tại")}
+              </h1>
+              <p className="mt-3 text-slate-600">
+                {courseError ||
+                  t(
+                    "mk_course_unavailable",
+                    "Khóa học đã hết hạn hoặc không tồn tại.",
+                  )}
+              </p>
+              <button
+                onClick={() => router.push("/courses")}
+                className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+              >
+                {t("mk_course_back_to_catalog", "Quay về danh sách khóa học")}
+              </button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col">

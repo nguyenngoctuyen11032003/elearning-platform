@@ -4,14 +4,14 @@ import { Plus, Edit2, Trash2, Eye, MoreVertical, Search, BookOpen, Users, Dollar
 import Link from "next/link"
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { formatPrice, formatCurrencyByLanguage } from "@/lib/format"
+import { formatCurrencyByLanguage } from "@/lib/format"
 import { authFetch } from "@/lib/authfetch"
 import { createPortal } from "react-dom"
 import React from "react"
 import { useLanguage } from "@/lib/i18n/language-context"
-import { ScientificText } from "@/components/scientific-text"
 interface Course {
   id: string
+  rootCourseId: string
   title: string
   description: string
   students: number
@@ -28,10 +28,11 @@ interface Course {
 
 interface BackendCourse {
   id: string
+  sourceCourseId?: string | null
   title: string
   description?: string
   price?: number
-  status?: "draft" | "pending" | "published" | "rejected"
+  status?: "draft" | "pending" | "published" | "rejected" | "archived"
   createdAt?: string
   thumbnail?: string
   duration?: number
@@ -82,6 +83,12 @@ interface CourseVersionMeta {
   courseVersionNumber: number
   courseVersionLabel: string
   courseVersionCreatedAt: string
+}
+
+interface CourseLineage {
+  rootCourseId: string
+  versions: Course[]
+  latest: Course
 }
 
 function parseLessonResources(resources: unknown): Array<{ url: string; name?: string }> {
@@ -159,13 +166,6 @@ function sortLessonsForSections(list: LessonPreview[]): LessonPreview[] {
     return String(a.title || "").localeCompare(String(b.title || ""), "vi")
   })
 }
-const InfoItem = ({ icon, label, value }: any) => (
-  <div className="bg-secondary rounded-xl p-3 text-center">
-    <div className="flex justify-center mb-1">{icon}</div>
-    <div className="text-lg font-bold">{value}</div>
-    <div className="text-xs text-muted-foreground">{label}</div>
-  </div>
-)
 export default function TeacherCoursesPage() {
   const router = useRouter()
   const { t, language } = useLanguage()
@@ -189,6 +189,8 @@ export default function TeacherCoursesPage() {
     totalStudents: number
   } | null>(null)
   const [studentsProgressVersionMeta, setStudentsProgressVersionMeta] = useState<CourseVersionMeta | null>(null)
+  const [expandedLineageId, setExpandedLineageId] = useState<string | null>(null)
+  const [activeVersionByLineage, setActiveVersionByLineage] = useState<Record<string, string>>({})
 
   const groupedCourseLessons = useMemo(() => {
     const sorted = sortLessonsForSections(selectedCourseLessons)
@@ -227,6 +229,7 @@ export default function TeacherCoursesPage() {
     const durationHours = course.duration ? Math.round(course.duration / 60) : 0
     return {
       id: course.id,
+      rootCourseId: String(course.sourceCourseId || course.id),
       title: course.title,
       description: course.description || "",
       students: course.enrollmentCount || 0,
@@ -341,11 +344,101 @@ export default function TeacherCoursesPage() {
   const approvedCourses = courses.filter(c => c.status === "approved").length
   const rejectedCourses = courses.filter(c => c.status === "rejected").length
 
-  const filteredCourses = courses.filter(
-    (course) =>
-      course.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (statusFilter === "all" || course.status === statusFilter),
-  )
+  const courseLineages = useMemo<CourseLineage[]>(() => {
+    if (courses.length === 0) return []
+
+    const byRoot = new Map<string, Course[]>()
+    courses.forEach((course) => {
+      const rootId = String(course.rootCourseId || course.id)
+      if (!byRoot.has(rootId)) {
+        byRoot.set(rootId, [])
+      }
+      byRoot.get(rootId)!.push(course)
+    })
+
+    const lineages = Array.from(byRoot.entries())
+      .map(([rootCourseId, versions]) => {
+        const sortedVersions = [...versions].sort((a, b) => {
+          const left = new Date(a.createdAt || 0).getTime()
+          const right = new Date(b.createdAt || 0).getTime()
+          if (right !== left) return right - left
+          return b.id.localeCompare(a.id)
+        })
+        return {
+          rootCourseId,
+          versions: sortedVersions,
+          latest: sortedVersions[0],
+        }
+      })
+      .sort((a, b) => {
+        const left = new Date(a.latest.createdAt || 0).getTime()
+        const right = new Date(b.latest.createdAt || 0).getTime()
+        if (right !== left) return right - left
+        return b.latest.id.localeCompare(a.latest.id)
+      })
+
+    return lineages
+  }, [courses])
+
+  const courseVersionNumberMap = useMemo(() => {
+    const map = new Map<string, number>()
+
+    courseLineages.forEach((lineage) => {
+      const ascVersions = [...lineage.versions].sort((a, b) => {
+        const left = new Date(a.createdAt || 0).getTime()
+        const right = new Date(b.createdAt || 0).getTime()
+        if (left !== right) return left - right
+        return a.id.localeCompare(b.id)
+      })
+
+      ascVersions.forEach((course, index) => {
+        map.set(course.id, index + 1)
+      })
+    })
+
+    return map
+  }, [courseLineages])
+
+  const filteredLineages = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase()
+
+    return courseLineages.filter((lineage) => {
+      const versions = lineage.versions
+      const matchedByText =
+        keyword.length === 0 ||
+        versions.some((course) =>
+          String(course.title || "").toLowerCase().includes(keyword),
+        )
+      const matchedByStatus =
+        statusFilter === "all" ||
+        versions.some((course) => course.status === statusFilter)
+
+      return matchedByText && matchedByStatus
+    })
+  }, [courseLineages, searchTerm, statusFilter])
+
+  useEffect(() => {
+    setActiveVersionByLineage((prev) => {
+      const next: Record<string, string> = {}
+
+      courseLineages.forEach((lineage) => {
+        const allowedIds = new Set(lineage.versions.map((version) => version.id))
+        const previousActiveId = prev[lineage.rootCourseId]
+        next[lineage.rootCourseId] =
+          previousActiveId && allowedIds.has(previousActiveId)
+            ? previousActiveId
+            : lineage.latest.id
+      })
+
+      return next
+    })
+
+    setExpandedLineageId((prev) => {
+      if (!prev) return prev
+      const stillExists = courseLineages.some((lineage) => lineage.rootCourseId === prev)
+      return stillExists ? prev : null
+    })
+  }, [courseLineages])
 
   const filterOptions = useMemo(
     () => [
@@ -538,7 +631,11 @@ useEffect(() => {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN', {
+    if (!dateString) return "--"
+    const parsed = new Date(dateString)
+    if (Number.isNaN(parsed.getTime())) return "--"
+
+    return parsed.toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -639,69 +736,197 @@ useEffect(() => {
               <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300">
                 {t("tc_loading_courses", "Đang tải khóa học...")}
               </div>
-            ) : filteredCourses.length === 0 ? (
+            ) : filteredLineages.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300">
                 <BookOpen size={42} className="mx-auto mb-3 opacity-60" />
                 {t("tc_no_courses_found", "Không tìm thấy khóa học nào")}
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {filteredCourses.map((course) => (
-                  <article
-                    key={course.id}
-                    data-course-card-id={course.id}
-                    className={`relative rounded-xl border border-slate-200 bg-slate-50/85 p-4 transition hover:border-cyan-400/60 hover:shadow-lg dark:border-slate-700 dark:bg-slate-800/45 ${menuCourse?.id === course.id ? "z-[9999]" : "z-0"}`}
-                  >
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <h3 className="line-clamp-2 text-base font-semibold text-slate-900 dark:text-white">{course.title}</h3>
-                      <button
-                        ref={(() => {
-                          if (!menuButtonRefs.current.has(course.id)) {
-                            menuButtonRefs.current.set(course.id, React.createRef<HTMLButtonElement>())
-                          }
-                          return menuButtonRefs.current.get(course.id)
-                        })()}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const rect = e.currentTarget.getBoundingClientRect()
-                          setMenuRect(rect)
-                          setMenuCourse(course)
-                          setMenuAnchorId(course.id)
-                        }}
-                        className="rounded-lg bg-white p-2 text-slate-500 hover:bg-slate-100 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-800"
-                      >
-                        <MoreVertical size={16} />
-                      </button>
-                    </div>
+                {filteredLineages.map((lineage) => {
+                  const primaryCourse = lineage.latest
+                  const isLineageExpanded = expandedLineageId === lineage.rootCourseId
+                  const hasMultipleVersions = lineage.versions.length > 1
+                  const selectedVersionId =
+                    activeVersionByLineage[lineage.rootCourseId] || primaryCourse.id
+                  const selectedVersion =
+                    lineage.versions.find((version) => version.id === selectedVersionId) ||
+                    primaryCourse
 
-                    <img src={course.thumbnail} alt={course.title} className="mb-3 h-28 w-full rounded-xl border border-slate-200 object-cover dark:border-slate-700" />
-
-                    <p className="mb-3 line-clamp-2 min-h-[36px] text-xs text-slate-500 dark:text-slate-400">
-                      {course.description || t("tc_course_no_description", "Không có mô tả chi tiết")}
-                    </p>
-
-                    <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-lg bg-white px-2 py-1.5 text-slate-600 dark:bg-slate-900/60 dark:text-slate-300">
-                        <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {course.duration}</span>
+                  return (
+                    <article
+                      key={lineage.rootCourseId}
+                      data-course-card-id={primaryCourse.id}
+                      className={`relative rounded-xl border border-slate-200 bg-slate-50/85 p-4 transition hover:border-cyan-400/60 hover:shadow-lg dark:border-slate-700 dark:bg-slate-800/45 ${menuCourse?.id === primaryCourse.id ? "z-[9999]" : "z-0"}`}
+                    >
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <h3 className="line-clamp-2 text-base font-semibold text-slate-900 dark:text-white">
+                            {primaryCourse.title}
+                          </h3>
+                          {hasMultipleVersions && (
+                            <p className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[11px] font-semibold text-cyan-700 dark:border-cyan-700/60 dark:bg-cyan-900/30 dark:text-cyan-200">
+                              {lineage.versions.length} {t("tc_course_versions", "phiên bản")}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          ref={(() => {
+                            if (!menuButtonRefs.current.has(primaryCourse.id)) {
+                              menuButtonRefs.current.set(primaryCourse.id, React.createRef<HTMLButtonElement>())
+                            }
+                            return menuButtonRefs.current.get(primaryCourse.id)
+                          })()}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setMenuRect(rect)
+                            setMenuCourse(primaryCourse)
+                            setMenuAnchorId(primaryCourse.id)
+                          }}
+                          className="rounded-lg bg-white p-2 text-slate-500 hover:bg-slate-100 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-800"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
                       </div>
-                      <div className="rounded-lg bg-white px-2 py-1.5 text-slate-600 dark:bg-slate-900/60 dark:text-slate-300">
-                        {course.lessons} {t("tc_lessons", "bài học")}
+
+                      <img src={primaryCourse.thumbnail} alt={primaryCourse.title} className="mb-3 h-28 w-full rounded-xl border border-slate-200 object-cover dark:border-slate-700" />
+
+                      <p className="mb-3 line-clamp-2 min-h-[36px] text-xs text-slate-500 dark:text-slate-400">
+                        {primaryCourse.description || t("tc_course_no_description", "Không có mô tả chi tiết")}
+                      </p>
+
+                      <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-lg bg-white px-2 py-1.5 text-slate-600 dark:bg-slate-900/60 dark:text-slate-300">
+                          <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {primaryCourse.duration}</span>
+                        </div>
+                        <div className="rounded-lg bg-white px-2 py-1.5 text-slate-600 dark:bg-slate-900/60 dark:text-slate-300">
+                          {primaryCourse.lessons} {t("tc_lessons", "bài học")}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="mb-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                      <span>{t("tc_students_label", "Học viên")}: {course.students}</span>
-                      <span>{course.rating > 0 ? `${course.rating}★` : t("tc_no_rating", "Chưa có")}</span>
-                    </div>
+                      <div className="mb-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <span>{t("tc_students_label", "Học viên")}: {primaryCourse.students}</span>
+                        <span>{primaryCourse.rating > 0 ? `${primaryCourse.rating}★` : t("tc_no_rating", "Chưa có")}</span>
+                      </div>
 
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{formatCurrencyByLanguage(course.price, language)}</span>
-                      {getStatusBadge(course.status)}
-                    </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{formatCurrencyByLanguage(primaryCourse.price, language)}</span>
+                        {getStatusBadge(primaryCourse.status)}
+                      </div>
 
-                    <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{course.category}</p>
-                  </article>
-                ))}
+                      <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{primaryCourse.category}</p>
+
+                      {hasMultipleVersions && (
+                        <div className="mt-4">
+                          <button
+                            onClick={() => {
+                              setExpandedLineageId((prev) =>
+                                prev === lineage.rootCourseId ? null : lineage.rootCourseId,
+                              )
+                            }}
+                            className="inline-flex h-9 items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100 dark:border-cyan-700/60 dark:bg-cyan-900/30 dark:text-cyan-200 dark:hover:bg-cyan-900/50"
+                          >
+                            {isLineageExpanded
+                              ? t("tc_hide_versions", "Ẩn bộ phiên bản")
+                              : t("tc_show_versions", "Mở bộ phiên bản")}
+                          </button>
+
+                          <div
+                            className={`overflow-hidden origin-left transform transition-all duration-500 ${
+                              isLineageExpanded
+                                ? "max-h-[520px] translate-x-0 opacity-100"
+                                : "max-h-0 -translate-x-6 opacity-0"
+                            }`}
+                          >
+                            <div className="mt-3 rounded-xl border border-slate-200 bg-white/80 p-3 dark:border-slate-700 dark:bg-slate-900/60">
+                              <div className="flex flex-wrap gap-2">
+                                {lineage.versions.map((version) => {
+                                  const versionNumber = courseVersionNumberMap.get(version.id) || 1
+                                  const isActiveTab = version.id === selectedVersion.id
+                                  return (
+                                    <button
+                                      key={version.id}
+                                      onClick={() =>
+                                        setActiveVersionByLineage((prev) => ({
+                                          ...prev,
+                                          [lineage.rootCourseId]: version.id,
+                                        }))
+                                      }
+                                      className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
+                                        isActiveTab
+                                          ? "border-cyan-500 bg-cyan-600 text-white"
+                                          : "border-slate-200 bg-slate-50 text-slate-600 hover:border-cyan-300 hover:bg-cyan-50 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300"
+                                      }`}
+                                    >
+                                      v{versionNumber}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+
+                              <div className="mt-3 space-y-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                    {t("tc_course_version", "Phiên bản")} v{courseVersionNumberMap.get(selectedVersion.id) || 1}
+                                  </p>
+                                  {getStatusBadge(selectedVersion.status)}
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  {t("tc_created_date", "Ngày tạo")}: {formatDate(selectedVersion.createdAt)}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  {t("tc_students_remaining", "Số học viên còn lại")}: {selectedVersion.students}
+                                </p>
+                                {selectedVersion.status === "archived" && selectedVersion.students === 0 && (
+                                  <p className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-200">
+                                    {t(
+                                      "tc_archived_when_no_students",
+                                      "Phiên bản này đã lưu trữ khi không còn học viên dang hoc.",
+                                    )}
+                                  </p>
+                                )}
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                  <button
+                                    onClick={() => handleViewDetails(selectedVersion)}
+                                    className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                  >
+                                    <Eye size={14} /> {t("tc_view_details", "Xem chi tiết")}
+                                  </button>
+                                  {canEditCourse(selectedVersion.status) && (
+                                    <button
+                                      onClick={() => handleEdit(selectedVersion.id)}
+                                      className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                    >
+                                      <Edit2 size={14} /> {t("tc_edit", "Chỉnh sửa")}
+                                    </button>
+                                  )}
+                                  {(selectedVersion.status === "draft" || selectedVersion.status === "rejected") && (
+                                    <button
+                                      onClick={() => handleSubmitForReview(selectedVersion.id)}
+                                      className="inline-flex h-8 items-center gap-1 rounded-md border border-cyan-200 bg-cyan-50 px-2.5 text-xs font-medium text-cyan-700 hover:bg-cyan-100 dark:border-cyan-700/60 dark:bg-cyan-900/30 dark:text-cyan-200 dark:hover:bg-cyan-900/50"
+                                    >
+                                      <Send size={14} />
+                                      {selectedVersion.status === "rejected"
+                                        ? t("tc_resubmit", "Gửi duyệt lại")
+                                        : t("tc_submit", "Gửi duyệt")}
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleViewStudentsProgress(selectedVersion)}
+                                    className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                  >
+                                    <BarChart3 size={14} /> {t("tc_view_students_progress_score", "Xem điểm & tiến độ")}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </article>
+                  )
+                })}
               </div>
             )}
           </section>

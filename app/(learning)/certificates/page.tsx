@@ -36,6 +36,54 @@ interface Certificate {
   imageUrl?: string
   status: string
   courseId: string
+  title: string
+  description?: string
+  validityPeriod: string
+  courseTitle: string
+  studentName: string
+  studentEmail?: string
+  instructorName: string
+  template?: {
+    title?: string
+    description?: string
+    templateStyle?: string
+    badgeStyle?: string
+    backgroundColor?: string
+    borderColor?: string
+    borderStyle?: string
+    textColor?: string
+    templateImageUrl?: string
+    logoUrl?: string
+    signatureUrl?: string
+    validityPeriod?: string
+  } | null
+  metadata?: {
+    studentName?: string
+    courseName?: string
+    certificateTitle?: string
+    title?: string
+    snapshot?: {
+      studentName?: string
+      courseName?: string
+      certificateTitle?: string
+      title?: string
+      issuedAt?: string
+      template?: {
+        title?: string
+        description?: string
+        templateStyle?: string
+        badgeStyle?: string
+        backgroundColor?: string
+        borderColor?: string
+        borderStyle?: string
+        textColor?: string
+        templateImageUrl?: string
+        logoUrl?: string
+        signatureUrl?: string
+        validityPeriod?: string
+      } | null
+    } | null
+  } | null
   course?: {
     id: string
     title: string
@@ -46,6 +94,29 @@ interface Certificate {
     firstName?: string
     lastName?: string
   }
+}
+
+function normalizeComparableMediaPath(value?: string): string {
+  const raw = String(value || "").trim()
+  if (!raw) return ""
+
+  return raw
+    .replace(/^https?:\/\/[^/]+/i, "")
+    .replace(/^\/api\/uploads\//i, "/uploads/")
+    .replace(/\?.*$/, "")
+    .replace(/#.*$/, "")
+}
+
+function shouldUseCertificateImage(cert: Certificate): boolean {
+  const certificateImage = normalizeComparableMediaPath(cert.imageUrl)
+  if (!certificateImage) return false
+
+  const templateImage = normalizeComparableMediaPath(cert.template?.templateImageUrl)
+  if (templateImage && certificateImage === templateImage) {
+    return false
+  }
+
+  return true
 }
 
 interface ExamAttemptItem {
@@ -98,10 +169,12 @@ function normalizeMediaUrl(value: unknown): string | undefined {
 }
 
 function mapCertificate(raw: any): Certificate {
+  const snapshot = raw?.metadata?.snapshot || null
+  const templateSource = snapshot?.template || raw?.metadata?.template || raw?.template || null
+
   const imageUrl =
     raw?.imageUrl ||
     raw?.certificateImageUrl ||
-    raw?.templateImageUrl ||
     raw?.metadata?.previewImageUrl ||
     raw?.metadata?.thumbnailUrl ||
     raw?.metadata?.imageUrl ||
@@ -114,14 +187,74 @@ function mapCertificate(raw: any): Certificate {
     raw?.metadata?.certificatePdfUrl ||
     raw?.metadata?.downloadUrl
 
+  const courseTitle =
+    raw?.course?.title ||
+    raw?.metadata?.snapshot?.courseName ||
+    raw?.metadata?.courseName ||
+    ""
+
+  const studentName =
+    raw?.student?.name ||
+    [raw?.student?.firstName, raw?.student?.lastName].filter(Boolean).join(" ") ||
+    raw?.metadata?.snapshot?.studentName ||
+    raw?.metadata?.studentName ||
+    ""
+
+  const studentEmail = raw?.student?.email || ""
+
+  const instructorName =
+    raw?.course?.teacher?.name ||
+    [raw?.course?.teacher?.firstName, raw?.course?.teacher?.lastName].filter(Boolean).join(" ") ||
+    raw?.metadata?.teacherName ||
+    ""
+
+  const title =
+    templateSource?.title ||
+    raw?.metadata?.snapshot?.certificateTitle ||
+    raw?.metadata?.certificateTitle ||
+    raw?.metadata?.snapshot?.examTitle ||
+    raw?.metadata?.examTitle ||
+    raw?.metadata?.snapshot?.title ||
+    raw?.metadata?.title ||
+    raw?.title ||
+    ""
+
+  const description =
+    templateSource?.description ||
+    raw?.metadata?.snapshot?.description ||
+    raw?.metadata?.description ||
+    raw?.description ||
+    ""
+
+  const validityPeriod =
+    templateSource?.validityPeriod ||
+    raw?.validityPeriod ||
+    "Vĩnh viễn"
+
   return {
     id: raw?.id || "",
     certificateNumber: raw?.certificateNumber || "",
-    issueDate: raw?.issueDate || raw?.createdAt || new Date().toISOString(),
+    issueDate: raw?.issueDate || raw?.createdAt || snapshot?.issuedAt || new Date().toISOString(),
     pdfUrl: normalizeMediaUrl(pdfUrl),
     imageUrl: normalizeMediaUrl(imageUrl),
     status: raw?.status || "approved",
     courseId: raw?.courseId || raw?.course?.id || "",
+    title,
+    description,
+    validityPeriod,
+    courseTitle,
+    studentName,
+    studentEmail,
+    instructorName,
+    template: templateSource
+      ? {
+          ...templateSource,
+          templateImageUrl: normalizeMediaUrl(templateSource?.templateImageUrl),
+          logoUrl: normalizeMediaUrl(templateSource?.logoUrl),
+          signatureUrl: normalizeMediaUrl(templateSource?.signatureUrl),
+        }
+      : null,
+    metadata: raw?.metadata,
     course: raw?.course
       ? {
           id: raw.course.id || "",
@@ -206,13 +339,7 @@ export default function CertificatesPage() {
   }
 
   const getInstructorName = (cert: Certificate) => {
-    const teacher = cert.course?.teacher
-    if (!teacher) return t("cert_instructor", "Giảng viên")
-    return (
-      teacher.name ||
-      [teacher.firstName, teacher.lastName].filter(Boolean).join(" ") ||
-      t("cert_instructor", "Giảng viên")
-    )
+    return cert.instructorName || t("cert_instructor", "Giảng viên")
   }
 
   const handleDownload = (cert: Certificate) => {
@@ -234,7 +361,7 @@ export default function CertificatesPage() {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: cert.course?.title || t("cert_title", "Chứng chỉ"),
+          title: cert.title || t("cert_completed_name_default", "Chứng chỉ hoàn thành"),
           text: t("cert_share_message", "Xem chứng chỉ của tôi"),
           url,
         })
@@ -418,11 +545,17 @@ export default function CertificatesPage() {
     return certificates.filter((cert) => {
       if (!keyword) return true
 
-      const courseName = String(cert.course?.title || "").toLowerCase()
+      const courseName = String(cert.courseTitle || cert.course?.title || "").toLowerCase()
+      const certificateTitle = String(cert.title || "").toLowerCase()
       const code = String(cert.certificateNumber || "").toLowerCase()
       const teacher = getInstructorName(cert).toLowerCase()
 
-      return courseName.includes(keyword) || code.includes(keyword) || teacher.includes(keyword)
+      return (
+        courseName.includes(keyword) ||
+        certificateTitle.includes(keyword) ||
+        code.includes(keyword) ||
+        teacher.includes(keyword)
+      )
     })
   }, [certificates, searchTerm])
 
@@ -559,7 +692,7 @@ export default function CertificatesPage() {
               className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.1)] transition-all hover:border-cyan-400/60 hover:shadow-[0_18px_40px_rgba(14,165,233,0.2)] dark:border-slate-800 dark:bg-slate-900/70"
             >
               <div className="relative aspect-[16/10] overflow-hidden bg-slate-950">
-                {cert.imageUrl ? (
+                {shouldUseCertificateImage(cert) ? (
                   <img src={cert.imageUrl} alt={t("cert_image_alt", "Chứng chỉ")} className="h-full w-full object-cover" loading="lazy" />
                 ) : (
                   <div className="relative h-full w-full overflow-hidden bg-[#0d1b2e]">
@@ -568,9 +701,9 @@ export default function CertificatesPage() {
                     <div className="absolute bottom-0 left-0 h-12 w-full bg-gradient-to-t from-[#b8860b]/15 to-transparent" />
                     <div className="relative flex h-full flex-col items-center justify-center px-4 text-center">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#f1d27a]/90">ICS E-LEARNING</p>
-                      <p className="mt-1 text-sm font-extrabold uppercase tracking-[0.06em] text-[#ffd700]">{t("cert_title", "Chứng chỉ")}</p>
-                      <p className="mt-2 line-clamp-1 text-xs font-semibold text-[#f8fafc]">{cert.course?.title || t("cert_course_cert", "Chứng chỉ khóa học")}</p>
-                      <p className="mt-1 line-clamp-1 text-[11px] text-[#cbd5e1]">{cert.student?.name || [cert.student?.firstName, cert.student?.lastName].filter(Boolean).join(" ") || t("cert_student", "Học viên")}</p>
+                      <p className="mt-1 text-sm font-extrabold uppercase tracking-[0.06em] text-[#ffd700]">{cert.title || t("cert_completed_name_default", "Chứng chỉ hoàn thành")}</p>
+                      <p className="mt-2 line-clamp-1 text-xs font-semibold text-[#f8fafc]">{cert.courseTitle || cert.course?.title || t("cert_course_cert", "Chứng chỉ khóa học")}</p>
+                      <p className="mt-1 line-clamp-1 text-[11px] text-[#cbd5e1]">{cert.studentName || t("cert_student", "Học viên")}</p>
                       <p className="mt-2 max-w-[90%] truncate rounded-full border border-[#b8860b]/45 bg-[#b8860b]/10 px-2 py-0.5 font-mono text-[10px] text-[#f1d27a]">
                         {cert.certificateNumber || "CERT-XXXX"}
                       </p>
@@ -581,7 +714,7 @@ export default function CertificatesPage() {
 
                 <div className="absolute left-3 top-3">{renderStatusBadge(cert.status)}</div>
                 <p className="absolute bottom-3 left-3 right-3 line-clamp-2 text-sm font-semibold text-white">
-                  {cert.course?.title || t("cert_course_cert", "Chứng chỉ khóa học")}
+                  {cert.title || t("cert_completed_name_default", "Chứng chỉ hoàn thành")}
                 </p>
                 <button
                   type="button"
@@ -597,7 +730,7 @@ export default function CertificatesPage() {
                     {t("cert_completed_name_label", "Tên chứng chỉ hoàn thành")}
                   </p>
                   <p className="mt-1 line-clamp-2 text-sm font-bold text-slate-900 dark:text-white">
-                    {cert.course?.title || t("cert_course_cert", "Chứng chỉ khóa học")}
+                    {cert.title || t("cert_completed_name_default", "Chứng chỉ hoàn thành")}
                   </p>
                 </div>
 
@@ -693,7 +826,7 @@ export default function CertificatesPage() {
             <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/90 px-4 py-3">
               <div>
                 <p className="line-clamp-1 text-sm font-semibold text-white">
-                  {viewerCert.course?.title || t("cert_title", "Chứng chỉ")}
+                  {viewerCert.title || t("cert_completed_name_default", "Chứng chỉ hoàn thành")}
                 </p>
                 <p className="mt-0.5 text-xs text-slate-300">
                   {t("cert_issue_date", "Ngày cấp")}: {formatDate(viewerCert.issueDate)}
@@ -735,7 +868,7 @@ export default function CertificatesPage() {
             </div>
 
             <div className="max-h-[72vh] overflow-auto bg-[radial-gradient(circle_at_top,rgba(30,41,59,0.55),rgba(2,6,23,1))] p-4 md:p-6">
-              {viewerCert.imageUrl ? (
+              {shouldUseCertificateImage(viewerCert) ? (
                 <div className="mx-auto w-fit rounded-xl border border-slate-700 bg-white p-2 shadow-[0_18px_40px_rgba(2,6,23,0.6)]">
                   <img
                     src={viewerCert.imageUrl}

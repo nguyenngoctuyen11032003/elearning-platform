@@ -28,6 +28,7 @@ import { TeacherExamsNavbar } from "@/components/teacher-exams-navbar"
 import { ScientificText } from "@/components/scientific-text"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { DialogSelect } from "@/components/ui/dialog-select"
 
 // Generate unique ID without uuid dependency
 const generateId = () => {
@@ -51,6 +52,9 @@ interface Question {
 interface Course {
   id: string
   title: string
+  sourceCourseId?: string | null
+  status?: string
+  createdAt?: string
 }
 
 interface CertificateTemplate {
@@ -123,6 +127,49 @@ const shouldFlagAssetReview = (question: Pick<Question, "question" | "options" |
 }
 
 const TYPE_LABEL_FALLBACK = "Khác"
+
+const APPROVED_COURSE_STATUSES = new Set(["published", "approved"])
+
+const toCourseTimestamp = (course: Course): number => {
+  const parsed = Date.parse(String(course.createdAt || ""))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const resolveLatestApprovedCourses = (items: Course[]): Course[] => {
+  const approved = items.filter((course) =>
+    APPROVED_COURSE_STATUSES.has(String(course.status || "").toLowerCase()),
+  )
+
+  const latestByRoot = new Map<string, Course>()
+
+  for (const course of approved) {
+    const rootCourseId = String(course.sourceCourseId || course.id)
+    const current = latestByRoot.get(rootCourseId)
+
+    if (!current) {
+      latestByRoot.set(rootCourseId, course)
+      continue
+    }
+
+    const currentTime = toCourseTimestamp(current)
+    const incomingTime = toCourseTimestamp(course)
+
+    if (incomingTime > currentTime) {
+      latestByRoot.set(rootCourseId, course)
+      continue
+    }
+
+    if (incomingTime === currentTime && course.id.localeCompare(current.id) > 0) {
+      latestByRoot.set(rootCourseId, course)
+    }
+  }
+
+  return Array.from(latestByRoot.values()).sort((a, b) => {
+    const timeDiff = toCourseTimestamp(b) - toCourseTimestamp(a)
+    if (timeDiff !== 0) return timeDiff
+    return String(a.title || "").localeCompare(String(b.title || ""), "vi")
+  })
+}
 
 const extractTypeToken = (value: string): string | null => {
   const text = String(value || "").trim()
@@ -382,7 +429,7 @@ export default function CreateExamPage() {
         const contentType = response.headers.get("content-type") || ""
         if (contentType.includes("application/json")) {
           const data = await response.json()
-          const nextCourses = normalizeList<Course>(data)
+          const nextCourses = resolveLatestApprovedCourses(normalizeList<Course>(data))
           setCourses(nextCourses)
         } else {
           setCourses([])
@@ -395,6 +442,18 @@ export default function CreateExamPage() {
       setCourses([])
     }
   }
+
+  useEffect(() => {
+    if (!formData.courseId) return
+    const exists = courses.some((course) => course.id === formData.courseId)
+    if (!exists) {
+      setFormData((prev) => ({
+        ...prev,
+        courseId: "",
+        certificateTemplateId: "",
+      }))
+    }
+  }, [courses, formData.courseId])
 
   const fetchTemplates = async () => {
     try {
@@ -832,21 +891,25 @@ export default function CreateExamPage() {
                   <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
                     {t("exam_course", "Khóa học")} <span className="text-red-500">*</span>
                   </label>
-                  <UniversalSelect
+                  <DialogSelect
                     value={formData.courseId}
-                    onChange={(e) => setFormData({ ...formData, courseId: e.target.value, certificateTemplateId: "" })}
-                    className={`relative z-30 w-full px-4 py-3 bg-secondary dark:bg-slate-800 border rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary ${
+                    onChange={(nextValue) =>
+                      setFormData({
+                        ...formData,
+                        courseId: nextValue,
+                        certificateTemplateId: "",
+                      })
+                    }
+                    placeholder={t("exam_select_course", "Chọn khóa học")}
+                    className={`relative z-30 w-full px-4 py-3 bg-secondary dark:bg-slate-800 rounded-xl text-foreground dark:text-white ${
                       errors.courseId ? "border-red-500" : "border-border dark:border-slate-700"
                     }`}
-                    contentClassName="bg-white/90 dark:bg-slate-900/88 backdrop-blur-xl border border-white/45 dark:border-slate-700/80 shadow-[0_20px_60px_rgba(2,6,23,0.45)] ring-1 ring-sky-400/20"
-                    portalled
-                    style={{ zIndex: 30 }}
                   >
                     <option value="">{t("exam_select_course", "Chọn khóa học")}</option>
-                    {courses.map(course => (
+                    {courses.map((course) => (
                       <option key={course.id} value={course.id}>{course.title}</option>
                     ))}
-                  </UniversalSelect>
+                  </DialogSelect>
                   {errors.courseId && <p className="text-red-500 text-sm mt-1">{errors.courseId}</p>}
                 </div>
               </div>

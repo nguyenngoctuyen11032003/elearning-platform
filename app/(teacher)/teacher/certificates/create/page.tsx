@@ -7,7 +7,6 @@ import { useAuth } from "@/lib/auth/auth-context"
 import { authFetch } from "@/lib/authfetch"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
-import { UniversalSelect } from "@/components/ui/universal-select"
 import { DialogSelect } from "@/components/ui/dialog-select"
 import {
   ArrowLeft,
@@ -55,6 +54,9 @@ interface CertificateData {
 interface Course {
   id: string
   title: string
+  sourceCourseId?: string | null
+  status?: string
+  createdAt?: string
 }
 
 interface CertificateTemplate extends CertificateData {
@@ -248,6 +250,49 @@ const borderStyleOptionsConfig = [
   { value: "dotted", labelKey: "tch_cert_border_dotted", fallback: "Chấm tròn" },
 ]
 
+const APPROVED_COURSE_STATUSES = new Set(["published", "approved"])
+
+const toCourseTimestamp = (course: Course): number => {
+  const parsed = Date.parse(String(course.createdAt || ""))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const resolveLatestApprovedCourses = (items: Course[]): Course[] => {
+  const approved = items.filter((course) =>
+    APPROVED_COURSE_STATUSES.has(String(course.status || "").toLowerCase()),
+  )
+
+  const latestByRoot = new Map<string, Course>()
+
+  for (const course of approved) {
+    const rootCourseId = String(course.sourceCourseId || course.id)
+    const current = latestByRoot.get(rootCourseId)
+
+    if (!current) {
+      latestByRoot.set(rootCourseId, course)
+      continue
+    }
+
+    const currentTime = toCourseTimestamp(current)
+    const incomingTime = toCourseTimestamp(course)
+
+    if (incomingTime > currentTime) {
+      latestByRoot.set(rootCourseId, course)
+      continue
+    }
+
+    if (incomingTime === currentTime && course.id.localeCompare(current.id) > 0) {
+      latestByRoot.set(rootCourseId, course)
+    }
+  }
+
+  return Array.from(latestByRoot.values()).sort((a, b) => {
+    const timeDiff = toCourseTimestamp(b) - toCourseTimestamp(a)
+    if (timeDiff !== 0) return timeDiff
+    return String(a.title || "").localeCompare(String(b.title || ""), "vi")
+  })
+}
+
 export default function CreateCertificatePage() {
   const router = useRouter()
   const { t } = useLanguage()
@@ -369,13 +414,18 @@ export default function CreateCertificatePage() {
 
         if (response.ok) {
           const data = await response.json()
-          if (Array.isArray(data)) {
-            nextCourses = data
-          } else if (data && Array.isArray(data.data)) {
-            nextCourses = data.data
-          } else if (data?.data?.data && Array.isArray(data.data.data)) {
-            nextCourses = data.data.data
-          }
+          const rawList = normalizeList<any>(data)
+          const mappedCourses = rawList
+            .map((course: any) => ({
+              id: String(course?.id || ""),
+              title: String(course?.title || ""),
+              sourceCourseId: course?.sourceCourseId ? String(course.sourceCourseId) : null,
+              status: String(course?.status || "").toLowerCase(),
+              createdAt: String(course?.createdAt || ""),
+            }))
+            .filter((course: Course) => course.id && course.title)
+
+          nextCourses = resolveLatestApprovedCourses(mappedCourses)
         }
 
         setCourses(nextCourses)
@@ -1350,11 +1400,9 @@ export default function CreateCertificatePage() {
                   <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">
                     {t("tch_cert_label_course", "Khóa học")} <span className="text-red-500">*</span>
                   </label>
-                  <UniversalSelect
+                  <DialogSelect
                     value={formData.courseId}
-                    onChange={(e) => {
-                      const selectedId = e.target.value
-                      const selected = courses.find(c => String(c.id) === selectedId)
+                    onChange={(selectedId) => {
                       setFormData({ ...formData, courseId: selectedId })
                     }}
                     className={`relative z-50 w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 rounded-xl text-foreground dark:text-white transition-all focus:ring-4 focus:ring-primary/20 ${
@@ -1362,14 +1410,13 @@ export default function CreateCertificatePage() {
                     }`}
                   >
                     <option value="">{t("tch_cert_option_select_course", "Chọn khóa học")}</option>
-                    {courses && courses.length > 0 ? (
-                      courses.map(course => (
-                        <option key={course.id} value={course.id}>{course.title}</option>
-                      ))
-                    ) : (
-                      <option disabled>{t("tch_cert_option_no_courses", "Không có khóa học nào")}</option>
+                    {formData.courseId && !courses.some((course) => course.id === formData.courseId) && (
+                      <option value={formData.courseId}>Khóa học đã chọn (không còn trong danh sách hiện tại)</option>
                     )}
-                  </UniversalSelect>
+                    {courses.map(course => (
+                      <option key={course.id} value={course.id}>{course.title}</option>
+                    ))}
+                  </DialogSelect>
                   {errors.courseId && <p className="text-red-500 text-sm mt-2 flex items-center gap-1"><AlertCircle size={14}/>{errors.courseId}</p>}
                 </div>
 
