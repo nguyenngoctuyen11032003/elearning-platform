@@ -12,6 +12,10 @@ interface Review {
   id: string
   courseName: string
   courseId: string
+  level?: string
+  categoryName?: string
+  version?: number
+  isOldVersion?: boolean
   studentName: string
   studentAvatar: string
   studentEmail: string
@@ -30,13 +34,26 @@ interface TeacherReviewPayload {
     fiveStarCount: number
     responseRate: number
   }
-  courses?: Array<{ id: string; name: string }>
+  courses?: Array<{
+    id: string
+    name: string
+    level?: string
+    categoryName?: string
+    version?: number
+    isOldVersion?: boolean
+    sourceCourseId?: string | null
+  }>
   reviews?: Review[]
 }
 
 interface ReviewCourse {
   id: string
   name: string
+  level?: string
+  categoryName?: string
+  version?: number
+  isOldVersion?: boolean
+  sourceCourseId?: string | null
 }
 
 export default function TeacherReviewsPage() {
@@ -73,6 +90,11 @@ export default function TeacherReviewsPage() {
               .map((course: any) => ({
                 id: String(course?.id || "").trim(),
                 name: String(course?.name || course?.title || course?.courseName || "").trim(),
+                level: course?.level || undefined,
+                categoryName: course?.categoryName || undefined,
+                version: course?.version || 1,
+                isOldVersion: course?.isOldVersion || false,
+                sourceCourseId: course?.sourceCourseId || null,
               }))
               .filter((course) => course.id && course.name)
           : []
@@ -123,7 +145,6 @@ export default function TeacherReviewsPage() {
     }
   }, [courseFilter, courses])
 
-  // Filter by tab
   const getTabFilteredReviews = () => {
     let filtered = reviews
     
@@ -138,16 +159,53 @@ export default function TeacherReviewsPage() {
     return filtered
   }
 
+  // Group reviews by course and version
+  const groupReviewsByCoursesAndVersion = (reviewsToGroup: Review[]) => {
+    const grouped = new Map<string, { course: ReviewCourse; reviews: Review[] }>()
+
+    for (const review of reviewsToGroup) {
+      const course = courses.find(c => c.id === review.courseId)
+      if (!course) continue
+
+      const courseKey = review.courseId
+      if (!grouped.has(courseKey)) {
+        grouped.set(courseKey, {
+          course,
+          reviews: []
+        })
+      }
+      grouped.get(courseKey)!.reviews.push(review)
+    }
+
+    // Sort by category and version, then by course name
+    return Array.from(grouped.values()).sort((a, b) => {
+      const catA = a.course.categoryName || ""
+      const catB = b.course.categoryName || ""
+      if (catA !== catB) return catA.localeCompare(catB)
+      
+      const versionA = a.course.version || 0
+      const versionB = b.course.version || 0
+      if (versionA !== versionB) return versionB - versionA // Newer versions first
+      
+      return a.course.name.localeCompare(b.course.name)
+    })
+  }
+
   // Apply all filters
-  const filteredReviews = getTabFilteredReviews().filter(review => {
-    const matchesRating = ratingFilter === "all" || review.rating === parseInt(ratingFilter)
-    const matchesCourse = courseFilter === "all" || review.courseId === courseFilter
-    const matchesSearch = review.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         review.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         review.studentEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         review.courseName.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesRating && matchesCourse && matchesSearch
-  })
+  const getFilteredReviewsFlat = () => {
+    return getTabFilteredReviews().filter(review => {
+      const matchesRating = ratingFilter === "all" || review.rating === parseInt(ratingFilter)
+      const matchesCourse = courseFilter === "all" || review.courseId === courseFilter
+      const matchesSearch = review.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           review.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           review.studentEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           review.courseName.toLowerCase().includes(searchTerm.toLowerCase())
+      return matchesRating && matchesCourse && matchesSearch
+    })
+  }
+
+  const filteredReviews = getFilteredReviewsFlat()
+  const groupedReviews = groupReviewsByCoursesAndVersion(filteredReviews)
 
   useEffect(() => {
     if (filteredReviews.length === 0) {
@@ -333,7 +391,11 @@ export default function TeacherReviewsPage() {
             >
               <option value="all">{t("tch_rev_all_courses", "Tất cả khóa học")}</option>
               {courses.map((course) => (
-                <option key={course.id} value={course.id}>{course.name}</option>
+                <option key={course.id} value={course.id}>
+                  {course.name}
+                  {course.categoryName && ` (${course.categoryName})`}
+                  {course.isOldVersion && ` [v${course.version}]`}
+                </option>
               ))}
             </DialogSelect>
           </div>
@@ -371,48 +433,73 @@ export default function TeacherReviewsPage() {
                 <p className="text-sm">{t("tch_rev_empty", "Không có đánh giá nào")}</p>
               </div>
             ) : (
-              filteredReviews.map((review) => (
-                <div
-                  key={review.id}
-                  onClick={() => {
-                    setSelectedReview(review)
-                    setReplyText(review.teacherReply || "")
-                  }}
-                  className={`p-3 rounded-lg border-l-3 cursor-pointer transition-all hover:bg-slate-100/60 dark:hover:bg-slate-800/60 ${
-                    selectedReview?.id === review.id
-                      ? 'bg-blue-500/10 dark:bg-blue-500/15 border-l-blue-500 border border-blue-500/30'
-                      : 'border-l-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-700/50'
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <img
-                      src={review.studentAvatar}
-                      alt={review.studentName}
-                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-foreground dark:text-white truncate">{review.studentName}</p>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            size={12}
-                            className={`${i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300 dark:text-slate-600'}`}
-                          />
-                        ))}
+              groupedReviews.map((group) => (
+                <div key={group.course.id} className="space-y-2">
+                  {/* Course Header */}
+                  <div className="sticky top-0 px-3 py-2 bg-gradient-to-r from-slate-200 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-lg shadow-sm z-10">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm text-foreground dark:text-white truncate">{group.course.name}</h3>
+                        <div className="flex items-center gap-2 flex-wrap mt-1">
+                          <span className="text-xs text-slate-600 dark:text-slate-400">{group.course.categoryName}</span>
+                          {group.course.isOldVersion && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">
+                              Phiên bản v{group.course.version}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1 mt-1">{review.comment}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${
-                          review.teacherReply
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                            : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-                        }`}>
-                          {review.teacherReply ? '✓ Đã' : '⏱ Chờ'}
-                        </span>
-                      </div>
+                      <span className="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 flex-shrink-0">
+                        {group.reviews.length}
+                      </span>
                     </div>
                   </div>
+
+                  {/* Reviews under this course */}
+                  {group.reviews.map((review) => (
+                    <div
+                      key={review.id}
+                      onClick={() => {
+                        setSelectedReview(review)
+                        setReplyText(review.teacherReply || "")
+                      }}
+                      className={`p-3 rounded-lg border-l-3 cursor-pointer transition-all hover:bg-slate-100/60 dark:hover:bg-slate-800/60 ml-2 ${
+                        selectedReview?.id === review.id
+                          ? 'bg-blue-500/10 dark:bg-blue-500/15 border-l-blue-500 border border-blue-500/30'
+                          : 'border-l-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-700/50'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <img
+                          src={review.studentAvatar}
+                          alt={review.studentName}
+                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground dark:text-white truncate">{review.studentName}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                size={12}
+                                className={`${i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300 dark:text-slate-600'}`}
+                              />
+                            ))}
+                          </div>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1 mt-1">{review.comment}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${
+                              review.teacherReply
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                            }`}>
+                              {review.teacherReply ? '✓ Đã' : '⏱ Chờ'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))
             )}
@@ -459,7 +546,30 @@ export default function TeacherReviewsPage() {
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <div>
                       <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Khóa học</p>
-                      <p className="text-sm text-foreground dark:text-white">{selectedReview.courseName}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm text-foreground dark:text-white">{selectedReview.courseName}</p>
+                        {selectedReview.isOldVersion && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">
+                            Phiên bản v{selectedReview.version}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Loại khóa học</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {selectedReview.categoryName && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                            {selectedReview.categoryName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Độ khó</p>
+                      <p className="text-sm text-foreground dark:text-white capitalize">{selectedReview.level || 'N/A'}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Ngày đánh giá</p>
