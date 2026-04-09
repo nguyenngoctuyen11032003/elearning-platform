@@ -56,11 +56,14 @@ export default function AdminTeacherSubscriptionPage() {
   const [paymentSearchQuery, setPaymentSearchQuery] = useState("")
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all")
   const [paymentSortBy, setPaymentSortBy] = useState<"newest" | "oldest" | "amount_desc" | "amount_asc">("newest")
+  const [accessOnlyActive, setAccessOnlyActive] = useState(false)
+  const [accessOnlyPaidPlan, setAccessOnlyPaidPlan] = useState(false)
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null)
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false)
   const [showEditAccessModal, setShowEditAccessModal] = useState(false)
   const [editingSubscription, setEditingSubscription] = useState<any | null>(null)
   const [updatingSubscriptionId, setUpdatingSubscriptionId] = useState<string | null>(null)
+  const [removingSubscriptionId, setRemovingSubscriptionId] = useState<string | null>(null)
   const [accessEditForm, setAccessEditForm] = useState<{
     status: "active" | "pending" | "cancelled" | "expired"
     endDate: string
@@ -343,6 +346,17 @@ export default function AdminTeacherSubscriptionPage() {
     return list
   }, [payments, paymentSearchQuery, paymentStatusFilter, paymentSortBy])
 
+  const filteredAccessSubscriptions = useMemo(() => {
+    return subscriptions.filter((subscription) => {
+      const status = String(subscription?.status || "").toLowerCase()
+      const planPrice = Number(subscription?.plan?.price || 0)
+
+      if (accessOnlyActive && status !== "active") return false
+      if (accessOnlyPaidPlan && planPrice <= 0) return false
+      return true
+    })
+  }, [subscriptions, accessOnlyActive, accessOnlyPaidPlan])
+
   const getPaymentStatusMeta = (status: string) => {
     const key = String(status || "").toLowerCase()
     if (key === "paid") {
@@ -426,6 +440,28 @@ export default function AdminTeacherSubscriptionPage() {
       toast.error(error?.message || t("adm_sub_access_update_fail", "Không thể cập nhật quyền truy cập"))
     } finally {
       setUpdatingSubscriptionId(null)
+    }
+  }
+
+  const removeInstructorAccess = async (subscription: any) => {
+    const subId = String(subscription?.id || "")
+    if (!subId) return
+
+    const teacherName = String(subscription?.teacher?.name || subscription?.teacher?.email || "giảng viên")
+    const ok = window.confirm(
+      `${t("adm_sub_remove_access_confirm", "Bạn chắc chắn muốn xóa gói đang dùng của giảng viên này và chuyển về Free?")}\n\n${teacherName}`,
+    )
+    if (!ok) return
+
+    setRemovingSubscriptionId(subId)
+    try {
+      await apiClient.deleteAdminInstructorSubscription(subId)
+      toast.success(t("adm_sub_remove_access_ok", "Đã xóa gói đang dùng và chuyển giảng viên về Free"))
+      await loadAll(true)
+    } catch (error: any) {
+      toast.error(error?.message || t("adm_sub_remove_access_fail", "Không thể xóa gói giảng viên"))
+    } finally {
+      setRemovingSubscriptionId(null)
     }
   }
 
@@ -958,11 +994,47 @@ export default function AdminTeacherSubscriptionPage() {
                   <p className="text-sm text-muted-foreground">{t("adm_sub_access_desc", "Theo dõi hạn mức sử dụng và vòng đời gói theo từng giảng viên.")}</p>
                 </div>
                 <span className="w-fit rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                  <AnimatedNumber value={subscriptions.length} durationMs={320} /> {t("adm_sub_teachers", "giảng viên")}
+                  <AnimatedNumber value={filteredAccessSubscriptions.length} durationMs={320} /> / <AnimatedNumber value={subscriptions.length} durationMs={320} /> {t("adm_sub_teachers", "giảng viên")}
                 </span>
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAccessOnlyActive((prev) => !prev)}
+                  className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
+                    accessOnlyActive
+                      ? "border-emerald-400 bg-emerald-100 text-emerald-700 dark:border-emerald-500/60 dark:bg-emerald-500/20 dark:text-emerald-300"
+                      : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  {t("adm_sub_filter_only_active", "Chỉ active")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccessOnlyPaidPlan((prev) => !prev)}
+                  className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
+                    accessOnlyPaidPlan
+                      ? "border-primary/70 bg-primary/15 text-primary dark:border-accent/60 dark:bg-accent/20 dark:text-accent"
+                      : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  {t("adm_sub_filter_only_paid_plan", "Chỉ paid plan")}
+                </button>
+                {(accessOnlyActive || accessOnlyPaidPlan) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAccessOnlyActive(false)
+                      setAccessOnlyPaidPlan(false)
+                    }}
+                    className="h-9 rounded-full border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    {t("common_reset", "Đặt lại")}
+                  </button>
+                ) : null}
+              </div>
               <div className="grid gap-3 lg:grid-cols-2">
-                {subscriptions.map((s) => {
+                {filteredAccessSubscriptions.map((s) => {
                   const courseQuota = getQuotaMeta(s?.usage?.coursesCreated || 0, s?.usage?.courseLimit || s?.plan?.courseLimit || 0)
                   const studentQuota = getQuotaMeta(s?.usage?.studentsUsed || 0, s?.usage?.studentsLimit || s?.plan?.studentsLimit || 0)
                   const storageQuota = getQuotaMeta(s?.usage?.storageUsedGb || 0, s?.usage?.storageLimitGb || s?.plan?.storageLimitGb || 0)
@@ -980,6 +1052,7 @@ export default function AdminTeacherSubscriptionPage() {
                             <p className="font-semibold text-base">{s.teacher?.name || s.teacher?.email}</p>
                             <p className="text-xs text-muted-foreground">{s.teacher?.email || "--"}</p>
                             <p className="text-sm text-muted-foreground">{t("adm_sub_plan_label", "Gói")}: {s.plan?.name}</p>
+                            <p className="text-xs text-muted-foreground">{t("adm_sub_history_count", "Số bản ghi lịch sử")}: <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={Number(s?.historyCount || 1)} durationMs={320} /></span></p>
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
@@ -989,12 +1062,24 @@ export default function AdminTeacherSubscriptionPage() {
                           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${expiryMeta.className}`}>
                             {expiryMeta.label}
                           </span>
-                          <button
-                            onClick={() => openAccessEditor(s)}
-                            className="h-8 px-3 rounded-lg bg-blue-600 text-white inline-flex items-center gap-1 text-xs font-semibold shadow-sm hover:shadow-md"
-                          >
-                            <SquarePen size={13} /> {t("common_edit", "Chỉnh sửa")}
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => openAccessEditor(s)}
+                              className="h-8 px-3 rounded-lg bg-blue-600 text-white inline-flex items-center gap-1 text-xs font-semibold shadow-sm hover:shadow-md"
+                            >
+                              <SquarePen size={13} /> {t("common_edit", "Chỉnh sửa")}
+                            </button>
+                            <button
+                              onClick={() => {
+                                void removeInstructorAccess(s)
+                              }}
+                              disabled={removingSubscriptionId === String(s?.id || "")}
+                              className="h-8 px-3 rounded-lg bg-rose-600 text-white inline-flex items-center gap-1 text-xs font-semibold shadow-sm hover:shadow-md disabled:opacity-60"
+                              title={t("adm_sub_remove_access", "Xóa gói đang dùng")}
+                            >
+                              {removingSubscriptionId === String(s?.id || "") ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} {t("adm_sub_remove_access", "Xóa gói")}
+                            </button>
+                          </div>
                         </div>
                       </div>
 
@@ -1027,7 +1112,7 @@ export default function AdminTeacherSubscriptionPage() {
                   )
                 })}
               </div>
-              {subscriptions.length === 0 ? (
+              {filteredAccessSubscriptions.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-center text-sm text-muted-foreground">
                   {t("adm_sub_no_access_data", "Chưa có dữ liệu quyền truy cập giảng viên.")}
                 </div>

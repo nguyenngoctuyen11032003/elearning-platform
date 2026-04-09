@@ -1355,6 +1355,12 @@ if (typeof window !== 'undefined' && token) {
     });
   }
 
+  async deleteAdminInstructorSubscription(id: string): Promise<any> {
+    return this.request(`/instructor-subscriptions/admin/subscriptions/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getAdminInstructorPayments(): Promise<any[]> {
     const result = await this.request('/instructor-subscriptions/admin/payments');
     return Array.isArray(result) ? result : [];
