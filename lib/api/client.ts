@@ -607,6 +607,16 @@ if (typeof window !== 'undefined' && token) {
     });
   }
 
+  async getLatestFiveStarReviews(limit = 3): Promise<any[]> {
+    try {
+      const result = await this.request(`${API_ENDPOINTS.REVIEWS.LATEST_5_STAR}?limit=${limit}`);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching latest five-star reviews:', error);
+      return [];
+    }
+  }
+
   // Certificates methods
   async getMyCertificates(): Promise<any[]> {
     try {

@@ -16,32 +16,20 @@ import { useLanguage } from "@/lib/i18n/language-context"
 import { autoTranslateData } from "@/lib/i18n/dynamic-translate"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
 
-const testimonials = [
-  {
-    name: "Trần Văn Minh",
-    role: "Full-stack Developer @ FPT Software",
-    content: "Tôi đã chuyển đổi sự nghiệp từ kế toán sang lập trình chỉ sau 6 tháng học tại ICS Learning. Các khóa học được thiết kế bài bản, giảng viên hỗ trợ nhiệt tình.",
-    avatar: "/avatars/student-1.jpg",
-    rating: 5,
-    course: "Bootcamp Full-stack"
-  },
-  {
-    name: "Nguyễn Thị Mai",
-    role: "UI/UX Designer @ Tiki",
-    content: "Khóa UI/UX Design đã giúp tôi có được công việc mơ ước. Nội dung cập nhật, thực tế và có nhiều bài tập thực hành. Giá cả hợp lý so với chất lượng nhận được.",
-    avatar: "/avatars/student-2.jpg",
-    rating: 5,
-    course: "UI/UX Professional"
-  },
-  {
-    name: "Lê Hoàng Anh",
-    role: "Data Analyst @ Shopee",
-    content: "ICS Learning đã thay đổi cuộc đời tôi! Từ không biết gì về data, giờ tôi đã tự tin phân tích và xử lý dữ liệu lớn. Tỷ lệ có việc làm sau khóa học rất cao.",
-    avatar: "/avatars/student-3.jpg",
-    rating: 5,
-    course: "Data Science Masterclass"
-  },
-]
+type HomeTestimonial = {
+  id: string
+  rating: number
+  comment: string
+  student?: {
+    id: string
+    name: string
+    avatar?: string | null
+  }
+  course?: {
+    id: string
+    title: string
+  }
+}
 
 const partners = [
   { name: "Microsoft", logo: "🏢" },
@@ -56,6 +44,7 @@ const partners = [
 export default function Home() {
   const [featuredCourses, setFeaturedCourses] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
+  const [testimonials, setTestimonials] = useState<HomeTestimonial[]>([])
   const [loading, setLoading] = useState(true)
   const [categoriesPage, setCategoriesPage] = useState(0)
   const { language, t } = useLanguage()
@@ -67,6 +56,7 @@ export default function Home() {
       try {
         setLoading(true)
         const coursesRes = await apiClient.getCourses()
+        const latestFiveStarReviews = await apiClient.getLatestFiveStarReviews(3)
         
         // Mock data nếu API không trả về
         const mockCourses = [
@@ -127,11 +117,13 @@ export default function Home() {
         const categoriesRes = await apiClient.getCategories()
         const localizedCategories = await autoTranslateData(Array.isArray(categoriesRes) ? categoriesRes : [], language)
         setCategories(localizedCategories)
+        setTestimonials(Array.isArray(latestFiveStarReviews) ? latestFiveStarReviews : [])
         setCategoriesPage(0)
       } catch (error) {
         console.error("Error fetching data:", error)
         setFeaturedCourses([])
         setCategories([])
+        setTestimonials([])
       } finally {
         setLoading(false)
       }
@@ -789,9 +781,9 @@ export default function Home() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            {testimonials.map((testimonial, i) => (
+            {testimonials.length > 0 ? testimonials.map((testimonial, i) => (
               <motion.div
-                key={i}
+                key={testimonial.id}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -803,33 +795,37 @@ export default function Home() {
 
                 {/* Rating */}
                 <div className="flex gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, idx) => (
+                  {[...Array(Math.max(0, Math.min(5, testimonial.rating || 0)))].map((_, idx) => (
                     <Star key={idx} size={18} className="fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
 
                 {/* Content */}
                 <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-6 relative z-10 font-medium">
-                  "{testimonial.content}"
+                  "{testimonial.comment}"
                 </p>
 
                 {/* Course Badge */}
                 <div className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-semibold mb-4">
-                  {testimonial.course}
+                  {testimonial.course?.title || t("home_test_course_fallback", "Khóa học tại ICS Learning")}
                 </div>
 
                 {/* Author */}
                 <div className="flex items-center gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow-lg">
-                    {testimonial.name.charAt(0)}
+                    {(testimonial.student?.name || "H").charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 dark:text-white">{testimonial.name}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{testimonial.role}</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{testimonial.student?.name || t("home_test_student", "Học viên")}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{t("home_test_role", "Học viên ICS Learning")}</p>
                   </div>
                 </div>
               </motion.div>
-            ))}
+            )) : (
+              <div className="md:col-span-3 p-8 rounded-[20px] bg-white/66 dark:bg-slate-900/62 border border-white/60 dark:border-slate-700/70 text-center text-slate-600 dark:text-slate-300">
+                {t("home_test_empty", "Chưa có bình luận 5 sao mới nhất để hiển thị.")}
+              </div>
+            )}
           </div>
 
           {/* Trust Metrics */}

@@ -81,6 +81,7 @@ export const API_ENDPOINTS = {
   },
   REVIEWS: {
     LIST: '/reviews',
+    LATEST_5_STAR: '/reviews/latest-five-star',
     BY_ID: (id: string) => `/reviews/${id}`,
     CREATE: '/reviews',
     UPDATE: (id: string) => `/reviews/${id}`,
