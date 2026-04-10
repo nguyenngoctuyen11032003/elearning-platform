@@ -1666,23 +1666,12 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             ...s,
             lessons: s.lessons.map(l => l.id === lessonId ? { ...l, videoUrl: url } : l)
           })))
-          // Auto-save to DB immediately for existing lessons (UUID)
-          const isExistingLesson = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lessonId)
-          if (isExistingLesson && token) {
-            const patchRes = await fetch(`/api/lessons/${lessonId}`, {
-              method: "PATCH",
-              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ videoUrl: url }),
-            })
-            if (!patchRes.ok) {
-              console.error("[VideoUpload] auto-save thất bại:", await patchRes.json().catch(() => ({})))
-              toast.warning(tr("Video đã upload nhưng lưu vào DB thất bại, hãy nhấn Lưu khóa học", "Video uploaded but failed to save to DB. Please click Save course."))
-            } else {
-              toast.success(tr("Upload video thành công!", "Video uploaded successfully!"))
-            }
-          } else {
-            toast.success(tr("Upload video thành công!", "Video uploaded successfully!"))
-          }
+          toast.success(
+            tr(
+              "Upload video thành công! Nhấn 'Lưu thay đổi' để áp dụng cập nhật.",
+              "Video uploaded successfully! Click 'Save changes' to apply updates.",
+            ),
+          )
         } else {
           console.error("[VideoUpload] res.ok nhưng không tìm thấy url trong response:", result)
           toast.error(tr("Upload thành công nhưng không nhận được URL video", "Upload succeeded but no video URL was returned"))
@@ -1752,23 +1741,11 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               }
             }),
           })))
-          // Auto-save to DB immediately for existing lessons (UUID)
-          const isExistingLesson = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lessonId)
-          if (isExistingLesson && token) {
-            const patchRes = await fetch(`/api/lessons/${lessonId}`, {
-              method: "PATCH",
-              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ resources: nextResources }),
-            })
-            if (!patchRes.ok) {
-              console.error("[DocumentUpload] auto-save thất bại:", await patchRes.json().catch(() => ({})))
-              toast.warning(tr("Tài liệu đã upload nhưng lưu vào DB thất bại, hãy nhấn Lưu khóa học", "Document uploaded but failed to save to DB. Please click Save course."))
-            } else {
-              toast.success(language === "en" ? `Document "${file.name}" has been saved!` : `Tài liệu "${file.name}" đã được lưu!`)
-            }
-          } else {
-            toast.success(language === "en" ? `Document "${file.name}" uploaded successfully!` : `Tài liệu "${file.name}" đã tải lên!`)
-          }
+          toast.success(
+            language === "en"
+              ? `Document "${file.name}" uploaded. Click \"Save changes\" to apply updates.`
+              : `Tài liệu "${file.name}" đã tải lên. Nhấn \"Lưu thay đổi\" để áp dụng cập nhật.`,
+          )
         } else {
           console.error("[DocumentUpload] res.ok nhưng không tìm thấy url trong response:", result)
           toast.error(tr("Upload thành công nhưng không nhận được URL tài liệu", "Upload succeeded but no document URL was returned"))

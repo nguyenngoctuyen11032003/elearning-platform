@@ -505,7 +505,7 @@ export default function TeacherCoursesPage() {
     router.push(`/teacher/courses/${courseId}/edit`)
   }
 
-  const canEditCourse = (status: Course["status"]) => status !== "approved" && status !== "archived"
+  const canEditCourse = (status: Course["status"]) => status !== "archived"
 
   const handleDeleteClick = (course: Course) => {
     setSelectedCourse(course)
