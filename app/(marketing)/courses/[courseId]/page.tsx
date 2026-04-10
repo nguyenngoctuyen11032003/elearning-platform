@@ -800,7 +800,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                   {/* Price */}
                   <div>
                     <p className="text-4xl font-bold text-[#0F172A]">
-                      {formatCurrencyByLanguage(course.price, language)}
+                      {formatCurrencyByLanguage(courseData?.price ?? 0, language)}
                     </p>
                     <p className="text-sm text-slate-500 mt-2">{t("mk_course_feature_lifetime", "Truy cập trọn đời")}</p>
                   </div>
@@ -812,18 +812,21 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                         className="w-full h-12 bg-gradient-to-r from-[#2563EB] to-[#06B6D4] hover:shadow-lg hover:scale-[1.01]"
                         onClick={() => {
                           const checkoutData = {
-                            id: course.id,
-                            title: course.title,
-                            teacher: course.teacher,
-                            teacherId: courseData?.teacherId ?? course.id,
-                            price: course.price,
-                            rating: course.rating,
-                            students: course.students,
-                            image: course.image,
-                            description: course.description,
-                            duration: course.duration,
-                            level: course.level,
+                            id: courseData?.id,
+                            title: courseData?.title,
+                            teacher: courseData?.teacher?.name || courseData?.teacher || courseData?.teacherName,
+                            teacherId: courseData?.teacherId ?? courseData?.id,
+                            price: courseData?.price ?? 0,
+                            rating: courseData?.rating,
+                            students: courseData?.students,
+                            image: courseData?.thumbnail || courseData?.image,
+                            description: courseData?.description,
+                            duration: courseData?.duration,
+                            level: courseData?.level,
                           }
+                          // Xóa dữ liệu cũ từ wishlist để tránh checkout hiển thị sai course
+                          localStorage.removeItem("checkoutItems")
+                          
                           localStorage.setItem("checkoutCourse", JSON.stringify(checkoutData))
                           router.push("/checkout")
                         }}
