@@ -1141,97 +1141,79 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       const authHeaders: Record<string, string> = token
         ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
         : { "Content-Type": "application/json" }
-      const willCreateRevision = courseStatus === "published"
 
       // Accept UUID-like IDs used by seeded data (e.g. f300..., e000...) to avoid false "new lesson" detection.
       const persistedIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       const isPersistedId = (value: unknown) => persistedIdPattern.test(String(value || ""))
 
+      let existingLessonList: Array<{ id?: string }> = []
+      let localPersistedLessonIds = new Set<string>()
       let existingAssignmentByLessonId: Record<string, any> = {}
       let existingQuizByLessonId: Record<string, string> = {}
 
-      if (!willCreateRevision) {
-        // Reconcile deletions first: anything removed in UI must be removed in DB.
-        const [existingLessonsRes, existingQuizzesRes] = await Promise.all([
-          fetch(`/api/lessons/course/${resolvedParams.id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }),
-          fetch(`/api/quizzes/course/${resolvedParams.id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }),
-        ])
+      // Capture current DB state first, but only apply destructive sync operations
+      // after knowing whether backend created a new revision.
+      const [existingLessonsRes, existingQuizzesRes] = await Promise.all([
+        fetch(`/api/lessons/course/${resolvedParams.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+        fetch(`/api/quizzes/course/${resolvedParams.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+      ])
 
-        const existingLessonsJson = existingLessonsRes.ok ? await existingLessonsRes.json().catch(() => ([])) : []
-        const existingLessonsUnwrapped = existingLessonsJson?.data ?? existingLessonsJson
-        const existingLessonList = Array.isArray(existingLessonsUnwrapped)
-          ? existingLessonsUnwrapped
-          : Array.isArray(existingLessonsUnwrapped?.data)
-          ? existingLessonsUnwrapped.data
-          : []
+      const existingLessonsJson = existingLessonsRes.ok ? await existingLessonsRes.json().catch(() => ([])) : []
+      const existingLessonsUnwrapped = existingLessonsJson?.data ?? existingLessonsJson
+      existingLessonList = Array.isArray(existingLessonsUnwrapped)
+        ? existingLessonsUnwrapped
+        : Array.isArray(existingLessonsUnwrapped?.data)
+        ? existingLessonsUnwrapped.data
+        : []
 
-        const existingQuizzesJson = existingQuizzesRes.ok ? await existingQuizzesRes.json().catch(() => ([])) : []
-        const existingQuizzesUnwrapped = existingQuizzesJson?.data ?? existingQuizzesJson
-        const existingQuizList = Array.isArray(existingQuizzesUnwrapped)
-          ? existingQuizzesUnwrapped
-          : Array.isArray(existingQuizzesUnwrapped?.data)
-          ? existingQuizzesUnwrapped.data
-          : []
-        const existingAssignments = await apiClient.getAssignments(resolvedParams.id)
-        existingAssignmentByLessonId = (Array.isArray(existingAssignments) ? existingAssignments : []).reduce(
-          (acc: Record<string, any>, assignment: any) => {
-            const lessonKey = String(assignment?.lessonId || "")
-            if (lessonKey) {
-              acc[lessonKey] = assignment
-            }
-            return acc
-          },
-          {} as Record<string, any>,
-        )
-
-        const localPersistedLessonIds = new Set(
-          sections
-            .flatMap((section) => section.lessons.map((lesson) => String(lesson.id)))
-            .filter((id) => isPersistedId(id)),
-        )
-
-        const removedLessonIds = (existingLessonList as Array<{ id?: string }>)
-          .map((lesson) => String(lesson?.id || ""))
-          .filter((id) => id && !localPersistedLessonIds.has(id))
-
-        if (removedLessonIds.length > 0) {
-          console.log("[SaveCourse] Lessons removed in UI, deleting from DB:", removedLessonIds)
-          for (const removedLessonId of removedLessonIds) {
-            const deleteLessonRes = await fetch(`/api/lessons/${removedLessonId}`, {
-              method: "DELETE",
-              headers: authHeaders,
-            })
-            if (!deleteLessonRes.ok) {
-              const err = await deleteLessonRes.json().catch(() => ({}))
-              throw new Error(`Xóa bài học đã bỏ khỏi giao diện thất bại (${removedLessonId}): ${err?.error || deleteLessonRes.status}`)
-            }
+      const existingQuizzesJson = existingQuizzesRes.ok ? await existingQuizzesRes.json().catch(() => ([])) : []
+      const existingQuizzesUnwrapped = existingQuizzesJson?.data ?? existingQuizzesJson
+      const existingQuizList = Array.isArray(existingQuizzesUnwrapped)
+        ? existingQuizzesUnwrapped
+        : Array.isArray(existingQuizzesUnwrapped?.data)
+        ? existingQuizzesUnwrapped.data
+        : []
+      const existingAssignments = await apiClient.getAssignments(resolvedParams.id)
+      existingAssignmentByLessonId = (Array.isArray(existingAssignments) ? existingAssignments : []).reduce(
+        (acc: Record<string, any>, assignment: any) => {
+          const lessonKey = String(assignment?.lessonId || "")
+          if (lessonKey) {
+            acc[lessonKey] = assignment
           }
+          return acc
+        },
+        {} as Record<string, any>,
+      )
+
+      localPersistedLessonIds = new Set(
+        sections
+          .flatMap((section) => section.lessons.map((lesson) => String(lesson.id)))
+          .filter((id) => isPersistedId(id)),
+      )
+
+      // Build a lessonId -> quizId lookup to avoid creating duplicate quizzes
+      // when local state temporarily misses quizId (e.g. after import flows).
+      for (const quiz of existingQuizList) {
+        const lessonKey = String(quiz?.lessonId || "")
+        const quizId = String(quiz?.id || "")
+        if (!lessonKey || !quizId) continue
+
+        const prevQuizId = existingQuizByLessonId[lessonKey]
+        if (!prevQuizId) {
+          existingQuizByLessonId[lessonKey] = quizId
+          continue
         }
 
-        // Build a lessonId -> quizId lookup to avoid creating duplicate quizzes
-        // when local state temporarily misses quizId (e.g. after import flows).
-        for (const quiz of existingQuizList) {
-          const lessonKey = String(quiz?.lessonId || "")
-          const quizId = String(quiz?.id || "")
-          if (!lessonKey || !quizId) continue
-
-          const prevQuizId = existingQuizByLessonId[lessonKey]
-          if (!prevQuizId) {
-            existingQuizByLessonId[lessonKey] = quizId
-            continue
-          }
-
-          // Prefer the quiz that currently has more questions.
-          const prevQuiz = existingQuizList.find((item: any) => String(item?.id) === prevQuizId)
-          const prevQuestionCount = getQuizQuestionCount(prevQuiz?.questions)
-          const nextQuestionCount = getQuizQuestionCount(quiz?.questions)
-          if (nextQuestionCount >= prevQuestionCount) {
-            existingQuizByLessonId[lessonKey] = quizId
-          }
+        // Prefer the quiz that currently has more questions.
+        const prevQuiz = existingQuizList.find((item: any) => String(item?.id) === prevQuizId)
+        const prevQuestionCount = getQuizQuestionCount(prevQuiz?.questions)
+        const nextQuestionCount = getQuizQuestionCount(quiz?.questions)
+        if (nextQuestionCount >= prevQuestionCount) {
+          existingQuizByLessonId[lessonKey] = quizId
         }
       }
 
@@ -1274,7 +1256,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.message || "Lưu thất bại")
+        throw new Error(err.message || err.error || "Lưu thất bại")
       }
 
       const saveCourseJson = await res.json().catch(() => ({}))
@@ -1287,6 +1269,24 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         existingAssignmentByLessonId = {}
         existingQuizByLessonId = {}
         setCourseStatus("pending")
+      } else {
+        const removedLessonIds = existingLessonList
+          .map((lesson) => String(lesson?.id || ""))
+          .filter((id) => id && !localPersistedLessonIds.has(id))
+
+        if (removedLessonIds.length > 0) {
+          console.log("[SaveCourse] Lessons removed in UI, deleting from DB:", removedLessonIds)
+          for (const removedLessonId of removedLessonIds) {
+            const deleteLessonRes = await fetch(`/api/lessons/${removedLessonId}`, {
+              method: "DELETE",
+              headers: authHeaders,
+            })
+            if (!deleteLessonRes.ok) {
+              const err = await deleteLessonRes.json().catch(() => ({}))
+              throw new Error(`Xóa bài học đã bỏ khỏi giao diện thất bại (${removedLessonId}): ${err?.error || deleteLessonRes.status}`)
+            }
+          }
+        }
       }
 
       if (thumbnailDirty) {

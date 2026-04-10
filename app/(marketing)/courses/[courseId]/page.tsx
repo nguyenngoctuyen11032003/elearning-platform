@@ -154,7 +154,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
           setCourseError(t("mk_course_unavailable", "Khóa học đã hết hạn hoặc không tồn tại."))
         }
       } finally {
-        setPageLoading(false)
+        if (!controller.signal.aborted) {
+          setPageLoading(false)
+        }
       }
     }
     fetchData()
@@ -177,12 +179,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     }
     checkWishlistStatus()
   }, [effectiveCourseId, isPrivilegedViewer])
-
-  useEffect(() => {
-    if (!pageLoading && !courseData) {
-      router.replace("/courses")
-    }
-  }, [pageLoading, courseData, router])
 
   useEffect(() => {
     if (!effectiveCourseId) return
@@ -421,10 +417,19 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
         <main className="flex-1 px-4 sm:px-6 py-16 md:py-20">
           <div className="mx-auto w-full max-w-3xl">
             <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#2563EB]" />
-              <p className="mt-4 text-slate-600">
-                {t("common_redirecting", "Đang chuyển hướng...")}
+              <p className="text-lg font-semibold text-slate-900">
+                {t("mk_course_unavailable", "Khóa học đã hết hạn hoặc không tồn tại.")}
               </p>
+              {courseError ? (
+                <p className="mt-2 text-sm text-slate-600">{courseError}</p>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => router.push("/courses")}
+                className="mt-6 inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1d4ed8]"
+              >
+                {t("courses_back_to_list", "Quay lại danh sách khóa học")}
+              </button>
             </div>
           </div>
         </main>

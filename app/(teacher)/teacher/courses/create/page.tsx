@@ -2268,16 +2268,14 @@ export default function CreateCoursePage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tc_create_status", "Trạng thái")}</label>
-                <UniversalSelect
+                <DialogSelect
                   value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, status: value })}
                   className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent text-foreground dark:text-white"
-                  contentClassName="bg-white/90 dark:bg-slate-900/88 backdrop-blur-xl border border-white/45 dark:border-slate-700/80 shadow-[0_20px_60px_rgba(2,6,23,0.45)] ring-1 ring-sky-400/20"
-                  portalled
                 >
                   <option value="draft">{t("tc_create_status_draft", "Nháp")}</option>
                   <option value="pending">{t("tc_create_status_pending", "Chờ duyệt")}</option>
-                </UniversalSelect>
+                </DialogSelect>
               </div>
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-sm text-blue-900 dark:text-blue-200">

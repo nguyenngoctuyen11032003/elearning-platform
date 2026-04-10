@@ -75,6 +75,7 @@ const SECTION_LINE_REGEX = /^\s*(\d+(?:\.\d+)*)\s+([A-Za-z][^\n]{3,})$/
 const ANSWER_KEY_HEADER_REGEX = /^(?:answer\s*key|đáp\s*án)\s*(?:[:\-])?\s*(?:(?:&|and|và)\s*)?(?:explanations?|hướng\s*dẫn\s*giải|giai\s*thich|giải\s*thích)?\s*$/i
 const ANSWER_KEY_SECTION_REGEX = /^\s*(?:section|phần|phan)\s*(\d+)\s*[:\-]?\s*(?:type\s*([A-Z0-9]+))?/i
 const ANSWER_KEY_ITEM_REGEX = /^\s*(?:(?:Q(?:uestion)?|Câu|Cau)\s*)?(\d{1,4})\s*(?:[.)]|[:\-]|\s{1,3})\s*([\s\S]*)$/i
+const ANSWER_KEY_DOTTED_DECIMAL_START_REGEX = /^\s*(?:(?:Q(?:uestion)?|Câu|Cau)\s*)?\d{1,4}\.\d+/i
 const NUMBER_ONLY_QUESTION_MARKER_REGEX = /^\s*\(?(\d{1,4})\)?\s*[.)]\s*$/
 const METADATA_LINE_REGEX = /^\s*(Diff|Var|Topic|Learning\s*Obj|Global\s*Obj|Rationale|Reason|Loi\s*giai|Lời\s*giải)\s*[:=.\-]\s*(.+)$/i
 const FILL_IN_QUESTION_HINT_REGEX = /(?:_{2,}|\.{3,}|\(\s*\)|\[\s*\]|\bfill\s*(?:in|the\s*blank)\b|\bđiền\s*(?:vào\s*)?chỗ\s*trống\b)/i
@@ -231,13 +232,68 @@ const stripTrailingQuestionMarkerArtifact = (value: string): string => {
 }
 
 const parseAnswerKeyPayload = (raw: string): { answerLine: string; explanationLine: string } => {
-  const value = stripTrailingQuestionMarkerArtifact(String(raw || "").replace(/\s+/g, " ").trim())
+  let value = stripTrailingQuestionMarkerArtifact(String(raw || "").replace(/\s+/g, " ").trim())
   if (!value) {
     return { answerLine: "", explanationLine: "" }
   }
 
   const normalizeExplanation = (input: string): string =>
     stripTrailingQuestionMarkerArtifact(String(input || "").replace(/\s+/g, " ").trim())
+
+  const parseTailAsExplanation = (tail: string): string => {
+    const normalizedTail = normalizeExplanation(tail)
+    if (!normalizedTail) return ""
+
+    const difficultyWithLabel = normalizedTail.match(
+      /^(?:diff(?:iculty)?|độ\s*khó)\s*[:=\-]?\s*([^.;,]+)\s*(?:[.;,:\-]\s*(.*))?$/i,
+    )
+    if (difficultyWithLabel) {
+      const difficulty = normalizeExplanation(difficultyWithLabel[1] || "")
+      const restExplanation = normalizeExplanation(difficultyWithLabel[2] || "")
+      if (difficulty && restExplanation) return `Độ khó: ${difficulty}. ${restExplanation}`
+      if (difficulty) return `Độ khó: ${difficulty}`
+      return restExplanation
+    }
+
+    const difficultyByDot = normalizedTail.match(
+      /^(easy|medium|hard|de|dễ|trung\s*binh|trung\s*bình|kho|khó|[1-5](?:\/5)?)\s*[.;:\-]\s*([\s\S]*)$/i,
+    )
+    if (difficultyByDot) {
+      const difficulty = normalizeExplanation(difficultyByDot[1] || "")
+      const restExplanation = normalizeExplanation(difficultyByDot[2] || "")
+      if (difficulty && restExplanation) return `Độ khó: ${difficulty}. ${restExplanation}`
+      if (difficulty) return `Độ khó: ${difficulty}`
+      return restExplanation
+    }
+
+    return normalizedTail
+  }
+
+  // Accept answer-key styles like:
+  // - "Answer: C"
+  // - "Đáp án = B"
+  // - "Correct answer - A"
+  const explicitAnswerLead = value.match(/^(?:dap\s*an|đáp\s*án|da|đa|answer\s*key|answer|ans(?:wer)?|correct\s*answer|key)\s*[:=.\-]?\s*([\s\S]+)$/i)
+  if (explicitAnswerLead) {
+    value = normalizeExplanation(explicitAnswerLead[1] || "")
+  }
+
+  // Support multiple-token answers at line start, e.g. "A, C; ...", "(B)/(D): ..."
+  const tokenClusterMatch = value.match(
+    /^((?:\(?\s*(?:[A-F]|true|false|đúng|sai|\d{1,2})\s*\)?)(?:\s*[,;/|&+]\s*\(?\s*(?:[A-F]|true|false|đúng|sai|\d{1,2})\s*\)?)*)\s*([\s\S]*)$/i,
+  )
+
+  if (tokenClusterMatch) {
+    const answerLine = sanitizeAnswerToken(String(tokenClusterMatch[1] || "").replace(/\s+/g, " ").trim())
+    const restRaw = String(tokenClusterMatch[2] || "")
+    const explanationLine = parseTailAsExplanation(restRaw.replace(/^[\s).:\-;,/|]+/, ""))
+    if (answerLine) {
+      return {
+        answerLine,
+        explanationLine,
+      }
+    }
+  }
 
   const tokenMatch = value.match(/^(\b[A-F]\b|\bđúng\b|\bsai\b|\btrue\b|\bfalse\b|\d{1,2})\s*/i)
   if (tokenMatch) {
@@ -249,9 +305,9 @@ const parseAnswerKeyPayload = (raw: string): { answerLine: string; explanationLi
     let explanationLine = ""
     const withParen = rest.match(/^\(([^)]*)\)\s*[.:;\-]?\s*([\s\S]*)$/)
     if (withParen) {
-      explanationLine = normalizeExplanation(withParen[2] || "")
+      explanationLine = parseTailAsExplanation(withParen[2] || "")
     } else {
-      explanationLine = normalizeExplanation(rest)
+      explanationLine = parseTailAsExplanation(rest)
     }
 
     return {
@@ -264,7 +320,7 @@ const parseAnswerKeyPayload = (raw: string): { answerLine: string; explanationLi
   if (fallback) {
     return {
       answerLine: String(fallback[1] || "").trim(),
-      explanationLine: normalizeExplanation(fallback[2] || ""),
+      explanationLine: parseTailAsExplanation(fallback[2] || ""),
     }
   }
 
@@ -272,6 +328,28 @@ const parseAnswerKeyPayload = (raw: string): { answerLine: string; explanationLi
     answerLine: value,
     explanationLine: "",
   }
+}
+
+const parseAnswerKeyItemLine = (line: string): { questionNumber: number; content: string } | null => {
+  const text = normalizeSectionLabel(line)
+  if (!text) return null
+
+  // Count question index by leading dotted marker (e.g. "1. A", "Q1.C"),
+  // but avoid decimal starts like "1.20 ...".
+  if (!/^(?:q(?:uestion)?|câu|cau)\s*/i.test(text) && ANSWER_KEY_DOTTED_DECIMAL_START_REGEX.test(text)) {
+    return null
+  }
+
+  const itemMatch = text.match(ANSWER_KEY_ITEM_REGEX)
+  if (!itemMatch) return null
+
+  const questionNumber = Number.parseInt(String(itemMatch[1] || ""), 10)
+  if (Number.isNaN(questionNumber) || questionNumber <= 0 || questionNumber > 500) return null
+
+  const content = normalizeSectionLabel(String(itemMatch[2] || "").replace(/^[:\-]\s*/, ""))
+  if (!content) return null
+  if (!isLikelyAnswerKeyEntryValue(content)) return null
+  return { questionNumber, content }
 }
 
 const splitAnswerKeyInlineItems = (line: string): Array<{ questionNumber: number; content: string }> => {
@@ -284,28 +362,41 @@ const splitAnswerKeyInlineItems = (line: string): Array<{ questionNumber: number
     return /^([A-F](?:\b|[\).:\-])|\(?[A-F]\)?\b|đúng\b|sai\b|true\b|false\b|\d{1,2}(?:\s*[\).:\-(]|$))/i.test(text)
   }
 
-  const markerRegex = /(?:(?:Q(?:uestion)?|Câu|Cau)\s*)?(\d{1,4})\s*[.)]\s*/gi
+  const markerRegex = /(?:(?:Q(?:uestion)?|Câu|Cau)\s*)?(\d{1,4})\s*([.):\-])\s*/gi
   const matches = Array.from(source.matchAll(markerRegex))
     .map((match) => {
       const start = match.index ?? -1
       const end = (match.index ?? 0) + match[0].length
       const questionNumber = Number.parseInt(String(match[1] || ""), 10)
+      const separator = String(match[2] || "")
       const tail = source.slice(end)
       const markerText = source.slice(start, end)
       const hasQuestionPrefix = /^\s*(?:Q(?:uestion)?|Câu|Cau)/i.test(markerText)
       const prevChar = start > 0 ? source[start - 1] : ""
+      const hasWhitespaceAfterSeparator = /[.):\-]\s+$/.test(markerText)
       return {
         questionNumber,
         start,
         end,
+        separator,
         tail,
         hasQuestionPrefix,
         prevChar,
+        hasWhitespaceAfterSeparator,
       }
     })
     .filter((item) => item.start >= 0)
     .filter((item) => !Number.isNaN(item.questionNumber) && item.questionNumber > 0 && item.questionNumber <= 500)
     .filter((item) => item.hasQuestionPrefix || item.start === 0 || /[\s;:|)\]]/.test(item.prevChar))
+    .filter(
+      (item) =>
+        !(
+          item.separator === "." &&
+          !item.hasQuestionPrefix &&
+          !item.hasWhitespaceAfterSeparator &&
+          /^\d/.test(String(item.tail || ""))
+        ),
+    )
     .filter((item) => looksLikeAnswerLead(item.tail))
 
   if (matches.length === 0) return []
@@ -334,6 +425,28 @@ const parseAnswerKeyEntries = (lines: string[]): AnswerKeyEntry[] => {
   let currentSectionIndex: number | undefined
   let currentQuestionNumber: number | null = null
   let currentParts: string[] = []
+  const sectionQuestionCounters = new Map<string, number>()
+
+  const getSectionCounterKey = (): string => {
+    if (typeof currentSectionIndex === "number") return `idx:${currentSectionIndex}`
+    const sectionTitle = normalizeSectionLabel(currentSectionTitle || "")
+    return sectionTitle || "__global"
+  }
+
+  const syncSectionCounter = (questionNumber: number) => {
+    const key = getSectionCounterKey()
+    const current = sectionQuestionCounters.get(key) || 0
+    if (questionNumber > current) {
+      sectionQuestionCounters.set(key, questionNumber)
+    }
+  }
+
+  const nextImplicitQuestionNumber = (): number => {
+    const key = getSectionCounterKey()
+    const next = (sectionQuestionCounters.get(key) || 0) + 1
+    sectionQuestionCounters.set(key, next)
+    return next
+  }
 
   const flushCurrent = () => {
     if (currentQuestionNumber === null) return
@@ -359,6 +472,7 @@ const parseAnswerKeyEntries = (lines: string[]): AnswerKeyEntry[] => {
       answerLine: payload.answerLine,
       explanationLine: payload.explanationLine,
     })
+    syncSectionCounter(currentQuestionNumber)
 
     currentQuestionNumber = null
     currentParts = []
@@ -381,7 +495,7 @@ const parseAnswerKeyEntries = (lines: string[]): AnswerKeyEntry[] => {
     }
 
     const inlineItems = splitAnswerKeyInlineItems(line)
-    const startsWithItem = /^\s*(?:(?:Q(?:uestion)?|Câu|Cau)\s*)?\d{1,4}\s*[.)]\s*/i.test(line)
+    const startsWithItem = /^\s*(?:(?:Q(?:uestion)?|Câu|Cau)\s*)?\d{1,4}\s*[.):\-]\s*/i.test(line)
     if (inlineItems.length >= 2) {
       flushCurrent()
       for (const item of inlineItems) {
@@ -405,14 +519,21 @@ const parseAnswerKeyEntries = (lines: string[]): AnswerKeyEntry[] => {
       continue
     }
 
-    const itemMatch = line.match(ANSWER_KEY_ITEM_REGEX)
-    if (itemMatch) {
+    const parsedItem = parseAnswerKeyItemLine(line)
+    if (parsedItem) {
       flushCurrent()
-      const questionNumber = Number.parseInt(itemMatch[1], 10)
-      if (Number.isNaN(questionNumber)) continue
+      currentQuestionNumber = parsedItem.questionNumber
+      currentParts = [parsedItem.content]
+      continue
+    }
 
-      currentQuestionNumber = questionNumber
-      currentParts = [String(itemMatch[2] || "").trim()]
+    const strippedBulletLine = normalizeSectionLabel(
+      line.replace(/^[•·▪◦●○\-*+]+\s*/, ""),
+    )
+    if (strippedBulletLine && isLikelyAnswerKeyEntryValue(strippedBulletLine)) {
+      flushCurrent()
+      currentQuestionNumber = nextImplicitQuestionNumber()
+      currentParts = [strippedBulletLine]
       continue
     }
 
@@ -429,8 +550,17 @@ const ANSWER_KEY_MULTI_TOKEN_VALUE_REGEX =
   /^\s*(?:\(?\s*[A-F]\s*\)?|\d{1,2})(?:\s*[,;/|]\s*(?:\(?\s*[A-F]\s*\)?|\d{1,2}))+\s*[\).:\-]?\s*$/i
 
 const isLikelyAnswerKeyEntryValue = (value: string): boolean => {
-  const text = normalizeSectionLabel(value)
+  const text = normalizeSectionLabel(value).replace(/^[•·▪◦●○\-*+]+\s*/, "")
   if (!text) return false
+
+  const explicitAnswerLead = text.match(/^(?:dap\s*an|đáp\s*án|da|đa|answer\s*key|answer|ans(?:wer)?|correct\s*answer|key)\s*[:=.\-]?\s*([\s\S]+)$/i)
+  if (explicitAnswerLead) {
+    const afterLead = normalizeSectionLabel(explicitAnswerLead[1] || "")
+    if (!afterLead) return false
+    if (afterLead !== text) {
+      return isLikelyAnswerKeyEntryValue(afterLead)
+    }
+  }
 
   if (ANSWER_KEY_MULTI_TOKEN_VALUE_REGEX.test(text)) return true
 
@@ -467,9 +597,9 @@ const isLikelyAnswerKeyTailLine = (line: string, options?: { allowStructural?: b
     return inlineItems.every((item) => isLikelyAnswerKeyEntryValue(item.content))
   }
 
-  const itemMatch = text.match(ANSWER_KEY_ITEM_REGEX)
-  if (!itemMatch) return false
-  return isLikelyAnswerKeyEntryValue(String(itemMatch[2] || ""))
+  const parsedItem = parseAnswerKeyItemLine(text)
+  if (!parsedItem) return false
+  return isLikelyAnswerKeyEntryValue(parsedItem.content)
 }
 
 const detectAnswerKeyStartIndex = (lines: string[]): number => {

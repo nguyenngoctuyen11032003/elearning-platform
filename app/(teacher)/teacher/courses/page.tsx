@@ -402,19 +402,31 @@ export default function TeacherCoursesPage() {
   const filteredLineages = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase()
 
-    return courseLineages.filter((lineage) => {
+    const matchedLineages = courseLineages.filter((lineage) => {
       const versions = lineage.versions
-      const matchedByText =
+      return (
         keyword.length === 0 ||
         versions.some((course) =>
           String(course.title || "").toLowerCase().includes(keyword),
         )
-      const matchedByStatus =
-        statusFilter === "all" ||
-        versions.some((course) => course.status === statusFilter)
-
-      return matchedByText && matchedByStatus
+      )
     })
+
+    if (statusFilter === "all") {
+      return matchedLineages
+    }
+
+    // For a specific status tab, split versions into their own cards so each tab
+    // only contains versions that truly belong to that status.
+    return matchedLineages.flatMap((lineage) =>
+      lineage.versions
+        .filter((version) => version.status === statusFilter)
+        .map((version) => ({
+          rootCourseId: `${lineage.rootCourseId}:${version.id}`,
+          versions: [version],
+          latest: version,
+        })),
+    )
   }, [courseLineages, searchTerm, statusFilter])
 
   useEffect(() => {
