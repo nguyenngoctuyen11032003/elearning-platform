@@ -1,7 +1,6 @@
 ﻿"use client"
 
 import { CourseCard } from "@/components/ui/course-card"
-import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button"
 import { 
   ArrowRight, Play, Users, BookOpen, Star, Sparkles,
   Target, Shield, Clock, CheckCircle, Globe, Lightbulb, Trophy, HeartHandshake,
@@ -1058,9 +1057,6 @@ export default function Home() {
 
       {/* Footer */}
       <Footer />
-
-      {/* Scroll to Top Button */}
-      <ScrollToTopButton />
     </div>
   )
 }
