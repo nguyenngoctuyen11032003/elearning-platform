@@ -58,6 +58,7 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/courses/${id}`,
     FEATURED: '/courses/featured',
     BESTSELLERS: '/courses/bestsellers',
+    TOP_TEACHERS: '/courses/top-teachers',
     BY_TEACHER: (teacherId: string) => `/courses/teacher/${teacherId}`,
     REVIEWS: (courseId: string) => `/courses/${courseId}/reviews`,
   },

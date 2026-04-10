@@ -184,6 +184,24 @@ function TeacherPlanCheckoutPageContent() {
     }
   }, [loading, methods.length])
 
+  // Reset checkout when plan changes to avoid displaying QR with old plan
+  useEffect(() => {
+    if (!checkout) return
+    
+    const cancelPreviousCheckout = async () => {
+      if (checkout?.transactionId && checkout?.paymentChannel === "sepay_qr" && checkout?.status === "pending") {
+        try {
+          await apiClient.cancelTeacherCheckout(checkout.transactionId)
+        } catch (error: any) {
+          console.error("Cancel checkout error:", error)
+        }
+      }
+    }
+    
+    cancelPreviousCheckout()
+    setCheckout(null)
+  }, [selectedPlanId])
+
   useEffect(() => {
     if (!checkout?.transactionId) return
     if (checkout.paymentChannel !== "sepay_qr") return

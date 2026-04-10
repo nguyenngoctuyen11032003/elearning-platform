@@ -8,8 +8,61 @@ import Link from "next/link"
 import { formatNumber, formatStudentCount } from "@/lib/format"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { motion, AnimatePresence, type Variants } from "framer-motion"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
+import { apiClient } from "@/lib/api/client"
+
+const formatVndCurrency = (value: number): string => {
+  const safeValue = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0
+  return `₫${safeValue.toLocaleString("vi-VN")}`
+}
+
+const getRevenueToneClass = (value: number): string => {
+  const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0
+
+  if (safeValue >= 5000000) {
+    return "text-emerald-600 dark:text-emerald-400"
+  }
+
+  if (safeValue >= 1000000) {
+    return "text-amber-600 dark:text-amber-400"
+  }
+
+  return "text-slate-500 dark:text-slate-400"
+}
+
+const getNameBasedAvatar = (name: string): string => {
+  const safeName = (name || "Giảng viên").trim() || "Giảng viên"
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=0D8ABC&color=fff&size=512`
+}
+
+const normalizeTeacherAvatar = (avatar: unknown, teacherName: string): string => {
+  if (typeof avatar !== "string") return getNameBasedAvatar(teacherName)
+  const normalized = avatar.trim()
+  if (!normalized) return getNameBasedAvatar(teacherName)
+
+  if (normalized.startsWith("/uploads/")) {
+    return `/api${normalized}`
+  }
+
+  if (normalized.startsWith("/api/uploads/")) {
+    return normalized
+  }
+
+  if (normalized.startsWith("/avatars/teacher.jpg")) {
+    return "/avatars/teacher.avif"
+  }
+
+  if (normalized.startsWith("/")) {
+    return normalized
+  }
+
+  if (/^https?:\/\//i.test(normalized)) {
+    return normalized
+  }
+
+  return getNameBasedAvatar(teacherName)
+}
 
 
 const containerVariants = {
@@ -59,85 +112,58 @@ const itemVariants = {
 
 
 export default function TeachersPage() {
+  const gradientPalette = useMemo(
+    () => [
+      "from-blue-500 to-cyan-500",
+      "from-purple-500 to-pink-500",
+      "from-orange-500 to-red-500",
+      "from-green-500 to-emerald-600",
+      "from-indigo-500 to-purple-600",
+      "from-teal-500 to-cyan-500",
+      "from-fuchsia-500 to-rose-500",
+      "from-sky-500 to-blue-600",
+      "from-amber-500 to-orange-600",
+    ],
+    [],
+  )
 
-  const teachers = [
-  {
-    name: "Nguyễn Ngọc Tuyền",
-    specialty: "Lập trình Web",
-      students: 5200,
-      rating: 4.9,
-    image: "/image/CEO_TrungAu.jpg",
-      revenue: 120,
-      courses: 12,
-    gradient: "from-blue-500 to-cyan-500",
-  },
-  {
-    name: "Trần Minh Hoàng",
-    specialty: "AI & Machine Learning",
-      students: 3800,
-      rating: 4.8,
-    image: "/placeholder-user.jpg",
-      revenue: 95,
-      courses: 8,
-    gradient: "from-purple-500 to-pink-500",
-  },
-  {
-    name: "Lê Thị Hương",
-    specialty: "Thiết kế UI/UX",
-      students: 4100,
-      rating: 4.9,
-    image: "/placeholder-user.jpg",
-      revenue: 105,
-      courses: 10,
-    gradient: "from-orange-500 to-red-500",
-  },
-  {
-    name: "Nguyễn Văn A",
-    specialty: "Thiết kế UI/UX",
-      students: 4100,
-      rating: 4.9,
-    image: "/placeholder-user.jpg",
-      revenue: 105,
-      courses: 10,
-    gradient: "from-green-500 to-emerald-600",
-  },
-  {
-    name: "Nguyễn Văn B",
-    specialty: "AI & Machine Learning",
-      students: 4100,
-      rating: 4.9,
-    image: "/image/testGV.png",
-      revenue: 105,
-      courses: 10,
-    gradient: "from-indigo-500 to-purple-600",
-  },
-  {
-    name: "Nguyễn Văn C",
-    specialty: "Lập trình Web",
-      students: 4100,
-      rating: 4.9,
-    image: "/placeholder-user.jpg",
-      revenue: 105,
-      courses: 11,
-    gradient: "from-teal-500 to-cyan-500",
-  },
-  {
-    name: "Nguyễn Văn D",
-    specialty: "Lập trình Web",
-      students: 4100,
-      rating: 4.9,
-    image: "/placeholder-user.jpg",
-      revenue: 105,
-      courses: 11,
-    gradient: "from-teal-500 to-cyan-500",
-  },
-]
+  const [teachers, setTeachers] = useState<any[]>([])
+  const [teachersLoading, setTeachersLoading] = useState(true)
   const { t } = useLanguage()
   const VISIBLE_COUNT = 3
   const [page, setPage] = useState(0)
-  const [direction, setDirection] = useState(1)
-
+  const direction = 1
   const totalPages = Math.ceil(teachers.length / VISIBLE_COUNT)
+
+  useEffect(() => {
+    const loadTopTeachers = async () => {
+      try {
+        setTeachersLoading(true)
+        const result = await apiClient.getTopTeachers(9)
+        const normalized = Array.isArray(result)
+          ? result.map((teacher: any, index: number) => ({
+              ...teacher,
+              image: normalizeTeacherAvatar(teacher?.avatar, teacher?.name || "Giảng viên"),
+              gradient: gradientPalette[index % gradientPalette.length],
+            }))
+          : []
+        setTeachers(normalized)
+      } catch (error) {
+        console.error("Error loading top teachers:", error)
+        setTeachers([])
+      } finally {
+        setTeachersLoading(false)
+      }
+    }
+
+    loadTopTeachers()
+  }, [gradientPalette])
+
+  useEffect(() => {
+    if (page > 0 && page >= totalPages) {
+      setPage(Math.max(0, totalPages - 1))
+    }
+  }, [page, totalPages])
 
   const visibleTeachers = teachers.slice(
     page * VISIBLE_COUNT,
@@ -451,9 +477,28 @@ export default function TeachersPage() {
                   animate="visible"
                   className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8"
                 >
-                  {visibleTeachers.map((teacher, i) => (
+                  {teachersLoading
+                    ? [...Array(VISIBLE_COUNT)].map((_, i) => (
+                      <div
+                        key={`teacher-skeleton-${i}`}
+                        className="bg-white dark:bg-slate-900 rounded-2xl shadow-md overflow-hidden animate-pulse"
+                      >
+                        <div className="h-56 bg-slate-200 dark:bg-slate-700" />
+                        <div className="p-6 space-y-4">
+                          <div className="h-6 w-2/3 rounded bg-slate-200 dark:bg-slate-700" />
+                          <div className="h-4 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
+                          <div className="grid grid-cols-3 gap-2 border-y py-4">
+                            <div className="h-10 rounded bg-slate-200 dark:bg-slate-700" />
+                            <div className="h-10 rounded bg-slate-200 dark:bg-slate-700" />
+                            <div className="h-10 rounded bg-slate-200 dark:bg-slate-700" />
+                          </div>
+                          <div className="h-10 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                        </div>
+                      </div>
+                    ))
+                    : visibleTeachers.map((teacher, i) => (
                     <motion.div
-                      key={i}
+                      key={teacher.id || i}
                       variants={cardVariants}
                       custom={direction}
                       className="bg-white dark:bg-slate-900 rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden"
@@ -464,9 +509,12 @@ export default function TeachersPage() {
                           src={teacher.image}
                           alt={teacher.name}
                           className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = getNameBasedAvatar(teacher.name || "Giảng viên")
+                          }}
                         />
                         <div className="absolute top-3 right-3 bg-white/90 px-3 py-1 rounded-full text-sm font-semibold backdrop-blur">
-                          <AnimatedNumber value={teacher.rating} decimals={1} suffix=" ⭐" />
+                          <AnimatedNumber value={Number(teacher.rating || 0)} decimals={1} suffix=" ⭐" />
                         </div>
                       </div>
 
@@ -484,26 +532,30 @@ export default function TeachersPage() {
                           <div className="grid grid-cols-3 text-center border-y py-4 text-sm">
                             <div>
                               <p className="font-bold">
-                                <AnimatedNumber value={teacher.students} formatter={formatStudentCount} />
+                                <AnimatedNumber value={Number(teacher.students || 0)} formatter={formatStudentCount} />
                               </p>
                               <p className="text-muted-foreground">{t("teachers_card_students", "Học viên")}</p>
                             </div>
                             <div>
                               <p className="font-bold">
-                                <AnimatedNumber value={teacher.courses} formatter={formatNumber} />
+                                <AnimatedNumber value={Number(teacher.courses || 0)} formatter={formatNumber} />
                               </p>
                               <p className="text-muted-foreground">{t("teachers_card_courses", "Khóa học")}</p>
                             </div>
                             <div>
-                              <p className="font-bold text-green-600">
-                                <AnimatedNumber value={teacher.revenue} formatter={formatNumber} prefix="₫" suffix="M" />
+                              <p
+                                className={`font-bold ${getRevenueToneClass(
+                                  Number(teacher.revenue || 0),
+                                )}`}
+                              >
+                                {formatVndCurrency(Number(teacher.revenue || 0))}
                               </p>
                               <p className="text-muted-foreground">{t("teachers_card_lastyear", "Năm ngoái")}</p>
                             </div>
                           </div>
 
                         <Link
-                          href={`/teacher/${page * VISIBLE_COUNT + i}`}
+                          href={`/courses?teacherId=${teacher.id}`}
                           className={`block text-center bg-gradient-to-r ${teacher.gradient} text-white py-3 rounded-xl font-semibold hover:opacity-90 transition`}
                         >
                           {t("teachers_card_view", "Xem khóa học")}
@@ -519,10 +571,10 @@ export default function TeachersPage() {
             <div className="flex justify-center items-center gap-6 mt-12">
               <button
                 onClick={handlePrev}
-                disabled={page === 0}
+                disabled={page === 0 || teachersLoading || totalPages === 0}
                 className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition
                   ${
-                    page === 0
+                    page === 0 || teachersLoading || totalPages === 0
                       ? "bg-slate-300 dark:bg-slate-700 opacity-40 cursor-not-allowed"
                       : "bg-slate-200 dark:bg-slate-800 hover:scale-110"
                   }
@@ -532,11 +584,11 @@ export default function TeachersPage() {
               </button>
 
               <div className="flex gap-2">
-                {Array.from({ length: totalPages }).map((_, i) => (
+                {Array.from({ length: totalPages || 1 }).map((_, i) => (
                   <span
                     key={i}
                     className={`w-3 h-3 rounded-full ${
-                      i === page ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-700"
+                      i === page && !teachersLoading ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-700"
                     }`}
                   />
                 ))}
@@ -544,10 +596,10 @@ export default function TeachersPage() {
 
               <button
                 onClick={handleNext}
-                disabled={page === totalPages - 1}
+                disabled={teachersLoading || totalPages === 0 || page === totalPages - 1}
                 className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition
                   ${
-                    page === totalPages - 1
+                    teachersLoading || totalPages === 0 || page === totalPages - 1
                       ? "bg-slate-300 dark:bg-slate-700 opacity-40 cursor-not-allowed"
                       : "bg-slate-200 dark:bg-slate-800 hover:scale-110"
                   }
