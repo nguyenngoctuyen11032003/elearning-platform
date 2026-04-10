@@ -558,6 +558,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   const [modalTop, setModalTop] = useState<number | null>(null)
   const [deletingCriteriaByLesson, setDeletingCriteriaByLesson] = useState<Record<string, boolean>>({})
   const [selectedCriteriaToDelete, setSelectedCriteriaToDelete] = useState<Record<string, Set<number>>>({})
+  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false)
+  const [quotaDialogMessage, setQuotaDialogMessage] = useState("")
 
   const buildOptions = (count: number) => Array.from({ length: count }, (_, i) => `Tùy chọn ${i + 1}`)
 
@@ -1256,7 +1258,13 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.message || err.error || "Lưu thất bại")
+        const errorCode = String(err?.code || err?.error?.code || "")
+        const errorMessage = String(err?.message || err?.error || "Lưu thất bại")
+        if (res.status === 403 && errorCode === "COURSE_LIMIT_REACHED") {
+          setQuotaDialogMessage(localizeMessage(errorMessage, getCurrentClientLanguage()))
+          setQuotaDialogOpen(true)
+        }
+        throw new Error(errorMessage)
       }
 
       const saveCourseJson = await res.json().catch(() => ({}))
@@ -1605,11 +1613,31 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         method: "PATCH",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
-      if (!res.ok) throw new Error(tr("Đã xảy ra lỗi", "An error occurred"))
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        const errorCode = String(err?.code || err?.error?.code || "")
+        const message =
+          String(err?.error || err?.message || "").trim() ||
+          tr("Đã xảy ra lỗi", "An error occurred")
+
+        if (res.status === 403 && errorCode === "COURSE_LIMIT_REACHED") {
+          setQuotaDialogMessage(localizeMessage(message, getCurrentClientLanguage()))
+          setQuotaDialogOpen(true)
+          return
+        }
+
+        throw new Error(message)
+      }
+
       setCourseStatus("pending")
       toast.success(tr("Đã gửi khóa học để xét duyệt!", "Course submitted for review!"))
-    } catch {
-      toast.error(tr("Gửi duyệt thất bại", "Submit for review failed"))
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? localizeMessage(error.message, getCurrentClientLanguage())
+          : tr("Gửi duyệt thất bại", "Submit for review failed")
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }
@@ -3362,6 +3390,38 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                     className="px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth"
                   >
                     Thêm bài giảng
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {quotaDialogOpen && (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-md">
+              <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/30 bg-white/85 shadow-2xl dark:border-slate-700 dark:bg-slate-900/80">
+                <div className="bg-gradient-to-r from-cyan-500/20 via-sky-500/15 to-emerald-500/20 px-6 py-5">
+                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                    {tr("Đã đạt giới hạn gói giảng viên", "Instructor plan limit reached")}
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                    {quotaDialogMessage || tr("Bạn đã dùng hết số lượng khóa học được phép gửi duyệt/xuất bản trong gói hiện tại.", "You have reached the course submission/publishing limit of your current instructor plan.")}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-5">
+                  <button
+                    onClick={() => setQuotaDialogOpen(false)}
+                    className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    {tr("Đóng", "Close")}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setQuotaDialogOpen(false)
+                      router.push("/teacher/wallet-membership/checkout")
+                    }}
+                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-cyan-400 dark:text-slate-900 dark:hover:bg-cyan-300"
+                  >
+                    {tr("Mua gói giảng viên", "Buy instructor plan")}
                   </button>
                 </div>
               </div>

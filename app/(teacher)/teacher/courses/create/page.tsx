@@ -390,6 +390,9 @@ export default function CreateCoursePage() {
   const [deletingCriteriaByLesson, setDeletingCriteriaByLesson] = useState<Record<string, boolean>>({})
   const [selectedCriteriaToDelete, setSelectedCriteriaToDelete] = useState<Record<string, Set<number>>>({})
   const [subscriptionSnapshot, setSubscriptionSnapshot] = useState<SubscriptionSnapshot | null>(null)
+  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false)
+  const [quotaDialogMessage, setQuotaDialogMessage] = useState("")
+  const [submittedForReview, setSubmittedForReview] = useState(false)
 
   useEffect(() => {
     fetch("/api/categories")
@@ -543,7 +546,12 @@ export default function CreateCoursePage() {
 
         if (!courseRes.ok) {
           const err = await courseRes.json().catch(() => ({}))
+          const errorCode = String(err?.code || err?.error?.code || "")
           const serverMessage = err.message || err.error || t("tc_create_err_create_failed", "Tạo khóa học thất bại")
+          if (courseRes.status === 403 && errorCode === "COURSE_LIMIT_REACHED") {
+            setQuotaDialogMessage(String(serverMessage))
+            setQuotaDialogOpen(true)
+          }
           const readableMessage = courseRes.status === 403
             ? t("tc_create_limit_reached", "Bạn đã chạm giới hạn khóa học của gói hiện tại. Vui lòng nâng cấp hoặc gia hạn gói.")
             : serverMessage
@@ -664,15 +672,42 @@ export default function CreateCoursePage() {
           }
         }
 
+        let didSubmitForReview = false
+
         // 4. Submit for review if status is pending
         if (formData.status === "pending") {
-          await fetch(`/api/courses/${courseId}/submit`, {
+          const submitRes = await fetch(`/api/courses/${courseId}/submit`, {
             method: "PATCH",
             headers: { ...authHeaders, "Content-Type": "application/json" },
           })
+
+          if (!submitRes.ok) {
+            const submitErr = await submitRes.json().catch(() => ({}))
+            const submitCode = String(submitErr?.code || submitErr?.error?.code || "")
+            const submitMessage = String(
+              submitErr?.error ||
+              submitErr?.message ||
+              t("tc_create_submit_failed", "Không thể gửi khóa học chờ duyệt"),
+            )
+
+            if (submitRes.status === 403 && submitCode === "COURSE_LIMIT_REACHED") {
+              setQuotaDialogMessage(submitMessage)
+              setQuotaDialogOpen(true)
+              toast.warning(t("tc_create_saved_as_draft", "Khóa học đã được lưu dạng nháp do vượt giới hạn gửi duyệt."))
+            } else {
+              throw new Error(submitMessage)
+            }
+          } else {
+            didSubmitForReview = true
+          }
         }
 
-        toast.success(t("tc_create_success", "Đã tạo khóa học thành công!"))
+        setSubmittedForReview(didSubmitForReview)
+        toast.success(
+          didSubmitForReview
+            ? t("tc_create_success", "Đã tạo khóa học thành công!")
+            : t("tc_create_draft_success", "Đã tạo khóa học nháp thành công!"),
+        )
         setCurrentStep(currentStep + 1)
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : t("tc_create_err_unknown", "Đã xảy ra lỗi")
@@ -2295,15 +2330,51 @@ export default function CreateCoursePage() {
               <div>
                 <h3 className="success-title text-3xl font-bold text-gray-900 dark:text-white mb-3">{t("tc_create_success_title", "Đã tạo thành công khóa học!")}</h3>
                 <p className="success-desc text-lg text-gray-600 dark:text-slate-400 mb-2">
-                  {t("tc_create_success_desc", "Khóa học của bạn đã được tạo thành công")}
+                  {submittedForReview
+                    ? t("tc_create_success_desc", "Khóa học của bạn đã được tạo thành công")
+                    : t("tc_create_draft_desc", "Khóa học của bạn đã được lưu ở trạng thái nháp")}
                 </p>
                 <p className="success-note text-sm text-gray-500 dark:text-slate-400">
-                  {t("tc_create_success_note", "Khóa học sẽ được gửi đến admin để duyệt trước khi xuất bản")}
+                  {submittedForReview
+                    ? t("tc_create_success_note", "Khóa học sẽ được gửi đến admin để duyệt trước khi xuất bản")
+                    : t("tc_create_draft_note", "Bạn có thể gửi duyệt sau khi nâng cấp gói hoặc từ trang danh sách khóa học")}
                 </p>
               </div>
             </div>
           )}
         </div>
+
+        {quotaDialogOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-md">
+            <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/30 bg-white/85 shadow-2xl dark:border-slate-700 dark:bg-slate-900/80">
+              <div className="bg-gradient-to-r from-cyan-500/20 via-sky-500/15 to-emerald-500/20 px-6 py-5">
+                <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                  {t("tc_quota_dialog_title", "Đã đạt giới hạn gói giảng viên")}
+                </h3>
+                <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                  {quotaDialogMessage || t("tc_quota_dialog_desc", "Bạn đã dùng hết số lượng khóa học được phép gửi duyệt/xuất bản trong gói hiện tại.")}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-5">
+                <button
+                  onClick={() => setQuotaDialogOpen(false)}
+                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  {t("tc_close", "Đóng")}
+                </button>
+                <button
+                  onClick={() => {
+                    setQuotaDialogOpen(false)
+                    router.push("/teacher/wallet-membership/checkout")
+                  }}
+                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-cyan-400 dark:text-slate-900 dark:hover:bg-cyan-300"
+                >
+                  {t("tc_quota_dialog_cta", "Mua gói giảng viên")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Navigation Buttons */}
         <div className="flex items-center justify-between">

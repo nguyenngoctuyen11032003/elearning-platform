@@ -9,6 +9,10 @@ import { authFetch } from "@/lib/authfetch"
 import { createPortal } from "react-dom"
 import React from "react"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { toast } from "sonner"
+import { DialogSelect } from "@/components/ui/dialog-select"
+
+type CourseMenuAction = "view" | "progress" | "grade-writing" | "delete"
 interface Course {
   id: string
   rootCourseId: string
@@ -191,6 +195,11 @@ export default function TeacherCoursesPage() {
   const [studentsProgressVersionMeta, setStudentsProgressVersionMeta] = useState<CourseVersionMeta | null>(null)
   const [expandedLineageId, setExpandedLineageId] = useState<string | null>(null)
   const [activeVersionByLineage, setActiveVersionByLineage] = useState<Record<string, string>>({})
+  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false)
+  const [quotaDialogMessage, setQuotaDialogMessage] = useState("")
+  const [pendingMenuAction, setPendingMenuAction] = useState<CourseMenuAction | null>(null)
+  const [pendingMenuRootCourseId, setPendingMenuRootCourseId] = useState<string | null>(null)
+  const [pendingMenuVersionId, setPendingMenuVersionId] = useState("")
 
   const groupedCourseLessons = useMemo(() => {
     const sorted = sortLessonsForSections(selectedCourseLessons)
@@ -524,17 +533,118 @@ export default function TeacherCoursesPage() {
       const res = await authFetch(`/courses/${courseId}/submit`, {
         method: "PATCH",
       })
-      if (!res.ok) throw new Error(t("tc_submit_failed", "Submit failed"))
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        const errorCode = String(err?.code || err?.error?.code || "")
+        const errorMessage =
+          String(err?.error || err?.message || "").trim() ||
+          t("tc_submit_failed", "Submit failed")
+
+        if (res.status === 403 && errorCode === "COURSE_LIMIT_REACHED") {
+          setQuotaDialogMessage(errorMessage)
+          setQuotaDialogOpen(true)
+          return
+        }
+
+        throw new Error(errorMessage)
+      }
+
       setCourses(courses.map(c =>
         c.id === courseId ? { ...c, status: "pending" as const } : c
       ))
+      toast.success(t("tc_submit_success", "Đã gửi khóa học chờ duyệt"))
     } catch (error) {
       console.error("Error submitting course:", error)
+      const message = error instanceof Error ? error.message : t("tc_submit_failed", "Submit failed")
+      toast.error(message)
     } finally {
       setMenuCourse(null)
       setMenuRect(null)
       setMenuAnchorId(null)
     }
+  }
+
+  const approvedMenuVersions = useMemo(() => {
+    if (!pendingMenuRootCourseId) return [] as Course[]
+    const lineage = courseLineages.find((item) => item.rootCourseId === pendingMenuRootCourseId)
+    if (!lineage) return [] as Course[]
+    return lineage.versions.filter((version) => version.status === "approved")
+  }, [courseLineages, pendingMenuRootCourseId])
+
+  const actionAwareMenuVersions = useMemo(() => {
+    if (!pendingMenuRootCourseId) return [] as Course[]
+    const lineage = courseLineages.find((item) => item.rootCourseId === pendingMenuRootCourseId)
+    if (!lineage) return [] as Course[]
+    // For "view" action, show all versions. For other actions, show only approved versions
+    if (pendingMenuAction === "view") {
+      return lineage.versions
+    }
+    return lineage.versions.filter((version) => version.status === "approved")
+  }, [courseLineages, pendingMenuRootCourseId, pendingMenuAction])
+
+  const runCourseMenuAction = (action: CourseMenuAction, course: Course) => {
+    if (action === "view") {
+      handleViewDetails(course)
+      return
+    }
+    if (action === "progress") {
+      void handleViewStudentsProgress(course)
+      return
+    }
+    if (action === "grade-writing") {
+      router.push(`/teacher/assignments?courseId=${course.id}`)
+      return
+    }
+    handleDeleteClick(course)
+  }
+
+  const openVersionPickerForAction = (action: CourseMenuAction, course: Course) => {
+    setMenuCourse(null)
+    setMenuRect(null)
+    setMenuAnchorId(null)
+
+    const lineage = courseLineages.find((item) => item.rootCourseId === course.rootCourseId)
+    if (!lineage || lineage.versions.length <= 1) {
+      runCourseMenuAction(action, course)
+      return
+    }
+
+    // For "view" action, allow all versions. For other actions, require approved versions
+    const availableVersions = action === "view" ? lineage.versions : lineage.versions.filter((version) => version.status === "approved")
+    if (availableVersions.length === 0) {
+      toast.error(t("tc_no_approved_version_for_action", "Chưa có phiên bản đã duyệt để thực hiện thao tác này"))
+      return
+    }
+
+    setPendingMenuAction(action)
+    setPendingMenuRootCourseId(lineage.rootCourseId)
+    setPendingMenuVersionId(availableVersions[0].id)
+  }
+
+  const closeVersionActionDialog = () => {
+    setPendingMenuAction(null)
+    setPendingMenuRootCourseId(null)
+    setPendingMenuVersionId("")
+  }
+
+  const handleConfirmVersionAction = () => {
+    if (!pendingMenuAction) return
+    const selectedVersion = actionAwareMenuVersions.find((version) => version.id === pendingMenuVersionId)
+    if (!selectedVersion) {
+      toast.error(t("tc_select_version_first", "Vui lòng chọn phiên bản hợp lệ"))
+      return
+    }
+    runCourseMenuAction(pendingMenuAction, selectedVersion)
+    closeVersionActionDialog()
+  }
+
+  const getMenuActionLabel = (action: CourseMenuAction | null) => {
+    if (action === "view") return t("tc_view_details", "Xem chi tiết")
+    if (action === "progress") return t("tc_view_students_progress_score", "Xem điểm & tiến độ")
+    if (action === "grade-writing") return t("tc_grade_writing", "Chấm writing")
+    if (action === "delete") return t("tc_delete_course", "Xóa khóa học")
+    return ""
   }
 
   const handleViewStudentsProgress = async (course: Course) => {
@@ -827,7 +937,7 @@ useEffect(() => {
                         {getStatusBadge(primaryCourse.status)}
                       </div>
 
-                      <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{primaryCourse.category}</p>
+                      <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{primaryCourse.category} • {formatDate(primaryCourse.createdAt)}</p>
 
                       {hasMultipleVersions && (
                         <div className="mt-4">
@@ -1226,6 +1336,87 @@ useEffect(() => {
           </div>
         </div>
       )}
+
+      {quotaDialogOpen && (
+        <div className="fixed inset-0 z-[100002] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-md">
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/30 bg-white/80 shadow-2xl dark:border-slate-700 dark:bg-slate-900/80">
+            <div className="bg-gradient-to-r from-cyan-500/20 via-sky-500/15 to-emerald-500/20 px-6 py-5">
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                {t("tc_quota_dialog_title", "Đã đạt giới hạn gói giảng viên")}
+              </h3>
+              <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                {quotaDialogMessage || t("tc_quota_dialog_desc", "Bạn đã dùng hết số lượng khóa học được phép gửi duyệt/xuất bản trong gói hiện tại.")}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-5">
+              <button
+                onClick={() => setQuotaDialogOpen(false)}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                {t("tc_close", "Đóng")}
+              </button>
+              <button
+                onClick={() => {
+                  setQuotaDialogOpen(false)
+                  router.push("/teacher/wallet-membership/checkout")
+                }}
+                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-cyan-400 dark:text-slate-900 dark:hover:bg-cyan-300"
+              >
+                {t("tc_quota_dialog_cta", "Mua gói giảng viên")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingMenuAction && pendingMenuRootCourseId && (
+        <div className="fixed inset-0 z-[100003] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-md">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <h3 className="text-lg font-bold text-foreground dark:text-white">
+              {t("tc_pick_version_title", "Chọn phiên bản khóa học")}
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground dark:text-slate-400">
+              {pendingMenuAction === "view"
+                ? t("tc_pick_version_desc_view", "Bạn có thể xem tất cả các phiên bản khóa học.")
+                : t("tc_pick_version_desc", "Thao tác này chỉ áp dụng cho phiên bản đã duyệt. Vui lòng chọn phiên bản theo số version.")}
+            </p>
+
+            <div className="mt-4">
+              <DialogSelect
+                value={pendingMenuVersionId}
+                onChange={setPendingMenuVersionId}
+                className="w-full"
+              >
+                {actionAwareMenuVersions.map((version) => {
+                  const versionNumber = courseVersionNumberMap.get(version.id) || 1
+                  const versionLabel = `${t("tc_course_version", "Phiên bản")} v${versionNumber} • ${formatDate(version.createdAt)}`
+                  return (
+                    <option key={version.id} value={version.id}>
+                      {versionLabel}
+                    </option>
+                  )
+                })}
+              </DialogSelect>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={closeVersionActionDialog}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-secondary dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
+              >
+                {t("tc_cancel", "Hủy")}
+              </button>
+              <button
+                onClick={handleConfirmVersionAction}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
+              >
+                {t("tc_continue_action", "Tiếp tục")}: {getMenuActionLabel(pendingMenuAction)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 {menuCourse && menuRect && typeof window !== "undefined" &&
   (() => {
     // Find the card element
@@ -1250,8 +1441,7 @@ useEffect(() => {
         >
           <button
             onClick={() => {
-              handleViewDetails(menuCourse)
-              setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
+              openVersionPickerForAction("view", menuCourse)
             }}
             className="w-full border-b border-gray-100 px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-gray-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
           >
@@ -1261,8 +1451,7 @@ useEffect(() => {
           </button>
           <button
             onClick={() => {
-              handleViewStudentsProgress(menuCourse)
-              setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
+              openVersionPickerForAction("progress", menuCourse)
             }}
             className="w-full border-b border-gray-100 px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-gray-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
           >
@@ -1272,8 +1461,7 @@ useEffect(() => {
           </button>
           <button
             onClick={() => {
-              router.push(`/teacher/assignments?courseId=${menuCourse.id}`)
-              setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
+              openVersionPickerForAction("grade-writing", menuCourse)
             }}
             className="w-full border-b border-gray-100 px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-gray-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
           >
@@ -1309,8 +1497,7 @@ useEffect(() => {
           )}
           <button
             onClick={() => {
-              handleDeleteClick(menuCourse)
-              setMenuCourse(null); setMenuRect(null); setMenuAnchorId(null);
+              openVersionPickerForAction("delete", menuCourse)
             }}
             className="w-full px-4 py-3 text-left text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
           >
