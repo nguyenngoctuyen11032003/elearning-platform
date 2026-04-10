@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { Footer } from "@/components/ui/footer";
+import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button";
 import {
   Users,
   Target,
@@ -612,6 +613,8 @@ const [loading, setLoading] = useState(true);
       <div className="-mt-1">
         <Footer />
       </div>
+
+      <ScrollToTopButton />
     </div>
   );
 }
