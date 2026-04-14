@@ -162,16 +162,16 @@ function getAttachmentLabel(attachment: SubmissionAttachment): string {
 
 function normalizeStudentInfo(student: unknown): { name: string; email: string } {
   if (!student || typeof student !== 'object') {
-    return { name: '', email: '' };
+    return { name: 'Unknown Student', email: 'N/A' };
   }
 
   const studentObj = student as Record<string, unknown>;
-  const name = String(studentObj.name || studentObj.fullName || studentObj.firstName || '').trim();
-  const email = String(studentObj.email || '').trim();
+  const name = String(studentObj.name || studentObj.fullName || studentObj.firstName || studentObj.displayName || '').trim();
+  const email = String(studentObj.email || studentObj.emailAddress || '').trim();
 
   return {
-    name: name || '(No name)',
-    email: email || '(No email)',
+    name: name || 'Unknown Student',
+    email: email || 'N/A',
   };
 }
 
@@ -291,10 +291,11 @@ export default function TeacherAssignmentGradingPage() {
   );
 
   const averageScore = useMemo(() => {
-    if (criteria.length === 0) return 0;
+    // Only calculate average if all criteria are selected
+    if (criteria.length === 0 || !allCriteriaSelected) return 0;
     const raw = totalScore / criteria.length;
     return Number(raw.toFixed(1));
-  }, [criteria.length, totalScore]);
+  }, [criteria.length, totalScore, allCriteriaSelected]);
 
   const allCriteriaSelected =
     criteria.length > 0 && selectedRows.every((row) => row.selectedLevelIndex >= 0);
@@ -305,12 +306,15 @@ export default function TeacherAssignmentGradingPage() {
     }
 
     if (!allCriteriaSelected) {
-      return 0;
+      return 0; // Return 0 if not all criteria are selected
     }
 
-    const rawScore = Math.min(averageScore, assignment?.maxScore ?? averageScore);
+    // All criteria selected: calculate final score
+    const rawScore = averageScore;
+    // Cap the score at max score
+    const cappedScore = Math.min(rawScore, assignment?.maxScore ?? 100);
     const validPoints = extractValidPoints(criteria);
-    return snapScoreToValidPoint(rawScore, validPoints);
+    return snapScoreToValidPoint(cappedScore, validPoints);
   }, [allCriteriaSelected, averageScore, assignment, criteria, manualScore]);
 
   const loadData = async () => {
