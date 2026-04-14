@@ -118,6 +118,7 @@ export default function NotesPage() {
   const [showingFavoritesModal, setShowingFavoritesModal] = useState(false)
   const [favoriteNotes, setFavoriteNotes] = useState<Note[]>([])
   const [loadingFavorites, setLoadingFavorites] = useState(false)
+  const [isSavingNote, setIsSavingNote] = useState(false)
 
   const ITEMS_PER_PAGE = 6
 
@@ -211,8 +212,22 @@ export default function NotesPage() {
         throw new Error(json?.error?.message || t("notes_fetch_error", "Không lấy được ghi chú"))
       }
 
+      const rawNotes = Array.isArray(json?.data)
+        ? json.data
+        : Array.isArray(json)
+          ? json
+          : []
+
+      const cleanedNotes = rawNotes.filter((n: any) => {
+        const title = typeof n?.title === "string" ? n.title.trim() : ""
+        const content = typeof n?.content === "string" ? n.content.trim() : ""
+        const items = Array.isArray(n?.items) ? n.items : []
+        const schedule = Array.isArray(n?.schedule) ? n.schedule : []
+        return title.length > 0 || content.length > 0 || items.length > 0 || schedule.length > 0
+      })
+
       setNotes(
-        (json.data ?? json).map((n: any) => ({
+        cleanedNotes.map((n: any) => ({
           id: n.id,
           title: n.title ?? n.content?.split('\n')[0] ?? t('notes_default_title', 'Ghi chú'),
           content: n.content || '',
@@ -236,7 +251,8 @@ export default function NotesPage() {
   }, [token])
 
   const handleCreateNote = async () => {
-  try {
+    if (isSavingNote) return
+
     // Validate based on note type
     if (newNote.type === 'general' && !newNote.content?.trim()) {
       console.error(t('notes_general_content_required', 'Ghi chú thường cần có nội dung'));
@@ -253,59 +269,63 @@ export default function NotesPage() {
       return;
     }
 
-    const pendingTags = splitTagInput(newTagInput)
-    const normalizedTags = mergeTags(newNote.tags, pendingTags)
+    setIsSavingNote(true)
+    try {
+      const pendingTags = splitTagInput(newTagInput)
+      const normalizedTags = mergeTags(newNote.tags, pendingTags)
 
-    const payload: any = {
-      title: newNote.title.trim(),
-      tags: normalizedTags,
-      type: newNote.type,
-      timestamp: 0,
-    };
+      const payload: any = {
+        title: newNote.title.trim(),
+        tags: normalizedTags,
+        type: newNote.type,
+        timestamp: 0,
+      };
 
-    // Add content only for general notes
-    if (newNote.type === 'general') {
-      payload.content = newNote.content;
+      // Add content only for general notes
+      if (newNote.type === 'general') {
+        payload.content = newNote.content;
+      }
+
+      // Add items for deadline/checklist
+      if ((newNote.type === 'deadline' || newNote.type === 'checklist') && newNote.items?.length > 0) {
+        payload.items = newNote.items;
+      }
+
+      // Add schedule for plan notes
+      if (newNote.type === 'plan' && newNote.schedule?.length > 0) {
+        payload.schedule = newNote.schedule;
+      }
+
+      const res = await fetch(`${apiUrl}/notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error(t('notes_create_failed', 'Tạo note thất bại'));
+
+      // Fetch lại danh sách để cập nhật
+      await fetchNotes();
+
+      setIsCreating(false);
+      setNewTagInput("");
+      setNewNote({
+        title: '',
+        content: '',
+        tags: [],
+        type: 'general',
+        items: [],
+        schedule: [],
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSavingNote(false)
     }
-
-    // Add items for deadline/checklist
-    if ((newNote.type === 'deadline' || newNote.type === 'checklist') && newNote.items?.length > 0) {
-      payload.items = newNote.items;
-    }
-
-    // Add schedule for plan notes
-    if (newNote.type === 'plan' && newNote.schedule?.length > 0) {
-      payload.schedule = newNote.schedule;
-    }
-
-    const res = await fetch(`${apiUrl}/notes`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) throw new Error(t('notes_create_failed', 'Tạo note thất bại'));
-
-    // Fetch lại danh sách để cập nhật
-    await fetchNotes();
-
-    setIsCreating(false);
-    setNewTagInput("");
-    setNewNote({
-      title: '',
-      content: '',
-      tags: [],
-      type: 'general',
-      items: [],
-      schedule: [],
-    });
-  } catch (err) {
-    console.error(err);
-  }
-};
+  };
 
   const handleUpdateNote = async () => {
     if (!editingNote) return;
@@ -508,8 +528,22 @@ export default function NotesPage() {
         throw new Error(json?.error?.message || t("notes_fetch_fav_error", "Không lấy được ghi chú yêu thích"))
       }
 
+      const rawNotes = Array.isArray(json?.data)
+        ? json.data
+        : Array.isArray(json)
+          ? json
+          : []
+
+      const cleanedNotes = rawNotes.filter((n: any) => {
+        const title = typeof n?.title === "string" ? n.title.trim() : ""
+        const content = typeof n?.content === "string" ? n.content.trim() : ""
+        const items = Array.isArray(n?.items) ? n.items : []
+        const schedule = Array.isArray(n?.schedule) ? n.schedule : []
+        return title.length > 0 || content.length > 0 || items.length > 0 || schedule.length > 0
+      })
+
       setFavoriteNotes(
-        (json.data ?? json).map((n: any) => ({
+        cleanedNotes.map((n: any) => ({
           id: n.id,
           title: n.title ?? n.content?.split('\n')[0] ?? t('notes_default_title', 'Ghi chú'),
           content: n.content || '',
@@ -1221,7 +1255,8 @@ useEffect(() => {
                   </button>
                   <button 
                     onClick={handleCreateNote}
-                    disabled={!newNote.title.trim()}
+                    disabled={isSavingNote || !newNote.title.trim()}
+                    aria-busy={isSavingNote}
                     className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-bold hover:shadow-xl shadow-lg shadow-green-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Save size={22} />
