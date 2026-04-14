@@ -449,6 +449,7 @@ export default function MyCoursesPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.36 }}
           className="relative overflow-hidden rounded-[2rem] border border-cyan-100/70 bg-white/85 p-6 shadow-[0_24px_60px_rgba(6,78,59,0.14)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-900/70 md:p-8"
+          style={{ backgroundImage: "url('/image/bg_progress.png')", backgroundSize: "cover", backgroundPosition: "center" }}
         >
           <div className="absolute inset-0 bg-[radial-gradient(125%_100%_at_10%_0%,rgba(56,189,248,0.2),transparent_48%),radial-gradient(105%_100%_at_100%_0%,rgba(16,185,129,0.2),transparent_45%)]" />
 

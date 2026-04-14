@@ -302,6 +302,7 @@ export default function PaymentHistoryPage() {
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         className="relative overflow-hidden rounded-[2rem] border border-cyan-100/70 bg-white/85 p-6 shadow-[0_24px_60px_rgba(14,116,144,0.14)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-900/70 md:p-8"
+        style={{ backgroundImage: "url('/image/bgr3.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}
       >
         <div className="absolute inset-0 bg-[radial-gradient(120%_120%_at_0%_0%,rgba(34,211,238,0.2),transparent_45%),radial-gradient(100%_110%_at_100%_0%,rgba(16,185,129,0.2),transparent_42%)]" />
 

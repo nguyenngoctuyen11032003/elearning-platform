@@ -224,6 +224,7 @@ export default function StudentExamsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.34 }}
         className="relative overflow-hidden rounded-[2rem] border border-blue-100/70 bg-white/85 p-6 shadow-[0_24px_60px_rgba(3,105,161,0.16)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-900/70 md:p-8"
+        style={{ backgroundImage: "url('/image/bg_exams.png')", backgroundSize: "cover", backgroundPosition: "center" }}
       >
         <div className="absolute inset-0 bg-[radial-gradient(120%_110%_at_0%_0%,rgba(59,130,246,0.25),transparent_45%),radial-gradient(100%_90%_at_90%_0%,rgba(34,211,238,0.22),transparent_48%)]" />
         <div className="relative z-10 space-y-6">

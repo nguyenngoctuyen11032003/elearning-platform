@@ -468,6 +468,7 @@ useEffect(() => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-5 overflow-hidden rounded-[2rem] border border-cyan-100/70 bg-white/85 p-5 shadow-[0_24px_60px_rgba(8,47,73,0.12)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-900/70 sm:p-6"
+          style={{ backgroundImage: "url('/image/bg_tcher.png')", backgroundSize: "cover", backgroundPosition: "center" }}
         >
           <div className="absolute inset-0 bg-[radial-gradient(130%_120%_at_0%_0%,rgba(34,211,238,0.2),transparent_45%),radial-gradient(120%_120%_at_100%_0%,rgba(16,185,129,0.18),transparent_45%)]" />
           <div className="relative z-10 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -781,8 +782,8 @@ useEffect(() => {
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_type", "Loại")}</label>
                     <DialogSelect
-                      value={newItem.type}
-                      onChange={(e) => setNewItem({ ...newItem, type: e.target.value as any })}
+                      value={newItem.type || "lesson"}
+                      onChange={(value) => setNewItem({ ...newItem, type: value as 'lesson' | 'exam' | 'live' })}
                       className="h-11 w-full"
                     >
                       <option value="lesson">{t("sched_lesson", "Bài học")}</option>
@@ -793,8 +794,8 @@ useEffect(() => {
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_status", "Trạng thái")}</label>
                     <DialogSelect
-                      value={newItem.status}
-                      onChange={(e) => setNewItem({ ...newItem, status: e.target.value as any })}
+                      value={newItem.status || "todo"}
+                      onChange={(value) => setNewItem({ ...newItem, status: value as 'todo' | 'in-progress' | 'completed' })}
                       className="h-11 w-full"
                     >
                       <option value="todo">{t("sched_todo", "Chưa làm")}</option>
@@ -921,7 +922,7 @@ useEffect(() => {
                     <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_type", "Loại")}</label>
                     <DialogSelect
                       value={editingItem.type}
-                      onChange={(e) => setEditingItem({ ...editingItem, type: e.target.value as any })}
+                      onChange={(value) => setEditingItem({ ...editingItem, type: value as 'lesson' | 'exam' | 'live' })}
                       className="h-11 w-full"
                     >
                       <option value="lesson">{t("sched_lesson", "Bài học")}</option>
@@ -933,7 +934,7 @@ useEffect(() => {
                     <label className="block text-xs sm:text-sm font-medium text-foreground dark:text-white mb-1 sm:mb-2">{t("sched_form_status", "Trạng thái")}</label>
                     <DialogSelect
                       value={editingItem.status}
-                      onChange={(e) => setEditingItem({ ...editingItem, status: e.target.value as any })}
+                      onChange={(value) => setEditingItem({ ...editingItem, status: value as 'todo' | 'in-progress' | 'completed' })}
                       className="h-11 w-full"
                     >
                       <option value="todo">{t("sched_todo", "Chưa làm")}</option>

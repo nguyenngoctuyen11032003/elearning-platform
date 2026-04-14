@@ -537,6 +537,7 @@ export default function StudentDashboardPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
           className="relative overflow-hidden rounded-[2rem] border border-cyan-100/70 bg-white/80 p-6 shadow-[0_25px_65px_rgba(3,105,161,0.15)] backdrop-blur-xl dark:border-cyan-900/40 dark:bg-slate-900/65 md:p-8"
+          style={{ backgroundImage: "url('/image/bg_students.png')", backgroundSize: "cover", backgroundPosition: "center" }}
         >
           <div className="absolute inset-0 bg-[radial-gradient(120%_100%_at_20%_0%,rgba(14,165,233,0.18),transparent_46%),radial-gradient(100%_90%_at_90%_8%,rgba(16,185,129,0.22),transparent_50%)] dark:bg-[radial-gradient(120%_100%_at_20%_0%,rgba(14,165,233,0.16),transparent_46%),radial-gradient(100%_90%_at_90%_8%,rgba(16,185,129,0.16),transparent_52%)]" />
           <div className="relative z-10 grid gap-8 lg:grid-cols-[1.45fr_1fr]">
