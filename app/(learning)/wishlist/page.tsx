@@ -233,7 +233,7 @@ export default function WishlistPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
           className="overflow-hidden rounded-[2rem] border border-rose-200/65 bg-white/85 p-6 shadow-[0_24px_60px_rgba(244,63,94,0.12)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-900/70 md:p-8"
-          style={{ backgroundImage: "url('/image/bgr_setting_teacher.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}
+          style={{ backgroundImage: "url('/image/bgr2.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}
         >
           <div className="absolute inset-0 bg-[radial-gradient(130%_120%_at_5%_0%,rgba(251,113,133,0.2),transparent_50%),radial-gradient(120%_100%_at_100%_0%,rgba(34,211,238,0.2),transparent_45%)]" />
           <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
