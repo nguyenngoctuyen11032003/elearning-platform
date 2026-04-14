@@ -19,7 +19,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts"
-import { formatCurrency, formatNumber, formatStudentCount } from "@/lib/format"
+import { formatCurrency, formatCurrencyByLanguage, formatNumber, formatStudentCount } from "@/lib/format"
 import { StatCard } from "@/components/ui/stat-card"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "sonner"
@@ -106,6 +106,25 @@ const isInRange = (value: unknown, rangeStart: Date, rangeEnd: Date): boolean =>
   return date >= rangeStart && date <= rangeEnd
 }
 
+const normalizePaymentStatus = (status?: unknown): "success" | "pending" | "failed" => {
+  const normalized = String(status ?? "").toLowerCase()
+  if (normalized === "completed" || normalized === "success" || normalized === "paid") return "success"
+  if (normalized === "pending") return "pending"
+  return "failed"
+}
+
+const sumSuccessfulRevenueByPeriod = (
+  items: any[],
+  periodRange: { start: Date; end: Date },
+  amountResolver: (item: any) => number,
+  dateResolver: (item: any) => unknown,
+) => {
+  return items
+    .filter((item) => normalizePaymentStatus(item?.status) === "success")
+    .filter((item) => isInRange(dateResolver(item), periodRange.start, periodRange.end))
+    .reduce((sum, item) => sum + Number(amountResolver(item) || 0), 0)
+}
+
 const formatDateTime = (value: unknown): string => {
   const date = toDate(value)
   return date ? date.toLocaleString("vi-VN") : "-"
@@ -168,10 +187,35 @@ export default function AdminReportsPage() {
 
         const revenueByMonthRaw = Array.isArray(revenueReport?.revenueByMonth) ? revenueReport.revenueByMonth : []
         const revenueByCategoryRaw = Array.isArray(revenueReport?.revenueByCategory) ? revenueReport.revenueByCategory : []
-        const totalRevenue = Number(revenueReport?.totalRevenue || 0)
+        const courseRevenueTotal = Number(revenueReport?.totalRevenue || 0)
         const categoryNames = Array.isArray(allCategories)
           ? allCategories.map((item: any) => String(item?.name || "").trim()).filter(Boolean)
           : []
+
+        const coursePaymentsRaw = Array.isArray(adminPayments?.data) ? adminPayments.data : []
+        const instructorPaymentsRaw = Array.isArray(adminInstructorPayments) ? adminInstructorPayments : []
+
+        const courseRevenueFromPayments = sumSuccessfulRevenueByPeriod(
+          coursePaymentsRaw,
+          range,
+          (item) => Number(item?.finalAmount ?? item?.amount ?? 0),
+          (item) => item?.createdAt ?? item?.paidAt ?? item?.updatedAt,
+        )
+        const instructorRevenueFromPayments = sumSuccessfulRevenueByPeriod(
+          instructorPaymentsRaw,
+          range,
+          (item) => Number(item?.amount ?? 0),
+          (item) => item?.createdAt ?? item?.paidAt,
+        )
+        const combinedRevenueFromPayments = Math.round(courseRevenueFromPayments + instructorRevenueFromPayments)
+        const hasEnoughPaymentSources = Array.isArray(coursePaymentsRaw) && Array.isArray(instructorPaymentsRaw)
+        const totalRevenue = hasEnoughPaymentSources ? combinedRevenueFromPayments : Math.round(courseRevenueTotal)
+        const platformRevenue = hasEnoughPaymentSources
+          ? Math.round(Number(revenueReport?.platformRevenue ?? courseRevenueFromPayments * 0.3) + instructorRevenueFromPayments)
+          : Math.round(Number(revenueReport?.platformRevenue || 0))
+        const teacherRevenue = hasEnoughPaymentSources
+          ? Math.round(Number(revenueReport?.teacherRevenue ?? courseRevenueFromPayments * 0.7))
+          : Math.round(Number(revenueReport?.teacherRevenue || 0))
 
         const categoryMap = new Map<string, { revenue: number; orderCount: number }>()
         for (const row of revenueByCategoryRaw) {
@@ -193,7 +237,7 @@ export default function AdminReportsPage() {
               categoryName: name,
               revenue,
               orderCount,
-              percentage: totalRevenue > 0 ? Math.round((revenue / totalRevenue) * 1000) / 10 : 0,
+              percentage: courseRevenueTotal > 0 ? Math.round((revenue / courseRevenueTotal) * 1000) / 10 : 0,
             }
           })
           .sort((a, b) => b.revenue - a.revenue || a.categoryName.localeCompare(b.categoryName, "vi"))
@@ -215,9 +259,6 @@ export default function AdminReportsPage() {
               students: Number(s?.count ?? 0),
             }
           })
-        const coursePaymentsRaw = Array.isArray(adminPayments?.data) ? adminPayments.data : []
-        const instructorPaymentsRaw = Array.isArray(adminInstructorPayments) ? adminInstructorPayments : []
-
         const nextCoursePayments: CoursePaymentHistory[] = coursePaymentsRaw.map((item: any) => ({
           id: String(item?.id || ""),
           transactionId: String(item?.transactionId || "-"),
@@ -268,9 +309,9 @@ export default function AdminReportsPage() {
 
         // Set totals - always derive from real period-filtered API data
         const nextTotals = {
-          totalRevenue: toNumber(revenueReport?.totalRevenue || 0),
-          platformRevenue: toNumber(revenueReport?.platformRevenue || 0),
-          teacherRevenue: toNumber(revenueReport?.teacherRevenue || 0),
+          totalRevenue: toNumber(totalRevenue),
+          platformRevenue: toNumber(platformRevenue),
+          teacherRevenue: toNumber(teacherRevenue),
           totalTeachers: toNumber(dashboardStats?.totalTeachers || 0),
           totalStudents: toNumber(dashboardStats?.totalStudents || 0),
           totalCourses: toNumber(dashboardStats?.totalCourses || performanceReport?.topPerformingCourses?.length || 0),
@@ -673,7 +714,7 @@ export default function AdminReportsPage() {
             <div className="rounded-2xl border border-white/35 dark:border-slate-800/60 bg-white/20 dark:bg-white/5 backdrop-blur-xl p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)] space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { key: "totalRevenue", label: t("adm_rpt_total_revenue", "Tổng doanh thu"), value: totals.totalRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-primary/20 to-accent/25", icon: DollarSign },
+                  { key: "totalRevenue", label: t("adm_rpt_total_revenue", "Tổng doanh thu"), value: totals.totalRevenue, formatter: (val: number) => formatCurrencyByLanguage(Math.round(val), language), tone: "from-green-200/40 to-emerald-100/30", icon: DollarSign },
                   { key: "totalTeachers", label: t("adm_rpt_total_teachers", "Tổng giáo viên"), value: totals.totalTeachers, formatter: formatNumber, tone: "from-purple-200/30 to-blue-200/30", icon: Users },
                   { key: "totalStudents", label: t("adm_rpt_total_students", "Tổng học viên"), value: totals.totalStudents, formatter: formatNumber, tone: "from-green-200/25 to-teal-200/30", icon: TrendingUp },
                   { key: "totalCourses", label: t("adm_rpt_courses", "Khóa học"), value: totals.totalCourses, formatter: formatNumber, tone: "from-orange-200/30 to-yellow-200/25", icon: BookOpen },
@@ -702,8 +743,8 @@ export default function AdminReportsPage() {
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {[
-                  { key: "platformRevenue", label: t("adm_rpt_platform_rev", "Doanh thu nền tảng"), value: totals.platformRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-primary/15 to-primary/5" },
-                  { key: "teacherRevenue", label: t("adm_rpt_teacher_rev", "Doanh thu giáo viên"), value: totals.teacherRevenue, formatter: (val: number) => formatCurrency(Math.round(val)), tone: "from-emerald-100/40 to-green-100/30" },
+                  { key: "platformRevenue", label: t("adm_rpt_platform_rev", "Doanh thu nền tảng"), value: totals.platformRevenue, formatter: (val: number) => formatCurrencyByLanguage(Math.round(val), language), tone: "from-primary/15 to-primary/5" },
+                  { key: "teacherRevenue", label: t("adm_rpt_teacher_rev", "Doanh thu giáo viên"), value: totals.teacherRevenue, formatter: (val: number) => formatCurrencyByLanguage(Math.round(val), language), tone: "from-emerald-100/40 to-green-100/30" },
                   { key: "totalUsers", label: t("adm_rpt_total_users", "Tổng người dùng"), value: totals.totalUsers, formatter: formatNumber, tone: "from-indigo-100/40 to-indigo-50/50" },
                   { key: "teacherGrowth", label: t("adm_rpt_growth_teachers", "Tăng trưởng GV"), value: teacherGrowth.at(-1)?.teachers || 0, formatter: formatNumber, suffix: ` ${t("adm_rpt_person", "người")}`, tone: "from-purple-100/40 to-blue-100/30" },
                   { key: "studentGrowth", label: t("adm_rpt_growth_students", "Tăng trưởng HV"), value: studentGrowth.at(-1)?.students || 0, formatter: formatNumber, suffix: ` ${t("adm_rpt_person", "người")}`, tone: "from-cyan-100/35 to-teal-100/25" },

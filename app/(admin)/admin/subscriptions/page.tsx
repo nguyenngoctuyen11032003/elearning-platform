@@ -75,6 +75,13 @@ export default function AdminTeacherSubscriptionPage() {
   const [deletePlanDialog, setDeletePlanDialog] = useState<{ isOpen: boolean; planId?: string; planName?: string }>({
     isOpen: false,
   })
+  const [removeAccessDialog, setRemoveAccessDialog] = useState<{
+    isOpen: boolean
+    subscriptionId?: string
+    teacherName?: string
+  }>({
+    isOpen: false,
+  })
 
   const getPlanSignature = (plan: any) =>
     JSON.stringify({
@@ -443,15 +450,9 @@ export default function AdminTeacherSubscriptionPage() {
     }
   }
 
-  const removeInstructorAccess = async (subscription: any) => {
-    const subId = String(subscription?.id || "")
+  const removeInstructorAccess = async (subscriptionId: string) => {
+    const subId = String(subscriptionId || "")
     if (!subId) return
-
-    const teacherName = String(subscription?.teacher?.name || subscription?.teacher?.email || "giảng viên")
-    const ok = window.confirm(
-      `${t("adm_sub_remove_access_confirm", "Bạn chắc chắn muốn xóa gói đang dùng của giảng viên này và chuyển về Free?")}\n\n${teacherName}`,
-    )
-    if (!ok) return
 
     setRemovingSubscriptionId(subId)
     try {
@@ -463,6 +464,18 @@ export default function AdminTeacherSubscriptionPage() {
     } finally {
       setRemovingSubscriptionId(null)
     }
+  }
+
+  const requestRemoveInstructorAccess = (subscription: any) => {
+    const subscriptionId = String(subscription?.id || "")
+    if (!subscriptionId) return
+
+    const teacherName = String(subscription?.teacher?.name || subscription?.teacher?.email || "giảng viên")
+    setRemoveAccessDialog({
+      isOpen: true,
+      subscriptionId,
+      teacherName,
+    })
   }
 
   const getQuotaMeta = (usedRaw: unknown, limitRaw: unknown) => {
@@ -857,24 +870,6 @@ export default function AdminTeacherSubscriptionPage() {
                 <div className="flex items-center gap-2">
                   <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center"><CreditCard size={18} /></div>
                   <div>
-                    <ConfirmDialog
-                      isOpen={deletePlanDialog.isOpen}
-                      onClose={() => setDeletePlanDialog({ isOpen: false })}
-                      onConfirm={() => {
-                        if (deletePlanDialog.planId) {
-                          void deletePlan(deletePlanDialog.planId)
-                        }
-                      }}
-                      title={t("adm_sub_delete_title", "Xóa gói")}
-                      message={
-                        deletePlanDialog.planName
-                          ? t("adm_sub_delete_desc", "Bạn chắc chắn muốn xóa gói này?") + ` (${deletePlanDialog.planName})`
-                          : t("adm_sub_delete_desc", "Bạn chắc chắn muốn xóa gói này?")
-                      }
-                      confirmText={t("adm_sub_delete_btn", "Xóa")}
-                      cancelText={t("common_cancel", "Hủy")}
-                      isDangerous
-                    />
                     <h2 className="text-lg md:text-xl font-semibold">{t("adm_sub_payment_management", "Quản lý thanh toán")}</h2>
                     <p className="text-sm text-muted-foreground">{t("adm_sub_payment_hint", "Giám sát giao dịch, xác nhận và hoàn tiền")}</p>
                   </div>
@@ -1070,9 +1065,7 @@ export default function AdminTeacherSubscriptionPage() {
                               <SquarePen size={13} /> {t("common_edit", "Chỉnh sửa")}
                             </button>
                             <button
-                              onClick={() => {
-                                void removeInstructorAccess(s)
-                              }}
+                              onClick={() => requestRemoveInstructorAccess(s)}
                               disabled={removingSubscriptionId === String(s?.id || "")}
                               className="h-8 px-3 rounded-lg bg-rose-600 text-white inline-flex items-center gap-1 text-xs font-semibold shadow-sm hover:shadow-md disabled:opacity-60"
                               title={t("adm_sub_remove_access", "Xóa gói đang dùng")}
@@ -1261,6 +1254,40 @@ export default function AdminTeacherSubscriptionPage() {
               </div>
             </div>
           )}
+
+          <ConfirmDialog
+            isOpen={deletePlanDialog.isOpen}
+            onClose={() => setDeletePlanDialog({ isOpen: false })}
+            onConfirm={() => {
+              if (deletePlanDialog.planId) {
+                void deletePlan(deletePlanDialog.planId)
+              }
+            }}
+            title={t("adm_sub_delete_title", "Xóa gói")}
+            message={
+              deletePlanDialog.planName
+                ? t("adm_sub_delete_desc", "Bạn chắc chắn muốn xóa gói này?") + ` (${deletePlanDialog.planName})`
+                : t("adm_sub_delete_desc", "Bạn chắc chắn muốn xóa gói này?")
+            }
+            confirmText={t("adm_sub_delete_btn", "Xóa")}
+            cancelText={t("common_cancel", "Hủy")}
+            isDangerous
+          />
+
+          <ConfirmDialog
+            isOpen={removeAccessDialog.isOpen}
+            onClose={() => setRemoveAccessDialog({ isOpen: false })}
+            onConfirm={() => {
+              if (removeAccessDialog.subscriptionId) {
+                void removeInstructorAccess(removeAccessDialog.subscriptionId)
+              }
+            }}
+            title={t("adm_sub_remove_access", "Xóa gói")}
+            message={`${t("adm_sub_remove_access_confirm", "Bạn chắc chắn muốn xóa gói đang dùng của giảng viên này và chuyển về Free?")}\n\n${removeAccessDialog.teacherName || t("adm_sub_teacher", "Giảng viên")}`}
+            confirmText={t("adm_sub_delete_btn", "Xóa")}
+            cancelText={t("common_cancel", "Hủy")}
+            isDangerous
+          />
         </div>
       </Tabs>
     </div>
