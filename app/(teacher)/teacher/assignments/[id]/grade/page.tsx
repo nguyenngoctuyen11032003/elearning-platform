@@ -162,16 +162,16 @@ function getAttachmentLabel(attachment: SubmissionAttachment): string {
 
 function normalizeStudentInfo(student: unknown): { name: string; email: string } {
   if (!student || typeof student !== 'object') {
-    return { name: '', email: '' };
+    return { name: 'Unknown Student', email: 'N/A' };
   }
 
   const studentObj = student as Record<string, unknown>;
-  const name = String(studentObj.name || studentObj.fullName || studentObj.firstName || '').trim();
-  const email = String(studentObj.email || '').trim();
+  const name = String(studentObj.name || studentObj.fullName || studentObj.firstName || studentObj.displayName || '').trim();
+  const email = String(studentObj.email || studentObj.emailAddress || '').trim();
 
   return {
-    name: name || '(No name)',
-    email: email || '(No email)',
+    name: name || 'Unknown Student',
+    email: email || 'N/A',
   };
 }
 
@@ -290,14 +290,15 @@ export default function TeacherAssignmentGradingPage() {
     [selectedRows],
   );
 
-  const averageScore = useMemo(() => {
-    if (selectedCriteriaCount === 0) return 0;
-    const raw = totalScore / selectedCriteriaCount;
-    return Number(raw.toFixed(1));
-  }, [selectedCriteriaCount, totalScore]);
-
   const allCriteriaSelected =
     criteria.length > 0 && selectedRows.every((row) => row.selectedLevelIndex >= 0);
+
+  const averageScore = useMemo(() => {
+    // Only calculate average if all criteria are selected
+    if (criteria.length === 0 || !allCriteriaSelected) return 0;
+    const raw = totalScore / criteria.length;
+    return Number(raw.toFixed(1));
+  }, [criteria.length, totalScore, allCriteriaSelected]);
 
   const finalScore = useMemo(() => {
     if (criteria.length === 0) {
@@ -305,12 +306,15 @@ export default function TeacherAssignmentGradingPage() {
     }
 
     if (!allCriteriaSelected) {
-      return 0;
+      return 0; // Return 0 if not all criteria are selected
     }
 
-    const rawScore = Math.min(averageScore, assignment?.maxScore ?? averageScore);
+    // All criteria selected: calculate final score
+    const rawScore = averageScore;
+    // Cap the score at max score
+    const cappedScore = Math.min(rawScore, assignment?.maxScore ?? 100);
     const validPoints = extractValidPoints(criteria);
-    return snapScoreToValidPoint(rawScore, validPoints);
+    return snapScoreToValidPoint(cappedScore, validPoints);
   }, [allCriteriaSelected, averageScore, assignment, criteria, manualScore]);
 
   const loadData = async () => {
@@ -512,6 +516,15 @@ export default function TeacherAssignmentGradingPage() {
               <p className="text-sm text-muted-foreground">{tr('Chọn một bài nộp ở cột trái để bắt đầu chấm.', 'Pick a submission from the left column to start grading.')}</p>
             ) : (
               <>
+                <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                  <h2 className="text-lg font-semibold text-foreground mb-2">{tr('Học viên nộp bài', 'Student submission')}</h2>
+                  <div className="space-y-1">
+                    <p className="text-sm text-foreground"><span className="font-medium">{tr('Tên học viên:', 'Student name:')}</span> {normalizeStudentInfo(selectedSubmission.student).name}</p>
+                    <p className="text-sm text-foreground"><span className="font-medium">{tr('Email:', 'Email:')}</span> {normalizeStudentInfo(selectedSubmission.student).email}</p>
+                    <p className="text-sm text-muted-foreground"><span className="font-medium">{tr('Nộp lúc:', 'Submitted at:')}</span> {formatSubmissionDate(selectedSubmission.submittedAt, language)}</p>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <h2 className="text-lg font-semibold text-foreground">{tr('Nội dung bài nộp', 'Submission content')}</h2>
                   <div className="rounded-lg border border-border bg-background p-4 max-h-[260px] overflow-y-auto">

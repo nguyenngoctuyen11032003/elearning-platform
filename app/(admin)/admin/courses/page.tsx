@@ -11,6 +11,7 @@ import { authFetch } from "@/lib/authfetch"
 import { apiClient } from "@/lib/api/client"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { UniversalSelect } from "@/components/ui/universal-select"
+import { AdminDropdownFilter } from "@/components/ui/admin-dropdown-filter"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
 import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
 import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
@@ -500,16 +501,17 @@ export default function AdminCoursesPage() {
           </div>
           <div className="filter-row gap-y-3 sm:gap-y-4">
             <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_filter_by", "Lọc theo")}:</span>
-            <select
+            <AdminDropdownFilter
+              options={[
+                { value: "all", label: t("adm_courses_all", "Tất cả") },
+                { value: "pending", label: t("adm_courses_pending", "Chờ duyệt") },
+                { value: "published", label: t("adm_courses_approved_label", "Đã duyệt") },
+                { value: "rejected", label: t("adm_courses_rejected_label", "Từ chối") },
+              ]}
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
-            >
-              <option value="all">{t("adm_courses_all", "Tất cả")}</option>
-              <option value="pending">{t("adm_courses_pending", "Chờ duyệt")}</option>
-              <option value="published">{t("adm_courses_approved_label", "Đã duyệt")}</option>
-              <option value="rejected">{t("adm_courses_rejected_label", "Từ chối")}</option>
-            </select>
+              onChange={(v) => setStatusFilter(v)}
+              width={220}
+            />
             {(searchTerm.trim() || statusFilter !== "all") ? (
               <button
                 onClick={() => {

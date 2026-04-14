@@ -7,7 +7,7 @@ import { apiClient } from "@/lib/api/client"
 import { useRouter } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
-import { UniversalSelect } from "@/components/ui/universal-select"
+import { DialogSelect } from "@/components/ui/dialog-select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface PlanItem {
@@ -445,16 +445,14 @@ export default function TeacherSettingsPage() {
 
                   <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)] dark:border-slate-800 dark:bg-slate-900/70">
                     <label className="mb-2 block text-sm font-semibold text-foreground dark:text-white">{t("teacher_settings_language", "Language")}</label>
-                    <UniversalSelect
+                    <DialogSelect
                       value={selectedLanguage}
                       onChange={(e) => handleLanguageChange(e.target.value)}
-                      className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-                      contentClassName="border-blue-500/30 bg-slate-950/92 text-slate-100 shadow-[0_20px_50px_rgba(2,6,23,0.75)] backdrop-blur-2xl"
-                      portalled={true}
+                      className="h-11 w-full"
                     >
                       <option value="vi">{t("teacher_settings_lang_vi", "Tiếng Việt")}</option>
                       <option value="en">{t("teacher_settings_lang_en", "English")}</option>
-                    </UniversalSelect>
+                    </DialogSelect>
                     <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">{t("teacher_settings_language_desc", "Chọn ngôn ngữ hiển thị cho toàn bộ giao diện giảng viên")}</p>
                   </div>
                 </div>

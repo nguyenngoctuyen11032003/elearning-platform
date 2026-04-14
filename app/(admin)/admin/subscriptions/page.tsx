@@ -5,6 +5,7 @@ import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/client"
 import { ConfirmDialog } from "@/components/ui/admin-modals"
+import { DialogSelect } from "@/components/ui/dialog-select"
 import {
   ArrowRight,
   BarChart3,
@@ -1210,16 +1211,16 @@ export default function AdminTeacherSubscriptionPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <label className="space-y-1.5 text-sm">
                       <span className="font-medium">{t("adm_sub_status_label", "Trạng thái")}</span>
-                      <select
+                      <DialogSelect
                         value={accessEditForm.status}
                         onChange={(e) => setAccessEditForm((prev) => ({ ...prev, status: e.target.value as any }))}
-                        className="w-full h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3"
+                        className="h-11 w-full"
                       >
                         <option value="active">{t("adm_sub_active", "Đang hoạt động")}</option>
                         <option value="pending">{t("adm_sub_pending", "Đang chờ xử lý")}</option>
                         <option value="expired">{t("adm_sub_expired", "Đã hết hạn")}</option>
                         <option value="cancelled">{t("adm_sub_cancelled", "Đã hủy")}</option>
-                      </select>
+                      </DialogSelect>
                     </label>
 
                     <label className="space-y-1.5 text-sm">

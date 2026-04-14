@@ -36,7 +36,7 @@ const existingVi = {
   nav_home: 'Trang chủ', nav_courses: 'Khóa học', nav_teachers: 'Giảng viên',
   nav_my_home: 'Trang chủ của tôi', nav_about: 'Về chúng tôi', nav_profile: 'Hồ sơ cá nhân',
   nav_settings: 'Cài đặt', nav_logout: 'Đăng xuất', nav_login: 'Đăng nhập',
-  nav_start_learning: 'Bắt đầu học', language_select: 'Chọn ngôn ngữ',
+  nav_start_learning: 'Bắt đầu ngay', language_select: 'Chọn ngôn ngữ',
   teacher_billing_title: 'Thanh toán & Gói giảng viên',
   teacher_billing_subtitle: 'Quản lý tài khoản, gói và phương thức thanh toán của bạn',
   checkout_title: 'Thanh toán gói giảng viên',

@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { AdminDropdownFilter } from "@/components/ui/admin-dropdown-filter"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/authfetch"
 import { UniversalSelect } from "@/components/ui/universal-select"
@@ -554,16 +555,17 @@ export default function AdminExamsPage() {
 
           <div className="filter-row gap-y-3 sm:gap-y-4">
             <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_filter_by", "Lọc theo")}:</span>
-            <select
+            <AdminDropdownFilter
+              options={[
+                { value: "all", label: t("common_all", "All") },
+                { value: "pending", label: t("adm_exam_status_pending", "Pending") },
+                { value: "approved", label: t("adm_exam_status_approved", "Approved") },
+                { value: "rejected", label: t("adm_exam_status_rejected", "Rejected") },
+              ]}
               value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value as "all" | "pending" | "approved" | "rejected")}
-              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
-            >
-              <option value="all">{t("common_all", "All")}</option>
-              <option value="pending">{t("adm_exam_status_pending", "Pending")}</option>
-              <option value="approved">{t("adm_exam_status_approved", "Approved")}</option>
-              <option value="rejected">{t("adm_exam_status_rejected", "Rejected")}</option>
-            </select>
+              onChange={(v) => setActiveTab(v as any)}
+              width={200}
+            />
 
             <span className="rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
               <AnimatedNumber value={filteredExams.length} durationMs={320} />
