@@ -772,17 +772,6 @@ export default function TeacherCertificatesPage() {
                     <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{template.description}</p>
                   </div>
 
-                  {template.status === "approved" && (
-                    <div className="mt-4">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenUseModal(template)}
-                        className="w-full px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
-                      >
-                        {t("teacher_cert_use", "Sử dụng")}
-                      </button>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>

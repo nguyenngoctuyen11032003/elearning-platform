@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { Star, MessageSquare, ThumbsUp, Search, TrendingUp, Send } from "lucide-react"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/language-context"
@@ -69,6 +69,43 @@ export default function TeacherReviewsPage() {
   const [selectedReview, setSelectedReview] = useState<Review | null>(null)
   const [activeTab, setActiveTab] = useState<"all" | "waiting" | "replied" | "low">("all")
   const [isReplying, setIsReplying] = useState(false)
+  const filterContainerRef = React.useRef<HTMLDivElement | null>(null)
+  const filterButtonRefs = React.useRef<Record<string, HTMLButtonElement | null>>({})
+  const [activeFilterStyle, setActiveFilterStyle] = useState({ left: 0, width: 0, ready: false })
+
+  const filterOptions = useMemo(
+    () => [
+      { value: "all", label: t("tch_rev_tab_all", "Tất cả") },
+      { value: "waiting", label: t("tch_rev_tab_waiting", "Chờ xử lý") },
+      { value: "replied", label: t("tch_rev_tab_replied", "Đã trả lời") },
+      { value: "low", label: t("tch_rev_tab_low", "Đánh giá thấp") }
+    ],
+    [t],
+  )
+
+  useEffect(() => {
+    const updateActiveFilter = () => {
+      const container = filterContainerRef.current
+      const activeButton = filterButtonRefs.current[activeTab]
+      if (!container || !activeButton) {
+        setActiveFilterStyle((prev) => ({ ...prev, ready: false }))
+        return
+      }
+
+      const containerRect = container.getBoundingClientRect()
+      const buttonRect = activeButton.getBoundingClientRect()
+
+      setActiveFilterStyle({
+        left: buttonRect.left - containerRect.left,
+        width: buttonRect.width,
+        ready: true,
+      })
+    }
+
+    updateActiveFilter()
+    window.addEventListener("resize", updateActiveFilter)
+    return () => window.removeEventListener("resize", updateActiveFilter)
+  }, [activeTab, filterOptions])
 
   // Load teacher reviews from DB
   useEffect(() => {
@@ -400,26 +437,41 @@ export default function TeacherReviewsPage() {
             </DialogSelect>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700/50 overflow-x-auto">
-            {[
-              { id: "all", label: t("tch_rev_tab_all", "Tất cả"), count: getCounts().all },
-              { id: "waiting", label: t("tch_rev_tab_waiting", "Chờ xử lý"), count: getCounts().waiting },
-              { id: "replied", label: t("tch_rev_tab_replied", "Đã trả lời"), count: getCounts().replied },
-              { id: "low", label: t("tch_rev_tab_low", "Đánh giá thấp"), count: getCounts().low }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-4 py-3 font-medium text-sm whitespace-nowrap transition-all border-b-2 -mb-[2px] ${
-                  activeTab === tab.id
-                    ? 'border-primary text-primary dark:text-primary'
-                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                {tab.label} {tab.count > 0 && <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-primary/20 text-primary rounded-full">{tab.count}</span>}
-              </button>
-            ))}
+          {/* Tabs - Animated Filter Bar */}
+          <div ref={filterContainerRef} className="relative inline-flex w-full flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-900/70 md:w-auto md:flex-nowrap">
+            <div
+              className="pointer-events-none absolute inset-y-1 rounded-md bg-cyan-600 shadow-[0_8px_20px_rgba(8,145,178,0.35)] transition-all duration-300"
+              style={{
+                left: `${activeFilterStyle.left}px`,
+                width: `${activeFilterStyle.width}px`,
+                opacity: activeFilterStyle.ready ? 1 : 0,
+              }}
+            />
+            {filterOptions.map((option) => {
+              const counts = getCounts()
+              const count = counts[option.value as keyof typeof counts]
+              return (
+                <button
+                  key={option.value}
+                  ref={(node) => {
+                    filterButtonRefs.current[option.value] = node
+                  }}
+                  onClick={() => setActiveTab(option.value as any)}
+                  className={`relative z-10 inline-flex min-w-fit items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition-all duration-300 ${
+                    activeTab === option.value
+                      ? "text-white"
+                      : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <span>{option.label}</span>
+                  {count > 0 && (
+                    <span className="inline-flex items-center justify-center px-2 min-w-fit text-xs font-bold rounded-full bg-opacity-30">
+                      {count}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
 

@@ -10,8 +10,6 @@ import {
   Clock,
   AlertCircle,
   FileText,
-  Award,
-  Timer,
   ClipboardList,
   BookOpen,
   Users,
@@ -892,38 +890,6 @@ export default function AdminExamDetailPage() {
             </div>
           </div>
 
-          <div className={`grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6 ${revealClass}`} style={getRevealStyle(120)}>
-            <div className="rounded-2xl border border-border bg-background/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
-              <ClipboardList size={18} className="mb-2 text-amber-600" />
-              <p className="text-xs text-muted-foreground">{t("adm_examd_num_questions", "Số câu hỏi")}</p>
-              <p className="mt-1 text-lg font-bold text-foreground dark:text-white"><AnimatedNumber value={exam.questionsCount} durationMs={520} /></p>
-            </div>
-            <div className="rounded-2xl border border-border bg-background/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
-              <Timer size={18} className="mb-2 text-sky-600" />
-              <p className="text-xs text-muted-foreground">{t("adm_examd_time", "Thời gian")}</p>
-              <p className="mt-1 text-lg font-bold text-foreground dark:text-white">{exam.timeLimit} {t("adm_examd_minutes", "phút")}</p>
-            </div>
-            <div className="rounded-2xl border border-border bg-background/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
-              <Target size={18} className="mb-2 text-emerald-600" />
-              <p className="text-xs text-muted-foreground">{t("adm_examd_pass_score", "Điểm đạt")}</p>
-              <p className="mt-1 text-lg font-bold text-foreground dark:text-white">{exam.passingScore}%</p>
-            </div>
-            <div className="rounded-2xl border border-border bg-background/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
-              <Users size={18} className="mb-2 text-orange-600" />
-              <p className="text-xs text-muted-foreground">{t("adm_examd_attempts", "Lượt thi")}</p>
-              <p className="mt-1 text-lg font-bold text-foreground dark:text-white"><AnimatedNumber value={exam.attemptCount} durationMs={520} /></p>
-            </div>
-            <div className="rounded-2xl border border-border bg-background/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
-              <Trophy size={18} className="mb-2 text-yellow-600" />
-              <p className="text-xs text-muted-foreground">{t("adm_examd_pass_rate", "Tỷ lệ đạt")}</p>
-              <p className="mt-1 text-lg font-bold text-foreground dark:text-white"><AnimatedNumber value={exam.passRate} suffix="%" durationMs={520} /></p>
-            </div>
-            <div className="rounded-2xl border border-border bg-background/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
-              <Award size={18} className="mb-2 text-indigo-600" />
-              <p className="text-xs text-muted-foreground">{t("adm_examd_total_points", "Tổng điểm")}</p>
-              <p className="mt-1 text-lg font-bold text-foreground dark:text-white"><AnimatedNumber value={exam.totalPoints} durationMs={520} /></p>
-            </div>
-          </div>
         </div>
 
         <div className={`rounded-2xl border border-border bg-card/70 p-2 dark:border-slate-800 dark:bg-slate-900/50 ${revealClass}`} style={getRevealStyle(180)}>
@@ -998,31 +964,6 @@ export default function AdminExamDetailPage() {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Exam Settings */}
-              <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-4">
-                <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_examd_settings", "Cài đặt")}</h2>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_exam_type", "Loại bài thi")}</span>
-                    <span className="font-semibold text-foreground dark:text-white capitalize">{exam.type === 'official' ? t("adm_examd_official", "Chính thức") : t("adm_examd_practice", "Luyện tập")}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_max_attempts", "Số lần làm tối đa")}</span>
-                    <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={exam.maxAttempts} durationMs={520} /></span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_total_points", "Tổng điểm")}</span>
-                    <span className="font-semibold text-foreground dark:text-white"><AnimatedNumber value={exam.totalPoints} durationMs={520} /></span>
-                  </div>
-                  {exam.certificateTemplate && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground dark:text-slate-400">{t("adm_examd_certificate", "Chứng chỉ")}</span>
-                      <Award size={20} className="text-yellow-500" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {/* Exam Info */}
               <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-4">
                 <h2 className="text-xl font-bold text-foreground dark:text-white">{t("adm_examd_info", "Thông tin")}</h2>

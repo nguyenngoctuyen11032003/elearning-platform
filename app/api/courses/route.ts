@@ -21,6 +21,22 @@ function normalizeErrorMessage(raw: unknown, fallback: string): string {
   return fallback
 }
 
+function normalizeErrorCode(raw: unknown): string | undefined {
+  if (!raw || typeof raw !== "object") return undefined
+  const record = raw as Record<string, unknown>
+  if (typeof record.code === "string" && record.code.trim()) {
+    return record.code
+  }
+  const nestedError = record.error
+  if (nestedError && typeof nestedError === "object") {
+    const nestedRecord = nestedError as Record<string, unknown>
+    if (typeof nestedRecord.code === "string" && nestedRecord.code.trim()) {
+      return nestedRecord.code
+    }
+  }
+  return undefined
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("Authorization")
@@ -66,9 +82,11 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({} as any))
+      const code = normalizeErrorCode(errData)
       return NextResponse.json(
         {
           error: normalizeErrorMessage(errData, "Failed to create course"),
+          code,
         },
         { status: response.status }
       )

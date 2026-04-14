@@ -558,6 +558,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   const [modalTop, setModalTop] = useState<number | null>(null)
   const [deletingCriteriaByLesson, setDeletingCriteriaByLesson] = useState<Record<string, boolean>>({})
   const [selectedCriteriaToDelete, setSelectedCriteriaToDelete] = useState<Record<string, Set<number>>>({})
+  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false)
+  const [quotaDialogMessage, setQuotaDialogMessage] = useState("")
 
   const buildOptions = (count: number) => Array.from({ length: count }, (_, i) => `Tùy chọn ${i + 1}`)
 
@@ -1141,97 +1143,79 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       const authHeaders: Record<string, string> = token
         ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
         : { "Content-Type": "application/json" }
-      const willCreateRevision = courseStatus === "published"
 
       // Accept UUID-like IDs used by seeded data (e.g. f300..., e000...) to avoid false "new lesson" detection.
       const persistedIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       const isPersistedId = (value: unknown) => persistedIdPattern.test(String(value || ""))
 
+      let existingLessonList: Array<{ id?: string }> = []
+      let localPersistedLessonIds = new Set<string>()
       let existingAssignmentByLessonId: Record<string, any> = {}
       let existingQuizByLessonId: Record<string, string> = {}
 
-      if (!willCreateRevision) {
-        // Reconcile deletions first: anything removed in UI must be removed in DB.
-        const [existingLessonsRes, existingQuizzesRes] = await Promise.all([
-          fetch(`/api/lessons/course/${resolvedParams.id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }),
-          fetch(`/api/quizzes/course/${resolvedParams.id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }),
-        ])
+      // Capture current DB state first, but only apply destructive sync operations
+      // after knowing whether backend created a new revision.
+      const [existingLessonsRes, existingQuizzesRes] = await Promise.all([
+        fetch(`/api/lessons/course/${resolvedParams.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+        fetch(`/api/quizzes/course/${resolvedParams.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+      ])
 
-        const existingLessonsJson = existingLessonsRes.ok ? await existingLessonsRes.json().catch(() => ([])) : []
-        const existingLessonsUnwrapped = existingLessonsJson?.data ?? existingLessonsJson
-        const existingLessonList = Array.isArray(existingLessonsUnwrapped)
-          ? existingLessonsUnwrapped
-          : Array.isArray(existingLessonsUnwrapped?.data)
-          ? existingLessonsUnwrapped.data
-          : []
+      const existingLessonsJson = existingLessonsRes.ok ? await existingLessonsRes.json().catch(() => ([])) : []
+      const existingLessonsUnwrapped = existingLessonsJson?.data ?? existingLessonsJson
+      existingLessonList = Array.isArray(existingLessonsUnwrapped)
+        ? existingLessonsUnwrapped
+        : Array.isArray(existingLessonsUnwrapped?.data)
+        ? existingLessonsUnwrapped.data
+        : []
 
-        const existingQuizzesJson = existingQuizzesRes.ok ? await existingQuizzesRes.json().catch(() => ([])) : []
-        const existingQuizzesUnwrapped = existingQuizzesJson?.data ?? existingQuizzesJson
-        const existingQuizList = Array.isArray(existingQuizzesUnwrapped)
-          ? existingQuizzesUnwrapped
-          : Array.isArray(existingQuizzesUnwrapped?.data)
-          ? existingQuizzesUnwrapped.data
-          : []
-        const existingAssignments = await apiClient.getAssignments(resolvedParams.id)
-        existingAssignmentByLessonId = (Array.isArray(existingAssignments) ? existingAssignments : []).reduce(
-          (acc: Record<string, any>, assignment: any) => {
-            const lessonKey = String(assignment?.lessonId || "")
-            if (lessonKey) {
-              acc[lessonKey] = assignment
-            }
-            return acc
-          },
-          {} as Record<string, any>,
-        )
-
-        const localPersistedLessonIds = new Set(
-          sections
-            .flatMap((section) => section.lessons.map((lesson) => String(lesson.id)))
-            .filter((id) => isPersistedId(id)),
-        )
-
-        const removedLessonIds = (existingLessonList as Array<{ id?: string }>)
-          .map((lesson) => String(lesson?.id || ""))
-          .filter((id) => id && !localPersistedLessonIds.has(id))
-
-        if (removedLessonIds.length > 0) {
-          console.log("[SaveCourse] Lessons removed in UI, deleting from DB:", removedLessonIds)
-          for (const removedLessonId of removedLessonIds) {
-            const deleteLessonRes = await fetch(`/api/lessons/${removedLessonId}`, {
-              method: "DELETE",
-              headers: authHeaders,
-            })
-            if (!deleteLessonRes.ok) {
-              const err = await deleteLessonRes.json().catch(() => ({}))
-              throw new Error(`Xóa bài học đã bỏ khỏi giao diện thất bại (${removedLessonId}): ${err?.error || deleteLessonRes.status}`)
-            }
+      const existingQuizzesJson = existingQuizzesRes.ok ? await existingQuizzesRes.json().catch(() => ([])) : []
+      const existingQuizzesUnwrapped = existingQuizzesJson?.data ?? existingQuizzesJson
+      const existingQuizList = Array.isArray(existingQuizzesUnwrapped)
+        ? existingQuizzesUnwrapped
+        : Array.isArray(existingQuizzesUnwrapped?.data)
+        ? existingQuizzesUnwrapped.data
+        : []
+      const existingAssignments = await apiClient.getAssignments(resolvedParams.id)
+      existingAssignmentByLessonId = (Array.isArray(existingAssignments) ? existingAssignments : []).reduce(
+        (acc: Record<string, any>, assignment: any) => {
+          const lessonKey = String(assignment?.lessonId || "")
+          if (lessonKey) {
+            acc[lessonKey] = assignment
           }
+          return acc
+        },
+        {} as Record<string, any>,
+      )
+
+      localPersistedLessonIds = new Set(
+        sections
+          .flatMap((section) => section.lessons.map((lesson) => String(lesson.id)))
+          .filter((id) => isPersistedId(id)),
+      )
+
+      // Build a lessonId -> quizId lookup to avoid creating duplicate quizzes
+      // when local state temporarily misses quizId (e.g. after import flows).
+      for (const quiz of existingQuizList) {
+        const lessonKey = String(quiz?.lessonId || "")
+        const quizId = String(quiz?.id || "")
+        if (!lessonKey || !quizId) continue
+
+        const prevQuizId = existingQuizByLessonId[lessonKey]
+        if (!prevQuizId) {
+          existingQuizByLessonId[lessonKey] = quizId
+          continue
         }
 
-        // Build a lessonId -> quizId lookup to avoid creating duplicate quizzes
-        // when local state temporarily misses quizId (e.g. after import flows).
-        for (const quiz of existingQuizList) {
-          const lessonKey = String(quiz?.lessonId || "")
-          const quizId = String(quiz?.id || "")
-          if (!lessonKey || !quizId) continue
-
-          const prevQuizId = existingQuizByLessonId[lessonKey]
-          if (!prevQuizId) {
-            existingQuizByLessonId[lessonKey] = quizId
-            continue
-          }
-
-          // Prefer the quiz that currently has more questions.
-          const prevQuiz = existingQuizList.find((item: any) => String(item?.id) === prevQuizId)
-          const prevQuestionCount = getQuizQuestionCount(prevQuiz?.questions)
-          const nextQuestionCount = getQuizQuestionCount(quiz?.questions)
-          if (nextQuestionCount >= prevQuestionCount) {
-            existingQuizByLessonId[lessonKey] = quizId
-          }
+        // Prefer the quiz that currently has more questions.
+        const prevQuiz = existingQuizList.find((item: any) => String(item?.id) === prevQuizId)
+        const prevQuestionCount = getQuizQuestionCount(prevQuiz?.questions)
+        const nextQuestionCount = getQuizQuestionCount(quiz?.questions)
+        if (nextQuestionCount >= prevQuestionCount) {
+          existingQuizByLessonId[lessonKey] = quizId
         }
       }
 
@@ -1274,7 +1258,13 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.message || "Lưu thất bại")
+        const errorCode = String(err?.code || err?.error?.code || "")
+        const errorMessage = String(err?.message || err?.error || "Lưu thất bại")
+        if (res.status === 403 && errorCode === "COURSE_LIMIT_REACHED") {
+          setQuotaDialogMessage(localizeMessage(errorMessage, getCurrentClientLanguage()))
+          setQuotaDialogOpen(true)
+        }
+        throw new Error(errorMessage)
       }
 
       const saveCourseJson = await res.json().catch(() => ({}))
@@ -1287,6 +1277,24 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         existingAssignmentByLessonId = {}
         existingQuizByLessonId = {}
         setCourseStatus("pending")
+      } else {
+        const removedLessonIds = existingLessonList
+          .map((lesson) => String(lesson?.id || ""))
+          .filter((id) => id && !localPersistedLessonIds.has(id))
+
+        if (removedLessonIds.length > 0) {
+          console.log("[SaveCourse] Lessons removed in UI, deleting from DB:", removedLessonIds)
+          for (const removedLessonId of removedLessonIds) {
+            const deleteLessonRes = await fetch(`/api/lessons/${removedLessonId}`, {
+              method: "DELETE",
+              headers: authHeaders,
+            })
+            if (!deleteLessonRes.ok) {
+              const err = await deleteLessonRes.json().catch(() => ({}))
+              throw new Error(`Xóa bài học đã bỏ khỏi giao diện thất bại (${removedLessonId}): ${err?.error || deleteLessonRes.status}`)
+            }
+          }
+        }
       }
 
       if (thumbnailDirty) {
@@ -1605,11 +1613,31 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         method: "PATCH",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
-      if (!res.ok) throw new Error(tr("Đã xảy ra lỗi", "An error occurred"))
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        const errorCode = String(err?.code || err?.error?.code || "")
+        const message =
+          String(err?.error || err?.message || "").trim() ||
+          tr("Đã xảy ra lỗi", "An error occurred")
+
+        if (res.status === 403 && errorCode === "COURSE_LIMIT_REACHED") {
+          setQuotaDialogMessage(localizeMessage(message, getCurrentClientLanguage()))
+          setQuotaDialogOpen(true)
+          return
+        }
+
+        throw new Error(message)
+      }
+
       setCourseStatus("pending")
       toast.success(tr("Đã gửi khóa học để xét duyệt!", "Course submitted for review!"))
-    } catch {
-      toast.error(tr("Gửi duyệt thất bại", "Submit for review failed"))
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? localizeMessage(error.message, getCurrentClientLanguage())
+          : tr("Gửi duyệt thất bại", "Submit for review failed")
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }
@@ -1638,23 +1666,12 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             ...s,
             lessons: s.lessons.map(l => l.id === lessonId ? { ...l, videoUrl: url } : l)
           })))
-          // Auto-save to DB immediately for existing lessons (UUID)
-          const isExistingLesson = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lessonId)
-          if (isExistingLesson && token) {
-            const patchRes = await fetch(`/api/lessons/${lessonId}`, {
-              method: "PATCH",
-              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ videoUrl: url }),
-            })
-            if (!patchRes.ok) {
-              console.error("[VideoUpload] auto-save thất bại:", await patchRes.json().catch(() => ({})))
-              toast.warning(tr("Video đã upload nhưng lưu vào DB thất bại, hãy nhấn Lưu khóa học", "Video uploaded but failed to save to DB. Please click Save course."))
-            } else {
-              toast.success(tr("Upload video thành công!", "Video uploaded successfully!"))
-            }
-          } else {
-            toast.success(tr("Upload video thành công!", "Video uploaded successfully!"))
-          }
+          toast.success(
+            tr(
+              "Upload video thành công! Nhấn 'Lưu thay đổi' để áp dụng cập nhật.",
+              "Video uploaded successfully! Click 'Save changes' to apply updates.",
+            ),
+          )
         } else {
           console.error("[VideoUpload] res.ok nhưng không tìm thấy url trong response:", result)
           toast.error(tr("Upload thành công nhưng không nhận được URL video", "Upload succeeded but no video URL was returned"))
@@ -1724,23 +1741,11 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
               }
             }),
           })))
-          // Auto-save to DB immediately for existing lessons (UUID)
-          const isExistingLesson = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lessonId)
-          if (isExistingLesson && token) {
-            const patchRes = await fetch(`/api/lessons/${lessonId}`, {
-              method: "PATCH",
-              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ resources: nextResources }),
-            })
-            if (!patchRes.ok) {
-              console.error("[DocumentUpload] auto-save thất bại:", await patchRes.json().catch(() => ({})))
-              toast.warning(tr("Tài liệu đã upload nhưng lưu vào DB thất bại, hãy nhấn Lưu khóa học", "Document uploaded but failed to save to DB. Please click Save course."))
-            } else {
-              toast.success(language === "en" ? `Document "${file.name}" has been saved!` : `Tài liệu "${file.name}" đã được lưu!`)
-            }
-          } else {
-            toast.success(language === "en" ? `Document "${file.name}" uploaded successfully!` : `Tài liệu "${file.name}" đã tải lên!`)
-          }
+          toast.success(
+            language === "en"
+              ? `Document "${file.name}" uploaded. Click \"Save changes\" to apply updates.`
+              : `Tài liệu "${file.name}" đã tải lên. Nhấn \"Lưu thay đổi\" để áp dụng cập nhật.`,
+          )
         } else {
           console.error("[DocumentUpload] res.ok nhưng không tìm thấy url trong response:", result)
           toast.error(tr("Upload thành công nhưng không nhận được URL tài liệu", "Upload succeeded but no document URL was returned"))
@@ -3362,6 +3367,38 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                     className="px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-smooth"
                   >
                     Thêm bài giảng
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {quotaDialogOpen && (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-md">
+              <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/30 bg-white/85 shadow-2xl dark:border-slate-700 dark:bg-slate-900/80">
+                <div className="bg-gradient-to-r from-cyan-500/20 via-sky-500/15 to-emerald-500/20 px-6 py-5">
+                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                    {tr("Đã đạt giới hạn gói giảng viên", "Instructor plan limit reached")}
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                    {quotaDialogMessage || tr("Bạn đã dùng hết số lượng khóa học được phép gửi duyệt/xuất bản trong gói hiện tại.", "You have reached the course submission/publishing limit of your current instructor plan.")}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-5">
+                  <button
+                    onClick={() => setQuotaDialogOpen(false)}
+                    className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    {tr("Đóng", "Close")}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setQuotaDialogOpen(false)
+                      router.push("/teacher/wallet-membership/checkout")
+                    }}
+                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-cyan-400 dark:text-slate-900 dark:hover:bg-cyan-300"
+                  >
+                    {tr("Mua gói giảng viên", "Buy instructor plan")}
                   </button>
                 </div>
               </div>

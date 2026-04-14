@@ -170,6 +170,9 @@ export default function WishlistPage() {
       return
     }
 
+    // Xóa dữ liệu cũ từ courses detail để tránh checkout hiển thị sai course
+    localStorage.removeItem("checkoutCourse")
+    
     // Lưu các khóa học đã chọn vào localStorage
     localStorage.setItem("checkoutItems", JSON.stringify(selectedCourses))
     localStorage.setItem(

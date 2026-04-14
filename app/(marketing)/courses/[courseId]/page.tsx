@@ -154,7 +154,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
           setCourseError(t("mk_course_unavailable", "Khóa học đã hết hạn hoặc không tồn tại."))
         }
       } finally {
-        setPageLoading(false)
+        if (!controller.signal.aborted) {
+          setPageLoading(false)
+        }
       }
     }
     fetchData()
@@ -177,12 +179,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     }
     checkWishlistStatus()
   }, [effectiveCourseId, isPrivilegedViewer])
-
-  useEffect(() => {
-    if (!pageLoading && !courseData) {
-      router.replace("/courses")
-    }
-  }, [pageLoading, courseData, router])
 
   useEffect(() => {
     if (!effectiveCourseId) return
@@ -421,10 +417,19 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
         <main className="flex-1 px-4 sm:px-6 py-16 md:py-20">
           <div className="mx-auto w-full max-w-3xl">
             <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#2563EB]" />
-              <p className="mt-4 text-slate-600">
-                {t("common_redirecting", "Đang chuyển hướng...")}
+              <p className="text-lg font-semibold text-slate-900">
+                {t("mk_course_unavailable", "Khóa học đã hết hạn hoặc không tồn tại.")}
               </p>
+              {courseError ? (
+                <p className="mt-2 text-sm text-slate-600">{courseError}</p>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => router.push("/courses")}
+                className="mt-6 inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1d4ed8]"
+              >
+                {t("courses_back_to_list", "Quay lại danh sách khóa học")}
+              </button>
             </div>
           </div>
         </main>
@@ -795,7 +800,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                   {/* Price */}
                   <div>
                     <p className="text-4xl font-bold text-[#0F172A]">
-                      {formatCurrencyByLanguage(course.price, language)}
+                      {formatCurrencyByLanguage(courseData?.price ?? 0, language)}
                     </p>
                     <p className="text-sm text-slate-500 mt-2">{t("mk_course_feature_lifetime", "Truy cập trọn đời")}</p>
                   </div>
@@ -807,18 +812,21 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                         className="w-full h-12 bg-gradient-to-r from-[#2563EB] to-[#06B6D4] hover:shadow-lg hover:scale-[1.01]"
                         onClick={() => {
                           const checkoutData = {
-                            id: course.id,
-                            title: course.title,
-                            teacher: course.teacher,
-                            teacherId: courseData?.teacherId ?? course.id,
-                            price: course.price,
-                            rating: course.rating,
-                            students: course.students,
-                            image: course.image,
-                            description: course.description,
-                            duration: course.duration,
-                            level: course.level,
+                            id: courseData?.id,
+                            title: courseData?.title,
+                            teacher: courseData?.teacher?.name || courseData?.teacher || courseData?.teacherName,
+                            teacherId: courseData?.teacherId ?? courseData?.id,
+                            price: courseData?.price ?? 0,
+                            rating: courseData?.rating,
+                            students: courseData?.students,
+                            image: courseData?.thumbnail || courseData?.image,
+                            description: courseData?.description,
+                            duration: courseData?.duration,
+                            level: courseData?.level,
                           }
+                          // Xóa dữ liệu cũ từ wishlist để tránh checkout hiển thị sai course
+                          localStorage.removeItem("checkoutItems")
+                          
                           localStorage.setItem("checkoutCourse", JSON.stringify(checkoutData))
                           router.push("/checkout")
                         }}

@@ -37,6 +37,22 @@ function normalizeErrorMessage(raw: unknown, fallback: string): string {
   return fallback
 }
 
+function normalizeErrorCode(raw: unknown): string | undefined {
+  if (!raw || typeof raw !== "object") return undefined
+  const record = raw as Record<string, unknown>
+  if (typeof record.code === "string" && record.code.trim()) {
+    return record.code
+  }
+  const nestedError = record.error
+  if (nestedError && typeof nestedError === "object") {
+    const nestedRecord = nestedError as Record<string, unknown>
+    if (typeof nestedRecord.code === "string" && nestedRecord.code.trim()) {
+      return nestedRecord.code
+    }
+  }
+  return undefined
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -135,8 +151,9 @@ export async function PATCH(
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}))
+      const code = normalizeErrorCode(err)
       return NextResponse.json(
-        { error: normalizeErrorMessage(err, "Failed to update course") },
+        { error: normalizeErrorMessage(err, "Failed to update course"), code },
         { status: response.status },
       )
     }

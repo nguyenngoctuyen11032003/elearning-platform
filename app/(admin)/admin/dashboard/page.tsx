@@ -173,6 +173,25 @@ const toNumber = (value: unknown): number => {
   return Number.isFinite(num) ? num : 0
 }
 
+const normalizePaymentStatus = (status?: unknown): "success" | "pending" | "failed" => {
+  const normalized = String(status ?? "").toLowerCase()
+  if (normalized === "completed" || normalized === "success" || normalized === "paid") return "success"
+  if (normalized === "pending") return "pending"
+  return "failed"
+}
+
+const sumSuccessfulRevenueByPeriod = (
+  items: any[],
+  periodRange: { start: Date; end: Date },
+  amountResolver: (item: any) => number,
+  dateResolver: (item: any) => unknown,
+) => {
+  return items
+    .filter((item) => normalizePaymentStatus(item?.status) === "success")
+    .filter((item) => isInRange(dateResolver(item), periodRange.start, periodRange.end))
+    .reduce((sum, item) => sum + toNumber(amountResolver(item)), 0)
+}
+
 const clampRecent = <T,>(items: T[], max: number): T[] => {
   if (!Array.isArray(items)) return []
   return items.length > max ? items.slice(-max) : items
@@ -1283,12 +1302,13 @@ useEffect(() => {
 
     try {
       const periodRange = getPeriodDateRange(filterPeriod)
-      const [dashboardRes, growthRes, revenueRes, userRes, instructorPaymentsRes] = await Promise.allSettled([
+      const [dashboardRes, growthRes, revenueRes, userRes, instructorPaymentsRes, adminPaymentsRes] = await Promise.allSettled([
         apiClient.getAdminDashboardStats(filterPeriod),
         apiClient.getAdminGrowthStats(filterPeriod),
         apiClient.getAdminRevenueReport(filterPeriod),
         apiClient.getAdminUserReport(filterPeriod),
         apiClient.getAdminInstructorPayments(),
+        apiClient.getAdminPayments({ limit: 200 }),
       ])
 
       const dashboard = dashboardRes.status === "fulfilled" ? (dashboardRes.value?.data ?? dashboardRes.value ?? {}) : {}
@@ -1298,6 +1318,28 @@ useEffect(() => {
       const instructorPaymentsRaw = instructorPaymentsRes.status === "fulfilled"
         ? ((instructorPaymentsRes.value as any)?.data ?? (instructorPaymentsRes.value as any) ?? [])
         : []
+      const adminPaymentsRaw = adminPaymentsRes.status === "fulfilled"
+        ? ((adminPaymentsRes.value as any)?.data ?? (adminPaymentsRes.value as any) ?? [])
+        : []
+
+      const hasEnoughPaymentSources = instructorPaymentsRes.status === "fulfilled" && adminPaymentsRes.status === "fulfilled"
+      const courseRevenueFromPayments = Array.isArray(adminPaymentsRaw)
+        ? sumSuccessfulRevenueByPeriod(
+            adminPaymentsRaw,
+            periodRange,
+            (item) => Number(item?.finalAmount ?? item?.amount ?? 0),
+            (item) => item?.createdAt ?? item?.paidAt ?? item?.updatedAt,
+          )
+        : 0
+      const instructorRevenueFromPayments = Array.isArray(instructorPaymentsRaw)
+        ? sumSuccessfulRevenueByPeriod(
+            instructorPaymentsRaw,
+            periodRange,
+            (item) => Number(item?.amount ?? 0),
+            (item) => item?.createdAt ?? item?.paidAt,
+          )
+        : 0
+      const combinedRevenueFromPayments = Math.round(courseRevenueFromPayments + instructorRevenueFromPayments)
 
       const mergedGrowth = mergeGrowthSeries(growthStats)
       const dashboardGrowth = normalizeDashboardGrowth(dashboard?.growthChart)
@@ -1308,13 +1350,21 @@ useEffect(() => {
       /* ================== STATS ================== */
       const normalizedStats = {
         ...dashboard,
-        totalRevenue: toNumber(dashboard?.totalRevenue ?? revenueReport?.totalRevenue),
+        totalRevenue: hasEnoughPaymentSources
+          ? combinedRevenueFromPayments
+          : toNumber(dashboard?.totalRevenue ?? revenueReport?.totalRevenue),
         totalTeachers: toNumber(dashboard?.totalTeachers),
         totalStudents: toNumber(dashboard?.totalStudents),
         totalCourses: toNumber(dashboard?.totalCourses),
         totalUsers: toNumber(dashboard?.totalUsers ?? userReport?.totalUsers),
-        platformRevenue: toNumber(revenueReport?.platformRevenue),
-        teacherRevenue: toNumber(revenueReport?.teacherRevenue),
+        platformRevenue: hasEnoughPaymentSources
+          ? Math.round(
+              toNumber(revenueReport?.platformRevenue ?? courseRevenueFromPayments * 0.3) + instructorRevenueFromPayments,
+            )
+          : toNumber(revenueReport?.platformRevenue),
+        teacherRevenue: hasEnoughPaymentSources
+          ? Math.round(toNumber(revenueReport?.teacherRevenue ?? courseRevenueFromPayments * 0.7))
+          : toNumber(revenueReport?.teacherRevenue),
         revenueGrowth: toNumber(dashboard?.revenueGrowth),
         teacherGrowth: toNumber(dashboard?.teacherGrowth),
         studentGrowth: toNumber(dashboard?.studentGrowth),

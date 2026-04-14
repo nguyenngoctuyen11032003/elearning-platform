@@ -291,10 +291,10 @@ export default function TeacherAssignmentGradingPage() {
   );
 
   const averageScore = useMemo(() => {
-    if (selectedCriteriaCount === 0) return 0;
-    const raw = totalScore / selectedCriteriaCount;
+    if (criteria.length === 0) return 0;
+    const raw = totalScore / criteria.length;
     return Number(raw.toFixed(1));
-  }, [selectedCriteriaCount, totalScore]);
+  }, [criteria.length, totalScore]);
 
   const allCriteriaSelected =
     criteria.length > 0 && selectedRows.every((row) => row.selectedLevelIndex >= 0);
@@ -512,6 +512,15 @@ export default function TeacherAssignmentGradingPage() {
               <p className="text-sm text-muted-foreground">{tr('Chọn một bài nộp ở cột trái để bắt đầu chấm.', 'Pick a submission from the left column to start grading.')}</p>
             ) : (
               <>
+                <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                  <h2 className="text-lg font-semibold text-foreground mb-2">{tr('Học viên nộp bài', 'Student submission')}</h2>
+                  <div className="space-y-1">
+                    <p className="text-sm text-foreground"><span className="font-medium">{tr('Tên học viên:', 'Student name:')}</span> {normalizeStudentInfo(selectedSubmission.student).name}</p>
+                    <p className="text-sm text-foreground"><span className="font-medium">{tr('Email:', 'Email:')}</span> {normalizeStudentInfo(selectedSubmission.student).email}</p>
+                    <p className="text-sm text-muted-foreground"><span className="font-medium">{tr('Nộp lúc:', 'Submitted at:')}</span> {formatSubmissionDate(selectedSubmission.submittedAt, language)}</p>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <h2 className="text-lg font-semibold text-foreground">{tr('Nội dung bài nộp', 'Submission content')}</h2>
                   <div className="rounded-lg border border-border bg-background p-4 max-h-[260px] overflow-y-auto">

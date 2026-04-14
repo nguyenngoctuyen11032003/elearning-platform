@@ -32,7 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { DEFAULT_SYSTEM_SETTINGS } from "../../../../lib/system-config/default-system-settings"
 import type { LanguageCode } from "@/lib/i18n/language-context"
-import { UniversalSelect } from "@/components/ui/universal-select"
+import { DialogSelect } from "@/components/ui/dialog-select"
 
 export default function AdminSettingsPage() {
   const { t, language, setLanguage, supportedLanguages } = useLanguage()
@@ -437,12 +437,10 @@ const handleSave = async () => {
                   <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
                     <Globe size={16} /> {t("adm_set_language", "Ngôn ngữ")}
                   </label>
-                  <UniversalSelect
+                  <DialogSelect
                     value={settings.language}
                     onChange={(e) => handleLanguageSelect(e.target.value as LanguageCode)}
-                    className="w-full md:w-80 h-11 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-xl px-4 border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent shadow-sm"
-                    contentClassName="z-[60] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700"
-                    portalled={true}
+                    className="w-full md:w-80 h-11"
                   >
                     {(supportedLanguages || ["en", "vi"]).map((langItem) => {
                       const code = typeof langItem === "string" ? (langItem as LanguageCode) : langItem.code
@@ -453,7 +451,7 @@ const handleSave = async () => {
                         </option>
                       )
                     })}
-                  </UniversalSelect>
+                  </DialogSelect>
                   <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
                     Chọn ngôn ngữ hiển thị mặc định cho toàn bộ nền tảng.
                   </p>

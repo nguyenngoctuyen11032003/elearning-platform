@@ -10,8 +10,8 @@ import { apiClient } from "@/lib/api/client"
 import { getPaymentStatusInfo } from "@/lib/payment-status-utils"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { getCurrentClientLanguage, localizeMessage } from "@/lib/i18n/message-localizer"
-import { UniversalSelect } from "@/components/ui/universal-select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DialogSelect } from "@/components/ui/dialog-select"
 
 type Plan = {
   id: string
@@ -289,7 +289,7 @@ function TeacherPlanCheckoutPageContent() {
   const selectedPlan = useMemo(() => plans.find((p) => p.id === selectedPlanId), [plans, selectedPlanId])
   const selectedMethod = useMemo(() => methods.find((m) => m.id === selectedMethodId), [methods, selectedMethodId])
   const totalAmount = Number(selectedPlan?.price || 0)
-  const activeStep = !selectedPlanId ? 1 : checkout ? 3 : methods.length > 0 ? 2 : 3
+  const activeStep = !selectedPlanId ? 1 : 2
 
   const summaryPlanName = useMemo(() => {
     if (!selectedPlan) return "Plan"
@@ -400,7 +400,6 @@ function TeacherPlanCheckoutPageContent() {
         paymentChannel: selectedMethod?.type,
       })
       setCheckout(data)
-      setMethodTab("saved")
 
       if (selectedMethod?.type === "e_wallet") {
         const provider = String(selectedMethod.provider || "").toLowerCase()
@@ -629,17 +628,15 @@ function TeacherPlanCheckoutPageContent() {
                 <span className={`h-2.5 w-2.5 rounded-full ${activeStep === 1 ? "bg-cyan-500" : "bg-slate-400"}`} />
                 1. {t("checkout_plan", "Chọn gói")}
               </p>
-              <UniversalSelect
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 shadow-sm transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                contentClassName="border-slate-200 bg-white text-slate-800 shadow-[0_18px_40px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                portalled
+              <DialogSelect
+                className="h-11 w-full"
                 value={selectedPlanId}
                 onChange={(e) => setSelectedPlanId(e.target.value)}
               >
                 {plans.map((plan) => (
                   <option key={plan.id} value={plan.id}>{plan.name}</option>
                 ))}
-              </UniversalSelect>
+              </DialogSelect>
 
               {selectedPlan && (
                 <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-900">
@@ -659,97 +656,19 @@ function TeacherPlanCheckoutPageContent() {
               )}
             </motion.section>
 
-            {methods.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.1 }}
-                className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-900/70"
-              >
-                <p className="text-sm text-slate-700 dark:text-slate-200">
-                  {t("checkout_no_methods", "Bạn chưa có phương thức thanh toán đã lưu. Bạn vẫn có thể thanh toán bằng ví hoặc SePay QR bên dưới.")}
-                </p>
-              </motion.div>
-            ) : (
-              <motion.section
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.1 }}
-                className={`space-y-4 rounded-2xl border p-6 transition-all duration-300 ${
-                  activeStep === 2
-                    ? `${theme.activeBorder} ${theme.activeBg} ${theme.activeShadow}`
-                    : "border-slate-200 bg-white/75 dark:border-slate-700 dark:bg-slate-900/70"
-                }`}
-              >
-                <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800 dark:text-slate-100">
-                  <span className={`h-2.5 w-2.5 rounded-full ${activeStep === 2 ? "bg-cyan-500" : "bg-slate-400"}`} />
-                  2. {t("checkout_choose_method", "Chọn phương thức")}
-                </h2>
-
-                <div className="space-y-3">
-                  {methods.map((method) => {
-                    const checked = selectedMethodId === method.id
-                    return (
-                      <label
-                        key={method.id}
-                        className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border bg-white p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:bg-slate-900 ${
-                          checked
-                            ? "border-cyan-400 bg-cyan-50/70 shadow-[0_10px_24px_rgba(14,165,233,0.16)] dark:bg-cyan-900/20"
-                            : "border-slate-200 dark:border-slate-700"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="radio"
-                            name="saved-method"
-                            checked={checked}
-                            onChange={() => setSelectedMethodId(method.id)}
-                          />
-                          <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-sm font-bold text-cyan-700 dark:bg-slate-800 dark:text-cyan-300">
-                            {method.type === "e_wallet" ? "M" : <CreditCard size={15} />}
-                          </div>
-                          <div>
-                            <p className="font-semibold uppercase tracking-wide text-slate-800 dark:text-slate-100">{method.label}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {method.type === "bank_card"
-                                ? t("payment_method_bank_card", "Thẻ ngân hàng")
-                                : t("payment_method_ewallet", "Ví điện tử")}
-                            </p>
-                          </div>
-                        </div>
-                        {method.isDefault ? (
-                          <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-900/30 dark:text-emerald-300">
-                            {t("common_default", "Default")}
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setDefaultMethod(method.id)}
-                            className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                          >
-                            {t("payment_set_default", "Đặt làm mặc định")}
-                          </button>
-                        )}
-                      </label>
-                    )
-                  })}
-                </div>
-              </motion.section>
-            )}
-
             <motion.section
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.15 }}
               className={`space-y-4 rounded-2xl border p-6 transition-all duration-300 ${
-                activeStep === 3
+                activeStep === 2
                   ? `${theme.activeBorder} ${theme.activeBg} ${theme.activeShadow}`
                   : "border-slate-200 bg-white/75 dark:border-slate-700 dark:bg-slate-900/70"
               }`}
             >
               <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800 dark:text-slate-100">
-                <span className={`h-2.5 w-2.5 rounded-full ${activeStep === 3 ? "bg-cyan-500" : "bg-slate-400"}`} />
-                3. {t("checkout_or_qr", "Thanh toán bằng ví hoặc SePay QR")}
+                <span className={`h-2.5 w-2.5 rounded-full ${activeStep === 2 ? "bg-cyan-500" : "bg-slate-400"}`} />
+                2. {t("checkout_or_qr", "Thanh toán bằng ví hoặc SePay QR")}
               </h2>
               <p className="text-sm text-slate-600 dark:text-slate-300">{t("checkout_qr_hint", "Quét QR SePay hoặc trả trực tiếp bằng số dư ví")}</p>
 
@@ -844,7 +763,6 @@ function TeacherPlanCheckoutPageContent() {
                         onClick={async () => {
                           await cancelCurrentCheckout()
                           setQuickPaymentMode(null)
-                          setMethodTab("saved")
                         }}
                         className="flex-1 inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                       >
@@ -896,18 +814,13 @@ function TeacherPlanCheckoutPageContent() {
               disabled={
                 processing ||
                 !selectedPlanId ||
-                (!quickPaymentMode && (!selectedMethodId || methods.length === 0))
+                !quickPaymentMode
               }
               className={`mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${theme.primaryButton} px-4 text-sm font-semibold text-white transition hover:-translate-y-px hover:brightness-110 active:scale-[0.99] disabled:opacity-60 sm:h-12 sm:px-6 sm:text-base`}
             >
               {processing ? <Loader2 size={18} className="animate-spin" /> : <CreditCard size={18} />}
               {processing ? t("common_processing", "Processing...") : `${t("checkout_pay_now", "Thanh toán")} ${formatVnd(totalAmount)}`}
             </button>
-            {!quickPaymentMode && methods.length === 0 ? (
-              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                {t("checkout_select_method_required", "Please select a payment method")}
-              </p>
-            ) : null}
           </motion.aside>
         </div>
 

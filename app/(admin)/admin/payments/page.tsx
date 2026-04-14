@@ -12,6 +12,7 @@ import Link from "next/link"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { AdminDropdownFilter } from "@/components/ui/admin-dropdown-filter"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
 import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
 import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
@@ -563,26 +564,28 @@ export default function AdminPaymentsPage() {
           </div>
           <div className="filter-row gap-y-3 sm:gap-y-4">
             <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_filter_by", "Lọc theo")}:</span>
-            <select
+            <AdminDropdownFilter
+              options={[
+                { value: "all", label: t("common_all", "Tất cả") },
+                { value: "success", label: t("pay_success", "Thành công") },
+                { value: "pending", label: t("pay_pending", "Chờ xử lý") },
+                { value: "failed", label: t("pay_failed", "Thất bại") },
+              ]}
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
-            >
-              <option value="all">{t("common_all", "Tất cả")}</option>
-              <option value="success">{t("pay_success", "Thành công")}</option>
-              <option value="pending">{t("pay_pending", "Chờ xử lý")}</option>
-              <option value="failed">{t("pay_failed", "Thất bại")}</option>
-            </select>
+              onChange={(v) => setStatusFilter(v as any)}
+              width={180}
+            />
 
-            <select
+            <AdminDropdownFilter
+              options={[
+                { value: "all", label: t("common_all", "Tất cả") },
+                { value: "teacher", label: t("pay_account_type_teacher", "Giảng viên") },
+                { value: "student", label: t("pay_account_type_student", "Học viên") },
+              ]}
               value={accountTypeFilter}
-              onChange={(e) => setAccountTypeFilter(e.target.value as any)}
-              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
-            >
-              <option value="all">{t("common_all", "Tất cả")}</option>
-              <option value="teacher">{t("pay_account_type_teacher", "Giảng viên")}</option>
-              <option value="student">{t("pay_account_type_student", "Học viên")}</option>
-            </select>
+              onChange={(v) => setAccountTypeFilter(v as any)}
+              width={180}
+            />
 
             <span className="rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
               <AnimatedNumber value={filteredPayments.length} durationMs={320} />

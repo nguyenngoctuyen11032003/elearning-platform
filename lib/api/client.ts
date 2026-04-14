@@ -726,11 +726,33 @@ if (typeof window !== 'undefined' && token) {
     return Array.isArray(result) ? result : [];
   }
 
+  async getCouponScopeOptions(): Promise<{
+    teachers: any[];
+    courses: any[];
+    categories: any[];
+  }> {
+    const result = await this.request('/coupons/scope-options');
+    return {
+      teachers: Array.isArray((result as any)?.teachers)
+        ? (result as any).teachers
+        : [],
+      courses: Array.isArray((result as any)?.courses)
+        ? (result as any).courses
+        : [],
+      categories: Array.isArray((result as any)?.categories)
+        ? (result as any).categories
+        : [],
+    };
+  }
+
   async createCoupon(data: {
     code: string;
     type: 'percentage' | 'fixed';
     value: number;
+    applyScope?: 'all' | 'course' | 'teacher' | 'category';
     courseId?: string;
+    teacherId?: string;
+    categoryId?: string;
     minPurchase?: number;
     maxDiscount?: number;
     usageLimit?: number;
@@ -740,6 +762,36 @@ if (typeof window !== 'undefined' && token) {
     return this.request('/coupons', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async updateCoupon(
+    id: string,
+    data: {
+      code?: string;
+      type?: 'percentage' | 'fixed';
+      value?: number;
+      applyScope?: 'all' | 'course' | 'teacher' | 'category';
+      courseId?: string;
+      teacherId?: string;
+      categoryId?: string;
+      minPurchase?: number;
+      maxDiscount?: number;
+      usageLimit?: number;
+      validFrom?: string;
+      validUntil?: string;
+      status?: 'active' | 'inactive' | 'expired';
+    },
+  ): Promise<any> {
+    return this.request(`/coupons/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCoupon(id: string): Promise<any> {
+    return this.request(`/coupons/${id}`, {
+      method: 'DELETE',
     });
   }
 

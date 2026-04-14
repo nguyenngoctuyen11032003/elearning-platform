@@ -11,16 +11,14 @@ import {
   X,
   AlertCircle,
   FileText,
-  Award,
-  Timer,
   ClipboardList,
-  BookOpen,
   ChevronDown,
   ChevronRight,
   Trash2
 } from "lucide-react"
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { AdminDropdownFilter } from "@/components/ui/admin-dropdown-filter"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/authfetch"
 import { UniversalSelect } from "@/components/ui/universal-select"
@@ -297,16 +295,11 @@ export default function AdminExamsPage() {
   const pendingExams = exams.filter(e => e.status === "pending").length
   const approvedExams = exams.filter(e => e.status === "approved").length
   const rejectedExams = exams.filter(e => e.status === "rejected").length
-  const practiceExams = exams.filter(e => e.type === "practice").length
-  const officialExams = exams.filter(e => e.type === "official").length
-
   const examOverviewMetrics = {
     totalExams,
     pendingExams,
     approvedExams,
     rejectedExams,
-    practiceExams,
-    officialExams,
   }
 
   const { isChanged: isOverviewChanged, getTrend: getOverviewTrend } = useMetricChangeHighlight(examOverviewMetrics, {
@@ -441,23 +434,6 @@ export default function AdminExamsPage() {
     )
   }
 
-  const getTypeBadge = (type: string) => {
-    const styles = {
-      practice: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
-      official: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20",
-    }
-    const labels = {
-      practice: t("adm_exam_type_practice", "Thi thử"),
-      official: t("adm_exam_type_official", "Thi thật"),
-    }
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${styles[type as keyof typeof styles]}`}>
-        {type === "official" ? <Award size={12} /> : <ClipboardList size={12} />}
-        {labels[type as keyof typeof labels]}
-      </span>
-    )
-  }
-
   const handleBulkApprove = async () => {
     const pendingIds = selectedIds.filter((id) => exams.find((e) => e.id === id)?.status === "pending")
     if (pendingIds.length === 0) {
@@ -509,9 +485,9 @@ export default function AdminExamsPage() {
               </div>
             </div>
 
-            {/* Stats Cards: grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 */}
+            {/* Stats Cards */}
             <div className="rounded-2xl border border-white/40 dark:border-slate-700/60 bg-white/15 dark:bg-slate-900/30 backdrop-blur-sm p-4 md:p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="animate-slideUp" style={{ animationDelay: "0.25s" }}>
                 <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("totalExams") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
                   <div>
@@ -560,30 +536,6 @@ export default function AdminExamsPage() {
                   </div>
                 </div>
               </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.65s" }}>
-                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("practiceExams") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_exam_type_practice", "Thi thử")}</p>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1"><AnimatedNumber value={practiceExams} disableAnimation={!isOverviewChanged("practiceExams")} /></p>
-                    <MetricTrendBadge trend={getOverviewTrend("practiceExams")} />
-                  </div>
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <ClipboardList size={20} className="text-blue-600 dark:text-blue-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="animate-slideUp" style={{ animationDelay: "0.75s" }}>
-                <div className={`group flex items-center justify-between p-5 h-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl hover:bg-white/95 dark:hover:bg-slate-800/90 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-700 ease-out cursor-pointer border ${isOverviewChanged("officialExams") ? "border-emerald-300/80 dark:border-emerald-500/70 ring-2 ring-emerald-300/40 dark:ring-emerald-500/25" : "border-white/30 dark:border-slate-700/60"}`}>
-                  <div>
-                    <p className="text-muted-foreground dark:text-slate-300 text-sm font-medium">{t("adm_exam_type_official", "Thi thật")}</p>
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1"><AnimatedNumber value={officialExams} disableAnimation={!isOverviewChanged("officialExams")} /></p>
-                    <MetricTrendBadge trend={getOverviewTrend("officialExams")} />
-                  </div>
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <Award size={20} className="text-purple-600 dark:text-purple-400" />
-                  </div>
-                </div>
-              </div>
             </div>
             </div>
           </div>
@@ -603,16 +555,17 @@ export default function AdminExamsPage() {
 
           <div className="filter-row gap-y-3 sm:gap-y-4">
             <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_filter_by", "Lọc theo")}:</span>
-            <select
+            <AdminDropdownFilter
+              options={[
+                { value: "all", label: t("common_all", "All") },
+                { value: "pending", label: t("adm_exam_status_pending", "Pending") },
+                { value: "approved", label: t("adm_exam_status_approved", "Approved") },
+                { value: "rejected", label: t("adm_exam_status_rejected", "Rejected") },
+              ]}
               value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value as "all" | "pending" | "approved" | "rejected")}
-              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
-            >
-              <option value="all">{t("common_all", "All")}</option>
-              <option value="pending">{t("adm_exam_status_pending", "Pending")}</option>
-              <option value="approved">{t("adm_exam_status_approved", "Approved")}</option>
-              <option value="rejected">{t("adm_exam_status_rejected", "Rejected")}</option>
-            </select>
+              onChange={(v) => setActiveTab(v as any)}
+              width={200}
+            />
 
             <span className="rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
               <AnimatedNumber value={filteredExams.length} durationMs={320} />
@@ -743,15 +696,11 @@ export default function AdminExamsPage() {
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-white truncate">{exam.title}</h3>
-                                  {getTypeBadge(exam.type)}
                                 </div>
                                 <p className="text-sm leading-6 text-slate-500 dark:text-slate-400 mt-1">{exam.description || exam.course}</p>
                                 <p className="text-sm text-slate-700 dark:text-slate-300 mt-2">👨‍🏫 {exam.teacher || t("adm_exam_no_teacher", "Chưa có giảng viên")}</p>
                                 <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-700 dark:text-slate-300">
-                                  <span className="inline-flex items-center gap-1"><Timer size={14} /> {exam.timeLimit}m</span>
                                   <span className="inline-flex items-center gap-1"><ClipboardList size={14} /> <AnimatedNumber value={exam.questionsCount} durationMs={320} /> {t("adm_exam_questions_short", "câu")}</span>
-                                  <span className="inline-flex items-center gap-1"><Award size={14} /> <AnimatedNumber value={exam.passingScore} durationMs={320} />%</span>
-                                  <span className="inline-flex items-center gap-1">🔁 <AnimatedNumber value={exam.maxAttempts} durationMs={320} /> {t("adm_exam_times", "lần")}</span>
                                 </div>
                                 <p className="text-xs text-slate-500 mt-2">{t("adm_exam_version", "Version")}: {String.fromCharCode(65 + index)}</p>
                               </div>

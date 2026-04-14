@@ -67,7 +67,7 @@ function normalizeCheckoutPayload(payload: any): CheckoutCourse | null {
     id,
     title: String(raw?.title || "").trim() || id,
     teacher: teacherName || undefined,
-    price: parsePriceValue(raw?.discountPrice ?? raw?.price ?? 0),
+    price: parsePriceValue(raw?.price ?? 0),
     image: String(raw?.thumbnail || raw?.image || "").trim() || undefined,
   }
 }
