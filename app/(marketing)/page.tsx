@@ -393,6 +393,13 @@ export default function Home() {
                   {t("home_cta_learn_more", "Tìm Hiểu Thêm")}
                   <Play size={20} className="group-hover:scale-110 transition-transform" />
                 </Link>
+                <Link
+                  href="/teachers"
+                  className="group inline-flex w-full sm:w-auto items-center justify-center gap-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl font-bold text-base sm:text-lg shadow-[0_8px_30px_rgba(168,85,247,0.35)] hover:shadow-[0_12px_40px_rgba(168,85,247,0.45)] transition-all transform hover:scale-105 hover:-translate-y-0.5"
+                >
+                  {t("teachers_cta_start", "Bắt đầu dạy ngay")}
+                  <Sparkles size={20} className="group-hover:scale-110 transition-transform" />
+                </Link>
               </motion.div>
 
               {/* Quick Stats */}

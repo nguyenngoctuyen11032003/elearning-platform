@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { getRoleAvatar, getRoleDisplayName, getInitials } from "@/lib/utils/avatar"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { DateSelect } from "@/components/ui/date-select"
 
 export default function EditProfilePage() {
   const { user, loading } = useAuth()
@@ -215,12 +216,10 @@ export default function EditProfilePage() {
             <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
               <Calendar size={16} /> {t("profile_dob", "Ngày sinh")}
             </label>
-            <input
-              type="date"
-              name="dateOfBirth"
+            <DateSelect
               value={formData.dateOfBirth}
-              onChange={handleChange}
-              className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
+              onChange={(value) => setFormData(prev => ({ ...prev, dateOfBirth: value }))}
+              placeholder="mm/dd/yyyy"
             />
           </div>
 

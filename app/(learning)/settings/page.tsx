@@ -10,7 +10,7 @@ import { toast } from "sonner"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { SystemSettings } from "@/app/types/system-settings"
 import { LanguageCode, useLanguage } from "@/lib/i18n/language-context"
-import { UniversalSelect } from "@/components/ui/universal-select"
+import { DialogSelect } from "@/components/ui/dialog-select"
 
 export default function StudentSettingsPage() {
   const { user } = useAuth()
@@ -280,16 +280,14 @@ export default function StudentSettingsPage() {
                       {t("settings_language", "Ngôn ngữ")}
                     </label>
 
-                    <UniversalSelect
+                    <DialogSelect
                       value={settings.language || "vi"}
                       onChange={(e) => handleLanguageChange(e.target.value)}
-                      className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-                      contentClassName="border-blue-500/30 bg-slate-950/92 text-slate-100 shadow-[0_20px_50px_rgba(2,6,23,0.75)] backdrop-blur-2xl"
-                      portalled={true}
+                      className="h-11 w-full"
                     >
                       <option value="vi">{t("settings_lang_vi", "Tiếng Việt")}</option>
                       <option value="en">{t("settings_lang_en", "Tiếng Anh")}</option>
-                    </UniversalSelect>
+                    </DialogSelect>
 
                     <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">{t("settings_language_desc", "Chọn ngôn ngữ hiển thị")}</p>
                   </div>

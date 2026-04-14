@@ -5,6 +5,7 @@ import { Search, MoreVertical, CheckCircle, Clock, XCircle, Award, Eye, X, Alert
 import { Modal } from "@/components/ui/admin-modals"
 import { authFetch } from "@/lib/authfetch"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { AdminDropdownFilter } from "@/components/ui/admin-dropdown-filter"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
 import { useMetricChangeHighlight } from "@/hooks/use-metric-change-highlight"
 import { MetricTrendBadge } from "@/components/ui/metric-trend-badge"
@@ -458,26 +459,28 @@ const formatDate = (date?: string) => {
           </div>
           <div className="filter-row gap-y-3 sm:gap-y-4">
             <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_view", "Chế độ xem")}:</span>
-            <select
+            <AdminDropdownFilter
+              options={[
+                { value: "templates", label: t("adm_cert_tab_templates", "Mẫu chứng chỉ") },
+                { value: "issued", label: t("adm_cert_tab_issued", "Chứng chỉ đã cấp") },
+              ]}
               value={viewTab}
-              onChange={(e) => setViewTab(e.target.value as "templates" | "issued")}
-              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
-            >
-              <option value="templates">{t("adm_cert_tab_templates", "Mẫu chứng chỉ")}</option>
-              <option value="issued">{t("adm_cert_tab_issued", "Chứng chỉ đã cấp")}</option>
-            </select>
+              onChange={(v) => setViewTab(v as any)}
+              width={220}
+            />
 
             <span className="text-sm font-semibold text-foreground dark:text-white">{t("common_filter_by", "Lọc theo")}:</span>
-            <select
+            <AdminDropdownFilter
+              options={[
+                { value: "all", label: t("adm_cert_all", "Tất cả") },
+                { value: "pending", label: t("adm_cert_pending", "Chờ duyệt") },
+                { value: "approved", label: t("adm_cert_approved", "Đã duyệt") },
+                { value: "rejected", label: t("adm_cert_rejected", "Từ chối") },
+              ]}
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="filter-select h-[46px] w-full sm:w-auto min-w-[220px] md:min-w-[240px] lg:min-w-[260px] rounded-xl px-4 text-sm"
-            >
-              <option value="all">{t("adm_cert_all", "Tất cả")}</option>
-              <option value="pending">{t("adm_cert_pending", "Chờ duyệt")}</option>
-              <option value="approved">{t("adm_cert_approved", "Đã duyệt")}</option>
-              <option value="rejected">{t("adm_cert_rejected", "Từ chối")}</option>
-            </select>
+              onChange={(v) => setStatusFilter(v)}
+              width={200}
+            />
 
             <span className="rounded-full border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
               {activeResultCount}

@@ -10,6 +10,7 @@ import { getRoleDisplayName } from "@/lib/utils/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { useLanguage } from "@/lib/i18n/language-context"
+import { DateSelect } from "@/components/ui/date-select"
 
 interface UserStats {
   coursesEnrolled: number
@@ -439,12 +440,10 @@ export default function StudentProfilePage() {
                         <label className="block text-foreground dark:text-white text-sm font-semibold mb-2 flex items-center gap-2">
                           <Calendar size={16} /> {t("profile_dob", "Ngày sinh")}
                         </label>
-                        <input
-                          type="date"
-                          name="dateOfBirth"
+                        <DateSelect
                           value={profileData.dateOfBirth}
-                          onChange={handleProfileChange}
-                          className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:focus:ring-accent/50 transition-all"
+                          onChange={(value) => setProfileData(prev => ({ ...prev, dateOfBirth: value }))}
+                          placeholder="mm/dd/yyyy"
                         />
                       </div>
                     </div>

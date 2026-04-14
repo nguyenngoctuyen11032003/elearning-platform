@@ -183,7 +183,7 @@ export function Navbar() {
                 href="/signup"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-full text-sm font-medium transition-smooth"
               >
-                {t("nav_start_learning", "Bắt đầu học")}
+                {t("nav_start_learning", "Bắt đầu ngay")}
               </Link>
             </>
           )}
@@ -265,7 +265,7 @@ export function Navbar() {
                       href="/signup"
                       className="bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-medium text-center"
                     >
-                      {t("nav_start_learning", "Bắt đầu học")}
+                      {t("nav_start_learning", "Bắt đầu ngay")}
                     </Link>
                   </>
                 )}
