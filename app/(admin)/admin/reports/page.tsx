@@ -169,7 +169,16 @@ export default function AdminReportsPage() {
       if (!silent) setLoading(true)
       try {
         const range = getPeriodDateRange(filterPeriod)
-        const [revenueReport, userReport, performanceReport, dashboardStats, growthStats, allCategories, adminPayments, adminInstructorPayments] = await Promise.all([
+        const [
+          revenueReportRes,
+          userReportRes,
+          performanceReportRes,
+          dashboardStatsRes,
+          growthStatsRes,
+          allCategoriesRes,
+          adminPaymentsRes,
+          adminInstructorPaymentsRes,
+        ] = await Promise.allSettled([
           apiClient.getAdminRevenueReport(filterPeriod),
           apiClient.getAdminUserReport(filterPeriod),
           apiClient.getAdminPerformanceReport(filterPeriod),
@@ -178,12 +187,37 @@ export default function AdminReportsPage() {
           apiClient.getCategories(),
           apiClient.getAdminPayments({
             page: 1,
-            limit: 300,
+            limit: 200,
             startDate: range.start.toISOString(),
             endDate: range.end.toISOString(),
           }),
           apiClient.getAdminInstructorPayments(),
         ])
+
+        const revenueReport = revenueReportRes.status === "fulfilled" ? (revenueReportRes.value?.data ?? revenueReportRes.value ?? {}) : {}
+        const userReport = userReportRes.status === "fulfilled" ? (userReportRes.value?.data ?? userReportRes.value ?? {}) : {}
+        const performanceReport = performanceReportRes.status === "fulfilled" ? (performanceReportRes.value?.data ?? performanceReportRes.value ?? {}) : {}
+        const dashboardStats = dashboardStatsRes.status === "fulfilled" ? (dashboardStatsRes.value?.data ?? dashboardStatsRes.value ?? {}) : {}
+        const growthStats = growthStatsRes.status === "fulfilled" ? (growthStatsRes.value?.data ?? growthStatsRes.value ?? {}) : {}
+        const allCategories = allCategoriesRes.status === "fulfilled" ? (allCategoriesRes.value?.data ?? allCategoriesRes.value ?? []) : []
+        const adminPayments = adminPaymentsRes.status === "fulfilled" ? (adminPaymentsRes.value?.data ?? adminPaymentsRes.value ?? []) : []
+        const adminInstructorPayments = adminInstructorPaymentsRes.status === "fulfilled"
+          ? (adminInstructorPaymentsRes.value?.data ?? adminInstructorPaymentsRes.value ?? [])
+          : []
+
+        const failedCount = [
+          revenueReportRes,
+          userReportRes,
+          performanceReportRes,
+          dashboardStatsRes,
+          growthStatsRes,
+          allCategoriesRes,
+          adminPaymentsRes,
+          adminInstructorPaymentsRes,
+        ].filter((result) => result.status === "rejected").length
+        if (failedCount > 0 && !silent) {
+          toast.warning(t("adm_rpt_partial_data", "Một số dữ liệu tải chậm, hệ thống đang hiển thị phần dữ liệu khả dụng."))
+        }
 
         const revenueByMonthRaw = Array.isArray(revenueReport?.revenueByMonth) ? revenueReport.revenueByMonth : []
         const revenueByCategoryRaw = Array.isArray(revenueReport?.revenueByCategory) ? revenueReport.revenueByCategory : []
@@ -192,7 +226,7 @@ export default function AdminReportsPage() {
           ? allCategories.map((item: any) => String(item?.name || "").trim()).filter(Boolean)
           : []
 
-        const coursePaymentsRaw = Array.isArray(adminPayments?.data) ? adminPayments.data : []
+        const coursePaymentsRaw = Array.isArray(adminPayments?.data) ? adminPayments.data : (Array.isArray(adminPayments) ? adminPayments : [])
         const instructorPaymentsRaw = Array.isArray(adminInstructorPayments) ? adminInstructorPayments : []
 
         const courseRevenueFromPayments = sumSuccessfulRevenueByPeriod(
@@ -319,8 +353,7 @@ export default function AdminReportsPage() {
         }
         setTotals((prev) => (isSameData(prev, nextTotals) ? prev : nextTotals))
         setLastSyncedAt(new Date())
-      } catch (error) {
-        console.error("Error loading reports", error)
+      } catch (_error) {
         toast.error(t("adm_rpt_load_fail", "Không thể tải báo cáo. Vui lòng thử lại."))
       } finally {
         setPeriodSwitching(false)
@@ -1137,16 +1170,17 @@ export default function AdminReportsPage() {
               </button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <div className="max-h-[420px] overflow-y-auto rounded-xl border border-border/60 dark:border-slate-800">
+                <table className="w-full min-w-[980px] text-sm">
                 <thead>
                   <tr className="border-b border-border dark:border-slate-800">
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_time", "Thời gian")}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_student", "Học viên")}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_course", "Khóa học")}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_instructor", "Giảng viên")}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_method", "Phương thức")}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_revenue", "Doanh thu")}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_status", "Trạng thái")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_time", "Thời gian")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_student", "Học viên")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_th_course", "Khóa học")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_th_instructor", "Giảng viên")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_method", "Phương thức")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_th_revenue", "Doanh thu")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_status", "Trạng thái")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1170,6 +1204,7 @@ export default function AdminReportsPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
 
@@ -1187,15 +1222,16 @@ export default function AdminReportsPage() {
               </button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <div className="max-h-[420px] overflow-y-auto rounded-xl border border-border/60 dark:border-slate-800">
+                <table className="w-full min-w-[860px] text-sm">
                 <thead>
                   <tr className="border-b border-border dark:border-slate-800">
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_time", "Thời gian")}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_teacher", "Giảng viên")}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_plan", "Gói")}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_method", "Phương thức")}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_th_revenue", "Doanh thu")}</th>
-                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white">{t("adm_rpt_status", "Trạng thái")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_time", "Thời gian")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_teacher", "Giảng viên")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_plan", "Gói")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_method", "Phương thức")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_th_revenue", "Doanh thu")}</th>
+                    <th className="text-left py-3 px-3 font-semibold text-foreground dark:text-white sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">{t("adm_rpt_status", "Trạng thái")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1218,6 +1254,7 @@ export default function AdminReportsPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </div>

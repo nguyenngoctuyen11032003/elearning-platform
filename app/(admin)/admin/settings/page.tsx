@@ -438,8 +438,8 @@ const handleSave = async () => {
                     <Globe size={16} /> {t("adm_set_language", "Ngôn ngữ")}
                   </label>
                   <DialogSelect
-                    value={settings.language}
-                    onChange={(e) => handleLanguageSelect(e.target.value as LanguageCode)}
+                    value={settings.language || "vi"}
+                    onChange={(value) => handleLanguageSelect(value as LanguageCode)}
                     className="w-full md:w-80 h-11"
                   >
                     {(supportedLanguages || ["en", "vi"]).map((langItem) => {

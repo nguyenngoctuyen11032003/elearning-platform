@@ -282,7 +282,7 @@ export default function StudentSettingsPage() {
 
                     <DialogSelect
                       value={settings.language || "vi"}
-                      onChange={(e) => handleLanguageChange(e.target.value)}
+                      onChange={(value) => handleLanguageChange(value)}
                       className="h-11 w-full"
                     >
                       <option value="vi">{t("settings_lang_vi", "Tiếng Việt")}</option>

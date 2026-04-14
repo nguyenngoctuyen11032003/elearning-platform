@@ -25,7 +25,7 @@ export default function TeacherSettingsPage() {
   const router = useRouter()
   const { t, setLanguage } = useLanguage()
   const [loading, setLoading] = useState(true)
-  const [cancelling, setCancelling] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Load dark mode preference from localStorage on mount
     if (typeof window !== 'undefined') {
@@ -44,6 +44,25 @@ export default function TeacherSettingsPage() {
     courseNotifications: true,
     studentNotifications: true,
     billingNotifications: true,
+  })
+  const [initialPreferenceState, setInitialPreferenceState] = useState<{
+    language: "vi" | "en"
+    isDarkMode: boolean
+    notifications: {
+      emailNotifications: boolean
+      courseNotifications: boolean
+      studentNotifications: boolean
+      billingNotifications: boolean
+    }
+  }>({
+    language: "vi",
+    isDarkMode: true,
+    notifications: {
+      emailNotifications: true,
+      courseNotifications: true,
+      studentNotifications: true,
+      billingNotifications: true,
+    },
   })
 
   const [plans, setPlans] = useState<PlanItem[]>([])
@@ -73,7 +92,13 @@ export default function TeacherSettingsPage() {
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark")
     setIsDarkMode(isDark)
-    setSelectedLanguage(document.documentElement.lang === "en" ? "en" : "vi")
+    const languageFromDoc = document.documentElement.lang === "en" ? "en" : "vi"
+    setSelectedLanguage(languageFromDoc)
+    setInitialPreferenceState((prev) => ({
+      ...prev,
+      language: languageFromDoc,
+      isDarkMode: isDark,
+    }))
   }, [])
 
   // Initialize and sync dark mode with document
@@ -120,28 +145,43 @@ export default function TeacherSettingsPage() {
     router.push(`/teacher/wallet-membership/checkout?planId=${encodeURIComponent(planId)}`)
   }
 
-  const cancelSubscription = async () => {
-    if (isFreePlan) {
-      toast.info(t("teacher_settings_already_free", "Bạn đang ở gói Free"))
-      return
-    }
-
-    setCancelling(true)
-    try {
-      await apiClient.cancelTeacherSubscription("Cancelled by teacher")
-      toast.success(t("teacher_settings_cancelled_plan", "Đã hủy gói trả phí và chuyển về gói Free"))
-      await loadData()
-    } catch (error: any) {
-      toast.error(localizeMessage(error?.message || t("teacher_settings_cancel_failed", "Cannot cancel plan"), getCurrentClientLanguage()))
-    } finally {
-      setCancelling(false)
-    }
-  }
-
   const handleLanguageChange = (lang: string) => {
     const nextLang = lang === "en" ? "en" : "vi"
     setSelectedLanguage(nextLang)
     setLanguage(nextLang)
+  }
+
+  const hasUnsavedChanges = useMemo(() => {
+    return (
+      selectedLanguage !== initialPreferenceState.language ||
+      isDarkMode !== initialPreferenceState.isDarkMode ||
+      JSON.stringify(notifications) !== JSON.stringify(initialPreferenceState.notifications)
+    )
+  }, [selectedLanguage, isDarkMode, notifications, initialPreferenceState])
+
+  const handleResetChanges = () => {
+    setSelectedLanguage(initialPreferenceState.language)
+    setLanguage(initialPreferenceState.language)
+    setIsDarkMode(initialPreferenceState.isDarkMode)
+    setNotifications(initialPreferenceState.notifications)
+    toast.success(t("settings_reset_done", "Đã hoàn tác thay đổi"))
+  }
+
+  const handleSave = async () => {
+    if (isSaving) return
+    setIsSaving(true)
+    try {
+      setInitialPreferenceState({
+        language: selectedLanguage,
+        isDarkMode,
+        notifications,
+      })
+      toast.success(t("settings_saved", "Đã lưu cài đặt"))
+    } catch (error: any) {
+      toast.error(localizeMessage(error?.message || t("settings_save_failed", "Không thể lưu cài đặt"), getCurrentClientLanguage()))
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   if (loading) {
@@ -316,12 +356,7 @@ export default function TeacherSettingsPage() {
 
                   <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)] dark:border-slate-800 dark:bg-slate-900/70">
                     <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">{t("teacher_settings_payment_hint", "Bạn có thể thêm thẻ, ví điện tử hoặc thanh toán bằng QR tại trang thanh toán gói.")}</p>
-                    <button
-                      onClick={() => router.push("/teacher/wallet-membership/checkout")}
-                      className="mt-4 h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500 active:scale-[0.98]"
-                    >
-                      {t("checkout_title", "Thanh toán gói")}
-                    </button>
+                    <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">{t("teacher_settings_payment_hint_secondary", "Quản lý nâng cấp gói tại trang gói thành viên khi cần.")}</p>
                   </div>
 
                   <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)] dark:border-slate-800 dark:bg-slate-900/70">
@@ -346,20 +381,9 @@ export default function TeacherSettingsPage() {
                     )}
                   </div>
 
-                  <div className="rounded-2xl border border-red-300 bg-red-50 p-5 dark:border-red-500/40 dark:bg-red-500/5">
-                    <h4 className="text-base font-bold text-red-700 dark:text-red-300">{t("teacher_settings_cancel_subscription", "Cancel Subscription")}</h4>
-                    <p className="mt-2 text-sm leading-6 text-red-600/80 dark:text-red-200/80">{t("teacher_settings_cancel_warning", "Hành động này sẽ hủy gói trả phí hiện tại và chuyển về Free plan.")}</p>
-                    <button
-                      onClick={cancelSubscription}
-                      disabled={cancelling || isFreePlan}
-                      className="mt-4 h-10 rounded-xl bg-red-500 px-4 text-sm font-semibold text-white transition hover:bg-red-400 active:scale-[0.98] disabled:opacity-50"
-                    >
-                      {cancelling
-                        ? t("teacher_settings_cancelling", "Đang hủy...")
-                        : isFreePlan
-                        ? t("teacher_settings_already_free", "Bạn đang ở gói Free")
-                        : t("teacher_settings_cancel_subscription", "Cancel Subscription")}
-                    </button>
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-500/30 dark:bg-blue-500/5">
+                    <h4 className="text-base font-bold text-blue-700 dark:text-blue-300">{t("teacher_settings_subscription_note", "Quản lý gói đăng ký")}</h4>
+                    <p className="mt-2 text-sm leading-6 text-blue-700/80 dark:text-blue-200/80">{t("teacher_settings_subscription_note_desc", "Bạn có thể dùng Hoàn tác hoặc Lưu cài đặt ở cuối trang để cập nhật thay đổi giao diện và thông báo.")}</p>
                   </div>
                 </section>
               </div>
@@ -447,7 +471,7 @@ export default function TeacherSettingsPage() {
                     <label className="mb-2 block text-sm font-semibold text-foreground dark:text-white">{t("teacher_settings_language", "Language")}</label>
                     <DialogSelect
                       value={selectedLanguage}
-                      onChange={(e) => handleLanguageChange(e.target.value)}
+                      onChange={(value) => handleLanguageChange(value)}
                       className="h-11 w-full"
                     >
                       <option value="vi">{t("teacher_settings_lang_vi", "Tiếng Việt")}</option>
@@ -465,27 +489,28 @@ export default function TeacherSettingsPage() {
           <div className="rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-[0_18px_42px_rgba(15,23,42,0.16)] backdrop-blur-xl md:p-4 dark:border-slate-800 dark:bg-slate-900/90">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="inline-flex items-center gap-2 text-sm font-medium">
-                <Clock size={16} className={cancelling ? "text-amber-500" : "text-emerald-500"} />
-                <span className={cancelling ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300"}>
-                  {cancelling ? t("teacher_settings_cancelling", "Đang hủy...") : t("teacher_settings_status_ready", "Hệ thống thanh toán đã sẵn sàng")}
+                <Clock size={16} className={hasUnsavedChanges ? "text-amber-500" : "text-emerald-500"} />
+                <span className={hasUnsavedChanges ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300"}>
+                  {hasUnsavedChanges ? t("settings_unsaved", "Có thay đổi chưa lưu") : t("settings_synced", "Đã đồng bộ với cấu hình mới nhất")}
                 </span>
               </div>
 
               <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center md:gap-3">
                 <button
                   type="button"
-                  onClick={cancelSubscription}
-                  disabled={cancelling || isFreePlan}
-                  className="h-10 w-full rounded-xl border border-red-300 bg-white px-4 text-sm font-semibold text-red-700 transition-all hover:bg-red-50 disabled:opacity-50 sm:w-auto dark:border-red-500/50 dark:bg-slate-900 dark:text-red-300 dark:hover:bg-red-950/30"
+                  onClick={handleResetChanges}
+                  disabled={isSaving || !hasUnsavedChanges}
+                  className="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50 sm:w-auto dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
-                  {t("teacher_settings_cancel_subscription", "Cancel Subscription")}
+                  {t("settings_reset", "Hoàn tác")}
                 </button>
                 <button
-                  onClick={() => router.push("/teacher/wallet-membership/checkout")}
+                  onClick={handleSave}
+                  disabled={isSaving || !hasUnsavedChanges}
                   className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-6 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all hover:shadow-[0_14px_34px_rgba(15,23,42,0.18)] sm:w-auto"
                 >
                   <Sparkles size={16} />
-                  {t("checkout_title", "Thanh toán gói")}
+                  {isSaving ? t("settings_saving", "Đang lưu...") : t("settings_save", "Lưu cài đặt")}
                 </button>
               </div>
             </div>

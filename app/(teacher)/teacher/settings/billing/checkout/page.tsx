@@ -631,7 +631,7 @@ function TeacherPlanCheckoutPageContent() {
               <DialogSelect
                 className="h-11 w-full"
                 value={selectedPlanId}
-                onChange={(e) => setSelectedPlanId(e.target.value)}
+                onChange={(value) => setSelectedPlanId(value)}
               >
                 {plans.map((plan) => (
                   <option key={plan.id} value={plan.id}>{plan.name}</option>

@@ -28,6 +28,7 @@ import { useLanguage } from "@/lib/i18n/language-context"
 type ChartPoint = { label: string; value: number }
 type PieItem = { name: string; value: number; color?: string }
 type WeeklyPoint = { day: string; revenue: number; target: number }
+type PeriodFilter = "day" | "week" | "month" | "year"
 type EnrollmentRow = {
   id: string
   studentName: string
@@ -128,11 +129,40 @@ function computeGrowth(series: number[], windowSize: number) {
   return Math.round(((current - previous) / previous) * 100)
 }
 
+function getPeriodDateRange(period: PeriodFilter) {
+  const end = new Date()
+  const start = new Date(end)
+
+  if (period === "day") {
+    start.setHours(0, 0, 0, 0)
+  } else if (period === "week") {
+    const day = start.getDay()
+    const diff = day === 0 ? 6 : day - 1
+    start.setDate(start.getDate() - diff)
+    start.setHours(0, 0, 0, 0)
+  } else if (period === "month") {
+    start.setDate(1)
+    start.setHours(0, 0, 0, 0)
+  } else {
+    start.setMonth(0, 1)
+    start.setHours(0, 0, 0, 0)
+  }
+
+  return { start, end }
+}
+
+function isInRange(value: unknown, start: Date, end: Date): boolean {
+  if (value == null) return false
+  const parsed = typeof value === "number" ? new Date(value) : new Date(String(value))
+  if (Number.isNaN(parsed.getTime())) return false
+  return parsed >= start && parsed <= end
+}
+
 export default function TeacherDashboard() {
   const { user } = useAuth()
   const { language, t } = useLanguage()
 
-  const [filterPeriod, setFilterPeriod] = useState("month")
+  const [filterPeriod, setFilterPeriod] = useState<PeriodFilter>("year")
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
   const [revenueChart, setRevenueChart] = useState<ChartPoint[]>([])
@@ -153,7 +183,7 @@ export default function TeacherDashboard() {
       setLoading(true)
       try {
         const res = await apiClient.getTeacherDashboardStats(
-          filterPeriod as "day" | "week" | "month" | "year"
+          filterPeriod
         )
         const dashboard = res?.data ?? res ?? {}
 
@@ -219,24 +249,15 @@ export default function TeacherDashboard() {
   const filteredStudentChart = useMemo(() => studentChart.slice(-chartWindow), [studentChart, chartWindow])
   const filteredWeeklyPerformance = useMemo(() => weeklyPerformance.slice(-chartWindow), [weeklyPerformance, chartWindow])
 
-  const periodStart = useMemo(() => {
-    const now = new Date()
-    const start = new Date(now)
-    if (filterPeriod === "day") start.setDate(now.getDate() - 1)
-    if (filterPeriod === "week") start.setDate(now.getDate() - 7)
-    if (filterPeriod === "month") start.setMonth(now.getMonth() - 1)
-    if (filterPeriod === "year") start.setFullYear(now.getFullYear() - 1)
-    return start.getTime()
-  }, [filterPeriod])
+  const periodRange = useMemo(() => getPeriodDateRange(filterPeriod), [filterPeriod])
 
   const enrollmentsByPeriod = useMemo(
-    () => recentEnrollments.filter((row) => row.createdAtRaw >= periodStart),
-    [recentEnrollments, periodStart]
+    () => recentEnrollments.filter((row) => isInRange(row.createdAtRaw, periodRange.start, periodRange.end)),
+    [recentEnrollments, periodRange]
   )
 
   const pieDataByPeriod = useMemo(() => {
-    // If no enrollments in period, use overall pie data
-    if (!enrollmentsByPeriod.length) return pieData
+    if (!enrollmentsByPeriod.length) return []
 
     const counts = new Map<string, number>()
     for (const row of enrollmentsByPeriod) {
@@ -250,14 +271,8 @@ export default function TeacherDashboard() {
       color: PIE_COLORS[idx % PIE_COLORS.length],
     }))
 
-    // If period data is significantly less than overall data and we're not in "day" mode,
-    // prefer overall pie data (backend has comprehensive data)
-    if (filterPeriod !== "day" && pieData.length > periodCourses.length * 1.5) {
-      return pieData
-    }
-
     return periodCourses
-  }, [enrollmentsByPeriod, pieData, filterPeriod])
+  }, [enrollmentsByPeriod])
 
   const revenueSeries = useMemo(
     () => filteredRevenueChart.map((item) => ({ month: item.label, revenue: item.value })),
@@ -394,7 +409,7 @@ export default function TeacherDashboard() {
     ]
   )
 
-  const periodOptions = useMemo(
+  const periodOptions = useMemo<Array<{ value: PeriodFilter; label: string }>>(
     () => [
       { value: "day", label: t("period_day", "Date") },
       { value: "week", label: t("period_week", "Week") },

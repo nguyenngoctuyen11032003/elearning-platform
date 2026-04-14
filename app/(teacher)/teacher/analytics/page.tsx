@@ -36,19 +36,26 @@ interface CoursePerformance {
   completionRate: number
 }
 
+type PeriodFilter = "day" | "week" | "month" | "year"
+
 export default function TeacherAnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [coursePerformance, setCoursePerformance] = useState<CoursePerformance[]>([])
   const [loading, setLoading] = useState(true)
   const hasLoadedOnceRef = useRef(false)
-  const [dateRange, setDateRange] = useState("month")
+  const [dateRange, setDateRange] = useState<PeriodFilter>("year")
   const [isFetchingPeriod, setIsFetchingPeriod] = useState(false)
   const periodContainerRef = useRef<HTMLDivElement | null>(null)
-  const periodButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const periodButtonRefs = useRef<Record<PeriodFilter, HTMLButtonElement | null>>({
+    day: null,
+    week: null,
+    month: null,
+    year: null,
+  })
   const [activePeriodStyle, setActivePeriodStyle] = useState({ left: 0, width: 0, ready: false })
   const { language, t } = useLanguage()
 
-  const periodOptions = useMemo(
+  const periodOptions = useMemo<Array<{ value: PeriodFilter; label: string }>>(
     () => [
       { value: "day", label: t("period_day", "Ngày") },
       { value: "week", label: t("period_week", "Tuần") },
@@ -74,19 +81,20 @@ export default function TeacherAnalyticsPage() {
         setIsFetchingPeriod(true)
       }
       try {
-        const res = await apiClient.getTeacherDashboardStats(dateRange as "day" | "week" | "month" | "year")
+        const res = await apiClient.getTeacherDashboardStats(dateRange)
+        const dashboard = res?.data ?? res ?? {}
         setAnalytics({
-          totalStudents: Number(res?.totalStudents ?? 0),
-          totalCourses: Number(res?.totalCourses ?? 0),
-          activeCourses: Number(res?.activeCourses ?? 0),
-          totalRevenue: Number(res?.totalRevenue ?? 0),
-          totalViews: Number(res?.totalViews ?? 0),
-          averageRating: Number(res?.averageRating ?? 0),
-          completionRate: Number(res?.completionRate ?? 0),
-          studentGrowth: Number(res?.studentGrowth ?? 0),
-          revenueGrowth: Number(res?.revenueGrowth ?? 0),
+          totalStudents: Number(dashboard?.totalStudents ?? 0),
+          totalCourses: Number(dashboard?.totalCourses ?? 0),
+          activeCourses: Number(dashboard?.activeCourses ?? 0),
+          totalRevenue: Number(dashboard?.totalRevenue ?? 0),
+          totalViews: Number(dashboard?.totalViews ?? 0),
+          averageRating: Number(dashboard?.averageRating ?? 0),
+          completionRate: Number(dashboard?.completionRate ?? 0),
+          studentGrowth: Number(dashboard?.studentGrowth ?? 0),
+          revenueGrowth: Number(dashboard?.revenueGrowth ?? 0),
         })
-        setCoursePerformance(Array.isArray(res?.coursePerformance) ? res.coursePerformance : [])
+        setCoursePerformance(Array.isArray(dashboard?.coursePerformance) ? dashboard.coursePerformance : [])
       } catch (error) {
         console.error("Failed to load teacher analytics", error)
         toast.error(t("teacher_analytics_load_failed", "Không thể tải dữ liệu phân tích"))
@@ -135,7 +143,7 @@ export default function TeacherAnalyticsPage() {
     return () => window.removeEventListener("resize", updateActivePeriodIndicator)
   }, [dateRange, periodOptions])
 
-  const handleDateRangeChange = (nextRange: string) => {
+  const handleDateRangeChange = (nextRange: PeriodFilter) => {
     if (nextRange === dateRange) return
     setDateRange(nextRange)
   }
