@@ -9,7 +9,7 @@ import { ThemeToggle } from "./theme-toggle"
 import { useSystemConfig } from "@/lib/system-config/system-config-context"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { LogoDisplay } from "@/components/ui/logo-display"
-import { LanguageSelector } from "@/components/ui/language-selector"
+import { LanguageToggle } from "@/components/ui/language-toggle"
 import { useLanguage } from "@/lib/i18n/language-context"
 
 export function Navbar() {
@@ -95,7 +95,7 @@ export function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-4 relative">
-          <LanguageSelector />
+          <LanguageToggle />
           {isAuthenticated && user ? (
             <>
               <ThemeToggle />
@@ -205,7 +205,7 @@ export function Navbar() {
             />
             <div className="absolute top-16 left-0 right-0 bg-background dark:bg-slate-950 border-b border-border dark:border-slate-800 p-4 md:hidden z-50 shadow-xl">
               <div className="mb-4 pb-4 border-b border-border dark:border-slate-800">
-                <LanguageSelector />
+                <LanguageToggle />
               </div>
               <nav className="flex flex-col gap-4">
                 <Link href="/" className="text-sm hover:text-primary transition-smooth flex items-center gap-2">
