@@ -364,6 +364,12 @@ export function LessonPlayer({
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         const existingNoteId = noteIdsByLesson[currentLessonId]
+        const trimmedNotes = notes.trim()
+
+        if (!trimmedNotes && !existingNoteId) {
+          return
+        }
+
         if (existingNoteId) {
           await authFetch(`/notes/${existingNoteId}`, {
             method: "PATCH",
