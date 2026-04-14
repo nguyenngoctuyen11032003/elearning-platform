@@ -290,15 +290,15 @@ export default function TeacherAssignmentGradingPage() {
     [selectedRows],
   );
 
+  const allCriteriaSelected =
+    criteria.length > 0 && selectedRows.every((row) => row.selectedLevelIndex >= 0);
+
   const averageScore = useMemo(() => {
     // Only calculate average if all criteria are selected
     if (criteria.length === 0 || !allCriteriaSelected) return 0;
     const raw = totalScore / criteria.length;
     return Number(raw.toFixed(1));
   }, [criteria.length, totalScore, allCriteriaSelected]);
-
-  const allCriteriaSelected =
-    criteria.length > 0 && selectedRows.every((row) => row.selectedLevelIndex >= 0);
 
   const finalScore = useMemo(() => {
     if (criteria.length === 0) {
