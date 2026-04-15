@@ -160,7 +160,7 @@ const [loading, setLoading] = useState(true);
           >
             <Image
               src={backgrounds[bgIndex]}
-              alt="Hero background"
+              alt={t("about_hero_background_alt", "Hero background")}
               fill
               priority
               className="object-cover object-center"

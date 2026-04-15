@@ -73,10 +73,11 @@ function normalizeCheckoutPayload(payload: any): CheckoutCourse | null {
 }
 
 async function resolveCanonicalCheckoutCourse(item: CheckoutCourse): Promise<CheckoutCourseResolution> {
+  const fallbackTitle = String(item?.title || "").trim() || String(item?.id || "").trim() || "course"
   const fallback: CheckoutCourse = {
     ...item,
     id: String(item?.id || "").trim(),
-    title: String(item?.title || "").trim() || "Course",
+    title: fallbackTitle,
     price: parsePriceValue(item?.price),
   }
 
@@ -694,7 +695,7 @@ export default function CheckoutPage() {
           `${t("checkout_partial_success", "Đã thanh toán thành công")}: ${successes.length}/${courses.length}. ${t("checkout_view_my_courses", "Vui lòng vào Khóa học của tôi để kiểm tra")}`,
         )
       } else {
-        toast.success(t("checkout_multi_success", "Đã tạo giao dịch cho tất cả khóa học đã chọn"))
+        toast.success(t("checkout_multi_created", "Đã tạo giao dịch cho tất cả khóa học đã chọn"))
       }
 
       router.push("/my-courses")
@@ -938,7 +939,7 @@ export default function CheckoutPage() {
 
               {couponPreview && (
                 <p className={`mt-3 text-sm ${couponPreview.valid ? "text-emerald-600" : "text-red-500"}`}>
-                  {couponPreview.message || (couponPreview.valid ? "Mã thanh toán hợp lệ" : t("checkout_code_invalid", "Mã thanh toán không hợp lệ"))}
+                  {couponPreview.message || (couponPreview.valid ? t("checkout_code_valid", "Mã thanh toán hợp lệ") : t("checkout_code_invalid", "Mã thanh toán không hợp lệ"))}
                 </p>
               )}
             </div>
@@ -987,7 +988,7 @@ export default function CheckoutPage() {
 
                 {sepayCheckout.qrImageUrl && !isSepayExpired && (
                   <div className="mt-3 rounded-xl border border-border/70 bg-card p-3">
-                    <img src={sepayCheckout.qrImageUrl} alt="SePay QR" className="mx-auto h-52 w-52 object-contain" />
+                    <img src={sepayCheckout.qrImageUrl} alt={t("checkout_sepay_qr_alt", "SePay QR")} className="mx-auto h-52 w-52 object-contain" />
                   </div>
                 )}
               </div>

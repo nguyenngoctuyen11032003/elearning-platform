@@ -5,16 +5,16 @@ import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button"
 import { BarChart3, Users, TrendingUp, Award, Zap, DollarSign, Sparkles, BookOpen, Video, Globe } from "lucide-react"
 import { CarouselBenefits } from "./CarouselBenefits"
 import Link from "next/link"
-import { formatNumber, formatStudentCount } from "@/lib/format"
+import { formatCurrencyByLanguage, formatNumber, formatStudentCount } from "@/lib/format"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { motion, AnimatePresence, type Variants } from "framer-motion"
 import { useEffect, useMemo, useState } from "react"
 import { AnimatedNumber } from "@/components/ui/rolling-number"
 import { apiClient } from "@/lib/api/client"
 
-const formatVndCurrency = (value: number): string => {
+const formatRevenueByLanguage = (value: number, language: "vi" | "en"): string => {
   const safeValue = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0
-  return `₫${safeValue.toLocaleString("vi-VN")}`
+  return formatCurrencyByLanguage(safeValue, language)
 }
 
 const getRevenueToneClass = (value: number): string => {
@@ -129,7 +129,7 @@ export default function TeachersPage() {
 
   const [teachers, setTeachers] = useState<any[]>([])
   const [teachersLoading, setTeachersLoading] = useState(true)
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const VISIBLE_COUNT = 3
   const [page, setPage] = useState(0)
   const direction = 1
@@ -398,7 +398,7 @@ export default function TeachersPage() {
                 
                   <img 
                     src="/image/tcher2.jpeg" 
-                    alt="AI Content Creation" 
+                    alt={t("teachers_ai_content_alt", "AI Content Creation")} 
                     className="w-full h-full object-cover"
                   />
                 
@@ -548,7 +548,7 @@ export default function TeachersPage() {
                                   Number(teacher.revenue || 0),
                                 )}`}
                               >
-                                {formatVndCurrency(Number(teacher.revenue || 0))}
+                                {formatRevenueByLanguage(Number(teacher.revenue || 0), language)}
                               </p>
                               <p className="text-muted-foreground">{t("teachers_card_lastyear", "Năm ngoái")}</p>
                             </div>
