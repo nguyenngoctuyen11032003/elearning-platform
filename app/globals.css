@@ -360,6 +360,11 @@
   will-change: transform, opacity;
 }
 
+/* Reset will-change on body to prevent breaking position: fixed */
+body {
+  will-change: auto !important;
+}
+
 /* Performance optimization for animations */
 .will-change-transform {
   will-change: transform;
