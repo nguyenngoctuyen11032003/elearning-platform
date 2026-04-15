@@ -12,7 +12,8 @@ interface FAQItem {
 }
 
 export default function FAQPage() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const tr = (vi: string, en: string) => (language === "en" ? en : vi)
   const [searchTerm, setSearchTerm] = useState("")
   const [activeCategory, setActiveCategory] = useState("all")
   const [expandedItems, setExpandedItems] = useState<number[]>([])
@@ -29,83 +30,83 @@ export default function FAQPage() {
 
   const faqs: FAQItem[] = [
     {
-      question: "ICS Learning là gì?",
-      answer: "ICS Learning là nền tảng học trực tuyến hàng đầu tại Việt Nam, cung cấp hàng ngàn khóa học chất lượng cao trong nhiều lĩnh vực như lập trình, thiết kế, kinh doanh, marketing, và nhiều hơn nữa. Chúng tôi kết nối học viên với các giảng viên chuyên nghiệp và giúp họ phát triển kỹ năng cần thiết cho sự nghiệp.",
+      question: tr("ICS Learning là gì?", "What is ICS Learning?"),
+      answer: tr("ICS Learning là nền tảng học trực tuyến hàng đầu tại Việt Nam, cung cấp hàng ngàn khóa học chất lượng cao trong nhiều lĩnh vực như lập trình, thiết kế, kinh doanh, marketing, và nhiều hơn nữa. Chúng tôi kết nối học viên với các giảng viên chuyên nghiệp và giúp họ phát triển kỹ năng cần thiết cho sự nghiệp.", "ICS Learning is a leading online learning platform in Vietnam, offering thousands of high-quality courses in programming, design, business, marketing, and more. We connect learners with expert instructors to help them build career-ready skills."),
       category: "general"
     },
     {
-      question: "Làm thế nào để đăng ký tài khoản?",
-      answer: "Bạn có thể đăng ký tài khoản miễn phí bằng cách nhấn vào nút 'Đăng ký' ở góc trên bên phải của trang web. Điền thông tin cá nhân của bạn (email, mật khẩu) và xác nhận email để kích hoạt tài khoản. Quá trình này chỉ mất vài phút.",
+      question: tr("Làm thế nào để đăng ký tài khoản?", "How do I create an account?"),
+      answer: tr("Bạn có thể đăng ký tài khoản miễn phí bằng cách nhấn vào nút 'Đăng ký' ở góc trên bên phải của trang web. Điền thông tin cá nhân của bạn (email, mật khẩu) và xác nhận email để kích hoạt tài khoản. Quá trình này chỉ mất vài phút.", "You can create a free account by clicking the Sign Up button in the top-right corner. Enter your details (email and password), then verify your email to activate your account. It only takes a few minutes."),
       category: "account"
     },
     {
-      question: "Tôi có thể học miễn phí không?",
-      answer: "ICS Learning cung cấp cả khóa học miễn phí và trả phí. Bạn có thể tìm kiếm và lọc các khóa học miễn phí trong danh mục khóa học. Tuy nhiên, các khóa học trả phí thường cung cấp nội dung chuyên sâu hơn, chứng chỉ hoàn thành và quyền truy cập trọn đời.",
+      question: tr("Tôi có thể học miễn phí không?", "Can I learn for free?"),
+      answer: tr("ICS Learning cung cấp cả khóa học miễn phí và trả phí. Bạn có thể tìm kiếm và lọc các khóa học miễn phí trong danh mục khóa học. Tuy nhiên, các khóa học trả phí thường cung cấp nội dung chuyên sâu hơn, chứng chỉ hoàn thành và quyền truy cập trọn đời.", "ICS Learning offers both free and paid courses. You can search and filter free courses in the catalog. Paid courses usually include deeper content, completion certificates, and lifetime access."),
       category: "course"
     },
     {
-      question: "Các hình thức thanh toán được hỗ trợ?",
-      answer: "Chúng tôi chấp nhận nhiều hình thức thanh toán bao gồm: Thẻ tín dụng/ghi nợ quốc tế (Visa, Mastercard, JCB), Ví điện tử (Momo, ZaloPay, VNPay), Chuyển khoản ngân hàng, và thanh toán qua cổng Stripe. Mọi giao dịch đều được bảo mật tuyệt đối.",
+      question: tr("Các hình thức thanh toán được hỗ trợ?", "What payment methods are supported?"),
+      answer: tr("Chúng tôi chấp nhận nhiều hình thức thanh toán bao gồm: Thẻ tín dụng/ghi nợ quốc tế (Visa, Mastercard, JCB), Ví điện tử (Momo, ZaloPay, VNPay), Chuyển khoản ngân hàng, và thanh toán qua cổng Stripe. Mọi giao dịch đều được bảo mật tuyệt đối.", "We support multiple payment methods including international credit/debit cards (Visa, Mastercard, JCB), e-wallets (Momo, ZaloPay, VNPay), bank transfer, and Stripe. All transactions are securely encrypted."),
       category: "payment"
     },
     {
-      question: "Sau khi mua khóa học, tôi có quyền truy cập trong bao lâu?",
-      answer: "Khi bạn mua một khóa học, bạn sẽ có quyền truy cập trọn đời vào nội dung khóa học đó. Bạn có thể học bất cứ lúc nào, tốc độ tùy ý, và xem lại nội dung nhiều lần. Khóa học cũng sẽ được cập nhật miễn phí khi có nội dung mới.",
+      question: tr("Sau khi mua khóa học, tôi có quyền truy cập trong bao lâu?", "How long can I access a purchased course?"),
+      answer: tr("Khi bạn mua một khóa học, bạn sẽ có quyền truy cập trọn đời vào nội dung khóa học đó. Bạn có thể học bất cứ lúc nào, tốc độ tùy ý, và xem lại nội dung nhiều lần. Khóa học cũng sẽ được cập nhật miễn phí khi có nội dung mới.", "Once you purchase a course, you get lifetime access. You can learn anytime, at your own pace, and revisit lessons as often as needed. Course updates are included for free."),
       category: "course"
     },
     {
-      question: "Tôi có thể hoàn tiền không?",
-      answer: "Chúng tôi cung cấp chính sách hoàn tiền trong vòng 30 ngày kể từ ngày mua khóa học nếu bạn không hài lòng. Để yêu cầu hoàn tiền, vui lòng liên hệ với bộ phận hỗ trợ khách hàng qua email hoặc chat trực tuyến. Lưu ý rằng bạn không được xem quá 30% nội dung khóa học để đủ điều kiện hoàn tiền.",
+      question: tr("Tôi có thể hoàn tiền không?", "Can I get a refund?"),
+      answer: tr("Chúng tôi cung cấp chính sách hoàn tiền trong vòng 30 ngày kể từ ngày mua khóa học nếu bạn không hài lòng. Để yêu cầu hoàn tiền, vui lòng liên hệ với bộ phận hỗ trợ khách hàng qua email hoặc chat trực tuyến. Lưu ý rằng bạn không được xem quá 30% nội dung khóa học để đủ điều kiện hoàn tiền.", "We offer a 30-day refund policy if you are not satisfied. To request a refund, contact support via email or live chat. Please note that viewing more than 30% of course content may make the purchase ineligible for refund."),
       category: "payment"
     },
     {
-      question: "Làm thế nào để đặt lại mật khẩu?",
-      answer: "Nếu bạn quên mật khẩu, nhấn vào 'Quên mật khẩu' trên trang đăng nhập. Nhập địa chỉ email đã đăng ký, chúng tôi sẽ gửi link đặt lại mật khẩu đến email của bạn. Link này có hiệu lực trong 24 giờ. Sau khi nhấn vào link, bạn có thể tạo mật khẩu mới cho tài khoản của mình.",
+      question: tr("Làm thế nào để đặt lại mật khẩu?", "How do I reset my password?"),
+      answer: tr("Nếu bạn quên mật khẩu, nhấn vào 'Quên mật khẩu' trên trang đăng nhập. Nhập địa chỉ email đã đăng ký, chúng tôi sẽ gửi link đặt lại mật khẩu đến email của bạn. Link này có hiệu lực trong 24 giờ. Sau khi nhấn vào link, bạn có thể tạo mật khẩu mới cho tài khoản của mình.", "If you forgot your password, click Forgot Password on the login page. Enter your registered email and we will send a reset link. The link is valid for 24 hours."),
       category: "account"
     },
     {
-      question: "Tôi có nhận được chứng chỉ sau khi hoàn thành khóa học không?",
-      answer: "Có, sau khi hoàn thành 100% nội dung khóa học và vượt qua bài kiểm tra cuối khóa (nếu có), bạn sẽ nhận được chứng chỉ hoàn thành. Chứng chỉ có thể tải xuống dưới dạng PDF và chia sẻ trên LinkedIn hoặc mạng xã hội khác.",
+      question: tr("Tôi có nhận được chứng chỉ sau khi hoàn thành khóa học không?", "Will I receive a certificate after completing a course?"),
+      answer: tr("Có, sau khi hoàn thành 100% nội dung khóa học và vượt qua bài kiểm tra cuối khóa (nếu có), bạn sẽ nhận được chứng chỉ hoàn thành. Chứng chỉ có thể tải xuống dưới dạng PDF và chia sẻ trên LinkedIn hoặc mạng xã hội khác.", "Yes. After completing 100% of the course content and passing the final assessment (if any), you will receive a completion certificate. You can download it as a PDF and share it on LinkedIn or other social platforms."),
       category: "course"
     },
     {
-      question: "Làm thế nào để liên hệ với giảng viên?",
-      answer: "Mỗi khóa học có phần Q&A (Hỏi đáp) nơi bạn có thể đặt câu hỏi trực tiếp cho giảng viên. Giảng viên sẽ trả lời câu hỏi của bạn trong vòng 24-48 giờ. Bạn cũng có thể gửi tin nhắn trực tiếp cho giảng viên thông qua hệ thống nhắn tin nội bộ.",
+      question: tr("Làm thế nào để liên hệ với giảng viên?", "How can I contact an instructor?"),
+      answer: tr("Mỗi khóa học có phần Q&A (Hỏi đáp) nơi bạn có thể đặt câu hỏi trực tiếp cho giảng viên. Giảng viên sẽ trả lời câu hỏi của bạn trong vòng 24-48 giờ. Bạn cũng có thể gửi tin nhắn trực tiếp cho giảng viên thông qua hệ thống nhắn tin nội bộ.", "Each course includes a Q&A area where you can ask instructors directly. Most questions are answered within 24-48 hours. You can also message instructors via the internal messaging system."),
       category: "course"
     },
     {
-      question: "Tôi gặp vấn đề kỹ thuật khi xem video, phải làm sao?",
-      answer: "Nếu bạn gặp vấn đề với video (không load, giật lag, không có âm thanh), hãy thử: 1) Làm mới trang web, 2) Xóa cache trình duyệt, 3) Thử trình duyệt khác, 4) Kiểm tra kết nối internet. Nếu vấn đề vẫn tiếp diễn, liên hệ bộ phận hỗ trợ kỹ thuật với thông tin chi tiết về lỗi.",
+      question: tr("Tôi gặp vấn đề kỹ thuật khi xem video, phải làm sao?", "I have video playback issues. What should I do?"),
+      answer: tr("Nếu bạn gặp vấn đề với video (không load, giật lag, không có âm thanh), hãy thử: 1) Làm mới trang web, 2) Xóa cache trình duyệt, 3) Thử trình duyệt khác, 4) Kiểm tra kết nối internet. Nếu vấn đề vẫn tiếp diễn, liên hệ bộ phận hỗ trợ kỹ thuật với thông tin chi tiết về lỗi.", "If you have video issues (not loading, lagging, no sound), try: 1) refresh the page, 2) clear browser cache, 3) use another browser, 4) check your internet connection. If the issue persists, contact technical support with error details."),
       category: "technical"
     },
     {
-      question: "Dữ liệu cá nhân của tôi có được bảo mật không?",
-      answer: "ICS Learning cam kết bảo vệ dữ liệu cá nhân của bạn theo tiêu chuẩn quốc tế. Chúng tôi sử dụng mã hóa SSL/TLS cho mọi giao dịch, không chia sẻ thông tin của bạn với bên thứ ba mà không có sự đồng ý, và tuân thủ nghiêm ngặt các quy định về bảo vệ dữ liệu cá nhân.",
+      question: tr("Dữ liệu cá nhân của tôi có được bảo mật không?", "Is my personal data secure?"),
+      answer: tr("ICS Learning cam kết bảo vệ dữ liệu cá nhân của bạn theo tiêu chuẩn quốc tế. Chúng tôi sử dụng mã hóa SSL/TLS cho mọi giao dịch, không chia sẻ thông tin của bạn với bên thứ ba mà không có sự đồng ý, và tuân thủ nghiêm ngặt các quy định về bảo vệ dữ liệu cá nhân.", "ICS Learning is committed to protecting your personal data using international standards. We use SSL/TLS encryption, never share your data without consent, and comply with data protection regulations."),
       category: "policy"
     },
     {
-      question: "Tôi có thể học trên điện thoại không?",
-      answer: "Có, ICS Learning được tối ưu hóa cho mọi thiết bị. Bạn có thể truy cập và học trên trình duyệt mobile hoặc tải ứng dụng ICS Learning trên iOS và Android để có trải nghiệm tốt nhất. Ứng dụng cho phép bạn tải video để xem offline.",
+      question: tr("Tôi có thể học trên điện thoại không?", "Can I learn on mobile devices?"),
+      answer: tr("Có, ICS Learning được tối ưu hóa cho mọi thiết bị. Bạn có thể truy cập và học trên trình duyệt mobile hoặc tải ứng dụng ICS Learning trên iOS và Android để có trải nghiệm tốt nhất. Ứng dụng cho phép bạn tải video để xem offline.", "Yes. ICS Learning is optimized for all devices. You can learn via mobile browsers or use the iOS/Android app for the best experience, including offline video downloads."),
       category: "technical"
     },
     {
-      question: "Làm thế nào để trở thành giảng viên?",
-      answer: "Để trở thành giảng viên trên ICS Learning, truy cập trang 'Giảng dạy' và điền form đăng ký. Chúng tôi sẽ xem xét hồ sơ và kinh nghiệm của bạn. Sau khi được duyệt, bạn có thể tạo và upload khóa học của mình. Giảng viên sẽ nhận được hoa hồng từ mỗi khóa học bán ra.",
+      question: tr("Làm thế nào để trở thành giảng viên?", "How do I become an instructor?"),
+      answer: tr("Để trở thành giảng viên trên ICS Learning, truy cập trang 'Giảng dạy' và điền form đăng ký. Chúng tôi sẽ xem xét hồ sơ và kinh nghiệm của bạn. Sau khi được duyệt, bạn có thể tạo và upload khóa học của mình. Giảng viên sẽ nhận được hoa hồng từ mỗi khóa học bán ra.", "To become an instructor, visit the teaching page and submit the application form. Our team will review your profile and experience. Once approved, you can create and publish your courses and earn commission from sales."),
       category: "general"
     },
     {
-      question: "Khóa học có phụ đề tiếng Việt không?",
-      answer: "Hầu hết các khóa học do giảng viên Việt Nam tạo ra đều có audio và phụ đề tiếng Việt. Đối với khóa học quốc tế, chúng tôi đang từng bước bổ sung phụ đề tiếng Việt. Bạn có thể kiểm tra ngôn ngữ của khóa học trước khi mua trong phần thông tin khóa học.",
+      question: tr("Khóa học có phụ đề tiếng Việt không?", "Do courses include Vietnamese subtitles?"),
+      answer: tr("Hầu hết các khóa học do giảng viên Việt Nam tạo ra đều có audio và phụ đề tiếng Việt. Đối với khóa học quốc tế, chúng tôi đang từng bước bổ sung phụ đề tiếng Việt. Bạn có thể kiểm tra ngôn ngữ của khóa học trước khi mua trong phần thông tin khóa học.", "Most courses by Vietnamese instructors include Vietnamese audio/subtitles. For international courses, we are gradually adding Vietnamese subtitles. You can check language details before purchasing."),
       category: "course"
     },
     {
-      question: "Tôi có thể tặng khóa học cho người khác không?",
-      answer: "Có, ICS Learning có tính năng tặng khóa học (Gift). Bạn có thể mua khóa học và gửi mã kích hoạt cho người nhận qua email. Người nhận sẽ có thể sử dụng mã này để kích hoạt khóa học vào tài khoản của họ.",
+      question: tr("Tôi có thể tặng khóa học cho người khác không?", "Can I gift a course to someone else?"),
+      answer: tr("Có, ICS Learning có tính năng tặng khóa học (Gift). Bạn có thể mua khóa học và gửi mã kích hoạt cho người nhận qua email. Người nhận sẽ có thể sử dụng mã này để kích hoạt khóa học vào tài khoản của họ.", "Yes. ICS Learning supports gifting courses. You can purchase a course and send an activation code via email. The recipient can redeem the code on their account."),
       category: "payment"
     },
     {
-      question: "Có giảm giá cho học sinh, sinh viên không?",
-      answer: "ICS Learning thường xuyên có các chương trình ưu đãi đặc biệt cho học sinh, sinh viên. Đăng ký nhận bản tin để cập nhật các chương trình khuyến mãi. Ngoài ra, các giảng viên cũng thường xuyên có flash sale với giá ưu đãi lên tới 80%.",
+      question: tr("Có giảm giá cho học sinh, sinh viên không?", "Are there discounts for students?"),
+      answer: tr("ICS Learning thường xuyên có các chương trình ưu đãi đặc biệt cho học sinh, sinh viên. Đăng ký nhận bản tin để cập nhật các chương trình khuyến mãi. Ngoài ra, các giảng viên cũng thường xuyên có flash sale với giá ưu đãi lên tới 80%.", "ICS Learning often runs special promotions for students. Subscribe to our newsletter for updates. Instructors also run frequent flash sales with discounts up to 80%."),
       category: "payment"
     }
   ]
@@ -227,23 +228,23 @@ export default function FAQPage() {
       <section className="py-16 bg-gradient-to-br from-primary/5 via-background to-accent/5">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-foreground dark:text-white mb-4">
-            Vẫn cần hỗ trợ?
+            {tr("Vẫn cần hỗ trợ?", "Still need help?")}
           </h2>
           <p className="text-muted-foreground dark:text-slate-400 mb-8">
-            Nếu bạn không tìm thấy câu trả lời mình cần, đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ bạn!
+            {tr("Nếu bạn không tìm thấy câu trả lời mình cần, đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ bạn!", "If you cannot find the answer you need, our support team is ready to help.")}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="/contact"
               className="px-8 py-4 bg-gradient-to-r from-primary to-accent text-white rounded-xl font-semibold hover:shadow-lg transition-all"
             >
-              Liên hệ hỗ trợ
+              {tr("Liên hệ hỗ trợ", "Contact support")}
             </a>
             <a
               href="mailto:support@icslearning.vn"
               className="px-8 py-4 bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 text-foreground dark:text-white rounded-xl font-semibold hover:shadow-lg transition-all"
             >
-              Gửi email
+              {tr("Gửi email", "Send email")}
             </a>
           </div>
         </div>

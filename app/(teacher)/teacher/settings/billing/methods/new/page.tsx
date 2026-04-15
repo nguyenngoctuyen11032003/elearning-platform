@@ -272,11 +272,13 @@ function NewPaymentMethodPageContent() {
 }
 
 export default function NewPaymentMethodPage() {
+  const { t } = useLanguage()
+
   return (
     <Suspense
       fallback={
         <div className="space-y-6">
-          <div className="rounded-xl border p-6 text-sm text-muted-foreground">Đang tải biểu mẫu phương thức thanh toán...</div>
+          <div className="rounded-xl border p-6 text-sm text-muted-foreground">{t("payment_method_loading", "Đang tải biểu mẫu phương thức thanh toán...")}</div>
         </div>
       }
     >

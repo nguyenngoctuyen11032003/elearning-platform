@@ -591,24 +591,24 @@ export default function TeacherReviewsPage() {
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                           : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
                       }`}>
-                        {selectedReview.teacherReply ? '✓ Đã trả lời' : '⏱ Chờ xử lý'}
+                        {selectedReview.teacherReply ? `✓ ${t("tch_rev_replied", "Đã trả lời")}` : `⏱ ${t("tch_rev_waiting", "Chờ xử lý")}`}
                       </span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <div>
-                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Khóa học</p>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">{t("common_course", "Khóa học")}</p>
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm text-foreground dark:text-white">{selectedReview.courseName}</p>
                         {selectedReview.isOldVersion && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">
-                            Phiên bản v{selectedReview.version}
+                            {t("common_version", "Phiên bản")} v{selectedReview.version}
                           </span>
                         )}
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Loại khóa học</p>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">{t("review_course_type", "Loại khóa học")}</p>
                       <div className="flex items-center gap-2 flex-wrap">
                         {selectedReview.categoryName && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
@@ -620,11 +620,11 @@ export default function TeacherReviewsPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <div>
-                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Độ khó</p>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">{t("common_level", "Độ khó")}</p>
                       <p className="text-sm text-foreground dark:text-white capitalize">{selectedReview.level || 'N/A'}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Ngày đánh giá</p>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">{t("review_date", "Ngày đánh giá")}</p>
                       <p className="text-sm text-foreground dark:text-white">{formatDate(selectedReview.createdAt)}</p>
                     </div>
                   </div>
@@ -632,7 +632,7 @@ export default function TeacherReviewsPage() {
 
                 {/* Review Content */}
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Nội dung đánh giá</p>
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t("review_content", "Nội dung đánh giá")}</p>
                   <p className="text-foreground dark:text-white leading-relaxed">{selectedReview.comment}</p>
                   <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 pt-2">
                     <span className="flex items-center gap-1">
@@ -644,12 +644,12 @@ export default function TeacherReviewsPage() {
 
                 {/* Conversation Section */}
                 <div className="space-y-3 py-4 border-y border-slate-200 dark:border-slate-700">
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Trò chuyện</p>
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t("common_conversation", "Trò chuyện")}</p>
                   <div className="space-y-3">
                     {/* Student Message */}
                     <div className="flex justify-start">
                       <div className="max-w-[70%] bg-slate-100 dark:bg-slate-800/70 rounded-2xl p-3">
-                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Học viên</p>
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{t("role_student", "Học viên")}</p>
                         <p className="text-sm text-foreground dark:text-white">{selectedReview.comment}</p>
                       </div>
                     </div>
@@ -658,7 +658,7 @@ export default function TeacherReviewsPage() {
                     {selectedReview.teacherReply && (
                       <div className="flex justify-end">
                         <div className="max-w-[70%] bg-blue-500/20 dark:bg-blue-500/30 rounded-2xl p-3 border border-blue-500/30">
-                          <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">Bạn</p>
+                          <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">{t("common_you", "Bạn")}</p>
                           <p className="text-sm text-foreground dark:text-white">{selectedReview.teacherReply}</p>
                           {selectedReview.repliedAt && (
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{formatDate(selectedReview.repliedAt)}</p>
@@ -676,7 +676,7 @@ export default function TeacherReviewsPage() {
                       onClick={() => setIsReplying(true)}
                       className="flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transition-all hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
                     >
-                      <MessageSquare size={16} /> Trả lời
+                      <MessageSquare size={16} /> {t("common_reply", "Trả lời")}
                     </button>
                     {selectedReview.teacherReply && (
                       <button

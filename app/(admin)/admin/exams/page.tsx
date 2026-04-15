@@ -662,16 +662,16 @@ export default function AdminExamsPage() {
                     <div className="min-w-0">
                       <p className="text-lg font-semibold text-slate-900 dark:text-white">{group.title}</p>
                       <div className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-2">
-                        <span>📘 {group.title} (<AnimatedNumber value={group.variants.length} durationMs={320} /> versions)</span>
+                        <span>📘 {group.title} (<AnimatedNumber value={group.variants.length} durationMs={320} /> {t("common_versions", "versions")})</span>
                         {(() => {
                           const pendingCount = group.variants.filter(v => v.status === "pending").length
                           const approvedCount = group.variants.filter(v => v.status === "approved").length
                           const rejectedCount = group.variants.filter(v => v.status === "rejected").length
                           return (
                             <>
-                              {pendingCount > 0 && <span className="text-yellow-400 text-xs">• <AnimatedNumber value={pendingCount} durationMs={320} /> chưa duyệt</span>}
-                              {approvedCount > 0 && <span className="text-green-400 text-xs">• <AnimatedNumber value={approvedCount} durationMs={320} /> đã duyệt</span>}
-                              {rejectedCount > 0 && <span className="text-red-400 text-xs">• <AnimatedNumber value={rejectedCount} durationMs={320} /> từ chối</span>}
+                              {pendingCount > 0 && <span className="text-yellow-400 text-xs">• <AnimatedNumber value={pendingCount} durationMs={320} /> {t("adm_exam_status_pending", "chưa duyệt")}</span>}
+                              {approvedCount > 0 && <span className="text-green-400 text-xs">• <AnimatedNumber value={approvedCount} durationMs={320} /> {t("adm_exam_status_approved", "đã duyệt")}</span>}
+                              {rejectedCount > 0 && <span className="text-red-400 text-xs">• <AnimatedNumber value={rejectedCount} durationMs={320} /> {t("adm_exam_status_rejected", "từ chối")}</span>}
                             </>
                           )
                         })()}

@@ -426,11 +426,13 @@ function EnrollmentSuccessPageContent() {
 }
 
 export default function EnrollmentSuccessPage() {
+  const { t } = useLanguage()
+
   return (
     <Suspense
       fallback={
         <div className="min-h-screen bg-background dark:bg-slate-950 flex items-center justify-center py-8 px-4">
-          <div className="rounded-xl border p-6 text-sm text-muted-foreground">Đang tải trang xác nhận...</div>
+          <div className="rounded-xl border p-6 text-sm text-muted-foreground">{t("enroll_loading", "Đang tải trang xác nhận...")}</div>
         </div>
       }
     >

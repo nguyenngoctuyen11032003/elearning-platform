@@ -76,7 +76,7 @@ async function resolveCanonicalCheckoutCourse(item: CheckoutCourse): Promise<Che
   const fallback: CheckoutCourse = {
     ...item,
     id: String(item?.id || "").trim(),
-    title: String(item?.title || "").trim() || "Khóa học",
+    title: String(item?.title || "").trim() || "Course",
     price: parsePriceValue(item?.price),
   }
 

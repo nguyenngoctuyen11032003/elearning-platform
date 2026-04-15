@@ -209,7 +209,7 @@ export default function TeacherLessonsPage() {
       <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-xl p-4">
         <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{t("tch_lsn_select_course", "Chọn khóa học")}</label>
         {isLoadingCourses ? (
-          <div className="flex items-center gap-2 text-muted-foreground"><Loader2 size={16} className="animate-spin" /> Đang tải...</div>
+          <div className="flex items-center gap-2 text-muted-foreground"><Loader2 size={16} className="animate-spin" /> {t("common_loading", "Đang tải...")}</div>
         ) : (
           <div className="relative">
             <UniversalSelect

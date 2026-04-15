@@ -192,7 +192,7 @@ export function Navbar() {
         <button
           className="md:hidden inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border dark:border-slate-800 bg-card/90 dark:bg-slate-900/80"
           onClick={() => setIsOpen(!isOpen)}
-          aria-label={isOpen ? "Đóng menu" : "Mở menu"}
+          aria-label={isOpen ? t("nav_close_menu", "Đóng menu") : t("nav_open_menu", "Mở menu")}
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>

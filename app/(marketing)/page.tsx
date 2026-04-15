@@ -366,8 +366,8 @@ export default function Home() {
                 >
                   {t("home_hero_learn", "Học")} <span className="font-bold text-blue-600 dark:text-blue-400">{t("home_hero_programming", "Lập Trình")}</span>, {" "}
                   <span className="font-bold text-purple-600 dark:text-purple-400">{t("home_hero_design", "Thiết Kế")}</span>, {" "}
-                  <span className="font-bold text-pink-600 dark:text-pink-400">Data Science</span> {" "}
-                  & <span className="font-bold text-orange-600 dark:text-orange-400">AI</span> {t("home_hero_from_experts", "từ các chuyên gia hàng đầu")}
+                  <span className="font-bold text-pink-600 dark:text-pink-400">{t("home_hero_data_science", "Data Science")}</span> {" "}
+                  & <span className="font-bold text-orange-600 dark:text-orange-400">{t("home_hero_ai", "AI")}</span> {t("home_hero_from_experts", "từ các chuyên gia hàng đầu")}
                 </motion.p>
               </div>
 

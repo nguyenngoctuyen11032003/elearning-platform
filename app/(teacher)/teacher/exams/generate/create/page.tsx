@@ -18,6 +18,7 @@ import { toast } from "sonner"
 import { authFetch } from "@/lib/authfetch"
 import { ScientificText } from "@/components/scientific-text"
 import { DialogSelect } from "@/components/ui/dialog-select"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 type Difficulty = "easy" | "medium" | "hard"
 
@@ -241,6 +242,8 @@ const parseQuestions = (value: any): BankQuestion[] => {
 }
 
 function TeacherGenerateExamCreatePageContent() {
+  const { language } = useLanguage()
+  const tr = (vi: string, en: string) => (language === "en" ? en : vi)
   const router = useRouter()
   const searchParams = useSearchParams()
   const editId = searchParams.get("editId")
@@ -278,10 +281,10 @@ function TeacherGenerateExamCreatePageContent() {
 
   const totalSteps = 4
   const stepItems = [
-    { step: 1, title: "Thông tin đề thi", icon: FileText },
-    { step: 2, title: "Ngân hàng nguồn", icon: Database },
-    { step: 3, title: "Phân bổ câu hỏi", icon: SlidersHorizontal },
-    { step: 4, title: "Review & tạo đề", icon: Eye },
+    { step: 1, title: tr("Thông tin đề thi", "Exam information"), icon: FileText },
+    { step: 2, title: tr("Ngân hàng nguồn", "Source bank"), icon: Database },
+    { step: 3, title: tr("Phân bổ câu hỏi", "Question distribution"), icon: SlidersHorizontal },
+    { step: 4, title: tr("Review & tạo đề", "Review & create exam"), icon: Eye },
   ] as const
 
   useEffect(() => {
@@ -401,7 +404,7 @@ function TeacherGenerateExamCreatePageContent() {
           setTemplates([])
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Không thể tải dữ liệu"
+        const message = error instanceof Error ? error.message : tr("Không thể tải dữ liệu", "Unable to load data")
         toast.error(message)
       } finally {
         setIsLoading(false)
@@ -418,7 +421,7 @@ function TeacherGenerateExamCreatePageContent() {
       try {
         const response = await authFetch(`/extracted-exams/${editId}`)
         if (!response.ok) {
-          throw new Error("Không thể tải dữ liệu đề thi cần sửa")
+          throw new Error(tr("Không thể tải dữ liệu đề thi cần sửa", "Unable to load exam data for editing"))
         }
 
         const payload = await response.json().catch(() => ({}))
@@ -450,7 +453,7 @@ function TeacherGenerateExamCreatePageContent() {
         setQuestionCount(existingQuestions.length > 0 ? existingQuestions.length : 20)
         setGeneratedQuestions(existingQuestions)
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Không thể tải đề thi"
+        const message = error instanceof Error ? error.message : tr("Không thể tải đề thi", "Unable to load exam")
         toast.error(message)
       }
     }
@@ -523,14 +526,14 @@ function TeacherGenerateExamCreatePageContent() {
 
   const chapterOptions = useMemo(() => {
     const set = new Set<string>()
-    allQuestions.forEach((question) => set.add(question.chapter || "Chưa phân chương"))
+    allQuestions.forEach((question) => set.add(question.chapter || tr("Chưa phân chương", "Unassigned chapter")))
     return Array.from(set)
-  }, [allQuestions])
+  }, [allQuestions, language])
 
   const filteredQuestions = useMemo(() => {
     if (selectedChapters.length === 0) return allQuestions
-    return allQuestions.filter((question) => selectedChapters.includes(question.chapter || "Chưa phân chương"))
-  }, [allQuestions, selectedChapters])
+    return allQuestions.filter((question) => selectedChapters.includes(question.chapter || tr("Chưa phân chương", "Unassigned chapter")))
+  }, [allQuestions, selectedChapters, language])
 
   const generatedDifficultyStats = useMemo(() => {
     return generatedQuestions.reduce(
@@ -575,24 +578,24 @@ function TeacherGenerateExamCreatePageContent() {
 
   const generateExamQuestions = () => {
     if (!selectedCourseId) {
-      toast.error("Vui lòng chọn khóa học trước khi sinh đề")
+      toast.error(tr("Vui lòng chọn khóa học trước khi sinh đề", "Please select a course before generating"))
       return
     }
 
     const selectedApprovedExamIds = selectedExamIds.filter((id) => availableSourceExamIds.has(id))
     if (selectedApprovedExamIds.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một ngân hàng đề thi")
+      toast.error(tr("Vui lòng chọn ít nhất một ngân hàng đề thi", "Please select at least one source exam bank"))
       return
     }
 
     if (filteredQuestions.length === 0) {
-      toast.error("Không có câu hỏi phù hợp với bộ lọc hiện tại")
+      toast.error(tr("Không có câu hỏi phù hợp với bộ lọc hiện tại", "No questions match the current filter"))
       return
     }
 
     const requestedByDifficulty = easyCount + mediumCount + hardCount
     if (requestedByDifficulty > questionCount) {
-      toast.error("Tổng số câu theo độ khó không được vượt quá tổng số câu")
+      toast.error(tr("Tổng số câu theo độ khó không được vượt quá tổng số câu", "Difficulty allocation cannot exceed total question count"))
       return
     }
 
@@ -622,30 +625,30 @@ function TeacherGenerateExamCreatePageContent() {
     setGeneratedQuestions(variants[0] || [])
 
     if (variants[0].length < questionCount) {
-      toast.warning(`Chỉ tìm được ${variants[0].length}/${questionCount} câu hỏi phù hợp`)
+      toast.warning(tr(`Chỉ tìm được ${variants[0].length}/${questionCount} câu hỏi phù hợp`, `Only found ${variants[0].length}/${questionCount} matching questions`))
     } else if (numExamVariants > 1) {
-      toast.success(`Đã tạo ${numExamVariants} mã đề, mỗi mã gồm ${variants[0].length} câu hỏi`)
+      toast.success(tr(`Đã tạo ${numExamVariants} mã đề, mỗi mã gồm ${variants[0].length} câu hỏi`, `Created ${numExamVariants} exam variants, each with ${variants[0].length} questions`))
     } else {
-      toast.success(`Đã tạo bộ đề gồm ${variants[0].length} câu hỏi`)
+      toast.success(tr(`Đã tạo bộ đề gồm ${variants[0].length} câu hỏi`, `Generated a question set with ${variants[0].length} questions`))
     }
   }
 
   const validateWizardStep = (step: number) => {
     if (step === 1) {
       if (!title.trim()) {
-        toast.error("Vui lòng nhập tiêu đề đề thi")
+        toast.error(tr("Vui lòng nhập tiêu đề đề thi", "Please enter exam title"))
         return false
       }
       if (!selectedCourseId) {
-        toast.error("Vui lòng chọn khóa học")
+        toast.error(tr("Vui lòng chọn khóa học", "Please select a course"))
         return false
       }
       if (type === "official" && !certificateTemplateId) {
-        toast.error("Bài thi thật cần chọn chứng chỉ")
+        toast.error(tr("Bài thi thật cần chọn chứng chỉ", "Official exam requires a certificate template"))
         return false
       }
       if (availableFrom && availableUntil && new Date(availableUntil) <= new Date(availableFrom)) {
-        toast.error("Thời gian đóng bài phải sau thời gian mở bài")
+        toast.error(tr("Thời gian đóng bài phải sau thời gian mở bài", "Close time must be after open time"))
         return false
       }
     }
@@ -653,14 +656,14 @@ function TeacherGenerateExamCreatePageContent() {
     if (step === 2) {
       const selectedApprovedExamIds = selectedExamIds.filter((id) => availableSourceExamIds.has(id))
       if (selectedApprovedExamIds.length === 0) {
-        toast.error("Vui lòng chọn ít nhất một ngân hàng đề thi")
+        toast.error(tr("Vui lòng chọn ít nhất một ngân hàng đề thi", "Please select at least one source exam bank"))
         return false
       }
     }
 
     if (step === 3) {
       if (generatedQuestions.length === 0) {
-        toast.error("Hãy bấm 'Sinh bộ câu hỏi' trước khi sang bước review")
+        toast.error(tr("Hãy bấm 'Sinh bộ câu hỏi' trước khi sang bước review", "Please click 'Generate question set' before review step"))
         return false
       }
     }
@@ -679,28 +682,28 @@ function TeacherGenerateExamCreatePageContent() {
 
   const handleCreateExam = async () => {
     if (!title.trim()) {
-      toast.error("Vui lòng nhập tiêu đề đề thi")
+      toast.error(tr("Vui lòng nhập tiêu đề đề thi", "Please enter exam title"))
       return
     }
     if (!selectedCourseId) {
-      toast.error("Vui lòng chọn khóa học")
+      toast.error(tr("Vui lòng chọn khóa học", "Please select a course"))
       return
     }
     if (generatedQuestions.length === 0) {
-      toast.error("Vui lòng tạo bộ câu hỏi trước khi xuất bản")
+      toast.error(tr("Vui lòng tạo bộ câu hỏi trước khi xuất bản", "Please generate question set before publishing"))
       return
     }
     const selectedApprovedExamIds = selectedExamIds.filter((id) => availableSourceExamIds.has(id))
     if (selectedApprovedExamIds.length === 0) {
-      toast.error("Chỉ có thể sử dụng ngân hàng đề đã duyệt")
+      toast.error(tr("Chỉ có thể sử dụng ngân hàng đề đã duyệt", "Only approved source banks can be used"))
       return
     }
     if (type === "official" && !certificateTemplateId) {
-      toast.error("Bài thi thật cần chọn chứng chỉ")
+      toast.error(tr("Bài thi thật cần chọn chứng chỉ", "Official exam requires a certificate template"))
       return
     }
     if (availableFrom && availableUntil && new Date(availableUntil) <= new Date(availableFrom)) {
-      toast.error("Thời gian đóng bài phải sau thời gian mở bài")
+      toast.error(tr("Thời gian đóng bài phải sau thời gian mở bài", "Close time must be after open time"))
       return
     }
 
@@ -742,17 +745,17 @@ function TeacherGenerateExamCreatePageContent() {
 
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => ({}))
-        throw new Error(errorPayload?.details?.message || errorPayload?.error || `Tạo đề thi ${title.trim()} thất bại`)
+        throw new Error(errorPayload?.details?.message || errorPayload?.error || tr(`Tạo đề thi ${title.trim()} thất bại`, `Failed to create exam ${title.trim()}`))
       }
 
       const successMessage = isEditMode 
-        ? "Đã cập nhật cấu hình đề thi" 
-        : `Đã tạo và xuất bản đề thi với ${numExamVariants} mã đề`
+        ? tr("Đã cập nhật cấu hình đề thi", "Exam configuration updated") 
+        : tr(`Đã tạo và xuất bản đề thi với ${numExamVariants} mã đề`, `Created and published exam with ${numExamVariants} variants`)
       
       toast.success(successMessage)
       router.push("/teacher/exams/generate")
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Tạo đề thi thất bại"
+      const message = error instanceof Error ? error.message : tr("Tạo đề thi thất bại", "Failed to create exam")
       toast.error(message)
     } finally {
       setIsSubmitting(false)
@@ -840,19 +843,19 @@ function TeacherGenerateExamCreatePageContent() {
                 {currentStep === 1 && (
                   <div className={sectionCardClass}>
                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
-                      <FileText size={18} className="text-emerald-400" /> Thông tin đề thi
+                      <FileText size={18} className="text-emerald-400" /> {tr("Thông tin đề thi", "Exam information")}
                     </h2>
 
                     <div className="space-y-5">
                       <div>
-                        <p className="mb-3 text-xs uppercase tracking-wide text-slate-400">Thông tin cơ bản</p>
+                        <p className="mb-3 text-xs uppercase tracking-wide text-slate-400">{tr("Thông tin cơ bản", "Basic information")}</p>
                         <div className="overflow-visible grid gap-4 md:grid-cols-2">
                           <div>
-                            <label className="mb-1.5 block text-xs text-slate-400">Tiêu đề đề thi</label>
-                            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nhập tiêu đề đề thi" className={inputClass} />
+                            <label className="mb-1.5 block text-xs text-slate-400">{tr("Tiêu đề đề thi", "Exam title")}</label>
+                            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={tr("Nhập tiêu đề đề thi", "Enter exam title")} className={inputClass} />
                           </div>
                           <div className="overflow-visible">
-                            <label className="mb-1.5 block text-xs text-slate-400">Chọn khóa học</label>
+                            <label className="mb-1.5 block text-xs text-slate-400">{tr("Chọn khóa học", "Select course")}</label>
                             <DialogSelect
                               value={selectedCourseId}
                               onChange={(e) => {
@@ -861,9 +864,9 @@ function TeacherGenerateExamCreatePageContent() {
                               }}
                               className={selectClass}
                             >
-                              <option value="">Chọn khóa học</option>
+                              <option value="">{tr("Chọn khóa học", "Select course")}</option>
                               {selectedCourseId && !courseOptions.some((course) => course.id === selectedCourseId) && (
-                                <option value={selectedCourseId}>Khóa học đã chọn (không còn trong danh sách hiện tại)</option>
+                                <option value={selectedCourseId}>{tr("Khóa học đã chọn (không còn trong danh sách hiện tại)", "Selected course (not in current list)")}</option>
                               )}
                               {courseOptions.map((course) => (
                                 <option key={course.id} value={course.id}>{course.title}</option>
@@ -872,7 +875,7 @@ function TeacherGenerateExamCreatePageContent() {
                           </div>
                           <div className="overflow-visible space-y-3">
                             <div>
-                              <label className="mb-1.5 block text-xs text-slate-400">Loại bài thi</label>
+                              <label className="mb-1.5 block text-xs text-slate-400">{tr("Loại bài thi", "Exam type")}</label>
                               <DialogSelect
                                 value={type}
                                 onChange={(nextValue) => {
@@ -884,22 +887,22 @@ function TeacherGenerateExamCreatePageContent() {
                                 }}
                                 className={selectClass}
                               >
-                                <option value="practice">Thi thử</option>
-                                <option value="official">Thi thật</option>
+                                <option value="practice">{tr("Thi thử", "Practice")}</option>
+                                <option value="official">{tr("Thi thật", "Official")}</option>
                               </DialogSelect>
                             </div>
 
                             {type === "official" && (
                               <div>
-                                <label className="mb-1.5 block text-xs text-slate-400">Chứng chỉ cho bài thi thật</label>
+                                <label className="mb-1.5 block text-xs text-slate-400">{tr("Chứng chỉ cho bài thi thật", "Certificate for official exam")}</label>
                                 <DialogSelect
                                   value={certificateTemplateId}
                                   onChange={(e) => setCertificateTemplateId(e)}
                                   className={selectClass}
                                 >
-                                  <option value="">Chọn chứng chỉ</option>
+                                  <option value="">{tr("Chọn chứng chỉ", "Select certificate")}</option>
                                   {certificateTemplateId && !availableCertificates.some((cert) => cert.id === certificateTemplateId) && (
-                                    <option value={certificateTemplateId}>Chứng chỉ đã chọn (không còn trong danh sách hiện tại)</option>
+                                    <option value={certificateTemplateId}>{tr("Chứng chỉ đã chọn (không còn trong danh sách hiện tại)", "Selected certificate (not in current list)")}</option>
                                   )}
                                   {availableCertificates.map((cert) => (
                                     <option key={cert.id} value={cert.id}>{cert.title}</option>
@@ -909,57 +912,57 @@ function TeacherGenerateExamCreatePageContent() {
                             )}
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-xs text-slate-400">Mô tả ngắn</label>
-                            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả mục tiêu đề thi" className={inputClass} />
+                            <label className="mb-1.5 block text-xs text-slate-400">{tr("Mô tả ngắn", "Short description")}</label>
+                            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={tr("Mô tả mục tiêu đề thi", "Describe exam objective")} className={inputClass} />
                           </div>
                         </div>
                       </div>
 
                       <div>
-                        <p className="mb-3 text-xs uppercase tracking-wide text-slate-400">Cấu hình</p>
+                        <p className="mb-3 text-xs uppercase tracking-wide text-slate-400">{tr("Cấu hình", "Configuration")}</p>
                         <div className="grid gap-4 md:grid-cols-2">
                           <div>
-                            <label className="mb-1.5 block text-xs text-slate-400">Thời gian làm bài (phút)</label>
+                            <label className="mb-1.5 block text-xs text-slate-400">{tr("Thời gian làm bài (phút)", "Time limit (minutes)")}</label>
                             <input type="number" value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value) || 60)} className={inputClass} />
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-xs text-slate-400">Số câu hỏi cần tạo</label>
+                            <label className="mb-1.5 block text-xs text-slate-400">{tr("Số câu hỏi cần tạo", "Question count")}</label>
                             <input type="number" value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value) || 0)} className={inputClass} />
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-xs text-slate-400">Điểm đạt (%)</label>
+                            <label className="mb-1.5 block text-xs text-slate-400">{tr("Điểm đạt (%)", "Passing score (%)")}</label>
                             <input type="number" value={passingScore} onChange={(e) => setPassingScore(Number(e.target.value) || 70)} className={inputClass} />
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-xs text-slate-400">Số lần thi tối đa</label>
+                            <label className="mb-1.5 block text-xs text-slate-400">{tr("Số lần thi tối đa", "Max attempts")}</label>
                             <input type="number" min={1} max={10} value={maxAttempts} onChange={(e) => setMaxAttempts(Math.max(1, Number(e.target.value) || 3))} className={inputClass} />
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-xs text-slate-400">Số mã đề</label>
+                            <label className="mb-1.5 block text-xs text-slate-400">{tr("Số mã đề", "Variant count")}</label>
                             <input type="number" min={1} max={26} value={numExamVariants} onChange={(e) => setNumExamVariants(Math.max(1, Number(e.target.value) || 1))} className={inputClass} />
                           </div>
                           <div className="flex items-end gap-5 rounded-xl border border-[#1e293b] bg-[#0a1326] px-3 py-2.5">
                             <label className="inline-flex items-center gap-2 text-sm text-slate-300">
                               <input type="checkbox" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
-                              <span>Tráo câu hỏi</span>
+                              <span>{tr("Tráo câu hỏi", "Shuffle questions")}</span>
                             </label>
                             <label className="inline-flex items-center gap-2 text-sm text-slate-300">
                               <input type="checkbox" checked={shuffleAnswers} onChange={(e) => setShuffleAnswers(e.target.checked)} />
-                              <span>Tráo đáp án</span>
+                              <span>{tr("Tráo đáp án", "Shuffle answers")}</span>
                             </label>
                           </div>
                         </div>
                       </div>
 
                       <div>
-                        <p className="mb-3 text-xs uppercase tracking-wide text-slate-400">Thời gian</p>
+                        <p className="mb-3 text-xs uppercase tracking-wide text-slate-400">{tr("Thời gian", "Schedule")}</p>
                         <div className="grid gap-4 md:grid-cols-2">
                           <div>
-                            <label className="mb-1.5 block text-xs text-slate-400">Mở bài thi lúc</label>
+                            <label className="mb-1.5 block text-xs text-slate-400">{tr("Mở bài thi lúc", "Open at")}</label>
                             <input type="datetime-local" value={availableFrom} onChange={(e) => setAvailableFrom(e.target.value)} className={inputClass} />
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-xs text-slate-400">Đóng bài thi lúc</label>
+                            <label className="mb-1.5 block text-xs text-slate-400">{tr("Đóng bài thi lúc", "Close at")}</label>
                             <input type="datetime-local" value={availableUntil} onChange={(e) => setAvailableUntil(e.target.value)} className={inputClass} />
                           </div>
                         </div>
@@ -972,17 +975,17 @@ function TeacherGenerateExamCreatePageContent() {
                 {currentStep === 2 && (
                   <div className={sectionCardClass}>
                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
-                      <Database size={18} className="text-emerald-400" /> Chọn ngân hàng nguồn
+                      <Database size={18} className="text-emerald-400" /> {tr("Chọn ngân hàng nguồn", "Select source bank")}
                     </h2>
                     <div className="mb-3 flex flex-wrap gap-2 text-xs text-slate-300">
-                      <span className="rounded-full border border-slate-700 bg-slate-700/50 px-2.5 py-1">Đã chọn {selectedExamIds.filter((id) => availableSourceExamIds.has(id)).length} đề đã duyệt</span>
-                      <span className="rounded-full border border-slate-700 bg-slate-700/50 px-2.5 py-1">Pool câu hỏi {allQuestions.length}</span>
+                      <span className="rounded-full border border-slate-700 bg-slate-700/50 px-2.5 py-1">{tr("Đã chọn", "Selected")} {selectedExamIds.filter((id) => availableSourceExamIds.has(id)).length} {tr("đề đã duyệt", "approved exams")}</span>
+                      <span className="rounded-full border border-slate-700 bg-slate-700/50 px-2.5 py-1">{tr("Pool câu hỏi", "Question pool")} {allQuestions.length}</span>
                     </div>
 
                     <div className="space-y-3">
                       {groupedSourceExams.length === 0 && (
                         <div className="rounded-xl border border-slate-700 bg-slate-700/40 px-3 py-2 text-sm text-slate-400">
-                          Không có ngân hàng đề đã duyệt để chọn
+                          {tr("Không có ngân hàng đề đã duyệt để chọn", "No approved source bank available")}
                         </div>
                       )}
 
@@ -996,11 +999,11 @@ function TeacherGenerateExamCreatePageContent() {
                             <div className="mb-2 flex items-center justify-between gap-2">
                               <div>
                                 <p className="text-sm font-semibold text-slate-100">{group.title}</p>
-                                <p className="text-xs text-slate-400">{group.courseName} • {group.exams.length} đề</p>
+                                <p className="text-xs text-slate-400">{group.courseName} • {group.exams.length} {tr("đề", "exams")}</p>
                               </div>
                               <label className="inline-flex items-center gap-2 text-xs text-slate-400">
                                 <input type="checkbox" checked={allSelected} onChange={() => toggleGroupExams(groupExamIds)} />
-                                <span>Chọn cả bộ</span>
+                                <span>{tr("Chọn cả bộ", "Select all")}</span>
                               </label>
                             </div>
 
@@ -1008,7 +1011,7 @@ function TeacherGenerateExamCreatePageContent() {
                               {group.exams.map((exam) => (
                                 <label key={exam.id} className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200">
                                   <input type="checkbox" checked={selectedExamIds.includes(exam.id)} onChange={() => toggleExam(exam.id)} />
-                                  <span>{exam.title} ({exam.questions.length} câu)</span>
+                                  <span>{exam.title} ({exam.questions.length} {tr("câu", "questions")})</span>
                                 </label>
                               ))}
                             </div>
@@ -1022,7 +1025,7 @@ function TeacherGenerateExamCreatePageContent() {
                 {currentStep === 3 && (
                   <div className={sectionCardClass}>
                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
-                      <ClipboardList size={18} className="text-emerald-400" /> Chọn chương và phân bổ độ khó
+                      <ClipboardList size={18} className="text-emerald-400" /> {tr("Chọn chương và phân bổ độ khó", "Select chapters and difficulty allocation")}
                     </h2>
 
                     <div className="mb-4 grid gap-2 md:grid-cols-3">
@@ -1035,7 +1038,7 @@ function TeacherGenerateExamCreatePageContent() {
                     </div>
 
                     <div className="space-y-4 rounded-xl border border-slate-700 bg-slate-700/40 p-4">
-                      {[{ key: "easy", label: "Dễ", value: easyCount, setValue: setEasyCount, color: "emerald" }, { key: "medium", label: "Trung bình", value: mediumCount, setValue: setMediumCount, color: "sky" }, { key: "hard", label: "Khó", value: hardCount, setValue: setHardCount, color: "rose" }].map((item) => (
+                      {[{ key: "easy", label: tr("Dễ", "Easy"), value: easyCount, setValue: setEasyCount, color: "emerald" }, { key: "medium", label: tr("Trung bình", "Medium"), value: mediumCount, setValue: setMediumCount, color: "sky" }, { key: "hard", label: tr("Khó", "Hard"), value: hardCount, setValue: setHardCount, color: "rose" }].map((item) => (
                         <div key={item.key} className="space-y-1.5">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-slate-300">{item.label}</span>
@@ -1053,8 +1056,8 @@ function TeacherGenerateExamCreatePageContent() {
                       ))}
 
                       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
-                        <span>Tổng phân bổ: {requestedByDifficulty} / {questionCount} câu</span>
-                        <span>Pool khả dụng: {filteredQuestions.length} câu</span>
+                        <span>{tr("Tổng phân bổ", "Allocated")}: {requestedByDifficulty} / {questionCount} {tr("câu", "questions")}</span>
+                        <span>{tr("Pool khả dụng", "Available pool")}: {filteredQuestions.length} {tr("câu", "questions")}</span>
                       </div>
                     </div>
 
@@ -1062,7 +1065,7 @@ function TeacherGenerateExamCreatePageContent() {
                       onClick={generateExamQuestions}
                       className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.98]"
                     >
-                      <Wand2 size={16} /> Sinh bộ câu hỏi
+                      <Wand2 size={16} /> {tr("Sinh bộ câu hỏi", "Generate question set")}
                     </button>
                   </div>
                 )}
@@ -1070,40 +1073,40 @@ function TeacherGenerateExamCreatePageContent() {
                 {currentStep === 4 && (
                   <div className={sectionCardClass}>
                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
-                      <Eye size={18} className="text-emerald-400" /> Review & tạo đề
+                      <Eye size={18} className="text-emerald-400" /> {tr("Review & tạo đề", "Review & create exam")}
                     </h2>
 
                     <div className="mb-4 grid gap-3 md:grid-cols-2">
                       <div className="rounded-xl border border-slate-700 bg-slate-700/40 p-3">
-                        <p className="text-xs text-slate-400">Tiêu đề</p>
-                        <p className="mt-1 text-sm font-medium text-slate-100">{title || "Chưa nhập"}</p>
+                        <p className="text-xs text-slate-400">{tr("Tiêu đề", "Title")}</p>
+                        <p className="mt-1 text-sm font-medium text-slate-100">{title || tr("Chưa nhập", "Not set")}</p>
                       </div>
                       <div className="rounded-xl border border-slate-700 bg-slate-700/40 p-3">
-                        <p className="text-xs text-slate-400">Khóa học</p>
-                        <p className="mt-1 text-sm font-medium text-slate-100">{courseOptions.find((c) => c.id === selectedCourseId)?.title || "Chưa chọn"}</p>
+                        <p className="text-xs text-slate-400">{tr("Khóa học", "Course")}</p>
+                        <p className="mt-1 text-sm font-medium text-slate-100">{courseOptions.find((c) => c.id === selectedCourseId)?.title || tr("Chưa chọn", "Not selected")}</p>
                       </div>
                       <div className="rounded-xl border border-slate-700 bg-slate-700/40 p-3">
-                        <p className="text-xs text-slate-400">Số câu</p>
+                        <p className="text-xs text-slate-400">{tr("Số câu", "Question count")}</p>
                         <p className="mt-1 text-sm font-medium text-slate-100">{generatedQuestions.length} / {questionCount}</p>
                       </div>
                       <div className="rounded-xl border border-slate-700 bg-slate-700/40 p-3">
-                        <p className="text-xs text-slate-400">Mã đề</p>
-                        <p className="mt-1 text-sm font-medium text-slate-100">{Math.max(1, numExamVariants)} mã</p>
+                        <p className="text-xs text-slate-400">{tr("Mã đề", "Variants")}</p>
+                        <p className="mt-1 text-sm font-medium text-slate-100">{Math.max(1, numExamVariants)} {tr("mã", "variants")}</p>
                       </div>
                     </div>
 
                     <div className="max-h-[360px] space-y-2 overflow-y-auto rounded-xl border border-slate-700 bg-slate-700/40 p-3">
                       {generatedQuestions.length === 0 && (
-                        <p className="text-sm text-slate-400">Chưa có câu hỏi, quay lại bước 3 để sinh đề.</p>
+                        <p className="text-sm text-slate-400">{tr("Chưa có câu hỏi, quay lại bước 3 để sinh đề.", "No questions yet, return to step 3 to generate.")}</p>
                       )}
                       {generatedQuestions.slice(0, 12).map((question, index) => (
                         <div key={`${question.id}-${index}`} className="rounded-lg border border-slate-700 bg-slate-800 p-2.5">
-                          <p className="text-sm font-medium text-slate-100">Câu {index + 1}. <ScientificText as="span" text={question.question} /></p>
-                          <p className="mt-1 text-xs text-slate-400">{question.chapter || "Chưa phân chương"} • {question.difficulty || "medium"}</p>
+                          <p className="text-sm font-medium text-slate-100">{tr("Câu", "Q")} {index + 1}. <ScientificText as="span" text={question.question} /></p>
+                          <p className="mt-1 text-xs text-slate-400">{question.chapter || tr("Chưa phân chương", "Unassigned chapter")} • {question.difficulty || "medium"}</p>
                         </div>
                       ))}
                       {generatedQuestions.length > 12 && (
-                        <p className="text-center text-xs text-slate-500">Hiển thị 12/{generatedQuestions.length} câu đầu tiên</p>
+                        <p className="text-center text-xs text-slate-500">{tr("Hiển thị", "Showing")} 12/{generatedQuestions.length} {tr("câu đầu tiên", "first questions")}</p>
                       )}
                     </div>
                   </div>
@@ -1116,7 +1119,7 @@ function TeacherGenerateExamCreatePageContent() {
                     disabled={currentStep === 1}
                     className="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Quay lại
+                    {tr("Quay lại", "Back")}
                   </button>
 
                   {currentStep < totalSteps ? (
@@ -1125,10 +1128,10 @@ function TeacherGenerateExamCreatePageContent() {
                       onClick={handleNextStep}
                       className="rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.98]"
                     >
-                      Tiếp tục bước {currentStep + 1}
+                      {tr("Tiếp tục bước", "Continue step")} {currentStep + 1}
                     </button>
                   ) : (
-                    <div className="text-xs text-slate-500">Tạo đề thi tại panel "Kết quả sinh đề" bên phải</div>
+                    <div className="text-xs text-slate-500">{tr("Tạo đề thi tại panel \"Kết quả sinh đề\" bên phải", "Create exam from the \"Generated result\" panel on the right")}</div>
                   )}
                 </div>
               </div>
@@ -1136,23 +1139,23 @@ function TeacherGenerateExamCreatePageContent() {
               <div className="space-y-4 lg:col-span-3">
                 <div className="sticky top-4 space-y-4">
                   <div className="rounded-2xl border border-slate-700 bg-slate-800 p-4 shadow-[0_12px_28px_rgba(0,0,0,0.2)]">
-                    <h3 className="text-base font-semibold text-slate-100">Kết quả sinh đề</h3>
-                    <p className="mt-1 text-xs text-slate-400">Live preview theo cấu hình hiện tại</p>
+                    <h3 className="text-base font-semibold text-slate-100">{tr("Kết quả sinh đề", "Generated result")}</h3>
+                    <p className="mt-1 text-xs text-slate-400">{tr("Live preview theo cấu hình hiện tại", "Live preview with current configuration")}</p>
 
                     <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
                       <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-300" style={{ width: `${generatedProgress}%` }} />
                     </div>
-                    <p className="mt-2 text-xs text-slate-400">{generatedQuestions.length}/{questionCount || 0} câu hỏi</p>
+                    <p className="mt-2 text-xs text-slate-400">{generatedQuestions.length}/{questionCount || 0} {tr("câu hỏi", "questions")}</p>
 
                     <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                      <span className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-300">Dễ: {generatedDifficultyStats.easy}</span>
-                      <span className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-sky-300">TB: {generatedDifficultyStats.medium}</span>
-                      <span className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-rose-300">Khó: {generatedDifficultyStats.hard}</span>
-                      <span className="rounded-lg border border-slate-700 bg-slate-700/50 px-2 py-1 text-slate-300">Thời gian: {timeLimit} phút</span>
+                      <span className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-300">{tr("Dễ", "Easy")}: {generatedDifficultyStats.easy}</span>
+                      <span className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-sky-300">{tr("TB", "Med")}: {generatedDifficultyStats.medium}</span>
+                      <span className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-rose-300">{tr("Khó", "Hard")}: {generatedDifficultyStats.hard}</span>
+                      <span className="rounded-lg border border-slate-700 bg-slate-700/50 px-2 py-1 text-slate-300">{tr("Thời gian", "Time")}: {timeLimit} {tr("phút", "min")}</span>
                     </div>
 
                     {examVariants.length > 0 && (
-                      <p className="mt-3 text-xs text-slate-400">Mã đề: {Array.from({ length: examVariants.length }, (_, i) => String.fromCharCode(65 + i)).join(", ")}</p>
+                      <p className="mt-3 text-xs text-slate-400">{tr("Mã đề", "Variants")}: {Array.from({ length: examVariants.length }, (_, i) => String.fromCharCode(65 + i)).join(", ")}</p>
                     )}
 
                     <button
@@ -1161,17 +1164,17 @@ function TeacherGenerateExamCreatePageContent() {
                       disabled={isSubmitting || generatedQuestions.length === 0 || currentStep !== totalSteps}
                       className="mt-4 w-full rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                     >
-                      {isSubmitting ? (isEditMode ? "Đang lưu..." : "Đang tạo...") : "Tạo đề thi"}
+                      {isSubmitting ? (isEditMode ? tr("Đang lưu...", "Saving...") : tr("Đang tạo...", "Creating...")) : tr("Tạo đề thi", "Create exam")}
                     </button>
                   </div>
 
                   <div className="rounded-2xl border border-slate-700 bg-slate-800 p-4">
-                    <h3 className="text-base font-semibold text-slate-100">Checklist nhanh</h3>
+                    <h3 className="text-base font-semibold text-slate-100">{tr("Checklist nhanh", "Quick checklist")}</h3>
                     <ul className="mt-2 space-y-1 text-xs text-slate-400">
-                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={title ? "text-emerald-400" : "text-slate-600"} /> Tiêu đề đề thi</li>
-                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={selectedCourseId ? "text-emerald-400" : "text-slate-600"} /> Khóa học</li>
-                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={selectedExamIds.some((id) => availableSourceExamIds.has(id)) ? "text-emerald-400" : "text-slate-600"} /> Ngân hàng nguồn</li>
-                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={generatedQuestions.length > 0 ? "text-emerald-400" : "text-slate-600"} /> Bộ câu hỏi đã sinh</li>
+                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={title ? "text-emerald-400" : "text-slate-600"} /> {tr("Tiêu đề đề thi", "Exam title")}</li>
+                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={selectedCourseId ? "text-emerald-400" : "text-slate-600"} /> {tr("Khóa học", "Course")}</li>
+                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={selectedExamIds.some((id) => availableSourceExamIds.has(id)) ? "text-emerald-400" : "text-slate-600"} /> {tr("Ngân hàng nguồn", "Source bank")}</li>
+                      <li className="flex items-center gap-2"><CheckCircle2 size={13} className={generatedQuestions.length > 0 ? "text-emerald-400" : "text-slate-600"} /> {tr("Bộ câu hỏi đã sinh", "Generated question set")}</li>
                     </ul>
                   </div>
                 </div>
@@ -1185,11 +1188,14 @@ function TeacherGenerateExamCreatePageContent() {
 }
 
 export default function TeacherGenerateExamCreatePage() {
+  const { language } = useLanguage()
+  const tr = (vi: string, en: string) => (language === "en" ? en : vi)
+
   return (
     <Suspense
       fallback={
         <div className="space-y-6">
-          <div className="rounded-xl border p-6 text-sm text-muted-foreground">Đang tải cấu hình trang...</div>
+          <div className="rounded-xl border p-6 text-sm text-muted-foreground">{tr("Đang tải cấu hình trang...", "Loading page configuration...")}</div>
         </div>
       }
     >

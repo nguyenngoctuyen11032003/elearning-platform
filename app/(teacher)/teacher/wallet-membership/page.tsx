@@ -500,7 +500,7 @@ export default function TeacherWalletMembershipPage() {
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">{t("checkout_wallet", "Số dư ví")}</p>
             <p className={`mt-2 text-3xl font-black ${theme.accentText}`}>{formatCurrency(walletBalance)}</p>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Số dư hiện tại trong ví để thanh toán gói.</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t("teacher_wallet_balance_hint", "Số dư hiện tại trong ví để thanh toán gói.")}</p>
             <div className="mt-3 flex gap-2">
               <Link href="/teacher/wallet-membership/top-up" className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
                 {t("topup_title", "Nạp tiền vào ví")}
@@ -549,7 +549,7 @@ export default function TeacherWalletMembershipPage() {
             >
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-lg font-semibold text-slate-900 dark:text-white">{plan.name}</p>
-                {isPopular ? <span className={`rounded-full px-2 py-1 text-xs font-semibold ${theme.popularBadge}`}>Popular</span> : null}
+                {isPopular ? <span className={`rounded-full px-2 py-1 text-xs font-semibold ${theme.popularBadge}`}>{t("common_popular", "Popular")}</span> : null}
               </div>
 
               <p className="text-3xl font-extrabold text-cyan-700 dark:text-cyan-300">{formatCurrency(Number(plan.price || 0))}</p>

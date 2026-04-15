@@ -105,9 +105,9 @@ const [loading, setLoading] = useState(true);
     { name: "Ths. Vũ Tam Hanh", role: "CTO", image: "/image/CTO_TamHanh.jpg" },
     { name: "Đỗ Thanh Toàn", role: "COO", image: "/image/COO_ThanhToan.jpg" },
     {
-      name: "Ths. Đặng Lê Trung",
-      role: "CMO",
-      image: "/image/CMO_LeTrung.jpg",
+      name: "Ths. Trần Hồng Thắng",
+      role: "Vice CEO",
+      image: "/image/athang.jpg",
     },
     {
       name: "Ths. Vũ Thị Hải Yến",

@@ -36,6 +36,7 @@ import { DialogSelect } from "@/components/ui/dialog-select"
 
 export default function AdminSettingsPage() {
   const { t, language, setLanguage, supportedLanguages } = useLanguage()
+  const tr = (vi: string, en: string) => (language === "en" ? en : vi)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Load dark mode preference from localStorage on mount
     if (typeof window !== 'undefined') {
@@ -227,7 +228,7 @@ const handleSave = async () => {
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <Heart size={22} className="text-primary dark:text-accent" /> {t("adm_set_about", "Về ICS Learning")}
               </h2>
-              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">Cấu hình nội dung giới thiệu, sứ mệnh và tầm nhìn.</p>
+              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">{t("adm_set_about_desc", "Cấu hình nội dung giới thiệu, sứ mệnh và tầm nhìn.")}</p>
             </div>
 
             <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
@@ -276,11 +277,11 @@ const handleSave = async () => {
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <Mail size={22} className="text-primary dark:text-accent" /> {t("adm_set_contact_info", "Thông tin liên hệ")}
               </h2>
-              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">Quản lý kênh liên hệ vận hành và hệ thống mạng xã hội.</p>
+              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">{t("adm_set_contact_desc", "Quản lý kênh liên hệ vận hành và hệ thống mạng xã hội.")}</p>
             </div>
 
             <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Liên hệ vận hành</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{t("adm_set_ops_contact", "Liên hệ vận hành")}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
@@ -319,7 +320,7 @@ const handleSave = async () => {
             </section>
 
             <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Mạng xã hội</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{t("adm_set_social", "Mạng xã hội")}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="flex items-center gap-2 text-foreground dark:text-white text-sm font-semibold mb-2">
@@ -408,7 +409,7 @@ const handleSave = async () => {
                       ) : (
                         <div className="flex flex-col items-center justify-center text-center">
                           <Upload size={24} className="text-muted-foreground dark:text-slate-400 mb-1" />
-                          <span className="text-xs text-muted-foreground dark:text-slate-400 font-medium">ICS</span>
+                          <span className="text-xs text-muted-foreground dark:text-slate-400 font-medium">{t("adm_set_logo_placeholder", "ICS")}</span>
                         </div>
                       )}
                     </div>
@@ -453,7 +454,7 @@ const handleSave = async () => {
                     })}
                   </DialogSelect>
                   <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
-                    Chọn ngôn ngữ hiển thị mặc định cho toàn bộ nền tảng.
+                    {t("adm_set_language_desc", "Chọn ngôn ngữ hiển thị mặc định cho toàn bộ nền tảng.")}
                   </p>
                 </div>
 
@@ -499,11 +500,11 @@ const handleSave = async () => {
               <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <Shield size={22} className="text-primary dark:text-accent" /> {t("adm_set_security_title", "Bảo mật hệ thống")}
               </h2>
-              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">Tách riêng cấu hình rủi ro cao và cấu hình bảo vệ thường xuyên.</p>
+              <p className="text-muted-foreground dark:text-slate-400 text-sm mt-1">{t("adm_set_security_desc", "Tách riêng cấu hình rủi ro cao và cấu hình bảo vệ thường xuyên.")}</p>
             </div>
 
             <section className="bg-white/85 dark:bg-slate-900/70 border border-red-200/80 dark:border-red-900/50 rounded-2xl p-6 space-y-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-red-600 dark:text-red-300">Danger zone</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-red-600 dark:text-red-300">{tr("Vùng nguy hiểm", "Danger zone")}</h3>
               <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl">
                 <div className="flex items-center gap-3">
                   <Globe size={20} className="text-orange-500" />
@@ -528,7 +529,7 @@ const handleSave = async () => {
             </section>
 
             <section className="bg-white/85 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)]">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Protection & automation</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{tr("Bảo vệ & tự động hóa", "Protection & automation")}</h3>
               <div className="flex items-center justify-between p-4 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl">
                 <div className="flex items-center gap-3">
                   <Mail size={20} className="text-blue-500" />
@@ -555,7 +556,7 @@ const handleSave = async () => {
                 <div className="flex items-center gap-3">
                   <Database size={20} className="text-purple-500" />
                   <div>
-                    <p className="text-foreground dark:text-white font-semibold">AI Assistant</p>
+                    <p className="text-foreground dark:text-white font-semibold">{t("adm_set_ai_assistant", "AI Assistant")}</p>
                     <p className="text-muted-foreground dark:text-slate-400 text-sm">{t("adm_set_ai_desc", "Kích hoạt trợ lý AI")}</p>
                   </div>
                 </div>

@@ -370,6 +370,8 @@ function VerifyEmailContent() {
 }
 
 export default function VerifyEmailPage() {
+  const { t } = useLanguage()
+
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
@@ -378,7 +380,7 @@ export default function VerifyEmailPage() {
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-xl opacity-50 animate-pulse" />
             <RefreshCw className="relative w-16 h-16 animate-spin text-blue-600 dark:text-blue-400" />
           </div>
-          <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">Loading...</p>
+          <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">{t("common_loading", "Đang tải...")}</p>
         </div>
       </div>
     }>

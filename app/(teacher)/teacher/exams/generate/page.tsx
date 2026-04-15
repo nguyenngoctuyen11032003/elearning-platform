@@ -99,6 +99,7 @@ interface ExamCardProps {
 }
 
 function ExamCard({ exam, compactMode = false, onEdit, onViewAttempts, onDelete, onViewVariantQuestions }: ExamCardProps) {
+  const { t } = useLanguage()
   const [isCardExpanded, setIsCardExpanded] = useState(!compactMode)
   const [isVariantsExpanded, setIsVariantsExpanded] = useState(false)
 
@@ -122,10 +123,10 @@ function ExamCard({ exam, compactMode = false, onEdit, onViewAttempts, onDelete,
 
   const getStatusLabel = (status: Exam["status"]) => {
     const map = {
-      draft: "Nháp",
-      pending: "Chờ duyệt",
-      approved: "Đã duyệt",
-      rejected: "Từ chối",
+      draft: t("common_status_draft", "Nháp"),
+      pending: t("common_status_pending", "Chờ duyệt"),
+      approved: t("common_status_approved", "Đã duyệt"),
+      rejected: t("common_status_rejected", "Từ chối"),
     } as const
     return map[status]
   }
@@ -154,7 +155,7 @@ function ExamCard({ exam, compactMode = false, onEdit, onViewAttempts, onDelete,
                   setIsCardExpanded((prev) => !prev)
                 }}
                 className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-all duration-200"
-                aria-label={isCardExpanded ? "Thu gọn đề" : "Mở rộng đề"}
+                aria-label={isCardExpanded ? t("tch_exg_collapse_exam", "Thu gọn đề") : t("tch_exg_expand_exam", "Mở rộng đề")}
               >
                 {isCardExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </button>
@@ -168,15 +169,15 @@ function ExamCard({ exam, compactMode = false, onEdit, onViewAttempts, onDelete,
             <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
               exam.type === "official" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30"
             }`}>
-              {exam.type === "official" ? "📋 Thi thật" : "📝 Thi thử"}
+              {exam.type === "official" ? `📋 ${t("tch_exg_official", "Thi thật")}` : `📝 ${t("tch_exg_practice", "Thi thử")}`}
             </span>
-            <span className="flex items-center gap-1"><FileText size={14} /> {exam.questionsCount ?? "—"} câu</span>
-            <span className="flex items-center gap-1"><Users size={14} /> {exam.attemptCount ?? 0} lượt thi</span>
+            <span className="flex items-center gap-1"><FileText size={14} /> {exam.questionsCount ?? "—"} {t("tch_exg_questions_unit", "câu")}</span>
+            <span className="flex items-center gap-1"><Users size={14} /> {exam.attemptCount ?? 0} {t("tch_exg_attempts", "lượt đã thi")}</span>
             <span className="inline-flex items-center gap-1">
               <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-200/50 dark:bg-slate-700/50 text-xs text-slate-700 dark:text-slate-300">
                 {variants.length}
               </span>
-              Đề con
+              {t("tch_exg_sub_exam", "Đề con")}
             </span>
           </div>
         )}
@@ -188,32 +189,32 @@ function ExamCard({ exam, compactMode = false, onEdit, onViewAttempts, onDelete,
               <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                 exam.type === "official" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30"
               }`}>
-                {exam.type === "official" ? "📋 Thi thật" : "📝 Thi thử"}
+                {exam.type === "official" ? `📋 ${t("tch_exg_official", "Thi thật")}` : `📝 ${t("tch_exg_practice", "Thi thử")}`}
               </span>
             </div>
 
             {/* Info stats */}
             <div className="flex flex-wrap gap-4 text-sm text-slate-700 dark:text-slate-300 mb-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-              <span className="flex items-center gap-1"><FileText size={14} /> {exam.questionsCount ?? "—"} câu</span>
-              <span className="flex items-center gap-1"><Users size={14} /> {exam.attemptCount ?? 0} lượt thi</span>
+              <span className="flex items-center gap-1"><FileText size={14} /> {exam.questionsCount ?? "—"} {t("tch_exg_questions_unit", "câu")}</span>
+              <span className="flex items-center gap-1"><Users size={14} /> {exam.attemptCount ?? 0} {t("tch_exg_attempts", "lượt đã thi")}</span>
               <span className="inline-flex items-center gap-1">
                 <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-200/50 dark:bg-slate-700/50 text-xs text-slate-700 dark:text-slate-300">
                   {variants.length}
                 </span>
-                Đề con
+                {t("tch_exg_sub_exam", "Đề con")}
               </span>
             </div>
 
             {/* Variants section */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Danh sách đề con ({variants.length})</span>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t("tch_exg_sub_exam_list", "Danh sách đề con")} ({variants.length})</span>
                 {hasMoreVariants && (
                   <button
                     onClick={() => setIsVariantsExpanded(!isVariantsExpanded)}
                     className="text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition"
                   >
-                    {isVariantsExpanded ? "▼ Thu gọn" : "▶ Xem"}
+                    {isVariantsExpanded ? `▼ ${t("common_collapse", "Thu gọn")}` : `▶ ${t("common_view", "Xem")}`}
                   </button>
                 )}
               </div>
@@ -223,21 +224,21 @@ function ExamCard({ exam, compactMode = false, onEdit, onViewAttempts, onDelete,
                 {(isVariantsExpanded ? variants : displayVariants).map((variant) => (
                   <div key={variant.code} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 transition">
                     <span className="text-sm text-slate-700 dark:text-slate-300">
-                      <span className="font-medium text-blue-600 dark:text-blue-400">Đề {variant.code}</span>
-                      <span className="text-slate-500 ml-2">• {variant.questions?.length || 0} câu</span>
+                      <span className="font-medium text-blue-600 dark:text-blue-400">{t("tch_exg_exam_code_prefix", "Đề")} {variant.code}</span>
+                      <span className="text-slate-500 ml-2">• {variant.questions?.length || 0} {t("tch_exg_questions_unit", "câu")}</span>
                     </span>
                     <div className="flex gap-1">
                       <button
                         onClick={() => onViewVariantQuestions(exam, variant)}
                         className="px-2 py-1 text-xs rounded border border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
                       >
-                        Xem
+                        {t("common_view", "Xem")}
                       </button>
                       <button
                         onClick={() => onEdit(exam.id)}
                         className="px-2 py-1 text-xs rounded border border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
                       >
-                        Sửa
+                        {t("common_edit", "Sửa")}
                       </button>
                     </div>
                   </div>
@@ -247,7 +248,7 @@ function ExamCard({ exam, compactMode = false, onEdit, onViewAttempts, onDelete,
               {/* Show more indicator */}
               {hasMoreVariants && !isVariantsExpanded && (
                 <div className="text-xs text-slate-600 dark:text-slate-500 text-center py-2 mt-2">
-                  +{variants.length - 3} đề con khác
+                  +{variants.length - 3} {t("tch_exg_more_sub_exams", "đề con khác")}
                 </div>
               )}
             </div>
@@ -258,19 +259,19 @@ function ExamCard({ exam, compactMode = false, onEdit, onViewAttempts, onDelete,
                 onClick={() => onEdit(exam.id)}
                 className="flex-1 px-3 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-300 hover:bg-blue-500/20 text-sm font-medium transition"
               >
-                ✏️ Chỉnh sửa
+                ✏️ {t("common_edit", "Chỉnh sửa")}
               </button>
               <button
                 onClick={() => onViewAttempts(exam)}
                 className="flex-1 px-3 py-2 rounded-lg border border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 text-sm font-medium transition"
               >
-                👥 Kết quả thi
+                👥 {t("tch_exg_exam_result", "Kết quả thi")}
               </button>
               <button
                 onClick={() => onDelete(exam.id, exam.title)}
                 className="flex-1 px-3 py-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300 hover:bg-red-500/20 text-sm font-medium transition"
               >
-                🗑️ Xóa
+                🗑️ {t("common_delete", "Xóa")}
               </button>
             </div>
           </div>
@@ -281,7 +282,8 @@ function ExamCard({ exam, compactMode = false, onEdit, onViewAttempts, onDelete,
 }
 
 export default function TeacherExamsListPage() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const locale = language === "en" ? "en-US" : "vi-VN"
   const router = useRouter()
 
   /* ===== STATE MANAGEMENT ===== */
@@ -310,26 +312,26 @@ export default function TeacherExamsListPage() {
 
     const rows = attemptHistory.map((attempt, index) => ({
       STT: index + 1,
-      "Học sinh": attempt.student?.name || t("tch_exg_attempt_unknown", "Không rõ"),
-      Email: attempt.student?.email || "",
-      "Mã đề": attempt.variantCode ?? "—",
-      "Điểm (%)": Number(attempt.score || 0).toFixed(2),
-      "Điểm đạt": attempt.passed ? t("tch_exg_attempt_pass", "Đạt") : t("tch_exg_attempt_fail", "Chưa đạt"),
-      "Điểm số chi tiết": `${Number(attempt.earnedPoints || 0).toFixed(2)}/${Number(attempt.totalPoints || 0).toFixed(2)}`,
-      "Thời gian nộp": new Date(attempt.submittedAt || attempt.createdAt || "").toLocaleString("vi-VN") || "—",
+      [t("tch_exg_attempt_student", "Học sinh")]: attempt.student?.name || t("tch_exg_attempt_unknown", "Không rõ"),
+      [t("common_email", "Email")]: attempt.student?.email || "",
+      [t("tch_exg_variant_code", "Mã đề")]: attempt.variantCode ?? "—",
+      [t("tch_exg_attempt_score", "Điểm") + " (%)"]: Number(attempt.score || 0).toFixed(2),
+      [t("tch_exg_attempt_result", "Kết quả")]: attempt.passed ? t("tch_exg_attempt_pass", "Đạt") : t("tch_exg_attempt_fail", "Chưa đạt"),
+      [t("tch_exg_score_detail", "Điểm số chi tiết")]: `${Number(attempt.earnedPoints || 0).toFixed(2)}/${Number(attempt.totalPoints || 0).toFixed(2)}`,
+      [t("tch_exg_attempt_submitted", "Thời gian nộp")]: new Date(attempt.submittedAt || attempt.createdAt || "").toLocaleString(locale) || "—",
     }))
 
     const worksheet = XLSX.utils.json_to_sheet(rows)
     const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Bang diem")
+    XLSX.utils.book_append_sheet(workbook, worksheet, t("tch_exg_score_sheet", "Bảng điểm"))
 
-    const safeTitle = String(attemptHistoryExam.title || "bang-diem")
+    const safeTitle = String(attemptHistoryExam.title || t("tch_exg_score_sheet_file", "bang-diem"))
       .trim()
       .replace(/[\\/:*?"<>|]/g, "-")
       .replace(/\s+/g, "-")
-      .slice(0, 80) || "bang-diem"
+      .slice(0, 80) || t("tch_exg_score_sheet_file", "bang-diem")
 
-    XLSX.writeFile(workbook, `${safeTitle}-bang-diem.xlsx`)
+    XLSX.writeFile(workbook, `${safeTitle}-${t("tch_exg_score_sheet_file", "bang-diem")}.xlsx`)
   }
 
   const handleViewAttemptDetail = async (attempt: ExtractedExamAttempt) => {
@@ -399,7 +401,7 @@ export default function TeacherExamsListPage() {
   }
 
   const handleDelete = async (examId: string, examTitle: string) => {
-    const message = `Bạn có chắc muốn xóa đề thi "${examTitle}"?`
+    const message = t("tch_exg_del_confirm", "Bạn có chắc muốn xóa đề thi \"{title}\"?").replace("{title}", examTitle)
     const ok = window.confirm(message)
     if (!ok) return
 
@@ -618,25 +620,25 @@ export default function TeacherExamsListPage() {
             <div className="flex items-center justify-between border-b px-5 py-4">
               <div>
                 <h3 className="text-lg font-semibold">{currentExam.title}</h3>
-                <p className="text-sm text-muted-foreground">Đề {currentVariant.code} - {currentVariant.questions?.length || 0} câu hỏi</p>
+                <p className="text-sm text-muted-foreground">{t("tch_exg_exam_code_prefix", "Đề")} {currentVariant.code} - {currentVariant.questions?.length || 0} {t("tch_exg_question_label", "câu hỏi")}</p>
               </div>
               <button
                 className="rounded-lg border px-3 py-1 text-sm hover:bg-secondary"
                 onClick={() => setVariantQuestionsOpen(false)}
               >
-                Đóng
+                {t("common_close", "Đóng")}
               </button>
             </div>
             
             <div className="max-h-[60vh] overflow-auto p-5">
               {!currentVariant.questions || currentVariant.questions.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground">Không có câu hỏi</div>
+                <div className="py-8 text-center text-muted-foreground">{t("tch_exg_no_questions", "Không có câu hỏi")}</div>
               ) : (
                 <div className="space-y-4">
                   {currentVariant.questions.map((question: any, idx: number) => (
                     <div key={question.id || idx} className="rounded-lg border p-4 space-y-2">
                       <div className="flex items-start gap-2">
-                        <span className="font-semibold text-primary shrink-0">Câu {idx + 1}:</span>
+                        <span className="font-semibold text-primary shrink-0">{t("tch_exg_question_prefix", "Câu")} {idx + 1}:</span>
                         <ScientificText
                           as="p"
                           className="text-sm whitespace-pre-wrap"
@@ -653,7 +655,7 @@ export default function TeacherExamsListPage() {
                         </div>
                       )}
                       <div className="pl-8 text-xs text-green-600">
-                        Đáp án: <ScientificText text={Array.isArray(question.correctAnswer) ? question.correctAnswer.join(", ") : question.correctAnswer} />
+                        {t("tch_exg_correct_answer", "Đáp án")}: <ScientificText text={Array.isArray(question.correctAnswer) ? question.correctAnswer.join(", ") : question.correctAnswer} />
                       </div>
                     </div>
                   ))}
@@ -707,26 +709,26 @@ export default function TeacherExamsListPage() {
                       className="rounded-lg border px-3 py-1 text-sm hover:bg-secondary"
                       onClick={() => setSelectedAttempt(null)}
                     >
-                      ← Quay lại
+                      ← {t("common_back", "Quay lại")}
                     </button>
                     <div>
-                      <span className="font-semibold">{selectedAttempt.student?.name || "Học sinh"}</span>
+                      <span className="font-semibold">{selectedAttempt.student?.name || t("tch_exg_attempt_student", "Học sinh")}</span>
                       {selectedAttempt.variantCode && (
                         <span className="ml-2 rounded bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 text-xs font-semibold px-2 py-0.5">
-                          Mã đề: {selectedAttempt.variantCode}
+                          {t("tch_exg_variant_code", "Mã đề")}: {selectedAttempt.variantCode}
                         </span>
                       )}
                       <span className="ml-3 text-sm text-muted-foreground">
-                        {Number(selectedAttempt.score || 0).toFixed(2)}% — {selectedAttempt.passed ? "Đạt" : "Chưa đạt"}
+                        {Number(selectedAttempt.score || 0).toFixed(2)}% - {selectedAttempt.passed ? t("tch_exg_attempt_pass", "Đạt") : t("tch_exg_attempt_fail", "Chưa đạt")}
                       </span>
                     </div>
                   </div>
                   {attemptDetailLoading ? (
                     <div className="py-6 text-center text-muted-foreground">
-                      <Loader2 className="mr-2 inline-block animate-spin" size={16} /> Đang tải...
+                      <Loader2 className="mr-2 inline-block animate-spin" size={16} /> {t("tch_exg_loading", "Đang tải...")}
                     </div>
                   ) : (selectedAttempt.questionResults || []).length === 0 ? (
-                    <div className="py-6 text-center text-muted-foreground">Không có chi tiết câu trả lời</div>
+                    <div className="py-6 text-center text-muted-foreground">{t("tch_exg_no_answer_details", "Không có chi tiết câu trả lời")}</div>
                   ) : (
                     <div className="space-y-3">
                       {(selectedAttempt.questionResults || []).map((qr, idx) => (
@@ -735,22 +737,22 @@ export default function TeacherExamsListPage() {
                           className={`rounded-xl border p-4 ${qr.isCorrect ? "border-green-400/40 bg-green-500/5" : "border-red-400/40 bg-red-500/5"}`}
                         >
                           <div className="flex items-start gap-2 mb-2">
-                            <span className="text-xs font-semibold text-muted-foreground mt-0.5 shrink-0">Câu {idx + 1}.</span>
+                            <span className="text-xs font-semibold text-muted-foreground mt-0.5 shrink-0">{t("tch_exg_question_prefix", "Câu")} {idx + 1}.</span>
                             <ScientificText
                               as="p"
                               className="text-sm font-medium whitespace-pre-wrap"
                               text={normalizeUploadedText(qr.question)}
                             />
                             <span className={`ml-auto shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${qr.isCorrect ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-500"}`}>
-                              {qr.isCorrect ? "Đúng" : "Sai"}
+                              {qr.isCorrect ? t("common_correct", "Đúng") : t("common_incorrect", "Sai")}
                             </span>
                           </div>
                           <div className="text-xs space-y-1 pl-5">
-                            <div><span className="text-muted-foreground">Học sinh chọn: </span><span className="font-medium"><ScientificText text={Array.isArray(qr.userAnswer) ? qr.userAnswer.join(", ") : (qr.userAnswer ?? "—")} /></span></div>
-                            <div><span className="text-muted-foreground">Đáp án đúng: </span><span className="font-medium text-green-600"><ScientificText text={Array.isArray(qr.correctAnswer) ? qr.correctAnswer.join(", ") : (qr.correctAnswer ?? "—")} /></span></div>
+                            <div><span className="text-muted-foreground">{t("tch_exg_student_selected", "Học sinh chọn")}: </span><span className="font-medium"><ScientificText text={Array.isArray(qr.userAnswer) ? qr.userAnswer.join(", ") : (qr.userAnswer ?? "—")} /></span></div>
+                            <div><span className="text-muted-foreground">{t("tch_exg_correct_answer", "Đáp án đúng")}: </span><span className="font-medium text-green-600"><ScientificText text={Array.isArray(qr.correctAnswer) ? qr.correctAnswer.join(", ") : (qr.correctAnswer ?? "—")} /></span></div>
                             {qr.explanation && (
                               <div className="text-muted-foreground italic">
-                                Giải thích: <ScientificText text={normalizeUploadedText(qr.explanation)} />
+                                {t("tch_exg_explanation", "Giải thích")}: <ScientificText text={normalizeUploadedText(qr.explanation)} />
                               </div>
                             )}
                           </div>
@@ -764,12 +766,12 @@ export default function TeacherExamsListPage() {
                   <thead>
                     <tr className="text-left text-muted-foreground">
                       <th className="py-2 pr-3">{t("tch_exg_attempt_student", "Học sinh")}</th>
-                      <th className="py-2 pr-3">Email</th>
-                      <th className="py-2 pr-3">Mã đề</th>
+                      <th className="py-2 pr-3">{t("common_email", "Email")}</th>
+                      <th className="py-2 pr-3">{t("tch_exg_variant_code", "Mã đề")}</th>
                       <th className="py-2 pr-3">{t("tch_exg_attempt_score", "Điểm")}</th>
                       <th className="py-2 pr-3">{t("tch_exg_attempt_result", "Kết quả")}</th>
                       <th className="py-2 pr-3">{t("tch_exg_attempt_submitted", "Thời gian nộp")}</th>
-                      <th className="py-2 pr-3">Chi tiết</th>
+                      <th className="py-2 pr-3">{t("common_detail", "Chi tiết")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -792,7 +794,7 @@ export default function TeacherExamsListPage() {
                         </td>
                         <td className="py-3 pr-3 text-muted-foreground">
                           {attempt.submittedAt || attempt.createdAt
-                            ? new Date(attempt.submittedAt || attempt.createdAt || "").toLocaleString("vi-VN")
+                            ? new Date(attempt.submittedAt || attempt.createdAt || "").toLocaleString(locale)
                             : "—"}
                         </td>
                         <td className="py-3 pr-3">
@@ -800,7 +802,7 @@ export default function TeacherExamsListPage() {
                             className="rounded-lg border px-2 py-1 text-xs hover:bg-secondary"
                             onClick={() => handleViewAttemptDetail(attempt)}
                           >
-                            Xem đáp án
+                            {t("tch_exg_view_answers", "Xem đáp án")}
                           </button>
                         </td>
                       </tr>

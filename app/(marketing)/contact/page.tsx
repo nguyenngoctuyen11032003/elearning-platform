@@ -14,8 +14,9 @@ export default function ContactPage() {
     message: ""
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const { config: settings } = useSystemConfig()
+  const tr = (vi: string, en: string) => (language === "en" ? en : vi)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -62,13 +63,13 @@ if (!settings) return null
   const contactInfo = [
   {
     icon: Phone,
-    title: "Hotline",
+      title: t("contact_hotline", "Hotline"),
     content: settings.hotline,
     description: t("contact_support_247", "Hỗ trợ 24/7"),
   },
   {
     icon: Mail,
-    title: "Email",
+      title: t("contact_email", "Email"),
     content: settings.supportEmail,
     description: t("contact_reply_24h", "Phản hồi trong 24h"),
   },
@@ -76,13 +77,13 @@ if (!settings) return null
     icon: MapPin,
     title: t("contact_address", "Địa chỉ"),
     content: settings.address,
-    description: "Việt Nam",
+    description: tr("Việt Nam", "Vietnam"),
     },
     {
       icon: Clock,
       title: t("contact_hours", "Giờ làm việc"),
       content: settings.address,
-      description: "T7: 8:00 - 12:00"
+      description: tr("T7: 8:00 - 12:00", "Sat: 8:00 AM - 12:00 PM")
     }
   ]
 
@@ -170,7 +171,7 @@ if (!settings) return null
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full px-4 py-3 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary dark:focus:ring-accent focus:border-transparent"
-                      placeholder="email@example.com"
+                      placeholder={t("contact_email_placeholder", "email@example.com")}
                     />
                   </div>
                 </div>
@@ -185,7 +186,7 @@ if (!settings) return null
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       className="w-full px-4 py-3 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary dark:focus:ring-accent focus:border-transparent"
-                      placeholder="0123456789"
+                      placeholder={t("contact_phone_placeholder", "0123456789")}
                     />
                   </div>
                   <div>

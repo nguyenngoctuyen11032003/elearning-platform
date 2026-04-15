@@ -32,7 +32,7 @@ const getRevenueToneClass = (value: number): string => {
 }
 
 const getNameBasedAvatar = (name: string): string => {
-  const safeName = (name || "Giảng viên").trim() || "Giảng viên"
+  const safeName = (name || "Teacher").trim() || "Teacher"
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=0D8ABC&color=fff&size=512`
 }
 
@@ -143,7 +143,7 @@ export default function TeachersPage() {
         const normalized = Array.isArray(result)
           ? result.map((teacher: any, index: number) => ({
               ...teacher,
-              image: normalizeTeacherAvatar(teacher?.avatar, teacher?.name || "Giảng viên"),
+              image: normalizeTeacherAvatar(teacher?.avatar, teacher?.name || "Teacher"),
               gradient: gradientPalette[index % gradientPalette.length],
             }))
           : []
@@ -510,7 +510,7 @@ export default function TeachersPage() {
                           alt={teacher.name}
                           className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = getNameBasedAvatar(teacher.name || "Giảng viên")
+                            (e.currentTarget as HTMLImageElement).src = getNameBasedAvatar(teacher.name || "Teacher")
                           }}
                         />
                         <div className="absolute top-3 right-3 bg-white/90 px-3 py-1 rounded-full text-sm font-semibold backdrop-blur">

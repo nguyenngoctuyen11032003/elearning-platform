@@ -248,23 +248,23 @@ export default function AssignmentsPage() {
       {!loading && assignments.length > 0 && (
         <div className="grid gap-4 md:grid-cols-4 pt-6 border-t">
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Tổng bài tập</p>
+            <p className="text-sm text-muted-foreground">{t("assign_total", "Tổng bài tập")}</p>
             <p className="text-2xl font-bold">{assignments.length}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Chưa nộp</p>
+            <p className="text-sm text-muted-foreground">{t("assign_not_submitted", "Chưa nộp")}</p>
             <p className="text-2xl font-bold text-orange-600">
               {getStatusCount('pending') + getStatusCount('overdue')}
             </p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Chờ chấm điểm</p>
+            <p className="text-sm text-muted-foreground">{t("assign_waiting_grade", "Chờ chấm điểm")}</p>
             <p className="text-2xl font-bold text-blue-600">
               {getStatusCount('submitted')}
             </p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Đã chấm điểm</p>
+            <p className="text-sm text-muted-foreground">{t("assign_graded", "Đã chấm điểm")}</p>
             <p className="text-2xl font-bold text-green-600">
               {getStatusCount('graded')}
             </p>
