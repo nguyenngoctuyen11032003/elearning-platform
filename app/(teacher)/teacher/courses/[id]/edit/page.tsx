@@ -28,6 +28,8 @@ interface Lesson {
   id: string
   title: string
   description: string
+  order?: number
+  sectionTitle?: string
   writingTitle?: string
   videoFile?: File
   videoUrl?: string
@@ -123,6 +125,54 @@ function parseLessonResources(resources: unknown): LessonDocument[] {
   }
 
   return docs
+}
+
+function resolveSectionSortKey(title: string): { numeric: number | null; text: string } {
+  const normalized = title.trim().toLowerCase()
+  if (!normalized) return { numeric: null, text: "" }
+  const match = normalized.match(/(\d+)/)
+  const numeric = match ? Number(match[1]) : null
+  return { numeric: Number.isFinite(numeric) ? numeric : null, text: normalized }
+}
+
+function compareSectionTitle(a: string, b: string): number {
+  const left = resolveSectionSortKey(a)
+  const right = resolveSectionSortKey(b)
+  if (left.numeric !== null && right.numeric !== null && left.numeric !== right.numeric) {
+    return left.numeric - right.numeric
+  }
+  if (left.text && right.text) {
+    const textCmp = left.text.localeCompare(right.text, "vi")
+    if (textCmp !== 0) return textCmp
+  }
+  if (left.text && !right.text) return -1
+  if (!left.text && right.text) return 1
+  return 0
+}
+
+function sortLessonsForSections<T extends { sectionTitle?: string; order?: number; title?: string }>(list: T[]): T[] {
+  return [...list].sort((a, b) => {
+    const sectionCmp = compareSectionTitle(String(a.sectionTitle || ""), String(b.sectionTitle || ""))
+    if (sectionCmp !== 0) return sectionCmp
+    const orderA = Number.isFinite(Number(a.order)) ? Number(a.order) : 0
+    const orderB = Number.isFinite(Number(b.order)) ? Number(b.order) : 0
+    if (orderA !== orderB) return orderA - orderB
+    return String(a.title || "").localeCompare(String(b.title || ""), "vi")
+  })
+}
+
+function groupLessonsBySectionTitle<T extends { sectionTitle?: string }>(list: T[]): Array<{ title: string; items: T[] }> {
+  const groups: Array<{ title: string; items: T[] }> = []
+  for (const lesson of list) {
+    const title = String(lesson.sectionTitle || "").trim()
+    const last = groups[groups.length - 1]
+    if (!last || last.title !== title) {
+      groups.push({ title, items: [lesson] })
+    } else {
+      last.items.push(lesson)
+    }
+  }
+  return groups
 }
 
 function buildLessonResources(lesson: Lesson): LessonDocument[] {
@@ -814,50 +864,46 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             ? lessonsUnwrapped.data
             : []
           if (lessonList.length > 0) {
-          // Group lessons by sectionTitle
-          const sectionMap = new Map<string, typeof lessonList>()
-          for (const l of lessonList) {
-            const key = (l as { sectionTitle?: string }).sectionTitle || "Nội dung khóa học"
-            if (!sectionMap.has(key)) sectionMap.set(key, [])
-            sectionMap.get(key)!.push(l)
-          }
-          const reconstructedSections = Array.from(sectionMap.entries()).map(([title, lsns], idx) => ({
+          const sortedLessons = sortLessonsForSections(lessonList)
+          const groupedLessons = groupLessonsBySectionTitle(sortedLessons)
+
+          const reconstructedSections = groupedLessons.map((group, idx) => ({
             id: createTempId(`section-${idx}`),
-            title,
-            lessons: lsns
-              .sort((a: { order?: number }, b: { order?: number }) => (a.order || 0) - (b.order || 0))
-              .map((l: { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[]; type?: string }) => {
-                const resources = parseLessonResources(l.resources)
-                const [firstRes, ...extraResources] = resources
-                const linkedQuiz = quizByLesson[l.id]
-                const linkedAssignment = assignmentByLesson[l.id]
-                const questions = Array.isArray(linkedQuiz?.questions) ? linkedQuiz.questions : []
-                return {
-                  id: l.id,
-                  title: l.title,
-                  description: l.description || "",
-                  quizId: linkedQuiz?.id,
-                  quizzes: questions.map((q: any) => ({
-                    id: q.id || createTempId("quiz"),
-                    question: q.question || "",
-                    image: q.image || undefined,
-                    type: q.type || "multiple-choice",
-                    options: Array.isArray(q.options) ? q.options : buildOptions(4),
-                    correctAnswer: q.correctAnswer,
-                    correctAnswers: q.correctAnswers || [],
-                  })),
-                  videoUrl: l.videoUrl,
-                  documentUrl: firstRes?.url,
-                  documentName: firstRes?.name,
-                  extraDocuments: extraResources,
-                  assignmentId: linkedAssignment?.id,
-                  writingTitle: linkedAssignment?.title || "",
-                  writingDueDate: toDateTimeLocal(linkedAssignment?.dueDate),
-                  writingPrompt: linkedAssignment?.description || "",
-                  writingCriteria: parseWritingCriteria(linkedAssignment?.instructions, linkedAssignment?.maxScore || 100),
-                  writingMaxScore: typeof linkedAssignment?.maxScore === "number" ? linkedAssignment.maxScore : 100,
-                }
-              }),
+            title: group.title,
+            lessons: group.items.map((l: { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[]; type?: string; order?: number; sectionTitle?: string }) => {
+              const resources = parseLessonResources(l.resources)
+              const [firstRes, ...extraResources] = resources
+              const linkedQuiz = quizByLesson[l.id]
+              const linkedAssignment = assignmentByLesson[l.id]
+              const questions = Array.isArray(linkedQuiz?.questions) ? linkedQuiz.questions : []
+              return {
+                id: l.id,
+                title: l.title,
+                description: l.description || "",
+                order: l.order,
+                sectionTitle: l.sectionTitle,
+                quizId: linkedQuiz?.id,
+                quizzes: questions.map((q: any) => ({
+                  id: q.id || createTempId("quiz"),
+                  question: q.question || "",
+                  image: q.image || undefined,
+                  type: q.type || "multiple-choice",
+                  options: Array.isArray(q.options) ? q.options : buildOptions(4),
+                  correctAnswer: q.correctAnswer,
+                  correctAnswers: q.correctAnswers || [],
+                })),
+                videoUrl: l.videoUrl,
+                documentUrl: firstRes?.url,
+                documentName: firstRes?.name,
+                extraDocuments: extraResources,
+                assignmentId: linkedAssignment?.id,
+                writingTitle: linkedAssignment?.title || "",
+                writingDueDate: toDateTimeLocal(linkedAssignment?.dueDate),
+                writingPrompt: linkedAssignment?.description || "",
+                writingCriteria: parseWritingCriteria(linkedAssignment?.instructions, linkedAssignment?.maxScore || 100),
+                writingMaxScore: typeof linkedAssignment?.maxScore === "number" ? linkedAssignment.maxScore : 100,
+              }
+            }),
           }))
           setSections(reconstructedSections.length > 0 ? reconstructedSections : [])
           }
@@ -1538,17 +1584,12 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         )
 
         if (lessonList.length > 0) {
-          const sectionMap = new Map<string, typeof lessonList>()
-          for (const l of lessonList) {
-            const key = (l as { sectionTitle?: string }).sectionTitle || "Nội dung khóa học"
-            if (!sectionMap.has(key)) sectionMap.set(key, [])
-            sectionMap.get(key)!.push(l)
-          }
-          const reconstructed = Array.from(sectionMap.entries()).map(([title, lsns], idx) => ({
+          const sortedLessons = sortLessonsForSections(lessonList)
+          const groupedLessons = groupLessonsBySectionTitle(sortedLessons)
+          const reconstructed = groupedLessons.map((group, idx) => ({
             id: createTempId(`section-${idx}`),
-            title,
-            lessons: (lsns as { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[]; order?: number; type?: string }[])
-              .sort((a, b) => (a.order || 0) - (b.order || 0))
+            title: group.title,
+            lessons: (group.items as { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[]; order?: number; sectionTitle?: string; type?: string }[])
               .map(l => {
                 const resources = parseLessonResources(l.resources)
                 const [firstRes, ...extraResources] = resources
@@ -1559,6 +1600,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   id: l.id,
                   title: l.title,
                   description: l.description || "",
+                  order: l.order,
+                  sectionTitle: l.sectionTitle,
                   quizId: linkedQuiz?.id,
                   quizzes: questions.map((q) => ({
                     id: q.id || createTempId("quiz"),

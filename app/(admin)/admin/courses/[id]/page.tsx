@@ -33,6 +33,7 @@ interface Lesson {
   type: "video" | "reading" | "quiz"
   duration: string
   order: number
+  sectionTitle?: string
   isPublished: boolean
   videoUrl?: string
   content?: string
@@ -111,6 +112,29 @@ interface EnrolledStudentRow {
 const getAuth = (): Record<string, string> => {
   const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
   return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+function resolveSectionSortKey(title: string): { numeric: number | null; text: string } {
+  const normalized = title.trim().toLowerCase()
+  if (!normalized) return { numeric: null, text: "" }
+  const match = normalized.match(/(\d+)/)
+  const numeric = match ? Number(match[1]) : null
+  return { numeric: Number.isFinite(numeric) ? numeric : null, text: normalized }
+}
+
+function compareSectionTitle(a: string, b: string): number {
+  const left = resolveSectionSortKey(a)
+  const right = resolveSectionSortKey(b)
+  if (left.numeric !== null && right.numeric !== null && left.numeric !== right.numeric) {
+    return left.numeric - right.numeric
+  }
+  if (left.text && right.text) {
+    const textCmp = left.text.localeCompare(right.text, "vi")
+    if (textCmp !== 0) return textCmp
+  }
+  if (left.text && !right.text) return -1
+  if (!left.text && right.text) return 1
+  return 0
 }
 
 function MiniSparkline({
@@ -437,6 +461,7 @@ export default function AdminCourseDetailPage() {
           return {
           id: l.id as string,
           title: l.title as string,
+          sectionTitle: l.sectionTitle as string | undefined,
           type: (l.type === "article" || l.type === "assignment" ? "reading" : l.type) as Lesson["type"],
           duration: l.duration ? String(l.duration) : "",
           order: (l.order as number) || 0,
@@ -453,6 +478,17 @@ export default function AdminCourseDetailPage() {
             writingCriteria: parseWritingCriteria(linkedAssignment?.instructions),
             writingMaxScore: typeof linkedAssignment?.maxScore === "number" ? linkedAssignment.maxScore : undefined,
           }
+        })
+
+        const sortedLessons = [...lessonList].sort((a, b) => {
+          const sectionA = a.sectionTitle || "Nội dung khóa học"
+          const sectionB = b.sectionTitle || "Nội dung khóa học"
+          const sectionCmp = compareSectionTitle(sectionA, sectionB)
+          if (sectionCmp !== 0) return sectionCmp
+          const orderA = Number.isFinite(Number(a.order)) ? Number(a.order) : 0
+          const orderB = Number.isFinite(Number(b.order)) ? Number(b.order) : 0
+          if (orderA !== orderB) return orderA - orderB
+          return String(a.title || "").localeCompare(String(b.title || ""), "vi")
         })
         const teacher = (c.teacher as Record<string, unknown>) || {}
         const studentRows: EnrolledStudentRow[] = (Array.isArray(enrollments) ? enrollments : []).map((item: any) => {
@@ -474,11 +510,11 @@ export default function AdminCourseDetailPage() {
 
         setEnrolledStudents(studentRows)
 
-        const totalMinutes = lessonList.reduce(
+        const totalMinutes = sortedLessons.reduce(
           (sum, lesson) => sum + durationToMinutes(lesson.duration),
           0,
         )
-        const totalVideoMinutes = lessonList
+        const totalVideoMinutes = sortedLessons
           .filter((lesson) => lesson.type === "video")
           .reduce((sum, lesson) => sum + durationToMinutes(lesson.duration), 0)
         const ratingDistribution = normalizeRatingDistribution(c.ratingDistribution)
@@ -527,8 +563,8 @@ export default function AdminCourseDetailPage() {
           language: c.language || "vi",
           requirements: c.requirements || [],
           learningOutcomes: c.learningOutcomes || [],
-          sections: [{ id: "main", title: t("adm_cd_course_content", "Nội dung khóa học"), order: 1, lessons: lessonList }],
-          totalLessons: lessonList.length,
+          sections: [{ id: "main", title: t("adm_cd_course_content", "Nội dung khóa học"), order: 1, lessons: sortedLessons }],
+          totalLessons: sortedLessons.length,
           totalVideoDuration: formatMinutes(totalVideoMinutes),
           enrollmentCount,
           completionRate,
