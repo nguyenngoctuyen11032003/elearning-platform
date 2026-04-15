@@ -320,15 +320,15 @@ export default function ExamResultPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
       <div className={`rounded-2xl border p-6 ${result.passed ? "border-green-500/40" : "border-red-500/40"}`}>
-        <h1 className="text-2xl font-bold">Kết quả bài thi</h1>
+        <h1 className="text-2xl font-bold">{t("exam_result_title", "Kết quả bài thi")}</h1>
         <p className="mt-1 text-muted-foreground">{result.exam?.title}</p>
 
         <div className="mt-4 space-y-2 text-sm">
-          <p>Điểm: <b>{Number(result.score || 0).toFixed(2)}%</b></p>
-          <p>Số điểm: <b>{result.earnedPoints}/{result.totalPoints}</b></p>
-          <p>Điểm đạt yêu cầu: <b>{result.exam?.passingScore || 0}%</b></p>
+          <p>{t("exam_result_score_label", "Điểm")}: <b>{Number(result.score || 0).toFixed(2)}%</b></p>
+          <p>{t("exam_result_points_label", "Số điểm")}: <b>{result.earnedPoints}/{result.totalPoints}</b></p>
+          <p>{t("exam_result_pass_score_label", "Điểm đạt yêu cầu")}: <b>{result.exam?.passingScore || 0}%</b></p>
           <p className={result.passed ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
-            {result.passed ? "Đạt" : "Chưa đạt"}
+            {result.passed ? t("exam_result_passed", "Đạt") : t("exam_result_failed", "Chưa đạt")}
           </p>
         </div>
 
@@ -336,40 +336,40 @@ export default function ExamResultPage() {
           <>
             {result.certificateId ? (
               <div className="mt-5 rounded-lg bg-green-50 p-4 text-green-700 border border-green-200">
-                <div className="font-semibold mb-1">✅ Chứng chỉ đã được cấp</div>
-                <p className="text-sm mb-3">Bạn đã vượt qua bài thi thật và nhận được chứng chỉ</p>
+                <div className="font-semibold mb-1">✅ {t("exam_result_cert_granted", "Chứng chỉ đã được cấp")}</div>
+                <p className="text-sm mb-3">{t("exam_result_cert_granted_desc", "Bạn đã vượt qua bài thi thật và nhận được chứng chỉ")}</p>
                 <Link href="/certificates" className="inline-block font-semibold text-green-600 hover:text-green-800 underline">
-                  → Xem chứng chỉ của tôi
+                  → {t("exam_result_view_cert", "Xem chứng chỉ của tôi")}
                 </Link>
               </div>
             ) : certificatePending ? (
               <div className="mt-5 rounded-lg bg-blue-50 p-4 text-blue-700 border border-blue-200">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-700 border-t-transparent" />
-                  <span className="font-semibold">Đang xử lý chứng chỉ</span>
+                  <span className="font-semibold">{t("exam_result_cert_processing", "Đang xử lý chứng chỉ")}</span>
                 </div>
-                <p className="text-sm">Hệ thống đang tạo chứng chỉ cho bạn. Vui lòng chờ...</p>
+                <p className="text-sm">{t("exam_result_cert_processing_desc", "Hệ thống đang tạo chứng chỉ cho bạn. Vui lòng chờ...")}</p>
               </div>
             ) : certificateError ? (
               <div className="mt-5 rounded-lg bg-amber-50 p-4 text-amber-700 border border-amber-200">
-                <div className="font-semibold mb-1">⏳ Chứng chỉ sẽ được cấp</div>
+                <div className="font-semibold mb-1">⏳ {t("exam_result_cert_pending_title", "Chứng chỉ sẽ được cấp")}</div>
                 <p className="text-sm mb-3">{certificateError}</p>
                 <button
                   onClick={retryCertificate}
                   className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
                 >
-                  🔄 Kiểm tra lại
+                  🔄 {t("exam_result_retry_check", "Kiểm tra lại")}
                 </button>
               </div>
             ) : (
               <div className="mt-5 rounded-lg bg-green-50 p-4 text-green-700 border border-green-200">
-                <div className="font-semibold">✓ Bạn đã đạt</div>
-                <p className="text-sm mb-3">Chứng chỉ sẽ được cấp cho bạn trong thời gian sớm nhất.</p>
+                <div className="font-semibold">✓ {t("exam_result_passed_user", "Bạn đã đạt")}</div>
+                <p className="text-sm mb-3">{t("exam_result_cert_soon", "Chứng chỉ sẽ được cấp cho bạn trong thời gian sớm nhất.")}</p>
                 <button
                   onClick={retryCertificate}
                   className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
                 >
-                  🔄 Kiểm tra lại
+                  🔄 {t("exam_result_retry_check", "Kiểm tra lại")}
                 </button>
               </div>
             )}
@@ -380,38 +380,38 @@ export default function ExamResultPage() {
       <div className="flex gap-3 flex-wrap">
         {result.passed && (
           <Link href="/certificates" className="rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700">
-            Xem chứng chỉ
+            {t("exam_result_view_cert", "Xem chứng chỉ")}
           </Link>
         )}
         {isExtractedSource && examId && (result?.remainingAttempts ?? 0) > 0 && (
           <Link href={`/exams/${examId}/take?source=extracted`} className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-            Làm lại bài thi ({result.remainingAttempts} lần còn lại)
+            {t("exam_result_retake_exam", "Làm lại bài thi")} ({result.remainingAttempts} {t("exam_result_attempts_left", "lần còn lại")})
           </Link>
         )}
         {isExtractedSource && examId && (
           <Link href={`/exams/${examId}/history`} className="rounded-lg bg-slate-700 px-4 py-2 text-white hover:bg-slate-800">
-            Quay lại lịch sử thi
+            {t("exam_result_back_history", "Quay lại lịch sử thi")}
           </Link>
         )}
         <Link href="/exams" className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primary/90">
-          Danh sách bài thi
+          {t("exam_result_exam_list", "Danh sách bài thi")}
         </Link>
       </div>
 
       {reviewQuestions.length > 0 && (
         <div className="rounded-2xl border p-6 space-y-4">
-          <h2 className="text-xl font-bold">Chi tiết đáp án</h2>
+          <h2 className="text-xl font-bold">{t("exam_result_answer_detail", "Chi tiết đáp án")}</h2>
           <div className="space-y-4">
             {reviewQuestions.map((question, index) => (
               <div key={question.id} className="rounded-xl border p-4 space-y-3">
                 <p className="font-medium whitespace-pre-wrap break-words leading-relaxed">
-                  Câu {index + 1}: <ScientificText text={question.question} />
+                  {t("exam_result_question", "Câu")} {index + 1}: <ScientificText text={question.question} />
                 </p>
 
                 {question.image && (
                   <img
                     src={question.image}
-                    alt={`Minh họa câu ${index + 1}`}
+                    alt={`${t("exam_result_question_image", "Minh họa câu")} ${index + 1}`}
                     className="max-w-full rounded-lg border border-border"
                   />
                 )}
@@ -427,13 +427,13 @@ export default function ExamResultPage() {
                 )}
 
                 <div className="text-sm space-y-1">
-                  <p>Câu trả lời của bạn: <b><ScientificText text={formatAnswer(question.userAnswer)} /></b></p>
-                  <p>Đáp án đúng: <b><ScientificText text={formatAnswer(question.correctAnswer)} /></b></p>
+                  <p>{t("exam_result_your_answer", "Câu trả lời của bạn")}: <b><ScientificText text={formatAnswer(question.userAnswer)} /></b></p>
+                  <p>{t("exam_result_correct_answer", "Đáp án đúng")}: <b><ScientificText text={formatAnswer(question.correctAnswer)} /></b></p>
                 </div>
 
                 {question.explanation && (
                   <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-700 whitespace-pre-wrap break-words leading-relaxed">
-                    Giải thích: <ScientificText text={question.explanation} />
+                    {t("exam_result_explanation", "Giải thích")}: <ScientificText text={question.explanation} />
                   </div>
                 )}
               </div>

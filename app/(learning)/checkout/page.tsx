@@ -885,7 +885,7 @@ export default function CheckoutPage() {
                       : "border-border/70 hover:bg-secondary"
                   }`}
                 >
-                  <span className="inline-flex items-center gap-2 font-semibold"><QrCode size={16} />SePay QR</span>
+                  <span className="inline-flex items-center gap-2 font-semibold"><QrCode size={16} />{t("checkout_sepay_qr_label", "SePay QR")}</span>
                   <span className="mt-1 block text-xs text-muted-foreground">{t("checkout_mode_qr_desc", "Tạo QR và chuyển khoản theo nội dung hệ thống")}</span>
                 </button>
                 <button

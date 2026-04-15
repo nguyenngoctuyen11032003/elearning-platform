@@ -368,36 +368,36 @@ export default function StudentAssignmentDetailPage() {
             <table className="w-full min-w-[760px] text-base">
               <tbody>
                 <tr className="border-t border-border align-top first:border-t-0">
-                  <td className="w-[280px] px-4 py-4 font-semibold text-foreground">Attempt number</td>
-                  <td className="px-4 py-4 text-foreground">This is attempt 1.</td>
+                  <td className="w-[280px] px-4 py-4 font-semibold text-foreground">{t('asgn_attempt_number', 'Lần nộp')}</td>
+                  <td className="px-4 py-4 text-foreground">{t('asgn_attempt_first', 'Đây là lần nộp thứ 1.')}</td>
                 </tr>
                 <tr className="border-t border-border align-top">
-                  <td className="px-4 py-4 font-semibold text-foreground">Submission status</td>
+                  <td className="px-4 py-4 font-semibold text-foreground">{t('asgn_submission_status', 'Trạng thái nộp bài')}</td>
                   <td className={`px-4 py-4 ${submitted ? 'bg-green-900/40 text-green-100' : 'text-muted-foreground'}`}>
                     {submissionStatusText}
                   </td>
                 </tr>
                 <tr className="border-t border-border align-top">
-                  <td className="px-4 py-4 font-semibold text-foreground">Grading status</td>
+                  <td className="px-4 py-4 font-semibold text-foreground">{t('asgn_grading_status', 'Trạng thái chấm điểm')}</td>
                   <td className={`px-4 py-4 ${isGraded ? 'bg-green-900/40 text-green-100' : 'text-foreground'}`}>
-                    {isGraded ? 'Graded' : 'Not graded'}
+                    {isGraded ? t('asgn_graded_label', 'Đã chấm') : t('asgn_not_graded_label', 'Chưa chấm')}
                   </td>
                 </tr>
                 <tr className="border-t border-border align-top">
-                  <td className="px-4 py-4 font-semibold text-foreground">Time remaining</td>
+                  <td className="px-4 py-4 font-semibold text-foreground">{t('asgn_time_remaining_label', 'Thời gian còn lại')}</td>
                   <td className={`px-4 py-4 ${submitted ? 'bg-green-900/40 text-green-100' : 'text-foreground'}`}>
                     {formatTimeRemaining(dueAt, submittedAt, t)}
                   </td>
                 </tr>
                 {lastModifiedAt && (
                   <tr className="border-t border-border align-top">
-                    <td className="px-4 py-4 font-semibold text-foreground">Last modified</td>
+                    <td className="px-4 py-4 font-semibold text-foreground">{t('asgn_last_modified_label', 'Chỉnh sửa lần cuối')}</td>
                     <td className="px-4 py-4 text-foreground">{lastModifiedAt.toLocaleString('vi-VN')}</td>
                   </tr>
                 )}
                 {attachments.length > 0 && (
                   <tr className="border-t border-border align-top">
-                    <td className="px-4 py-4 font-semibold text-foreground">File submissions</td>
+                    <td className="px-4 py-4 font-semibold text-foreground">{t('asgn_file_submissions_label', 'Tệp đã nộp')}</td>
                     <td className="px-4 py-4">
                       <div className="space-y-2">
                         {attachments.map((attachment) => (
@@ -421,7 +421,7 @@ export default function StudentAssignmentDetailPage() {
 
           {criteria.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-lg font-semibold text-foreground">Grading criteria</h2>
+              <h2 className="text-lg font-semibold text-foreground">{t('asgn_grading_criteria', 'Tiêu chí chấm điểm')}</h2>
               <div className="overflow-x-auto rounded-xl border border-border">
                 <table className="w-full min-w-[980px] text-sm">
                   <tbody>
@@ -433,7 +433,7 @@ export default function StudentAssignmentDetailPage() {
                         {(criterion.levels || []).map((level, levelIndex) => (
                           <td key={`${assignment.id}-${index}-${levelIndex}`} className="px-3 py-3 text-foreground">
                             <p className="whitespace-pre-wrap break-words leading-relaxed text-sm">
-                              {level.description || 'Chưa có mô tả mức này.'}
+                              {level.description || t('asgn_level_desc_missing', 'Chưa có mô tả mức này.')}
                             </p>
                             <p className="mt-2 text-emerald-600 font-semibold italic">{level.points} points</p>
                           </td>
@@ -450,7 +450,7 @@ export default function StudentAssignmentDetailPage() {
         <div className="rounded-2xl border border-border bg-card p-5 md:p-6 space-y-4">
           <div className="flex items-center gap-2">
             <FileText size={18} className="text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Bài làm của bạn</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('asgn_your_submission', 'Bài làm của bạn')}</h2>
           </div>
 
           <textarea
@@ -511,35 +511,35 @@ export default function StudentAssignmentDetailPage() {
 
           {isGraded && typeof mySubmission?.score === 'number' && (
             <div className="rounded-lg border border-border bg-secondary/40 p-4 space-y-3">
-              <h3 className="text-xl font-bold text-foreground">Feedback</h3>
+              <h3 className="text-xl font-bold text-foreground">{t('asgn_feedback', 'Nhận xét')}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <p className="text-muted-foreground">Grade</p>
+                <p className="text-muted-foreground">{t('asgn_grade', 'Điểm')}</p>
                 <p className="font-semibold text-foreground">
                   {mySubmission.score.toFixed(2)} / {(assignment.maxScore ?? 100).toFixed(2)}
                 </p>
-                <p className="text-muted-foreground">Graded on</p>
+                <p className="text-muted-foreground">{t('asgn_graded_on', 'Chấm lúc')}</p>
                 <p className="text-foreground">
-                  {mySubmission.gradedAt ? new Date(mySubmission.gradedAt).toLocaleString('vi-VN') : 'N/A'}
+                  {mySubmission.gradedAt ? new Date(mySubmission.gradedAt).toLocaleString('vi-VN') : t('common_not_available', 'N/A')}
                 </p>
               </div>
 
               {mySubmission.feedback && (
                 <div className="space-y-2">
-                  <p className="font-semibold text-foreground">Feedback comments</p>
+                  <p className="font-semibold text-foreground">{t('asgn_feedback_comments', 'Nhận xét chi tiết')}</p>
                   <p className="text-muted-foreground whitespace-pre-wrap break-words">{mySubmission.feedback}</p>
                 </div>
               )}
 
               {gradingDetails.length > 0 && (
                 <div className="space-y-2">
-                  <p className="font-semibold text-foreground">Các tiêu chí đã được chấm</p>
+                  <p className="font-semibold text-foreground">{t('asgn_graded_criteria', 'Các tiêu chí đã được chấm')}</p>
                   <div className="overflow-x-auto rounded-lg border border-border">
                     <table className="w-full text-sm">
                       <thead className="bg-secondary/50">
                         <tr>
-                          <th className="px-3 py-2 text-left">Tiêu chí</th>
-                          <th className="px-3 py-2 text-left">Mức chọn</th>
-                          <th className="px-3 py-2 text-left">Điểm</th>
+                          <th className="px-3 py-2 text-left">{t('asgn_criterion', 'Tiêu chí')}</th>
+                          <th className="px-3 py-2 text-left">{t('asgn_selected_level', 'Mức chọn')}</th>
+                          <th className="px-3 py-2 text-left">{t('asgn_grade', 'Điểm')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -565,7 +565,7 @@ export default function StudentAssignmentDetailPage() {
               disabled={submitting || uploading}
               className="px-5 py-2.5 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 disabled:opacity-60 transition-smooth"
             >
-              {submitting ? 'Đang nộp...' : 'Nộp bài'}
+              {submitting ? t('asgn_submitting', 'Đang nộp...') : t('asgn_submit', 'Nộp bài')}
             </button>
           )}
         </div>

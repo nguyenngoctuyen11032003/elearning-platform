@@ -95,9 +95,9 @@ export default function ExamHistoryPage() {
     const mins = Math.floor((seconds % 3600) / 60)
     const secs = seconds % 60
     if (hrs > 0) {
-      return `${hrs} giờ ${mins} phút`
+      return `${hrs} ${t("exam_time_hours", "giờ")} ${mins} ${t("exam_time_minutes", "phút")}`
     }
-    return `${mins} phút ${secs} giây`
+    return `${mins} ${t("exam_time_minutes", "phút")} ${secs} ${t("exam_time_seconds", "giây")}`
   }
 
   const formatDate = (dateStr: string) => {
@@ -143,7 +143,7 @@ export default function ExamHistoryPage() {
           <ArrowLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-foreground dark:text-white">Lịch sử thi</h1>
+          <h1 className="text-3xl font-bold text-foreground dark:text-white">{t("exam_history_title", "Lịch sử thi")}</h1>
           <p className="text-muted-foreground dark:text-slate-400">{examInfo.title}</p>
         </div>
       </motion.div>
@@ -158,35 +158,35 @@ export default function ExamHistoryPage() {
           <div className="grid md:grid-cols-4 gap-6">
             <div className="text-center">
               <p className="text-4xl font-bold text-primary">{attemptCount}</p>
-              <p className="text-sm text-muted-foreground">Lượt thi</p>
+              <p className="text-sm text-muted-foreground">{t("exam_history_attempts", "Lượt thi")}</p>
             </div>
             <div className="text-center">
               <p className={`text-4xl font-bold ${bestAttempt?.passed ? "text-green-500" : "text-red-500"}`}>
                 {bestAttempt?.score || 0}%
               </p>
-              <p className="text-sm text-muted-foreground">Điểm cao nhất</p>
+              <p className="text-sm text-muted-foreground">{t("exam_history_best_score", "Điểm cao nhất")}</p>
             </div>
             <div className="text-center">
               <p className="text-4xl font-bold text-foreground dark:text-white">
                 {remainingAttempts}
               </p>
-              <p className="text-sm text-muted-foreground">Lượt còn lại</p>
+              <p className="text-sm text-muted-foreground">{t("exam_history_attempts_left", "Lượt còn lại")}</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center gap-2">
                 {attempts.some(a => a.passed) ? (
                   <>
                     <Trophy size={32} className="text-green-500" />
-                    <span className="text-lg font-semibold text-green-500">Đã đạt</span>
+                    <span className="text-lg font-semibold text-green-500">{t("exam_result_passed", "Đã đạt")}</span>
                   </>
                 ) : (
                   <>
                     <XCircle size={32} className="text-red-500" />
-                    <span className="text-lg font-semibold text-red-500">Chưa đạt</span>
+                    <span className="text-lg font-semibold text-red-500">{t("exam_result_failed", "Chưa đạt")}</span>
                   </>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">Trạng thái</p>
+              <p className="text-sm text-muted-foreground">{t("exam_history_status", "Trạng thái")}</p>
             </div>
           </div>
         </PremiumCard>
@@ -199,7 +199,7 @@ export default function ExamHistoryPage() {
         transition={{ delay: 0.2 }}
         className="space-y-4"
       >
-        <h2 className="text-xl font-semibold text-foreground dark:text-white">Chi tiết các lần thi</h2>
+        <h2 className="text-xl font-semibold text-foreground dark:text-white">{t("exam_history_attempt_details", "Chi tiết các lần thi")}</h2>
 
         {attempts.map((attempt, idx) => (
           <motion.div
@@ -222,7 +222,7 @@ export default function ExamHistoryPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground dark:text-white">
-                      Lần thi #{attempt.attemptNumber}
+                      {t("exam_history_attempt_label", "Lần thi")} #{attempt.attemptNumber}
                     </h3>
                     <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                       <Calendar size={14} />
@@ -236,27 +236,27 @@ export default function ExamHistoryPage() {
                     <p className={`text-2xl font-bold ${attempt.passed ? "text-green-500" : "text-red-500"}`}>
                       {attempt.score}%
                     </p>
-                    <p className="text-xs text-muted-foreground">Điểm</p>
+                    <p className="text-xs text-muted-foreground">{t("exam_history_score", "Điểm")}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-semibold text-foreground dark:text-white">
                       {attempt.earnedPoints}/{attempt.totalPoints}
                     </p>
-                    <p className="text-xs text-muted-foreground">Điểm số</p>
+                    <p className="text-xs text-muted-foreground">{t("exam_history_points", "Điểm số")}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-semibold text-foreground dark:text-white flex items-center gap-1">
                       <Clock size={16} />
                       {formatTime(attempt.timeSpent)}
                     </p>
-                    <p className="text-xs text-muted-foreground">Thời gian</p>
+                    <p className="text-xs text-muted-foreground">{t("exam_history_time", "Thời gian")}</p>
                   </div>
                   <Link
                     href={`/exams/${examId}/result?attemptId=${attempt.id}&source=extracted`}
                     className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
                   >
                     <Eye size={16} />
-                    Xem chi tiết
+                    {t("exam_history_view_detail", "Xem chi tiết")}
                   </Link>
                 </div>
               </div>
@@ -267,7 +267,7 @@ export default function ExamHistoryPage() {
         {attempts.length === 0 && (
           <div className="text-center py-12">
             <FileText size={48} className="mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Chưa có lịch sử thi nào</p>
+            <p className="text-muted-foreground">{t("exam_history_empty", "Chưa có lịch sử thi nào")}</p>
           </div>
         )}
       </motion.div>
@@ -284,7 +284,7 @@ export default function ExamHistoryPage() {
             href={`/exams/${examId}/take?source=extracted`}
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
           >
-            Thi lại
+            {t("exam_history_retake", "Thi lại")}
           </Link>
         </motion.div>
       )}

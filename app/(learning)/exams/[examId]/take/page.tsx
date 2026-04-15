@@ -530,8 +530,13 @@ export default function TakeExamPage() {
     if (!autoSubmit) {
       const unanswered = Math.max(questionCount - answeredCount, 0)
       if (unanswered > 0) {
-        toast.warning(`Bạn còn ${unanswered} câu chưa hoàn thành`)
-        const confirmed = window.confirm(`Bạn còn ${unanswered} câu chưa hoàn thành. Bạn vẫn muốn nộp bài?`)
+        toast.warning(t("exam_take_unanswered_warning", "Bạn còn {count} câu chưa hoàn thành").replace("{count}", String(unanswered)))
+        const confirmed = window.confirm(
+          t("exam_take_unanswered_confirm", "Bạn còn {count} câu chưa hoàn thành. Bạn vẫn muốn nộp bài?").replace(
+            "{count}",
+            String(unanswered),
+          ),
+        )
         if (!confirmed) return
       }
     }
@@ -619,7 +624,7 @@ export default function TakeExamPage() {
                         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
                         : "bg-secondary text-foreground hover:bg-secondary/80"
                     } ${isActive ? "ring-2 ring-primary/40" : ""}`}
-                    aria-label={`Đi tới câu ${idx + 1}`}
+                    aria-label={t("exam_take_go_to_question", "Đi tới câu {number}").replace("{number}", String(idx + 1))}
                   >
                     {idx + 1}
                   </button>
@@ -638,12 +643,13 @@ export default function TakeExamPage() {
                 }`}
               >
                 <p className="mb-2 font-medium whitespace-pre-wrap break-words leading-relaxed">
-                  Câu {idx + 1}: <ScientificText as="span" text={q.question} />
+                  {t("exam_take_question_label", "Câu {number}:").replace("{number}", String(idx + 1))}{" "}
+                  <ScientificText as="span" text={q.question} />
                 </p>
                 {q.image && (
                   <img
                     src={q.image}
-                    alt={`Minh họa câu ${idx + 1}`}
+                    alt={t("exam_take_question_illustration", "Minh họa câu {number}").replace("{number}", String(idx + 1))}
                     className="mb-3 max-w-full rounded-lg border border-border"
                   />
                 )}
@@ -693,7 +699,10 @@ export default function TakeExamPage() {
                           {optionPayload.image && (
                             <img
                               src={optionPayload.image}
-                              alt={`Đáp án ${String.fromCharCode(65 + optIdx)}`}
+                              alt={t("exam_take_option_image_alt", "Đáp án {option}").replace(
+                                "{option}",
+                                String.fromCharCode(65 + optIdx),
+                              )}
                               className="mt-1 max-h-24 max-w-full rounded border border-border"
                             />
                           )}
@@ -731,7 +740,10 @@ export default function TakeExamPage() {
                           {optionPayload.image && (
                             <img
                               src={optionPayload.image}
-                              alt={`Đáp án ${String.fromCharCode(65 + optIdx)}`}
+                              alt={t("exam_take_option_image_alt", "Đáp án {option}").replace(
+                                "{option}",
+                                String.fromCharCode(65 + optIdx),
+                              )}
                               className="mt-1 max-h-24 max-w-full rounded border border-border"
                             />
                           )}
@@ -748,7 +760,7 @@ export default function TakeExamPage() {
               disabled={submitting}
               className="rounded-lg bg-primary px-5 py-3 font-semibold text-white hover:bg-primary/90 disabled:opacity-60 xl:hidden"
             >
-              {submitting ? "Đang nộp bài..." : "Nộp bài"}
+              {submitting ? t("exam_take_submitting", "Đang nộp bài...") : t("exam_take_submit", "Nộp bài")}
             </button>
           </div>
         </section>
@@ -778,7 +790,7 @@ export default function TakeExamPage() {
                         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
                         : "bg-secondary text-foreground hover:bg-secondary/80"
                     } ${isActive ? "ring-2 ring-primary/40" : ""}`}
-                    aria-label={`Đi tới câu ${idx + 1}`}
+                    aria-label={t("exam_take_go_to_question", "Đi tới câu {number}").replace("{number}", String(idx + 1))}
                   >
                     {idx + 1}
                   </button>
@@ -796,7 +808,7 @@ export default function TakeExamPage() {
               disabled={submitting}
               className="w-full rounded-lg bg-primary px-5 py-3 font-semibold text-white hover:bg-primary/90 disabled:opacity-60"
             >
-              {submitting ? "Đang nộp bài..." : "Nộp bài"}
+              {submitting ? t("exam_take_submitting", "Đang nộp bài...") : t("exam_take_submit", "Nộp bài")}
             </button>
           </div>
         </aside>

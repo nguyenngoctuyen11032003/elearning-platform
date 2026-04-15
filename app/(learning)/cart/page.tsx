@@ -201,7 +201,7 @@ export default function CartPage() {
           href="/courses"
           className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl font-medium hover:shadow-lg transition-all"
         >
-          Khám phá khóa học
+          {t("cart_explore_courses", "Khám phá khóa học")}
           <ArrowRight size={20} />
         </Link>
       </div>
@@ -307,14 +307,14 @@ export default function CartPage() {
                         className="text-sm text-primary dark:text-accent hover:underline flex items-center gap-1"
                       >
                         <Heart className="w-4 h-4" />
-                        Yêu thích
+                        {t("cart_move_wishlist", "Yêu thích")}
                       </button>
                       <button
                         onClick={() => removeFromCart(item.id)}
                         className="text-sm text-red-600 dark:text-red-400 hover:underline flex items-center gap-1"
                       >
                         <Trash2 className="w-4 h-4" />
-                        Xóa
+                        {t("common_delete", "Xóa")}
                       </button>
                     </div>
                   </div>
@@ -347,7 +347,7 @@ export default function CartPage() {
           {/* Coupon */}
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
             <h3 className="font-semibold text-foreground dark:text-white mb-4">
-              Mã giảm giá
+              {t("cart_coupon_title", "Mã giảm giá")}
             </h3>
             {appliedCoupon ? (
               <div className="flex items-center justify-between p-3 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-xl">
@@ -381,12 +381,12 @@ export default function CartPage() {
                   onClick={applyCoupon}
                   className="px-6 py-2 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-xl hover:bg-secondary/80 transition-all font-medium"
                 >
-                  Áp dụng
+                  {t("cart_apply_coupon", "Áp dụng")}
                 </button>
               </div>
             )}
             <div className="mt-3 text-xs text-muted-foreground dark:text-slate-400">
-              💡 Thử: WELCOME10, SAVE20, STUDENT50
+              💡 {t("cart_coupon_suggestions", "Thử: WELCOME10, SAVE20, STUDENT50")}
             </div>
           </div>
 

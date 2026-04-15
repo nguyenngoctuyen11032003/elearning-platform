@@ -217,7 +217,8 @@ export default function AssignmentsPage() {
               <p className="text-muted-foreground">
                 {activeTab === 'all'
                   ? t('assign_empty_all', 'Chưa có bài tập nào')
-                  : `Không có bài tập ${
+                  : t('assign_empty_status', 'Không có bài tập {status}').replace(
+                      '{status}',
                       activeTab === 'pending'
                         ? t('assign_status_pending', 'chưa nộp')
                         : activeTab === 'submitted'
@@ -225,7 +226,7 @@ export default function AssignmentsPage() {
                         : activeTab === 'graded'
                         ? t('assign_status_graded', 'đã chấm')
                         : t('assign_status_overdue', 'quá hạn')
-                    }`}
+                    )}
               </p>
             </div>
           ) : (
