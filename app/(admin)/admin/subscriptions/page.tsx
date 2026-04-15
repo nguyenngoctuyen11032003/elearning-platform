@@ -238,7 +238,14 @@ export default function AdminTeacherSubscriptionPage() {
 
   const exportPayments = () => {
     const aoa = [
-      ["Transaction ID", "User", "Plan", "Amount", "Status", "Date"],
+      [
+        t("adm_sub_export_header_id", "ID giao dịch"),
+        t("adm_sub_export_header_user", "Người dùng"),
+        t("adm_sub_export_header_plan", "Gói"),
+        t("adm_sub_export_header_amount", "Số tiền"),
+        t("adm_sub_export_header_status", "Trạng thái"),
+        t("adm_sub_export_header_date", "Ngày"),
+      ],
       ...payments.map((p) => [
         p.transactionId,
         p.teacher?.email || p.teacher?.name || "",
@@ -251,7 +258,7 @@ export default function AdminTeacherSubscriptionPage() {
 
     const ws = XLSX.utils.aoa_to_sheet(aoa)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, "Payments")
+    XLSX.utils.book_append_sheet(wb, ws, t("pay_export_sheet_name", "Thanh toán"))
     XLSX.writeFile(wb, `admin_subscription_payments_${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
@@ -1152,19 +1159,19 @@ export default function AdminTeacherSubscriptionPage() {
                 <div className="p-4 sm:p-6 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <LabeledInput label={t("adm_sub_plan_name", "Tên gói")} value={newPlan.name} onChange={(v) => setNewPlan((p: any) => ({ ...p, name: v }))} placeholder={t("adm_sub_plan_name_placeholder", "Ví dụ: Basic, Pro...")} />
-                    <LabeledInput label={t("adm_sub_price", "Giá (VND)")} value={newPlan.price} onChange={(v) => setNewPlan((p: any) => ({ ...p, price: Number(v) || 0 }))} placeholder="0" type="number" />
-                    <LabeledInput label={t("adm_sub_duration", "Thời hạn (tháng)")} value={newPlan.durationMonths} onChange={(v) => setNewPlan((p: any) => ({ ...p, durationMonths: Number(v) || 0 }))} placeholder="1" type="number" />
+                    <LabeledInput label={t("adm_sub_price", "Giá (VND)")} value={newPlan.price} onChange={(v) => setNewPlan((p: any) => ({ ...p, price: Number(v) || 0 }))} placeholder={t("adm_sub_price_placeholder", "Ví dụ: 0")} type="number" />
+                    <LabeledInput label={t("adm_sub_duration", "Thời hạn (tháng)")} value={newPlan.durationMonths} onChange={(v) => setNewPlan((p: any) => ({ ...p, durationMonths: Number(v) || 0 }))} placeholder={t("adm_sub_duration_placeholder", "Ví dụ: 1")} type="number" />
                     <LabeledInput label={t("adm_sub_course_limit", "Giới hạn khóa học")}
                       value={newPlan.courseLimit}
                       onChange={(v) => setNewPlan((p: any) => ({ ...p, courseLimit: Number(v) || 0 }))}
-                      placeholder="20"
+                      placeholder={t("adm_sub_course_limit_placeholder", "Ví dụ: 20")}
                       type="number"
                     />
-                    <LabeledInput label={t("adm_sub_storage", "Dung lượng lưu trữ (GB)")} value={newPlan.storageLimitGb} onChange={(v) => setNewPlan((p: any) => ({ ...p, storageLimitGb: Number(v) || 0 }))} placeholder="10" type="number" />
+                    <LabeledInput label={t("adm_sub_storage", "Dung lượng lưu trữ (GB)")} value={newPlan.storageLimitGb} onChange={(v) => setNewPlan((p: any) => ({ ...p, storageLimitGb: Number(v) || 0 }))} placeholder={t("adm_sub_storage_placeholder", "Ví dụ: 10")} type="number" />
                     <LabeledInput label={t("adm_sub_student_limit", "Giới hạn học viên")}
                       value={newPlan.studentsLimit}
                       onChange={(v) => setNewPlan((p: any) => ({ ...p, studentsLimit: Number(v) || 0 }))}
-                      placeholder="120"
+                      placeholder={t("adm_sub_student_limit_placeholder", "Ví dụ: 120")}
                       type="number"
                     />
                   </div>

@@ -436,8 +436,8 @@ export default function AdminPaymentsPage() {
     })
 
     const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Thanh toán")
-    XLSX.writeFile(workbook, `payments_report_${new Date().toISOString().split("T")[0]}.xlsx`)
+    XLSX.utils.book_append_sheet(workbook, worksheet, t("pay_export_sheet_name", "Thanh toán"))
+    XLSX.writeFile(workbook, `${t("pay_export_file_prefix", "payments_report")}_${new Date().toISOString().split("T")[0]}.xlsx`)
 
     setIsExportOpen(false)
   }

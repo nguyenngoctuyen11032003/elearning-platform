@@ -656,7 +656,7 @@ useEffect(() => {
                             setOpenMenu(openMenu === category.id ? null : category.id)
                           }}
                           className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors duration-150 flex-shrink-0"
-                          aria-label="Menu"
+                          aria-label={t("common_menu", "Menu")}
                         >
                           <MoreVertical size={18} className="text-slate-500 dark:text-white/60" />
                         </button>

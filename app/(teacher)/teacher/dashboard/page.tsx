@@ -116,7 +116,7 @@ function TableBadge({ status, t }: { status?: string; t: (key: string, fallback?
 
   return (
     <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-      {t("teacher_dashboard_learning", "�ang h?c")}
+      {t("teacher_dashboard_learning", "Đang học")}
     </span>
   )
 }

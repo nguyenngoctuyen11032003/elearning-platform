@@ -331,7 +331,7 @@ const handleSave = async () => {
                     value={settings.facebook}
                     onChange={(e) => handleSettingChange("facebook", e.target.value)}
                     className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    placeholder="https://facebook.com/..."
+                    placeholder={t("adm_set_social_facebook_placeholder", "https://facebook.com/...")}
                   />
                 </div>
                 <div>
@@ -343,7 +343,7 @@ const handleSave = async () => {
                     value={settings.instagram}
                     onChange={(e) => handleSettingChange("instagram", e.target.value)}
                     className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    placeholder="https://instagram.com/..."
+                    placeholder={t("adm_set_social_instagram_placeholder", "https://instagram.com/...")}
                   />
                 </div>
                 <div>
@@ -358,7 +358,7 @@ const handleSave = async () => {
                     value={settings.tiktok}
                     onChange={(e) => handleSettingChange("tiktok", e.target.value)}
                     className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    placeholder="https://tiktok.com/@..."
+                    placeholder={t("adm_set_social_tiktok_placeholder", "https://tiktok.com/@...")}
                   />
                 </div>
                 <div>
@@ -370,7 +370,7 @@ const handleSave = async () => {
                     value={settings.youtube}
                     onChange={(e) => handleSettingChange("youtube", e.target.value)}
                     className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    placeholder="https://youtube.com/..."
+                    placeholder={t("adm_set_social_youtube_placeholder", "https://youtube.com/...")}
                   />
                 </div>
                 <div>
@@ -382,7 +382,7 @@ const handleSave = async () => {
                     value={settings.linkedin}
                     onChange={(e) => handleSettingChange("linkedin", e.target.value)}
                     className="w-full h-11 bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-xl px-4 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-                    placeholder="https://linkedin.com/company/..."
+                    placeholder={t("adm_set_social_linkedin_placeholder", "https://linkedin.com/company/...")}
                   />
                 </div>
               </div>
@@ -429,7 +429,7 @@ const handleSave = async () => {
                           {t("adm_set_upload_logo", "Tải lên logo")}
                         </button>
                       </label>
-                      <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">PNG, JPG (Max 2MB)</p>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400 mt-2">{t("adm_file_format_hint", "PNG, JPG (Max 2MB)")}</p>
                     </div>
                   </div>
                 </div>
