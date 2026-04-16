@@ -22,7 +22,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { enUS, vi } from 'date-fns/locale';
+import { useLanguage } from '@/lib/i18n/language-context';
 
 interface Reply {
   id: string;
@@ -76,12 +77,14 @@ export function DiscussionThread({
   onToggleResolved,
   onTogglePinned,
 }: DiscussionThreadProps) {
+  const { language, t } = useLanguage();
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyContent, setReplyContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isAuthor = currentUserId === authorId;
   const canModerate = isTeacher || isAuthor;
+  const distanceLocale = language === 'en' ? enUS : vi;
 
   const handleReply = async () => {
     if (!replyContent.trim() || !onReply) return;
@@ -134,13 +137,13 @@ export function DiscussionThread({
                 {isPinned && (
                   <Badge variant="secondary" className="gap-1">
                     <Pin className="h-3 w-3" />
-                    Đã ghim
+                    {t('discussion_pinned', 'Đã ghim')}
                   </Badge>
                 )}
                 {isResolved && (
                   <Badge variant="outline" className="gap-1 text-green-600 border-green-600">
                     <CheckCircle2 className="h-3 w-3" />
-                    Đã giải quyết
+                    {t('discussion_resolved', 'Đã giải quyết')}
                   </Badge>
                 )}
               </div>
@@ -150,13 +153,13 @@ export function DiscussionThread({
                 <span>
                   {formatDistanceToNow(new Date(createdAt), {
                     addSuffix: true,
-                    locale: vi,
+                        locale: distanceLocale,
                   })}
                 </span>
                 {updatedAt && updatedAt !== createdAt && (
                   <>
                     <span>•</span>
-                    <span className="italic">Đã chỉnh sửa</span>
+                    <span className="italic">{t('common_edited', 'Đã chỉnh sửa')}</span>
                   </>
                 )}
               </div>
@@ -175,18 +178,20 @@ export function DiscussionThread({
                   <>
                     <DropdownMenuItem onClick={handleTogglePinned}>
                       <Pin className="mr-2 h-4 w-4" />
-                      {isPinned ? 'Bỏ ghim' : 'Ghim thảo luận'}
+                      {isPinned ? t('discussion_unpin', 'Bỏ ghim') : t('discussion_pin', 'Ghim thảo luận')}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleToggleResolved}>
                       <CheckCircle2 className="mr-2 h-4 w-4" />
-                      {isResolved ? 'Đánh dấu chưa giải quyết' : 'Đánh dấu đã giải quyết'}
+                      {isResolved
+                        ? t('discussion_mark_unresolved', 'Đánh dấu chưa giải quyết')
+                        : t('discussion_mark_resolved', 'Đánh dấu đã giải quyết')}
                     </DropdownMenuItem>
                   </>
                 )}
                 {isAuthor && onEdit && (
                   <DropdownMenuItem onClick={() => onEdit(id, title, content)}>
                     <Edit className="mr-2 h-4 w-4" />
-                    Chỉnh sửa
+                    {t('common_edit', 'Chỉnh sửa')}
                   </DropdownMenuItem>
                 )}
                 {canModerate && onDelete && (
@@ -195,7 +200,7 @@ export function DiscussionThread({
                     className="text-destructive focus:text-destructive"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Xóa
+                    {t('common_delete', 'Xóa')}
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
@@ -224,7 +229,7 @@ export function DiscussionThread({
                     <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(reply.createdAt), {
                         addSuffix: true,
-                        locale: vi,
+                        locale: distanceLocale,
                       })}
                     </span>
                   </div>
@@ -239,7 +244,7 @@ export function DiscussionThread({
         {showReplyForm ? (
           <div className="space-y-2 pl-4">
             <Textarea
-              placeholder="Nhập câu trả lời của bạn..."
+              placeholder={t('discussion_reply_placeholder', 'Nhập câu trả lời của bạn...')}
               value={replyContent}
               onChange={(e) => setReplyContent(e.target.value)}
               rows={3}
@@ -251,7 +256,7 @@ export function DiscussionThread({
                 onClick={handleReply}
                 disabled={!replyContent.trim() || isSubmitting}
               >
-                {isSubmitting ? 'Đang gửi...' : 'Gửi trả lời'}
+                {isSubmitting ? t('common_sending', 'Đang gửi...') : t('discussion_send_reply', 'Gửi trả lời')}
               </Button>
               <Button
                 size="sm"
@@ -262,7 +267,7 @@ export function DiscussionThread({
                 }}
                 disabled={isSubmitting}
               >
-                Hủy
+                {t('common_cancel', 'Hủy')}
               </Button>
             </div>
           </div>
@@ -275,11 +280,11 @@ export function DiscussionThread({
               className="gap-2"
             >
               <Reply className="h-4 w-4" />
-              Trả lời
+              {t('common_reply', 'Trả lời')}
             </Button>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <MessageSquare className="h-4 w-4" />
-              <span>{repliesCount} câu trả lời</span>
+              <span>{repliesCount} {t('discussion_replies', 'câu trả lời')}</span>
             </div>
           </div>
         )}

@@ -17,6 +17,7 @@ import {
   Check,
   Loader2,
 } from "lucide-react"
+  import { useLanguage } from "@/lib/i18n/language-context"
 
 interface VideoPlayerProps {
   src: string
@@ -39,7 +40,7 @@ interface PlaybackSpeed {
 const playbackSpeeds: PlaybackSpeed[] = [
   { label: "0.5x", value: 0.5 },
   { label: "0.75x", value: 0.75 },
-  { label: "Bình thường", value: 1 },
+  { label: "Normal", value: 1 },
   { label: "1.25x", value: 1.25 },
   { label: "1.5x", value: 1.5 },
   { label: "2x", value: 2 },
@@ -51,7 +52,7 @@ interface Quality {
 }
 
 const qualities: Quality[] = [
-  { label: "Tự động", value: "auto" },
+  { label: "Auto", value: "auto" },
   { label: "1080p", value: "1080" },
   { label: "720p", value: "720" },
   { label: "480p", value: "480" },
@@ -70,6 +71,8 @@ export function VideoPlayer({
   startTime = 0,
   className = "",
 }: VideoPlayerProps) {
+  const { language } = useLanguage()
+  const tr = (vi: string, en: string) => (language === "en" ? en : vi)
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const progressRef = useRef<HTMLDivElement>(null)
@@ -425,7 +428,7 @@ export function VideoPlayer({
                 <button
                   onClick={togglePlay}
                   className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                  title={isPlaying ? "Tạm dừng (K)" : "Phát (K)"}
+                  title={isPlaying ? tr("Tạm dừng (K)", "Pause (K)") : tr("Phát (K)", "Play (K)")}
                 >
                   {isPlaying ? (
                     <Pause className="w-6 h-6 text-white" />
@@ -438,7 +441,7 @@ export function VideoPlayer({
                 <button
                   onClick={() => skip(-10)}
                   className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                  title="Lùi 10 giây (←)"
+                  title={tr("Lùi 10 giây (←)", "Back 10s (←)")}
                 >
                   <SkipBack className="w-5 h-5 text-white" />
                 </button>
@@ -447,7 +450,7 @@ export function VideoPlayer({
                 <button
                   onClick={() => skip(10)}
                   className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                  title="Tiến 10 giây (→)"
+                  title={tr("Tiến 10 giây (→)", "Forward 10s (→)")}
                 >
                   <SkipForward className="w-5 h-5 text-white" />
                 </button>
@@ -456,7 +459,7 @@ export function VideoPlayer({
                 <button
                   onClick={restart}
                   className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                  title="Phát lại từ đầu"
+                  title={tr("Phát lại từ đầu", "Restart from beginning")}
                 >
                   <RotateCcw className="w-5 h-5 text-white" />
                 </button>
@@ -466,7 +469,7 @@ export function VideoPlayer({
                   <button
                     onClick={toggleMute}
                     className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                    title={isMuted ? "Bật âm (M)" : "Tắt âm (M)"}
+                    title={isMuted ? tr("Bật âm (M)", "Unmute (M)") : tr("Tắt âm (M)", "Mute (M)")}
                   >
                     {isMuted || volume === 0 ? (
                       <VolumeX className="w-5 h-5 text-white" />
@@ -504,7 +507,7 @@ export function VideoPlayer({
                   <button
                     onClick={() => setShowSettings(!showSettings)}
                     className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                    title="Cài đặt"
+                    title={tr("Cài đặt", "Settings")}
                   >
                     <Settings className="w-5 h-5 text-white" />
                   </button>
@@ -528,7 +531,7 @@ export function VideoPlayer({
                                 : "text-white/60 hover:text-white"
                             }`}
                           >
-                            Tốc độ
+                            {tr("Tốc độ", "Speed")}
                           </button>
                           <button
                             onClick={() => setSettingsTab("quality")}
@@ -538,7 +541,7 @@ export function VideoPlayer({
                                 : "text-white/60 hover:text-white"
                             }`}
                           >
-                            Chất lượng
+                            {tr("Chất lượng", "Quality")}
                           </button>
                         </div>
 
@@ -555,7 +558,7 @@ export function VideoPlayer({
                                     : "text-white hover:bg-white/10"
                                 }`}
                               >
-                                {speed.label}
+                                {speed.value === 1 ? tr("Bình thường", "Normal") : speed.label}
                                 {playbackSpeed === speed.value && (
                                   <Check className="w-4 h-4" />
                                 )}
@@ -577,7 +580,7 @@ export function VideoPlayer({
                                     : "text-white hover:bg-white/10"
                                 }`}
                               >
-                                {q.label}
+                                {q.value === "auto" ? tr("Tự động", "Auto") : q.label}
                                 {quality === q.value && (
                                   <Check className="w-4 h-4" />
                                 )}
@@ -594,7 +597,7 @@ export function VideoPlayer({
                 <button
                   onClick={togglePiP}
                   className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                  title="Hình trong hình (P)"
+                  title={tr("Hình trong hình (P)", "Picture in picture (P)")}
                 >
                   <PictureInPicture className={`w-5 h-5 ${isPiP ? "text-primary dark:text-accent" : "text-white"}`} />
                 </button>
@@ -603,7 +606,7 @@ export function VideoPlayer({
                 <button
                   onClick={toggleFullscreen}
                   className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                  title={isFullscreen ? "Thoát toàn màn hình (F)" : "Toàn màn hình (F)"}
+                  title={isFullscreen ? tr("Thoát toàn màn hình (F)", "Exit fullscreen (F)") : tr("Toàn màn hình (F)", "Fullscreen (F)")}
                 >
                   {isFullscreen ? (
                     <Minimize className="w-5 h-5 text-white" />

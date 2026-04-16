@@ -799,17 +799,17 @@ export default function EditExamPage() {
     const newErrors: Record<string, string> = {}
 
     if (step === 1) {
-      if (!formData.title.trim()) newErrors.title = "Vui lòng nhập tiêu đề bài thi"
-      if (!formData.courseId) newErrors.courseId = "Vui lòng chọn khóa học"
+      if (!formData.title.trim()) newErrors.title = tr("Vui lòng nhập tiêu đề bài thi", "Please enter an exam title")
+      if (!formData.courseId) newErrors.courseId = tr("Vui lòng chọn khóa học", "Please select a course")
     }
 
     if (step === 2) {
       const missingCorrectAnswerQuestionNumbers: number[] = []
-      if (questions.length === 0) newErrors.questions = "Vui lòng thêm ít nhất 1 câu hỏi"
+      if (questions.length === 0) newErrors.questions = tr("Vui lòng thêm ít nhất 1 câu hỏi", "Please add at least one question")
       questions.forEach((q, index) => {
-        if (!q.question.trim()) newErrors[`question_${index}`] = "Câu hỏi không được để trống"
+        if (!q.question.trim()) newErrors[`question_${index}`] = tr("Câu hỏi không được để trống", "Question cannot be empty")
         if (q.type === "multiple_choice" && q.options.filter(o => o.trim()).length < 2) {
-          newErrors[`options_${index}`] = "Cần ít nhất 2 đáp án"
+          newErrors[`options_${index}`] = tr("Cần ít nhất 2 đáp án", "At least 2 answers are required")
         }
         if (!hasValidCorrectAnswer(q)) {
           newErrors[`answer_${index}`] = tr("Vui lòng chọn đáp án đúng", "Please select a correct answer")
@@ -932,7 +932,7 @@ export default function EditExamPage() {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = () => resolve(String(reader.result || ""))
-      reader.onerror = () => reject(new Error("Không đọc được file ảnh"))
+      reader.onerror = () => reject(new Error(tr("Không đọc được file ảnh", "Unable to read image file")))
       reader.readAsDataURL(file)
     })
   }
@@ -1070,7 +1070,7 @@ export default function EditExamPage() {
       <div className="p-6 md:p-8 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Đang tải bài thi...</p>
+          <p className="text-muted-foreground">{tr("Đang tải bài thi...", "Loading exam...")}</p>
         </div>
       </div>
     )
@@ -1154,13 +1154,13 @@ export default function EditExamPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
                   className="w-full px-4 py-3 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  placeholder="Mô tả ngắn về bài thi..."
+                  placeholder={tr("Mô tả ngắn về bài thi...", "Short exam description...")}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                  Khóa học <span className="text-red-500">*</span>
+                  {tr("Khóa học", "Course")} <span className="text-red-500">*</span>
                 </label>
                 <UniversalSelect
                   value={formData.courseId}
@@ -1169,7 +1169,7 @@ export default function EditExamPage() {
                     errors.courseId ? "border-red-500" : "border-border dark:border-slate-700"
                   }`}
                 >
-                  <option value="">Chọn khóa học</option>
+                  <option value="">{tr("Chọn khóa học", "Select course")}</option>
                   {courses.map(course => (
                     <option key={course.id} value={course.id}>{course.title}</option>
                   ))}
@@ -1186,9 +1186,9 @@ export default function EditExamPage() {
             <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-xl font-semibold text-foreground dark:text-white">Câu hỏi</h2>
+                  <h2 className="text-xl font-semibold text-foreground dark:text-white">{tr("Câu hỏi", "Questions")}</h2>
                   <p className="text-sm text-muted-foreground dark:text-slate-400">
-                    {questions.length} câu hỏi • Tổng {totalPoints} điểm
+                    {questions.length} {tr("câu hỏi", "questions")} • {tr("Tổng", "Total")} {totalPoints} {tr("điểm", "points")}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1198,28 +1198,28 @@ export default function EditExamPage() {
                     className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
                   >
                     <Upload size={16} />
-                    Nhập đề thi
+                    {tr("Nhập đề thi", "Import exam")}
                   </button>
                   <button
                     onClick={(e) => handleQuestionAction("multiple_choice", e.currentTarget)}
                     className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
                   >
                     <Plus size={16} />
-                    Trắc nghiệm
+                    {tr("Trắc nghiệm", "Multiple choice")}
                   </button>
                   <button
                     onClick={(e) => handleQuestionAction("true_false", e.currentTarget)}
                     className="px-4 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg font-medium hover:bg-secondary/80 transition-colors flex items-center gap-2"
                   >
                     <Plus size={16} />
-                    Đúng/Sai
+                    {tr("Đúng/Sai", "True/False")}
                   </button>
                   <button
                     onClick={(e) => handleQuestionAction("fill_in", e.currentTarget)}
                     className="px-4 py-2 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded-lg font-medium hover:bg-secondary/80 transition-colors flex items-center gap-2"
                   >
                     <Plus size={16} />
-                    Điền khuyết
+                    {tr("Điền khuyết", "Fill in the blank")}
                   </button>
                 </div>
               </div>
@@ -1237,7 +1237,7 @@ export default function EditExamPage() {
                 <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl mb-4">
                   <p className="text-amber-300 text-sm flex items-center gap-2">
                     <AlertCircle size={16} className="text-amber-400" />
-                    Phát hiện {reviewIssueCount} câu nghi thiếu công thức/ảnh. Vui lòng mở câu có icon vàng để bổ sung bằng nút "Thêm ảnh".
+                    {tr("Phát hiện", "Detected")} {reviewIssueCount} {tr("câu nghi thiếu công thức/ảnh. Vui lòng mở câu có icon vàng để bổ sung bằng nút \"Thêm ảnh\".", "questions likely missing formulas/images. Open the questions marked with the yellow icon and add assets using \"Add image\".")}
                   </p>
                 </div>
               )}
@@ -1254,11 +1254,11 @@ export default function EditExamPage() {
                     >
                       <div className="flex items-center gap-3">
                         <GripVertical size={16} className="text-muted-foreground" />
-                        <span className="font-semibold text-foreground dark:text-white">Câu {index + 1}</span>
+                        <span className="font-semibold text-foreground dark:text-white">{tr("Câu", "Question")} {index + 1}</span>
                         {question.needsAssetReview && (
                           <span
                             className="inline-flex items-center justify-center"
-                            title="Câu này cần bổ sung ảnh/tài liệu (không tự import được)"
+                            title={tr("Câu này cần bổ sung ảnh/tài liệu (không tự import được)", "This question needs additional image/assets (cannot be auto-imported)")}
                           >
                             <AlertCircle size={16} className="text-amber-500" />
                           </span>
@@ -1270,9 +1270,9 @@ export default function EditExamPage() {
                             ? "bg-green-500/10 text-green-500"
                             : "bg-purple-500/10 text-purple-500"
                         }`}>
-                          {question.type === "multiple_choice" ? "Trắc nghiệm" : question.type === "true_false" ? "Đúng/Sai" : "Điền khuyết"}
+                          {question.type === "multiple_choice" ? tr("Trắc nghiệm", "Multiple choice") : question.type === "true_false" ? tr("Đúng/Sai", "True/False") : tr("Điền khuyết", "Fill in")}
                         </span>
-                        <span className="text-sm text-muted-foreground">{question.points} điểm</span>
+                        <span className="text-sm text-muted-foreground">{question.points} {tr("điểm", "points")}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -1292,7 +1292,7 @@ export default function EditExamPage() {
                       <div className="p-4 pt-0 space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                            Câu hỏi <span className="text-red-500">*</span>
+                            {tr("Câu hỏi", "Question")} <span className="text-red-500">*</span>
                           </label>
                           <textarea
                             value={question.question}
@@ -1301,7 +1301,7 @@ export default function EditExamPage() {
                             className={`w-full px-4 py-3 bg-card dark:bg-slate-900 border rounded-xl text-foreground dark:text-white ${
                               errors[`question_${index}`] ? "border-red-500" : "border-border dark:border-slate-700"
                             }`}
-                            placeholder="Nhập câu hỏi..."
+                            placeholder={tr("Nhập câu hỏi...", "Enter question...")}
                           />
                           {errors[`question_${index}`] && (
                             <p className="text-red-500 text-sm mt-1">{errors[`question_${index}`]}</p>
@@ -1327,7 +1327,7 @@ export default function EditExamPage() {
                               className="px-3 py-2 border border-border dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
                             >
                               <Upload size={16} />
-                              {question.image ? "Đổi ảnh" : "Thêm ảnh"}
+                              {question.image ? tr("Đổi ảnh", "Change image") : tr("Thêm ảnh", "Add image")}
                             </button>
                             {question.image && (
                               <button
@@ -1335,14 +1335,14 @@ export default function EditExamPage() {
                                 onClick={() => updateQuestion(question.id, { image: undefined })}
                                 className="px-3 py-2 border border-border dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
                               >
-                                Xóa ảnh
+                                {tr("Xóa ảnh", "Remove image")}
                               </button>
                             )}
                           </div>
                           {question.image && (
                             <img
                               src={question.image}
-                              alt={`Ảnh minh họa câu ${index + 1}`}
+                              alt={tr(`Ảnh minh họa câu ${index + 1}`, `Illustration for question ${index + 1}`)}
                               className="mt-2 max-h-56 max-w-full rounded-lg border border-border dark:border-slate-700"
                             />
                           )}
@@ -1351,7 +1351,7 @@ export default function EditExamPage() {
                         {question.type === "multiple_choice" && (
                           <div>
                             <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                              Đáp án <span className="text-red-500">*</span>
+                              {tr("Đáp án", "Answers")} <span className="text-red-500">*</span>
                             </label>
                             <div className="space-y-2">
                               {question.options.map((option, optIndex) => (
@@ -1377,7 +1377,7 @@ export default function EditExamPage() {
                                       updateQuestion(question.id, nextUpdate)
                                     }}
                                     className="flex-1 px-4 py-2 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg text-foreground dark:text-white"
-                                    placeholder={`Đáp án ${String.fromCharCode(65 + optIndex)}`}
+                                    placeholder={tr(`Đáp án ${String.fromCharCode(65 + optIndex)}`, `Answer ${String.fromCharCode(65 + optIndex)}`)}
                                   />
                                   {question.options.length > 2 && (
                                     <button
@@ -1403,7 +1403,7 @@ export default function EditExamPage() {
                                   className="text-sm text-primary hover:underline flex items-center gap-1"
                                 >
                                   <Plus size={14} />
-                                  Thêm đáp án
+                                  {tr("Thêm đáp án", "Add answer")}
                                 </button>
                               )}
                               {errors[`options_${index}`] && (
@@ -1419,10 +1419,10 @@ export default function EditExamPage() {
                         {question.type === "true_false" && (
                           <div>
                             <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                              Đáp án đúng <span className="text-red-500">*</span>
+                              {tr("Đáp án đúng", "Correct answer")} <span className="text-red-500">*</span>
                             </label>
                             <div className="flex gap-4">
-                              {["Đúng", "Sai"].map((opt) => (
+                              {[tr("Đúng", "True"), tr("Sai", "False")].map((opt) => (
                                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
                                   <input
                                     type="radio"
@@ -1441,21 +1441,21 @@ export default function EditExamPage() {
                         {question.type === "fill_in" && (
                           <div>
                             <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                              Đáp án đúng <span className="text-red-500">*</span>
+                              {tr("Đáp án đúng", "Correct answer")} <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
                               value={question.correctAnswer as string}
                               onChange={(e) => updateQuestion(question.id, { correctAnswer: e.target.value })}
                               className="w-full px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-                              placeholder="Nhập đáp án đúng..."
+                              placeholder={tr("Nhập đáp án đúng...", "Enter the correct answer...")}
                             />
                           </div>
                         )}
 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Điểm</label>
+                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{tr("Điểm", "Points")}</label>
                             <input
                               type="number"
                               value={question.points}
@@ -1466,13 +1466,13 @@ export default function EditExamPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Giải thích</label>
+                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{tr("Giải thích", "Explanation")}</label>
                             <input
                               type="text"
                               value={question.explanation}
                               onChange={(e) => updateQuestion(question.id, { explanation: e.target.value })}
                               className="w-full px-4 py-3 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-xl text-foreground dark:text-white"
-                              placeholder="Giải thích đáp án..."
+                              placeholder={tr("Giải thích đáp án...", "Answer explanation...")}
                             />
                           </div>
                         </div>
@@ -1485,7 +1485,7 @@ export default function EditExamPage() {
                   <div className="text-center py-12">
                     <ClipboardList size={48} className="mx-auto text-muted-foreground dark:text-slate-600 mb-4" />
                     <p className="text-muted-foreground dark:text-slate-400">
-                      Chưa có câu hỏi nào. Bấm nút ở trên để thêm câu hỏi.
+                      {tr("Chưa có câu hỏi nào. Bấm nút ở trên để thêm câu hỏi.", "No questions yet. Use the buttons above to add questions.")}
                     </p>
                   </div>
                 )}
@@ -1497,52 +1497,52 @@ export default function EditExamPage() {
         {/* Step 3: Preview */}
         {currentStep === 3 && (
           <div className="bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800 rounded-2xl p-6 space-y-6">
-            <h2 className="text-xl font-semibold text-foreground dark:text-white">Xem trước bài thi</h2>
+            <h2 className="text-xl font-semibold text-foreground dark:text-white">{tr("Xem trước bài thi", "Exam preview")}</h2>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Loại bài thi</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{tr("Loại bài thi", "Exam type")}</p>
                 <p className="text-foreground dark:text-white font-medium flex items-center gap-2 mt-1">
                   {formData.type === "official" ? <Award size={16} className="text-purple-500" /> : <ClipboardList size={16} className="text-blue-500" />}
-                  {formData.type === "official" ? "Thi thật" : "Thi thử"}
+                  {formData.type === "official" ? tr("Thi thật", "Official") : tr("Thi thử", "Practice")}
                 </p>
               </div>
               <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Số câu hỏi</p>
-                <p className="text-foreground dark:text-white font-medium mt-1">{questions.length} câu</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{tr("Số câu hỏi", "Number of questions")}</p>
+                <p className="text-foreground dark:text-white font-medium mt-1">{questions.length} {tr("câu", "questions")}</p>
               </div>
               <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                <p className="text-sm text-muted-foreground dark:text-slate-400">Tổng điểm</p>
-                <p className="text-foreground dark:text-white font-medium mt-1">{totalPoints} điểm</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">{tr("Tổng điểm", "Total points")}</p>
+                <p className="text-foreground dark:text-white font-medium mt-1">{totalPoints} {tr("điểm", "points")}</p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-semibold text-foreground dark:text-white">Thông tin chi tiết</h3>
+              <h3 className="font-semibold text-foreground dark:text-white">{tr("Thông tin chi tiết", "Details")}</h3>
               <div className="grid gap-2 text-sm">
                 <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
-                  <span className="text-muted-foreground dark:text-slate-400">Tiêu đề</span>
-                  <span className="text-foreground dark:text-white font-medium">{formData.title || "Chưa nhập"}</span>
+                  <span className="text-muted-foreground dark:text-slate-400">{tr("Tiêu đề", "Title")}</span>
+                  <span className="text-foreground dark:text-white font-medium">{formData.title || tr("Chưa nhập", "Not entered")}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
-                  <span className="text-muted-foreground dark:text-slate-400">Khóa học</span>
+                  <span className="text-muted-foreground dark:text-slate-400">{tr("Khóa học", "Course")}</span>
                   <span className="text-foreground dark:text-white font-medium">
-                    {courses.find(c => c.id === formData.courseId)?.title || "Chưa chọn"}
+                    {courses.find(c => c.id === formData.courseId)?.title || tr("Chưa chọn", "Not selected")}
                   </span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
-                  <span className="text-muted-foreground dark:text-slate-400">Điểm đạt</span>
+                  <span className="text-muted-foreground dark:text-slate-400">{tr("Điểm đạt", "Passing score")}</span>
                   <span className="text-foreground dark:text-white font-medium">{formData.passingScore}%</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
-                  <span className="text-muted-foreground dark:text-slate-400">Số lần thi tối đa</span>
-                  <span className="text-foreground dark:text-white font-medium">{formData.maxAttempts} lần</span>
+                  <span className="text-muted-foreground dark:text-slate-400">{tr("Số lần thi tối đa", "Max attempts")}</span>
+                  <span className="text-foreground dark:text-white font-medium">{formData.maxAttempts} {tr("lần", "times")}</span>
                 </div>
                 {formData.type === "official" && (
                   <div className="flex justify-between py-2 border-b border-border dark:border-slate-700">
-                    <span className="text-muted-foreground dark:text-slate-400">Chứng chỉ</span>
+                    <span className="text-muted-foreground dark:text-slate-400">{tr("Chứng chỉ", "Certificate")}</span>
                     <span className="text-purple-500 font-medium">
-                      {templates.find(c => c.id === formData.certificateTemplateId)?.title || "Chưa chọn"}
+                      {templates.find(c => c.id === formData.certificateTemplateId)?.title || tr("Chưa chọn", "Not selected")}
                     </span>
                   </div>
                 )}
@@ -1550,7 +1550,7 @@ export default function EditExamPage() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-semibold text-foreground dark:text-white">Danh sách câu hỏi</h3>
+              <h3 className="font-semibold text-foreground dark:text-white">{tr("Danh sách câu hỏi", "Question list")}</h3>
               <div className="space-y-2">
                 {questions.map((q, index) => (
                   <div key={q.id} className="p-3 bg-secondary/50 dark:bg-slate-800/50 rounded-lg space-y-2">
@@ -1563,7 +1563,7 @@ export default function EditExamPage() {
                           {q.needsAssetReview && (
                             <span
                               className="inline-flex items-center justify-center"
-                              title="Nghi thiếu công thức/ảnh, cần rà soát"
+                              title={tr("Nghi thiếu công thức/ảnh, cần rà soát", "Potentially missing formulas/images, please review")}
                             >
                               <AlertCircle size={14} className="text-amber-400" />
                             </span>
@@ -1571,25 +1571,25 @@ export default function EditExamPage() {
                           <ScientificText
                             as="p"
                             className="text-foreground dark:text-white whitespace-pre-wrap break-words leading-relaxed"
-                            text={q.question || "Câu hỏi trống"}
+                            text={q.question || tr("Câu hỏi trống", "Empty question")}
                           />
                         </div>
                         {q.image && (
                           <img
                             src={q.image}
-                            alt={`Ảnh xem trước câu ${index + 1}`}
+                            alt={tr(`Ảnh xem trước câu ${index + 1}`, `Preview image for question ${index + 1}`)}
                             className="mt-2 max-h-56 max-w-full rounded-lg border border-border dark:border-slate-700"
                           />
                         )}
                       </div>
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">{q.points} điểm</span>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">{q.points} {tr("điểm", "points")}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Đáp án đúng: <ScientificText text={Array.isArray(q.correctAnswer) ? q.correctAnswer.join(", ") : String(q.correctAnswer || "(chưa có)")} />
+                      {tr("Đáp án đúng", "Correct answer")}: <ScientificText text={Array.isArray(q.correctAnswer) ? q.correctAnswer.join(", ") : String(q.correctAnswer || tr("(chưa có)", "(none yet)"))} />
                     </p>
                     {q.explanation && (
                       <p className="text-xs text-blue-600 dark:text-blue-300 whitespace-pre-wrap break-words leading-relaxed">
-                        Giải thích: <ScientificText text={q.explanation} />
+                        {tr("Giải thích", "Explanation")}: <ScientificText text={q.explanation} />
                       </p>
                     )}
                   </div>
@@ -1606,7 +1606,7 @@ export default function EditExamPage() {
             disabled={currentStep === 1}
             className="px-6 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Quay lại
+            {tr("Quay lại", "Back")}
           </button>
           <div className="flex gap-3">
             <button
@@ -1615,14 +1615,14 @@ export default function EditExamPage() {
               className="px-6 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               <Save size={18} />
-              Lưu nháp
+              {tr("Lưu nháp", "Save draft")}
             </button>
             {currentStep < 3 ? (
               <button
                 onClick={handleNext}
                 className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
               >
-                Tiếp theo
+                {tr("Tiếp theo", "Next")}
               </button>
             ) : (
               <button
@@ -1631,7 +1631,7 @@ export default function EditExamPage() {
                 className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 <Send size={18} />
-                {isSubmitting ? "Đang cập nhật..." : "Cập nhật & Gửi duyệt"}
+                {isSubmitting ? tr("Đang cập nhật...", "Updating...") : tr("Cập nhật & Gửi duyệt", "Update & Submit")}
               </button>
             )}
           </div>
@@ -1666,9 +1666,9 @@ export default function EditExamPage() {
               <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertCircle size={28} className="text-primary" />
               </div>
-              <h3 className="text-xl font-bold text-foreground dark:text-white">Bạn muốn tạo bài thi mới?</h3>
+              <h3 className="text-xl font-bold text-foreground dark:text-white">{tr("Bạn muốn tạo bài thi mới?", "Do you want to create a new exam?")}</h3>
               <p className="text-sm text-muted-foreground dark:text-slate-400 mt-2">
-                Bài thi hiện đang có {questions.length} câu hỏi. Bạn muốn xử lý thế nào?
+                {tr("Bài thi hiện đang có", "The current exam has")} {questions.length} {tr("câu hỏi. Bạn muốn xử lý thế nào?", "questions. How would you like to proceed?")}
               </p>
             </div>
             <div className="space-y-3">
@@ -1677,14 +1677,14 @@ export default function EditExamPage() {
                 className="w-full px-4 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
               >
                 <Trash2 size={18} />
-                Tạo bài thi mới (xóa câu hỏi cũ)
+                {tr("Tạo bài thi mới (xóa câu hỏi cũ)", "Create new exam (remove old questions)")}
               </button>
               <button
                 onClick={() => handleActionModalChoice("append")}
                 className="w-full px-4 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
               >
                 <Plus size={18} />
-                Thêm câu hỏi vào bài thi
+                {tr("Thêm câu hỏi vào bài thi", "Append questions to current exam")}
               </button>
               <button
                 onClick={() => {
@@ -1694,7 +1694,7 @@ export default function EditExamPage() {
                 }}
                 className="w-full px-4 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
               >
-                Hủy
+                {tr("Hủy", "Cancel")}
               </button>
             </div>
           </div>
@@ -1774,15 +1774,15 @@ function ImportQuestionsModal({
       const reasons: string[] = []
 
       if (extraSet.has(number)) {
-        reasons.push("Câu có nhiều ảnh/tài liệu (chỉ lấy ảnh đầu)")
+        reasons.push(tr("Câu có nhiều ảnh/tài liệu (chỉ lấy ảnh đầu)", "Question has multiple images/assets (only first image is used)"))
       }
 
       if (extracted > 0 && !q.image) {
-        reasons.push("PDF có ảnh/tài liệu nhưng không gắn được vào câu")
+        reasons.push(tr("PDF có ảnh/tài liệu nhưng không gắn được vào câu", "PDF has images/assets but they could not be attached to the question"))
       }
 
       if (isLikelyFormulaLoss(q.question)) {
-        reasons.push("Nghi ngờ mất công thức/ảnh khi đọc")
+        reasons.push(tr("Nghi ngờ mất công thức/ảnh khi đọc", "Possible formula/image loss while parsing"))
       }
 
       if (reasons.length > 0) {
@@ -1903,7 +1903,7 @@ function ImportQuestionsModal({
         }
       }
       if (isPdf && report.questionsWithExtraImages.length > 0) {
-        toast.warning(`Một số câu có nhiều hơn 1 ảnh (chỉ lấy ảnh đầu). Câu: ${report.questionsWithExtraImages.join(", ")}`)
+        toast.warning(tr(`Một số câu có nhiều hơn 1 ảnh (chỉ lấy ảnh đầu). Câu: ${report.questionsWithExtraImages.join(", ")}`, `Some questions have more than one image (only first image is used). Questions: ${report.questionsWithExtraImages.join(", ")}`))
       }
       if (isPdf && hasLikelyFormulaLoss) {
         toast.warning(tr("Phát hiện câu hỏi có thể bị mất công thức/ảnh khi đọc PDF. Vui lòng kiểm tra lại nội dung sau import.", "Some questions may have lost formulas/images during PDF parsing. Please review content after import."))
@@ -1944,8 +1944,8 @@ function ImportQuestionsModal({
             <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-foreground dark:text-white">Câu cần bổ sung ảnh/tài liệu</h3>
-                <p className="text-sm text-muted-foreground mt-1">Danh sách câu cần bạn kiểm tra và tự thêm ảnh nếu cần.</p>
+                <h3 className="text-lg font-bold text-foreground dark:text-white">{tr("Câu cần bổ sung ảnh/tài liệu", "Questions that need additional images/assets")}</h3>
+                <p className="text-sm text-muted-foreground mt-1">{tr("Danh sách câu cần bạn kiểm tra và tự thêm ảnh nếu cần.", "List of questions you should review and manually add images if needed.")}</p>
               </div>
               <button
                 type="button"
@@ -1960,8 +1960,8 @@ function ImportQuestionsModal({
               <div className="flex gap-2 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
                 <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-600" />
                 <div>
-                  <p className="font-medium">Phát hiện {assetIssues.length} câu cần xử lý</p>
-                  <p className="mt-1">Bạn có thể import trước, sau đó dùng nút “Thêm ảnh” ở từng câu để bổ sung.</p>
+                  <p className="font-medium">{tr("Phát hiện", "Detected")} {assetIssues.length} {tr("câu cần xử lý", "questions requiring action")}</p>
+                  <p className="mt-1">{tr("Bạn có thể import trước, sau đó dùng nút “Thêm ảnh” ở từng câu để bổ sung.", "You can import first, then use \"Add image\" on each question to complete.")}</p>
                 </div>
               </div>
 
@@ -1973,7 +1973,7 @@ function ImportQuestionsModal({
                         {issue.number}
                       </span>
                       <div className="flex-1">
-                        <p className="text-sm text-foreground dark:text-white">{issue.preview || "(Không có nội dung)"}</p>
+                        <p className="text-sm text-foreground dark:text-white">{issue.preview || tr("(Không có nội dung)", "(No content)")}</p>
                         <p className="text-xs text-muted-foreground mt-1">{issue.reasons.join("; ")}</p>
                       </div>
                     </div>
@@ -1988,7 +1988,7 @@ function ImportQuestionsModal({
                 onClick={() => setShowAssetIssuesModal(false)}
                 className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
               >
-                Đã hiểu
+                {tr("Đã hiểu", "Understood")}
               </button>
             </div>
             </div>
@@ -1999,8 +1999,8 @@ function ImportQuestionsModal({
         <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full overflow-hidden shadow-2xl">
         <div className="p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-foreground dark:text-white">Nhập đề thi từ file</h2>
-            <p className="text-sm text-muted-foreground mt-1">Hỗ trợ file Excel (.xlsx) hoặc Word/PDF (.docx, .pdf)</p>
+            <h2 className="text-xl font-bold text-foreground dark:text-white">{tr("Nhập đề thi từ file", "Import exam from file")}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{tr("Hỗ trợ file Excel (.xlsx) hoặc Word/PDF (.docx, .pdf)", "Supports Excel (.xlsx) or Word/PDF (.docx, .pdf) files")}</p>
           </div>
           <button
             onClick={onClose}
@@ -2018,24 +2018,24 @@ function ImportQuestionsModal({
               className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
             >
               <AlertCircle size={16} />
-              Xem danh sách câu cần bổ sung ảnh/tài liệu
+              {tr("Xem danh sách câu cần bổ sung ảnh/tài liệu", "View questions needing additional images/assets")}
             </button>
           )}
           {importReport && (
             <div className="flex gap-2 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
               <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-600" />
               <div>
-                <p className="font-medium">Báo cáo import PDF</p>
-                <p className="mt-1">Trích xuất {importReport.extractedImageCount} ảnh/công thức, gắn vào {importReport.importedImageCount} câu.</p>
+                <p className="font-medium">{tr("Báo cáo import PDF", "PDF import report")}</p>
+                <p className="mt-1">{tr("Trích xuất", "Extracted")} {importReport.extractedImageCount} {tr("ảnh/công thức, gắn vào", "images/formulas and attached to")} {importReport.importedImageCount} {tr("câu.", "questions.")}</p>
                 {importReport.questionsWithExtraImages.length > 0 && (
-                  <p className="mt-1">Câu có ảnh bổ sung chưa import (chỉ lấy ảnh đầu): {importReport.questionsWithExtraImages.join(", ")}</p>
+                  <p className="mt-1">{tr("Câu có ảnh bổ sung chưa import (chỉ lấy ảnh đầu):", "Questions with extra images not imported (only first image used):")} {importReport.questionsWithExtraImages.join(", ")}</p>
                 )}
               </div>
             </div>
           )}
           {/* File Type Selection */}
           <div>
-            <label className="block text-sm font-medium text-foreground dark:text-white mb-3">Loại file</label>
+            <label className="block text-sm font-medium text-foreground dark:text-white mb-3">{tr("Loại file", "File type")}</label>
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
@@ -2076,7 +2076,7 @@ function ImportQuestionsModal({
 
           {/* File Upload */}
           <div>
-            <label className="block text-sm font-medium text-foreground dark:text-white mb-3">Chọn file</label>
+            <label className="block text-sm font-medium text-foreground dark:text-white mb-3">{tr("Chọn file", "Select file")}</label>
             <div className="border-2 border-dashed border-border dark:border-slate-700 rounded-xl p-8 text-center hover:border-primary/50 transition-colors">
               <input
                 type="file"
@@ -2096,9 +2096,9 @@ function ImportQuestionsModal({
                   </div>
                 ) : (
                   <div>
-                    <p className="font-medium text-foreground dark:text-white">Kéo thả file hoặc click để chọn</p>
+                    <p className="font-medium text-foreground dark:text-white">{tr("Kéo thả file hoặc click để chọn", "Drag and drop a file or click to choose")}</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {importType === "excel" ? "Hỗ trợ .xlsx, .xls" : "Hỗ trợ .docx, .doc, .pdf"}
+                      {importType === "excel" ? tr("Hỗ trợ .xlsx, .xls", "Supports .xlsx, .xls") : tr("Hỗ trợ .docx, .doc, .pdf", "Supports .docx, .doc, .pdf")}
                     </p>
                   </div>
                 )}
@@ -2110,29 +2110,29 @@ function ImportQuestionsModal({
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
             <h4 className="font-medium text-blue-500 mb-2 flex items-center gap-2">
               <AlertCircle size={16} />
-              Hướng dẫn định dạng file
+              {tr("Hướng dẫn định dạng file", "File format guide")}
             </h4>
             <ul className="text-sm text-blue-400 space-y-1">
               {importType === "excel" ? (
                 <>
-                  <li>• Cột A: Câu hỏi</li>
-                  <li>• Cột B-E: Đáp án A, B, C, D</li>
-                  <li>• Cột F: Đáp án đúng (A, B, C hoặc D)</li>
-                  <li>• Cột G: Điểm</li>
-                  <li>• Cột H: Giải thích (tùy chọn)</li>
+                  <li>{tr("• Cột A: Câu hỏi", "- Column A: Question")}</li>
+                  <li>{tr("• Cột B-E: Đáp án A, B, C, D", "- Column B-E: Answers A, B, C, D")}</li>
+                  <li>{tr("• Cột F: Đáp án đúng (A, B, C hoặc D)", "- Column F: Correct answer (A, B, C, or D)")}</li>
+                  <li>{tr("• Cột G: Điểm", "- Column G: Points")}</li>
+                  <li>{tr("• Cột H: Giải thích (tùy chọn)", "- Column H: Explanation (optional)")}</li>
                 </>
               ) : (
                 <>
-                  <li>• Mỗi câu hỏi bắt đầu bằng "Câu [số]:"</li>
-                  <li>• Đáp án được đánh dấu A., B., C., D.</li>
-                  <li>• Đáp án đúng ghi ở dòng "Answer:" hoặc "Đáp án:"</li>
-                  <li>• Giải thích bắt đầu bằng "Giải thích:"</li>
-                  <li>• Với PDF: chỉ đọc text, ảnh/công thức nhúng có thể không import được</li>
+                  <li>{tr("• Mỗi câu hỏi bắt đầu bằng \"Câu [số]:\"", "- Each question starts with \"Question [number]:\"")}</li>
+                  <li>{tr("• Đáp án được đánh dấu A., B., C., D.", "- Answers are marked as A., B., C., D.")}</li>
+                  <li>{tr("• Đáp án đúng ghi ở dòng \"Answer:\" hoặc \"Đáp án:\"", "- Correct answer appears in a line with \"Answer:\"")}</li>
+                  <li>{tr("• Giải thích bắt đầu bằng \"Giải thích:\"", "- Explanation starts with \"Explanation:\"")}</li>
+                  <li>{tr("• Với PDF: chỉ đọc text, ảnh/công thức nhúng có thể không import được", "- For PDF: text-only parsing; embedded images/formulas may not be imported")}</li>
                 </>
               )}
             </ul>
             <button className="mt-3 text-sm text-blue-500 hover:underline flex items-center gap-1">
-              Tải file mẫu
+              {tr("Tải file mẫu", "Download template")}
             </button>
           </div>
 
@@ -2140,7 +2140,7 @@ function ImportQuestionsModal({
           {isProcessing && (
             <div className="text-center py-8">
               <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Đang xử lý file...</p>
+              <p className="text-muted-foreground">{tr("Đang xử lý file...", "Processing file...")}</p>
             </div>
           )}
 
@@ -2148,7 +2148,7 @@ function ImportQuestionsModal({
           {previewQuestions.length > 0 && !isProcessing && (
             <div>
               <h4 className="font-medium text-foreground dark:text-white mb-3">
-                Xem trước ({previewQuestions.length} câu hỏi)
+                {tr("Xem trước", "Preview")} ({previewQuestions.length} {tr("câu hỏi", "questions")})
               </h4>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {previewQuestions.map((q, index) => (
@@ -2157,7 +2157,7 @@ function ImportQuestionsModal({
                       {index + 1}
                     </span>
                     <span className="flex-1 text-foreground dark:text-white text-sm truncate"><ScientificText as="span" text={q.question} /></span>
-                    <span className="text-xs text-muted-foreground">{q.points} điểm</span>
+                    <span className="text-xs text-muted-foreground">{q.points} {tr("điểm", "points")}</span>
                   </div>
                 ))}
               </div>
@@ -2170,7 +2170,7 @@ function ImportQuestionsModal({
             onClick={onClose}
             className="px-6 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
           >
-            Hủy
+            {tr("Hủy", "Cancel")}
           </button>
           {assetIssues.length > 0 && !isProcessing && (
             <button
@@ -2178,7 +2178,7 @@ function ImportQuestionsModal({
               onClick={() => setShowAssetIssuesModal(true)}
               className="px-6 py-3 border border-border dark:border-slate-700 rounded-xl font-medium hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
             >
-              Xem câu cần bổ sung
+              {tr("Xem câu cần bổ sung", "View questions needing fixes")}
             </button>
           )}
           {hasExistingQuestions && (
@@ -2188,7 +2188,7 @@ function ImportQuestionsModal({
               className="px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <Trash2 size={18} />
-              Thay thế toàn bộ ({previewQuestions.length} câu)
+              {tr("Thay thế toàn bộ", "Replace all")} ({previewQuestions.length} {tr("câu", "questions")})
             </button>
           )}
           <button
@@ -2197,7 +2197,7 @@ function ImportQuestionsModal({
             className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <CheckCircle size={18} />
-            Thêm {previewQuestions.length} câu hỏi
+            {tr("Thêm", "Add")} {previewQuestions.length} {tr("câu hỏi", "questions")}
           </button>
         </div>
         </div>

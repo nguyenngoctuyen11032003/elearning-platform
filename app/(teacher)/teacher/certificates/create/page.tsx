@@ -987,7 +987,7 @@ export default function CreateCertificatePage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Logo Upload - Most Prominent */}
                 <div className="md:col-span-1">
-                  <label className="block text-sm font-bold text-foreground dark:text-white mb-3 flex items-center gap-2">
+                      <label className="text-sm font-bold text-foreground dark:text-white mb-3 flex items-center gap-2">
                     <span className="text-xl">🏢</span>
                     {t("tch_cert_upload_logo_label", "Logo")}
                     <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">{t("tch_cert_upload_required", "Bắt buộc")}</span>
@@ -1046,7 +1046,7 @@ export default function CreateCertificatePage() {
 
                 {/* Background Image Upload */}
                 <div className="md:col-span-1">
-                  <label className="block text-sm font-bold text-foreground dark:text-white mb-3 flex items-center gap-2">
+                      <label className="text-sm font-bold text-foreground dark:text-white mb-3 flex items-center gap-2">
                     <span className="text-xl">🖼️</span>
                     {t("tch_cert_upload_background_label", "Ảnh nền")}
                   </label>
@@ -1104,7 +1104,7 @@ export default function CreateCertificatePage() {
 
                 {/* Signature Upload */}
                 <div className="md:col-span-1">
-                  <label className="block text-sm font-bold text-foreground dark:text-white mb-3 flex items-center gap-2">
+                      <label className="text-sm font-bold text-foreground dark:text-white mb-3 flex items-center gap-2">
                     <span className="text-xl">✍️</span>
                     {t("tch_cert_upload_signature_label", "Chữ ký")}
                   </label>
@@ -1411,7 +1411,7 @@ export default function CreateCertificatePage() {
                   >
                     <option value="">{t("tch_cert_option_select_course", "Chọn khóa học")}</option>
                     {formData.courseId && !courses.some((course) => course.id === formData.courseId) && (
-                      <option value={formData.courseId}>Khóa học đã chọn (không còn trong danh sách hiện tại)</option>
+                      <option value={formData.courseId}>{t("tch_cert_selected_course_missing", "Khóa học đã chọn (không còn trong danh sách hiện tại)")}</option>
                     )}
                     {courses.map(course => (
                       <option key={course.id} value={course.id}>{course.title}</option>
@@ -1424,7 +1424,7 @@ export default function CreateCertificatePage() {
                   <div>
                     <label className="block text-sm font-semibold text-foreground dark:text-white mb-2">{t("tch_cert_label_validity", "Thời hạn hiệu lực")}</label>
                     <DialogSelect
-                      value={typeof formData.validityPeriod === 'string' && validityOptions.some((option) => option.value === formData.validityPeriod) ? formData.validityPeriod : validityOptions[0]?.value}
+                      value={validityOptions.some((option) => option.value === formData.validityPeriod) ? formData.validityPeriod : validityOptions[0]?.value}
                       onChange={(value) => setFormData({ ...formData, validityPeriod: value })}
                     >
                       {validityOptions.map((option) => (

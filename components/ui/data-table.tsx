@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,10 +11,9 @@ import {
   ArrowDown,
   Search,
   Download,
-  Trash2,
   MoreHorizontal,
-  Check,
 } from "lucide-react"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface Column<T> {
   key: string
@@ -67,7 +66,7 @@ export function DataTable<T>({
   sortOrder = "desc",
   loading = false,
   searchable = false,
-  searchPlaceholder = "Tìm kiếm...",
+  searchPlaceholder,
   onSearch,
   searchValue = "",
   selectable = false,
@@ -78,9 +77,12 @@ export function DataTable<T>({
   bulkActions = [],
   exportable = false,
   onExport,
-  emptyMessage = "Không có dữ liệu",
+  emptyMessage,
 }: DataTableProps<T>) {
+  const { t } = useLanguage()
   const [localSearchValue, setLocalSearchValue] = useState(searchValue)
+  const resolvedSearchPlaceholder = searchPlaceholder || t("common_search", "Search...")
+  const resolvedEmptyMessage = emptyMessage || t("common_no_data", "No data")
 
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   const startItem = (currentPage - 1) * itemsPerPage + 1
@@ -146,7 +148,7 @@ export function DataTable<T>({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder={searchPlaceholder}
+              placeholder={resolvedSearchPlaceholder}
               value={localSearchValue}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-border dark:border-slate-700 bg-background dark:bg-slate-800 text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
@@ -159,7 +161,7 @@ export function DataTable<T>({
           {selectable && selectedItems.length > 0 && bulkActions.length > 0 && (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 dark:bg-accent/10 rounded-lg">
               <span className="text-sm font-medium text-primary dark:text-accent">
-                {selectedItems.length} đã chọn
+                {selectedItems.length} {t("common_selected", "selected")}
               </span>
               {bulkActions.map((action, index) => (
                 <button
@@ -182,20 +184,20 @@ export function DataTable<T>({
             <div className="relative group">
               <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border dark:border-slate-700 hover:bg-secondary dark:hover:bg-slate-800 transition-colors">
                 <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Xuất</span>
+                <span className="hidden sm:inline">{t("common_export", "Export")}</span>
               </button>
               <div className="absolute right-0 mt-1 w-36 bg-card dark:bg-slate-900 border border-border dark:border-slate-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
                 <button
                   onClick={() => onExport("csv")}
                   className="w-full px-4 py-2 text-left text-sm hover:bg-secondary dark:hover:bg-slate-800 rounded-t-lg"
                 >
-                  Xuất CSV
+                  {t("common_export_csv", "Export CSV")}
                 </button>
                 <button
                   onClick={() => onExport("excel")}
                   className="w-full px-4 py-2 text-left text-sm hover:bg-secondary dark:hover:bg-slate-800 rounded-b-lg"
                 >
-                  Xuất Excel
+                  {t("common_export_excel", "Export Excel")}
                 </button>
               </div>
             </div>
@@ -254,7 +256,7 @@ export function DataTable<T>({
                     colSpan={columns.length + (selectable ? 1 : 0)}
                     className="px-4 py-8 text-center text-muted-foreground dark:text-slate-400"
                   >
-                    {emptyMessage}
+                    {resolvedEmptyMessage}
                   </td>
                 </tr>
               ) : (
@@ -301,9 +303,9 @@ export function DataTable<T>({
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-border dark:border-slate-800">
             <div className="text-sm text-muted-foreground dark:text-slate-400">
-              Hiển thị <span className="font-medium text-foreground dark:text-white">{startItem}</span> đến{" "}
-              <span className="font-medium text-foreground dark:text-white">{endItem}</span> trong{" "}
-              <span className="font-medium text-foreground dark:text-white">{totalItems}</span> kết quả
+              {t("pagination_showing", "Showing")} <span className="font-medium text-foreground dark:text-white">{startItem}</span> {t("pagination_to", "to")}{" "}
+              <span className="font-medium text-foreground dark:text-white">{endItem}</span> {t("pagination_of", "of")}{" "}
+              <span className="font-medium text-foreground dark:text-white">{totalItems}</span> {t("pagination_results", "results")}
             </div>
 
             <div className="flex items-center gap-1">

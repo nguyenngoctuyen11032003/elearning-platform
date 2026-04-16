@@ -295,6 +295,7 @@ interface AddCourseModalProps {
 }
 
 export function AddCourseModal({ isOpen, onClose, onAdd }: AddCourseModalProps) {
+  const { t } = useLanguage()
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -311,65 +312,65 @@ export function AddCourseModal({ isOpen, onClose, onAdd }: AddCourseModalProps) 
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Tạo khóa học mới" size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={t("admin_create_course_title", "Tạo khóa học mới")} size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Tên khóa học</label>
+          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_course_name", "Tên khóa học")}</label>
           <input
             type="text"
             required
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder="Nhập tên khóa học"
+            placeholder={t("admin_course_name_placeholder", "Nhập tên khóa học")}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Danh mục</label>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_course_category", "Danh mục")}</label>
             <input
               type="text"
               required
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-              placeholder="Ví dụ: Lập trình"
+              placeholder={t("admin_course_category_placeholder", "Ví dụ: Lập trình")}
             />
           </div>
           <div>
-            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Giảng viên</label>
+            <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_course_instructor", "Giảng viên")}</label>
             <input
               type="text"
               required
               value={formData.instructor}
               onChange={(e) => setFormData({ ...formData, instructor: e.target.value })}
               className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-              placeholder="Tên giảng viên"
+              placeholder={t("admin_course_instructor_placeholder", "Tên giảng viên")}
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Giá (VND)</label>
+          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("admin_course_price", "Giá (VND)")}</label>
           <input
             type="number"
             required
             value={formData.price}
             onChange={(e) => setFormData({ ...formData, price: e.target.value })}
             className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
-            placeholder="Nhập giá"
+            placeholder={t("admin_course_price_placeholder", "Nhập giá")}
           />
         </div>
 
         <div>
-          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">Mô tả</label>
+          <label className="block text-foreground dark:text-white text-sm font-semibold mb-2">{t("common_description", "Mô tả")}</label>
           <textarea
             required
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="w-full bg-background dark:bg-slate-950 text-foreground dark:text-white rounded-lg px-4 py-2 border border-border dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent h-24"
-            placeholder="Nhập mô tả khóa học"
+            placeholder={t("admin_course_description_placeholder", "Nhập mô tả khóa học")}
           />
         </div>
 
@@ -379,13 +380,13 @@ export function AddCourseModal({ isOpen, onClose, onAdd }: AddCourseModalProps) 
             onClick={onClose}
             className="flex-1 px-4 py-2 bg-secondary dark:bg-slate-800 text-foreground dark:text-white rounded-lg hover:bg-secondary/80 dark:hover:bg-slate-700 transition-smooth font-medium"
           >
-            Hủy
+            {t("common_cancel", "Hủy")}
           </button>
           <button
             type="submit"
             className="flex-1 px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg hover:shadow-lg transition-smooth font-medium"
           >
-            Tạo khóa học
+            {t("admin_create_course", "Tạo khóa học")}
           </button>
         </div>
       </form>

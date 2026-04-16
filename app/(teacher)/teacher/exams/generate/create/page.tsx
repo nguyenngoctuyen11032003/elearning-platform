@@ -767,42 +767,44 @@ function TeacherGenerateExamCreatePageContent() {
     ? Math.min(100, Math.round((generatedQuestions.length / questionCount) * 100))
     : 0
 
-  const inputClass = "w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-500/20"
-  const sectionCardClass = "overflow-visible rounded-2xl border border-slate-700 bg-slate-800 p-5 shadow-[0_10px_25px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(0,0,0,0.3)]"
-  const selectClass = "rounded-xl border-[#334155] bg-[#0b1224] text-slate-100 focus:ring-emerald-500/20"
+  const inputClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+  const sectionCardClass = "overflow-visible rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(2,6,23,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(2,6,23,0.12)] dark:border-slate-700 dark:bg-slate-800 dark:shadow-[0_10px_25px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_14px_34px_rgba(0,0,0,0.3)]"
+  const selectClass = "rounded-xl border-slate-200 bg-white text-slate-900 focus:ring-emerald-500/20 dark:border-[#334155] dark:bg-[#0b1224] dark:text-slate-100"
 
   return (
-    <div className="relative min-h-screen overflow-visible rounded-3xl bg-slate-900 p-4 md:p-6">
+    <div className="relative min-h-screen overflow-visible rounded-3xl bg-gradient-to-br from-slate-50 via-white to-cyan-50/40 p-4 md:p-6 dark:bg-slate-900">
       <div className="pointer-events-none absolute inset-0 opacity-70">
         <div className="absolute -top-32 left-1/3 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-cyan-500/15 blur-3xl" />
       </div>
 
       <div className="relative space-y-5">
-        <div className="flex items-start gap-3 rounded-2xl border border-slate-700 bg-slate-800/50 p-4 md:p-5">
-          <Link href="/teacher/exams/generate" className="rounded-xl border border-slate-700 p-2.5 text-slate-300 transition hover:bg-slate-700 hover:text-white">
+        <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white/85 p-4 md:p-5 dark:border-slate-700 dark:bg-slate-800/50">
+          <Link href="/teacher/exams/generate" className="rounded-xl border border-slate-200 p-2.5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white">
             <ArrowLeft size={18} />
           </Link>
           <div className="space-y-1">
-            <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-100 md:text-[28px]">
+            <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900 md:text-[28px] dark:text-slate-100">
               <Sparkles size={20} className="text-emerald-400" />
-              {isEditMode ? "Sửa cấu hình đề thi cá nhân" : "Tạo bài thi cá nhân"}
-            </h1>
-            <p className="text-sm text-slate-400">
               {isEditMode
-                ? "Cập nhật đề thi từ ngân hàng câu hỏi theo luồng step-based"
-                : "Tạo đề thi nhanh từ ngân hàng câu hỏi (Extracted Exam)"}
+                ? tr("Sửa cấu hình đề thi cá nhân", "Edit personal exam configuration")
+                : tr("Tạo bài thi cá nhân", "Create personal exam")}
+            </h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              {isEditMode
+                ? tr("Cập nhật đề thi từ ngân hàng câu hỏi theo luồng step-based", "Update exam from the question bank with step-based flow")
+                : tr("Tạo đề thi nhanh từ ngân hàng câu hỏi (Extracted Exam)", "Quickly create an exam from question bank (Extracted Exam)")}
             </p>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="rounded-xl border border-[#1e293b] bg-[#0f172a] p-6 text-sm text-slate-400">
-            Đang tải dữ liệu ngân hàng đề thi...
+          <div className="rounded-xl border border-slate-200 bg-white/90 p-6 text-sm text-slate-600 dark:border-[#1e293b] dark:bg-[#0f172a] dark:text-slate-400">
+            {tr("Đang tải dữ liệu ngân hàng đề thi...", "Loading source exam bank data...")}
           </div>
         ) : (
           <>
-            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
+            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-slate-700 dark:bg-slate-800/50">
               <div className="grid gap-3 md:grid-cols-4">
                 {stepItems.map((item) => {
                   const Icon = item.icon
@@ -819,8 +821,8 @@ function TeacherGenerateExamCreatePageContent() {
                         isCurrent
                           ? "border-emerald-400/60 bg-emerald-500/10"
                           : isDone
-                          ? "border-slate-700 bg-slate-700/60"
-                          : "border-slate-700 bg-slate-700/30"
+                          ? "border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-700/60"
+                          : "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-700/30"
                       }`}
                     >
                       <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
@@ -828,8 +830,8 @@ function TeacherGenerateExamCreatePageContent() {
                       }`}>
                         {isDone ? <CheckCircle2 size={14} /> : item.step}
                       </span>
-                      <span className="flex items-center gap-1.5 text-sm font-medium text-slate-200">
-                        <Icon size={14} className="text-slate-400" />
+                      <span className="flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+                        <Icon size={14} className="text-slate-500 dark:text-slate-400" />
                         {item.title}
                       </span>
                     </button>

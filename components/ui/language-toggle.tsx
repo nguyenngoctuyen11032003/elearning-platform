@@ -16,7 +16,7 @@ export function LanguageToggle() {
     return (
       <Button variant="ghost" size="sm" className="h-8 w-8 px-0">
         <span className="text-base leading-none" aria-hidden="true">🇻🇳</span>
-        <span className="sr-only">Chuyển đổi ngôn ngữ</span>
+        <span className="sr-only">{t("language_toggle", "Chuyển đổi ngôn ngữ")}</span>
       </Button>
     )
   }
@@ -40,7 +40,7 @@ export function LanguageToggle() {
       <span className="text-base leading-none transition-transform duration-300 group-hover:scale-110" aria-hidden="true">
         {current.flag}
       </span>
-      <span className="sr-only">Chuyển đổi ngôn ngữ</span>
+      <span className="sr-only">{t("language_toggle", "Chuyển đổi ngôn ngữ")}</span>
     </Button>
   )
 }

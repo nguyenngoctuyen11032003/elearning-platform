@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, use, useRef, useEffect } from "react"
-import { Save, Plus, Trash2, Eye, FileText, Video, X, ChevronDown, Loader2, Send, Upload, ImageIcon } from "lucide-react"
-import { FileUploadZone } from "@/components/ui/file-upload-zone"
+import { Save, Plus, Trash2, FileText, Video, X, ChevronDown, Loader2, Send, Upload, ImageIcon } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -599,8 +598,6 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   const [draggedDocumentZone, setDraggedDocumentZone] = useState(false)
   const [uploadingVideoIds, setUploadingVideoIds] = useState<Set<string>>(new Set())
   const [uploadingDocIds, setUploadingDocIds] = useState<Set<string>>(new Set())
-  const videoInputRef = useRef<HTMLInputElement>(null)
-  const documentInputRef = useRef<HTMLInputElement>(null)
   const addLessonVideoInputRef = useRef<HTMLInputElement>(null)
   const addLessonDocumentInputRef = useRef<HTMLInputElement>(null)
   const [draggedAddVideoZone, setDraggedAddVideoZone] = useState(false)
@@ -678,7 +675,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         const trimmed = String(token || "").trim()
         if (!trimmed) return -1
 
-        const clean = trimmed.replace(/^[\s\(\[]+|[\s\)\].:;,-]+$/g, "")
+        const clean = trimmed.replace(/^[\s([]+|[\s)\].:;,-]+$/g, "")
         const normalized = normalizeText(clean)
         if (normalized) {
           const byText = options.findIndex((option) => normalizeText(option) === normalized)
@@ -714,37 +711,38 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         return Array.from(new Set(indexes))
       }
 
-      const importedQuizzes: Quiz[] = parsedQuestions
-        .map((item) => {
-          const options = (item.options || []).slice(0, 6)
-          if (item.type === "fill_in" || options.length < 2) return null
+      const importedQuizzes = parsedQuestions.reduce<Quiz[]>((acc, item) => {
+        const options = (item.options || []).slice(0, 6)
+        if (item.type === "fill_in" || options.length < 2) return acc
 
-          const answerIndexes = resolveAnswerIndexes(item.correctAnswer, options)
-          const isTrueFalse = item.type === "true_false"
+        const answerIndexes = resolveAnswerIndexes(item.correctAnswer, options)
+        const isTrueFalse = item.type === "true_false"
 
-          if (answerIndexes.length > 1 && !isTrueFalse) {
-            return {
-              id: createTempId("quiz"),
-              question: item.question,
-              type: "multiple-select" as const,
-              options,
-              correctAnswer: undefined,
-              correctAnswers: answerIndexes,
-              image: item.image,
-            }
-          }
-
-          return {
+        if (answerIndexes.length > 1 && !isTrueFalse) {
+          acc.push({
             id: createTempId("quiz"),
             question: item.question,
-            type: (isTrueFalse ? "true-false" : "multiple-choice") as const,
+            type: "multiple-select",
             options,
-            correctAnswer: answerIndexes[0] ?? 0,
-            correctAnswers: [],
+            correctAnswer: undefined,
+            correctAnswers: answerIndexes,
             image: item.image,
-          }
+          })
+          return acc
+        }
+
+        const singleType: Quiz["type"] = isTrueFalse ? "true-false" : "multiple-choice"
+        acc.push({
+          id: createTempId("quiz"),
+          question: item.question,
+          type: singleType,
+          options,
+          correctAnswer: answerIndexes[0] ?? 0,
+          correctAnswers: [],
+          image: item.image,
         })
-        .filter((quiz): quiz is Quiz => Boolean(quiz))
+        return acc
+      }, [])
 
       const quizzesWithUploadedImages = await Promise.all(
         importedQuizzes.map(async (quiz) => {
@@ -870,15 +868,26 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           const reconstructedSections = groupedLessons.map((group, idx) => ({
             id: createTempId(`section-${idx}`),
             title: group.title,
-            lessons: group.items.map((l: { id: string; title: string; description: string; videoUrl?: string; resources?: unknown[]; type?: string; order?: number; sectionTitle?: string }) => {
+            lessons: group.items.map((item: any) => {
+              const l = item as {
+                id?: string
+                title?: string
+                description?: string
+                videoUrl?: string
+                resources?: unknown[]
+                type?: string
+                order?: number
+                sectionTitle?: string
+              }
               const resources = parseLessonResources(l.resources)
               const [firstRes, ...extraResources] = resources
-              const linkedQuiz = quizByLesson[l.id]
-              const linkedAssignment = assignmentByLesson[l.id]
+              const lessonId = String(l.id || createTempId("lesson"))
+              const linkedQuiz = quizByLesson[lessonId]
+              const linkedAssignment = assignmentByLesson[lessonId]
               const questions = Array.isArray(linkedQuiz?.questions) ? linkedQuiz.questions : []
               return {
-                id: l.id,
-                title: l.title,
+                id: lessonId,
+                title: String(l.title || ""),
                 description: l.description || "",
                 order: l.order,
                 sectionTitle: l.sectionTitle,
@@ -1072,13 +1081,6 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     return isPdf || isImage
   }
 
-  const getDocumentIcon = (file: File) => {
-    if (file.type.startsWith('image/')) {
-      return '🖼️'
-    }
-    return '📄'
-  }
-
   const updateLesson = (sectionId: string, lessonId: string, updates: Partial<Lesson>) => {
     setSections(
       sections.map((s) => {
@@ -1177,10 +1179,6 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       }))
     )
   }
-
-  const currentSection = sections.find((s) => s.id === currentSectionId)
-  const currentLesson = sections.flatMap(s => s.lessons).find((l) => l.id === currentLessonId)
-  const currentLessonFiles = uploadedFiles[currentLessonId || ''] || []
 
   const handleSaveCourse = async () => {
     setIsSaving(true)
@@ -1291,7 +1289,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       const payload = {
         title: course.title,
         description: course.description,
-        price: typeof course.price === "string" ? Number(course.price) : course.price,
+        price: Number(course.price),
         ...(course.categoryId ? { categoryId: course.categoryId } : {}),
         ...(thumbnailDirty ? { thumbnail: nextThumbnail } : {}),
       }
@@ -1752,16 +1750,6 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         const url = result?.data?.url ?? result?.url ?? null
         if (url) {
           const existingResources = lessonState ? buildLessonResources(lessonState) : []
-          const nextResources = (() => {
-            const merged = [...existingResources, { url, name: file.name, type: file.type || "document" }]
-            const dedup = new Map<string, LessonDocument>()
-            for (const item of merged) {
-              if (!item?.url || dedup.has(item.url)) continue
-              dedup.set(item.url, item)
-            }
-            return Array.from(dedup.values())
-          })()
-
           setSections(prev => prev.map(s => ({
             ...s,
             lessons: s.lessons.map((l) => {
@@ -1805,41 +1793,6 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       setUploadingDocIds(prev => { const s = new Set(prev); s.delete(lessonId); return s })
     }
   }
-  const handleVideoDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDraggedVideoZone(false)
-    const file = e.dataTransfer.files?.[0]
-    if (file && file.type.startsWith('video/') && currentLessonId) {
-      handleVideoUpload(currentLessonId, file)
-    }
-  }
-
-  const handleDocumentDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDraggedDocumentZone(false)
-    const files = e.dataTransfer.files
-    if (files?.length && currentLessonId) {
-      Array.from(files).forEach((file) => {
-        if (
-          file.type === "application/pdf" ||
-          file.type.includes("word") ||
-          file.type.includes("powerpoint") ||
-          file.type.includes("presentation") ||
-          file.type.includes("excel") ||
-          file.name.endsWith(".pdf") ||
-          file.name.endsWith(".doc") ||
-          file.name.endsWith(".docx") ||
-          file.name.endsWith(".ppt") ||
-          file.name.endsWith(".pptx") ||
-          file.name.endsWith(".xls") ||
-          file.name.endsWith(".xlsx")
-        ) {
-          handleDocumentUpload(currentLessonId, file)
-        }
-      })
-    }
-  }
-
   return (
     <div className="p-4 md:p-5 overflow-y-auto">
       {isLoading ? (
@@ -2089,7 +2042,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                             )}
                             {lesson.quizzes.length > 0 && (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded text-xs font-medium">
-                               {lesson.quizzes.length} câu hỏi
+                               {lesson.quizzes.length} {tr("câu hỏi", "questions")}
                               </span>
                             )}
                             {(lesson.assignmentId || lesson.writingTitle || lesson.writingPrompt || (lesson.writingCriteria || []).length > 0 || lesson.writingDueDate) && (
@@ -2121,7 +2074,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                       >
                         <div className="rounded-lg border border-fuchsia-400/30 bg-fuchsia-500/5 p-4 space-y-4">
                           <div className="flex items-center justify-between gap-3">
-                            <h5 className="font-semibold text-foreground dark:text-white">Cấu hình Writing cho bài học này</h5>
+                            <h5 className="font-semibold text-foreground dark:text-white">{tr("Cấu hình Writing cho bài học này", "Writing configuration for this lesson")}</h5>
                             <button
                               type="button"
                               onClick={() => {
@@ -2153,15 +2106,15 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 hover:bg-fuchsia-500/20 transition-smooth"
                             >
                               {lesson.assignmentId || lesson.writingTitle || lesson.writingPrompt || (lesson.writingCriteria || []).length > 0 || lesson.writingDueDate
-                                ? "Tắt Writing"
-                                : "Bật Writing"}
+                                ? tr("Tắt Writing", "Disable Writing")
+                                : tr("Bật Writing", "Enable Writing")}
                             </button>
                           </div>
 
                           {(lesson.assignmentId || lesson.writingTitle || lesson.writingPrompt || (lesson.writingCriteria || []).length > 0 || lesson.writingDueDate) && (
                             <>
                               <div>
-                                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Tên bài tập writing</label>
+                                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{tr("Tên bài tập writing", "Writing assignment title")}</label>
                                 <input
                                   value={lesson.writingTitle || ""}
                                   onChange={(e) =>
@@ -2170,11 +2123,11 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                     })
                                   }
                                   className="w-full px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-sm text-foreground dark:text-white"
-                                  placeholder="Ví dụ: Essay tuần 1"
+                                  placeholder={tr("Ví dụ: Essay tuần 1", "Example: Week 1 Essay")}
                                 />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Đề bài</label>
+                                <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{tr("Đề bài", "Prompt")}</label>
                                 <textarea
                                   value={lesson.writingPrompt || ""}
                                   onChange={(e) =>
@@ -2184,13 +2137,13 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                   }
                                   rows={5}
                                   className="w-full px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-sm text-foreground dark:text-white"
-                                  placeholder="Nhập nội dung đề bài writing cho học sinh"
+                                  placeholder={tr("Nhập nội dung đề bài writing cho học sinh", "Enter writing prompt content for students")}
                                 />
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Hạn nộp</label>
+                                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{tr("Hạn nộp", "Due date")}</label>
                                   <input
                                     type="datetime-local"
                                     value={lesson.writingDueDate || ""}
@@ -2199,7 +2152,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Điểm tối đa</label>
+                                  <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{tr("Điểm tối đa", "Maximum score")}</label>
                                   <input
                                     type="number"
                                     min={1}
@@ -2407,7 +2360,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                           writingCriteria: [
                                             ...(lesson.writingCriteria || []),
                                             {
-                                              title: `Tiêu chí ${(lesson.writingCriteria || []).length + 1}`,
+                                                    title: tr(`Tiêu chí ${(lesson.writingCriteria || []).length + 1}`, `Criterion ${(lesson.writingCriteria || []).length + 1}`),
                                               levels: points.map((point) => ({ description: "", points: point })),
                                             },
                                           ],
@@ -2796,7 +2749,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between p-6 border-b border-border dark:border-slate-700 sticky top-0 bg-card dark:bg-slate-900">
-                  <h4 className="text-lg font-semibold text-foreground dark:text-white">Thêm bài giảng mới</h4>
+                  <h4 className="text-lg font-semibold text-foreground dark:text-white">{tr("Thêm bài giảng mới", "Add new lesson")}</h4>
                   <button
                     onClick={() => setShowAddLessonModal(false)}
                     className="p-1 text-muted-foreground dark:text-slate-400 hover:bg-secondary dark:hover:bg-slate-800 rounded transition-smooth"
@@ -2809,13 +2762,13 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   {/* Lesson Title */}
                   <div>
                     <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                      Tên bài giảng <span className="text-destructive">*</span>
+                      {tr("Tên bài giảng", "Lesson title")} <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="text"
                       value={newLessonData.title}
                       onChange={(e) => setNewLessonData({ ...newLessonData, title: e.target.value })}
-                      placeholder="Nhập tên bài giảng"
+                      placeholder={tr("Nhập tên bài giảng", "Enter lesson title")}
                       className="w-full px-4 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                     />
                   </div>
@@ -2823,12 +2776,12 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   {/* Lesson Description */}
                   <div>
                     <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                      Mô tả bài giảng
+                      {tr("Mô tả bài giảng", "Lesson description")}
                     </label>
                     <textarea
                       value={newLessonData.description}
                       onChange={(e) => setNewLessonData({ ...newLessonData, description: e.target.value })}
-                      placeholder="Nhập mô tả chi tiết về bài giảng"
+                      placeholder={tr("Nhập mô tả chi tiết về bài giảng", "Enter detailed lesson description")}
                       rows={3}
                       className="w-full px-4 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent"
                     />
@@ -2836,7 +2789,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
                   <div className="rounded-lg border border-fuchsia-400/30 bg-fuchsia-500/5 p-4 space-y-4">
                     <div className="flex items-center justify-between gap-3">
-                      <h5 className="font-semibold text-foreground dark:text-white">Cấu hình Writing cho bài học này</h5>
+                      <h5 className="font-semibold text-foreground dark:text-white">{tr("Cấu hình Writing cho bài học này", "Writing configuration for this lesson")}</h5>
                       <button
                         type="button"
                         onClick={() => {
@@ -2868,37 +2821,37 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                         className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 hover:bg-fuchsia-500/20 transition-smooth"
                       >
                         {newLessonData.writingTitle || newLessonData.writingPrompt || (newLessonData.writingCriteria || []).length > 0 || newLessonData.writingDueDate
-                          ? "Tắt Writing"
-                          : "Bật Writing"}
+                          ? tr("Tắt Writing", "Disable Writing")
+                          : tr("Bật Writing", "Enable Writing")}
                       </button>
                     </div>
 
                     {(newLessonData.writingTitle || newLessonData.writingPrompt || (newLessonData.writingCriteria || []).length > 0 || newLessonData.writingDueDate) && (
                       <>
                         <div>
-                          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Tên bài tập writing</label>
+                          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{tr("Tên bài tập writing", "Writing assignment title")}</label>
                           <input
                             value={newLessonData.writingTitle || ""}
                             onChange={(e) => setNewLessonData((prev) => ({ ...prev, writingTitle: e.target.value }))}
                             className="w-full px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-sm text-foreground dark:text-white"
-                            placeholder="Ví dụ: Essay tuần 1"
+                            placeholder={tr("Ví dụ: Essay tuần 1", "Example: Week 1 Essay")}
                           />
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Đề bài</label>
+                          <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{tr("Đề bài", "Prompt")}</label>
                           <textarea
                             value={newLessonData.writingPrompt || ""}
                             onChange={(e) => setNewLessonData((prev) => ({ ...prev, writingPrompt: e.target.value }))}
                             rows={5}
                             className="w-full px-3 py-2 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded-lg text-sm text-foreground dark:text-white"
-                            placeholder="Nhập nội dung đề bài writing cho học sinh"
+                            placeholder={tr("Nhập nội dung đề bài writing cho học sinh", "Enter writing prompt content for students")}
                           />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Hạn nộp</label>
+                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{tr("Hạn nộp", "Due date")}</label>
                             <input
                               type="datetime-local"
                               value={newLessonData.writingDueDate || ""}
@@ -2907,7 +2860,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">Điểm tối đa</label>
+                            <label className="block text-sm font-medium text-foreground dark:text-white mb-2">{tr("Điểm tối đa", "Maximum score")}</label>
                             <input
                               type="number"
                               min={1}
@@ -2941,10 +2894,10 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                               <table className="w-full min-w-[980px] text-sm">
                                 <thead className="bg-secondary dark:bg-slate-900/80">
                                   <tr>
-                                    <th className="px-3 py-2 text-left font-semibold text-foreground dark:text-white w-[220px]">Tiêu chí</th>
+                                    <th className="px-3 py-2 text-left font-semibold text-foreground dark:text-white w-[220px]">{tr("Tiêu chí", "Criterion")}</th>
                                     {[1, 2, 3, 4, 5].map((level) => (
                                       <th key={`new-header-${level}`} className="px-3 py-2 text-left font-semibold text-foreground dark:text-white">
-                                        Mức {level}
+                                        {tr("Mức", "Level")} {level}
                                       </th>
                                     ))}
                                   </tr>
@@ -2964,7 +2917,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                             }))
                                           }
                                           className="w-full px-2 py-1.5 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-sm text-foreground dark:text-white"
-                                          placeholder="Tên tiêu chí"
+                                          placeholder={tr("Tên tiêu chí", "Criterion name")}
                                         />
                                       </td>
                                       {criterion.levels.map((level, levelIndex) => (
@@ -2989,7 +2942,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                               }
                                               rows={4}
                                               className="w-full px-2 py-1.5 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-xs text-foreground dark:text-white"
-                                              placeholder={`Mô tả mức ${levelIndex + 1}`}
+                                              placeholder={tr(`Mô tả mức ${levelIndex + 1}`, `Level ${levelIndex + 1} description`)}
                                             />
                                             <div className="flex items-center gap-2">
                                               <input
@@ -3015,7 +2968,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                                 }
                                                 className="w-24 px-2 py-1 bg-background dark:bg-slate-950 border border-border dark:border-slate-800 rounded text-xs text-foreground dark:text-white"
                                               />
-                                              <span className="text-xs text-muted-foreground dark:text-slate-400">điểm</span>
+                                              <span className="text-xs text-muted-foreground dark:text-slate-400">{tr("điểm", "points")}</span>
                                             </div>
                                           </div>
                                         </td>
@@ -3038,7 +2991,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                 disabled={(newLessonData.writingCriteria || []).length === 0}
                                 className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-smooth disabled:opacity-60"
                               >
-                                Xóa tiêu chí cuối
+                                {tr("Xóa tiêu chí cuối", "Delete last criterion")}
                               </button>
                               <button
                                 type="button"
@@ -3049,7 +3002,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                     writingCriteria: [
                                       ...(prev.writingCriteria || []),
                                       {
-                                        title: `Tiêu chí ${(prev.writingCriteria || []).length + 1}`,
+                                        title: tr(`Tiêu chí ${(prev.writingCriteria || []).length + 1}`, `Criterion ${(prev.writingCriteria || []).length + 1}`),
                                         levels: points.map((point) => ({ description: "", points: point })),
                                       },
                                     ],
@@ -3057,7 +3010,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                 }}
                                 className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary dark:text-accent hover:bg-primary/20 transition-smooth"
                               >
-                                + Thêm tiêu chí
+                                + {tr("Thêm tiêu chí", "Add criterion")}
                               </button>
                             </div>
                           </div>
@@ -3069,7 +3022,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   {/* Video Upload */}
                   <div>
                     <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                      Tải video
+                      {tr("Tải video", "Upload video")}
                     </label>
                     <div
                       onDragOver={(e) => {
@@ -3093,8 +3046,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                       }`}
                     >
                       <Video size={32} className="mx-auto text-muted-foreground dark:text-slate-400 mb-2" />
-                      <p className="text-foreground dark:text-white font-medium">Kéo thả video vào đây</p>
-                      <p className="text-sm text-muted-foreground dark:text-slate-400">Hoặc nhấn để chọn tệp</p>
+                      <p className="text-foreground dark:text-white font-medium">{tr("Kéo thả video vào đây", "Drag and drop video here")}</p>
+                      <p className="text-sm text-muted-foreground dark:text-slate-400">{tr("Hoặc nhấn để chọn tệp", "Or click to choose file")}</p>
                     </div>
                     <input
                       ref={addLessonVideoInputRef}
@@ -3112,7 +3065,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                     {/* Video Files List */}
                     {newLessonFiles.filter(f => f.type.startsWith('video/')).length > 0 && (
                       <div className="mt-3 space-y-2">
-                        <p className="text-xs font-semibold text-foreground dark:text-white">Video đã tải lên:</p>
+                        <p className="text-xs font-semibold text-foreground dark:text-white">{tr("Video đã tải lên:", "Uploaded videos:")}</p>
                         {newLessonFiles.filter(f => f.type.startsWith('video/')).map((file, i) => (
                           <div key={`video-${i}`} className="flex items-center justify-between p-2 bg-background dark:bg-slate-950 rounded border border-border dark:border-slate-800">
                             <div className="flex items-center gap-2 flex-1">
@@ -3131,7 +3084,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   {/* Document Upload */}
                   <div>
                     <label className="block text-sm font-medium text-foreground dark:text-white mb-2">
-                      Tài liệu bổ sung
+                      {tr("Tài liệu bổ sung", "Additional documents")}
                     </label>
                     <div
                       onDragOver={(e) => {
@@ -3155,8 +3108,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                       }`}
                     >
                       <FileText size={32} className="mx-auto text-muted-foreground dark:text-slate-400 mb-2" />
-                      <p className="text-foreground dark:text-white font-medium">Kéo thả tài liệu/hình ảnh vào đây</p>
-                      <p className="text-sm text-muted-foreground dark:text-slate-400">PDF, JPG, PNG, v.v...</p>
+                      <p className="text-foreground dark:text-white font-medium">{tr("Kéo thả tài liệu/hình ảnh vào đây", "Drag and drop documents/images here")}</p>
+                      <p className="text-sm text-muted-foreground dark:text-slate-400">{tr("PDF, JPG, PNG, v.v...", "PDF, JPG, PNG, etc...")}</p>
                     </div>
                     <input
                       ref={addLessonDocumentInputRef}
@@ -3174,7 +3127,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                     {/* Document Files List */}
                     {newLessonFiles.filter(f => isDocumentOrImage(f)).length > 0 && (
                       <div className="mt-3 space-y-2">
-                        <p className="text-xs font-semibold text-foreground dark:text-white">Tài liệu đã tải lên:</p>
+                        <p className="text-xs font-semibold text-foreground dark:text-white">{tr("Tài liệu đã tải lên:", "Uploaded documents:")}</p>
                         {newLessonFiles.filter(f => isDocumentOrImage(f)).map((file, i) => (
                           <div key={`doc-${i}`} className="flex items-center justify-between p-2 bg-background dark:bg-slate-950 rounded border border-border dark:border-slate-800">
                             <div className="flex items-center gap-2 flex-1">
@@ -3198,10 +3151,10 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   <div className="border-t border-border dark:border-slate-800 pt-4">
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2">
-                        <h5 className="font-semibold text-foreground dark:text-white text-sm sm:text-base">Câu hỏi cho bài học này</h5>
+                        <h5 className="font-semibold text-foreground dark:text-white text-sm sm:text-base">{tr("Câu hỏi cho bài học này", "Questions for this lesson")}</h5>
                         {newLessonQuizzes.length > 0 && (
                           <span className="text-xs bg-primary/20 text-primary dark:bg-primary/30 dark:text-accent px-2 py-1 rounded-full">
-                            {newLessonQuizzes.length} câu
+                            {newLessonQuizzes.length} {tr("câu", "questions")}
                           </span>
                         )}
                       </div>
@@ -3211,18 +3164,17 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                           className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-accent rounded-lg text-xs sm:text-sm font-medium hover:bg-primary/20 dark:hover:bg-primary/30 transition-smooth whitespace-nowrap"
                         >
                           <Plus size={13} />
-                          Thêm câu hỏi
+                          {tr("Thêm câu hỏi", "Add question")}
                         </button>
                         <label className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-500/20 dark:hover:bg-blue-500/30 transition-smooth whitespace-nowrap cursor-pointer">
                           <Upload size={13} />
-                          <span>Nhập từ file</span>
+                          <span>{tr("Nhập từ file", "Import from file")}</span>
                           <input
                             type="file"
                             accept=".xlsx,.xls,.csv,.docx"
                             onChange={async (e) => {
                               const file = e.target.files?.[0]
                               if (file) {
-                                const fileName = file.name
                                 await handleImportQuizzes(file, true)
                                 // Clear input to allow re-selection
                                 ;(e.target as HTMLInputElement).value = ""
@@ -3235,7 +3187,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                     </div>
 
                     {newLessonQuizzes.length === 0 ? (
-                      <p className="text-sm text-muted-foreground dark:text-slate-400">Chưa có câu hỏi nào</p>
+                      <p className="text-sm text-muted-foreground dark:text-slate-400">{tr("Chưa có câu hỏi nào", "No questions yet")}</p>
                     ) : (
                       <div className="space-y-3">
                         {newLessonQuizzes.map((quiz, qIndex) => (
@@ -3253,7 +3205,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                     ref={(el) => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px" } }}
                                     rows={1}
                                     className="w-full px-1.5 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-foreground dark:text-white text-xs sm:text-sm resize-none overflow-hidden leading-snug"
-                                    placeholder="Nhập câu hỏi..."
+                                    placeholder={tr("Nhập câu hỏi...", "Enter question...")}
                                   />
 
                                   {/* Image Upload for New Lesson Quiz */}
@@ -3272,7 +3224,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                     {!quiz.image && (
                                       <label className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-secondary dark:bg-slate-800 text-muted-foreground dark:text-slate-400 rounded cursor-pointer hover:bg-border dark:hover:bg-slate-700 transition-colors border border-border dark:border-slate-700">
                                         <ImageIcon size={10} />
-                                        <span>Thêm ảnh</span>
+                                        <span>{tr("Thêm ảnh", "Add image")}</span>
                                         <input 
                                           type="file" 
                                           accept="image/*" 
@@ -3296,7 +3248,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                               <button
                                 onClick={() => deleteNewLessonQuiz(quiz.id)}
                                 className="hidden sm:flex flex-shrink-0 p-1.5 bg-red-500 text-white hover:bg-red-600 rounded transition-colors"
-                                title="Xóa câu hỏi"
+                                title={tr("Xóa câu hỏi", "Delete question")}
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -3305,9 +3257,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                               <button
                                 onClick={() => deleteNewLessonQuiz(quiz.id)}
                                 className="w-full p-1.5 bg-red-500 text-white hover:bg-red-600 rounded transition-colors text-xs font-medium"
-                                title="Xóa câu hỏi"
+                                title={tr("Xóa câu hỏi", "Delete question")}
                               >
-                                Xóa câu hỏi
+                                {tr("Xóa câu hỏi", "Delete question")}
                               </button>
                             </div>
                             <div className="mb-1 flex flex-col sm:flex-row sm:items-center gap-0.5">
@@ -3316,9 +3268,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                                 onChange={(e) => updateNewLessonQuiz(quiz.id, { type: e.target.value as Quiz["type"] })}
                                 className="w-full sm:flex-1 sm:min-w-[60px] px-1 py-0.5 bg-secondary dark:bg-slate-800 border border-border dark:border-slate-700 rounded text-xs text-foreground dark:text-white"
                               >
-                                <option value="multiple-choice">1 đáp án</option>
-                                <option value="multiple-select">Nhiều đáp án</option>
-                                <option value="true-false">Đúng/Sai</option>
+                                <option value="multiple-choice">{tr("1 đáp án", "Single answer")}</option>
+                                <option value="multiple-select">{tr("Nhiều đáp án", "Multiple answers")}</option>
+                                <option value="true-false">{tr("Đúng/Sai", "True/False")}</option>
                               </UniversalSelect>
                               {quiz.type !== "true-false" && (
                                 <UniversalSelect

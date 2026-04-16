@@ -67,33 +67,37 @@ function PaginationLink({
 
 function PaginationPrevious({
   className,
+  children,
+  'aria-label': ariaLabel,
   ...props
 }: React.ComponentProps<typeof PaginationLink>) {
   return (
     <PaginationLink
-      aria-label="Chuyển đến trang trước"
+      aria-label={ariaLabel || 'Go to previous page'}
       size="default"
       className={cn('gap-1 px-2.5 sm:pl-2.5', className)}
       {...props}
     >
       <ChevronLeftIcon />
-      <span className="hidden sm:block">Trang trước</span>
+      {children || <span className="hidden sm:block">Previous</span>}
     </PaginationLink>
   )
 }
 
 function PaginationNext({
   className,
+  children,
+  'aria-label': ariaLabel,
   ...props
 }: React.ComponentProps<typeof PaginationLink>) {
   return (
     <PaginationLink
-      aria-label="Chuyển đến trang tiếp theo"
+      aria-label={ariaLabel || 'Go to next page'}
       size="default"
       className={cn('gap-1 px-2.5 sm:pr-2.5', className)}
       {...props}
     >
-      <span className="hidden sm:block">Tiếp theo</span>
+      {children || <span className="hidden sm:block">Next</span>}
       <ChevronRightIcon />
     </PaginationLink>
   )
@@ -101,6 +105,7 @@ function PaginationNext({
 
 function PaginationEllipsis({
   className,
+  children,
   ...props
 }: React.ComponentProps<'span'>) {
   return (
@@ -111,7 +116,7 @@ function PaginationEllipsis({
       {...props}
     >
       <MoreHorizontalIcon className="size-4" />
-      <span className="sr-only">Nhiều trang hơn</span>
+      {children || <span className="sr-only">More pages</span>}
     </span>
   )
 }

@@ -2,30 +2,20 @@
 
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/authfetch"
 import {
   Plus,
   Search,
-  MoreVertical,
-  Edit2,
-  Trash2,
-  Eye,
-  Send,
   CheckCircle,
   Clock,
   XCircle,
   Award,
   AlertCircle,
   X,
-  BookOpen,
-  Users,
   FileText,
-  Filter,
   Download,
   Share2,
-  TrendingUp
 } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/language-context"
 import { UniversalSelect } from "@/components/ui/universal-select"
@@ -92,16 +82,11 @@ interface IssuedCertificate {
 }
 
 export default function TeacherCertificatesPage() {
-  const router = useRouter()
   const { t } = useLanguage()
-  const getAuthToken = () => localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
-  const cardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
-  const [anchorStyle, setAnchorStyle] = useState<React.CSSProperties | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<CertificateTemplate | null>(null)
   const [viewMode, setViewMode] = useState<"view" | "delete" | null>(null)
   const [exams, setExams] = useState<ExamItem[]>([])
@@ -319,37 +304,6 @@ export default function TeacherCertificatesPage() {
     return () => window.removeEventListener("resize", updateIndicators)
   }, [activeTab, statusFilter])
 
-  const handleEdit = (templateId: string) => {
-    const template = templates.find((item) => item.id === templateId)
-    if (template) {
-      const draft = {
-        title: template.title || "",
-        description: template.description || "",
-        courseId: template.courseId || "",
-        validityPeriod: template.validityPeriod || "Vĩnh viễn",
-        backgroundColor: template.backgroundColor || "#1a1a2e",
-        borderColor: template.borderColor || "#d4af37",
-        borderStyle: "double",
-        textColor: template.textColor || "#ffffff",
-        logoUrl: template.templateImageUrl || "",
-        signatureUrl: "",
-        templateImageUrl: template.templateImageUrl || "",
-        templateStyle: template.templateStyle || "classic",
-        badgeStyle: "star",
-      }
-      localStorage.setItem("certificate_template_draft", JSON.stringify(draft))
-      localStorage.setItem("certificate_template_edit_id", templateId)
-    }
-    router.push("/teacher/certificates/create")
-    setOpenMenu(null)
-  }
-
-  const handleDeleteClick = (template: CertificateTemplate) => {
-    setSelectedTemplate(template)
-    setViewMode("delete")
-    setOpenMenu(null)
-  }
-
   const handleDeleteConfirm = async () => {
     if (!selectedTemplate) return
     
@@ -367,45 +321,6 @@ export default function TeacherCertificatesPage() {
     
     setViewMode(null)
     setSelectedTemplate(null)
-  }
-
-  const handleSubmitForReview = async (templateId: string) => {
-    try {
-      const response = await authFetch(`/certificates/templates/${templateId}/submit`, {
-        method: 'POST'
-      })
-      
-      if (response.ok) {
-        setTemplates(templates.map(t =>
-          t.id === templateId ? { ...t, status: "pending" as const, rejectionReason: undefined } : t
-        ))
-      }
-    } catch (error) {
-      console.error('Error submitting template:', error)
-    }
-    
-    setOpenMenu(null)
-  }
-
-  const handleOpenUseModal = (template: CertificateTemplate) => {
-    setUseTemplate(template)
-    setSelectedExamId("")
-    setAssignError(null)
-    // Anchor modal above the 'Sử dụng' button (top of card)
-    const card = cardRefs.current[template.id]
-    if (card) {
-      const rect = card.getBoundingClientRect()
-      setAnchorStyle({
-        position: "absolute",
-        top: rect.top + window.scrollY - 8,
-        left: rect.left + window.scrollX,
-        zIndex: 100,
-        width: rect.width,
-        maxWidth: 400,
-      })
-    } else {
-      setAnchorStyle(null)
-    }
   }
 
   const handleAssignTemplate = async () => {
@@ -664,7 +579,6 @@ export default function TeacherCertificatesPage() {
                 <div
                   key={template.id}
                   className="bg-white/90 dark:bg-slate-900/70 border border-border dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-lg transition-shadow"
-                  ref={el => { cardRefs.current[template.id] = el }}
                 >
                   <div className="flex items-start justify-end gap-3">
                     <div>{getStatusBadge(template.status)}</div>
@@ -736,7 +650,7 @@ export default function TeacherCertificatesPage() {
                             style={{ backgroundColor: template.borderColor || "#d4af37" }}
                           />
                           <p className="text-[9px] sm:text-[11px] opacity-70">{t("teacher_cert_preview_certify", "Chứng nhận rằng")}</p>
-                          <p className="text-xs sm:text-sm font-semibold italic mt-1 line-clamp-1 max-w-[90%]">[Tên học viên]</p>
+                          <p className="text-xs sm:text-sm font-semibold italic mt-1 line-clamp-1 max-w-[90%]">{t("teacher_cert_preview_student_name", "[Tên học viên]")}</p>
                           <div
                             className="w-24 h-px mt-2"
                             style={{ backgroundColor: template.borderColor || "#d4af37" }}
@@ -748,7 +662,7 @@ export default function TeacherCertificatesPage() {
                             className="text-[9px] sm:text-[11px] font-semibold mt-2 line-clamp-2 max-w-[90%]"
                             style={{ color: template.borderColor || "#d4af37" }}
                           >
-                            {template.courseName || "[Tên khóa học]"}
+                            {template.courseName || t("teacher_cert_preview_course_name", "[Tên khóa học]")}
                           </p>
                         </div>
 
@@ -937,7 +851,7 @@ export default function TeacherCertificatesPage() {
             {/* Anchored modal */}
             <div
               className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl p-6 shadow-xl"
-              style={anchorStyle || { position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 50, width: "100%", maxWidth: 400 }}
+              style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 50, width: "100%", maxWidth: 400 }}
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-foreground dark:text-white">
@@ -1005,7 +919,7 @@ export default function TeacherCertificatesPage() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="p-6 border-b border-border dark:border-slate-800 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-foreground dark:text-white">Chi tiết mẫu chứng chỉ</h2>
+                <h2 className="text-xl font-bold text-foreground dark:text-white">{t("teacher_cert_detail_title", "Chi tiết mẫu chứng chỉ")}</h2>
                 <button
                   onClick={() => {
                     setViewMode(null)
@@ -1030,20 +944,20 @@ export default function TeacherCertificatesPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Trạng thái</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("common_status", "Trạng thái")}</p>
                     <div className="mt-1">{getStatusBadge(selectedTemplate.status)}</div>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Khóa học</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("common_course", "Khóa học")}</p>
                     <p className="text-foreground dark:text-white font-medium">{selectedTemplate.courseName}</p>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Hiệu lực</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("teacher_cert_validity", "Hiệu lực")}</p>
                     <p className="text-foreground dark:text-white font-medium">{selectedTemplate.validityPeriod}</p>
                   </div>
                   <div className="bg-secondary/50 dark:bg-slate-800/50 p-4 rounded-xl">
-                    <p className="text-sm text-muted-foreground dark:text-slate-400">Đã cấp</p>
-                    <p className="text-foreground dark:text-white font-medium">{selectedTemplate.issuedCount} chứng chỉ</p>
+                    <p className="text-sm text-muted-foreground dark:text-slate-400">{t("teacher_cert_issued", "Đã cấp")}</p>
+                    <p className="text-foreground dark:text-white font-medium">{selectedTemplate.issuedCount} {t("teacher_cert_unit", "chứng chỉ")}</p>
                   </div>
                 </div>
 
@@ -1051,7 +965,7 @@ export default function TeacherCertificatesPage() {
                   <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl">
                     <div className="flex items-center gap-2 text-red-500 mb-2">
                       <AlertCircle size={20} />
-                      <span className="font-medium">Lý do từ chối</span>
+                      <span className="font-medium">{t("teacher_cert_rejection_reason", "Lý do từ chối")}</span>
                     </div>
                     <p className="text-red-400">{selectedTemplate.rejectionReason}</p>
                   </div>
@@ -1067,10 +981,10 @@ export default function TeacherCertificatesPage() {
             <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-2xl w-full max-w-md p-6">
               <div className="flex items-center gap-3 text-red-500 mb-4">
                 <AlertCircle size={24} />
-                <h3 className="text-lg font-bold">Xác nhận xóa</h3>
+                <h3 className="text-lg font-bold">{t("common_confirm_delete", "Xác nhận xóa")}</h3>
               </div>
               <p className="text-muted-foreground dark:text-slate-400 mb-6">
-                Bạn có chắc chắn muốn xóa mẫu chứng chỉ "{selectedTemplate.title}"? Hành động này không thể hoàn tác.
+                {t("teacher_cert_delete_confirm", "Bạn có chắc chắn muốn xóa mẫu chứng chỉ")} "{selectedTemplate.title}"? {t("common_action_irreversible", "Hành động này không thể hoàn tác.")}
               </p>
               <div className="flex gap-3 justify-end">
                 <button
@@ -1080,7 +994,7 @@ export default function TeacherCertificatesPage() {
                   }}
                   className="px-4 py-2 border border-border dark:border-slate-700 rounded-xl hover:bg-secondary dark:hover:bg-slate-800 transition-colors"
                 >
-                  Hủy
+                  {t("common_cancel", "Hủy")}
                 </button>
                 <button
                   onClick={handleDeleteConfirm}

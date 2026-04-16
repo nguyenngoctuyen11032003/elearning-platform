@@ -5,6 +5,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { Upload, File, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface FileUploadZoneProps {
   onFilesSelected?: (files: File[]) => void
@@ -17,6 +18,7 @@ export function FileUploadZone({
   accept = ".mp4,.pdf,.pptx,.ppt",
   multiple = true,
 }: FileUploadZoneProps) {
+  const { t } = useLanguage()
   const [isDragging, setIsDragging] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
@@ -79,8 +81,8 @@ export function FileUploadZone({
         )}
       >
         <Upload className="mx-auto mb-3 text-blue-500" size={32} />
-        <p className="text-white font-semibold mb-1">Kéo và thả tệp của bạn tại đây</p>
-        <p className="text-slate-400 text-sm mb-4">hoặc nhấp để chọn</p>
+        <p className="text-white font-semibold mb-1">{t("upload_drag_drop", "Kéo và thả tệp của bạn tại đây")}</p>
+        <p className="text-slate-400 text-sm mb-4">{t("upload_or_click", "hoặc nhấp để chọn")}</p>
         <input
           type="file"
           accept={accept}
@@ -90,7 +92,7 @@ export function FileUploadZone({
           id="file-input"
         />
         <label htmlFor="file-input" className="text-blue-500 text-sm hover:underline cursor-pointer">
-          Chọn tệp
+          {t("upload_choose_file", "Chọn tệp")}
         </label>
       </motion.div>
 

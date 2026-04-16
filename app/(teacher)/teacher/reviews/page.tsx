@@ -683,7 +683,7 @@ export default function TeacherReviewsPage() {
                         onClick={() => setIsReplying(true)}
                         className="px-4 py-2.5 rounded-lg font-semibold text-sm border border-slate-300 dark:border-slate-600 text-foreground dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
                       >
-                        ✏️ Chỉnh sửa
+                        ✏️ {t("common_edit", "Chỉnh sửa")}
                       </button>
                     )}
                   </div>
@@ -692,7 +692,7 @@ export default function TeacherReviewsPage() {
                     <textarea
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
-                      placeholder="Nhập phản hồi của bạn..."
+                      placeholder={t("tch_rev_reply_placeholder", "Nhập phản hồi của bạn...")}
                       className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-foreground dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                       rows={4}
                     />
@@ -704,13 +704,13 @@ export default function TeacherReviewsPage() {
                         }}
                         className="px-4 py-2 rounded-lg font-medium border border-slate-300 dark:border-slate-600 text-foreground dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
                       >
-                        Hủy
+                        {t("common_cancel", "Hủy")}
                       </button>
                       <button
                         onClick={() => handleReply(selectedReview.id)}
                         className="px-6 py-2 rounded-lg font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-all active:scale-95 flex items-center gap-2"
                       >
-                        <Send size={16} /> Gửi
+                        <Send size={16} /> {t("common_send", "Gửi")}
                       </button>
                     </div>
                   </div>

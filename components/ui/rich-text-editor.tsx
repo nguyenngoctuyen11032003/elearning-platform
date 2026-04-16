@@ -29,6 +29,7 @@ import {
   Heading3,
 } from "lucide-react"
 import { useCallback, useEffect } from "react"
+import { useLanguage } from "@/lib/i18n/language-context"
 
 interface RichTextEditorProps {
   content: string
@@ -64,6 +65,7 @@ const MenuButton = ({ onClick, isActive, disabled, children, title }: MenuButton
 )
 
 const MenuBar = ({ editor }: { editor: Editor | null }) => {
+  const { t } = useLanguage()
   const setLink = useCallback(() => {
     if (!editor) return
     const previousUrl = editor.getAttributes("link").href
@@ -87,28 +89,28 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         <MenuButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={editor.isActive("bold")}
-          title="In đậm (Ctrl+B)"
+          title={t("rte_bold", "Bold (Ctrl+B)")}
         >
           <Bold size={16} />
         </MenuButton>
         <MenuButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
           isActive={editor.isActive("italic")}
-          title="In nghiêng (Ctrl+I)"
+          title={t("rte_italic", "Italic (Ctrl+I)")}
         >
           <Italic size={16} />
         </MenuButton>
         <MenuButton
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           isActive={editor.isActive("underline")}
-          title="Gạch chân (Ctrl+U)"
+          title={t("rte_underline", "Underline (Ctrl+U)")}
         >
           <UnderlineIcon size={16} />
         </MenuButton>
         <MenuButton
           onClick={() => editor.chain().focus().toggleStrike().run()}
           isActive={editor.isActive("strike")}
-          title="Gạch ngang"
+          title={t("rte_strike", "Strikethrough")}
         >
           <Strikethrough size={16} />
         </MenuButton>
@@ -158,21 +160,21 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         <MenuButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           isActive={editor.isActive("bulletList")}
-          title="Danh sách"
+          title={t("rte_bullet_list", "Bullet list")}
         >
           <List size={16} />
         </MenuButton>
         <MenuButton
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           isActive={editor.isActive("orderedList")}
-          title="Danh sách số"
+          title={t("rte_ordered_list", "Numbered list")}
         >
           <ListOrdered size={16} />
         </MenuButton>
         <MenuButton
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           isActive={editor.isActive("blockquote")}
-          title="Trích dẫn"
+          title={t("rte_quote", "Quote")}
         >
           <Quote size={16} />
         </MenuButton>
@@ -183,28 +185,28 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         <MenuButton
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
           isActive={editor.isActive({ textAlign: "left" })}
-          title="Căn trái"
+          title={t("rte_align_left", "Align left")}
         >
           <AlignLeft size={16} />
         </MenuButton>
         <MenuButton
           onClick={() => editor.chain().focus().setTextAlign("center").run()}
           isActive={editor.isActive({ textAlign: "center" })}
-          title="Căn giữa"
+          title={t("rte_align_center", "Align center")}
         >
           <AlignCenter size={16} />
         </MenuButton>
         <MenuButton
           onClick={() => editor.chain().focus().setTextAlign("right").run()}
           isActive={editor.isActive({ textAlign: "right" })}
-          title="Căn phải"
+          title={t("rte_align_right", "Align right")}
         >
           <AlignRight size={16} />
         </MenuButton>
         <MenuButton
           onClick={() => editor.chain().focus().setTextAlign("justify").run()}
           isActive={editor.isActive({ textAlign: "justify" })}
-          title="Căn đều"
+          title={t("rte_align_justify", "Justify")}
         >
           <AlignJustify size={16} />
         </MenuButton>
@@ -215,7 +217,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         <MenuButton
           onClick={setLink}
           isActive={editor.isActive("link")}
-          title="Chèn liên kết"
+          title={t("rte_insert_link", "Insert link")}
         >
           <LinkIcon size={16} />
         </MenuButton>
@@ -226,14 +228,14 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         <MenuButton
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
-          title="Hoàn tác (Ctrl+Z)"
+          title={t("rte_undo", "Undo (Ctrl+Z)")}
         >
           <Undo size={16} />
         </MenuButton>
         <MenuButton
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
-          title="Làm lại (Ctrl+Y)"
+          title={t("rte_redo", "Redo (Ctrl+Y)")}
         >
           <Redo size={16} />
         </MenuButton>
@@ -245,11 +247,14 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
 export function RichTextEditor({
   content,
   onChange,
-  placeholder = "Nhập nội dung...",
+  placeholder,
   className = "",
   editable = true,
   minHeight = "200px",
 }: RichTextEditorProps) {
+  const { t } = useLanguage()
+  const resolvedPlaceholder = placeholder || t("rte_placeholder", "Enter content...")
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -266,7 +271,7 @@ export function RichTextEditor({
         },
       }),
       Placeholder.configure({
-        placeholder,
+        placeholder: resolvedPlaceholder,
       }),
       TextAlign.configure({
         types: ["heading", "paragraph"],

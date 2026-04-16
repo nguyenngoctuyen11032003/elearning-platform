@@ -190,11 +190,13 @@ function ResetPasswordContent() {
 }
 
 export function ResetPasswordForm() {
+  const { t } = useLanguage()
+
   return (
     <Suspense fallback={
       <div className="text-center">
         <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-muted-foreground dark:text-slate-400">Đang tải...</p>
+        <p className="text-muted-foreground dark:text-slate-400">{t("common_loading", "Đang tải...")}</p>
       </div>
     }>
       <ResetPasswordContent />

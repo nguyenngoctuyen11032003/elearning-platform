@@ -406,7 +406,7 @@ export default function TeacherExamsPage() {
     const candidates = variants.filter((exam) => ["draft", "rejected"].includes(String(exam.status || "")))
 
     if (candidates.length === 0) {
-      toast.info("Không có đề nào cần gửi duyệt")
+      toast.info(t("te_no_exam_to_submit", "Không có đề nào cần gửi duyệt"))
       return
     }
 
@@ -424,16 +424,16 @@ export default function TeacherExamsPage() {
       const failCount = results.length - successCount
 
       if (successCount > 0) {
-        toast.success(`Đã gửi duyệt ${successCount} đề trong ngân hàng`) 
+        toast.success(t("te_submit_group_success", `Đã gửi duyệt ${successCount} đề trong ngân hàng`))
       }
       if (failCount > 0) {
-        toast.warning(`${failCount} đề gửi duyệt thất bại, vui lòng kiểm tra lại`) 
+        toast.warning(t("te_submit_group_failed_count", `${failCount} đề gửi duyệt thất bại, vui lòng kiểm tra lại`))
       }
 
       await fetchExams()
     } catch (error) {
       console.error("Error submitting group for approval:", error)
-      toast.error("Gửi duyệt ngân hàng đề thất bại")
+      toast.error(t("te_submit_group_failed", "Gửi duyệt ngân hàng đề thất bại"))
     }
   }
 
@@ -593,11 +593,11 @@ export default function TeacherExamsPage() {
                       setExpandedGroups((prev) => ({ ...prev, [group.key]: !(prev[group.key] ?? false) }))
                     }}
                     className="flex-1 text-left"
-                    aria-label={isExpanded ? "Thu gọn cụm đề" : "Mở rộng cụm đề"}
+                    aria-label={isExpanded ? t("te_collapse_group", "Thu gọn cụm đề") : t("te_expand_group", "Mở rộng cụm đề")}
                   >
                     <h3 className="text-xl font-semibold text-foreground dark:text-white">{group.title}</h3>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">
-                      {group.variants.length} {group.variants.length > 1 ? "type" : "đề"} • {totalQuestions} {t("te_questions", "câu hỏi")}
+                      {group.variants.length} {group.variants.length > 1 ? "type" : t("te_exam_unit", "đề")} • {totalQuestions} {t("te_questions", "câu hỏi")}
                     </p>
                     <p className="text-sm text-muted-foreground dark:text-slate-400 mt-1">
                       {t("te_status_approved", "Đã duyệt")}: {approvedCount} • {t("te_unapproved", "Chưa duyệt")}: {unapprovedCount}
@@ -610,9 +610,9 @@ export default function TeacherExamsPage() {
                         submitGroupForApproval(group.variants)
                       }}
                       className="px-4 h-9 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 border border-blue-400 text-white hover:from-blue-600 hover:to-blue-700 hover:shadow-lg hover:shadow-blue-500/50 text-sm font-medium inline-flex items-center gap-2 transition-all duration-300 transform hover:scale-105"
-                      title="Gửi duyệt toàn bộ đề con trong ngân hàng này"
+                      title={t("te_submit_group_title", "Gửi duyệt toàn bộ đề con trong ngân hàng này")}
                     >
-                      <Send size={14} /> Gửi duyệt
+                      <Send size={14} /> {t("te_submit_group", "Gửi duyệt")}
                     </button>
                     <span className="p-2 rounded-lg text-muted-foreground dark:text-slate-300">
                       {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
