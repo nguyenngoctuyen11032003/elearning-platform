@@ -594,7 +594,7 @@ const [loading, setLoading] = useState(true);
                   href="/signup"
                   className="inline-flex items-center justify-center gap-2 bg-white text-primary hover:bg-slate-100 px-8 py-4 rounded-full font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:scale-[1.02] shadow-[0_10px_24px_rgba(255,255,255,0.28)] ring-1 ring-white/80"
                 >
-                  <span>{t("about_cta_signup", "Đăng ký học viên")}</span>
+                  <span>{t("about_cta_signup", "Đăng ký")}</span>
                   <Sparkles size={18} />
                 </Link>
                 <Link
