@@ -31,3 +31,12 @@ yarn-error.log*
 next-env.d.ts
 # Added when preparing repository for GitHub
 .DS_Store
+
+# Uploaded or exported data files
+public/image/*.xlsx
+public/image/*.xls
+public/image/*.docx
+public/image/*.doc
+public/image/*.pdf
+public/image/*.csv
+.history/
